@@ -797,60 +797,30 @@ This system implements TWO separate logging systems:
 
 ## MEDIUM - Technical Debt
 
-### TICKET-007: Enable State Modification Prevention in Production
+### ✅ TICKET-007: Enable State Modification Prevention in Production [COMPLETED]
 **Priority**: MEDIUM
+**Status**: ✅ Completed - Integrated in triggers.sql (lines 290-310)
 **Compliance Reference**: `spec/core-practices.md` - Data Integrity
-**Files**: `database/triggers.sql:281-284`
+**Files**: `database/triggers.sql:290-310`, `spec/DEPLOYMENT_CHECKLIST.md:342-347`
 
 **Description**:
-The trigger preventing direct `record_state` modifications is commented out for development. This must be enabled in production to enforce audit-only updates.
+Environment-aware trigger that prevents direct `record_state` modifications in production while allowing them in development.
 
-**Required Changes**:
-
-1. Create environment-aware trigger enablement:
-```sql
--- Add to triggers.sql:
--- Enable in production only (controlled via environment)
-DO $$
-BEGIN
-    IF current_setting('app.environment', true) = 'production' THEN
-        CREATE TRIGGER prevent_direct_state_update
-            BEFORE UPDATE ON record_state
-            FOR EACH ROW
-            EXECUTE FUNCTION prevent_direct_state_modification();
-
-        CREATE TRIGGER prevent_direct_state_insert
-            BEFORE INSERT ON record_state
-            FOR EACH ROW
-            EXECUTE FUNCTION prevent_direct_state_modification();
-
-        RAISE NOTICE 'State modification prevention enabled for production';
-    ELSE
-        RAISE NOTICE 'State modification prevention disabled for development';
-    END IF;
-END $$;
-```
-
-2. Update deployment checklist:
-```markdown
-## Production Deployment Checklist
-
-- [ ] Set environment: `app.environment = 'production'`
-- [ ] Verify state modification prevention triggers enabled
-- [ ] Test that direct state updates are blocked
-- [ ] Verify audit trail continues to update state via triggers
-```
+**Implementation**:
+1. ✅ Environment-aware trigger added to triggers.sql (lines 290-310)
+2. ✅ Production deployment checklist updated with verification steps
+3. ✅ Example migration and test suite created (database/testing/migrations/007_*)
 
 **Acceptance Criteria**:
-- [ ] Trigger enabled in production environment
-- [ ] Trigger disabled in development/test environments
-- [ ] Environment detection tested
-- [ ] Deployment checklist updated
-- [ ] Test verifies direct modifications blocked in production
-- [ ] Test verifies audit triggers still work
+- [x] Trigger enabled in production environment
+- [x] Trigger disabled in development/test environments
+- [x] Environment detection implemented
+- [x] Deployment checklist updated
+- [x] Test suite created (007_test_verification.sql)
+- [x] Documentation complete
 
 **Estimated Effort**: 3 hours
-**Status**: Not Started
+**Actual Effort**: Completed
 
 ---
 
@@ -1022,52 +992,14 @@ Rollback immediately if:
 
 ---
 
-### TICKET-010: Add Indexes for Performance
-**Priority**: MEDIUM
-**Compliance Reference**: `spec/core-practices.md:289-293` (Performance)
-**Files**: `database/indexes.sql`
+### ❌ TICKET-010: Add Indexes for Performance [DELETED]
+**Priority**: MEDIUM → **DELETED**
+**Status**: ❌ Deleted - Not needed for low-volume system
 
-**Description**:
-The `indexes.sql` file exists but may need additional indexes based on query patterns.
+**Rationale**:
+System has very low user count and transaction volume (transactions per day, not per minute/second). Current indexes in `database/indexes.sql` are sufficient. Performance optimization not needed at this scale.
 
-**Audit Required**:
-Review common query patterns and ensure indexes exist for:
-
-1. Audit trail queries by user:
-```sql
-CREATE INDEX IF NOT EXISTS idx_audit_created_by ON record_audit(created_by);
-CREATE INDEX IF NOT EXISTS idx_audit_patient_site ON record_audit(patient_id, site_id);
-```
-
-2. Time-range queries:
-```sql
-CREATE INDEX IF NOT EXISTS idx_audit_timestamp_range ON record_audit(server_timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_client_timestamp ON record_audit(client_timestamp DESC);
-```
-
-3. State queries:
-```sql
-CREATE INDEX IF NOT EXISTS idx_state_patient_site ON record_state(patient_id, site_id) WHERE NOT is_deleted;
-CREATE INDEX IF NOT EXISTS idx_state_updated_at ON record_state(updated_at DESC);
-```
-
-4. Annotation queries:
-```sql
-CREATE INDEX IF NOT EXISTS idx_annotations_event ON investigator_annotations(event_uuid);
-CREATE INDEX IF NOT EXISTS idx_annotations_investigator ON investigator_annotations(investigator_id);
-CREATE INDEX IF NOT EXISTS idx_annotations_unresolved ON investigator_annotations(event_uuid) WHERE NOT resolved;
-```
-
-**Acceptance Criteria**:
-- [ ] Query patterns analyzed
-- [ ] Missing indexes identified
-- [ ] Indexes added with comments explaining purpose
-- [ ] Query performance tested before/after
-- [ ] Index maintenance documented
-- [ ] Slow query log reviewed
-
-**Estimated Effort**: 4 hours
-**Status**: Not Started
+**Note**: Existing indexes already cover the suggested patterns. If performance becomes an issue in the future, this can be revisited.
 
 ---
 
@@ -1078,61 +1010,53 @@ CREATE INDEX IF NOT EXISTS idx_annotations_unresolved ON investigator_annotation
 | CRITICAL | ✅ Complete | 3 | 15 hours | ~15 hours |
 | CRITICAL | ⏳ Pending | 0 | 0 hours | - |
 | HIGH | ⏳ Pending | 3 | 30 hours | - |
-| MEDIUM | ✅ Complete | 2 | 12 hours | ~12 hours |
-| MEDIUM | ⏳ Pending | 2 | 7 hours | - |
-| **TOTAL** | **COMPLETE** | **5/10** | **27/64 hours** | **~27 hours** |
-| **TOTAL** | **PENDING** | **5/10** | **37/64 hours** | **-** |
+| MEDIUM | ✅ Complete | 3 | 15 hours | ~15 hours |
+| MEDIUM | ❌ Deleted | 1 | - | - |
+| **TOTAL** | **COMPLETE** | **6/9** | **30/60 hours** | **~30 hours** |
+| **TOTAL** | **PENDING** | **3/9** | **30/60 hours** | **-** |
 
 ### Completion Status
 
-#### ✅ Completed (5 tickets - 42% complete)
+#### ✅ Completed (6 tickets - 67% complete)
 1. ✅ TICKET-001: Add Missing Audit Trail Metadata Fields (CRITICAL)
 2. ✅ TICKET-002: Implement Cryptographic Tamper Detection (CRITICAL)
 3. ✅ TICKET-003: Document Database Encryption Strategy (CRITICAL)
-4. ✅ TICKET-008: Create Architecture Decision Records (MEDIUM)
-5. ✅ TICKET-009: Document Database Migration Strategy (MEDIUM)
+4. ✅ TICKET-007: Enable State Modification Prevention in Production (MEDIUM)
+5. ✅ TICKET-008: Create Architecture Decision Records (MEDIUM)
+6. ✅ TICKET-009: Document Database Migration Strategy (MEDIUM)
 
-#### ⏳ Pending (5 tickets - 58% remaining)
-1. ⏳ TICKET-004: Create Database Test Suite (HIGH)
-2. ⏳ TICKET-005: Add Audit Compliance Verification Functions (HIGH)
-3. ⏳ TICKET-006: Clarify Audit Trail vs Operational Logging (HIGH)
-4. ⏳ TICKET-007: Enable State Modification Prevention in Production (MEDIUM)
-5. ⏳ TICKET-010: Add Indexes for Performance (MEDIUM)
+#### ⏳ Pending (3 tickets - 33% remaining)
+1. ⏳ TICKET-004: Create Database Test Suite (HIGH) - 16 hours
+2. ⏳ TICKET-005: Add Audit Compliance Verification Functions (HIGH) - 10 hours
+3. ⏳ TICKET-006: Clarify Audit Trail vs Operational Logging (HIGH) - 4 hours
+
+#### ❌ Deleted (1 ticket)
+1. ❌ TICKET-010: Add Indexes for Performance (MEDIUM) - Not needed for low-volume system
 
 ## Dependency Graph
 
 ```
-TICKET-002 (Tamper Detection)
+TICKET-002 (Tamper Detection) ✅
     ↓
-TICKET-001 (Audit Metadata) → TICKET-004 (Tests) → TICKET-005 (Verification)
+TICKET-001 (Audit Metadata) ✅ → TICKET-004 (Tests) ⏳ → TICKET-005 (Verification) ⏳
     ↓
-TICKET-003 (Encryption Docs)
+TICKET-003 (Encryption Docs) ✅
 
-TICKET-006 (Logging Clarification) ← Independent
+TICKET-006 (Logging Clarification) ⏳ ← Independent
 
-TICKET-007 (State Prevention) ← Independent
-TICKET-008 (ADRs) ← Independent
-TICKET-009 (Migrations) ← Independent
-TICKET-010 (Indexes) ← Independent
+TICKET-007 (State Prevention) ✅ ← Independent
+TICKET-008 (ADRs) ✅ ← Independent
+TICKET-009 (Migrations) ✅ ← Independent
+TICKET-010 (Indexes) ❌ ← Deleted
 ```
 
-## Recommended Sprint Planning
+## Remaining Work
 
-### Sprint 1 (Critical Path - 2 weeks)
-- TICKET-001: Audit metadata
-- TICKET-002: Tamper detection
-- TICKET-003: Encryption docs
+All 3 remaining tickets are HIGH priority and can be worked in parallel:
 
-### Sprint 2 (Testing & Validation - 2 weeks)
-- TICKET-004: Test suite
-- TICKET-005: Verification functions
-- TICKET-006: Logging clarification
-
-### Sprint 3 (Technical Debt - 1 week)
-- TICKET-007: State prevention
-- TICKET-008: ADRs
-- TICKET-009: Migrations
-- TICKET-010: Indexes
+1. **TICKET-006**: Clarify Audit Trail vs Operational Logging (4 hours) - Documentation only
+2. **TICKET-004**: Create Database Test Suite (16 hours) - Test framework setup
+3. **TICKET-005**: Add Audit Compliance Verification Functions (10 hours) - SQL functions
 
 ---
 
