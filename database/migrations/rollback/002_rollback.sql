@@ -1,37 +1,98 @@
 -- =====================================================
--- Rollback: 002_add_tamper_detection
--- Description: Remove tamper detection functions and triggers
--- Ticket: TICKET-002
--- Date: 2025-10-14
+-- Rollback: 002 - Add Audit Metadata Fields
 -- =====================================================
 
--- WARNING: This removes tamper detection capabilities
--- Ensure this is necessary before proceeding
+-- This rollback removes the audit metadata fields added in migration 002.
+-- This is safe to run as these fields are additive only.
 
--- Drop the view
-DROP VIEW IF EXISTS tamper_detection_dashboard;
+BEGIN;
 
--- Drop the trigger
-DROP TRIGGER IF EXISTS compute_audit_hash_trigger ON record_audit;
-
--- Drop the functions
-DROP FUNCTION IF EXISTS generate_integrity_report;
-DROP FUNCTION IF EXISTS check_audit_sequence_gaps();
-DROP FUNCTION IF EXISTS detect_tampered_records;
-DROP FUNCTION IF EXISTS verify_audit_hashes_batch;
-DROP FUNCTION IF EXISTS validate_audit_chain;
-DROP FUNCTION IF EXISTS verify_audit_hash;
-DROP FUNCTION IF EXISTS compute_audit_hash();
-
--- Verify rollback
+-- Log rollback start
 DO $$
 BEGIN
+    RAISE NOTICE '================================================';
+    RAISE NOTICE 'Starting rollback 002: Remove Audit Metadata Fields';
+    RAISE NOTICE 'Timestamp: %', now();
+    RAISE NOTICE '================================================';
+END $$;
+
+-- Drop indexes first
+DROP INDEX IF EXISTS idx_audit_ip_address;
+DROP INDEX IF EXISTS idx_audit_session_id;
+
+RAISE NOTICE 'Indexes dropped successfully';
+
+-- Drop columns
+ALTER TABLE record_audit DROP COLUMN IF EXISTS device_info;
+ALTER TABLE record_audit DROP COLUMN IF EXISTS ip_address;
+ALTER TABLE record_audit DROP COLUMN IF EXISTS session_id;
+
+RAISE NOTICE 'Columns dropped successfully';
+
+-- Verify rollback success
+DO $$
+BEGIN
+    -- Check device_info removed
     IF EXISTS (
-        SELECT 1 FROM pg_trigger
-        WHERE tgname = 'compute_audit_hash_trigger'
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'record_audit'
+        AND column_name = 'device_info'
     ) THEN
-        RAISE EXCEPTION 'Rollback failed: Trigger still exists';
+        RAISE EXCEPTION 'Rollback failed: device_info column still exists';
     END IF;
 
-    RAISE NOTICE 'Rollback 002_add_tamper_detection completed successfully';
+    -- Check ip_address removed
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'record_audit'
+        AND column_name = 'ip_address'
+    ) THEN
+        RAISE EXCEPTION 'Rollback failed: ip_address column still exists';
+    END IF;
+
+    -- Check session_id removed
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'record_audit'
+        AND column_name = 'session_id'
+    ) THEN
+        RAISE EXCEPTION 'Rollback failed: session_id column still exists';
+    END IF;
+
+    -- Check indexes removed
+    IF EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'idx_audit_session_id'
+    ) THEN
+        RAISE EXCEPTION 'Rollback failed: idx_audit_session_id index still exists';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'idx_audit_ip_address'
+    ) THEN
+        RAISE EXCEPTION 'Rollback failed: idx_audit_ip_address index still exists';
+    END IF;
+
+    RAISE NOTICE 'All verification checks passed';
+END $$;
+
+COMMIT;
+
+-- Post-rollback notes
+DO $$
+BEGIN
+    RAISE NOTICE '================================================';
+    RAISE NOTICE 'Rollback 002: Remove Audit Metadata Fields - COMPLETED';
+    RAISE NOTICE 'Timestamp: %', now();
+    RAISE NOTICE '';
+    RAISE NOTICE 'Changes reverted:';
+    RAISE NOTICE '  - Removed column: device_info';
+    RAISE NOTICE '  - Removed column: ip_address';
+    RAISE NOTICE '  - Removed column: session_id';
+    RAISE NOTICE '  - Removed index: idx_audit_session_id';
+    RAISE NOTICE '  - Removed index: idx_audit_ip_address';
+    RAISE NOTICE '';
+    RAISE NOTICE 'Database is now in state after migration 001';
+    RAISE NOTICE '================================================';
 END $$;
