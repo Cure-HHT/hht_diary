@@ -276,12 +276,38 @@ CREATE TRIGGER sync_state_from_audit
     FOR EACH ROW
     EXECUTE FUNCTION update_record_state_from_audit_v2();
 
--- Apply the prevention trigger (optional - can be enabled for stricter enforcement)
--- Commented out initially to allow for easier development/testing
--- CREATE TRIGGER prevent_direct_state_update
---     BEFORE UPDATE ON record_state
---     FOR EACH ROW
---     EXECUTE FUNCTION prevent_direct_state_modification();
+-- =====================================================
+-- TRIGGER: Prevent Direct State Modifications (Production Only)
+-- =====================================================
+--
+-- This trigger enforces that record_state can only be modified
+-- through the audit trail system. It's disabled in development
+-- for testing convenience but MUST be enabled in production.
+--
+-- TICKET-007: Environment-aware state modification prevention
+--
+
+DO $$
+BEGIN
+    -- Check if we're in production environment
+    IF current_setting('app.environment', true) = 'production' THEN
+        -- Enable state modification prevention in production
+        CREATE TRIGGER prevent_direct_state_update
+            BEFORE UPDATE ON record_state
+            FOR EACH ROW
+            EXECUTE FUNCTION prevent_direct_state_modification();
+
+        CREATE TRIGGER prevent_direct_state_insert
+            BEFORE INSERT ON record_state
+            FOR EACH ROW
+            EXECUTE FUNCTION prevent_direct_state_modification();
+
+        RAISE NOTICE 'Production mode: State modification prevention ENABLED';
+    ELSE
+        RAISE NOTICE 'Development mode: State modification prevention DISABLED';
+        RAISE NOTICE 'Direct state modifications are allowed for testing';
+    END IF;
+END $$;
 
 -- =====================================================
 -- TRIGGER: Auto-resolve conflicts when marked

@@ -339,6 +339,13 @@ SELECT cron.schedule(
 - [ ] Support plan ready
 - [ ] Rollback plan documented
 
+### Production Environment Configuration (TICKET-007)
+- [ ] Set environment: `ALTER DATABASE SET app.environment = 'production'`
+- [ ] Verify state modification triggers enabled: `SELECT COUNT(*) FROM pg_trigger WHERE tgname LIKE 'prevent_direct_state%'` (should be 2)
+- [ ] Test that direct state updates are blocked (should fail with error)
+- [ ] Verify audit trail continues to update state via triggers
+- [ ] Document environment setting in production runbook
+
 ### Launch
 - [ ] Enable production database
 - [ ] Migrate initial data (if any)
@@ -365,6 +372,7 @@ SELECT cron.schedule(
 - [ ] Check unresolved conflicts
 - [ ] Monitor system health
 - [ ] Review security alerts
+- [ ] Verify state protection triggers enabled (production): `SELECT COUNT(*) FROM pg_trigger WHERE tgname LIKE 'prevent_direct_state%'`
 
 ### Weekly
 - [ ] Refresh materialized views (if not automated)
