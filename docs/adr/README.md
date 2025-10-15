@@ -43,6 +43,7 @@ What other options did we consider and why were they rejected?
 | [002](./ADR-002-jsonb-flexible-schema.md) | JSONB for Flexible Diary Schema | Accepted | 2025-10-14 |
 | [003](./ADR-003-row-level-security.md) | Row-Level Security for Multi-Tenancy | Accepted | 2025-10-14 |
 | [004](./ADR-004-investigator-annotations.md) | Separation of Investigator Annotations | Accepted | 2025-10-14 |
+| [005](./ADR-005-database-migration-strategy.md) | Database Migration Strategy | Accepted | 2025-10-14 |
 
 ## When to Create an ADR
 
