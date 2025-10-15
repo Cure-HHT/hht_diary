@@ -43,6 +43,11 @@ CREATE INDEX idx_audit_role_operation ON record_audit(role, operation);
 CREATE INDEX idx_audit_conflicts ON record_audit(event_uuid)
     WHERE conflict_resolved = false;
 
+-- Indexes for new ALCOA+ compliance fields (TICKET-001)
+CREATE INDEX idx_audit_session_id ON record_audit(session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX idx_audit_ip_address ON record_audit(ip_address) WHERE ip_address IS NOT NULL;
+CREATE INDEX idx_audit_device_info_gin ON record_audit USING GIN (device_info) WHERE device_info IS NOT NULL;
+
 -- =====================================================
 -- RECORD_STATE TABLE INDEXES
 -- =====================================================

@@ -56,6 +56,9 @@ CREATE TABLE record_audit (
     conflict_resolved BOOLEAN DEFAULT false,
     conflict_metadata JSONB,
     signature_hash TEXT,
+    device_info JSONB,
+    ip_address INET,
+    session_id TEXT,
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
@@ -68,6 +71,9 @@ COMMENT ON COLUMN record_audit.audit_id IS 'Auto-incrementing audit ID establish
 COMMENT ON COLUMN record_audit.event_uuid IS 'Client-generated UUID for the diary event';
 COMMENT ON COLUMN record_audit.parent_audit_id IS 'Links to previous version for change tracking';
 COMMENT ON COLUMN record_audit.signature_hash IS 'Cryptographic signature for 21 CFR Part 11 compliance';
+COMMENT ON COLUMN record_audit.device_info IS 'Device and platform information for ALCOA+ compliance (device_type, os, browser, app_version)';
+COMMENT ON COLUMN record_audit.ip_address IS 'Source IP address for compliance tracking and security monitoring';
+COMMENT ON COLUMN record_audit.session_id IS 'Session identifier for audit correlation and security tracking';
 
 -- =====================================================
 -- STATE TABLE (Current View)
