@@ -51,12 +51,20 @@
 \ir indexes.sql
 
 -- =====================================================
--- STEP 5.5: Tamper Detection (TICKET-002)
+-- STEP 5.5: Tamper Detection
 -- =====================================================
 
 \echo 'Step 5.5: Setting up cryptographic tamper detection...'
 
 \ir tamper_detection.sql
+
+-- =====================================================
+-- STEP 5.6: Authentication Audit Logging
+-- =====================================================
+
+\echo 'Step 5.6: Setting up authentication audit logging...'
+
+\ir auth_audit.sql
 
 -- =====================================================
 -- STEP 6: Validation and Health Checks
@@ -80,7 +88,8 @@ DECLARE
         'admin_action_log',
         'user_profiles',
         'role_change_log',
-        'user_sessions'
+        'user_sessions',
+        'auth_audit_log'
     ];
     missing_tables TEXT[];
 BEGIN

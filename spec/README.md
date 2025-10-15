@@ -57,19 +57,26 @@ PostgreSQL database architecture for FDA 21 CFR Part 11 compliant clinical trial
 
 2. **Review the database specification**
    ```bash
-   cat db-spec.md
+   cat spec/db-spec.md
    ```
 
-3. **Deploy to Supabase** (see detailed instructions below)
+3. **Initialize the database**
+   ```bash
+   # PostgreSQL
+   psql -U postgres -d your_database -f database/init.sql
+
+   # Or use Supabase SQL Editor (see below)
+   ```
 
 4. **Verify deployment**
    ```sql
    SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';
+   -- Expected: 13 tables
    ```
 
 5. **Load seed data** (optional, for testing)
    ```bash
-   psql -h your-supabase-host -U postgres -d postgres -f seed_data.sql
+   psql -U postgres -d your_database -f database/seed_data.sql
    ```
 
 ---
@@ -86,39 +93,21 @@ PostgreSQL database architecture for FDA 21 CFR Part 11 compliant clinical trial
    - Navigate to SQL Editor in the left sidebar
    - Click "New query"
 
-3. **Run Scripts in Order**
+3. **Run Initialization Script**
 
-   Execute each script in sequence:
-
-   ```sql
-   -- Step 1: Schema
-   -- Copy and paste contents of schema.sql
-   -- Click "Run"
-   ```
+   **Note:** Supabase SQL Editor doesn't support `\ir` include directives, so you'll need to copy/paste each file individually in order:
 
    ```sql
-   -- Step 2: Triggers
-   -- Copy and paste contents of triggers.sql
-   -- Click "Run"
+   -- Step 1: Copy and paste database/schema.sql → Run
+   -- Step 2: Copy and paste database/triggers.sql → Run
+   -- Step 3: Copy and paste database/roles.sql → Run
+   -- Step 4: Copy and paste database/rls_policies.sql → Run
+   -- Step 5: Copy and paste database/indexes.sql → Run
+   -- Step 6: Copy and paste database/tamper_detection.sql → Run
+   -- Step 7: Copy and paste database/auth_audit.sql → Run
    ```
 
-   ```sql
-   -- Step 3: Roles
-   -- Copy and paste contents of roles.sql
-   -- Click "Run"
-   ```
-
-   ```sql
-   -- Step 4: RLS Policies
-   -- Copy and paste contents of rls_policies.sql
-   -- Click "Run"
-   ```
-
-   ```sql
-   -- Step 5: Indexes
-   -- Copy and paste contents of indexes.sql
-   -- Click "Run"
-   ```
+   **Or use Option 2** (psql) to run `database/init.sql` automatically.
 
 4. **Verify Deployment**
    ```sql
