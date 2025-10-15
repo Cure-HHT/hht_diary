@@ -67,6 +67,14 @@
 \ir auth_audit.sql
 
 -- =====================================================
+-- STEP 5.7: Compliance Verification Functions
+-- =====================================================
+
+\echo 'Step 5.7: Creating compliance verification functions...'
+
+\ir compliance_verification.sql
+
+-- =====================================================
 -- STEP 6: Validation and Health Checks
 -- =====================================================
 
