@@ -51,6 +51,14 @@
 \ir indexes.sql
 
 -- =====================================================
+-- STEP 5.5: Tamper Detection (TICKET-002)
+-- =====================================================
+
+\echo 'Step 5.5: Setting up cryptographic tamper detection...'
+
+\ir tamper_detection.sql
+
+-- =====================================================
 -- STEP 6: Validation and Health Checks
 -- =====================================================
 
@@ -126,8 +134,8 @@ BEGIN
     FROM pg_trigger
     WHERE NOT tgisinternal;
 
-    IF trigger_count < 5 THEN
-        RAISE WARNING 'Only % triggers found - expected at least 5', trigger_count;
+    IF trigger_count < 6 THEN
+        RAISE WARNING 'Only % triggers found - expected at least 6', trigger_count;
     ELSE
         RAISE NOTICE '% triggers created successfully', trigger_count;
     END IF;
