@@ -41,6 +41,36 @@
 -- See spec/SECURITY.md for security controls and compliance details
 --
 -- =====================================================
+-- AUDIT TRAIL vs OPERATIONAL LOGGING
+-- =====================================================
+--
+-- This system uses TWO SEPARATE logging systems. Never confuse them.
+--
+-- AUDIT TRAIL (Compliance - FDA 21 CFR Part 11):
+--   Purpose: Regulatory compliance, data integrity verification, legal evidence
+--   Table: record_audit (this database)
+--   Retention: PERMANENT (7+ years minimum for FDA compliance)
+--   Content: All data modifications with full metadata (who, what, when, why)
+--   Immutability: Enforced by database rules (no updates/deletes allowed)
+--   Audience: Regulators, auditors, compliance officers
+--
+-- OPERATIONAL LOGGING (Debugging & Performance):
+--   Purpose: System monitoring, troubleshooting, performance analysis
+--   Location: Application-layer logging system (NOT this database)
+--   Retention: 30-90 days (configurable, rotated out)
+--   Content: System events, errors, performance metrics, API calls
+--   Format: Structured JSON logs with correlation IDs
+--   Audience: Developers, operations team
+--
+-- CRITICAL RULES:
+-- ❌ NEVER log operational/debugging info in audit trail (change_reason field)
+-- ❌ NEVER log PII/PHI in operational logs (use user IDs only)
+-- ❌ NEVER use audit trail for debugging (query performance, error tracking)
+-- ❌ NEVER store operational logs in this database (use log aggregation service)
+--
+-- See spec/LOGGING_STRATEGY.md for complete documentation
+--
+-- =====================================================
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
