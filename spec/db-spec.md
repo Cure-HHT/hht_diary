@@ -273,8 +273,8 @@ CREATE POLICY admin_global_access ON record_state
 ## Data Model Summary
 
 ### Core Tables
-1. **record_audit** - Immutable event log (all changes)
-2. **record_state** - Current view (one row per diary entry)
+1. **record_audit** - Event store (immutable event log for Event Sourcing)
+2. **record_state** - Read model (current state view derived from event store)
 3. **investigator_annotations** - Notes/corrections layer
 4. **sites** - Clinical trial site information
 5. **user_site_assignments** - Patient enrollment per site
@@ -283,11 +283,11 @@ CREATE POLICY admin_global_access ON record_state
 8. **audit_conflicts** - Multi-device sync conflict tracking
 
 ### Key Fields
-- **Event UUID**: Client-generated, globally unique identifier
+- **Event UUID**: Client-generated, globally unique identifier (same across databases)
 - **Patient ID**: Links to user authentication system
 - **Site ID**: Clinical trial site for RBAC
-- **Audit ID**: Auto-incrementing, establishes order
-- **Parent Audit ID**: Links changes to previous version
+- **Audit ID**: Auto-incrementing event ID, establishes chronological order in event store
+- **Parent Audit ID**: Links to previous event for version tracking (Event Sourcing lineage)
 - **Data (JSONB)**: Flexible schema for diary events
 - **Timestamps**: Client and server, with timezone
 - **Change Reason**: Required for all modifications
@@ -303,9 +303,9 @@ CREATE POLICY admin_global_access ON record_state
 - Partial indexes for common filters (e.g., pending sync)
 
 ### Partitioning
-- Audit table partitioned by month (performance)
+- Event store (record_audit) partitioned by month (performance)
 - Old partitions archived to cold storage after 2 years
-- State table not partitioned (always small)
+- Read model (record_state) not partitioned (always small)
 
 ### Scaling
 - Read replicas for investigator portal queries

@@ -35,7 +35,7 @@ BEGIN
             EXECUTE FUNCTION prevent_direct_state_modification();
 
         RAISE NOTICE 'Production mode: State modification prevention ENABLED';
-        RAISE NOTICE 'All changes to record_state must go through record_audit table';
+        RAISE NOTICE 'All changes to record_state must go through record_event store';
     ELSE
         RAISE NOTICE 'Development mode: State modification prevention DISABLED';
         RAISE NOTICE 'Direct state modifications are allowed for testing';

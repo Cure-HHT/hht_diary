@@ -57,8 +57,8 @@ psql -U postgres -d dbtest -f init.sql
 ### `schema.sql` - Core Table Definitions
 Defines all database tables, extensions, and base helper functions:
 - Clinical trial sites
-- Immutable audit log (record_audit)
-- Current state view (record_state)
+- Event store (record_audit) - Immutable event log
+- Read model (record_state) - Current state view
 - Investigator annotations
 - Site assignments
 - Conflict tracking
@@ -76,7 +76,7 @@ Implements event sourcing pattern with automatic state synchronization:
 - Annotation auto-resolution
 
 **Triggers created:** 15+ triggers
-**Pattern:** All changes via audit table → state table updated automatically
+**Pattern:** Event Sourcing with CQRS - All changes written to event store → read model updated automatically via triggers
 
 ### `roles.sql` - User Management
 Defines user profiles, role management, and permission functions:
@@ -185,9 +185,9 @@ After running `init.sql`, the script validates:
 ## Architecture Patterns
 
 ### Event Sourcing
-- All changes recorded in immutable audit table
-- Current state derived from audit log
-- No direct state table modifications allowed
+- All changes recorded as immutable events in event store (record_audit)
+- Current state derived from event store via triggers (read model: record_state)
+- No direct read model modifications allowed - write to event store only
 
 ### Row-Level Security
 - Every table has RLS enabled
@@ -267,9 +267,9 @@ See TICKET-007 (database/testing/migrations/007_enable_state_protection.sql) for
 - Verify schema.sql loaded first
 - Check for syntax errors in triggers.sql
 
-**State table modification blocked:**
-- Expected in production mode
-- Use record_audit table for all changes
+**Read model modification blocked:**
+- Expected in production mode (Event Sourcing enforcement)
+- Write events to event store (record_audit) for all data changes
 
 ## Support
 

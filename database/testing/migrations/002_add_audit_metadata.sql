@@ -6,7 +6,7 @@
 -- =====================================================
 
 -- Purpose:
--- Add missing ALCOA+ compliance fields to record_audit table for
+-- Add missing ALCOA+ compliance fields to record_event store for
 -- FDA 21 CFR Part 11.10(e) compliance. These fields capture device
 -- information, IP addresses, and session identifiers for complete
 -- audit trail attribution.

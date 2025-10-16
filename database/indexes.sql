@@ -11,7 +11,7 @@ CREATE INDEX idx_sites_active ON sites(is_active) WHERE is_active = true;
 CREATE INDEX idx_sites_site_number ON sites(site_number);
 
 -- =====================================================
--- RECORD_AUDIT TABLE INDEXES
+-- EVENT STORE (record_audit) INDEXES
 -- =====================================================
 
 -- Primary lookup patterns
@@ -49,7 +49,7 @@ CREATE INDEX idx_audit_ip_address ON record_audit(ip_address) WHERE ip_address I
 CREATE INDEX idx_audit_device_info_gin ON record_audit USING GIN (device_info) WHERE device_info IS NOT NULL;
 
 -- =====================================================
--- RECORD_STATE TABLE INDEXES
+-- READ MODEL (record_state) INDEXES
 -- =====================================================
 
 -- Foreign key indexes
@@ -242,7 +242,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION create_audit_partition(DATE) IS 'Create monthly partition for audit table';
+COMMENT ON FUNCTION create_audit_partition(DATE) IS 'Create monthly partition for event store (record_audit) - Event Sourcing pattern supports time-based partitioning for scalability';
 
 -- Note: To enable partitioning, you would need to:
 -- 1. Recreate record_audit as a partitioned table
@@ -355,6 +355,6 @@ ALTER TABLE record_state ALTER COLUMN site_id SET STATISTICS 1000;
 -- COMMENTS
 -- =====================================================
 
-COMMENT ON INDEX idx_audit_data_gin IS 'GIN index for JSONB queries on diary data';
-COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records';
+COMMENT ON INDEX idx_audit_data_gin IS 'GIN index for JSONB queries on event store data';
+COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records in read model';
 COMMENT ON INDEX idx_annotations_unresolved IS 'Partial index for unresolved annotations requiring action';

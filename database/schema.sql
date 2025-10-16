@@ -41,18 +41,19 @@
 -- See spec/SECURITY.md for security controls and compliance details
 --
 -- =====================================================
--- AUDIT TRAIL vs OPERATIONAL LOGGING
+-- EVENT STORE vs OPERATIONAL LOGGING
 -- =====================================================
 --
 -- This system uses TWO SEPARATE logging systems. Never confuse them.
 --
--- AUDIT TRAIL (Compliance - FDA 21 CFR Part 11):
---   Purpose: Regulatory compliance, data integrity verification, legal evidence
---   Table: record_audit (this database)
+-- EVENT STORE (Event Sourcing + Compliance Audit Trail):
+--   Purpose: Source of truth for data + regulatory compliance + data integrity
+--   Table: record_audit (event store for Event Sourcing pattern)
 --   Retention: PERMANENT (7+ years minimum for FDA compliance)
---   Content: All data modifications with full metadata (who, what, when, why)
+--   Content: All data modifications as immutable events with full metadata
 --   Immutability: Enforced by database rules (no updates/deletes allowed)
---   Audience: Regulators, auditors, compliance officers
+--   Audience: Application (event replay), regulators, auditors, compliance officers
+--   Pattern: Event Sourcing - all changes captured as events, state derived
 --
 -- OPERATIONAL LOGGING (Debugging & Performance):
 --   Purpose: System monitoring, troubleshooting, performance analysis
@@ -63,10 +64,11 @@
 --   Audience: Developers, operations team
 --
 -- CRITICAL RULES:
--- ❌ NEVER log operational/debugging info in audit trail (change_reason field)
+-- ❌ NEVER log operational/debugging info in event store (change_reason field)
 -- ❌ NEVER log PII/PHI in operational logs (use user IDs only)
--- ❌ NEVER use audit trail for debugging (query performance, error tracking)
+-- ❌ NEVER use event store for debugging (query performance, error tracking)
 -- ❌ NEVER store operational logs in this database (use log aggregation service)
+-- ✅ ALWAYS write data changes to event store (record_audit), never directly to read model
 --
 -- See spec/LOGGING_STRATEGY.md for complete documentation
 --
@@ -99,10 +101,12 @@ COMMENT ON COLUMN sites.site_id IS 'Unique site identifier';
 COMMENT ON COLUMN sites.metadata IS 'Additional site-specific configuration';
 
 -- =====================================================
--- AUDIT TABLE (Immutable Event Log)
+-- EVENT STORE (Event Sourcing Pattern)
 -- =====================================================
+-- Source of truth for all diary data changes
+-- Immutable append-only event log - INSERT ONLY
 
--- Main audit table - INSERT ONLY, no updates or deletes
+-- Event store table - no updates or deletes allowed
 CREATE TABLE record_audit (
     audit_id BIGSERIAL PRIMARY KEY,
     event_uuid UUID NOT NULL,
@@ -129,24 +133,26 @@ CREATE TABLE record_audit (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
--- Prevent updates and deletes on audit table
+-- Prevent updates and deletes on event store
 CREATE RULE audit_no_update AS ON UPDATE TO record_audit DO INSTEAD NOTHING;
 CREATE RULE audit_no_delete AS ON DELETE TO record_audit DO INSTEAD NOTHING;
 
-COMMENT ON TABLE record_audit IS 'Immutable audit log - all changes recorded here (INSERT only)';
-COMMENT ON COLUMN record_audit.audit_id IS 'Auto-incrementing audit ID establishing order';
-COMMENT ON COLUMN record_audit.event_uuid IS 'Client-generated UUID for the diary event';
-COMMENT ON COLUMN record_audit.parent_audit_id IS 'Links to previous version for change tracking';
-COMMENT ON COLUMN record_audit.signature_hash IS 'Cryptographic signature for 21 CFR Part 11 compliance';
+COMMENT ON TABLE record_audit IS 'Event Store (Event Sourcing pattern) - Immutable event log capturing all diary data changes (INSERT only). Provides audit trail for FDA 21 CFR Part 11 compliance.';
+COMMENT ON COLUMN record_audit.audit_id IS 'Auto-incrementing event ID establishing chronological order in event store';
+COMMENT ON COLUMN record_audit.event_uuid IS 'Client-generated UUID for diary event (same across all database instances for offline-first sync)';
+COMMENT ON COLUMN record_audit.parent_audit_id IS 'Links to previous event for version tracking and conflict detection (Event Sourcing lineage)';
+COMMENT ON COLUMN record_audit.signature_hash IS 'Cryptographic signature for tamper detection and 21 CFR Part 11 compliance';
 COMMENT ON COLUMN record_audit.device_info IS 'Device and platform information for ALCOA+ compliance (device_type, os, browser, app_version)';
 COMMENT ON COLUMN record_audit.ip_address IS 'Source IP address for compliance tracking and security monitoring';
-COMMENT ON COLUMN record_audit.session_id IS 'Session identifier for audit correlation and security tracking';
+COMMENT ON COLUMN record_audit.session_id IS 'Session identifier for event correlation and security tracking';
 
 -- =====================================================
--- STATE TABLE (Current View)
+-- READ MODEL (CQRS Pattern)
 -- =====================================================
+-- Materialized view of current state - derived from event store
+-- Updated automatically via triggers when events are written
 
--- Current state of diary entries - derived from audit table
+-- Read model table - queries use this, writes go to event store
 CREATE TABLE record_state (
     event_uuid UUID PRIMARY KEY,
     patient_id TEXT NOT NULL,
@@ -160,10 +166,10 @@ CREATE TABLE record_state (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-COMMENT ON TABLE record_state IS 'Current state of diary entries - updated via triggers only';
-COMMENT ON COLUMN record_state.version IS 'Number of modifications to this entry';
-COMMENT ON COLUMN record_state.last_audit_id IS 'Reference to most recent audit entry';
-COMMENT ON COLUMN record_state.is_deleted IS 'Soft delete flag';
+COMMENT ON TABLE record_state IS 'Read Model (CQRS pattern) - Current state view derived from event store via triggers. Query this table for current data; write to record_audit for changes.';
+COMMENT ON COLUMN record_state.version IS 'Number of events that modified this entry (counts updates in event store)';
+COMMENT ON COLUMN record_state.last_audit_id IS 'Reference to most recent event in event store (record_audit.audit_id)';
+COMMENT ON COLUMN record_state.is_deleted IS 'Soft delete flag (set via USER_DELETE event in event store)';
 
 -- =====================================================
 -- INVESTIGATOR ANNOTATIONS

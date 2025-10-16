@@ -218,7 +218,7 @@ INSERT INTO record_audit VALUES (...);
 - **Accurate**: Cryptographic hashes verify integrity
 - **Complete**: No changes can bypass audit system
 - **Consistent**: Event sourcing ensures consistency
-- **Enduring**: Permanent record in audit table
+- **Enduring**: Permanent record in event store
 
 ---
 

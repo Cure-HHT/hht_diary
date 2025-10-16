@@ -1,13 +1,13 @@
 -- =====================================================
--- Audit Trail Triggers
--- Automatically maintain audit log and state synchronization
+-- Event Sourcing Triggers
+-- Event Store → Read Model Synchronization (CQRS Pattern)
 -- =====================================================
 
 -- =====================================================
--- TRIGGER: Auto-update state table from audit entries
+-- TRIGGER: Auto-update read model from event store
 -- =====================================================
 
--- Function to update record_state when new audit entry is created
+-- Function to update read model (record_state) when new event is written to event store (record_audit)
 CREATE OR REPLACE FUNCTION update_record_state_from_audit()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -29,7 +29,7 @@ BEGIN
             RAISE EXCEPTION 'Cannot delete non-existent record: %', NEW.event_uuid;
         END IF;
     ELSE
-        -- Insert or update the state table
+        -- Insert or update the read model
         INSERT INTO record_state (
             event_uuid,
             patient_id,
@@ -65,16 +65,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION update_record_state_from_audit() IS 'Automatically updates state table when audit entries are created';
+COMMENT ON FUNCTION update_record_state_from_audit() IS 'Event Sourcing: Automatically updates read model (record_state) when events are written to event store (record_audit)';
 
--- Apply trigger to audit table
+-- Apply trigger to event store
 CREATE TRIGGER sync_state_from_audit
     AFTER INSERT ON record_audit
     FOR EACH ROW
     EXECUTE FUNCTION update_record_state_from_audit();
 
 -- =====================================================
--- TRIGGER: Validate audit entry before insert
+-- TRIGGER: Validate event before writing to event store
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION validate_audit_entry()
@@ -139,7 +139,7 @@ BEGIN
 
     -- Ensure change_reason is provided
     IF NEW.change_reason IS NULL OR trim(NEW.change_reason) = '' THEN
-        RAISE EXCEPTION 'change_reason is required for all audit entries';
+        RAISE EXCEPTION 'change_reason is required for all events in event store';
     END IF;
 
     -- Set server timestamp if not already set
@@ -151,7 +151,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION validate_audit_entry() IS 'Validates audit entries before insertion';
+COMMENT ON FUNCTION validate_audit_entry() IS 'Event Sourcing: Validates events before writing to event store (record_audit). Enforces data integrity, enrollment checks, conflict detection, and compliance requirements.';
 
 -- Apply validation trigger
 CREATE TRIGGER validate_audit_before_insert
@@ -184,11 +184,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 COMMENT ON FUNCTION log_admin_action() IS 'Helper function for admin action logging in RLS policies';
 
 -- =====================================================
--- TRIGGER: Prevent direct state table modifications
+-- TRIGGER: Prevent direct read model modifications
 -- =====================================================
 
--- This prevents application code from directly updating state table
--- State table should only be updated via audit table triggers
+-- Event Sourcing enforcement: Prevents direct modifications to read model
+-- Read model (record_state) should ONLY be updated via event store triggers
 
 CREATE OR REPLACE FUNCTION prevent_direct_state_modification()
 RETURNS TRIGGER AS $$
@@ -200,8 +200,8 @@ BEGIN
     END IF;
 
     -- Otherwise, reject direct modifications
-    RAISE EXCEPTION 'Direct modification of record_state is not allowed. Insert into record_audit instead.'
-        USING HINT = 'All state changes must go through the audit table';
+    RAISE EXCEPTION 'Direct modification of read model (record_state) is not allowed. Write events to event store (record_audit) instead.'
+        USING HINT = 'Event Sourcing pattern: All data changes must go through the event store';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -211,7 +211,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     current_version INTEGER;
 BEGIN
-    -- Set session variable to allow state table updates
+    -- Set session variable to allow read model updates from event store trigger
     PERFORM set_config('app.updating_from_audit', 'true', true);
 
     -- Check if this is a deletion operation
@@ -230,7 +230,7 @@ BEGIN
             RAISE EXCEPTION 'Cannot delete non-existent record: %', NEW.event_uuid;
         END IF;
     ELSE
-        -- Insert or update the state table
+        -- Insert or update the read model
         INSERT INTO record_state (
             event_uuid,
             patient_id,

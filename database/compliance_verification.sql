@@ -60,15 +60,15 @@ RETURNS TABLE(
     severity TEXT
 ) AS $$
 BEGIN
-    -- Check 1: Event exists in state table
+    -- Check 1: Event exists in read model
     RETURN QUERY
     SELECT
         'Event exists in state'::TEXT,
         EXISTS(SELECT 1 FROM record_state WHERE event_uuid = p_event_uuid),
         CASE
             WHEN EXISTS(SELECT 1 FROM record_state WHERE event_uuid = p_event_uuid)
-            THEN 'Event found in state table'
-            ELSE 'Event not found in state table - orphaned audit entries'
+            THEN 'Event found in read model'
+            ELSE 'Event not found in read model - orphaned audit entries'
         END,
         CASE
             WHEN EXISTS(SELECT 1 FROM record_state WHERE event_uuid = p_event_uuid)
@@ -520,7 +520,7 @@ BEGIN
     RETURN QUERY SELECT
         'Enduring'::TEXT,
         true,
-        'Enforced by append-only audit table design (7+ years retention)',
+        'Enforced by append-only event store design (7+ years retention)',
         'PASS'::TEXT;
 
     -- Available: Retrievable

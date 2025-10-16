@@ -26,8 +26,8 @@ PostgreSQL database architecture for FDA 21 CFR Part 11 compliant clinical trial
 
 ### Core Components
 
-1. **Audit Table** (`record_audit`) - Immutable event log recording all changes
-2. **State Table** (`record_state`) - Current view of diary entries
+1. **Event Store** (`record_audit`) - Immutable event log recording all changes
+2. **Read Model** (`record_state`) - Current view of diary entries
 3. **Annotations Table** (`investigator_annotations`) - Investigator notes/corrections layer
 4. **Access Control** - Row-Level Security (RLS) policies for role-based access
 5. **Automated Triggers** - Maintain audit trail and state synchronization
@@ -321,7 +321,7 @@ VALUES ('inv_123', 'site_001', 'READ_WRITE');
 
 ### 2. Audit Trail
 - Every modification creates immutable audit entry
-- No way to modify audit table (enforced by database rules)
+- No way to modify event store (enforced by database rules)
 - Complete chain of custody
 - Includes: who, what, when, why
 
@@ -375,7 +375,7 @@ const entry = {
     change_reason: 'Initial entry'
 };
 
-// Insert into audit table (state table updates automatically)
+// Insert into event store (read model updates automatically)
 const { data, error } = await supabase
     .from('record_audit')
     .insert(entry);
@@ -639,20 +639,20 @@ WHERE event_uuid = 'your-uuid';
 
 ### Issue: "Direct modification of record_state is not allowed"
 
-**Cause:** Attempting to directly modify state table instead of using audit table.
+**Cause:** Attempting to directly modify read model instead of using event store.
 
 **Solution:**
 ```sql
 -- Don't do this:
 -- UPDATE record_state SET current_data = ...
 
--- Instead, insert into audit table:
+-- Instead, insert into event store:
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason
 ) VALUES (...);
 
--- State table updates automatically via trigger
+-- Read model updates automatically via trigger
 ```
 
 ### Issue: Materialized views are out of date

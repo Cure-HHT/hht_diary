@@ -129,7 +129,7 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 
 ### Unit Tests
 - [ ] Test audit trail creation
-- [ ] Test state table updates
+- [ ] Test read model updates
 - [ ] Test trigger functions
 - [ ] Test validation functions
 - [ ] Test conflict detection
@@ -145,7 +145,7 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 
 ### Functional Tests
 - [ ] Create diary entry via record_audit
-- [ ] Verify state table updated
+- [ ] Verify read model updated
 - [ ] Update diary entry
 - [ ] Verify version incremented
 - [ ] Create investigator annotation

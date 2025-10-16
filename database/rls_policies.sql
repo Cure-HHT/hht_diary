@@ -102,7 +102,7 @@ CREATE POLICY audit_analyst_select ON record_audit
         )
     );
 
--- Admins have full access to audit table
+-- Admins have full access to event store
 CREATE POLICY audit_admin_all ON record_audit
     FOR ALL
     TO authenticated
@@ -122,8 +122,8 @@ CREATE POLICY state_user_select ON record_state
         AND NOT is_deleted
     );
 
--- Users cannot directly insert/update/delete state table
--- (must go through audit table)
+-- Users cannot directly insert/update/delete read model
+-- (must go through event store)
 -- These policies effectively prevent direct manipulation
 CREATE POLICY state_user_insert ON record_state
     FOR INSERT
@@ -175,7 +175,7 @@ CREATE POLICY state_admin_select ON record_state
     TO authenticated
     USING (current_user_role() = 'ADMIN');
 
--- Backend service role can modify state table (for triggers)
+-- Backend service role can modify read model (for triggers)
 CREATE POLICY state_service_all ON record_state
     FOR ALL
     TO service_role
@@ -416,7 +416,7 @@ GRANT USAGE ON SCHEMA public TO authenticated, anon, service_role;
 -- Grant select on all tables to authenticated users (RLS will filter)
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;
 
--- Grant insert on audit table to authenticated users (RLS will filter)
+-- Grant insert on event store to authenticated users (RLS will filter)
 GRANT INSERT ON record_audit TO authenticated;
 
 -- Grant insert/update on annotations to authenticated users (RLS will filter)

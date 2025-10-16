@@ -38,8 +38,8 @@ Complete PostgreSQL database architecture for FDA 21 CFR Part 11 compliant clini
 ## Key Features Implemented
 
 ### ✅ Core Architecture
-- **Immutable Audit Table** - Complete event log (INSERT only)
-- **Auto-Updated State Table** - Current view maintained by triggers
+- **Immutable Event Store** - Complete event log (INSERT only)
+- **Auto-Updated Read Model** - Current view maintained by triggers
 - **Investigator Annotations** - Separate layer for notes/corrections
 - **Multi-Site Support** - Complete site isolation and access control
 - **Conflict Resolution** - Automated detection and resolution workflow
@@ -56,12 +56,12 @@ Complete PostgreSQL database architecture for FDA 21 CFR Part 11 compliant clini
 - **JSONB GIN Indexes** - Fast JSON data queries
 - **Materialized Views** - Pre-aggregated reporting data
 - **Connection Pooling** - Configured for Supabase
-- **Partitioning Strategy** - For audit table growth
+- **Partitioning Strategy** - For event store growth
 
 ### ✅ Offline Support
 - **Client-Generated UUIDs** - No server dependency for ID generation
 - **Conflict Detection** - Parent audit ID tracking
-- **Sync Metadata** - Built into state table
+- **Sync Metadata** - Built into read model
 - **Delta Sync** - Only changed records transmitted
 
 ---
@@ -98,7 +98,7 @@ Complete PostgreSQL database architecture for FDA 21 CFR Part 11 compliant clini
 
 ### Triggers (15+)
 - Audit trail automation
-- State table synchronization
+- Read model synchronization
 - Conflict detection
 - Validation enforcement
 - Timestamp management
@@ -226,7 +226,7 @@ All enforced via Row-Level Security (RLS) at the database level.
 
 ✅ **Electronic Records (§11.10)**
 - Validation: Database triggers enforce data integrity
-- Audit trail: Immutable record_audit table
+- Audit trail: Immutable record_event store
 - Timestamped: Server and client timestamps
 - Validation: Input validation via triggers
 - Access controls: RLS policies
@@ -258,7 +258,7 @@ All enforced via Row-Level Security (RLS) at the database level.
 - Read replicas for reporting
 - Connection pooling (PgBouncer)
 - Materialized views for aggregates
-- Partition audit table by month
+- Partition event store by month
 - Archive old data after 2 years
 
 ---
@@ -308,7 +308,7 @@ Your database is ready when:
 - ✅ Test user can create diary entry
 - ✅ Investigator can view site data
 - ✅ Audit trail captures all changes
-- ✅ State table auto-updates
+- ✅ Read model auto-updates
 - ✅ Conflicts detected and logged
 - ✅ No permission errors in logs
 

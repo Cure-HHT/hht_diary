@@ -18,7 +18,7 @@ Clinical trial diary data has unique requirements that differ from typical CRUD 
 5. **Offline Support**: Mobile apps need to work offline and sync later
 6. **Conflict Resolution**: Multiple edits to same entry must be detectable and resolvable
 
-Traditional CRUD (Create, Read, Update, Delete) patterns with separate audit logs don't naturally support these requirements and can lead to inconsistencies between primary data and audit records.
+Traditional CRUD (Create, Read, Update, Delete) patterns with separate audit trail tables don't naturally support these requirements and can lead to inconsistencies between primary data and compliance records.
 
 ---
 
@@ -36,10 +36,10 @@ We will use an **Event Sourcing pattern** where:
    - Updated automatically via database triggers
    - Acts as a read-optimized cache
 
-3. **All changes flow through the audit table**
-   - Application inserts events into `record_audit`
-   - Triggers update `record_state` automatically
-   - No direct modifications to state table allowed
+3. **All changes flow through the event store**
+   - Application inserts events into `record_audit` (event store)
+   - Triggers update `record_state` (read model) automatically
+   - No direct modifications to read model allowed
 
 ### Implementation
 
@@ -85,9 +85,9 @@ CREATE TRIGGER sync_state_from_audit
 ### Positive Consequences
 
 ✅ **Audit Trail by Design**
-- Complete history automatically captured
-- No chance of audit log getting out of sync with data
-- Every modification is permanently recorded
+- Complete history automatically captured in event store
+- No chance of event store getting out of sync with current state (same database trigger)
+- Every modification is permanently recorded as an immutable event
 
 ✅ **Time-Travel Queries**
 ```sql
@@ -131,19 +131,19 @@ ORDER BY audit_id DESC LIMIT 1;
 - Needs monitoring and archival strategy for very old data
 
 ⚠️ **Query Complexity**
-- Current state queries simple (use `record_state`)
-- Historical queries more complex (need to reconstruct state)
-- Developers must understand when to use audit vs state table
+- Current state queries simple (use `record_state` read model)
+- Historical queries more complex (need to query event store)
+- Developers must understand when to query event store vs read model
 
 ⚠️ **Performance Considerations**
-- Every write creates audit entry AND updates state
-- Trigger execution adds latency
-- Need indexes on both tables
+- Every write creates event in event store AND updates read model
+- Trigger execution adds latency (atomic transaction)
+- Need indexes on both event store and read model
 
 ⚠️ **Cannot Truly Delete**
-- Even "deleted" entries remain in audit log
-- Must use soft delete flags
-- GDPR "right to be forgotten" requires special handling
+- Even "deleted" entries remain in event store (immutability requirement)
+- Must use soft delete flags in read model
+- GDPR "right to be forgotten" requires special handling (compliance vs. technical challenge)
 
 ---
 
@@ -151,7 +151,7 @@ ORDER BY audit_id DESC LIMIT 1;
 
 ### Alternative 1: Traditional CRUD with Audit Triggers
 
-**Approach**: Normal tables with separate audit log populated by triggers
+**Approach**: Normal tables with separate audit trail table populated by triggers
 
 ```sql
 CREATE TABLE diary_entries (
@@ -171,11 +171,11 @@ CREATE TABLE audit_log (
 ```
 
 **Why Rejected**:
-- ❌ Audit log is separate from main data (can get out of sync)
-- ❌ Harder to ensure audit completeness
-- ❌ Reconstruction of history requires complex queries
+- ❌ Audit trail table is separate from main data (can get out of sync)
+- ❌ Harder to ensure audit trail completeness
+- ❌ Reconstruction of history requires complex queries joining multiple tables
 - ❌ Conflict detection not natural to the model
-- ❌ Triggers can be disabled, breaking audit trail
+- ❌ Triggers can be disabled, breaking audit trail (compliance risk)
 
 ### Alternative 2: PostgreSQL Temporal Tables
 
@@ -252,10 +252,10 @@ When a conflict is detected:
 ### Monitoring
 
 Key metrics to monitor:
-- Audit table size (plan for growth)
-- Trigger execution time
+- Event store size (plan for growth and partitioning)
+- Trigger execution time (event store → read model sync)
 - Conflicts detected vs resolved
-- State table consistency checks
+- Read model consistency checks (verify against event store)
 
 ---
 

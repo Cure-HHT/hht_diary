@@ -466,7 +466,7 @@ See `database/schema.sql` for implementation.
 
 | Principle | Implementation |
 |-----------|----------------|
-| **Attributable** | `created_by` in audit table, UUID links to user |
+| **Attributable** | `created_by` in event store, UUID links to user |
 | **Legible** | Meaningful string enums, clear field names |
 | **Contemporaneous** | `client_timestamp` captures when event occurred |
 | **Original** | Complete data stored in `event_data`, not transformed |

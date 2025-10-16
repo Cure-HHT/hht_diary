@@ -40,7 +40,7 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION compute_audit_hash() IS 'Automatically compute SHA-256 hash for audit trail tamper detection';
 
--- Apply trigger to record_audit table
+-- Apply trigger to record_event store
 CREATE TRIGGER compute_audit_hash_trigger
     BEFORE INSERT ON record_audit
     FOR EACH ROW

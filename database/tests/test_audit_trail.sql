@@ -177,10 +177,10 @@ END $$;
 ROLLBACK;
 
 -- =====================================================
--- Test 5: State table is automatically updated
+-- Test 5: Read model is automatically updated
 -- =====================================================
 
-\echo 'Test 5: State table automatically updated from audit'
+\echo 'Test 5: Read model automatically updated from audit'
 
 BEGIN;
 
@@ -209,9 +209,9 @@ BEGIN
     WHERE event_uuid = 'test-uuid-005'::UUID;
 
     IF v_state_exists AND v_state_data->>'symptoms' = '["headache"]' THEN
-        RAISE NOTICE 'PASS: State table automatically updated via trigger';
+        RAISE NOTICE 'PASS: Read model automatically updated via trigger';
     ELSE
-        RAISE EXCEPTION 'FAIL: State table not updated or data mismatch';
+        RAISE EXCEPTION 'FAIL: Read model not updated or data mismatch';
     END IF;
 END $$;
 
