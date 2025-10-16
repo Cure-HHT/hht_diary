@@ -5,6 +5,10 @@ This directory contains the Dart data models for the Clinical Trial Diary applic
 ## Files
 
 - **models.dart**: Complete data model definitions matching the database JSONB schema
+- **diary_repository.dart**: Database operations using Event Sourcing pattern
+- **event_deletion_handler.dart**: Deletion logic with user prompting
+- **deletion_models.dart**: Supporting types for deletion operations
+- **ui_example.dart**: Example Flutter widgets showing UI integration
 - **diary.tsx**: Original TypeScript reference (kept for comparison)
 
 ## Usage
@@ -24,7 +28,8 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  uuid: ^4.0.0  # For UUID generation
+  uuid: ^4.0.0              # For UUID generation
+  supabase_flutter: ^2.0.0  # For database operations
 ```
 
 ## Examples
@@ -316,6 +321,90 @@ void main() {
   });
 }
 ```
+
+## Deleting Events
+
+### Deletion Logic with User Prompting
+
+When deleting the last event on a given day, the system prompts the user to clarify intent:
+
+1. **Confirm "no nosebleeds occurred"** - Converts event to `isNoNosebleedsEvent: true`
+   - Recommended for protocol compliance
+   - Shows diary adherence
+   - Preserves the date in timeline
+
+2. **Just delete** - Soft deletes the event
+   - For erroneous entries
+   - Day will show as having no events
+
+### Using EventDeletionHandler
+
+```dart
+import 'package:your_app/services/diary_repository.dart';
+import 'package:your_app/services/event_deletion_handler.dart';
+
+// Initialize
+final repository = DiaryRepository(supabase);
+final deletionHandler = EventDeletionHandler(repository);
+
+// Delete with prompting
+final result = await deletionHandler.deleteEvent(
+  eventUuid: event.id,
+  eventDate: epistaxisRecord.startTime,
+  promptUser: (prompt) async {
+    // Show dialog to user
+    return await showDialog<DeletionChoice>(
+      context: context,
+      builder: (context) => DeletionPromptDialog(prompt: prompt),
+    ) ?? DeletionChoice.justDelete;
+  },
+);
+
+// Handle result
+if (result.wasConverted) {
+  print('Event converted to "no nosebleeds" confirmation');
+} else {
+  print('Event soft deleted');
+}
+```
+
+### Repository Pattern (Event Sourcing)
+
+All modifications go through the audit trail:
+
+```dart
+final repository = DiaryRepository(supabase);
+
+// Create event
+await repository.createEvent(
+  event: eventRecord,
+  changeReason: 'Initial diary entry',
+);
+
+// Update event
+await repository.updateEvent(
+  eventUuid: event.id,
+  eventData: updatedEpistaxisRecord,
+  changeReason: 'Corrected severity level',
+);
+
+// Soft delete event
+await repository.deleteEvent(
+  eventUuid: event.id,
+  changeReason: 'User deleted event',
+);
+
+// Query events
+final eventsToday = await repository.getEventsForDate(DateTime.now());
+final auditHistory = await repository.getAuditHistory(event.id);
+```
+
+### UI Integration
+
+See `ui_example.dart` for complete examples including:
+- `DiaryEventCard` - Event card with delete button
+- `DeletionPromptDialog` - User choice dialog
+- `DiaryCalendarView` - Calendar with event list
 
 ## Migration from TypeScript
 

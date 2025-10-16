@@ -12,9 +12,11 @@
 
 ## Overview
 
-This document defines the JSONB data structure stored in the `data` column of the `record_audit` and `current_data` column of the `record_state` tables.
+This document defines the JSONB data structure stored in the `data` column of the `record_audit` (event store) and `current_data` column of the `record_state` (read model) tables.
 
 The schema uses a **hierarchical event-sourced model** with versioned types to support schema evolution over time.
+
+**Architecture**: Event Sourcing pattern where all changes are captured as immutable events in the event store, with the read model materialized from the event stream.
 
 ### Architecture Context
 
@@ -378,11 +380,13 @@ Format: `{event_type}-v{major}.{minor}`
 
 ## Database Storage
 
-### record_audit.data
+### record_audit.data (Event Store)
 
 Stores the complete EventRecord as shown above in the `data` JSONB column.
 
-**Storage principle**: Complete snapshots, not deltas. Each audit entry contains the full state of the record at that point in time.
+**Storage principle**: Complete snapshots, not deltas. Each event in the event store contains the full state of the record at that point in time.
+
+**Event Sourcing**: This is the append-only event log. All state changes are recorded here as immutable events.
 
 Example query to extract event type:
 ```sql
@@ -394,11 +398,13 @@ FROM record_audit
 WHERE data->>'versioned_type' LIKE 'epistaxis-%';
 ```
 
-### record_state.current_data
+### record_state.current_data (Read Model)
 
-Stores the current version (same structure as audit) in the `current_data` JSONB column.
+Stores the current version (same structure as event store) in the `current_data` JSONB column.
 
-**Access pattern**: Users query this table for current state. Investigators/analysts use this for reporting. Audit table used only for compliance/history.
+**Access pattern**: Users query this table for current state. Investigators/analysts use this for reporting. Event store used only for compliance/history/event replay.
+
+**CQRS**: This is the read-optimized materialized view. It's automatically updated by triggers when events are written to the event store.
 
 Example query to find severe nosebleeds:
 ```sql
