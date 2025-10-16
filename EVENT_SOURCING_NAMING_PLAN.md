@@ -123,10 +123,9 @@ Recent commits introduced Event Sourcing terminology, but the codebase has incon
 47. `spec/SECURITY.md` - Security documentation
 48. `spec/DATA_CLASSIFICATION.md` - Data classification
 49. `spec/LOGGING_STRATEGY.md` - Logging strategy
-50. `spec/COMPARISON.md` - Comparison docs
-51. `spec/PROJECT_SUMMARY.md` - Project summary
-52. `spec/SUPABASE_SETUP.md` - Supabase setup
-53. `database-compliance-todos.md` - Compliance TODOs
+50. `spec/PROJECT_SUMMARY.md` - Project summary
+51. `spec/SUPABASE_SETUP.md` - Supabase setup
+52. `database-compliance-todos.md` - Compliance TODOs
 
 ## Specific Changes Needed
 

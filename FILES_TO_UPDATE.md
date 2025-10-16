@@ -117,8 +117,7 @@
 | # | File | Status | Priority | Notes |
 |---|------|--------|----------|-------|
 | 49 | `spec/AUTH_AUDIT_README.md` | ⏺️ | MEDIUM | Auth audit docs (note: separate system) |
-| 50 | `spec/COMPARISON.md` | ⏺️ | LOW | Comparison docs |
-| 51 | `spec/PROJECT_SUMMARY.md` | ⏺️ | MEDIUM | Project summary |
+| 50 | `spec/PROJECT_SUMMARY.md` | ⏺️ | MEDIUM | Project summary |
 | 52 | `database-compliance-todos.md` | ⏺️ | LOW | Compliance TODOs |
 | 53 | `database/auth_audit.sql` | ⏺️ | LOW | Auth audit SQL (note: separate system) |
 
@@ -131,8 +130,8 @@
 | CRITICAL | 3 | 2 done, 1 in progress |
 | HIGH | 17 | 0 done |
 | MEDIUM | 23 | 0 done |
-| LOW | 13 | 0 done |
-| **TOTAL** | **56 files** | **2 completed** |
+| LOW | 12 | 0 done |
+| **TOTAL** | **55 files** | **2 completed** |
 
 ---
 
