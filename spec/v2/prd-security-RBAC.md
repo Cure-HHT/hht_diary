@@ -1,0 +1,162 @@
+# Role-Based Access Control (RBAC) Specification
+
+**Version**: 1.0
+**Audience**: Product Requirements
+**Last Updated**: 2025-10-17
+
+> **See**: ops-security.md for deployment procedures
+> **See**: dev-database.md for RLS policy implementation
+
+---
+
+## Overview
+
+Defines user roles, permissions, and access-scoping rules for the clinical trial application. Database implementation details are out of scope; this focuses on who can access what.
+
+---
+
+## Core Principles
+
+- **Single Active Role Context**: A user with multiple roles must explicitly select a single role before performing any action. All actions are attributed to that role.
+- **Explicit Scope Selection**: When a role spans multiple scopes (e.g., multiple sites), the user must select a single scope per session/view. No cross-site blended views.
+- **Least Privilege**: Grant only what is necessary for job functions.
+- **Separation of Duties**: Sensitive operations require distinct roles to reduce conflict of interest.
+- **Auditability**: All access and administrative actions must be logged with role context and scope.
+- **Transparency**: All non-patient user accounts contain the user's name (PII). All users can see their own audit trail and audit actions which modify their account or data.
+- **Patient Privacy**: No patient PII is stored by this system.
+
+---
+
+## Roles & Permissions
+
+### Patient
+- **Permissions**: read/write self only
+- **Scope**: Own data
+- **Access Pattern**: Can only see and modify their own records
+
+### Investigator
+- **Permissions**: site-scoped read/write; must select one site at a time; enroll/de-enroll patients
+- **Scope**: Assigned sites (one active at a time)
+- **Access Pattern**: Read-only access to patient data, can add annotations
+
+### Sponsor
+- **Permissions**: de-identified only; can create/assign Investigators, Analysts and Auditors; read-only across all auth and elevation tickets
+- **Scope**: Global (all sites)
+- **Access Pattern**: Aggregate data, user management, oversight
+
+### Auditor
+- **Permissions**: read-only across study; export requires justification
+- **Scope**: Global (all sites)
+- **Access Pattern**: Compliance monitoring, audit trail review
+
+### Analyst
+- **Permissions**: site-scoped read/write; de-identified datasets only
+- **Scope**: Assigned sites
+- **Access Pattern**: Read-only data access for analysis
+
+### Administrator
+- **Permissions**: user/role/config; no PHI by default (use break-glass)
+- **Scope**: Global system administration
+- **Access Pattern**: System configuration, no routine PHI access
+
+### Developer Admin
+- **Permissions**: infrastructure ops; no routine PHI; can assign break-glass access with TTL to any user
+- **Scope**: System infrastructure
+- **Access Pattern**: DevOps, emergency access management
+
+**Note**: "de-identified" is specified for future-proofing. The current system does not store any PII for patients.
+
+---
+
+## Auditing Requirements
+
+- All authentication and database actions are logged
+- Tamper-evident/proofing measures are in place for all Roles, even super-users
+
+---
+
+## Implementation Notes (DRAFT)
+
+1. Use Postgres pgaudit
+2. Keep audit in same DB (audit schema) + daily Storage checkpoint
+3. Edge Functions for break-glass, alerts, scheduler
+4. Skip heavy SIEM initially; add later if needed
+5. De-identify by default (future-proofing); require justification for exports
+6. Enforce single active Role + Site via token claims
+7. Dev/Admin guardrails: no routine PHI; TTL-based elevation with ticket
+8. Weekly automated audit digest email; set 7-year retention
+
+### Automated Digest
+
+- **Frequency**: Weekly
+- **Recipients**: All Admins, Sponsors
+- **Study activity**:
+  - New enrollment count, de-enrollment count, current # of patients by Site ID, total current patients, total non-active patients, total patients
+- **Admin activity**:
+  - User names and number of elevated-access tickets; (log in to see details)
+
+---
+
+## User Stories by Role
+
+### Investigator User Stories
+
+1. Access assigned site data (one active site at a time)
+2. Enroll/withdraw patients
+3. Review study documents
+4. Open/respond to data queries
+5. Message patients at the active site (if enabled)
+
+### Patient User Stories
+
+1. View personal profile and health info
+2. Submit outcomes/questionnaires
+3. Update contact details
+4. Withdraw consent
+5. View consent status
+
+### Auditor User Stories
+
+1. Read-only access across study with robust filtering
+2. Export audit logs with justification and case ID
+3. Validate compliance and RLS policies
+4. Verify data integrity and chain of custody
+5. File anomaly reports
+
+### Analyst User Stories
+
+1. Access de-identified datasets
+2. Build reports/dashboards
+3. Run predefined analyses
+4. Share findings with sponsor/site leads
+5. Track analysis provenance
+
+### Sponsor User Stories
+
+1. Create/approve investigator accounts
+2. Assign investigators to sites
+3. Review aggregate metrics and progress
+4. Manage study milestones
+5. View and edit trial configuration (non-PHI)
+
+### Administrator User Stories
+
+1. Provision/deprovision users
+2. Assign roles and site scopes
+3. Configure forms/feature flags
+4. Monitor access logs and alerts
+5. Handle support requests and incidents
+
+---
+
+## References
+
+- **Database Implementation**: dev-database.md
+- **Security Operations**: ops-security.md
+- **Compliance Requirements**: prd-clinical-trials.md
+
+---
+
+**Source Files**:
+- `prd-role-based-access-spec.md` (merged)
+- `prd-role-based-user-stories.md` (merged)
