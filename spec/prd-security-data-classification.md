@@ -1,3 +1,7 @@
+# TODO: Review if this file contains information redundant to other files.
+# TODO: Mark redundant information with TODO: replace with reference to other file.section.paragraph reference
+# TODO: Implement replacement of references noted in other TODOs
+
 # Data Classification and Privacy Architecture
 
 > **Purpose**: Document data classification and justify encryption strategy for compliance audits
