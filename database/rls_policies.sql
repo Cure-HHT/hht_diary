@@ -35,10 +35,10 @@ CREATE POLICY sites_admin_all ON sites
     WITH CHECK (current_user_role() = 'ADMIN');
 
 -- =====================================================
--- RECORD_AUDIT TABLE POLICIES
+-- RECORD_AUDIT TABLE POLICIES (Event Store)
 -- =====================================================
 
--- Users can view their own audit entries
+-- Users can view their own events in the event store
 CREATE POLICY audit_user_select ON record_audit
     FOR SELECT
     TO authenticated
@@ -47,7 +47,7 @@ CREATE POLICY audit_user_select ON record_audit
         OR current_user_role() IN ('ADMIN', 'INVESTIGATOR', 'ANALYST')
     );
 
--- Users can insert their own audit entries
+-- Users can insert their own events into the event store
 CREATE POLICY audit_user_insert ON record_audit
     FOR INSERT
     TO authenticated
@@ -57,7 +57,7 @@ CREATE POLICY audit_user_insert ON record_audit
         AND created_by = current_user_id()
     );
 
--- Investigators can view audit entries for their assigned sites
+-- Investigators can view event store entries for their assigned sites
 CREATE POLICY audit_investigator_select ON record_audit
     FOR SELECT
     TO authenticated
@@ -71,7 +71,7 @@ CREATE POLICY audit_investigator_select ON record_audit
         )
     );
 
--- Investigators can insert audit entries (for transcription, annotations)
+-- Investigators can insert events into event store (for transcription, annotations)
 CREATE POLICY audit_investigator_insert ON record_audit
     FOR INSERT
     TO authenticated
@@ -88,7 +88,7 @@ CREATE POLICY audit_investigator_insert ON record_audit
         )
     );
 
--- Analysts can view audit entries for their assigned sites
+-- Analysts can view event store entries for their assigned sites
 CREATE POLICY audit_analyst_select ON record_audit
     FOR SELECT
     TO authenticated
@@ -110,10 +110,10 @@ CREATE POLICY audit_admin_all ON record_audit
     WITH CHECK (current_user_role() = 'ADMIN');
 
 -- =====================================================
--- RECORD_STATE TABLE POLICIES
+-- RECORD_STATE TABLE POLICIES (Read Model)
 -- =====================================================
 
--- Users can view and modify their own records
+-- Users can view their own records in the read model
 CREATE POLICY state_user_select ON record_state
     FOR SELECT
     TO authenticated
@@ -141,7 +141,7 @@ CREATE POLICY state_user_delete ON record_state
     TO authenticated
     USING (false);  -- No direct deletes allowed
 
--- Investigators can view records at their sites
+-- Investigators can view read model records at their sites
 CREATE POLICY state_investigator_select ON record_state
     FOR SELECT
     TO authenticated
@@ -155,7 +155,7 @@ CREATE POLICY state_investigator_select ON record_state
         )
     );
 
--- Analysts can view records at their sites (including deleted for analysis)
+-- Analysts can view read model records at their sites (including deleted for analysis)
 CREATE POLICY state_analyst_select ON record_state
     FOR SELECT
     TO authenticated
@@ -438,9 +438,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, service_
 -- COMMENTS
 -- =====================================================
 
-COMMENT ON POLICY audit_user_select ON record_audit IS 'Users can view their own audit entries';
-COMMENT ON POLICY audit_investigator_select ON record_audit IS 'Investigators can view audit at assigned sites';
-COMMENT ON POLICY state_user_select ON record_state IS 'Users can view their own diary entries';
-COMMENT ON POLICY state_investigator_select ON record_state IS 'Investigators can view entries at assigned sites';
+COMMENT ON POLICY audit_user_select ON record_audit IS 'Users can view their own events in event store';
+COMMENT ON POLICY audit_investigator_select ON record_audit IS 'Investigators can view event store entries at assigned sites';
+COMMENT ON POLICY state_user_select ON record_state IS 'Users can view their own entries in read model';
+COMMENT ON POLICY state_investigator_select ON record_state IS 'Investigators can view read model entries at assigned sites';
 COMMENT ON POLICY annotations_user_select ON investigator_annotations IS 'Users can see annotations on their entries';
 COMMENT ON POLICY annotations_investigator_insert ON investigator_annotations IS 'Investigators can create annotations at their sites';

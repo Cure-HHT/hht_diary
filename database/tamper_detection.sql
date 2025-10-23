@@ -38,15 +38,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION compute_audit_hash() IS 'Automatically compute SHA-256 hash for audit trail tamper detection';
+COMMENT ON FUNCTION compute_audit_hash() IS 'Event Sourcing: Automatically compute SHA-256 hash for event store tamper detection (audit trail integrity)';
 
--- Apply trigger to record_event store
+-- Apply trigger to event store (record_audit)
 CREATE TRIGGER compute_audit_hash_trigger
     BEFORE INSERT ON record_audit
     FOR EACH ROW
     EXECUTE FUNCTION compute_audit_hash();
 
-COMMENT ON TRIGGER compute_audit_hash_trigger ON record_audit IS 'Ensures every audit entry has cryptographic signature';
+COMMENT ON TRIGGER compute_audit_hash_trigger ON record_audit IS 'Event Sourcing: Ensures every event in event store has cryptographic signature';
 
 -- =====================================================
 -- FUNCTION: Verify Audit Hash
@@ -93,7 +93,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION verify_audit_hash(BIGINT) IS 'Verify cryptographic integrity of an audit entry';
+COMMENT ON FUNCTION verify_audit_hash(BIGINT) IS 'Event Sourcing: Verify cryptographic integrity of an event in event store';
 
 -- =====================================================
 -- FUNCTION: Validate Audit Chain
@@ -131,7 +131,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION validate_audit_chain(UUID) IS 'Validate cryptographic integrity of entire event history';
+COMMENT ON FUNCTION validate_audit_chain(UUID) IS 'Event Sourcing: Validate cryptographic integrity of entire event history in event store';
 
 -- =====================================================
 -- FUNCTION: Batch Verify Audit Hashes
@@ -169,7 +169,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION verify_audit_hashes_batch IS 'Batch verify audit trail integrity for compliance reporting';
+COMMENT ON FUNCTION verify_audit_hashes_batch IS 'Event Sourcing: Batch verify event store integrity for compliance reporting (audit trail verification)';
 
 -- =====================================================
 -- FUNCTION: Detect Tampered Records
@@ -209,7 +209,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION detect_tampered_records IS 'Detect audit records that have been tampered with';
+COMMENT ON FUNCTION detect_tampered_records IS 'Event Sourcing: Detect events in event store that have been tampered with';
 
 -- =====================================================
 -- FUNCTION: Check Audit Sequence Integrity
@@ -240,7 +240,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION check_audit_sequence_gaps IS 'Detect gaps in audit sequence (potential tampering or deletion)';
+COMMENT ON FUNCTION check_audit_sequence_gaps IS 'Event Sourcing: Detect gaps in event store sequence (potential tampering or deletion)';
 
 -- =====================================================
 -- FUNCTION: Generate Integrity Report
@@ -331,7 +331,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION generate_integrity_report IS 'Generate comprehensive audit trail integrity report for compliance';
+COMMENT ON FUNCTION generate_integrity_report IS 'Event Sourcing: Generate comprehensive event store integrity report for compliance (audit trail verification)';
 
 -- =====================================================
 -- VIEW: Tamper Detection Dashboard

@@ -1,3 +1,6 @@
+# TODO: delete any information in this file related to "Does access have to be audited?" 
+# TODO: Determine if remaining information can be moved to other relevant documentions (centralize information for easier access and less redundancy)
+
 # Authentication Audit Logging
 
 ## Why It's Necessary for Compliance

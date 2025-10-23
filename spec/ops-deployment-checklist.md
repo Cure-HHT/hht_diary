@@ -1,5 +1,7 @@
 # Deployment Checklist
 
+# TODO: Check all other .md files for information that should be in this file. Move that information here.
+
 Use this checklist to ensure proper deployment and configuration of the Clinical Trial Diary Database.
 
 ---

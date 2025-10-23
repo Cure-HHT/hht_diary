@@ -1,4 +1,6 @@
 # JSONB Schema Documentation
+# TODO: There should be a single source of truth for each JSON schema used. This source will be used in automatic or manual generation of the schemas used in the postgresQL database as well as any app (e.g. flutter/web) that accesses the database
+# TODO: Each schema (epistaxis records, various surveys) should be in its own versioned file.
 
 ## Document Information
 - **Version**: 1.0

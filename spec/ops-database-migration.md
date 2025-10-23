@@ -1,4 +1,8 @@
 # Database Migration Strategy
+# TODO: This file contains redundant information. Remove/move examples to other files, replace with references if necessary.
+# TODO: This is a strategy/high-level document. It should read more like a PRD than an implementation spec.
+# TODO: Any unique and useful information in this document related to implementation or operations should be moved to another document so that this file can be used as a reference in a hierarchical documentation structure.
+
 
 ## Overview
 
