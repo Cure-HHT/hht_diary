@@ -242,7 +242,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION create_audit_partition(DATE) IS 'Create monthly partition for event store (record_audit) - Event Sourcing pattern supports time-based partitioning for scalability';
+COMMENT ON FUNCTION create_audit_partition(DATE) IS 'Create monthly partition for event store (record_audit table) - Event Sourcing pattern supports time-based partitioning for scalability';
 
 -- Note: To enable partitioning, you would need to:
 -- 1. Recreate record_audit as a partitioned table
@@ -355,6 +355,6 @@ ALTER TABLE record_state ALTER COLUMN site_id SET STATISTICS 1000;
 -- COMMENTS
 -- =====================================================
 
-COMMENT ON INDEX idx_audit_data_gin IS 'GIN index for JSONB queries on event store data';
-COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records in read model';
+COMMENT ON INDEX idx_audit_data_gin IS 'GIN index for JSONB queries on event store (record_audit) data';
+COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records in read model (record_state)';
 COMMENT ON INDEX idx_annotations_unresolved IS 'Partial index for unresolved annotations requiring action';

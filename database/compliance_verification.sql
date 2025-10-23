@@ -46,7 +46,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION check_audit_sequence_gaps() IS 'Detect gaps in audit trail sequence numbers';
+COMMENT ON FUNCTION check_audit_sequence_gaps() IS 'Compliance: Detect gaps in event store sequence numbers (audit trail integrity)';
 
 -- =====================================================
 -- FUNCTION 2: Verify Audit Completeness for Event
@@ -60,15 +60,15 @@ RETURNS TABLE(
     severity TEXT
 ) AS $$
 BEGIN
-    -- Check 1: Event exists in read model
+    -- Check 1: Event exists in read model (record_state)
     RETURN QUERY
     SELECT
-        'Event exists in state'::TEXT,
+        'Event exists in read model'::TEXT,
         EXISTS(SELECT 1 FROM record_state WHERE event_uuid = p_event_uuid),
         CASE
             WHEN EXISTS(SELECT 1 FROM record_state WHERE event_uuid = p_event_uuid)
-            THEN 'Event found in read model'
-            ELSE 'Event not found in read model - orphaned audit entries'
+            THEN 'Event found in read model (record_state)'
+            ELSE 'Event not found in read model - orphaned event store entries'
         END,
         CASE
             WHEN EXISTS(SELECT 1 FROM record_state WHERE event_uuid = p_event_uuid)
@@ -76,12 +76,12 @@ BEGIN
             ELSE 'FAIL'::TEXT
         END;
 
-    -- Check 2: Audit entries exist
+    -- Check 2: Event entries exist in event store
     RETURN QUERY
     SELECT
-        'Audit entries exist'::TEXT,
+        'Event entries exist in event store'::TEXT,
         EXISTS(SELECT 1 FROM record_audit WHERE event_uuid = p_event_uuid),
-        format('Found %s audit entries',
+        format('Found %s event store entries',
             (SELECT COUNT(*) FROM record_audit WHERE event_uuid = p_event_uuid)),
         CASE
             WHEN EXISTS(SELECT 1 FROM record_audit WHERE event_uuid = p_event_uuid)
@@ -225,7 +225,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION check_audit_completeness(UUID) IS 'Comprehensive compliance check for a single event';
+COMMENT ON FUNCTION check_audit_completeness(UUID) IS 'Compliance: Comprehensive check for a single event across event store and read model';
 
 -- =====================================================
 -- FUNCTION 3: Generate Compliance Report
@@ -349,13 +349,13 @@ BEGIN
     ORDER BY COUNT(*) DESC
     LIMIT 10;
 
-    -- Orphaned state records
+    -- Orphaned read model records
     RETURN QUERY
     SELECT
-        'Orphaned State Records'::TEXT,
+        'Orphaned Read Model Records'::TEXT,
         COUNT(*)::TEXT,
         CASE WHEN COUNT(*) > 0 THEN 'FAIL' ELSE 'PASS' END,
-        'State records without corresponding audit entries'
+        'Read model records without corresponding event store entries'
     FROM record_state rs
     WHERE NOT EXISTS (
         SELECT 1 FROM record_audit ra
@@ -404,7 +404,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION generate_compliance_report(TIMESTAMPTZ, TIMESTAMPTZ) IS 'Generate comprehensive compliance report for regulatory audits';
+COMMENT ON FUNCTION generate_compliance_report(TIMESTAMPTZ, TIMESTAMPTZ) IS 'Compliance: Generate comprehensive report for regulatory audits (FDA 21 CFR Part 11, ALCOA+)';
 
 -- =====================================================
 -- FUNCTION 4: Validate ALCOA+ Compliance
@@ -452,11 +452,11 @@ BEGIN
         format('Client: %s, Server: %s', v_record.client_timestamp, v_record.server_timestamp),
         CASE WHEN v_record.client_timestamp IS NOT NULL AND v_record.server_timestamp IS NOT NULL THEN 'PASS'::TEXT ELSE 'FAIL'::TEXT END;
 
-    -- Original: Record is immutable
+    -- Original: Record is immutable (Event Sourcing pattern)
     RETURN QUERY SELECT
         'Original'::TEXT,
         true,
-        'Enforced by database immutability rules (UPDATE/DELETE prevented)',
+        'Enforced by Event Sourcing pattern (UPDATE/DELETE prevented on event store)',
         'PASS'::TEXT;
 
     -- Accurate: Hash verification
@@ -532,7 +532,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION validate_alcoa_compliance(BIGINT) IS 'Validate individual audit entry against ALCOA+ principles';
+COMMENT ON FUNCTION validate_alcoa_compliance(BIGINT) IS 'Compliance: Validate individual event store entry against ALCOA+ principles';
 
 -- =====================================================
 -- FUNCTION 5: Batch Audit Verification
@@ -570,7 +570,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION verify_audit_batch(TIMESTAMPTZ, TIMESTAMPTZ, INTEGER) IS 'Batch verify audit trail integrity for a time period';
+COMMENT ON FUNCTION verify_audit_batch(TIMESTAMPTZ, TIMESTAMPTZ, INTEGER) IS 'Compliance: Batch verify event store integrity for a time period (audit trail verification)';
 
 -- =====================================================
 -- Grant permissions
