@@ -341,7 +341,7 @@ SELECT cron.schedule(
 - [ ] Support plan ready
 - [ ] Rollback plan documented
 
-### Production Environment Configuration (TICKET-007)
+### Production Environment Configuration 
 - [ ] Set environment: `ALTER DATABASE SET app.environment = 'production'`
 - [ ] Verify state modification triggers enabled: `SELECT COUNT(*) FROM pg_trigger WHERE tgname LIKE 'prevent_direct_state%'` (should be 2)
 - [ ] Test that direct state updates are blocked (should fail with error)

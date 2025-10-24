@@ -53,7 +53,7 @@ Each event contains:
 - Event replay for read model rebuilding
 - Temporal queries ("show me this record as of 2025-01-15")
 - Complete change history with attribution
-- Tamper-evident via cryptographic hashes (TICKET-002)
+- Tamper-evident via cryptographic hashes 
 
 ---
 

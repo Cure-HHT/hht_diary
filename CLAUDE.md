@@ -2,3 +2,4 @@
 - the spec/ directory contains the specifications for the project and its sub-parts
 - the docs/ directory contains descriptions generated during implementation
 - the archive/ directory contains obsolete files. DO NOT use unless explicitly asked.
+- Always read the spec/README.md file before modifying any files in the spec/ directory.
