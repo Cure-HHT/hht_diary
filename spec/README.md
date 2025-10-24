@@ -23,13 +23,55 @@ examples:
 
 # Audience
 
-Typically the hierarchy from broad to specific is prd -> ops -> dev. 
+Typically the hierarchy from broad to specific is prd -> ops -> dev.
 
 prd: product requirement documents. High-level, C-suite, customer-facing, evaluation for suitability
 ops: devops. Deployment, maintenance, daily operations and monitoring, incident reponse and reporting.
 dev: software developers. Code writing practices, libraries used, toolchain.
 
 Although dev and ops are in many ways parallel, ops requirements inform developer requirements, not vice-versa.
+
+---
+
+# Audience Scope Rules
+
+## prd- files (Product Requirements)
+**Purpose**: Define WHAT the system does and WHY from user/business perspective
+**Allowed**:
+- User workflows and use cases
+- Architecture diagrams (ASCII art OK)
+- Data structure descriptions (conceptual, not schema)
+- Feature lists and capabilities
+- Compliance requirements (what must be met)
+
+**FORBIDDEN**:
+- Code examples (any language)
+- SQL queries or schema DDL
+- CLI commands (belongs in ops- or dev-)
+- API endpoint definitions (belongs in dev-)
+- Configuration file examples (belongs in ops- or dev-)
+
+## ops- files (Operations)
+**Purpose**: How to deploy, monitor, and maintain the system
+**Allowed**:
+- CLI commands and scripts (bash, SQL admin commands)
+- Configuration file examples (YAML, env files)
+- Monitoring queries and dashboards
+- Runbooks and checklists
+- Deployment procedures
+
+**Context**: Commands are operational instructions, not implementation code
+
+## dev- files (Development)
+**Purpose**: How to implement features as a software developer
+**Allowed**:
+- Code examples (Dart, TypeScript, SQL)
+- API documentation
+- Library usage examples
+- Implementation patterns
+- Testing strategies
+
+---
 
 # Topics
 
