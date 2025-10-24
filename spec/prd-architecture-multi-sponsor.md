@@ -5,510 +5,109 @@
 **Last Updated**: 2025-01-24
 **Status**: Active
 
+> **See**: dev-architecture-multi-sponsor.md for implementation details
 > **See**: prd-database.md for database architecture
-> **See**: prd-database-event-sourcing.md for Event Sourcing pattern
 > **See**: prd-clinical-trials.md for FDA compliance requirements
 
 ---
 
 ## Executive Summary
 
-A scalable architecture for deploying a diary system across multiple sponsors using a single public codebase with private sponsor-specific extensions.
+The Clinical Diary system serves multiple pharmaceutical sponsors using a single mobile app and separate web portals. Each sponsor operates independently with their own database and users, while sharing the underlying software platform.
 
-**Key Requirements**:
-- Single mobile app containing ALL sponsor configurations
-- Separate portal deployment per sponsor
-- Public core platform with private sponsor customizations
-- Supabase-based infrastructure (PostgreSQL + Auth + Realtime + Edge Functions)
-- Type-safe extension via abstract base classes
-- Automated build system composing core + sponsor code
-- FDA 21 CFR Part 11 compliant audit trail
+**How It Works**:
+- One mobile app in the app stores serves all sponsors
+- Each sponsor gets their own web portal at a unique address
+- Patient enrollment links automatically connect to the correct sponsor
+- All sponsor data stays completely separate
+- Core software is shared and maintained centrally
 
-**Technology Stack**:
-- **Mobile**: Flutter (iOS + Android from single codebase)
-- **Portal**: Flutter Web (hosted on Netlify/Vercel/Cloudflare)
-- **Backend**: Supabase (managed PostgreSQL, Auth, Edge Functions)
-- **Database**: PostgreSQL with Event Sourcing pattern
-- **Language**: Dart for all application code, TypeScript/Deno for Edge Functions
-- **Distribution**: GitHub Package Registry
-- **Build System**: Dart-based tooling with CI/CD automation
+**Why This Approach**:
+- Patients download one app, not different apps per sponsor
+- Sponsors get customized branding and features
+- Updates and improvements benefit all sponsors simultaneously
+- Each sponsor's data remains private and isolated
+- Lower costs through shared development
 
 ---
 
-## Architecture Overview
+## System Components
 
-### System Components
+Each sponsor deployment includes:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   SPONSOR DEPLOYMENT                            │
-│                  (e.g., Pfizer Production)                      │
-│                                                                 │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │ Supabase Project: clinical-diary-pfizer                    │ │
-│  │                                                            │ │
-│  │  ├─ PostgreSQL (Event Sourcing schema + RLS)               │ │
-│  │  ├─ Supabase Auth (OAuth/SAML with sponsor SSO)            │ │
-│  │  ├─ Edge Functions (EDC proxy sync - proprietary)          │ │
-│  │  └─ Realtime (WebSocket for live updates)                  │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-│  Accessed by:                                                   │
-│  ├─ Mobile App (iOS/Android) → Pfizer configuration selected    │
-│  ├─ Portal (Flutter Web) → https://pfizer-portal.example.com    │
-│  └─ EDC System (Medidata Rave) ← Edge Function pushes events    │
-└─────────────────────────────────────────────────────────────────┘
-```
+**Mobile App**: Single app containing all sponsor configurations. When patients enroll, the app automatically connects to their sponsor's system and displays that sponsor's branding.
 
-### Deployment Modes
+**Web Portal**: Each sponsor gets their own portal website where investigators and staff can view patient data, run reports, and manage the study. Each portal is separately hosted and customized.
 
-**Endpoint Mode**: Standard deployment with no EDC integration
-**Proxy Mode**: Deployment with Edge Function syncing events to sponsor's EDC system
+**Database**: Each sponsor has their own private database that stores patient data, study configuration, and audit records. No data is shared between sponsors.
+
+**Authentication**: Each sponsor controls their own user accounts and can integrate with their company's existing login systems.
 
 ---
 
-## Repository Structure
+## How Patients Enroll
 
-### Single Public Repository
+1. Investigator provides patient with enrollment link or QR code
+2. Patient opens link, which takes them to app store (first time) or opens app (already installed)
+3. App reads enrollment information and connects to correct sponsor
+4. App displays sponsor's branding and logo
+5. Patient completes enrollment and begins using diary
 
-**Repository**: `clinical-diary` (public)
-
-```
-clinical-diary/
-├── packages/
-│   ├── core/                   (Abstract interfaces + core logic)
-│   ├── database/               (SQL schema, migrations, RLS policies)
-│   └── edge_functions_shared/  (Shared utilities for Edge Functions)
-│
-├── apps/
-│   ├── mobile/                 (Flutter app template)
-│   └── portal/                 (Flutter Web template)
-│
-├── tools/
-│   ├── build_system/           (Build scripts - compose core + sponsor)
-│   └── templates/              (Scaffold new sponsor repo)
-│
-├── examples/
-│   └── reference_sponsor/      (Complete example implementation)
-│
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── CREATING_SPONSOR.md
-    └── BUILD_SYSTEM.md
-```
-
-**What's public**:
-- Database schema (Event Sourcing pattern)
-- Abstract base classes defining extension points
-- Mobile app UI framework
-- Portal UI framework
-- Build tooling
-- Documentation
-
-**What's NOT included**:
-- Sponsor-specific branding
-- EDC integration code
-- Authentication configurations
-- Proprietary business logic
-
-### Sponsor Private Repositories
-
-**Repository per sponsor**: `clinical-diary-{sponsor}` (private)
-
-```
-clinical-diary-pfizer/
-├── lib/
-│   ├── pfizer_config.dart      (extends SponsorConfig)
-│   ├── pfizer_edc_sync.dart    (extends EdcSync - if proxy mode)
-│   ├── pfizer_theme.dart       (branding)
-│   └── widgets/                (custom UI components)
-│
-├── edge_functions/
-│   └── edc_sync/               (Medidata Rave integration)
-│
-├── database/
-│   └── extensions.sql          (sponsor-specific tables)
-│
-├── config/
-│   ├── mobile.yaml             (mobile build configuration)
-│   ├── portal.yaml             (portal build configuration)
-│   └── supabase.env            (credentials - gitignored)
-│
-├── assets/
-│   ├── logo.png
-│   ├── icon.png
-│   └── fonts/
-│
-├── build.yaml                  (build configuration)
-├── pubspec.yaml                (depends on core packages)
-│
-└── .github/workflows/
-    ├── deploy_staging.yml
-    └── deploy_production.yml
-```
-
-**Dependency management**:
-
+The patient never needs to know which technical system they're using - it just works.
 
 ---
 
-## Abstract Base Class Architecture
+## Data Isolation
 
-### Extension Points
+Each sponsor's data is completely isolated:
+- Separate databases mean no possibility of cross-sponsor data access
+- Different web addresses for each portal
+- Independent user accounts
+- Separate audit trails
 
-The public core defines abstract interfaces that sponsors extend:
-
-**Core Interfaces** (in `packages/core/lib/interfaces/`):
-
-1. **SponsorConfig** - Main configuration interface
-   - Properties: sponsorId, displayName, supabaseUrl, branding, features
-   - Methods: Getters for theme, logo, custom widgets, deployment mode
-
-2. **EdcSync** - EDC integration interface (for proxy mode)
-   - Methods: initialize(), sync(), checkConnection(), transformEvent()
-   - Implementations: Sponsor-specific (Medidata Rave, Oracle InForm, Veeva Vault, etc.)
-
-3. **PortalCustomization** - Portal extensions interface
-   - Methods: Custom dashboard widgets, reports, data exporters
-
-### Type Safety
-
-All sponsor implementations must:
-- Extend abstract base classes
-- Implement all required methods/properties
-- Pass contract tests defined in core
-- Be validated by build system before deployment
-
-This ensures:
-- Compile-time type checking
-- API compatibility
-- Predictable behavior
-- Easy testing
+This architecture ensures regulatory compliance and protects confidential sponsor information.
 
 ---
 
-## Build System
+## Customization Options
 
-### Composition at Build Time
-
-The build system combines public core code with private sponsor code to produce deployable artifacts.
-
-**Build Process**:
-
-1. **Validate** sponsor repository structure and implementations
-2. **Copy** sponsor code into build workspace
-3. **Compose** core + sponsor into unified codebase
-4. **Generate** integration glue code
-5. **Build** Flutter app (mobile) or Flutter Web (portal)
-6. **Package** for deployment (IPA/APK for mobile, static site for portal)
-
-**Build Scripts** (in `tools/build_system/`):
-- `build_mobile.dart` - Builds mobile app with sponsor configuration
-- `build_portal.dart` - Builds portal with sponsor customization
-- `validate_sponsor.dart` - Validates sponsor repo before build
-- `deploy.dart` - Orchestrates deployment to Supabase + hosting
-
-**Usage**:
-
-
-### CI/CD Integration
-
-Each sponsor repository has GitHub Actions workflows that:
-- Trigger on push to main branch
-- Clone public `clinical-diary` repository
-- Run build scripts with sponsor repo as input
-- Execute tests against staging Supabase instance
-- Deploy to production on success
+Sponsors can customize:
+- Company logo and color scheme
+- Custom questionnaires and data fields
+- Specialized reports and data exports
+- Integration with their existing systems
+- Portal dashboard layout
 
 ---
 
-## Mobile App Architecture
+## Software Updates
 
-### Single App with Multi-Sponsor Support
+The core platform receives regular updates for:
+- Security improvements
+- New features
+- Bug fixes
+- Performance enhancements
 
-**Key Design**: One mobile app contains ALL sponsor configurations.
-
-**User Experience**:
-1. User receives enrollment token (encoded sponsor ID + patient-link ID)
-2. App detects sponsor from token value
-3. Connects to sponsor's Supabase instance
-4. Supabase validates token (unique and matching Auth ID or App instance UUID)
-4. Applies sponsor's branding and theme
-5. User completes enrollment and uses app
-
-
-### Distribution
-
-**App Store**: Single listing ("Clinical Diary") with multi-sponsor support
+Updates are tested and validated before deployment. Sponsors can control when updates are applied to their production systems to align with their study schedules and validation requirements.
 
 ---
 
-## Portal Architecture
-
-### Separate Deployment per Sponsor
-
-Each sponsor gets independent portal deployment:
-- Unique domain: `pfizer-portal.clinicaldiary.com`
-- Sponsor-specific theme and branding
-- Custom pages and reports
-- Connects to sponsor's Supabase instance
-
-### Hosting
-
-Netlify (easy deployment, CDN, SSL)
-
-
-**Deployment**: Static site (Flutter Web compiled to HTML/JS/CSS)
-
-### Portal Customization
-
-Sponsors can add:
-- Custom dashboard widgets
-- Specialized reports
-- Data export formats
-- Compliance documentation generators
-- Custom data visualizations
-
----
-
-## Database Architecture
-
-### Supabase-Based Infrastructure
-
-**Why Supabase**:
-- Managed PostgreSQL with automatic backups
-- Built-in authentication (OAuth, SAML, JWT)
-- Auto-generated REST API with RLS enforcement
-- Real-time subscriptions via WebSockets
-- Edge Functions for custom logic (Deno runtime)
-- Row Level Security (RLS) enforces RBAC at database level
-
-### Schema Deployment
-
-**Core schema** (from `packages/database/`):
-- Event Sourcing tables (record_audit, record_state)
-- RLS policies for RBAC
-- Triggers for Event Sourcing pattern
-- Compliance functions (tamper detection, ALCOA+ validation)
-
-**Sponsor extensions** (from sponsor repo `database/extensions.sql`):
-- Sponsor-specific tables
-- Custom indexes
-- Additional RLS policies
-- Stored procedures
-
-**Deployment**:
-
-
-### Event Sourcing Pattern
-
-All diary data changes stored as immutable events in `record_audit` table. 
-Current state derived in `record_state` table via database triggers.
-
-**See**: prd-database-event-sourcing.md for complete pattern details.
-
----
-
-## Edge Functions (Proxy Mode)
-
-### EDC Synchronization
-
-For sponsors in **proxy mode**, Edge Functions sync diary events to their EDC system.
-
-**Trigger**: Database webhook on INSERT to `record_audit`
-**Function**: INSERT into `sponsor_queue`, Sponsor-specific implementation of EdcSync interface
-**Execution**: Deno runtime on Supabase infrastructure
-
-**Example EDC systems**:
-- Medidata Rave (Pfizer example)
-- Oracle InForm
-- Veeva Vault CDMS
-- Custom RDBMS
-
-**Error Handling**:
-- Retry logic for transient failures
-- Dead letter queue for persistent failures
-- Alerting via monitoring service
-- Manual reconciliation interface in portal
-
----
-
-## Testing Strategy
-
-### Three-Level Testing
-
-**1. Contract Tests** (in public core)
-Define requirements all implementations must meet. 
-Reusable test suites that verify interface compliance.
-
-**Location**: `packages/core/test/contracts/`
-
-**2. Core Tests** (in public core)
-Test core functionality: Event Sourcing, RLS policies, database functions, base UI components.
-
-**Location**: `packages/core/test/`, `apps/mobile/test/`, `apps/portal/test/`
-
-**3. Sponsor Implementation Tests** (in sponsor repos)
-Test sponsor-specific implementations custom behavior.
-
-**Location**: `clinical-diary-pfizer/test/`
-
-### Integration Testing
-
-Test against live Supabase staging instances:
-- Database triggers and RLS policies
-- Edge Functions with mock EDC endpoints
-- Mobile app offline sync
-- Portal queries and reports
-
-**Test Data**: Seed scripts create realistic test scenarios
-
----
-
-## GitHub Package Registry
-
-### Package Distribution
-
-**Published packages**:
-- `clinical_diary_core` - Core interfaces and logic
-- `clinical_diary_database` - SQL schema and migrations
-- `clinical_diary_edge_functions_shared` - Shared Edge Function utilities
-
-**Publishing**: Automated via GitHub Actions on release tag
-
-**Versioning**: Date + Semantic versioning (2025.10.13.a)
-
-**Consumption**: Sponsor repos depend via Git references or GitHub Packages
-
-**Benefits**:
-- Version pinning for stability
-- Dependency management via pubspec.yaml
-- Security scanning by GitHub
-- Access control via repository permissions
-
----
-
-## Workflows
-
-### Creating New Sponsor
-
-**Step 1**: Scaffold new repository
-
-**Step 2**: Customize implementation
-- Extend SponsorConfig class
-- Implement EdcSync if proxy mode needed
-- Define branding and theme
-- Add custom widgets/pages
-
-**Step 3**: Configure Supabase
-- Create Supabase project
-- Configure authentication (OAuth/SAML)
-- Set environment variables
-
-**Step 4**: Test locally
-- Run contract tests
-- Test against staging Supabase
-- Validate mobile and portal builds
-
-**Step 5**: Deploy
-- Push to GitHub
-- CI/CD builds and deploys automatically
-- Mobile app updated in next release
-- Portal live immediately
-
-### Updating Core Platform
-
-**Quarterly release cycle**:
-
-**Step 1**: Develop in public repository
-- Create feature branch
-- Implement new features
-- Add tests
-- Update documentation
-
-**Step 2**: Tag release
-
-**Step 3**: Notify sponsors
-- Release notes published
-- Breaking changes highlighted (target: never during active trial)
-- Migration guide provided (target: no action)
-
-**Step 4**: Sponsors upgrade
-- Update dependency version in pubspec.yaml
-- Run tests to verify compatibility
-- Deploy to Prodcution after Sponsor approves UAT deployment
-
-### Developer Workflow
-
-The following workflow aligns with the principles of 21 CFR Part 11 and is similar to 
-established strategies like GitFlow: 
-
-**develop branch**: All new features and bug fixes are developed on feature 
-  branches and merged into a develop branch.
-**Release branch**: When ready for a deployment, create a new, separate release branch (e.g., release/1.2.3) from the develop branch.
-**Validation**: Deploy from the release branch to a testing environment. Run all validation protocols and user acceptance tests (UAT). Fix any bugs directly on the release branch.
-**Tagging**: Once the software passes all validation, a git tag (e.g., v1.2.3) is applied to the release branch commit. This tag serves as the permanent, immutable record of the deployed version.
-**Deployment** and merging: Deploy the tagged version to the production environment. After a successful deployment, merge the release branch into main and back into develop.
-**main branch**: The main branch now contains only validated, production-ready code. It reflects the history of all official releases. 
-
-This process provides an authoritative and unalterable record of all changes, creating a verifiable audit trail that satisfies FDA requirements. ---
-
-## Security and Compliance
-
-### Code Isolation
-
-**Public core**: Contains no proprietary information, secrets, or sponsor-specific logic
-
-**Sponsor repositories**:
-- Private GitHub repositories
-- Access controlled per sponsor
-- Each sponsor cannot see other sponsors' code
-- We (developers) have access to all sponsor repos
-
-### Audit Process
-
-**For regulatory audits**: Export snapshot of sponsor repository at specific commit
-- Includes sponsor code
-- Includes referenced core version
-- Packaged as ZIP for auditor review
-- No Git access required
-
-### Secrets Management
-
-**Never in repositories**:
-- Supabase credentials
-- EDC API keys
-- OAuth secrets
-
-**Stored in**:
-- GitHub Secrets (for CI/CD)
-- Environment variables (for local development)
-- Supabase project secrets (for Edge Functions)
-
-### FDA 21 CFR Part 11 Compliance
-
-Event Sourcing architecture ensures:
-- Complete audit trail (all changes captured)
-- Immutable event store
-- Cryptographic tamper detection
-- ALCOA+ principles enforced
-
-**See**: prd-clinical-trials.md for complete compliance requirements.
+## Compliance and Validation
+
+The system is designed to meet FDA 21 CFR Part 11 requirements:
+- Complete audit trail of all data changes
+- Tamper-evident record keeping
+- Secure authentication
+- Electronic signatures
+- Data integrity verification
+
+**See**: prd-clinical-trials.md for detailed compliance requirements
 
 ---
 
 ## References
 
+- **Implementation Details**: dev-architecture-multi-sponsor.md
 - **Database Architecture**: prd-database.md
-- **Event Sourcing Pattern**: prd-database-event-sourcing.md
+- **Security Architecture**: prd-security.md
 - **FDA Compliance**: prd-clinical-trials.md
-- **Security**: prd-security.md
-- **RBAC**: prd-security-RBAC.md
-- **RLS**: prd-security-RLS.md
-- **Data Classification**: prd-security-data-classification.md
-
----
-
-**Document Status**: Active specification for multi-sponsor architecture
-**Implementation Timeline**: Q4 2025 - Core platform, Q4 2025 - First sponsor deployment
-**Review Cycle**: Quarterly or as needed for major changes
