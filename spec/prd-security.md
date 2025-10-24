@@ -91,28 +91,10 @@ Sponsor A Environment           Sponsor B Environment
 - SAML/SSO (enterprise sponsors)
 
 **Configuration Example** (Sponsor-specific):
-```javascript
-// Each sponsor has unique Supabase configuration
-const supabase = createClient(
-  'https://sponsor-xyz.supabase.co',  // Sponsor-specific URL
-  'sponsor-xyz-anon-key',              // Sponsor-specific anon key
-);
-```
 
 ### JWT Token Structure
 
 **Claims in JWT** (custom claims added via Supabase Auth hook):
-```json
-{
-  "sub": "user-uuid",
-  "email": "user@example.com",
-  "role": "INVESTIGATOR",
-  "site_assignments": ["site_001", "site_002"],
-  "active_site": "site_001",
-  "two_factor_verified": true,
-  "exp": 1704067200
-}
-```
 
 **JWT Usage**:
 - Generated on login
@@ -198,18 +180,6 @@ The system defines **7 roles** with specific permissions:
 **Why**: Ensures all actions are clearly attributed to specific role for audit purposes.
 
 **Implementation**:
-```javascript
-// User selects active role at login
-await setActiveRole('INVESTIGATOR');
-
-// JWT contains selected role
-{
-  "role": "INVESTIGATOR",
-  "available_roles": ["INVESTIGATOR", "ANALYST"]
-}
-
-// All actions logged with this role
-```
 
 ### Single Active Site Context (Site-Scoped Roles)
 
@@ -220,19 +190,6 @@ await setActiveRole('INVESTIGATOR');
 **Why**: Prevents accidental cross-site actions, simplifies audit trail.
 
 **Implementation**:
-```javascript
-// Investigator selects active site
-await setActiveSite('site_001');
-
-// JWT updated with active site
-{
-  "role": "INVESTIGATOR",
-  "site_assignments": ["site_001", "site_002", "site_003"],
-  "active_site": "site_001"
-}
-
-// Queries automatically filtered to active site
-```
 
 ---
 
@@ -251,29 +208,10 @@ await setActiveSite('site_001');
 ### RLS Policy Categories
 
 **1. User Data Isolation**:
-```sql
--- Users can only access their own data
-CREATE POLICY patient_select_own ON record_state
-    FOR SELECT TO authenticated
-    USING (patient_id = current_user_id() AND current_user_role() = 'USER');
-```
 
 **2. Site-Scoped Access**:
-```sql
--- Investigators limited to assigned sites
-CREATE POLICY investigator_select_site ON record_state
-    FOR SELECT TO authenticated
-    USING (
-        current_user_role() = 'INVESTIGATOR'
-        AND site_id = current_user_active_site()
-    );
-```
 
 **3. Role-Based Permissions**:
-```sql
--- Analysts have read-only access
--- No INSERT/UPDATE/DELETE policies defined for ANALYST role
-```
 
 **See**: prd-security-RLS.md for complete RLS policy specifications
 
@@ -312,27 +250,6 @@ CREATE POLICY investigator_select_site ON record_state
 4. Cannot access PHI by default (even with break-glass)
 
 **Process**:
-```javascript
-// Admin requests break-glass access
-const ticket = await createElevationTicket({
-  reason: "Critical system issue affecting data sync",
-  requested_permissions: ["view_all_sites"],
-  requested_duration_hours: 2,
-});
-
-// Approval (can be auto-approved or require sponsor approval)
-await approveElevationTicket(ticket.id);
-
-// JWT updated with temporary permissions
-{
-  "role": "ADMIN",
-  "elevation_ticket": "TICKET-123",
-  "elevated_until": "2025-01-24T16:00:00Z",
-  "temp_permissions": ["view_all_sites"]
-}
-
-// After TTL expires, permissions automatically revoked
-```
 
 **Monitoring**: All break-glass access logged and reviewed weekly.
 
@@ -421,17 +338,6 @@ await approveElevationTicket(ticket.id);
 - Admin actions logged
 
 **3. RLS Policy Tests**:
-```sql
--- Test user isolation
-SET request.jwt.claims = '{"sub": "patient_001", "role": "USER"}';
-SELECT COUNT(*) FROM record_state WHERE patient_id != 'patient_001';
--- Should return 0
-
--- Test site scoping
-SET request.jwt.claims = '{"sub": "inv_001", "role": "INVESTIGATOR", "active_site": "site_001"}';
-SELECT COUNT(*) FROM record_state WHERE site_id != 'site_001';
--- Should return 0
-```
 
 **See**: ops-security.md for testing procedures
 
@@ -461,16 +367,6 @@ SELECT COUNT(*) FROM record_state WHERE site_id != 'site_001';
 5. User notified of role change
 
 **Logging**:
-```sql
-INSERT INTO role_change_log (
-  user_id,
-  old_role,
-  new_role,
-  changed_by,
-  change_reason,
-  approval_ticket
-) VALUES (...);
-```
 
 ---
 

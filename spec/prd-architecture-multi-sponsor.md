@@ -149,15 +149,6 @@ clinical-diary-pfizer/
 
 **Dependency management**:
 
-```yaml
-# Sponsor repo depends on public core
-dependencies:
-  clinical_diary_core:
-    git:
-      url: https://github.com/yourorg/clinical-diary.git
-      path: packages/core
-      ref: v1.2.0  # Pin to specific version
-```
 
 ---
 
@@ -219,18 +210,6 @@ The build system combines public core code with private sponsor code to produce 
 
 **Usage**:
 
-```bash
-# Build Pfizer mobile app for iOS
-dart run tools/build_system/build_mobile.dart \
-  --sponsor-repo ../clinical-diary-pfizer \
-  --platform ios \
-  --environment production
-
-# Build Pfizer portal
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-pfizer \
-  --environment production
-```
 
 ### CI/CD Integration
 
@@ -320,12 +299,6 @@ Sponsors can add:
 
 **Deployment**:
 
-```bash
-# Deploy to sponsor's Supabase project
-supabase link --project-ref pfizer-prod
-supabase db push --include ../../clinical-diary/packages/database/
-supabase db push --include ./database/extensions.sql
-```
 
 ### Event Sourcing Pattern
 
@@ -420,9 +393,6 @@ Test against live Supabase staging instances:
 ### Creating New Sponsor
 
 **Step 1**: Scaffold new repository
-```bash
-dart run clinical-diary/tools/templates/new_sponsor.dart --name novartis
-```
 
 **Step 2**: Customize implementation
 - Extend SponsorConfig class
@@ -457,10 +427,6 @@ dart run clinical-diary/tools/templates/new_sponsor.dart --name novartis
 - Update documentation
 
 **Step 2**: Tag release
-```bash
-git tag v2025.10.13.f
-git push --tags
-```
 
 **Step 3**: Notify sponsors
 - Release notes published
