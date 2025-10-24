@@ -65,56 +65,14 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 ## User Enrollment Flow
 
 ### Step 1: User Receives Enrollment Token
-
-**Token Format**:
-
-**Token Delivery Methods**:
-- QR code (printed on enrollment materials)
-- SMS link
-- Email link
-- Enrollment portal link
-
-**Security**:
-- Token is cryptographically signed
-- Single-use or time-limited
-- Validated by sponsor's Supabase on enrollment
-
----
-
 ### Step 2: App Detects Sponsor
-
-**Detection Process**:
-
-**Sponsor Configuration** (embedded in app):
-
----
-
 ### Step 3: Token Validation
-
-**Server-Side Validation** (Supabase Edge Function):
-
-**Client-Side Flow**:
-
----
-
 ### Step 4: User Creates Account
-
-**Authentication via Supabase Auth**:
-
-**User Profile Creation** (database trigger):
-
----
-
 ### Step 5: Sponsor Branding Applied
 
 **Visual Customization**:
-- App logo � Sponsor logo
-- Color scheme � Sponsor colors
-- App name in header � Sponsor study name
-- Fonts (if sponsor-specific)
-- Welcome screen content
-
-**Example**:
+- App logo --> Sponsor logo
+- Study welcome screen content
 
 ---
 
@@ -137,20 +95,8 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 ---
 
 ### Local Data Storage
-
 **Technology**: SQLite (via `sqflite` package)
-
 **Schema** (mirrors server Event Sourcing pattern):
-
-**Database Initialization**:
-
----
-
-### Data Flow: Create Entry
-
-**Offline Flow**:
-
----
 
 ### Background Sync
 
@@ -160,28 +106,31 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 - Every 15 minutes if online
 - On app resume from background
 
-**Sync Process**:
-
-**Sync UI Indicator**:
-
 ---
 
 ### Conflict Resolution
 
 **Conflict Detection**:
-- Server `record_state.version` > local version
-- Same `event_uuid` modified on multiple devices
-- Different data values
+CONFLICT-1: 
+scenario: user installs App on new device, doesn't have local copy of data
+scenario: user uses more than one device to make entries
+trigger: Server `record_state.version` > local version
+resolution: fast-forward local-db: replay server events locally
 
-**Conflict Resolution Strategies**:
+CONFLICT-2: 
+scenario: user uses more than one device to make entries, modifies same entry on both before they are detected via CONFLICT-1
+trigger: non-fast-forward conflict
+resolution: prompt user to choose one
 
-**1. Last-Write-Wins** (simple cases):
+CONFLICT-3: 
+scenario: investigator modifies entry through portal
+trigger: `event_uudi` modified by non-patient, fast-forward-able
+resolution: push event(s) to App, replay event(s), notify patient, patient dismisses notification
 
-**2. Manual Resolution** (complex cases):
-
-**3. Field-Level Merge** (non-conflicting fields):
-
-**Conflict Logging**:
+CONFLICT-4: 
+scenario: different data values without appropriate event(s)
+trigger:  when record is `locked` (made soft-read-only), compare its record_status with remote record_status and there is a meaningful mismatch (aside from metadata)
+resolution: Log error. Report to investigator.
 
 ---
 
@@ -189,7 +138,7 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 ### Main Screens
 
-**1. Enrollment Screen** (first run):
+**1. Enrollment Screen**:
 - Scan QR code or paste enrollment link
 - Token validation
 - Account creation (email + password)
@@ -198,8 +147,6 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 **2. Home / Dashboard**:
 - Today's diary entries summary
 - Quick add button
-- Upcoming scheduled entries
-- Recent activity
 - Sync status indicator
 
 **3. Create/Edit Diary Entry**:
@@ -210,115 +157,28 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 - Validation with clear error messages
 
 **4. History View**:
-- Calendar view or list view
-- Filter by date range
-- Filter by event type
-- View entry details
-- Edit existing entries (creates new audit event)
+- Calendar view by month -> list view by day -> detailed view -> edit option
 
-**5. Annotations View** (if investigator adds annotation):
+**5. Annotations View** (if investigator adds annotation/changes record):
 - Notification badge
-- View annotation text
-- Respond to query
+- View annotation / change
 - Mark as resolved
 
 **6. Profile / Settings**:
-- User information
-- Study information
+- User information (local only - never sync'd)
+- Study information 
 - Sync status and manual sync button
 - Notification settings
 - Logout
 
 ---
 
-### Accessibility
-
-**Requirements**:
-- WCAG 2.1 Level AA compliance
-- Screen reader support (TalkBack, VoiceOver)
-- Adjustable font sizes
-- High contrast mode
-- Voice input for diary entries
-
-**Implementation**:
-
----
-
 ## Security Features
-
 ### Data Encryption
 
-**Encryption at Rest** (local database):
-
-**Secure Key Storage**:
-
----
-
-### Authentication
-
-**Session Management**:
-
-**Automatic Logout**:
-
----
-
-### Certificate Pinning
-
-**Implementation**:
-
----
-
-## Compliance Features
-
-### ALCOA+ Data Capture
-
-**Attributable**:
-
-**Contemporaneous**:
-
-**Original**:
-- All entries stored in immutable audit trail (Event Sourcing)
-- Original entry always preserved
-- Edits create new audit entries with parent reference
-
-**Complete**:
-
----
-
-### Data Integrity
-
-**Cryptographic Signing** (optional enhancement):
-
-**Tamper Detection**:
-- Server validates signatures
-- Server computes SHA-256 hash of each audit entry
-- Integrity verification on sync
-
----
-
-## Performance Optimization
-
-### Lazy Loading
-
-
-### Database Indexing
-
-
-### Image Optimization
-
-
----
-
-## Testing Strategy
-
-### Unit Tests
-
-
-### Widget Tests
-
-
-### Integration Tests
-
+**Encryption at Rest**
+**Secure Key Storage**
+**Encrypted data transfer**
 
 ---
 
@@ -326,69 +186,19 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 ### App Store Listing
 
-**App Name**: Clinical Diary
+**App Name**: Daily Diary
 
 **Description**:
-> Participate in clinical trials by recording your symptoms and experiences.
-> This app supports multiple clinical trial sponsors and studies.
-> Use your enrollment token from your clinical trial coordinator to get started.
+> Keep a daily log of your sypmptoms. Share with your doctor and others.
+> Supports synchronization with clinical trials and studies.
+> Use your enrollment token from your coordinator to get started.
 
 **Keywords**: clinical trial, patient diary, health tracking, medical research
 
 **Screenshots**: Generic (no sponsor-specific branding in store listing)
 
-### Build Configuration
-
-**iOS** (`ios/Runner/Info.plist`):
-
-**Android** (`android/app/src/main/AndroidManifest.xml`):
-
-### Version Management
-
-**Versioning**: Semantic versioning (MAJOR.MINOR.PATCH)
-- Example: 1.2.3
-- MAJOR: Breaking changes (rare in clinical trial context)
-- MINOR: New features, sponsor additions
-- PATCH: Bug fixes, performance improvements
-
-**Minimum Version Enforcement**:
-
 ---
 
-## Monitoring & Analytics
-
-### Crash Reporting
-
-
-### Usage Analytics
-
-**Privacy-Preserving Analytics**:
-- No PII/PHI in analytics events
-- Anonymized user IDs
-- Aggregate metrics only
-
-
-**See**: ops-operations.md for monitoring and alerting
-
----
-
-## Future Enhancements
-
-### Phase 2 (6-12 months)
-- Push notifications for scheduled entries
-- Rich media attachments (photos, voice memos)
-- Wearable device integration
-- Advanced data visualizations
-- Export capability (PDF reports)
-
-### Phase 3 (12-24 months)
-- AI-powered entry assistance
-- Symptom pattern detection
-- Predictive reminders
-- Integration with electronic health records (EHR)
-- Multi-language support
-
----
 
 ## References
 
