@@ -1,6 +1,40 @@
-# Supabase Setup Guide
+# Supabase Database Setup Guide
 
-Complete guide for deploying the Clinical Trial Diary Database to Supabase.
+**Version**: 1.0
+**Audience**: Operations (Database Administrators, DevOps Engineers)
+**Last Updated**: 2025-01-24
+**Status**: Active
+
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
+> **See**: dev-database.md for database implementation details
+> **See**: ops-database-migration.md for schema migration procedures
+> **See**: ops-deployment.md for full deployment workflows
+
+---
+
+## Executive Summary
+
+Complete guide for deploying the Clinical Trial Diary Database to Supabase in a multi-sponsor architecture. Each sponsor operates an independent Supabase project (separate PostgreSQL database + Auth instance) for complete data isolation.
+
+**Key Principles**:
+- **One Supabase project per sponsor** - Complete infrastructure isolation
+- **Identical core schema** - All sponsors use same base schema from core repository
+- **Sponsor-specific extensions** - Each sponsor can add custom tables/functions
+- **Independent operations** - Each sponsor has separate credentials, backups, monitoring
+
+**Multi-Sponsor Deployment**:
+```
+Sponsor A                    Sponsor B                    Sponsor C
+┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
+│ Supabase Project A  │     │ Supabase Project B  │     │ Supabase Project C  │
+│ - PostgreSQL DB     │     │ - PostgreSQL DB     │     │ - PostgreSQL DB     │
+│ - Supabase Auth     │     │ - Supabase Auth     │     │ - Supabase Auth     │
+│ - Edge Functions    │     │ - Edge Functions    │     │ - Edge Functions    │
+│ - Isolated Backups  │     │ - Isolated Backups  │     │ - Isolated Backups  │
+└─────────────────────┘     └─────────────────────┘     └─────────────────────┘
+```
+
+**This Guide Covers**: Setup procedures for a single sponsor's Supabase instance. Repeat these steps for each sponsor with their own Supabase project.
 
 ---
 
@@ -15,6 +49,53 @@ Complete guide for deploying the Clinical Trial Diary Database to Supabase.
    - Create a new project in Supabase dashboard
    - Choose a region close to your users
    - Note your project URL and anon/service keys
+
+---
+
+## Multi-Sponsor Setup Context
+
+### Per-Sponsor Supabase Projects
+
+**Each sponsor requires**:
+1. Dedicated Supabase project (separate account or organization)
+2. Unique project name: `clinical-diary-{sponsor-name}` (e.g., `clinical-diary-pfizer`)
+3. Region selection based on sponsor's primary user base
+4. Appropriate tier (Free for dev/staging, Pro+ for production)
+
+### Project Naming Convention
+
+**Format**: `clinical-diary-{sponsor}-{environment}`
+
+**Examples**:
+- `clinical-diary-pfizer-prod` - Pfizer production
+- `clinical-diary-pfizer-staging` - Pfizer staging/UAT
+- `clinical-diary-novartis-prod` - Novartis production
+
+### Schema Consistency
+
+**All sponsors deploy**:
+- Same core schema from `clinical-diary/packages/database/`
+- Version-pinned to ensure consistency
+- Core schema published as GitHub package
+
+**Sponsor-specific extensions** (optional):
+- Additional tables in sponsor repo `database/extensions.sql`
+- Custom stored procedures
+- Extra indexes for sponsor-specific queries
+
+**See**: dev-database.md for details on core vs sponsor schema
+
+### Credential Management
+
+**Each sponsor has separate**:
+- Project URL: `https://{project-ref}.supabase.co`
+- Anon key (public, for client apps)
+- Service role key (secret, for backend/migrations)
+- Database password
+
+**Security**: Credentials must NEVER be shared between sponsors
+
+**Storage**: Use GitHub Secrets per sponsor repository
 
 ---
 
@@ -35,6 +116,8 @@ Complete guide for deploying the Clinical Trial Diary Database to Supabase.
 
 ### Option B: Migrations (Recommended for Production)
 
+**Deploy Core Schema + Sponsor Extensions**:
+
 ```bash
 # Install Supabase CLI
 npm install -g supabase
@@ -42,18 +125,36 @@ npm install -g supabase
 # Login to Supabase
 supabase login
 
-# Link to your project
-supabase link --project-ref your-project-ref
+# Link to sponsor's Supabase project
+cd clinical-diary-{sponsor}
+supabase link --project-ref {sponsor-project-ref}
 
-# Create migration
-supabase migration new clinical_trial_db_init
+# Option 1: Use core schema from GitHub package
+npm install @clinical-diary/database@1.2.3
 
-# Copy all SQL files into the migration
-cat schema.sql triggers.sql roles.sql rls_policies.sql indexes.sql > \
-  supabase/migrations/$(ls -t supabase/migrations | head -1)
+supabase db push --include node_modules/@clinical-diary/database/schema.sql
+supabase db push --include node_modules/@clinical-diary/database/triggers.sql
+supabase db push --include node_modules/@clinical-diary/database/rls_policies.sql
+supabase db push --include node_modules/@clinical-diary/database/indexes.sql
 
-# Push to Supabase
-supabase db push
+# Option 2: Use core schema from local clone
+supabase db push --include ../clinical-diary/packages/database/schema.sql
+supabase db push --include ../clinical-diary/packages/database/triggers.sql
+supabase db push --include ../clinical-diary/packages/database/rls_policies.sql
+supabase db push --include ../clinical-diary/packages/database/indexes.sql
+
+# Deploy sponsor-specific extensions (if any)
+supabase db push --include ./database/extensions.sql
+```
+
+**Verification**:
+
+```bash
+# Verify core tables deployed
+supabase db diff --schema public
+
+# Run integration tests
+flutter test integration_test/database_test.dart
 ```
 
 ---
@@ -538,21 +639,46 @@ Before going live:
 
 ## Next Steps
 
-1. Review the main [README.md](./README.md) for usage examples
-2. Read the [db-spec.md](./db-spec.md) for architectural details
-3. Set up your mobile application with Supabase client
-4. Configure monitoring and alerts
-5. Train your team on the system
+**After Initial Setup**:
+
+1. **Review Architecture**: Read prd-architecture-multi-sponsor.md for complete multi-sponsor architecture
+2. **Implementation Details**: Review dev-database.md for schema details and Event Sourcing pattern
+3. **Deploy Portal**: Follow ops-deployment.md to deploy sponsor's portal
+4. **Configure Monitoring**: Set up dashboards and alerts per ops-operations.md
+5. **Migration Strategy**: Review ops-database-migration.md for schema update procedures
+
+**For Additional Sponsors**:
+- Repeat this entire guide with new Supabase project
+- Use same core schema version for consistency
+- Maintain separate credentials and configurations
+
+---
+
+## References
+
+- **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
+- **Database Implementation**: dev-database.md
+- **Database Migrations**: ops-database-migration.md
+- **Deployment Procedures**: ops-deployment.md
+- **Daily Operations**: ops-operations.md
+- **Security Operations**: ops-security.md
 
 ---
 
 ## Support
 
-For Supabase-specific issues:
+**Supabase Platform**:
 - Supabase Docs: https://supabase.com/docs
 - Supabase Discord: https://discord.supabase.com
-- GitHub: https://github.com/supabase/supabase
+- Supabase Support: support@supabase.com (Pro plan: <4 hour SLA)
 
-For database architecture questions:
-- Contact your database architect team
-- Review the PRD in db-spec.md
+**Clinical Diary System**:
+- Review spec/ directory for architecture and implementation details
+- Contact platform team for architecture questions
+- Refer to ops-operations.md for incident response procedures
+
+---
+
+**Document Status**: Active setup guide
+**Review Cycle**: Quarterly or when Supabase platform changes
+**Owner**: Database Team / DevOps

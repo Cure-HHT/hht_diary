@@ -1,345 +1,1053 @@
-# Production Operations & Deployment
+# Deployment Operations Guide
 
 **Version**: 1.0
-**Audience**: Operations/DevOps
-**Last Updated**: 2025-10-17
+**Audience**: Operations (DevOps, Release Managers, Platform Engineers)
+**Last Updated**: 2025-01-24
+**Status**: Active
 
-> **See**: ops-database-setup.md for database deployment
-> **See**: ops-database-migration.md for schema migration procedures
-> **See**: ops-security.md for security hardening
-
----
-
-## Case Study: TICKET-007 Production State Protection
-
-**Status**: ✅ COMPLETED
-**Date**: 2025-10-14
-**Priority**: MEDIUM
-**Compliance**: FDA 21 CFR Part 11 - Data Integrity
-
-### Overview
-
-TICKET-007 implements **environment-aware state modification prevention** to enforce the event sourcing pattern in production while maintaining development flexibility.
-
-### Problem Addressed
-The `record_state` table should only be updated through the audit trail (event sourcing pattern), but the protection trigger was commented out for development convenience. This creates a compliance risk in production.
-
-### Solution
-Environment-aware triggers that automatically:
-- **Enable** state modification prevention in production
-- **Disable** state modification prevention in development/staging
-- Based on `app.environment` database setting
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture overview
+> **See**: dev-database.md for database implementation details
+> **See**: ops-operations.md for daily monitoring and incident response
+> **See**: dev-core-practices.md for development standards
 
 ---
 
-## Files Modified
+## Executive Summary
 
-### 1. `database/triggers.sql` (Modified)
-**Lines**: 279-310
-**Changes**:
-- Replaced commented-out trigger with environment-aware DO block
-- Added comprehensive documentation
-- Implements both INSERT and UPDATE prevention
-- Automatic detection of production environment
+Comprehensive guide for building, deploying, and releasing the multi-sponsor clinical diary system. Covers build system usage, CI/CD pipelines, environment configuration, and FDA 21 CFR Part 11 compliant release procedures.
 
-### 2. `spec/DEPLOYMENT_CHECKLIST.md` (Modified)
-**Changes**:
-- Added "Production Environment Configuration (TICKET-007)" section
-- Added daily verification check for state protection triggers
-- Includes verification commands and expected results
-
-### 3. `database/migrations/007_enable_state_protection.sql` (New)
-**Purpose**: Main migration script
-**Features**:
-- Idempotent (safe to re-run)
-- Environment detection and logging
-- Comprehensive verification checks
-- Clear success/failure messages
-
-### 4. `database/migrations/rollback/007_rollback.sql` (New)
-**Purpose**: Rollback script if needed
-**Features**:
-- Removes both triggers
-- Verification of successful rollback
-- Instructions for re-applying if needed
-
-### 5. `database/migrations/007_test_verification.sql` (New)
-**Purpose**: Comprehensive test suite
-**Features**:
-- 6 distinct test cases
-- Environment-specific tests
-- Tests both development and production scenarios
-- Clear pass/fail indicators
+**Architecture**: Single public core repository + private sponsor repositories
+**Build System**: Dart-based composition of core + sponsor code
+**CI/CD**: GitHub Actions with automated validation
+**Deployments**:
+- Mobile: Single app containing all sponsors (App Store + Google Play)
+- Portal: Separate deployment per sponsor (Netlify static site)
+- Database: Per-sponsor Supabase instance
+- Edge Functions: Per-sponsor Deno runtime on Supabase
 
 ---
 
-## How It Works
+## Build System Architecture
 
-### Development Environment
-```sql
--- Set environment (or leave unset)
--- app.environment = NULL or 'development'
+### Composition at Build Time
 
--- Result: Triggers NOT created
--- Direct modifications: ALLOWED
--- Audit trail updates: WORK
+The build system combines public core code with private sponsor code to produce deployable artifacts.
+
+**Build Process Flow**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Step 1: VALIDATE sponsor repository                        │
+│   - Repository structure                                   │
+│   - Required implementations (SponsorConfig, EdcSync, etc.)│
+│   - Contract test compliance                               │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 2: COPY sponsor code into build workspace             │
+│   - lib/ (Dart implementation)                             │
+│   - assets/ (branding, fonts, images)                      │
+│   - config/ (build configuration)                          │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 3: COMPOSE core + sponsor into unified codebase       │
+│   - Merge dependency trees                                 │
+│   - Apply sponsor theme overrides                          │
+│   - Generate integration glue code                         │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 4: GENERATE integration code                          │
+│   - Dependency injection bindings                          │
+│   - Route registrations                                    │
+│   - Feature flag configurations                            │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 5: BUILD Flutter artifacts                            │
+│   - Mobile: IPA (iOS) or APK/AAB (Android)                 │
+│   - Portal: Static web assets (HTML/JS/CSS)                │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Step 6: PACKAGE for deployment                             │
+│   - Sign mobile binaries                                   │
+│   - Generate deployment manifests                          │
+│   - Create release artifacts                               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Production Environment
-```sql
--- Set environment
-ALTER DATABASE postgres SET app.environment = 'production';
+### Build Scripts
 
--- Result: 2 triggers created
--- - prevent_direct_state_update
--- - prevent_direct_state_insert
+**Location**: `clinical-diary/tools/build_system/`
 
--- Direct modifications: BLOCKED
--- Audit trail updates: WORK
-```
+**Core Scripts**:
+
+1. **validate_sponsor.dart** - Validates sponsor repository structure
+2. **build_mobile.dart** - Builds mobile app (iOS/Android)
+3. **build_portal.dart** - Builds portal (Flutter Web)
+4. **deploy.dart** - Orchestrates deployment to Supabase + hosting
 
 ---
 
-## Deployment Instructions
+## Build Commands
 
-### For Development/Staging
+### Mobile App Build
+
+**Command Structure**:
+
 ```bash
-# 1. Connect to database
-psql "your-dev-connection-string"
-
-# 2. Set environment (optional, defaults to development)
-ALTER DATABASE postgres SET app.environment = 'development';
-
-# 3. Reconnect
-\c
-
-# 4. Run migration
-\i database/migrations/007_enable_state_protection.sql
-
-# 5. Run tests
-\i database/migrations/007_test_verification.sql
-
-# 6. Verify (should be 0)
-SELECT COUNT(*) FROM pg_trigger WHERE tgname LIKE 'prevent_direct_state%';
+dart run tools/build_system/build_mobile.dart \
+  --sponsor-repo <path-to-sponsor-repo> \
+  --platform <ios|android> \
+  --environment <staging|production>
 ```
 
-### For Production
+**Examples**:
+
 ```bash
-# 1. BACKUP DATABASE FIRST
+# Build Pfizer iOS app for production
+dart run tools/build_system/build_mobile.dart \
+  --sponsor-repo ../clinical-diary-pfizer \
+  --platform ios \
+  --environment production
 
-# 2. Connect to production database
-psql "your-prod-connection-string"
-
-# 3. Set environment to production
-ALTER DATABASE postgres SET app.environment = 'production';
-
-# 4. Reconnect to apply setting
-\c
-
-# 5. Verify environment
-SELECT current_setting('app.environment', true);
--- Expected: 'production'
-
-# 6. Run migration
-\i database/migrations/007_enable_state_protection.sql
-
-# 7. Verify triggers created (should be 2)
-SELECT tgname, tgenabled FROM pg_trigger
-WHERE tgname LIKE 'prevent_direct_state%';
-
-# 8. Run tests
-\i database/migrations/007_test_verification.sql
-
-# 9. Test that direct modification fails
-INSERT INTO record_state (event_uuid, patient_id, site_id, data, version, created_by)
-VALUES (gen_random_uuid(), 'test', 'test', '{}'::jsonb, 1, 'test');
--- Expected: ERROR - Direct modification not allowed
-
-# 10. Test that audit trail works
-INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation, data,
-    created_by, role, client_timestamp, change_reason
-) VALUES (
-    gen_random_uuid(), 'test_patient', 'test_site', 'USER_CREATE',
-    '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test'
-);
--- Expected: SUCCESS, and record_state automatically updated
-
-# 11. Verify state was created
-SELECT * FROM record_state WHERE patient_id = 'test_patient';
-
-# 12. Clean up test data (via audit trail)
-INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation, data,
-    created_by, role, client_timestamp, change_reason
-) SELECT
-    event_uuid, patient_id, site_id, 'USER_DELETE',
-    data, created_by, role, now(), 'cleanup'
-FROM record_state WHERE patient_id = 'test_patient';
+# Build Novartis Android app for staging
+dart run tools/build_system/build_mobile.dart \
+  --sponsor-repo ../clinical-diary-novartis \
+  --platform android \
+  --environment staging
 ```
 
----
+**Output**:
+- iOS: `build/ios/ipa/ClinicalDiary.ipa`
+- Android: `build/android/app/release/app-release.aab` (or `.apk`)
 
-## Testing
+### Portal Build
 
-### Automated Test Suite
-Run the comprehensive test suite:
+**Command Structure**:
+
 ```bash
-psql "connection-string" -f database/migrations/007_test_verification.sql
+dart run tools/build_system/build_portal.dart \
+  --sponsor-repo <path-to-sponsor-repo> \
+  --environment <staging|production>
 ```
 
-**Tests Include**:
-1. ✓ Environment detection
-2. ✓ Trigger count verification
-3. ✓ Function existence check
-4. ✓ Direct state modification (dev only)
-5. ✓ Audit trail updates state (both environments)
-6. ✓ Direct modification blocked (production only)
+**Example**:
 
-### Manual Verification
-
-**Development**:
-```sql
--- Should succeed
-INSERT INTO record_state VALUES (...);
-```
-
-**Production**:
-```sql
--- Should fail with error
-INSERT INTO record_state VALUES (...);
-
--- Should succeed and update state
-INSERT INTO record_audit VALUES (...);
-```
-
----
-
-## Compliance Benefits
-
-### FDA 21 CFR Part 11
-✅ **11.10(e)**: All changes to records must be audited
-✅ **11.10(c)**: System prevents unauthorized access/modification
-✅ **11.10(k)(2)**: System operations can be validated
-
-### ALCOA+ Principles Enforced
-- **Attributable**: All changes via audit trail with user info
-- **Original**: Immutable event store (audit log) enforced by Event Sourcing pattern
-- **Accurate**: Cryptographic hashes verify integrity
-- **Complete**: No changes can bypass event store
-- **Consistent**: Event Sourcing ensures consistency
-- **Enduring**: Permanent record in event store
-
----
-
-## Monitoring
-
-### Daily Check (Production)
-```sql
--- Verify triggers are enabled
-SELECT
-    CASE
-        WHEN COUNT(*) = 2 THEN 'OK'
-        ELSE 'ALERT: Triggers missing!'
-    END as status
-FROM pg_trigger
-WHERE tgname LIKE 'prevent_direct_state%';
-```
-
-### Weekly Check (Production)
-```sql
--- Verify no orphaned state records
-SELECT COUNT(*) as orphaned_records
-FROM record_state rs
-WHERE NOT EXISTS (
-    SELECT 1 FROM record_audit ra
-    WHERE ra.event_uuid = rs.event_uuid
-);
--- Should always be 0
-```
-
----
-
-## Rollback Plan
-
-If issues occur:
 ```bash
-# 1. Connect to database
-psql "connection-string"
+# Build Pfizer portal for production
+dart run tools/build_system/build_portal.dart \
+  --sponsor-repo ../clinical-diary-pfizer \
+  --environment production
+```
 
-# 2. Run rollback script
-\i database/migrations/rollback/007_rollback.sql
+**Output**: `build/web/` (static site ready for Netlify deployment)
 
-# 3. Verify triggers removed
-SELECT COUNT(*) FROM pg_trigger WHERE tgname LIKE 'prevent_direct_state%';
--- Expected: 0
+### Validation
 
-# 4. To restore later
-\i database/migrations/007_enable_state_protection.sql
+**Command**:
+
+```bash
+dart run tools/build_system/validate_sponsor.dart \
+  --sponsor-repo <path-to-sponsor-repo>
+```
+
+**Checks**:
+- Repository structure compliance
+- Required files present
+- SponsorConfig implementation
+- Contract test pass rate
+- No prohibited content (secrets, PII)
+
+**Exit Codes**:
+- `0`: Validation passed
+- `1`: Validation failed (build should not proceed)
+
+---
+
+## CI/CD Pipelines
+
+### Sponsor Repository Workflow
+
+**File**: `.github/workflows/deploy_production.yml` (in sponsor repo)
+
+**Trigger**: Push to `main` branch or manual workflow dispatch
+
+**Workflow Steps**:
+
+```yaml
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout sponsor repository
+      - uses: actions/checkout@v4
+        with:
+          path: sponsor
+
+      # 2. Clone public core repository
+      - uses: actions/checkout@v4
+        with:
+          repository: yourorg/clinical-diary
+          ref: v1.2.0  # Pinned version
+          path: core
+
+      # 3. Setup Dart/Flutter
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+
+      # 4. Validate sponsor repository
+      - name: Validate Sponsor Repo
+        run: |
+          cd core
+          dart run tools/build_system/validate_sponsor.dart \
+            --sponsor-repo ../sponsor
+
+      # 5. Run contract tests
+      - name: Contract Tests
+        run: |
+          cd sponsor
+          flutter test test/contracts/
+
+      # 6. Build mobile app (iOS)
+      - name: Build iOS
+        run: |
+          cd core
+          dart run tools/build_system/build_mobile.dart \
+            --sponsor-repo ../sponsor \
+            --platform ios \
+            --environment production
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+
+      # 7. Build mobile app (Android)
+      - name: Build Android
+        run: |
+          cd core
+          dart run tools/build_system/build_mobile.dart \
+            --sponsor-repo ../sponsor \
+            --platform android \
+            --environment production
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+
+      # 8. Build portal
+      - name: Build Portal
+        run: |
+          cd core
+          dart run tools/build_system/build_portal.dart \
+            --sponsor-repo ../sponsor \
+            --environment production
+
+      # 9. Deploy portal to Netlify
+      - name: Deploy Portal
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './core/build/web'
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      # 10. Deploy database schema to Supabase
+      - name: Deploy Database
+        run: |
+          cd sponsor
+          npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          npx supabase db push --include ../core/packages/database/
+          npx supabase db push --include ./database/extensions.sql
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # 11. Deploy Edge Functions
+      - name: Deploy Edge Functions
+        if: ${{ vars.DEPLOYMENT_MODE == 'proxy' }}
+        run: |
+          cd sponsor/edge_functions
+          npx supabase functions deploy edc_sync \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # 12. Upload mobile artifacts
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-production
+          path: core/build/ios/ipa/ClinicalDiary.ipa
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-production
+          path: core/build/android/app/release/app-release.aab
+```
+
+### Staging Workflow
+
+**File**: `.github/workflows/deploy_staging.yml`
+
+**Differences from Production**:
+- Triggers on push to `develop` branch
+- Uses staging Supabase project
+- Deploys to Netlify preview URL
+- Skips mobile app store submission
+
+---
+
+## Environment Configuration
+
+### Environment Types
+
+**Environments**:
+1. **Local Development**: Developer machine
+2. **Staging**: Testing and UAT environment
+3. **Production**: Live clinical trial environment
+
+### Configuration Files
+
+**Sponsor Repository**: `config/` directory
+
+```
+config/
+├── mobile.yaml          # Mobile app build configuration
+├── portal.yaml          # Portal build configuration
+├── supabase.staging.env # Staging credentials (gitignored)
+└── supabase.prod.env    # Production credentials (gitignored)
+```
+
+**mobile.yaml Example**:
+
+```yaml
+app:
+  name: "Clinical Diary"
+  bundle_id: "com.clinicaldiary.pfizer"
+  version: "1.2.3"
+  build_number: 42
+
+branding:
+  primary_color: "#0066CC"
+  logo: "assets/logo.png"
+  icon: "assets/icon.png"
+
+features:
+  offline_mode: true
+  biometric_auth: true
+  push_notifications: true
+```
+
+**portal.yaml Example**:
+
+```yaml
+portal:
+  title: "Pfizer Clinical Trial Portal"
+  domain: "pfizer-portal.clinicaldiary.com"
+  theme: "pfizer"
+
+features:
+  custom_reports: true
+  data_export: true
+  real_time_dashboard: true
+```
+
+**supabase.prod.env Example** (gitignored):
+
+```bash
+SUPABASE_PROJECT_REF=abcd1234efgh5678
+SUPABASE_URL=https://abcd1234efgh5678.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# EDC Integration (proxy mode only)
+EDC_API_URL=https://rave.mdsol.com/api/v1
+EDC_API_KEY=secret-key-here
+```
+
+### GitHub Secrets
+
+**Required Secrets** (per sponsor repository):
+
+**Supabase**:
+- `SUPABASE_PROJECT_REF` - Project reference ID
+- `SUPABASE_ACCESS_TOKEN` - Service account token
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key for migrations
+
+**Netlify**:
+- `NETLIFY_AUTH_TOKEN` - Netlify authentication token
+- `NETLIFY_SITE_ID` - Portal site ID
+
+**Apple (iOS)**:
+- `APPLE_CERTIFICATE` - Code signing certificate (base64 encoded)
+- `APPLE_PROVISIONING_PROFILE` - Provisioning profile (base64 encoded)
+- `APPLE_TEAM_ID` - Apple Developer Team ID
+- `APP_STORE_CONNECT_KEY` - API key for App Store submission
+
+**Google (Android)**:
+- `ANDROID_KEYSTORE` - Keystore file (base64 encoded)
+- `ANDROID_KEY_ALIAS` - Key alias
+- `ANDROID_KEY_PASSWORD` - Key password
+- `ANDROID_STORE_PASSWORD` - Keystore password
+- `GOOGLE_PLAY_SERVICE_ACCOUNT` - Service account JSON (base64 encoded)
+
+**EDC (Proxy Mode)**:
+- `EDC_API_URL` - EDC system API endpoint
+- `EDC_API_KEY` - EDC authentication key
+
+---
+
+## Release Procedures
+
+### FDA 21 CFR Part 11 Compliant Workflow
+
+**Developer Workflow**:
+
+```
+develop branch
+    │
+    │ (feature branches merge here)
+    │
+    ▼
+release/1.2.3 branch ← Create from develop
+    │
+    │ (deploy to staging)
+    │
+    ▼
+  UAT / Validation
+    │
+    │ (bug fixes applied to release branch)
+    │
+    ▼
+git tag v1.2.3 ← Apply tag (immutable record)
+    │
+    │ (deploy to production)
+    │
+    ▼
+merge to main ← Official release record
+    │
+    └─→ merge back to develop
+```
+
+**Step-by-Step Release Process**:
+
+#### Step 1: Create Release Branch
+
+```bash
+# From develop branch
+git checkout develop
+git pull origin develop
+
+# Create release branch
+git checkout -b release/1.2.3
+
+# Push to remote
+git push -u origin release/1.2.3
+```
+
+#### Step 2: Deploy to Staging
+
+```bash
+# Trigger staging deployment (automatic via GitHub Actions)
+# Or manually:
+cd sponsor-repo
+git checkout release/1.2.3
+
+# Build and deploy staging
+cd ../clinical-diary
+dart run tools/build_system/build_portal.dart \
+  --sponsor-repo ../sponsor-repo \
+  --environment staging
+```
+
+#### Step 3: User Acceptance Testing (UAT)
+
+**Validation Protocol**:
+- [ ] All contract tests pass
+- [ ] Integration tests pass against staging database
+- [ ] Portal loads without errors
+- [ ] Mobile app syncs correctly
+- [ ] Audit trail captures all changes
+- [ ] RLS policies enforce access control
+- [ ] EDC sync functional (if proxy mode)
+- [ ] Backup/restore tested
+- [ ] Performance benchmarks met
+- [ ] Security scan passes
+- [ ] Compliance checklist complete
+
+**Bug Fixes**: Apply fixes directly to release branch
+
+```bash
+git checkout release/1.2.3
+# ... make fixes ...
+git commit -m "Fix: [description]"
+git push origin release/1.2.3
+```
+
+#### Step 4: Tag Release
+
+**After UAT passes**:
+
+```bash
+git checkout release/1.2.3
+git pull origin release/1.2.3
+
+# Create annotated tag
+git tag -a v1.2.3 -m "Release 1.2.3 - Production validated $(date -I)"
+
+# Push tag (triggers production deployment)
+git push origin v1.2.3
+```
+
+**Tag naming convention**: `v<major>.<minor>.<patch>`
+
+#### Step 5: Deploy to Production
+
+**Automatic deployment via GitHub Actions**:
+- Triggered by tag push
+- Builds from tagged commit
+- Deploys portal to production Netlify site
+- Publishes mobile artifacts for app store submission
+
+**Manual deployment** (if needed):
+
+```bash
+cd clinical-diary
+dart run tools/build_system/deploy.dart \
+  --sponsor-repo ../sponsor-repo \
+  --tag v1.2.3 \
+  --environment production
+```
+
+#### Step 6: Merge Release Branch
+
+```bash
+# Merge to main (official record)
+git checkout main
+git merge --no-ff release/1.2.3 -m "Merge release 1.2.3"
+git push origin main
+
+# Merge back to develop
+git checkout develop
+git merge --no-ff release/1.2.3 -m "Merge release 1.2.3 to develop"
+git push origin develop
+
+# Delete release branch (optional)
+git branch -d release/1.2.3
+git push origin --delete release/1.2.3
+```
+
+#### Step 7: Mobile App Store Submission
+
+**iOS (App Store Connect)**:
+
+```bash
+# Upload IPA to App Store Connect
+xcrun altool --upload-app \
+  --type ios \
+  --file build/ios/ipa/ClinicalDiary.ipa \
+  --apiKey $APP_STORE_CONNECT_KEY \
+  --apiIssuer $APP_STORE_CONNECT_ISSUER
+```
+
+**Android (Google Play Console)**:
+
+```bash
+# Upload AAB to Google Play (internal track for testing)
+fastlane supply \
+  --aab build/android/app/release/app-release.aab \
+  --track internal \
+  --json_key google-play-service-account.json
+```
+
+**Note**: Mobile app contains ALL sponsors. Single release includes all sponsor configurations.
+
+---
+
+## Database Deployment
+
+### Schema Deployment to Supabase
+
+**Prerequisites**:
+- Supabase CLI installed: `npm install -g supabase`
+- Supabase project created
+- Service role key available
+
+**Deployment Steps**:
+
+#### 1. Link to Supabase Project
+
+```bash
+cd sponsor-repo
+supabase link --project-ref abcd1234efgh5678
+```
+
+**Configuration**: Creates `.supabase/config.toml`
+
+#### 2. Deploy Core Schema
+
+```bash
+# Deploy from core repository
+supabase db push --include ../clinical-diary/packages/database/schema.sql
+supabase db push --include ../clinical-diary/packages/database/rls_policies.sql
+supabase db push --include ../clinical-diary/packages/database/functions.sql
+supabase db push --include ../clinical-diary/packages/database/triggers.sql
+```
+
+**Alternatively**, use package from GitHub Package Registry:
+
+```bash
+npm install @clinical-diary/database@1.2.3
+
+supabase db push --include node_modules/@clinical-diary/database/schema.sql
+```
+
+#### 3. Deploy Sponsor Extensions
+
+```bash
+# Deploy sponsor-specific tables/functions
+supabase db push --include ./database/extensions.sql
+```
+
+#### 4. Verify Deployment
+
+```bash
+# Run migrations check
+supabase db diff --schema public
+
+# Run integration tests against database
+flutter test integration_test/database_test.dart
+```
+
+#### 5. Create Backup Before Production
+
+```bash
+# Backup before production deployment
+supabase db dump --data-only > backup-$(date +%Y%m%d-%H%M%S).sql
 ```
 
 ---
 
-## Related Tickets
+## Edge Functions Deployment
 
-- **TICKET-001**: Add audit metadata fields (completed)
-- **TICKET-002**: Implement tamper detection (completed)
-- **TICKET-004**: Create database test suite (pending)
-- **TICKET-009**: Document migration strategy (pending)
+**Applicable to**: Proxy mode sponsors only
+
+### Deploy Edge Functions to Supabase
+
+#### 1. Prepare Edge Function
+
+**Structure**: `sponsor-repo/edge_functions/edc_sync/index.ts`
+
+```typescript
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+serve(async (req) => {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
+  // EDC sync logic
+  // ...
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { 'Content-Type': 'application/json' },
+  })
+})
+```
+
+#### 2. Deploy Function
+
+```bash
+cd sponsor-repo/edge_functions
+
+# Deploy to Supabase
+supabase functions deploy edc_sync \
+  --project-ref abcd1234efgh5678
+```
+
+#### 3. Set Function Secrets
+
+```bash
+# Set EDC API credentials
+supabase secrets set EDC_API_URL=https://rave.mdsol.com/api/v1
+supabase secrets set EDC_API_KEY=secret-key-here
+```
+
+#### 4. Configure Database Webhook
+
+```sql
+-- Trigger Edge Function on INSERT to record_audit
+CREATE OR REPLACE FUNCTION trigger_edc_sync()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM net.http_post(
+    url := 'https://abcd1234efgh5678.supabase.co/functions/v1/edc_sync',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.service_role_key')
+    ),
+    body := jsonb_build_object(
+      'audit_id', NEW.audit_id,
+      'event_uuid', NEW.event_uuid,
+      'patient_id', NEW.patient_id,
+      'data', NEW.data
+    )
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_record_audit_insert
+  AFTER INSERT ON record_audit
+  FOR EACH ROW
+  EXECUTE FUNCTION trigger_edc_sync();
+```
+
+#### 5. Test Edge Function
+
+```bash
+# Test invocation
+curl -i --location --request POST \
+  'https://abcd1234efgh5678.supabase.co/functions/v1/edc_sync' \
+  --header 'Authorization: Bearer SERVICE_ROLE_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"audit_id": 123, "event_uuid": "test-uuid"}'
+```
 
 ---
 
-## Acceptance Criteria
+## Portal Deployment
 
-- [x] Trigger enabled in production environment
-- [x] Trigger disabled in development/test environments
-- [x] Environment detection tested
-- [x] Deployment checklist updated
-- [x] Test verifies direct modifications blocked in production
-- [x] Test verifies audit triggers still work
-- [x] Migration script created and tested
-- [x] Rollback script created and tested
-- [x] Documentation updated
+### Netlify Static Site Deployment
+
+**Prerequisites**:
+- Netlify account
+- Netlify CLI installed: `npm install -g netlify-cli`
+
+#### 1. Build Portal
+
+```bash
+cd clinical-diary
+dart run tools/build_system/build_portal.dart \
+  --sponsor-repo ../sponsor-repo \
+  --environment production
+```
+
+**Output**: `build/web/` directory
+
+#### 2. Configure Netlify
+
+**netlify.toml** (in sponsor repo):
+
+```toml
+[build]
+  publish = "build/web"
+  command = "echo 'Build completed via GitHub Actions'"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production]
+  environment = { SUPABASE_URL = "https://abcd1234efgh5678.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+
+[context.staging]
+  environment = { SUPABASE_URL = "https://staging-xyz.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+```
+
+#### 3. Deploy to Netlify
+
+**Via CLI**:
+
+```bash
+cd sponsor-repo
+
+# First time: Link site
+netlify link --name pfizer-clinical-diary-portal
+
+# Deploy production
+netlify deploy --prod --dir=../clinical-diary/build/web
+```
+
+**Via GitHub Actions** (recommended):
+- Automatic deployment on tag push
+- See CI/CD pipeline section above
+
+#### 4. Configure Custom Domain
+
+```bash
+# Add custom domain
+netlify domains:add pfizer-portal.clinicaldiary.com
+
+# Configure DNS (in domain registrar):
+# CNAME pfizer-portal -> pfizer-clinical-diary-portal.netlify.app
+```
+
+#### 5. Enable HTTPS
+
+**Automatic via Netlify**:
+- SSL certificate provisioned automatically
+- Enforce HTTPS: `netlify sites:update --enforce-https`
 
 ---
 
-## Summary
+## Package Publishing
 
-**Implementation Time**: ~3 hours
-**Risk Level**: Low (non-breaking, adds protection)
-**Compliance Impact**: High (critical for production)
+### GitHub Package Registry
 
-**Key Benefits**:
-1. ✅ Enforces event sourcing in production
-2. ✅ Maintains development flexibility
-3. ✅ Automatic environment detection
-4. ✅ Comprehensive testing included
-5. ✅ Easy rollback if needed
-6. ✅ FDA compliance maintained
+**Publishing Core Packages** (automated via GitHub Actions):
 
-**Next Steps**:
-1. Review and approve changes
-2. Test migration in staging environment
-3. Deploy to production during maintenance window
-4. Add to monitoring dashboards
-5. Update team runbooks
+#### 1. Create Release Tag
+
+```bash
+cd clinical-diary
+git tag v2025.10.24.a
+git push --tags
+```
+
+#### 2. GitHub Action Publishes Packages
+
+**Workflow**: `.github/workflows/publish.yml`
+
+```yaml
+name: Publish Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Publish to GitHub Packages
+        run: |
+          cd packages/core
+          dart pub publish --server https://pub.pkg.github.com/yourorg
+        env:
+          PUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+#### 3. Sponsors Consume Packages
+
+**pubspec.yaml** (in sponsor repo):
+
+```yaml
+dependencies:
+  clinical_diary_core:
+    hosted:
+      name: clinical_diary_core
+      url: https://pub.pkg.github.com/yourorg
+    version: ^1.2.0
+```
 
 ---
 
-**Implemented by**: Claude Code
-**Review Required**: Technical Lead, Compliance Officer
-**Status**: Ready for review and deployment
+## Validation Checklist
+
+### Pre-Deployment Validation
+
+**Before each production deployment**:
+
+#### Code Quality
+- [ ] All unit tests pass
+- [ ] All integration tests pass
+- [ ] Contract tests pass (sponsor implements all interfaces)
+- [ ] No linting errors
+- [ ] Code coverage >80%
+
+#### Security
+- [ ] `npm audit` shows no critical vulnerabilities
+- [ ] Secrets not committed to repository
+- [ ] All dependencies up to date
+- [ ] Security scan passes (Snyk/Dependabot)
+
+#### Database
+- [ ] Migration scripts tested on staging
+- [ ] Backup created before deployment
+- [ ] RLS policies enforced
+- [ ] Audit trail functional
+
+#### Compliance
+- [ ] 21 CFR Part 11 checklist complete
+- [ ] Audit trail captures all changes
+- [ ] ALCOA+ validation passes
+- [ ] Change control documentation complete
+
+#### Functionality
+- [ ] UAT sign-off received
+- [ ] Performance benchmarks met
+- [ ] Mobile app syncs correctly
+- [ ] Portal accessible and functional
+- [ ] EDC sync functional (proxy mode)
+
+#### Release
+- [ ] Release notes prepared
+- [ ] Version number incremented
+- [ ] Git tag created and pushed
+- [ ] Rollback plan documented
+
+---
+
+## Rollback Procedures
+
+### Portal Rollback
+
+**Netlify**:
+
+```bash
+# List recent deploys
+netlify deploy:list
+
+# Rollback to previous deploy
+netlify deploy:restore <deploy-id>
+```
+
+### Database Rollback
+
+**Supabase**:
+
+```bash
+# Restore from backup
+supabase db restore backup-20251024-120000.sql
+
+# Or use point-in-time recovery (within 30 days)
+supabase db restore --timestamp "2025-10-24 12:00:00"
+```
+
+### Edge Function Rollback
+
+```bash
+# Deploy previous version
+cd edge_functions
+git checkout v1.2.2
+supabase functions deploy edc_sync
+```
+
+### Mobile App Rollback
+
+**iOS**: Use App Store Connect to remove new version from release
+**Android**: Use Google Play Console to halt rollout or revert to previous version
+
+**Note**: Mobile rollback impacts ALL sponsors (single app). Coordinate carefully.
+
+---
+
+## Monitoring Deployment Health
+
+**Post-Deployment Checks** (first 24 hours):
+
+- [ ] Portal accessible (check uptime)
+- [ ] Mobile app syncs successfully
+- [ ] Database connections healthy
+- [ ] Edge Functions invoked without errors
+- [ ] Error rates within normal range
+- [ ] API response times <500ms (p95)
+- [ ] No security alerts
+- [ ] Audit trail capturing events
+
+**See**: ops-operations.md for ongoing monitoring procedures
+
+---
+
+## Troubleshooting
+
+### Build Failures
+
+**Validation Errors**:
+```bash
+# Check detailed validation output
+dart run tools/build_system/validate_sponsor.dart \
+  --sponsor-repo ../sponsor-repo \
+  --verbose
+```
+
+**Contract Test Failures**:
+```bash
+# Run contract tests locally
+cd sponsor-repo
+flutter test test/contracts/ --reporter expanded
+```
+
+### Database Deployment Failures
+
+**Migration Conflicts**:
+```bash
+# View pending migrations
+supabase migration list
+
+# Reset database (staging only!)
+supabase db reset
+```
+
+**Connection Errors**:
+- Verify `SUPABASE_PROJECT_REF` is correct
+- Check service role key has not expired
+- Confirm network connectivity
+
+### Portal Deployment Failures
+
+**Netlify Build Errors**:
+- Check build logs: `netlify logs`
+- Verify environment variables set correctly
+- Ensure `build/web/` directory contains `index.html`
+
+**CORS Errors**:
+- Configure Supabase CORS settings in dashboard
+- Add portal domain to allowed origins
+
+### Edge Function Errors
+
+**View Logs**:
+```bash
+supabase functions logs edc_sync
+```
+
+**Common Issues**:
+- Missing environment variables (secrets)
+- EDC API connection failures
+- Timeout errors (increase function timeout in dashboard)
 
 ---
 
 ## References
 
-- **Database Setup**: ops-database-setup.md
-- **Migration Strategy**: ops-database-migration.md
-- **Security**: ops-security.md
-- **Compliance Requirements**: prd-clinical-trials.md
+- **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
+- **Database Implementation**: dev-database.md
+- **Development Practices**: dev-core-practices.md
+- **Compliance Practices**: dev-compliance-practices.md
+- **Daily Operations**: ops-operations.md
+- **Security Operations**: ops-security.md
 
 ---
 
-**Source Files**:
-- `PRODUCTION_OPERATIONS.md` (moved 2025-10-17)
+**Document Status**: Active operations guide
+**Review Cycle**: After each deployment or quarterly
+**Owner**: DevOps Team / Release Manager

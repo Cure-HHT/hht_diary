@@ -1,12 +1,39 @@
-# Database Migration Strategy
-# TODO: This file contains redundant information. Remove/move examples to other files, replace with references if necessary.
-# TODO: This is a strategy/high-level document. It should read more like a PRD than an implementation spec.
-# TODO: Any unique and useful information in this document related to implementation or operations should be moved to another document so that this file can be used as a reference in a hierarchical documentation structure.
+# Database Migration Operations Guide
 
+**Version**: 1.0
+**Audience**: Operations (Database Administrators, DevOps Engineers)
+**Last Updated**: 2025-01-24
+**Status**: Active
+
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
+> **See**: dev-database.md for database schema details
+> **See**: ops-database-setup.md for initial database setup
+> **See**: ops-deployment.md for deployment workflows
+> **See**: dev-compliance-practices.md for 21 CFR Part 11 change control requirements
+
+---
+
+## Executive Summary
+
+Operational procedures for schema changes to the Clinical Trial Diary Database in a multi-sponsor architecture. Each sponsor operates an independent Supabase instance, requiring coordinated migration strategies across multiple databases.
+
+**Key Challenges in Multi-Sponsor Environment**:
+- **Core schema consistency**: All sponsors must run same core schema version
+- **Sponsor-specific extensions**: Each sponsor may have custom tables/functions
+- **Coordinated rollouts**: Core updates affect all sponsors
+- **Independent timelines**: Each sponsor controls their own deployment schedule
+- **Compliance tracking**: Each sponsor maintains separate change control audit trail
+
+**Migration Types**:
+1. **Core schema migrations**: Applied to all sponsors (from core repository)
+2. **Sponsor extensions**: Applied to single sponsor only (from sponsor repository)
+3. **Emergency hotfixes**: Expedited process for critical issues
+
+---
 
 ## Overview
 
-This document defines the migration strategy for schema changes to the Clinical Trial Diary Database. All schema changes must follow this process to ensure data integrity, compliance, and system reliability.
+This document defines the migration strategy for schema changes to the Clinical Trial Diary Database. All schema changes must follow this process to ensure data integrity, compliance, and system reliability across all sponsor deployments.
 
 ## Principles
 
@@ -15,19 +42,116 @@ This document defines the migration strategy for schema changes to the Clinical 
 3. **Migrations tested on dev/staging before production**: Multiple environment validation
 4. **Zero-downtime migrations for production**: No service interruptions
 5. **All migrations documented and reviewed**: Change control compliance
+6. **Multi-sponsor coordination**: Core migrations coordinated across all sponsors
+
+---
+
+## Multi-Sponsor Migration Strategy
+
+### Core vs Sponsor-Specific Migrations
+
+**Core Migrations** (in `clinical-diary/packages/database/migrations/`):
+- Changes to base schema (record_audit, record_state, RLS policies, etc.)
+- Published as versioned package (`@clinical-diary/database@1.2.3`)
+- All sponsors must apply in same order
+- Coordinated release schedule (quarterly)
+
+**Sponsor Extension Migrations** (in `clinical-diary-{sponsor}/database/migrations/`):
+- Sponsor-specific tables or functions
+- Applied only to that sponsor's Supabase instance
+- Independent deployment schedule
+- Must not conflict with core schema
+
+### Migration Coordination Process
+
+#### Core Schema Release
+
+```
+Core Repository                 Sponsor A              Sponsor B              Sponsor C
+─────────────────────────────────────────────────────────────────────────────────────────
+1. Core migration 005
+   created & tested
+
+2. Tag v1.3.0 released ────────> Notify Sponsor A ────> Notify Sponsor B ────> Notify Sponsor C
+
+3. Migration available          4. UAT in staging
+   in GitHub package               (1-2 weeks)
+                                                       5. UAT in staging
+                                                          (1-2 weeks)
+                                                                              6. UAT in staging
+                                                                                 (1-2 weeks)
+
+                                7. Deploy to prod      8. Deploy to prod      9. Deploy to prod
+                                   (Week 1)               (Week 2)               (Week 3)
+```
+
+**Each sponsor independently**:
+1. Reviews core migration release notes
+2. Tests migration in staging environment
+3. Obtains UAT sign-off
+4. Schedules production deployment
+5. Applies migration to production
+6. Reports completion to core team
+
+### Version Pinning
+
+**Each sponsor repo specifies core version**:
+
+```yaml
+# clinical-diary-pfizer/pubspec.yaml
+dependencies:
+  clinical_diary_database:
+    hosted:
+      name: clinical_diary_database
+      url: https://pub.pkg.github.com/yourorg
+    version: ^1.3.0  # Pin to specific version
+```
+
+**Upgrade process**:
+1. Update version in pubspec.yaml
+2. Test in staging
+3. Deploy to production after validation
+
+### Migration Tracking Per Sponsor
+
+**Each sponsor maintains**:
+- Migration log in their Supabase instance
+- Change control documentation (21 CFR Part 11)
+- Audit trail of all schema changes
+- Independent backup/rollback capability
+
+---
 
 ## Directory Structure
 
+### Core Repository Structure
+
 ```
-database/migrations/
-├── README.md                    # Migration execution instructions
-├── 001_initial_schema.sql       # Initial database schema
-├── 002_add_audit_metadata.sql   # Example: TICKET-001 implementation
-├── 003_add_tamper_detection.sql # Example: TICKET-002 implementation
+clinical-diary/packages/database/migrations/
+├── README.md                    # Core migration execution instructions
+├── 001_initial_schema.sql       # Core schema tables
+├── 002_add_audit_metadata.sql   # ALCOA+ audit fields
+├── 003_add_rls_policies.sql     # Row-level security
+├── 004_add_event_sourcing.sql   # Event Sourcing triggers
 └── rollback/
-    ├── 002_rollback.sql         # Rollback for migration 002
-    └── 003_rollback.sql         # Rollback for migration 003
+    ├── 002_rollback.sql
+    ├── 003_rollback.sql
+    └── 004_rollback.sql
 ```
+
+### Sponsor Repository Structure
+
+```
+clinical-diary-pfizer/database/migrations/
+├── README.md                    # Sponsor-specific migration instructions
+├── 001_edc_integration.sql      # Pfizer EDC sync tables (proxy mode)
+├── 002_custom_reports.sql       # Pfizer-specific reporting views
+└── rollback/
+    ├── 001_rollback.sql
+    └── 002_rollback.sql
+```
+
+**Note**: Sponsor migrations are numbered independently from core migrations.
 
 ## Migration File Naming Convention
 
@@ -487,12 +611,121 @@ pg_restore -d dbtest_prod backup_YYYYMMDD_HHMM.sql
 # Document in post-mortem
 ```
 
+---
+
+## Multi-Sponsor Deployment Procedures
+
+### Applying Core Migration to All Sponsors
+
+**Scenario**: Core migration 005 released in v1.3.0
+
+**For each sponsor** (repeat these steps):
+
+```bash
+# 1. Clone/update sponsor repository
+cd clinical-diary-pfizer
+git pull origin main
+
+# 2. Update core database dependency
+npm install @clinical-diary/database@1.3.0
+
+# 3. Link to sponsor's Supabase staging instance
+supabase link --project-ref pfizer-staging-xyz
+
+# 4. Apply migration to staging
+supabase db push --include node_modules/@clinical-diary/database/migrations/005_description.sql
+
+# 5. Run integration tests
+flutter test integration_test/database_test.dart --dart-define=ENV=staging
+
+# 6. UAT validation (sponsor-specific)
+# ... test application functionality ...
+
+# 7. Get UAT sign-off
+
+# 8. Link to production instance
+supabase link --project-ref pfizer-prod-abc
+
+# 9. Create backup
+supabase db dump > backup-$(date +%Y%m%d).sql
+
+# 10. Apply migration to production
+supabase db push --include node_modules/@clinical-diary/database/migrations/005_description.sql
+
+# 11. Verify production
+flutter test integration_test/smoke_test.dart --dart-define=ENV=production
+
+# 12. Monitor for 24-48 hours
+```
+
+**Coordination**:
+- Each sponsor deploys on their own schedule
+- Core team tracks deployment status across all sponsors
+- No strict deadline (sponsors control timing)
+- Critical hotfixes may require expedited coordination
+
+### Applying Sponsor-Specific Migration
+
+**Scenario**: Pfizer adds custom EDC sync table
+
+**Process** (Pfizer only):
+
+```bash
+# 1. Create migration in sponsor repo
+cd clinical-diary-pfizer/database/migrations
+touch 003_add_edc_queue.sql
+touch rollback/003_rollback.sql
+
+# 2. Develop migration SQL
+# ... write migration ...
+
+# 3. Test in staging
+supabase link --project-ref pfizer-staging-xyz
+supabase db push --include ./database/migrations/003_add_edc_queue.sql
+
+# 4. UAT approval
+
+# 5. Deploy to production
+supabase link --project-ref pfizer-prod-abc
+supabase db push --include ./database/migrations/003_add_edc_queue.sql
+```
+
+**No coordination needed** - only affects Pfizer's instance.
+
+### Emergency Hotfix Procedure
+
+**Scenario**: Critical bug in core schema (data corruption risk)
+
+**Expedited process**:
+
+1. **Core Team**:
+   - Create hotfix migration immediately
+   - Tag hotfix release (e.g., v1.3.1)
+   - Notify all sponsors (email + Slack)
+   - Provide severity assessment and timeline recommendation
+
+2. **Each Sponsor** (prioritized):
+   - Review hotfix impact
+   - Test in staging (compressed timeline: hours not days)
+   - Deploy to production ASAP
+   - Report completion to core team
+
+3. **Core Team**:
+   - Track deployment across all sponsors
+   - Provide support for any issues
+   - Document incident and lessons learned
+
+---
+
 ## References
 
-- FDA 21 CFR Part 11 - Electronic Records and Signatures
-- `spec/compliance-practices.md` - Change Control section (lines 289-318)
-- `spec/core-practices.md` - Continuous Compliance section
-- PostgreSQL Documentation: https://www.postgresql.org/docs/current/
+- **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
+- **Database Implementation**: dev-database.md
+- **Database Setup**: ops-database-setup.md
+- **Deployment Workflows**: ops-deployment.md
+- **Compliance Requirements**: dev-compliance-practices.md (Change Control section)
+- **FDA 21 CFR Part 11**: Electronic Records and Signatures
+- **PostgreSQL Documentation**: https://www.postgresql.org/docs/current/
 
 ## Change Log
 
@@ -501,15 +734,9 @@ pg_restore -d dbtest_prod backup_YYYYMMDD_HHMM.sql
 | 2025-10-14 | 001 | Initial schema | Team |
 | 2025-10-14 | Strategy Doc | Migration strategy created | Claude Code |
 
-## Approval
-
-**Document Version**: 1.0
-**Created**: 2025-10-14
-**Status**: Draft
-**Next Review**: 2026-01-14 (Quarterly)
-
 ---
 
-**Document Owner**: Database Architect
-**Compliance Review**: Required for changes
-**Change Control ID**: TICKET-009
+**Document Status**: Active migration operations guide
+**Review Cycle**: Quarterly or after major incidents
+**Owner**: Database Team / DevOps
+**Compliance Review**: Required for all schema changes per 21 CFR Part 11
