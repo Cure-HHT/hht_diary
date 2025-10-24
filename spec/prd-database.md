@@ -6,6 +6,7 @@
 **Status**: Active
 **Compliance**: FDA 21 CFR Part 11
 
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
 > **See**: prd-database-event-sourcing.md for Event Sourcing pattern details
 > **See**: prd-security-RBAC.md for access control
 > **See**: prd-clinical-trials.md for FDA compliance requirements
@@ -15,7 +16,7 @@
 
 ## Executive Summary
 
-A PostgreSQL-based database system for clinical trial patient diary data with offline-first mobile app support, complete audit trail for FDA compliance, and multi-site access control.
+A PostgreSQL-based database system for clinical trial patient diary data deployed as **separate Supabase instances per sponsor**, with offline-first mobile app support, complete audit trail for FDA compliance, and multi-site access control.
 
 **Architecture Pattern**: Event Sourcing with CQRS (Command Query Responsibility Segregation)
 
@@ -60,11 +61,23 @@ See **prd-database-event-sourcing.md** for complete Event Sourcing pattern detai
 - Prevents duplicate key conflicts during sync
 - Format: UUID v4 (random)
 
-### Multi-Database Support
-- App may post same event to multiple databases (e.g., backup, regional)
-- Shared UUID maintains referential integrity across databases
-- Each database maintains independent audit trail
-- Synchronization conflicts resolved at application layer
+### Multi-Sponsor Database Architecture
+
+**Deployment Model**: Each sponsor has a dedicated Supabase project (separate PostgreSQL database + Auth instance).
+
+**Sponsor Isolation**:
+- Each sponsor = separate Supabase instance
+- No shared database infrastructure
+- Independent audit trails per sponsor
+- Complete data isolation at infrastructure level
+
+**Shared UUID Space**:
+- Client-generated UUIDs (UUID v4) enable future data portability
+- Same UUID format across all sponsor instances
+- Prevents key conflicts if data ever needs to move between sponsors
+- Each sponsor's database maintains independent audit trail for same UUID
+
+**See**: prd-architecture-multi-sponsor.md for complete multi-sponsor architecture
 
 ---
 

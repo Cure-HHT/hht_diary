@@ -3,8 +3,10 @@
 > **Usage**: Include in ALL development prompts to ensure consistent practices
 >
 > **Constitutional Status**: Contains IMMUTABLE principles (marked 🔒) that form the architectural foundation, and FLEXIBLE guidelines that evolve with project needs.
+>
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture and core/sponsor separation
 
-**Version**: 2.0.0 | **Last Amended**: 2025-10-14
+**Version**: 2.1.0 | **Last Amended**: 2025-01-24
 
 ## 🔒 Architectural Constitution
 
@@ -166,6 +168,138 @@ Complexity MUST be justified with documented rationale.
 ```
 
 **These gates MUST pass before writing any implementation code.**
+
+---
+
+## Multi-Sponsor Architecture Boundaries
+
+### Public Core Repository (`clinical-diary`)
+
+**Purpose**: Shared, reusable components across all sponsors
+
+**Contains**:
+- Abstract base classes and interfaces
+  - `SponsorConfig` - Sponsor configuration interface
+  - `EdcSync` - EDC integration interface
+  - `PortalCustomization` - Portal customization interface
+- Core database schema (`packages/database/`)
+- Mobile app framework (Flutter)
+- Shared UI components
+- Build tooling and validation scripts
+- Contract tests
+
+**Must NOT contain**:
+- Sponsor-specific business logic
+- Proprietary algorithms or integrations
+- Authentication credentials or secrets
+- Sponsor-specific branding or configuration
+- Any information that could identify a sponsor
+
+**Development Principles**:
+- Library-First applies: All shared functionality as packages
+- Test-Driven Development: Contract tests define sponsor obligations
+- Anti-Abstraction: No "just in case" sponsor hooks
+- Integration-First: Contract tests verify sponsor implementations
+
+### Private Sponsor Repositories (`clinical-diary-{sponsor}`)
+
+**Purpose**: Sponsor-specific implementations and customizations
+
+**Contains**:
+- Concrete implementations of core interfaces
+  - Sponsor-specific `SponsorConfig` implementation
+  - EDC integration (if proxy mode)
+  - Custom portal pages and reports
+- Sponsor database extensions (`database/extensions.sql`)
+- Edge Functions (Deno/TypeScript)
+- Sponsor branding (logos, themes, colors)
+- Site configurations and initial data
+- Supabase project configuration
+
+**Must NOT contain**:
+- Modifications to core schema (use extensions)
+- Forks of core components (extend, don't fork)
+- Core framework code (import from published packages)
+
+**Development Principles**:
+- Import core from GitHub Package Registry
+- Pass all core contract tests before deployment
+- TDD for sponsor-specific logic
+- Integration testing with real Supabase instance
+
+### Contract Testing (Core ↔ Sponsor)
+
+**Core Provides Contract Tests**:
+```dart
+// In core repository: packages/contracts/test/sponsor_config_test.dart
+void main() {
+  test('SponsorConfig must provide valid Supabase URL', () {
+    final config = getSponsorConfig(); // Implemented by sponsor
+    expect(config.supabaseUrl, startsWith('https://'));
+    expect(config.supabaseUrl, endsWith('.supabase.co'));
+  });
+
+  test('SponsorConfig must provide theme colors', () {
+    final config = getSponsorConfig();
+    expect(config.theme.primaryColor, isNotNull);
+    expect(config.theme.secondaryColor, isNotNull);
+  });
+}
+```
+
+**Sponsors Must Pass Contract Tests**:
+```bash
+# In sponsor repository
+npm install @clinical-diary/contracts@latest
+npm test  # Runs contract tests against sponsor implementation
+
+# Build system enforces: All contract tests must pass
+```
+
+### Build System Validation
+
+**Core Package Publishing**:
+```bash
+# In core repository
+cd packages/database
+npm version patch
+npm publish  # Publishes to GitHub Package Registry
+# → @clinical-diary/database@1.2.4
+```
+
+**Sponsor Build Process**:
+```bash
+# In sponsor repository
+# 1. Install core packages
+npm install @clinical-diary/database@1.2.4
+npm install @clinical-diary/contracts@1.2.4
+
+# 2. Run contract tests
+npm test  # MUST pass before build
+
+# 3. Build with sponsor implementation
+dart run build_runner build
+
+# 4. Deploy to Supabase
+supabase db push
+supabase functions deploy
+```
+
+### Code Review Requirements
+
+**Core Repository PRs**:
+- Review by core team
+- No sponsor-specific logic allowed
+- Breaking changes require migration path
+- Contract test updates coordinated with sponsors
+
+**Sponsor Repository PRs**:
+- Review by sponsor team
+- Contract tests must pass
+- Core version pinned (no automatic upgrades)
+- Security review for proprietary code
+
+---
 
 ## Code Quality Standards
 

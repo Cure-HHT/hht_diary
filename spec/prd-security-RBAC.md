@@ -2,8 +2,10 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-10-17
+**Last Updated**: 2025-01-24
 
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
+> **See**: prd-security.md for overall security architecture
 > **See**: ops-security.md for deployment procedures
 > **See**: dev-database.md for RLS policy implementation
 
@@ -12,6 +14,20 @@
 ## Overview
 
 Defines user roles, permissions, and access-scoping rules for the clinical trial application. Database implementation details are out of scope; this focuses on who can access what.
+
+---
+
+## Multi-Sponsor Context
+
+**Sponsor Isolation**: Each sponsor has a dedicated Supabase instance (separate database + authentication system). Users, roles, and permissions are completely isolated per sponsor.
+
+**Implications**:
+- User accounts exist in only one sponsor's system
+- Roles are scoped to single sponsor
+- No cross-sponsor user access or data sharing
+- Each sponsor independently manages their users and roles
+
+**See**: prd-architecture-multi-sponsor.md for complete architecture
 
 ---
 

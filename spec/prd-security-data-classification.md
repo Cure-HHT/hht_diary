@@ -7,8 +7,11 @@
 > **Purpose**: Document data classification and justify encryption strategy for compliance audits
 >
 > **Audience**: Compliance officers, auditors, security reviewers, developers
+>
+> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
+> **See**: prd-security.md for authentication and authorization
 
-**Version**: 1.0.0 | **Date**: 2025-10-14
+**Version**: 1.1.0 | **Date**: 2025-01-24
 
 ---
 
@@ -17,6 +20,33 @@
 This clinical trial diary database implements a **privacy-by-design** architecture that **separates patient identity from clinical data**. The database contains **de-identified clinical observations only** and does not store protected health information (PHI) or personally identifiable information (PII).
 
 **Key Principle**: Patient identity is managed by the authentication system (Supabase Auth). The database uses de-identified study participant IDs to link clinical data without exposing patient identity.
+
+---
+
+## Multi-Sponsor Privacy Architecture
+
+### Infrastructure-Level Isolation
+
+**Deployment Model**: Each sponsor has a dedicated Supabase instance, providing complete data isolation:
+
+```
+Sponsor A Environment          Sponsor B Environment
+┌─────────────────────────┐   ┌─────────────────────────┐
+│ Supabase Project A      │   │ Supabase Project B      │
+│ ├─ PostgreSQL Database  │   │ ├─ PostgreSQL Database  │
+│ ├─ Supabase Auth        │   │ ├─ Supabase Auth        │
+│ └─ Separate encryption  │   │ └─ Separate encryption  │
+└─────────────────────────┘   └─────────────────────────┘
+```
+
+**Privacy Benefits**:
+- **Physical Separation**: No shared database infrastructure
+- **Independent Encryption**: Each sponsor has separate encryption keys
+- **Isolated Auth**: No shared authentication system or user database
+- **Breach Containment**: Compromise of Sponsor A data cannot expose Sponsor B data
+- **Independent Compliance**: Each sponsor can implement their own privacy policies
+
+**See**: prd-architecture-multi-sponsor.md for complete architecture
 
 ---
 
