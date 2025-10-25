@@ -1,0 +1,45 @@
+#!/bin/bash
+# =====================================================
+# Pre-Commit Hook: Requirement Traceability Validation
+# =====================================================
+#
+# This hook validates that:
+# 1. All requirements in spec/ are properly formatted
+# 2. All requirement IDs are unique
+# 3. All "Implements" references exist
+#
+# To install this hook:
+#   git config core.hooksPath .githooks
+#
+# To bypass this hook (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+echo "🔍 Running requirement traceability validation..."
+echo ""
+
+# Check if validation script exists
+if [ ! -f "tools/requirements/validate_requirements.py" ]; then
+    echo "❌ ERROR: Validation script not found: tools/requirements/validate_requirements.py"
+    exit 1
+fi
+
+# Run validation
+if python3 tools/requirements/validate_requirements.py; then
+    echo ""
+    echo "✅ Requirement validation passed!"
+    exit 0
+else
+    echo ""
+    echo "❌ Requirement validation failed!"
+    echo ""
+    echo "Fix the errors above before committing."
+    echo "See spec/requirements-format.md for format specification."
+    echo ""
+    echo "To bypass this check (NOT RECOMMENDED):"
+    echo "  git commit --no-verify"
+    exit 1
+fi
