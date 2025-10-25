@@ -125,6 +125,31 @@ Provisioning SHALL include:
 
 ## Step 1: Database Deployment
 
+### REQ-o00004: Database Schema Deployment
+
+**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Active
+
+Each sponsor's database SHALL be deployed with the core schema supporting event sourcing, audit trails, and complete change history, ensuring consistent implementation across all sponsors.
+
+Schema deployment SHALL include:
+- Core schema from central repository (versioned)
+- Event sourcing tables (record_audit, record_state)
+- Row-level security policies
+- Database triggers for audit trail enforcement
+- Indexes for query performance
+- Optional sponsor-specific extensions
+
+**Rationale**: Implements database isolation (p00003), event sourcing (p00004), and change history (p00013) through consistent schema deployment. Centralized core schema ensures all sponsors benefit from improvements while allowing sponsor-specific customizations.
+
+**Acceptance Criteria**:
+- Schema deployed via automated migration process
+- Core schema version tracked per deployment
+- Sponsor extensions isolated from core schema
+- Schema validation checks pass before deployment
+- Rollback capability for failed deployments
+
+---
+
 ### Option A: SQL Editor (Quickest)
 
 1. Navigate to **SQL Editor** in Supabase Dashboard

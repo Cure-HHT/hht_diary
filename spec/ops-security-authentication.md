@@ -3,6 +3,31 @@
 
 # Authentication Audit Logging
 
+### REQ-o00006: MFA Configuration for Staff Accounts
+
+**Level**: Ops | **Implements**: p00002 | **Status**: Active
+
+Multi-factor authentication SHALL be configured and enforced for all clinical staff, administrator, and sponsor personnel accounts, ensuring password-based authentication is augmented with additional verification.
+
+MFA configuration SHALL include:
+- MFA enrollment required before first system access
+- TOTP (Time-based One-Time Password) support for authenticator apps
+- SMS backup codes as fallback option
+- MFA enforcement at authentication system level (Supabase Auth)
+- Grace period for MFA enrollment (max 7 days)
+- MFA reset procedures for lost devices
+
+**Rationale**: Implements MFA requirement (p00002) at the operational configuration level. Supabase Auth provides MFA capabilities that must be enabled and enforced per sponsor project.
+
+**Acceptance Criteria**:
+- MFA enabled in Supabase Auth settings per sponsor
+- Staff accounts cannot access system without completing MFA enrollment
+- MFA verification required at each login
+- MFA bypass not possible through configuration
+- MFA events logged in audit trail
+
+---
+
 ## Why It's Necessary for Compliance
 
 Authentication audit logging is **critical** for regulatory compliance in clinical trials:

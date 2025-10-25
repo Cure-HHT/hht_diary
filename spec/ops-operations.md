@@ -94,6 +94,30 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 - If `active_users` drops >20% from previous day → investigate
 - If `avg_sync_delay_seconds` >10 → check database performance
 
+#### REQ-o00005: Audit Trail Monitoring
+
+**Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Active
+
+Operations SHALL continuously monitor audit trail integrity, ensuring all clinical data changes are properly recorded and tamper-proof chain remains intact.
+
+Monitoring SHALL include:
+- Automated checks for audit trail completeness
+- Verification of event chain integrity (no orphaned events)
+- Detection of missing or corrupted audit records
+- Alerts for audit trail anomalies
+- Regular audit log review and analysis
+
+**Rationale**: Implements event sourcing (p00004) and compliance requirements (p00010, p00011) through operational monitoring. Continuous validation ensures audit trails remain trustworthy for regulatory submission.
+
+**Acceptance Criteria**:
+- Daily automated audit trail integrity checks
+- Alerts triggered for any integrity violations
+- All data changes have corresponding audit events
+- Event chain links validated (parent_audit_id relationships)
+- Monitoring dashboards show audit trail health status
+
+---
+
 #### 4. Audit Trail Integrity
 
 **Verification Script** (per sponsor):
@@ -825,6 +849,30 @@ The issue has been resolved. All services are operating normally.
 ---
 
 ## Backup Verification Procedures
+
+### REQ-o00008: Backup and Retention Policy
+
+**Level**: Ops | **Implements**: p00012 | **Status**: Active
+
+Clinical trial data and audit trails SHALL be backed up regularly with retention policies meeting regulatory requirements (minimum 7 years), ensuring data recoverability and compliance.
+
+Backup and retention SHALL include:
+- Automated database backups every 6 hours
+- Point-in-time recovery capability for 30 days
+- Long-term archive retention per study requirements
+- Regular backup restore testing (weekly)
+- Disaster recovery procedures tested quarterly
+
+**Rationale**: Implements data retention requirements (p00012) through operational backup policies. Regular testing ensures backups are actually restorable, not just created.
+
+**Acceptance Criteria**:
+- Automated backups run every 6 hours without failure
+- Backup retention meets or exceeds study-specific requirements
+- Weekly backup restore tests to staging environment
+- Quarterly disaster recovery drills documented
+- Backup integrity verification automated
+
+---
 
 ### Automated Backups
 
