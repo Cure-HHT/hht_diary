@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Requirements Traceability Matrix</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        .summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .summary-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border-left: 4px solid #0066cc;
+        }
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .summary-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        .req-tree {
+            margin: 20px 0;
+        }
+        .req-item {
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        .req-item.prd { border-left-color: #0066cc; }
+        .req-item.ops { border-left-color: #fd7e14; }
+        .req-item.dev { border-left-color: #28a745; }
+        .req-item.deprecated { opacity: 0.6; }
+        .req-header {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .req-meta {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-draft { background: #fff3cd; color: #856404; }
+        .status-deprecated { background: #f8d7da; color: #721c24; }
+        .child-reqs {
+            margin-left: 30px;
+            margin-top: 10px;
+            border-left: 2px solid #dee2e6;
+            padding-left: 15px;
+        }
+        .filter-bar {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+        .filter-bar label {
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Requirements Traceability Matrix</h1>
+        <div class="summary">
+            <p><strong>Generated:</strong> 2025-10-25 00:42:28</p>
+            <p><strong>Total Requirements:</strong> 6</p>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>PRD Level</h3>
+                <div class="number">2</div>
+            </div>
+            <div class="summary-card">
+                <h3>Ops Level</h3>
+                <div class="number">2</div>
+            </div>
+            <div class="summary-card">
+                <h3>Dev Level</h3>
+                <div class="number">2</div>
+            </div>
+        </div>
+
+        <h2>Traceability Tree</h2>
+        <div class="req-tree">
+
+        <div class="req-item prd ">
+            <div class="req-header">
+                REQ-p00001: Complete Multi-Sponsor Data Separation
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: PRD |
+                File: prd-security.md:32
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header">
+                REQ-o00001: Separate Supabase Projects Per Sponsor
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: Ops |
+                File: ops-deployment.md:320
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header">
+                REQ-d00001: Sponsor-Specific Configuration Loading
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: Dev |
+                File: dev-configuration.md:28
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header">
+                REQ-o00002: Environment-Specific Configuration Management
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: Ops |
+                File: ops-deployment.md:344
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header">
+                REQ-d00001: Sponsor-Specific Configuration Loading
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: Dev |
+                File: dev-configuration.md:28
+            </div>
+        </div>
+
+        <div class="req-item dev ">
+            <div class="req-header">
+                REQ-d00002: Pre-Build Configuration Validation
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: Dev |
+                File: dev-configuration.md:185
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header">
+                REQ-p00002: Multi-Factor Authentication for Staff
+            </div>
+            <div class="req-meta">
+                <span class="status-badge status-active">Active</span>
+                Level: PRD |
+                File: prd-security.md:73
+            </div>
+        </div>
+        </div>
+    </div>
+</body>
+</html>

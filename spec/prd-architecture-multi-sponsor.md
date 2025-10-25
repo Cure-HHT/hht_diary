@@ -33,6 +33,56 @@ The Clinical Diary system serves multiple pharmaceutical sponsors using a single
 
 ## System Components
 
+### REQ-p00008: Single Mobile App for All Sponsors
+
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
+One mobile application in app stores SHALL serve all pharmaceutical sponsors, with each sponsor's configuration and branding loaded dynamically based on patient enrollment.
+
+Single app approach SHALL ensure:
+- One app listing in iOS App Store and Google Play Store
+- All sponsor configurations bundled in single app package
+- Sponsor selection based on enrollment link, not manual choice
+- Each sponsor's data and configuration completely isolated
+- App updates benefit all sponsors simultaneously
+
+**Rationale**: Simplifies patient experience (one app to find and download), ensures consistent quality across sponsors, and enables efficient maintenance. Maintains sponsor isolation (p00001) through dynamic configuration rather than separate app packages.
+
+**Acceptance Criteria**:
+- Single app package serves unlimited number of sponsors
+- Patients download same app regardless of sponsor
+- App size reasonable despite multiple sponsor configurations
+- Updates deployed once for all sponsors
+- No cross-sponsor data or configuration leakage
+
+---
+
+### REQ-p00009: Sponsor-Specific Web Portals
+
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
+Each sponsor SHALL have a dedicated web portal at a unique URL, accessible only to that sponsor's authorized personnel and displaying only that sponsor's clinical trial data.
+
+Portal isolation SHALL ensure:
+- Unique URL per sponsor (different domain or subdomain)
+- Portal displays single sponsor's data only
+- Staff cannot access other sponsors' portals
+- Independent customization per sponsor
+- Separate hosting and deployment per sponsor
+
+**Rationale**: Web portals serve clinical staff and require strong isolation guarantees. Unlike mobile app (where patients naturally access only their own data), portal users could potentially access multiple trials. Separate portals per sponsor ensures organizational and technical isolation per p00001.
+
+**Acceptance Criteria**:
+- Each sponsor portal has unique URL
+- Portal authentication scoped to single sponsor
+- No navigation or links to other sponsor portals
+- Portal customization independent per sponsor
+- Portal cannot query other sponsors' databases
+
+---
+
+### System Components
+
 Each sponsor deployment includes:
 
 **Mobile App**: Single app containing all sponsor configurations. When patients enroll, the app automatically connects to their sponsor's system and displays that sponsor's branding.

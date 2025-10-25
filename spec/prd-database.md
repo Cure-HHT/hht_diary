@@ -37,6 +37,31 @@ The database stores patient diary entries with complete history of all changes f
 
 **Why This Matters**: This data forms the evidence base for clinical trial results. Accurate capture and preservation is critical for drug approval.
 
+### REQ-p00013: Complete Data Change History
+
+**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active
+
+The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
+
+Change history SHALL include:
+- Original value when record first created
+- All subsequent modifications with before/after values
+- Identity of person who made each change
+- Timestamp of each change
+- Reason for change (when applicable)
+- Device and session information for change
+
+**Rationale**: Regulatory compliance (p00010, p00011) requires complete, tamper-proof history of all clinical data changes. Preserving original values proves data integrity and enables detection of improper modifications. Supports event sourcing architecture (p00004).
+
+**Acceptance Criteria**:
+- Original record values preserved permanently
+- All modifications stored as separate historical records
+- Change history cannot be altered or deleted
+- Complete timeline reconstructable from history
+- History includes who, what, when, why for every change
+
+---
+
 ### Complete Change History
 
 Every modification recorded:
@@ -59,6 +84,29 @@ Every modification recorded:
 ---
 
 ## Data Isolation Between Sponsors
+
+### REQ-p00003: Separate Database Per Sponsor
+
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
+Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
+
+Database isolation SHALL ensure:
+- Each sponsor's data stored in physically separate database instances
+- No database queries can access data across sponsor boundaries
+- Database connections scoped to single sponsor
+- Independent backup and recovery per sponsor
+
+**Rationale**: Extends multi-sponsor isolation (p00001) to the database layer. Physical database separation ensures regulatory compliance for independent clinical trials and eliminates any technical possibility of data cross-contamination.
+
+**Acceptance Criteria**:
+- Each sponsor provisioned with dedicated database instance
+- Database connection strings unique per sponsor
+- No foreign keys or references across sponsor databases
+- Backup/restore operations scoped to single sponsor
+- Query execution cannot span multiple sponsor databases
+
+---
 
 ### Separate Databases
 

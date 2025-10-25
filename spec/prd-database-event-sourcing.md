@@ -71,6 +71,30 @@ Our system works like this:
 
 ## Key Benefits
 
+### REQ-p00004: Immutable Audit Trail via Event Sourcing
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.
+
+Event storage SHALL ensure:
+- Every data change recorded as separate, append-only event
+- Events never modified or deleted after creation
+- Complete chronological history preserved
+- Each event includes: timestamp, user ID, action type, data values, reason for change
+- Current data state derived by replaying events
+
+**Rationale**: FDA 21 CFR Part 11 requires complete audit trails for electronic records. Event sourcing makes audit trails automatic and tamper-proof by design - you cannot modify data without creating an event, and events cannot be altered after creation.
+
+**Acceptance Criteria**:
+- All data changes stored as events, never direct updates
+- Events are append-only (no UPDATE or DELETE operations)
+- Event log includes who, what, when, why for every change
+- System can reconstruct data state at any point in time
+- Tampering with events is technically prevented by database constraints
+
+---
+
 ### 1. Automatic Audit Trail
 
 **FDA Requirement**: Must track all data changes

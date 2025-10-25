@@ -54,6 +54,30 @@ Sponsor A                    Sponsor B                    Sponsor C
 
 ## Multi-Sponsor Setup Context
 
+### REQ-o00003: Supabase Project Provisioning Per Sponsor
+
+**Level**: Ops | **Implements**: p00003, o00001 | **Status**: Active
+
+Each sponsor SHALL be provisioned with dedicated Supabase project(s) for their environments (staging, production), ensuring complete database infrastructure isolation.
+
+Provisioning SHALL include:
+- Unique Supabase project created per sponsor per environment
+- Project naming follows convention: `clinical-diary-{sponsor}-{env}`
+- Geographic region selected based on sponsor's user base
+- Appropriate tier selected (Free for dev/staging, Pro+ for production)
+- Project credentials stored securely in sponsor's GitHub Secrets
+
+**Rationale**: Implements database isolation requirement (p00003) at the infrastructure provisioning level. Each Supabase project provides isolated PostgreSQL database, authentication system, and API endpoints.
+
+**Acceptance Criteria**:
+- Each sponsor has dedicated project URL (`https://{unique-ref}.supabase.co`)
+- Projects cannot share databases or authentication systems
+- Credentials unique per project and never reused
+- Project provisioning documented in runbook
+- Staging and production use separate projects
+
+---
+
 ### Per-Sponsor Supabase Projects
 
 **Each sponsor requires**:
@@ -100,6 +124,31 @@ Sponsor A                    Sponsor B                    Sponsor C
 ---
 
 ## Step 1: Database Deployment
+
+### REQ-o00004: Database Schema Deployment
+
+**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Active
+
+Each sponsor's database SHALL be deployed with the core schema supporting event sourcing, audit trails, and complete change history, ensuring consistent implementation across all sponsors.
+
+Schema deployment SHALL include:
+- Core schema from central repository (versioned)
+- Event sourcing tables (record_audit, record_state)
+- Row-level security policies
+- Database triggers for audit trail enforcement
+- Indexes for query performance
+- Optional sponsor-specific extensions
+
+**Rationale**: Implements database isolation (p00003), event sourcing (p00004), and change history (p00013) through consistent schema deployment. Centralized core schema ensures all sponsors benefit from improvements while allowing sponsor-specific customizations.
+
+**Acceptance Criteria**:
+- Schema deployed via automated migration process
+- Core schema version tracked per deployment
+- Sponsor extensions isolated from core schema
+- Schema validation checks pass before deployment
+- Rollback capability for failed deployments
+
+---
 
 ### Option A: SQL Editor (Quickest)
 

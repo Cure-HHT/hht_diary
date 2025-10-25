@@ -317,6 +317,52 @@ jobs:
 
 ## Environment Configuration
 
+### REQ-o00001: Separate Supabase Projects Per Sponsor
+
+**Level**: Ops | **Implements**: p00001 | **Status**: Active
+
+Each sponsor SHALL be provisioned with dedicated Supabase projects for staging and production environments, ensuring complete infrastructure isolation.
+
+Each Supabase project SHALL provide:
+- Isolated PostgreSQL database (no shared tables or connections)
+- Unique API endpoints with sponsor-specific URLs
+- Independent authentication configuration and user pools
+- Separate storage buckets for file uploads
+- Dedicated Edge Functions runtime environment
+
+**Rationale**: Implements multi-sponsor data isolation (p00001) at the infrastructure level using Supabase's project isolation guarantees. Each sponsor's Supabase project is a completely separate deployment with its own resources, ensuring no possibility of cross-sponsor data access.
+
+**Acceptance Criteria**:
+- Each sponsor has unique Supabase project URLs for staging and production
+- Database connections cannot span projects
+- API keys are project-specific and cannot authenticate to other sponsors' projects
+- No shared configuration files between sponsors
+- Project provisioning documented in runbook
+
+---
+
+### REQ-o00002: Environment-Specific Configuration Management
+
+**Level**: Ops | **Implements**: p00001 | **Status**: Active
+
+Configuration files containing environment-specific credentials SHALL be stored securely and SHALL NOT be committed to version control.
+
+Each sponsor repository SHALL maintain:
+- `config/supabase.staging.env` - Staging credentials (gitignored)
+- `config/supabase.prod.env` - Production credentials (gitignored)
+- GitHub Secrets for CI/CD pipelines
+- No hardcoded credentials in source code
+
+**Rationale**: Prevents accidental credential sharing between sponsors and ensures proper secret management per security best practices.
+
+**Acceptance Criteria**:
+- `.gitignore` includes `*.env` files
+- CI/CD pipelines use GitHub Secrets, not committed credentials
+- Build scripts validate presence of required environment variables
+- No credentials found in git history
+
+---
+
 ### Environment Types
 
 **Environments**:
@@ -555,6 +601,30 @@ git branch -d release/1.2.3
 git push origin --delete release/1.2.3
 ```
 
+### REQ-o00010: Mobile App Release Process
+
+**Level**: Ops | **Implements**: p00008 | **Status**: Active
+
+The mobile application SHALL be released as a single app package containing all sponsor configurations, with releases coordinated across iOS App Store and Google Play Store.
+
+Mobile app release SHALL include:
+- Single app build containing all active sponsor configurations
+- Coordinated release to both iOS and Google Play stores
+- Version number incremented consistently across platforms
+- Release notes covering all sponsor-relevant changes
+- Testing across all sponsor configurations before release
+
+**Rationale**: Implements single mobile app requirement (p00008) through operational release procedures. Coordinated release ensures all sponsors benefit from updates simultaneously while maintaining single app approach.
+
+**Acceptance Criteria**:
+- One app package serves all sponsors
+- iOS and Android versions synchronized
+- All sponsor configurations tested before release
+- App store listings reference single app for all sponsors
+- Update deployment automated via CI/CD
+
+---
+
 #### Step 7: Mobile App Store Submission
 
 **iOS (App Store Connect)**:
@@ -737,6 +807,30 @@ curl -i --location --request POST \
 ---
 
 ## Portal Deployment
+
+### REQ-o00009: Portal Deployment Per Sponsor
+
+**Level**: Ops | **Implements**: p00009 | **Status**: Active
+
+Each sponsor SHALL have their web portal deployed to a unique URL with sponsor-specific configuration, ensuring complete portal isolation between sponsors.
+
+Portal deployment SHALL include:
+- Static site build from core + sponsor customizations
+- Deployment to unique domain or subdomain per sponsor
+- Sponsor-specific Supabase connection configuration
+- Independent deployment pipeline per sponsor
+- Separate hosting account or project per sponsor
+
+**Rationale**: Implements sponsor-specific portals requirement (p00009) through operational deployment procedures. Each sponsor's portal deployed independently ensures no cross-sponsor access or configuration leakage.
+
+**Acceptance Criteria**:
+- Each sponsor portal has unique URL
+- Portal configuration includes only that sponsor's Supabase credentials
+- Deployment process automated via CI/CD
+- Portal cannot access other sponsors' databases
+- Rollback capability per sponsor portal
+
+---
 
 ### Netlify Static Site Deployment
 

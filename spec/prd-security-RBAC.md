@@ -33,6 +33,56 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 
 ## Core Principles
 
+### REQ-p00005: Role-Based Access Control
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+The system SHALL enforce role-based access control (RBAC) ensuring users can only access data and perform actions appropriate to their assigned role.
+
+RBAC implementation SHALL ensure:
+- Users assigned one or more roles (Patient, Investigator, Sponsor, Auditor, Analyst, Administrator)
+- Each role has specific, limited permissions
+- Access decisions based on user's active role
+- Role changes logged in audit trail
+- Least privilege principle enforced
+
+**Rationale**: Clinical trial data access must be tightly controlled to protect patient privacy, ensure data integrity, and comply with HIPAA and FDA regulations. RBAC provides systematic, auditable access control.
+
+**Acceptance Criteria**:
+- Users cannot access data outside their role permissions
+- Role assignment changes require privileged account
+- All data access includes role context in audit log
+- System denies unauthorized access attempts
+- Role permissions cannot be bypassed
+
+---
+
+### REQ-p00014: Least Privilege Access
+
+**Level**: PRD | **Implements**: p00005, p00010 | **Status**: Active
+
+Users SHALL be granted the minimum permissions necessary to perform their assigned job functions, with no user having access beyond their role requirements.
+
+Least privilege SHALL ensure:
+- Permissions granted based on specific job function
+- Users cannot access data outside their assigned scope
+- Administrative functions restricted to administrator roles
+- Patient data access limited to assigned clinical sites (for staff roles)
+- Elevated permissions require explicit justification and approval
+
+**Rationale**: Minimizes risk of accidental or intentional data misuse. Supports RBAC (p00005) and FDA compliance (p00010) by ensuring users can only access data necessary for their clinical trial role. Reduces impact of compromised accounts.
+
+**Acceptance Criteria**:
+- Role permissions defined by job function, not user preference
+- Users cannot elevate their own permissions
+- Access requests outside normal permissions require approval workflow
+- Unnecessary permissions removed promptly when job function changes
+- Audit log captures all permission grant/revoke events
+
+---
+
+### RBAC Principles
+
 - **Single Active Role Context**: A user with multiple roles must explicitly select a single role before performing any action. All actions are attributed to that role.
 - **Explicit Scope Selection**: When a role spans multiple scopes (e.g., multiple sites), the user must select a single scope per session/view. No cross-site blended views.
 - **Least Privilege**: Grant only what is necessary for job functions.

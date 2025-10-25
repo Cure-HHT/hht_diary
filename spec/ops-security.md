@@ -122,6 +122,30 @@ SET request.jwt.claims = '{"sub": "admin_1", "role": "ADMIN"}';
 SELECT COUNT(*) FROM record_state; -- Should see all data
 ```
 
+### REQ-o00007: Role-Based Permission Configuration
+
+**Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Active
+
+User roles and permissions SHALL be configured in the database and authentication system, enforcing role-based access control at both application and database layers.
+
+Permission configuration SHALL include:
+- Role definitions stored in database (USER, INVESTIGATOR, ANALYST, ADMIN)
+- Role assignment tracked with audit trail
+- JWT claims include user role for database RLS enforcement
+- Permission matrix documented and enforced
+- Role changes require administrator approval
+
+**Rationale**: Implements RBAC (p00005), least privilege (p00014), and database-level enforcement (p00015) through operational configuration. Roles must be consistently configured across authentication system and database.
+
+**Acceptance Criteria**:
+- Roles defined in both Supabase Auth and database tables
+- JWT tokens include role claim
+- Database RLS policies reference role claim
+- Role assignment changes logged in audit trail
+- Permission matrix matches specification exactly
+
+---
+
 ### Role-Based Access Control (RBAC)
 
 **Roles**:

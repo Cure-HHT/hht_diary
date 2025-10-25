@@ -29,27 +29,69 @@ The system protects clinical trial data through multiple layers of security, ens
 
 ## Multi-Sponsor Data Isolation
 
-### Complete Separation
+### REQ-p00001: Complete Multi-Sponsor Data Separation
 
-Each pharmaceutical sponsor operates in a completely separate environment:
+**Level**: PRD | **Implements**: - | **Status**: Active
 
-**Separate Systems**:
+The system SHALL ensure complete data isolation between pharmaceutical sponsors such that no user, administrator, or automated process can access data belonging to a different sponsor.
+
+Each sponsor SHALL operate in a completely separate environment with:
+- Dedicated database instances
+- Separate authentication systems
+- Independent encryption keys
+- Isolated user accounts
+
+**Rationale**: Eliminates any possibility of accidental data mixing or unauthorized cross-sponsor access. Critical for regulatory compliance, sponsor trust, and competitive confidentiality.
+
+**Acceptance Criteria**:
+- Database queries cannot return records from other sponsors
+- Authentication tokens are scoped to a single sponsor
+- Encryption keys are never shared between sponsors
+- Administrative access is limited to single sponsor
+- System architecture makes cross-sponsor access technically impossible
+
+---
+
+### What Complete Separation Means
+
+**Different Systems Per Sponsor**:
 - Different databases
 - Different user accounts
 - Different encryption keys
 - Different authentication systems
 
-**What This Means**:
+**Practical Examples**:
 - Pfizer users cannot access Novartis data
 - Novartis users cannot access Merck data
 - No shared login credentials
 - No shared infrastructure
 
-**Why This Matters**: Eliminates any possibility of accidental data mixing or unauthorized cross-sponsor access.
-
 ---
 
 ## User Authentication
+
+### REQ-p00002: Multi-Factor Authentication for Staff
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+The system SHALL require multi-factor authentication (MFA) for all clinical staff, administrators, and sponsor personnel accessing the system.
+
+MFA SHALL consist of:
+1. Something the user knows (password)
+2. Something the user has (time-based code from authenticator app or SMS)
+
+The system SHALL NOT allow staff or administrator access without successful MFA completion.
+
+**Rationale**: Clinical trial data is highly sensitive and subject to FDA 21 CFR Part 11 regulations. MFA significantly reduces the risk of unauthorized access via compromised credentials. Patients may optionally use MFA but are not required due to accessibility concerns.
+
+**Acceptance Criteria**:
+- All clinical staff accounts require MFA enrollment before first use
+- Administrator accounts cannot be created without MFA
+- MFA verification occurs at each login session
+- Users can configure TOTP authenticator apps or SMS backup
+- System logs all MFA authentication attempts (success and failure)
+
+---
 
 ### How Users Log In
 
@@ -58,11 +100,12 @@ Each pharmaceutical sponsor operates in a completely separate environment:
 - Email and password required
 - Can use Google/Apple login (optional)
 - Password must be at least 8 characters
+- MFA optional but recommended
 
 **Clinical Staff** (Investigators, Analysts):
 - Account created by sponsor administrator
 - Strong password required (12+ characters)
-- Must enable two-factor authentication
+- Must enable two-factor authentication (required)
 - Password expires every 90 days
 
 **Administrators**:
@@ -71,18 +114,16 @@ Each pharmaceutical sponsor operates in a completely separate environment:
 - Strong password requirements
 - All actions logged
 
-### Two-Factor Authentication (2FA)
+### Two-Factor Authentication (2FA) - How It Works
 
 **What It Is**: Extra security step beyond just password
 
-**How It Works**:
+**Process**:
 1. User enters password (something they know)
-2. User enters code from phone app (something they have)
-3. Both required to log in
+2. User enters 6-digit code from phone app (something they have)
+3. Both required to log in successfully
 
-**Who Needs It**: All clinical staff, administrators, and sponsor personnel
-
-**Why It Matters**: Protects against stolen or guessed passwords
+**Implementation**: Uses standard TOTP (Time-based One-Time Password) protocol compatible with Google Authenticator, Authy, 1Password, etc.
 
 ---
 

@@ -26,6 +26,30 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 
 ## How It Works
 
+### REQ-p00007: Automatic Sponsor Configuration
+
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
+The app SHALL automatically configure itself for the correct sponsor and study based on the enrollment link provided to the patient, eliminating manual sponsor/study selection.
+
+Automatic configuration SHALL ensure:
+- Enrollment link contains sponsor and study identification
+- App reads enrollment information and connects to correct sponsor system
+- Sponsor branding and configuration loaded automatically
+- Patient never manually selects sponsor from list
+- No opportunity for patient to enroll in wrong study
+
+**Rationale**: Simplifies patient enrollment and prevents enrollment errors. Patients should not need to understand technical concepts like "sponsor" or navigate complex study selection menus. Automatic configuration based on enrollment link ensures patients always connect to the correct study while maintaining sponsor isolation (p00001).
+
+**Acceptance Criteria**:
+- Single enrollment link/QR code provided per patient
+- App determines sponsor and study from link alone
+- Correct sponsor branding displayed immediately after enrollment
+- Patient cannot switch to different sponsor after enrollment
+- Invalid or expired enrollment links rejected with clear error message
+
+---
+
 ### Patient Enrollment
 
 1. Patient receives an enrollment link or QR code from their clinical site
@@ -59,6 +83,31 @@ The enrollment process is designed to be simple - patients don't need to enter c
 ---
 
 ## Offline Capability
+
+### REQ-p00006: Offline-First Data Entry
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+Patients SHALL be able to record diary entries without requiring internet connectivity, ensuring clinical trial participation is not dependent on network availability.
+
+Offline capability SHALL ensure:
+- Diary entries saved locally on device immediately upon creation
+- Entries synchronized to central database when network connection available
+- Patients can view their complete entry history offline
+- App functions normally without internet access for core diary operations
+
+**Rationale**: Clinical trial participants may have limited or intermittent internet access (hospital basements, rural areas, poor cell coverage). Offline capability removes connectivity as a barrier to participation and ensures patients can always make scheduled diary entries at the required times.
+
+**Acceptance Criteria**:
+- Patients can create, edit, and view diary entries with no network connection
+- Unsynchronized entries clearly indicated to patient
+- Automatic synchronization when network becomes available
+- No data loss if app closed before synchronization completes
+- Conflict resolution when same entry modified on multiple devices
+
+---
+
+### Offline Design
 
 The app is designed to work without constant internet access:
 

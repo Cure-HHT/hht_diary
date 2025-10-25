@@ -81,6 +81,31 @@ Sponsor A Environment           Sponsor B Environment
 
 ## Authentication Layer
 
+### REQ-d00003: Supabase Auth Configuration Per Sponsor
+
+**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
+
+The application SHALL integrate with Supabase Auth for user authentication, with each sponsor using their dedicated Supabase Auth instance configured for their specific requirements.
+
+Authentication integration SHALL include:
+- Initialize Supabase client with sponsor-specific project URL and anon key
+- Configure JWT verification using sponsor's Supabase project secrets
+- Implement MFA enrollment and verification flows
+- Handle authentication state changes (login, logout, session refresh)
+- Store authentication tokens securely on device
+
+**Rationale**: Implements MFA requirement (p00002) and project isolation (o00003) at the application code level. Each sponsor's Supabase project has independent authentication configuration, ensuring complete user isolation between sponsors.
+
+**Acceptance Criteria**:
+- App initializes Supabase client from sponsor-specific config file
+- MFA can be enabled/required based on user role
+- Authentication tokens scoped to single sponsor project
+- Session refresh handled automatically
+- Logout clears all authentication state
+- Auth errors handled gracefully with user feedback
+
+---
+
 ### Supabase Auth (Per Sponsor)
 
 **Each sponsor** has dedicated Supabase Auth instance providing:
@@ -126,6 +151,33 @@ Sponsor A Environment           Sponsor B Environment
 
 ### Multi-Factor Authentication (2FA)
 
+### REQ-d00008: MFA Enrollment and Verification Implementation
+
+**Level**: Dev | **Implements**: o00006 | **Status**: Active
+
+The application SHALL implement multi-factor authentication enrollment and verification flows using Supabase Auth's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
+
+Implementation SHALL include:
+- MFA enrollment UI displaying QR code for TOTP authenticator app registration
+- TOTP verification code input and validation
+- Backup code generation and secure storage
+- MFA status tracking in user profile
+- Grace period handling (max 7 days) for initial MFA enrollment
+- MFA verification required at each login for enrolled users
+- Error handling for invalid codes with rate limiting
+
+**Rationale**: Implements MFA configuration (o00006) at the application code level. Supabase Auth provides TOTP-based MFA capabilities that require application integration for enrollment and verification flows.
+
+**Acceptance Criteria**:
+- MFA enrollment flow displays QR code and verifies first code
+- Staff accounts cannot bypass MFA after grace period expires
+- MFA verification required at each login session
+- Backup codes generated and securely stored
+- Invalid code attempts rate limited (max 5 per minute)
+- MFA events logged in authentication audit trail
+
+---
+
 **Required for**:
 - Investigators
 - Sponsors
@@ -164,6 +216,34 @@ Sponsor A Environment           Sponsor B Environment
 ---
 
 ## Authorization Layer 1: Role-Based Access Control (RBAC)
+
+### REQ-d00009: Role-Based Permission Enforcement Implementation
+
+**Level**: Dev | **Implements**: o00007 | **Status**: Active
+
+The application SHALL implement role-based permission enforcement by reading user roles from JWT claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
+
+Implementation SHALL include:
+- Role extraction from JWT claims after authentication
+- Permission check functions evaluating role against required permission
+- UI component visibility control based on user role (hiding unauthorized features)
+- API request authorization headers including role information
+- Active role/site context selection for multi-role users
+- Permission-denied error handling with user-friendly messages
+- Role-based navigation routing (different home screens per role)
+
+**Rationale**: Implements role-based permission configuration (o00007) at the application code level. While database RLS enforces data access control, application-level RBAC prevents unauthorized API calls and improves user experience by hiding inaccessible features.
+
+**Acceptance Criteria**:
+- User role correctly extracted from JWT claims
+- UI features hidden for unauthorized roles
+- API calls include role authorization headers
+- Permission denied errors handled gracefully
+- Multi-role users can switch active role context
+- Role changes reflected immediately in UI
+- Unauthorized navigation routes redirect to role-appropriate screen
+
+---
 
 ### Role Hierarchy
 
@@ -610,6 +690,32 @@ Sponsor A Environment          Sponsor B Environment
 ---
 
 ## Encryption Strategy
+
+### REQ-d00010: Data Encryption Implementation
+
+**Level**: Dev | **Implements**: p00017 | **Status**: Active
+
+The application SHALL implement data encryption at rest and in transit using platform-provided encryption capabilities, ensuring all clinical trial data is protected from unauthorized access during storage and transmission.
+
+Implementation SHALL include:
+- TLS/SSL configuration for all HTTP connections to Supabase (HTTPS enforced)
+- Secure local storage encryption for SQLite database on mobile devices
+- Platform keychain/keystore usage for authentication token storage
+- TLS certificate validation preventing man-in-the-middle attacks
+- Encrypted backup files for local data
+- No plaintext storage of sensitive configuration values
+
+**Rationale**: Implements data encryption requirement (p00017) at the application code level. Supabase provides database-level encryption at rest, while application must ensure encrypted transit (TLS) and secure local storage on mobile devices.
+
+**Acceptance Criteria**:
+- All API requests use HTTPS (TLS 1.2 or higher)
+- SQLite database encrypted on device using platform encryption
+- Authentication tokens stored in secure keychain (iOS Keychain, Android Keystore)
+- TLS certificate validation enabled and tested
+- Local backups encrypted with device encryption key
+- No sensitive data logged in plaintext
+
+---
 
 ### 1. Encryption at Rest
 
