@@ -1,13 +1,13 @@
 # Requirements Traceability Matrix
 
-**Generated**: 2025-10-25 01:10:01
-**Total Requirements**: 36
+**Generated**: 2025-10-25 01:40:12
+**Total Requirements**: 39
 
 ## Summary
 
-- **PRD Requirements**: 17
-- **Ops Requirements**: 9
-- **Dev Requirements**: 10
+- **PRD Requirements**: 18
+- **Ops Requirements**: 10
+- **Dev Requirements**: 11
 
 ## Traceability Tree
 
@@ -302,3 +302,12 @@
   - ✅ **REQ-d00010**: Data Encryption Implementation
     - Level: Dev | Status: Active
     - File: dev-security.md:694
+- ✅ **REQ-p00018**: Multi-Site Support Per Sponsor
+  - Level: PRD | Status: Active
+  - File: prd-architecture-multi-sponsor.md:110
+  - ✅ **REQ-o00011**: Multi-Site Data Configuration Per Sponsor
+    - Level: Ops | Status: Active
+    - File: ops-database-setup.md:153
+    - ✅ **REQ-d00011**: Multi-Site Schema Implementation
+      - Level: Dev | Status: Active
+      - File: dev-database.md:116
