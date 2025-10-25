@@ -54,6 +54,54 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 ## Privacy by Design
 
+### REQ-p00016: Separation of Identity and Clinical Data
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+Patient identity information SHALL be stored separately from clinical trial data, with clinical database containing only de-identified participant records.
+
+Separation SHALL ensure:
+- Authentication system stores patient names, email, contact information
+- Clinical database stores only random participant IDs with observations
+- No direct linkage between participant ID and real identity in clinical database
+- Mapping between identity and participant ID accessible only through secure authentication system
+- Clinical data reviewable without exposing patient identities
+
+**Rationale**: Privacy by design protects patient confidentiality. Even if clinical database is accessed, patient identities remain protected. Supports HIPAA privacy requirements and reduces privacy breach impact. Clinical staff can review trial data without unnecessary exposure to personal information.
+
+**Acceptance Criteria**:
+- No patient names, email addresses, or direct identifiers in clinical database
+- Participant IDs randomly generated, not derivable from personal information
+- Identity-to-participant mapping isolated in authentication system
+- Clinical data exports contain participant IDs only, not real identities
+- Data breach of clinical database does not expose patient identities
+
+---
+
+### REQ-p00017: Data Encryption
+
+**Level**: PRD | **Implements**: p00016 | **Status**: Active
+
+Sensitive data SHALL be encrypted both at rest (stored) and in transit (transmitted), with encryption keys managed securely per sponsor.
+
+Encryption SHALL ensure:
+- Data encrypted on patient devices before transmission
+- Data transmitted over encrypted channels only (TLS/HTTPS)
+- Data encrypted in database storage
+- Encryption keys unique per sponsor
+- Key management follows industry best practices
+
+**Rationale**: Protects patient privacy (p00016) and clinical trial confidentiality during transmission and storage. Encryption provides additional protection layer beyond access controls, ensuring data remains protected even if storage media or network traffic is intercepted.
+
+**Acceptance Criteria**:
+- All network communication uses TLS 1.2 or higher
+- Database storage encrypted with sponsor-specific keys
+- Mobile app encrypts data before sync
+- Keys rotated according to security policy
+- Encryption cannot be disabled
+
+---
+
 ### Separation of Identity and Data
 
 **Two Separate Systems**:

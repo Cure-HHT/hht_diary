@@ -81,6 +81,31 @@ Sponsor A Environment           Sponsor B Environment
 
 ## Authentication Layer
 
+### REQ-d00003: Supabase Auth Configuration Per Sponsor
+
+**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
+
+The application SHALL integrate with Supabase Auth for user authentication, with each sponsor using their dedicated Supabase Auth instance configured for their specific requirements.
+
+Authentication integration SHALL include:
+- Initialize Supabase client with sponsor-specific project URL and anon key
+- Configure JWT verification using sponsor's Supabase project secrets
+- Implement MFA enrollment and verification flows
+- Handle authentication state changes (login, logout, session refresh)
+- Store authentication tokens securely on device
+
+**Rationale**: Implements MFA requirement (p00002) and project isolation (o00003) at the application code level. Each sponsor's Supabase project has independent authentication configuration, ensuring complete user isolation between sponsors.
+
+**Acceptance Criteria**:
+- App initializes Supabase client from sponsor-specific config file
+- MFA can be enabled/required based on user role
+- Authentication tokens scoped to single sponsor project
+- Session refresh handled automatically
+- Logout clears all authentication state
+- Auth errors handled gracefully with user feedback
+
+---
+
 ### Supabase Auth (Per Sponsor)
 
 **Each sponsor** has dedicated Supabase Auth instance providing:
