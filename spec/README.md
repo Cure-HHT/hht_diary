@@ -1,9 +1,15 @@
-# Hierarchical Documentation System
+# Formal Requirements System
 
-Files are organized by audience and topic using a hierarchical naming convention.
-Files reference other files rather than containing redundant information.
+This directory contains **formal requirements documents** organized by audience and topic using a hierarchical naming convention. Files reference other files rather than containing redundant information.
 
-**Status**: Reorganization complete (2025-10-23). All documentation now uses the hierarchical naming convention and resides in the spec/ directory.
+**Status**: Reorganization complete (2025-10-23). All requirements now use the hierarchical naming convention.
+
+## spec/ vs docs/
+
+- **spec/** (this directory): Formal requirements defining WHAT, WHY, and HOW to build/deploy
+- **docs/**: Implementation documentation, ADRs, and technical decision explanations
+
+**See**: `docs/README.md` for when to use docs/ vs spec/.
 
 
 # Hierarchical File Naming Convention

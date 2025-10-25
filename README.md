@@ -1,23 +1,32 @@
 ## Documentation Structure
 
-Documentation is organized in the `spec/` directory using a hierarchical naming convention:
+Project documentation is split into two directories:
+
+### spec/ - Formal Requirements
+
+Contains formal requirements documents defining WHAT the system does, WHY it exists, and HOW to build/deploy it.
 
 **Format**: `{audience}-{topic}(-{subtopic}).md`
 
-### Audiences
+**Audiences**:
 - **prd**: Product Requirements - High-level, evaluation for suitability
 - **ops**: DevOps - Deployment, maintenance, operations, monitoring
 - **dev**: Developers - Code practices, libraries, implementation
 
-### Key Topics
-- **app**: Patient-facing application
-- **database**: Data storage and audit logs
-- **security**: Authorization and access control (RBAC, RLS)
-- **clinical-trials**: Regulations and compliance requirements
+**Key Topics**: app, database, security, clinical-trials
 
-### Documentation Index
+**See**: `spec/README.md` for complete hierarchical documentation map and topic scope definitions.
 
-See `spec/README.md` for complete hierarchical documentation map.
+### docs/ - Implementation Documentation
+
+Contains Architecture Decision Records (ADRs), implementation guides, and technical explanations of HOW decisions were made.
+
+**Includes**:
+- `adr/` - Architecture Decision Records documenting major technical decisions
+- Implementation tutorials and guides
+- Investigation reports and research findings
+
+**See**: `docs/README.md` for complete documentation about when to use docs/ vs spec/.
 
 **Key Documents**:
 - `spec/prd-app.md` - High level system functional requirements
