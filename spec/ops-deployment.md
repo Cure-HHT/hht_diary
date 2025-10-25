@@ -601,7 +601,7 @@ git branch -d release/1.2.3
 git push origin --delete release/1.2.3
 ```
 
-#### REQ-o00010: Mobile App Release Process
+### REQ-o00010: Mobile App Release Process
 
 **Level**: Ops | **Implements**: p00008 | **Status**: Active
 

@@ -35,6 +35,32 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 ## Multi-Sponsor Architecture
 
+### REQ-d00005: Sponsor Configuration Detection Implementation
+
+**Level**: Dev | **Implements**: p00007, p00008 | **Status**: Active
+
+The mobile application SHALL implement automatic sponsor detection and configuration loading based on enrollment tokens, enabling a single app binary to support multiple sponsors without requiring separate app builds per sponsor.
+
+Implementation SHALL include:
+- Enrollment token parser extracting sponsor identifier
+- Configuration loader fetching sponsor-specific settings (Supabase URL, project keys, branding assets)
+- Runtime sponsor context switching based on active user session
+- Bundled sponsor configurations in app assets
+- Validation of sponsor configuration completeness before connection
+- Secure storage of sponsor-specific authentication tokens
+
+**Rationale**: Implements automatic sponsor configuration (p00007) and single app architecture (p00008) at the development level. Token-based sponsor detection enables streamlined user enrollment while maintaining complete data isolation between sponsors.
+
+**Acceptance Criteria**:
+- Enrollment token correctly identifies sponsor
+- Sponsor configuration loaded from bundled assets
+- App connects to correct sponsor Supabase instance
+- Sponsor branding applied after configuration load
+- Invalid tokens rejected with clear error messages
+- No cross-sponsor data leakage in configuration or authentication
+
+---
+
 ### Single App, Multiple Sponsors
 
 **Deployment Model**:
@@ -77,6 +103,32 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 ---
 
 ## Offline-First Architecture
+
+### REQ-d00004: Local-First Data Entry Implementation
+
+**Level**: Dev | **Implements**: p00006 | **Status**: Active
+
+The mobile application SHALL implement offline-first data entry using SQLite for local storage, ensuring all user diary entries are captured locally before network synchronization, enabling full functionality without network connectivity.
+
+Implementation SHALL include:
+- SQLite database mirroring server Event Sourcing schema
+- All diary entry operations (create, update, delete) saved locally first
+- Background sync process triggered by connectivity changes
+- Conflict detection and resolution for multi-device scenarios
+- Automatic retry logic for failed synchronization attempts
+- Local data persistence across app restarts
+
+**Rationale**: Implements offline-first architecture (p00006) at the development level. Flutter's sqflite package provides SQLite access for local-first data storage, enabling clinical trial participants to record diary entries regardless of network availability.
+
+**Acceptance Criteria**:
+- SQLite database created on first app launch
+- All diary operations work without network connection
+- Local changes sync automatically when online
+- Conflict resolution handles multi-device scenarios
+- No data loss during offline periods
+- Background sync respects battery and data usage constraints
+
+---
 
 ### Core Principle
 
@@ -183,6 +235,32 @@ resolution: Log error. Report to investigator.
 ---
 
 ## Deployment & Distribution
+
+### REQ-d00006: Mobile App Build and Release Process
+
+**Level**: Dev | **Implements**: o00010 | **Status**: Active
+
+The mobile application SHALL be built and released as a single app package containing configurations for all sponsors, ensuring consistent app distribution across iOS App Store and Google Play Store while maintaining sponsor isolation.
+
+Build process SHALL include:
+- Single Flutter codebase compiled for iOS and Android platforms
+- All sponsor configurations bundled in app assets at build time
+- Version number incremented following semantic versioning
+- Code signing with platform-specific certificates (iOS: Apple Developer, Android: Google Play)
+- Automated build pipeline generating release artifacts
+- Pre-release validation ensuring no sponsor-specific information in store listings
+
+**Rationale**: Implements mobile app release process (o00010) at the development level. Flutter's cross-platform compilation enables single codebase deployment, while bundled configurations allow sponsor switching at runtime without requiring per-sponsor builds.
+
+**Acceptance Criteria**:
+- Single build produces both iOS and Android artifacts
+- All sponsor configurations included in build artifacts
+- App passes platform-specific review processes
+- Version numbers synchronized across platforms
+- No sponsor-specific branding in store listings
+- Build pipeline validates configuration completeness
+
+---
 
 ### App Store Listing
 
