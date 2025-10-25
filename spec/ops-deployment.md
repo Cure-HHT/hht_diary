@@ -317,6 +317,56 @@ jobs:
 
 ## Environment Configuration
 
+### REQ-o00001: Separate Supabase Projects Per Sponsor
+
+**Level**: Ops | **Implements**: p00001 | **Status**: Active
+
+Each sponsor SHALL be provisioned with dedicated Supabase projects for staging and production environments, ensuring complete infrastructure isolation.
+
+Each Supabase project SHALL provide:
+- Isolated PostgreSQL database (no shared tables or connections)
+- Unique API endpoints with sponsor-specific URLs
+- Independent authentication configuration and user pools
+- Separate storage buckets for file uploads
+- Dedicated Edge Functions runtime environment
+
+**Rationale**: Implements multi-sponsor data isolation (p00001) at the infrastructure level using Supabase's project isolation guarantees. Each sponsor's Supabase project is a completely separate deployment with its own resources, ensuring no possibility of cross-sponsor data access.
+
+**Acceptance Criteria**:
+- Each sponsor has unique Supabase project URLs for staging and production
+- Database connections cannot span projects
+- API keys are project-specific and cannot authenticate to other sponsors' projects
+- No shared configuration files between sponsors
+- Project provisioning documented in runbook
+
+**Traced by**: d00001, d00002
+
+---
+
+### REQ-o00002: Environment-Specific Configuration Management
+
+**Level**: Ops | **Implements**: p00001 | **Status**: Active
+
+Configuration files containing environment-specific credentials SHALL be stored securely and SHALL NOT be committed to version control.
+
+Each sponsor repository SHALL maintain:
+- `config/supabase.staging.env` - Staging credentials (gitignored)
+- `config/supabase.prod.env` - Production credentials (gitignored)
+- GitHub Secrets for CI/CD pipelines
+- No hardcoded credentials in source code
+
+**Rationale**: Prevents accidental credential sharing between sponsors and ensures proper secret management per security best practices.
+
+**Acceptance Criteria**:
+- `.gitignore` includes `*.env` files
+- CI/CD pipelines use GitHub Secrets, not committed credentials
+- Build scripts validate presence of required environment variables
+- No credentials found in git history
+
+**Traced by**: d00001
+
+---
+
 ### Environment Types
 
 **Environments**:
