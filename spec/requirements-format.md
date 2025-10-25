@@ -94,6 +94,73 @@ This document defines the format for traceable requirements across PRD, Operatio
 
 ---
 
+## Requirements Development Methodology
+
+### Top-Down Requirement Creation
+
+**CRITICAL**: Always start at the PRD level when adding new requirements. Never drive PRD requirements from code implementation.
+
+#### Proper Flow (Top-Down)
+
+1. **Identify Business Need**: What does the product/system need to do?
+2. **Add PRD Requirement**: Define WHAT at the product level (no implementation details)
+3. **Add Ops Requirement**: Define HOW TO DEPLOY/OPERATE (if needed)
+4. **Add Dev Requirement**: Define HOW TO BUILD/IMPLEMENT (if needed)
+
+#### Example: Multi-Site Support
+
+```
+✅ CORRECT:
+1. PRD: "System SHALL support multiple clinical trial sites per sponsor" (p00018)
+2. Ops: "Database SHALL be configured with site records and assignments" (o00011)
+3. Dev: "Schema SHALL implement sites table with RLS policies" (d00011)
+4. Code: schema.sql implements the sites table, references d00011
+
+❌ WRONG:
+1. Code: schema.sql has a sites table
+2. Dev: "Schema has sites table" (d00011) ← Describes existing code
+3. Ops: "Configure the sites table" (o00011) ← Added after code exists
+4. PRD: "Support sites" (p00018) ← Business requirement added last!
+```
+
+### Why Top-Down Matters
+
+1. **Requirements drive implementation**, not vice versa
+2. **PRD stays technology-agnostic** (WHAT, not HOW)
+3. **Prevents post-hoc rationalization** of code decisions
+4. **Maintains clear business justification** for all features
+5. **Enables proper requirement traceability** for auditors
+
+### When Adding Requirements to Existing Code
+
+When retroactively adding requirements to existing code (like our database schema):
+
+1. **Start with PRD**: What business need does this code address?
+2. **Write requirement as if code doesn't exist**: What SHOULD the system do?
+3. **Cascade down through Ops/Dev**: How should it be deployed/built?
+4. **Link code to requirements**: Code implements the requirements
+
+The requirement text should be **prescriptive** (SHALL/MUST), not **descriptive** (currently has/does).
+
+### Code Comments Referencing Requirements
+
+When adding requirement references to code files:
+
+```sql
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00018: Multi-Site Support Per Sponsor
+--   REQ-o00011: Multi-Site Data Configuration Per Sponsor
+--   REQ-d00011: Multi-Site Schema Implementation
+--
+-- This schema implements multi-site support per the requirements above.
+-- Sites table contains sponsor's clinical trial sites (REQ-p00018).
+-- RLS policies enforce site-level access control (REQ-d00011).
+```
+
+Code comments explain HOW the code implements requirements, but they don't define WHAT the requirements are.
+
+---
+
 ## Examples
 
 ### Top-Level PRD Requirement

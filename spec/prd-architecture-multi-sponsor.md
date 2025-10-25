@@ -107,6 +107,32 @@ The patient never needs to know which technical system they're using - it just w
 
 ---
 
+### REQ-p00018: Multi-Site Support Per Sponsor
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+Each sponsor SHALL support multiple clinical trial sites within their isolated environment, with site-level access control ensuring investigators and analysts access only data from their assigned sites.
+
+Multi-site support SHALL include:
+- Each sponsor's database contains multiple site records
+- Sites identified by unique site identifiers within sponsor
+- Users (investigators, analysts) assigned to specific sites
+- Access control enforces site-level data visibility
+- Audit trail captures site context for all data changes
+- Reports and exports can be filtered by site
+
+**Rationale**: Clinical trials typically involve multiple sites (hospitals, clinics, research centers) coordinating under one sponsor. Each site needs independent operation while contributing to the sponsor's unified trial. Site-level access control prevents investigators at one site from accessing another site's data, maintaining data integrity and regulatory compliance.
+
+**Acceptance Criteria**:
+- Sponsor can create and manage multiple sites
+- Each site has unique identifier and metadata
+- Investigators assigned to specific sites see only that site's data
+- Site assignments tracked in audit trail
+- Reports aggregate across sites or filter to specific sites
+- Site information included in data exports for regulatory submission
+
+---
+
 ## Data Isolation
 
 Each sponsor's data is completely isolated:

@@ -13,7 +13,10 @@
 --   REQ-p00013: Complete Change History
 --   REQ-p00016: Separation of Identity and Clinical Data
 --   REQ-p00017: Data Encryption
+--   REQ-p00018: Multi-Site Support Per Sponsor
 --   REQ-o00004: Database Schema Deployment
+--   REQ-o00011: Multi-Site Data Configuration Per Sponsor
+--   REQ-d00011: Multi-Site Schema Implementation
 --
 -- MULTI-SPONSOR ARCHITECTURE:
 --   This schema is deployed ONCE PER SPONSOR in separate Supabase instances.

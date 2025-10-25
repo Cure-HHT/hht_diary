@@ -150,6 +150,32 @@ Schema deployment SHALL include:
 
 ---
 
+### REQ-o00011: Multi-Site Data Configuration Per Sponsor
+
+**Level**: Ops | **Implements**: p00018 | **Status**: Active
+
+Each sponsor's database SHALL be configured with initial site records and site-based access control, enabling multi-site clinical trial operations within the sponsor's isolated environment.
+
+Site configuration SHALL include:
+- Creation of initial site records in sites table
+- Site assignment for investigators and analysts
+- RLS policies enforcing site-level data access
+- Site metadata (name, location, contact information)
+- Site activation status management
+- Documentation of site assignments for audit purposes
+
+**Rationale**: Implements multi-site support requirement (p00018) through operational configuration. Each sponsor manages their own sites independently, with database-level access control ensuring investigators see only data from assigned sites.
+
+**Acceptance Criteria**:
+- Sites table populated with sponsor's clinical trial sites
+- Each site has unique identifier within sponsor database
+- Investigator-site assignments configured correctly
+- RLS policies restrict data access to assigned sites
+- Site configuration documented for regulatory submission
+- Site management procedures defined for sponsor administrators
+
+---
+
 ### Option A: SQL Editor (Quickest)
 
 1. Navigate to **SQL Editor** in Supabase Dashboard
