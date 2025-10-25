@@ -13,6 +13,7 @@ This branch demonstrates a **minimal, homegrown requirements traceability system
   - `o` = Ops level (e.g., `o00001`)
   - `d` = Dev level (e.g., `d00001`)
 - Specifies requirement block structure with metadata
+- **Single-direction references**: Only "Implements" (child→parent), no "Traced by" needed
 - Includes examples and usage guidelines
 
 ### 2. Test Requirements
@@ -34,8 +35,9 @@ Demonstrated full hierarchy across three specification levels:
 
 **validate_requirements.py** (`tools/requirements/`):
 - Validates requirement format and IDs
-- Checks for duplicates, broken links, orphaned requirements
+- Checks for duplicates, broken "Implements" links, orphaned requirements
 - Verifies level consistency (PRD → Ops → Dev hierarchy)
+- Automatically discovers child requirements (no manual "Traced by" needed)
 - Exit code integration for CI/CD
 
 **Example output:**
@@ -103,6 +105,7 @@ Demonstrated full hierarchy across three specification levels:
 4. ✅ Easy to reference in commits/PRs/issues
 5. ✅ Can migrate to Doorstop later if needed
 6. ✅ Aligns with "rigorous but concise" goal
+7. ✅ Single-direction references (no sync issues)
 
 **Comparison:**
 
@@ -175,12 +178,14 @@ Implement complete database isolation per requirements.
 - ✅ Easy to find related requirements (grep)
 - ✅ No heavyweight tools required
 - ✅ Integrates with existing workflow
+- ✅ Single source of truth (only "Implements", no "Traced by")
 
 ### For Change Management
 - ✅ Impact analysis via traceability
 - ✅ Find all code implementing a requirement
 - ✅ Identify orphaned requirements
 - ✅ Track requirement status
+- ✅ No bi-directional sync issues
 
 ## Next Steps (If Adopted)
 
@@ -249,13 +254,14 @@ This implementation fulfills the original requirements:
 1. ✅ **Formal labels** - Unique IDs like p00101, o00042, d00942
 2. ✅ **Hierarchical** - PRD → Ops → Dev traceability
 3. ✅ **Consistent format** - Validated by scripts
-4. ✅ **Minimal metadata** - No dates/versions/approvals
+4. ✅ **Minimal metadata** - No dates/versions/approvals, no redundant "Traced by"
 5. ✅ **Informal titles** - Titles for navigation, body is authoritative
 6. ✅ **Referenced everywhere** - Code, commits, PRs, issues
 7. ✅ **Rigorous but concise** - Format enforced without bloat
 8. ✅ **Version controlled** - Part of git repository
 9. ✅ **Tool support** - Validation and matrix generation
 10. ✅ **Open source** - No proprietary tools required
+11. ✅ **Single source of truth** - Only child→parent references, tools compute reverse
 
 ## Conclusion
 

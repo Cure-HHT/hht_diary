@@ -50,8 +50,6 @@ This document defines the format for traceable requirements across PRD, Operatio
 **Acceptance Criteria**:
 - {criterion-1}
 - {criterion-2}
-
-**Traced by**: {child-requirement-ids}
 ```
 
 ### Field Definitions
@@ -92,10 +90,7 @@ This document defines the format for traceable requirements across PRD, Operatio
 - Testable conditions
 - Used by QA and validation
 
-#### Traced by
-- Child requirements that implement this requirement
-- Empty if no children yet
-- Maintained manually or by tooling
+**Note**: Child requirements are automatically discovered by tools scanning for "Implements" references. No manual "Traced by" field is needed.
 
 ---
 
@@ -126,8 +121,6 @@ cross-sponsor access. Critical for regulatory compliance and sponsor trust.
 - Authentication tokens are scoped to a single sponsor
 - Encryption keys are never shared between sponsors
 - Administrative access is limited to single sponsor
-
-**Traced by**: o00001, o00002, d00045
 ```
 
 ### Ops Requirement Implementing PRD
@@ -151,8 +144,6 @@ using Supabase's project isolation guarantees.
 - Database connections do not span projects
 - API keys are project-specific
 - No shared configuration files
-
-**Traced by**: d00045, d00046
 ```
 
 ### Dev Requirement Implementing Ops
@@ -180,8 +171,6 @@ Each file MUST contain:
 - Build process validates all required fields present
 - No hardcoded credentials in source code
 - URL patterns match expected Supabase format
-
-**Traced by**: -
 ```
 
 ---

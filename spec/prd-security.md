@@ -50,8 +50,6 @@ Each sponsor SHALL operate in a completely separate environment with:
 - Administrative access is limited to single sponsor
 - System architecture makes cross-sponsor access technically impossible
 
-**Traced by**: o00001, o00002, d00001
-
 ---
 
 ### What Complete Separation Means
@@ -92,8 +90,6 @@ The system SHALL NOT allow staff or administrator access without successful MFA 
 - MFA verification occurs at each login session
 - Users can configure TOTP authenticator apps or SMS backup
 - System logs all MFA authentication attempts (success and failure)
-
-**Traced by**: o00003, d00002
 
 ---
 

@@ -339,8 +339,6 @@ Each Supabase project SHALL provide:
 - No shared configuration files between sponsors
 - Project provisioning documented in runbook
 
-**Traced by**: d00001, d00002
-
 ---
 
 ### REQ-o00002: Environment-Specific Configuration Management
@@ -362,8 +360,6 @@ Each sponsor repository SHALL maintain:
 - CI/CD pipelines use GitHub Secrets, not committed credentials
 - Build scripts validate presence of required environment variables
 - No credentials found in git history
-
-**Traced by**: d00001
 
 ---
 

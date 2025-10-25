@@ -240,9 +240,9 @@ See `spec/requirements-format.md` for full format specification.
 **Acceptance Criteria**:
 - {testable-criterion-1}
 - {testable-criterion-2}
-
-**Traced by**: {child-requirement-ids}
 ```
+
+**Note**: Child requirements are automatically discovered by tools. No manual "Traced by" field needed.
 
 ## Troubleshooting
 

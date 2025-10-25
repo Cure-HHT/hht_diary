@@ -52,8 +52,6 @@ The application SHALL validate all required fields are present at application st
 - Application throws clear error message if configuration missing
 - Configuration is immutable after loading (final fields)
 
-**Traced by**: -
-
 ---
 
 ### Implementation Example
@@ -208,8 +206,6 @@ The build SHALL fail immediately if validation fails, with clear error messages 
 - Clear error messages indicate exactly which field is invalid
 - Validation completes in <1 second
 - Non-zero exit code on validation failure
-
-**Traced by**: -
 
 ---
 

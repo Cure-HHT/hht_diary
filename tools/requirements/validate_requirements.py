@@ -27,7 +27,6 @@ class Requirement:
     status: str
     file_path: Path
     line_number: int
-    traced_by: List[str]
 
     @property
     def level_prefix(self) -> str:
@@ -51,7 +50,6 @@ class RequirementValidator:
         r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+\*\*Status\*\*:\s+(Active|Draft|Deprecated)',
         re.MULTILINE
     )
-    TRACED_BY_PATTERN = re.compile(r'\*\*Traced by\*\*:\s+(.+)$', re.MULTILINE)
 
     VALID_STATUSES = {'Active', 'Draft', 'Deprecated'}
     VALID_LEVELS = {'PRD', 'Ops', 'Dev'}
@@ -133,18 +131,6 @@ class RequirementValidator:
                     if impl.strip()
                 ]
 
-            # Parse traced_by
-            traced_by = []
-            traced_match = self.TRACED_BY_PATTERN.search(remaining_content[:1000])
-            if traced_match:
-                traced_str = traced_match.group(1).strip()
-                if traced_str != '-':
-                    traced_by = [
-                        t.strip()
-                        for t in traced_str.split(',')
-                        if t.strip()
-                    ]
-
             req = Requirement(
                 id=req_id,
                 title=title,
@@ -152,8 +138,7 @@ class RequirementValidator:
                 implements=implements,
                 status=status,
                 file_path=file_path,
-                line_number=line_num,
-                traced_by=traced_by
+                line_number=line_num
             )
 
             self.requirements[req_id] = req
@@ -211,7 +196,7 @@ class RequirementValidator:
         for req_id, req in self.requirements.items():
             # PRD and Ops requirements should have children (unless deprecated)
             if req.level in ['PRD', 'Ops'] and req.status == 'Active':
-                if req_id not in implemented and not req.traced_by:
+                if req_id not in implemented:
                     self.warnings.append(
                         f"{req.file_path.name}:{req.line_number} - "
                         f"REQ-{req_id}: No child requirements implement this (may need dev/ops work)"

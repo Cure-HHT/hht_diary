@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-**Generated**: 2025-10-25 00:32:43
+**Generated**: 2025-10-25 00:41:33
 **Total Requirements**: 6
 
 ## Summary
@@ -22,13 +22,13 @@
       - File: dev-configuration.md:28
   - ✅ **REQ-o00002**: Environment-Specific Configuration Management
     - Level: Ops | Status: Active
-    - File: ops-deployment.md:346
+    - File: ops-deployment.md:344
     - ✅ **REQ-d00001**: Sponsor-Specific Configuration Loading
       - Level: Dev | Status: Active
       - File: dev-configuration.md:28
     - ✅ **REQ-d00002**: Pre-Build Configuration Validation
       - Level: Dev | Status: Active
-      - File: dev-configuration.md:187
+      - File: dev-configuration.md:185
 - ✅ **REQ-p00002**: Multi-Factor Authentication for Staff
   - Level: PRD | Status: Active
-  - File: prd-security.md:75
+  - File: prd-security.md:73

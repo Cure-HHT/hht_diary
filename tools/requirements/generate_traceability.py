@@ -29,7 +29,6 @@ class Requirement:
     status: str
     file_path: Path
     line_number: int
-    traced_by: List[str]
 
 
 class TraceabilityGenerator:
@@ -40,7 +39,6 @@ class TraceabilityGenerator:
         r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+\*\*Status\*\*:\s+(Active|Draft|Deprecated)',
         re.MULTILINE
     )
-    TRACED_BY_PATTERN = re.compile(r'\*\*Traced by\*\*:\s+(.+)$', re.MULTILINE)
 
     def __init__(self, spec_dir: Path):
         self.spec_dir = spec_dir
@@ -114,17 +112,6 @@ class TraceabilityGenerator:
                     if impl.strip()
                 ]
 
-            traced_by = []
-            traced_match = self.TRACED_BY_PATTERN.search(remaining_content[:1000])
-            if traced_match:
-                traced_str = traced_match.group(1).strip()
-                if traced_str != '-':
-                    traced_by = [
-                        t.strip()
-                        for t in traced_str.split(',')
-                        if t.strip()
-                    ]
-
             req = Requirement(
                 id=req_id,
                 title=title,
@@ -132,8 +119,7 @@ class TraceabilityGenerator:
                 implements=implements,
                 status=status,
                 file_path=file_path,
-                line_number=line_num,
-                traced_by=traced_by
+                line_number=line_num
             )
 
             self.requirements[req_id] = req
@@ -402,13 +388,19 @@ class TraceabilityGenerator:
         sorted_reqs = sorted(self.requirements.values(), key=lambda r: r.id)
 
         for req in sorted_reqs:
+            # Compute children (traced by) dynamically
+            children = [
+                r.id for r in self.requirements.values()
+                if req.id in r.implements
+            ]
+
             writer.writerow([
                 req.id,
                 req.title,
                 req.level,
                 req.status,
                 ', '.join(req.implements) if req.implements else '-',
-                ', '.join(req.traced_by) if req.traced_by else '-',
+                ', '.join(sorted(children)) if children else '-',
                 req.file_path.name,
                 req.line_number
             ])
