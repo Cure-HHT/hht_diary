@@ -5,6 +5,27 @@
 -- Version: 1.0
 -- =====================================================
 --
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00003: Separate Database Per Sponsor
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00011: ALCOA+ Data Integrity Principles
+--   REQ-p00013: Complete Change History
+--   REQ-p00016: Separation of Identity and Clinical Data
+--   REQ-p00017: Data Encryption
+--   REQ-o00004: Database Schema Deployment
+--
+-- MULTI-SPONSOR ARCHITECTURE:
+--   This schema is deployed ONCE PER SPONSOR in separate Supabase instances.
+--   Each sponsor operates an independent database with their own sites table.
+--   Multi-sponsor isolation achieved via separate Supabase projects (REQ-p00003),
+--   not database-level separation.
+--
+--   Within each sponsor's database:
+--   - Sites table contains that sponsor's clinical trial sites (multi-site support)
+--   - All data scoped to sponsor via infrastructure isolation
+--   - RLS policies enforce site-level access control within the sponsor
+--
 -- DATA PRIVACY ARCHITECTURE:
 -- This database implements privacy-by-design with de-identified clinical data.
 -- Patient identity is managed separately by Supabase Auth.

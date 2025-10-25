@@ -2,6 +2,25 @@
 -- Row-Level Security (RLS) Policies
 -- Implements access control based on user roles and site assignments
 -- =====================================================
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00005: Role-Based Access Control
+--   REQ-p00014: Least Privilege Access
+--   REQ-p00015: Database-Level Access Enforcement
+--   REQ-o00007: Role-Based Permission Configuration
+--
+-- MULTI-SPONSOR CONTEXT:
+--   These RLS policies enforce SITE-LEVEL access control within a single sponsor.
+--   SPONSOR-LEVEL isolation is enforced by separate database instances (REQ-p00003).
+--   Each sponsor's database contains only their sites and users.
+--
+-- ROLE-BASED ACCESS:
+--   - USER: Access only their own diary entries
+--   - INVESTIGATOR: Access data for assigned sites within this sponsor
+--   - ANALYST: Read-only access to assigned sites within this sponsor
+--   - ADMIN: Full access to all data within this sponsor's database
+--
+-- =====================================================
 
 -- =====================================================
 -- ENABLE RLS ON ALL TABLES

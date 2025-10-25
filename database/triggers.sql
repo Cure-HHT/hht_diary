@@ -2,6 +2,24 @@
 -- Event Sourcing Triggers
 -- Event Store → Read Model Synchronization (CQRS Pattern)
 -- =====================================================
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00011: ALCOA+ Data Integrity Principles
+--   REQ-p00013: Complete Change History
+--
+-- EVENT SOURCING PATTERN:
+--   - record_audit (event store): Immutable source of truth
+--   - record_state (read model): Derived state for queries
+--   - Triggers automatically update read model from event store
+--   - Direct writes to record_state blocked in production (REQ-p00004)
+--
+-- COMPLIANCE:
+--   Ensures all data changes flow through immutable audit trail,
+--   maintaining complete change history for FDA 21 CFR Part 11.
+--
+-- =====================================================
 
 -- =====================================================
 -- TRIGGER: Auto-update read model from event store
