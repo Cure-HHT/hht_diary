@@ -4,16 +4,20 @@
 -- Author: Database Team
 -- Date: 2025-10-14
 -- =====================================================
-
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00011: ALCOA+ Data Integrity Principles
+--
 -- Purpose:
--- Add missing ALCOA+ compliance fields to record_event store for
+-- Add missing ALCOA+ compliance fields to record_audit event store for
 -- FDA 21 CFR Part 11.10(e) compliance. These fields capture device
 -- information, IP addresses, and session identifiers for complete
--- audit trail attribution.
-
+-- audit trail attribution (ALCOA+ "Attributable" principle).
+--
 -- Dependencies:
 -- - Migration 001 (initial schema)
-
+--
 -- Compliance Reference:
 -- - spec/compliance-practices.md:120-137
 -- - FDA 21 CFR Part 11.10(e) - Audit Trail Requirements

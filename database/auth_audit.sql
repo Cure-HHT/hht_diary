@@ -3,11 +3,17 @@
 -- HIPAA and FDA 21 CFR Part 11 Compliance
 -- =====================================================
 --
--- This adds comprehensive authentication tracking
--- which is required for:
--- - HIPAA: Access logging requirements
--- - FDA 21 CFR Part 11: User identification and audit trail
--- - Security monitoring and incident response
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00002: Multi-Factor Authentication for Staff
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-o00006: MFA Configuration for Staff Accounts
+--
+-- AUTHENTICATION AUDITING:
+--   Comprehensive authentication event logging required for:
+--   - HIPAA: Access logging requirements (45 CFR § 164.312(b))
+--   - FDA 21 CFR Part 11: User identification and audit trail (§ 11.10(e))
+--   - Security monitoring and incident response
+--
 -- =====================================================
 
 -- =====================================================

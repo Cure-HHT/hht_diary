@@ -2,8 +2,14 @@
 // Diary Repository
 // ============================================================================
 //
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-p00004: Immutable Audit Trail via Event Sourcing
+//   REQ-p00006: Offline-First Data Entry
+//   REQ-d00004: Local-First Data Entry Implementation
+//
 // Handles database operations for diary events using Supabase.
 // All modifications go through the audit trail (Event Sourcing pattern).
+// Designed for offline-first operation with local SQLite sync.
 //
 // ============================================================================
 

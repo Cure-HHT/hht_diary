@@ -3,6 +3,18 @@
 -- Implements FDA 21 CFR Part 11 tamper-evident audit trail
 -- Ticket: TICKET-002
 -- =====================================================
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00011: ALCOA+ Data Integrity Principles
+--
+-- TAMPER DETECTION:
+--   SHA-256 cryptographic hashing provides tamper-evident audit trail
+--   per FDA 21 CFR Part 11 § 11.10(e). Any modification to audit records
+--   results in hash mismatch, detecting tampering attempts.
+--
+-- =====================================================
 
 -- =====================================================
 -- FUNCTION: Compute Audit Hash

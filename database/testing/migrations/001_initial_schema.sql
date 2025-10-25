@@ -4,15 +4,21 @@
 -- Author: Database Team
 -- Date: 2025-10-14
 -- =====================================================
-
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00003: Separate Database Per Sponsor
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00018: Multi-Site Support Per Sponsor
+--   REQ-o00004: Database Schema Deployment
+--
 -- Purpose:
 -- Establishes the initial database schema for the Clinical Trial Diary Database.
 -- This migration creates all core tables, indexes, triggers, and RLS policies.
-
+--
 -- Dependencies:
 -- - PostgreSQL 15+
 -- - Extensions: uuid-ossp, pgcrypto
-
+--
 -- Notes:
 -- This is a reference migration. The actual initial schema is applied via
 -- database/init.sql which includes all core tables. This migration serves as

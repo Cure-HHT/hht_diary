@@ -3,6 +3,17 @@
 -- Purpose: Verify FDA 21 CFR Part 11 compliance
 -- Compliance: spec/compliance-practices.md:120-167
 -- =====================================================
+--
+-- TESTS REQUIREMENTS:
+--   REQ-p00004: Immutable Audit Trail via Event Sourcing
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00011: ALCOA+ Data Integrity Principles
+--
+-- TEST SCOPE:
+--   Validates that audit trail records are immutable (no UPDATE/DELETE)
+--   and maintain cryptographic integrity per FDA 21 CFR Part 11.
+--
+-- =====================================================
 
 \echo ''
 \echo '========================================='

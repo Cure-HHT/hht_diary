@@ -3,6 +3,17 @@
 -- Purpose: Verify ALCOA+ and compliance reporting functions
 -- Compliance: spec/compliance-practices.md:247-280
 -- =====================================================
+--
+-- TESTS REQUIREMENTS:
+--   REQ-p00010: FDA 21 CFR Part 11 Compliance
+--   REQ-p00011: ALCOA+ Data Integrity Principles
+--   REQ-o00005: Audit Trail Monitoring
+--
+-- TEST SCOPE:
+--   Validates compliance verification functions that auditors use
+--   to verify ALCOA+ principles and FDA 21 CFR Part 11 adherence.
+--
+-- =====================================================
 
 \echo ''
 \echo '========================================='

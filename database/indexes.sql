@@ -2,6 +2,18 @@
 -- Indexes and Performance Optimizations
 -- Optimized for clinical trial diary workload
 -- =====================================================
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00018: Multi-Site Support Per Sponsor
+--   REQ-d00011: Multi-Site Schema Implementation
+--
+-- PERFORMANCE OPTIMIZATION:
+--   Indexes designed for multi-site clinical trial query patterns:
+--   - Site-based data access (investigators viewing assigned sites)
+--   - Patient-based queries (users viewing own diary entries)
+--   - Time-series reporting (audit trail chronological access)
+--
+-- =====================================================
 
 -- =====================================================
 -- SITES TABLE INDEXES

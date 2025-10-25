@@ -3,6 +3,17 @@
 -- For Supabase, roles are managed via JWT claims
 -- This file documents the role structure and provides setup
 -- =====================================================
+--
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00005: Role-Based Access Control
+--   REQ-p00014: Least Privilege Access
+--   REQ-o00007: Role-Based Permission Configuration
+--
+-- ROLE DEFINITIONS:
+--   Defines user_profiles table storing role assignments and helper
+--   functions for role verification used by RLS policies.
+--
+-- =====================================================
 
 -- =====================================================
 -- SUPABASE ROLE NOTES

@@ -2,14 +2,18 @@
 // Clinical Trial Diary - Flutter/Dart Data Models
 // ============================================================================
 //
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-p00011: ALCOA+ Data Integrity Principles
+//   REQ-d00004: Local-First Data Entry Implementation
+//
 // These models match the JSONB schema defined in spec/JSONB_SCHEMA.md
 // and validated by database functions in database/schema.sql
 //
-// IMPORTANT:
-// - All enums use meaningful strings (not numbers) for ALCOA+ compliance
-// - All timestamps use ISO 8601 format with timezone
+// ALCOA+ COMPLIANCE:
+// - All enums use meaningful strings (not numbers) for Legibility
+// - All timestamps use ISO 8601 format with timezone for Accuracy
 // - UUIDs are RFC 9562 compliant (v7 recommended for time-ordering)
-// - Data must be clear and unambiguous without database context
+// - Data must be clear and unambiguous without database context (Legible)
 //
 // ============================================================================
 
