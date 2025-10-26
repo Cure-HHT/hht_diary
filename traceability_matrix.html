@@ -135,28 +135,47 @@
         }
         .req-content {
             flex: 1;
-            display: flex;
+            display: grid;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             min-width: 0;
+        }
+        .req-id {
+            font-weight: 600;
+            color: #0066cc;
+            font-size: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
         }
         .req-header {
             font-weight: 500;
             color: #2c3e50;
             font-size: 13px;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            flex-shrink: 1;
-            min-width: 200px;
+            white-space: nowrap;
         }
-        .req-meta {
+        .req-level {
             font-size: 11px;
             color: #7f8c8d;
+            text-align: center;
+        }
+        .req-badges {
             display: flex;
+            gap: 4px;
             align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
+        }
+        .req-status {
+            font-size: 11px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        .req-location {
+            font-size: 11px;
+            color: #7f8c8d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .status-badge {
             display: inline-block;
@@ -193,12 +212,44 @@
         }
         .filter-bar {
             margin: 15px 0;
-            padding: 10px;
+            padding: 12px;
             background: #e9ecef;
             border-radius: 4px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .filter-bar label {
-            margin-right: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #495057;
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 4px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 12px;
+            background: white;
+        }
+        .filter-bar input {
+            width: 120px;
+        }
+        .filter-bar select {
+            width: 100px;
+        }
+        .filter-stats {
+            margin-left: auto;
+            font-size: 11px;
+            color: #6c757d;
+        }
+        .req-item.filtered-out {
+            display: none !important;
         }
         .level-legend {
             display: flex;
@@ -228,7 +279,7 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 17:42:32</p>
+            <p><strong>Generated:</strong> 2025-10-25 17:47:06</p>
             <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
@@ -265,98 +316,119 @@
         <div class="controls">
             <button class="btn" onclick="expandAll()">▼ Expand All</button>
             <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
-            <span style="margin-left: auto; color: #666; font-size: 14px;">Click any requirement to expand/collapse its children</span>
+            <span style="margin-left: auto; color: #666; font-size: 12px;">Click any requirement to expand/collapse its children</span>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterReqId">REQ ID:</label>
+                <input type="text" id="filterReqId" placeholder="e.g., p00001" oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label for="filterLevel">Level:</label>
+                <select id="filterLevel" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="PRD">PRD</option>
+                    <option value="Ops">Ops</option>
+                    <option value="Dev">Dev</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterTopic">Topic:</label>
+                <input type="text" id="filterTopic" placeholder="e.g., security" oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Status:</label>
+                <select id="filterStatus" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="Active">Active</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Deprecated">Deprecated</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" onclick="clearFilters()" style="padding: 4px 10px; font-size: 11px;">Clear</button>
+            <span class="filter-stats" id="filterStats"></span>
         </div>
 
         <h2>Traceability Tree</h2>
         <div class="req-tree" id="reqTree">
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00001" data-level="PRD" data-topic="security" data-status="Active" data-title="complete multi-sponsor data separation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00001: Complete Multi-Sponsor Data Separation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00001</div>
+                    <div class="req-header">Complete Multi-Sponsor Data Separation</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security.md:32</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security.md:32</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00001" data-level="Ops" data-topic="deployment" data-status="Active" data-title="separate supabase projects per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00001: Separate Supabase Projects Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00001</div>
+                    <div class="req-header">Separate Supabase Projects Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-deployment.md:320</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-deployment.md:320</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00001" data-level="Dev" data-topic="configuration" data-status="Active" data-title="sponsor-specific configuration loading">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00001: Sponsor-Specific Configuration Loading
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00001</div>
+                    <div class="req-header">Sponsor-Specific Configuration Loading</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-configuration.md:28</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-configuration.md:28</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00003" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00003: Supabase Project Provisioning Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00003</div>
+                    <div class="req-header">Supabase Project Provisioning Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:57</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:57</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00003" data-level="Dev" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00003: Supabase Auth Configuration Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00003</div>
+                    <div class="req-header">Supabase Auth Configuration Per Sponsor</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:84</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:84</div>
                 </div>
             </div>
         </div>
@@ -365,150 +437,134 @@
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00002" data-level="Ops" data-topic="deployment" data-status="Active" data-title="environment-specific configuration management">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00002: Environment-Specific Configuration Management
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00002</div>
+                    <div class="req-header">Environment-Specific Configuration Management</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-deployment.md:344</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-deployment.md:344</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00001" data-level="Dev" data-topic="configuration" data-status="Active" data-title="sponsor-specific configuration loading">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00001: Sponsor-Specific Configuration Loading
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00001</div>
+                    <div class="req-header">Sponsor-Specific Configuration Loading</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-configuration.md:28</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-configuration.md:28</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00002" data-level="Dev" data-topic="configuration" data-status="Active" data-title="pre-build configuration validation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00002: Pre-Build Configuration Validation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00002</div>
+                    <div class="req-header">Pre-Build Configuration Validation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-configuration.md:185</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-configuration.md:185</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00003" data-level="PRD" data-topic="database" data-status="Active" data-title="separate database per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00003: Separate Database Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00003</div>
+                    <div class="req-header">Separate Database Per Sponsor</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:88</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:88</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00003" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00003: Supabase Project Provisioning Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00003</div>
+                    <div class="req-header">Supabase Project Provisioning Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:57</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:57</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00003" data-level="Dev" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00003: Supabase Auth Configuration Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00003</div>
+                    <div class="req-header">Supabase Auth Configuration Per Sponsor</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:84</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:84</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -517,112 +573,100 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00007" data-level="PRD" data-topic="app" data-status="Active" data-title="automatic sponsor configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00007: Automatic Sponsor Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00007</div>
+                    <div class="req-header">Automatic Sponsor Configuration</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-app.md:29</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-app.md:29</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00005" data-level="Dev" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00005: Sponsor Configuration Detection Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00005</div>
+                    <div class="req-header">Sponsor Configuration Detection Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:38</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:38</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00008" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="single mobile app for all sponsors">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00008: Single Mobile App for All Sponsors
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00008</div>
+                    <div class="req-header">Single Mobile App for All Sponsors</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-architecture-multi-sponsor.md:36</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-architecture-multi-sponsor.md:36</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00005" data-level="Dev" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00005: Sponsor Configuration Detection Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00005</div>
+                    <div class="req-header">Sponsor Configuration Detection Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:38</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:38</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00010" data-level="Ops" data-topic="deployment" data-status="Active" data-title="mobile app release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00010: Mobile App Release Process
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00010</div>
+                    <div class="req-header">Mobile App Release Process</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-deployment.md:604</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-deployment.md:604</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00006" data-level="Dev" data-topic="app" data-status="Active" data-title="mobile app build and release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00006: Mobile App Build and Release Process
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00006</div>
+                    <div class="req-header">Mobile App Build and Release Process</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:239</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:239</div>
                 </div>
             </div>
         </div>
@@ -631,38 +675,34 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00009" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="sponsor-specific web portals">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00009: Sponsor-Specific Web Portals
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00009</div>
+                    <div class="req-header">Sponsor-Specific Web Portals</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-architecture-multi-sponsor.md:60</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-architecture-multi-sponsor.md:60</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00009" data-level="Ops" data-topic="deployment" data-status="Active" data-title="portal deployment per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00009: Portal Deployment Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00009</div>
+                    <div class="req-header">Portal Deployment Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-deployment.md:811</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-deployment.md:811</div>
                 </div>
             </div>
         </div>
@@ -671,74 +711,66 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00002" data-level="PRD" data-topic="security" data-status="Active" data-title="multi-factor authentication for staff">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00002: Multi-Factor Authentication for Staff
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00002</div>
+                    <div class="req-header">Multi-Factor Authentication for Staff</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security.md:73</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security.md:73</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00003" data-level="Dev" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00003: Supabase Auth Configuration Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00003</div>
+                    <div class="req-header">Supabase Auth Configuration Per Sponsor</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:84</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:84</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00006" data-level="Ops" data-topic="security-authentication" data-status="Active" data-title="mfa configuration for staff accounts">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00006: MFA Configuration for Staff Accounts
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00006</div>
+                    <div class="req-header">MFA Configuration for Staff Accounts</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security-authentication.md:6</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security-authentication.md:6</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00008" data-level="Dev" data-topic="security" data-status="Active" data-title="mfa enrollment and verification implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00008: MFA Enrollment and Verification Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00008</div>
+                    <div class="req-header">MFA Enrollment and Verification Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:154</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:154</div>
                 </div>
             </div>
         </div>
@@ -747,94 +779,84 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00003" data-level="PRD" data-topic="database" data-status="Active" data-title="separate database per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00003: Separate Database Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00003</div>
+                    <div class="req-header">Separate Database Per Sponsor</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:88</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:88</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00003" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00003: Supabase Project Provisioning Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00003</div>
+                    <div class="req-header">Supabase Project Provisioning Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:57</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:57</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00003" data-level="Dev" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00003: Supabase Auth Configuration Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00003</div>
+                    <div class="req-header">Supabase Auth Configuration Per Sponsor</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:84</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:84</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -843,112 +865,100 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00004" data-level="PRD" data-topic="database-event-sourcing" data-status="Active" data-title="immutable audit trail via event sourcing">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00004: Immutable Audit Trail via Event Sourcing
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00004</div>
+                    <div class="req-header">Immutable Audit Trail via Event Sourcing</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database-event-sourcing.md:74</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database-event-sourcing.md:74</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00013: Complete Data Change History
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00013</div>
+                    <div class="req-header">Complete Data Change History</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:40</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -959,168 +969,150 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00005" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="role-based access control">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00005: Role-Based Access Control
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00005</div>
+                    <div class="req-header">Role-Based Access Control</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RBAC.md:36</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RBAC.md:36</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00014" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00014: Least Privilege Access
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00014</div>
+                    <div class="req-header">Least Privilege Access</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RBAC.md:60</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RBAC.md:60</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00015: Database-Level Access Enforcement
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00015</div>
+                    <div class="req-header">Database-Level Access Enforcement</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RLS.md:56</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
@@ -1131,56 +1123,50 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00015: Database-Level Access Enforcement
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00015</div>
+                    <div class="req-header">Database-Level Access Enforcement</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RLS.md:56</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
@@ -1191,150 +1177,134 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00006" data-level="PRD" data-topic="app" data-status="Active" data-title="offline-first data entry">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00006: Offline-First Data Entry
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00006</div>
+                    <div class="req-header">Offline-First Data Entry</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-app.md:87</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-app.md:87</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00004" data-level="Dev" data-topic="app" data-status="Active" data-title="local-first data entry implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00004: Local-First Data Entry Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00004</div>
+                    <div class="req-header">Local-First Data Entry Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:107</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:107</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00007" data-level="PRD" data-topic="app" data-status="Active" data-title="automatic sponsor configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00007: Automatic Sponsor Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00007</div>
+                    <div class="req-header">Automatic Sponsor Configuration</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-app.md:29</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-app.md:29</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00005" data-level="Dev" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00005: Sponsor Configuration Detection Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00005</div>
+                    <div class="req-header">Sponsor Configuration Detection Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:38</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:38</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00008" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="single mobile app for all sponsors">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00008: Single Mobile App for All Sponsors
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00008</div>
+                    <div class="req-header">Single Mobile App for All Sponsors</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-architecture-multi-sponsor.md:36</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-architecture-multi-sponsor.md:36</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00005" data-level="Dev" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00005: Sponsor Configuration Detection Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00005</div>
+                    <div class="req-header">Sponsor Configuration Detection Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:38</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:38</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00010" data-level="Ops" data-topic="deployment" data-status="Active" data-title="mobile app release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00010: Mobile App Release Process
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00010</div>
+                    <div class="req-header">Mobile App Release Process</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-deployment.md:604</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-deployment.md:604</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00006" data-level="Dev" data-topic="app" data-status="Active" data-title="mobile app build and release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00006: Mobile App Build and Release Process
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00006</div>
+                    <div class="req-header">Mobile App Build and Release Process</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-app.md:239</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-app.md:239</div>
                 </div>
             </div>
         </div>
@@ -1343,130 +1313,116 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00009" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="sponsor-specific web portals">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00009: Sponsor-Specific Web Portals
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00009</div>
+                    <div class="req-header">Sponsor-Specific Web Portals</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-architecture-multi-sponsor.md:60</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-architecture-multi-sponsor.md:60</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00009" data-level="Ops" data-topic="deployment" data-status="Active" data-title="portal deployment per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00009: Portal Deployment Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00009</div>
+                    <div class="req-header">Portal Deployment Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-deployment.md:811</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-deployment.md:811</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00010" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="fda 21 cfr part 11 compliance">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00010: FDA 21 CFR Part 11 Compliance
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00010</div>
+                    <div class="req-header">FDA 21 CFR Part 11 Compliance</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-clinical-trials.md:47</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-clinical-trials.md:47</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00011" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00011: ALCOA+ Data Integrity Principles
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00011</div>
+                    <div class="req-header">ALCOA+ Data Integrity Principles</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-clinical-trials.md:74</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-clinical-trials.md:74</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00013: Complete Data Change History
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00013</div>
+                    <div class="req-header">Complete Data Change History</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:40</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -1477,94 +1433,84 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00012" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00012: Clinical Data Retention Requirements
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00012</div>
+                    <div class="req-header">Clinical Data Retention Requirements</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-clinical-trials.md:102</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-clinical-trials.md:102</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00008" data-level="Ops" data-topic="operations" data-status="Active" data-title="backup and retention policy">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00008: Backup and Retention Policy
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00008</div>
+                    <div class="req-header">Backup and Retention Policy</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-operations.md:853</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-operations.md:853</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00013: Complete Data Change History
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00013</div>
+                    <div class="req-header">Complete Data Change History</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:40</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -1573,112 +1519,100 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00014" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00014: Least Privilege Access
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00014</div>
+                    <div class="req-header">Least Privilege Access</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RBAC.md:60</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RBAC.md:60</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00015: Database-Level Access Enforcement
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00015</div>
+                    <div class="req-header">Database-Level Access Enforcement</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RLS.md:56</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
@@ -1691,74 +1625,66 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00011" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00011: ALCOA+ Data Integrity Principles
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00011</div>
+                    <div class="req-header">ALCOA+ Data Integrity Principles</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-clinical-trials.md:74</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-clinical-trials.md:74</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00013: Complete Data Change History
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00013</div>
+                    <div class="req-header">Complete Data Change History</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:40</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -1769,94 +1695,84 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00012" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00012: Clinical Data Retention Requirements
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00012</div>
+                    <div class="req-header">Clinical Data Retention Requirements</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-clinical-trials.md:102</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-clinical-trials.md:102</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00008" data-level="Ops" data-topic="operations" data-status="Active" data-title="backup and retention policy">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00008: Backup and Retention Policy
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00008</div>
+                    <div class="req-header">Backup and Retention Policy</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-operations.md:853</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-operations.md:853</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00013: Complete Data Change History
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00013</div>
+                    <div class="req-header">Complete Data Change History</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-database.md:40</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00004" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00004: Database Schema Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00004</div>
+                    <div class="req-header">Database Schema Deployment</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:128</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00007" data-level="Dev" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00007: Database Schema Implementation and Deployment
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00007</div>
+                    <div class="req-header">Database Schema Implementation and Deployment</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:90</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:90</div>
                 </div>
             </div>
         </div>
@@ -1865,112 +1781,100 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00014" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00014: Least Privilege Access
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00014</div>
+                    <div class="req-header">Least Privilege Access</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RBAC.md:60</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RBAC.md:60</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00015: Database-Level Access Enforcement
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00015</div>
+                    <div class="req-header">Database-Level Access Enforcement</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RLS.md:56</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
@@ -1981,56 +1885,50 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00015: Database-Level Access Enforcement
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00015</div>
+                    <div class="req-header">Database-Level Access Enforcement</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-RLS.md:56</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00007" data-level="Ops" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00007: Role-Based Permission Configuration
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00007</div>
+                    <div class="req-header">Role-Based Permission Configuration</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-security.md:125</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00009" data-level="Dev" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00009: Role-Based Permission Enforcement Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00009</div>
+                    <div class="req-header">Role-Based Permission Enforcement Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:220</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:220</div>
                 </div>
             </div>
         </div>
@@ -2039,56 +1937,50 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00016" data-level="PRD" data-topic="security-data-classification" data-status="Active" data-title="separation of identity and clinical data">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00016: Separation of Identity and Clinical Data
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00016</div>
+                    <div class="req-header">Separation of Identity and Clinical Data</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-data-classification.md:57</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-data-classification.md:57</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00017" data-level="PRD" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00017: Data Encryption
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00017</div>
+                    <div class="req-header">Data Encryption</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-data-classification.md:81</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-data-classification.md:81</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00010" data-level="Dev" data-topic="security" data-status="Active" data-title="data encryption implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00010: Data Encryption Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00010</div>
+                    <div class="req-header">Data Encryption Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:694</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:694</div>
                 </div>
             </div>
         </div>
@@ -2097,94 +1989,84 @@
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00017" data-level="PRD" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00017: Data Encryption
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00017</div>
+                    <div class="req-header">Data Encryption</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-security-data-classification.md:81</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-security-data-classification.md:81</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00010" data-level="Dev" data-topic="security" data-status="Active" data-title="data encryption implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00010: Data Encryption Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00010</div>
+                    <div class="req-header">Data Encryption Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-security.md:694</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-security.md:694</div>
                 </div>
             </div>
         </div>
             </div>
         </div>
 
-        <div class="req-item prd ">
+        <div class="req-item prd " data-req-id="p00018" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="multi-site support per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-p00018: Multi-Site Support Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-p00018</div>
+                    <div class="req-header">Multi-Site Support Per Sponsor</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>PRD</span>
-                        <span>|</span>
-                        <span>prd-architecture-multi-sponsor.md:110</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-architecture-multi-sponsor.md:110</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item ops ">
+        <div class="req-item ops " data-req-id="o00011" data-level="Ops" data-topic="database-setup" data-status="Active" data-title="multi-site data configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-o00011: Multi-Site Data Configuration Per Sponsor
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-o00011</div>
+                    <div class="req-header">Multi-Site Data Configuration Per Sponsor</div>
+                    <div class="req-level">Ops</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Ops</span>
-                        <span>|</span>
-                        <span>ops-database-setup.md:153</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-database-setup.md:153</div>
                 </div>
             </div>
             <div class="child-reqs">
 
-        <div class="req-item dev ">
+        <div class="req-item dev " data-req-id="d00011" data-level="Dev" data-topic="database" data-status="Active" data-title="multi-site schema implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-d00011: Multi-Site Schema Implementation
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-d00011</div>
+                    <div class="req-header">Multi-Site Schema Implementation</div>
+                    <div class="req-level">Dev</div>
+                    <div class="req-badges">
                         <span class="status-badge status-active">Active</span>
-                        <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        <span>Dev</span>
-                        <span>|</span>
-                        <span>dev-database.md:116</span>
                     </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-database.md:116</div>
                 </div>
             </div>
         </div>
@@ -2227,6 +2109,68 @@
             });
         }
 
+        // Apply filters
+        function applyFilters() {
+            const reqIdFilter = document.getElementById('filterReqId').value.toLowerCase().trim();
+            const levelFilter = document.getElementById('filterLevel').value;
+            const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            let visibleCount = 0;
+            let totalCount = 0;
+
+            document.querySelectorAll('.req-item').forEach(item => {
+                totalCount++;
+                const reqId = item.dataset.reqId.toLowerCase();
+                const level = item.dataset.level;
+                const topic = item.dataset.topic.toLowerCase();
+                const status = item.dataset.status;
+                const title = item.dataset.title;
+
+                let matches = true;
+
+                // REQ ID filter
+                if (reqIdFilter && !reqId.includes(reqIdFilter)) {
+                    matches = false;
+                }
+
+                // Level filter
+                if (levelFilter && level !== levelFilter) {
+                    matches = false;
+                }
+
+                // Topic filter (searches in filename topic and title)
+                if (topicFilter && !topic.includes(topicFilter) && !title.includes(topicFilter)) {
+                    matches = false;
+                }
+
+                // Status filter
+                if (statusFilter && status !== statusFilter) {
+                    matches = false;
+                }
+
+                if (matches) {
+                    item.classList.remove('filtered-out');
+                    visibleCount++;
+                } else {
+                    item.classList.add('filtered-out');
+                }
+            });
+
+            // Update stats
+            document.getElementById('filterStats').textContent =
+                `Showing ${visibleCount} of ${totalCount} requirements`;
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('filterReqId').value = '';
+            document.getElementById('filterLevel').value = '';
+            document.getElementById('filterTopic').value = '';
+            document.getElementById('filterStatus').value = '';
+            applyFilters();
+        }
+
         // Initialize with top-level expanded
         document.addEventListener('DOMContentLoaded', function() {
             // Expand only top-level (PRD) requirements by default
@@ -2236,6 +2180,9 @@
             document.querySelectorAll('.req-tree > .req-item .collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
             });
+
+            // Initialize filter stats
+            applyFilters();
         });
     </script>
 </body>

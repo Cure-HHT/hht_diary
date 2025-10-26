@@ -362,28 +362,47 @@ class TraceabilityGenerator:
         }}
         .req-content {{
             flex: 1;
-            display: flex;
+            display: grid;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             min-width: 0;
+        }}
+        .req-id {{
+            font-weight: 600;
+            color: #0066cc;
+            font-size: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
         }}
         .req-header {{
             font-weight: 500;
             color: #2c3e50;
             font-size: 13px;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            flex-shrink: 1;
-            min-width: 200px;
+            white-space: nowrap;
         }}
-        .req-meta {{
+        .req-level {{
             font-size: 11px;
             color: #7f8c8d;
+            text-align: center;
+        }}
+        .req-badges {{
             display: flex;
+            gap: 4px;
             align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
+        }}
+        .req-status {{
+            font-size: 11px;
+            color: #7f8c8d;
+            text-align: center;
+        }}
+        .req-location {{
+            font-size: 11px;
+            color: #7f8c8d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }}
         .status-badge {{
             display: inline-block;
@@ -420,12 +439,44 @@ class TraceabilityGenerator:
         }}
         .filter-bar {{
             margin: 15px 0;
-            padding: 10px;
+            padding: 12px;
             background: #e9ecef;
             border-radius: 4px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }}
+        .filter-group {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }}
         .filter-bar label {{
-            margin-right: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #495057;
+        }}
+        .filter-bar input, .filter-bar select {{
+            padding: 4px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 12px;
+            background: white;
+        }}
+        .filter-bar input {{
+            width: 120px;
+        }}
+        .filter-bar select {{
+            width: 100px;
+        }}
+        .filter-stats {{
+            margin-left: auto;
+            font-size: 11px;
+            color: #6c757d;
+        }}
+        .req-item.filtered-out {{
+            display: none !important;
         }}
         .level-legend {{
             display: flex;
@@ -492,7 +543,38 @@ class TraceabilityGenerator:
         <div class="controls">
             <button class="btn" onclick="expandAll()">▼ Expand All</button>
             <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
-            <span style="margin-left: auto; color: #666; font-size: 14px;">Click any requirement to expand/collapse its children</span>
+            <span style="margin-left: auto; color: #666; font-size: 12px;">Click any requirement to expand/collapse its children</span>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filterReqId">REQ ID:</label>
+                <input type="text" id="filterReqId" placeholder="e.g., p00001" oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label for="filterLevel">Level:</label>
+                <select id="filterLevel" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="PRD">PRD</option>
+                    <option value="Ops">Ops</option>
+                    <option value="Dev">Dev</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterTopic">Topic:</label>
+                <input type="text" id="filterTopic" placeholder="e.g., security" oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Status:</label>
+                <select id="filterStatus" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="Active">Active</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Deprecated">Deprecated</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" onclick="clearFilters()" style="padding: 4px 10px; font-size: 11px;">Clear</button>
+            <span class="filter-stats" id="filterStats"></span>
         </div>
 
         <h2>Traceability Tree</h2>
@@ -541,6 +623,68 @@ class TraceabilityGenerator:
             });
         }
 
+        // Apply filters
+        function applyFilters() {
+            const reqIdFilter = document.getElementById('filterReqId').value.toLowerCase().trim();
+            const levelFilter = document.getElementById('filterLevel').value;
+            const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            let visibleCount = 0;
+            let totalCount = 0;
+
+            document.querySelectorAll('.req-item').forEach(item => {
+                totalCount++;
+                const reqId = item.dataset.reqId.toLowerCase();
+                const level = item.dataset.level;
+                const topic = item.dataset.topic.toLowerCase();
+                const status = item.dataset.status;
+                const title = item.dataset.title;
+
+                let matches = true;
+
+                // REQ ID filter
+                if (reqIdFilter && !reqId.includes(reqIdFilter)) {
+                    matches = false;
+                }
+
+                // Level filter
+                if (levelFilter && level !== levelFilter) {
+                    matches = false;
+                }
+
+                // Topic filter (searches in filename topic and title)
+                if (topicFilter && !topic.includes(topicFilter) && !title.includes(topicFilter)) {
+                    matches = false;
+                }
+
+                // Status filter
+                if (statusFilter && status !== statusFilter) {
+                    matches = false;
+                }
+
+                if (matches) {
+                    item.classList.remove('filtered-out');
+                    visibleCount++;
+                } else {
+                    item.classList.add('filtered-out');
+                }
+            });
+
+            // Update stats
+            document.getElementById('filterStats').textContent =
+                `Showing ${visibleCount} of ${totalCount} requirements`;
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('filterReqId').value = '';
+            document.getElementById('filterLevel').value = '';
+            document.getElementById('filterTopic').value = '';
+            document.getElementById('filterStatus').value = '';
+            applyFilters();
+        }
+
         // Initialize with top-level expanded
         document.addEventListener('DOMContentLoaded', function() {
             // Expand only top-level (PRD) requirements by default
@@ -550,6 +694,9 @@ class TraceabilityGenerator:
             document.querySelectorAll('.req-tree > .req-item .collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
             });
+
+            // Initialize filter stats
+            applyFilters();
         });
     </script>
 </body>
@@ -612,29 +759,30 @@ class TraceabilityGenerator:
             test_count = req.test_info.test_count + req.test_info.manual_test_count
 
             if test_status == 'passed':
-                test_badge = f'<span class="test-badge test-passed" title="{test_count} tests passed">✅ Tested ({test_count})</span>'
+                test_badge = f'<span class="test-badge test-passed" title="{test_count} tests passed">✅ {test_count}</span>'
             elif test_status == 'failed':
-                test_badge = f'<span class="test-badge test-failed" title="{test_count} tests, some failed">❌ Failed ({test_count})</span>'
+                test_badge = f'<span class="test-badge test-failed" title="{test_count} tests, some failed">❌ {test_count}</span>'
             elif test_status == 'not_tested':
-                test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>'
+                test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡</span>'
         else:
-            test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>'
+            test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡</span>'
+
+        # Extract topic from filename (e.g., prd-security.md -> security)
+        topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
 
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}">
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-level="{req.level}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-header">
-                        REQ-{req.id}: {req.title}
-                    </div>
-                    <div class="req-meta">
+                    <div class="req-id">REQ-{req.id}</div>
+                    <div class="req-header">{req.title}</div>
+                    <div class="req-level">{req.level}</div>
+                    <div class="req-badges">
                         <span class="status-badge status-{status_class}">{req.status}</span>
-                        {test_badge}
-                        <span>{req.level}</span>
-                        <span>|</span>
-                        <span>{req.file_path.name}:{req.line_number}</span>
                     </div>
+                    <div class="req-status">{test_badge}</div>
+                    <div class="req-location">{req.file_path.name}:{req.line_number}</div>
                 </div>
             </div>
 """
