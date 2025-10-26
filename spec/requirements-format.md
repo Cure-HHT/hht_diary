@@ -216,7 +216,7 @@ using Supabase's project isolation guarantees.
 ### Dev Requirement Implementing Ops
 
 ```markdown
-### REQ-d00045: Environment-Specific Configuration Files
+### REQ-d00012: Environment-Specific Configuration Files
 
 **Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
 
@@ -247,7 +247,7 @@ Each file MUST contain:
 ### Code Comments
 
 ```dart
-// REQ-d00045: Load sponsor-specific Supabase configuration
+// REQ-d00012: Load sponsor-specific Supabase configuration
 final config = await loadSponsorConfig(sponsorCode);
 ```
 
@@ -281,7 +281,7 @@ Implements multi-sponsor isolation requirements
 **Requirements Addressed**:
 - REQ-p00001: Multi-Sponsor Data Isolation
 - REQ-o00001: Separate Supabase Projects Per Sponsor
-- REQ-d00045: Environment-Specific Configuration Files
+- REQ-d00012: Environment-Specific Configuration Files
 
 ## Changes
 ...

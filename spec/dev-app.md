@@ -160,6 +160,33 @@ Implementation SHALL include:
 
 ---
 
+### REQ-d00013: Application Instance UUID Generation
+
+**Level**: Dev | **Implements**: p00006 | **Status**: Active
+
+The mobile application SHALL generate and persist a unique instance identifier (UUID v4) on first launch after installation, enabling device-level attribution in audit trails and multi-device conflict resolution.
+
+Implementation SHALL include:
+- UUID v4 generation on first app launch using cryptographically secure random number generator
+- Persistent storage of UUID in device-local secure storage (iOS Keychain / Android Keystore)
+- UUID included in all event records synchronized to server (`device_uuid` field)
+- UUID retrieval and validation on subsequent app launches
+- New UUID generation only on fresh installation (not on app updates)
+- UUID accessible to sync and conflict resolution logic
+
+**Rationale**: Implements multi-device conflict resolution aspect of offline-first data entry (p00006). When patients use multiple devices or reinstall the app, unique device identifiers enable the system to attribute changes to specific app instances, detect multi-device usage patterns, and properly resolve synchronization conflicts. The UUID serves as the device fingerprint in the audit trail.
+
+**Acceptance Criteria**:
+- UUID generated once on first launch using `uuid` Dart package
+- Same UUID retrieved on all subsequent launches
+- UUID persisted in `flutter_secure_storage` (survives app restarts)
+- New installation generates different UUID
+- App update preserves existing UUID
+- UUID included in all `record_audit.device_info` JSONB fields
+- Conflict resolution logic can identify source device for each change
+
+---
+
 ### Conflict Resolution
 
 **Conflict Detection**:
