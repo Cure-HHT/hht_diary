@@ -33,6 +33,11 @@ function parseRequirementsFromFile(filePath: string): Requirement[] {
             const level = getRequirementLevel(id);
             const status = metadataMatch ? metadataMatch[2] as 'Active' | 'Draft' | 'Deprecated' : 'Active';
 
+            // Skip invalid requirement IDs
+            if (level === null) {
+                continue;
+            }
+
             requirements.push({
                 id,
                 fullId: formatRequirementId(id),

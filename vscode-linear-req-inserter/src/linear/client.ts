@@ -69,13 +69,12 @@ export class LinearApiClient {
                             in: ['In Progress', 'In Review']
                         }
                     }
-                },
-                orderBy: LinearClient.PaginationOrderBy.UpdatedAt
+                }
             });
 
             const issueNodes: LinearIssue[] = [];
 
-            for await (const issue of issues) {
+            for (const issue of issues.nodes) {
                 const state = await issue.state;
                 const comments = await issue.comments();
 
@@ -93,15 +92,16 @@ export class LinearApiClient {
                     }
                 });
 
-                // Fetch comment bodies
-                for await (const comment of comments) {
-                    const lastNode = issueNodes[issueNodes.length - 1];
-                    lastNode.comments.nodes.push({
-                        id: comment.id,
-                        body: comment.body,
-                        createdAt: comment.createdAt.toISOString()
-                    });
-                }
+                // Extract comment nodes
+                const commentNodes = comments.nodes.map(comment => ({
+                    id: comment.id,
+                    body: comment.body || '',
+                    createdAt: comment.createdAt.toISOString()
+                }));
+
+                // Update the last issue with comments
+                const lastNode = issueNodes[issueNodes.length - 1];
+                lastNode.comments.nodes = commentNodes;
             }
 
             return issueNodes;

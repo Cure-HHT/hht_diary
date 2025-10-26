@@ -56,16 +56,16 @@ export function formatRequirementId(id: string): string {
 /**
  * Get requirement level from ID
  */
-export function getRequirementLevel(id: string): 'PRD' | 'OPS' | 'DEV' | 'UNKNOWN' {
+export function getRequirementLevel(id: string): 'PRD' | 'OPS' | 'DEV' | null {
     const match = id.match(/^([pod])\d{5}$/);
     if (!match) {
-        return 'UNKNOWN';
+        return null;
     }
 
     switch (match[1]) {
         case 'p': return 'PRD';
         case 'o': return 'OPS';
         case 'd': return 'DEV';
-        default: return 'UNKNOWN';
+        default: return null;
     }
 }
