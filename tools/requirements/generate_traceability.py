@@ -232,74 +232,89 @@ class TraceabilityGenerator:
     <title>Requirements Traceability Matrix</title>
     <style>
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
+            margin: 15px;
+            background: #f8f9fa;
         }}
         .container {{
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }}
         h1 {{
-            color: #333;
-            border-bottom: 3px solid #0066cc;
-            padding-bottom: 10px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 8px;
+            margin: 0 0 15px 0;
         }}
         h2 {{
-            color: #555;
-            margin-top: 30px;
-            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #34495e;
+            margin: 20px 0 10px 0;
         }}
         .summary {{
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 12px;
+        }}
+        .summary p {{
+            margin: 4px 0;
         }}
         .summary-grid {{
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 10px;
+            margin: 15px 0;
         }}
         .summary-card {{
             background: white;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 10px;
+            border-radius: 4px;
             text-align: center;
-            border-left: 4px solid #0066cc;
+            border-left: 3px solid #0066cc;
         }}
         .summary-card h3 {{
-            margin: 0 0 10px 0;
-            color: #666;
-            font-size: 14px;
+            margin: 0 0 6px 0;
+            color: #7f8c8d;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }}
         .summary-card .number {{
-            font-size: 32px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 600;
             color: #0066cc;
         }}
         .controls {{
-            margin: 20px 0;
-            padding: 15px;
+            margin: 15px 0;
+            padding: 10px;
             background: #e9ecef;
-            border-radius: 5px;
+            border-radius: 4px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
         }}
         .btn {{
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             background: #0066cc;
             color: white;
             cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.15s;
         }}
         .btn:hover {{
             background: #0052a3;
@@ -311,13 +326,12 @@ class TraceabilityGenerator:
             background: #5a6268;
         }}
         .req-tree {{
-            margin: 20px 0;
+            margin: 15px 0;
         }}
         .req-item {{
-            margin: 10px 0;
-            background: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #28a745;
+            margin: 2px 0;
+            background: #ffffff;
+            border-left: 3px solid #28a745;
             overflow: hidden;
         }}
         .req-item.prd {{ border-left-color: #0066cc; }}
@@ -325,56 +339,70 @@ class TraceabilityGenerator:
         .req-item.dev {{ border-left-color: #28a745; }}
         .req-item.deprecated {{ opacity: 0.6; }}
         .req-header-container {{
-            padding: 15px;
+            padding: 6px 10px;
             cursor: pointer;
             user-select: none;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }}
         .req-header-container:hover {{
-            background: #e9ecef;
+            background: #f8f9fa;
         }}
         .collapse-icon {{
-            font-size: 12px;
-            color: #666;
-            transition: transform 0.2s;
+            font-size: 10px;
+            color: #6c757d;
+            transition: transform 0.15s;
             flex-shrink: 0;
+            width: 12px;
+            text-align: center;
         }}
         .collapse-icon.collapsed {{
             transform: rotate(-90deg);
         }}
         .req-content {{
             flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
         }}
         .req-header {{
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 1;
+            min-width: 200px;
         }}
         .req-meta {{
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
+            font-size: 11px;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
         }}
         .status-badge {{
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 8px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }}
         .status-active {{ background: #d4edda; color: #155724; }}
         .status-draft {{ background: #fff3cd; color: #856404; }}
         .status-deprecated {{ background: #f8d7da; color: #721c24; }}
         .test-badge {{
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-right: 8px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 600;
         }}
         .test-passed {{ background: #d4edda; color: #155724; }}
         .test-failed {{ background: #f8d7da; color: #721c24; }}
@@ -382,41 +410,41 @@ class TraceabilityGenerator:
         .test-error {{ background: #f5c2c7; color: #842029; }}
         .test-skipped {{ background: #e2e3e5; color: #41464b; }}
         .child-reqs {{
-            margin-left: 30px;
-            margin-top: 10px;
-            border-left: 2px solid #dee2e6;
-            padding-left: 15px;
+            margin-left: 20px;
+            border-left: 1px solid #dee2e6;
+            padding-left: 10px;
             display: none;
         }}
         .child-reqs.expanded {{
             display: block;
         }}
         .filter-bar {{
-            margin: 20px 0;
-            padding: 15px;
+            margin: 15px 0;
+            padding: 10px;
             background: #e9ecef;
-            border-radius: 5px;
+            border-radius: 4px;
         }}
         .filter-bar label {{
-            margin-right: 15px;
+            margin-right: 12px;
         }}
         .level-legend {{
             display: flex;
-            gap: 20px;
-            margin: 20px 0;
-            padding: 10px;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 8px 12px;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: 4px;
+            font-size: 12px;
         }}
         .legend-item {{
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }}
         .legend-color {{
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
         }}
         .legend-color.prd {{ background: #0066cc; }}
         .legend-color.ops {{ background: #fd7e14; }}
@@ -603,8 +631,9 @@ class TraceabilityGenerator:
                     <div class="req-meta">
                         <span class="status-badge status-{status_class}">{req.status}</span>
                         {test_badge}
-                        Level: {req.level} |
-                        File: {req.file_path.name}:{req.line_number}
+                        <span>{req.level}</span>
+                        <span>|</span>
+                        <span>{req.file_path.name}:{req.line_number}</span>
                     </div>
                 </div>
             </div>

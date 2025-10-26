@@ -5,74 +5,89 @@
     <title>Requirements Traceability Matrix</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
+            margin: 15px;
+            background: #f8f9fa;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         h1 {
-            color: #333;
-            border-bottom: 3px solid #0066cc;
-            padding-bottom: 10px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 8px;
+            margin: 0 0 15px 0;
         }
         h2 {
-            color: #555;
-            margin-top: 30px;
-            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #34495e;
+            margin: 20px 0 10px 0;
         }
         .summary {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+        .summary p {
+            margin: 4px 0;
         }
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 10px;
+            margin: 15px 0;
         }
         .summary-card {
             background: white;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 10px;
+            border-radius: 4px;
             text-align: center;
-            border-left: 4px solid #0066cc;
+            border-left: 3px solid #0066cc;
         }
         .summary-card h3 {
-            margin: 0 0 10px 0;
-            color: #666;
-            font-size: 14px;
+            margin: 0 0 6px 0;
+            color: #7f8c8d;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .summary-card .number {
-            font-size: 32px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 600;
             color: #0066cc;
         }
         .controls {
-            margin: 20px 0;
-            padding: 15px;
+            margin: 15px 0;
+            padding: 10px;
             background: #e9ecef;
-            border-radius: 5px;
+            border-radius: 4px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
         }
         .btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             background: #0066cc;
             color: white;
             cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.15s;
         }
         .btn:hover {
             background: #0052a3;
@@ -84,13 +99,12 @@
             background: #5a6268;
         }
         .req-tree {
-            margin: 20px 0;
+            margin: 15px 0;
         }
         .req-item {
-            margin: 10px 0;
-            background: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #28a745;
+            margin: 2px 0;
+            background: #ffffff;
+            border-left: 3px solid #28a745;
             overflow: hidden;
         }
         .req-item.prd { border-left-color: #0066cc; }
@@ -98,56 +112,70 @@
         .req-item.dev { border-left-color: #28a745; }
         .req-item.deprecated { opacity: 0.6; }
         .req-header-container {
-            padding: 15px;
+            padding: 6px 10px;
             cursor: pointer;
             user-select: none;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         .req-header-container:hover {
-            background: #e9ecef;
+            background: #f8f9fa;
         }
         .collapse-icon {
-            font-size: 12px;
-            color: #666;
-            transition: transform 0.2s;
+            font-size: 10px;
+            color: #6c757d;
+            transition: transform 0.15s;
             flex-shrink: 0;
+            width: 12px;
+            text-align: center;
         }
         .collapse-icon.collapsed {
             transform: rotate(-90deg);
         }
         .req-content {
             flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
         }
         .req-header {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 1;
+            min-width: 200px;
         }
         .req-meta {
-            font-size: 13px;
-            color: #666;
-            margin-top: 5px;
+            font-size: 11px;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
         }
         .status-badge {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 8px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         .status-active { background: #d4edda; color: #155724; }
         .status-draft { background: #fff3cd; color: #856404; }
         .status-deprecated { background: #f8d7da; color: #721c24; }
         .test-badge {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-right: 8px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 600;
         }
         .test-passed { background: #d4edda; color: #155724; }
         .test-failed { background: #f8d7da; color: #721c24; }
@@ -155,41 +183,41 @@
         .test-error { background: #f5c2c7; color: #842029; }
         .test-skipped { background: #e2e3e5; color: #41464b; }
         .child-reqs {
-            margin-left: 30px;
-            margin-top: 10px;
-            border-left: 2px solid #dee2e6;
-            padding-left: 15px;
+            margin-left: 20px;
+            border-left: 1px solid #dee2e6;
+            padding-left: 10px;
             display: none;
         }
         .child-reqs.expanded {
             display: block;
         }
         .filter-bar {
-            margin: 20px 0;
-            padding: 15px;
+            margin: 15px 0;
+            padding: 10px;
             background: #e9ecef;
-            border-radius: 5px;
+            border-radius: 4px;
         }
         .filter-bar label {
-            margin-right: 15px;
+            margin-right: 12px;
         }
         .level-legend {
             display: flex;
-            gap: 20px;
-            margin: 20px 0;
-            padding: 10px;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 8px 12px;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: 4px;
+            font-size: 12px;
         }
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
         }
         .legend-color.prd { background: #0066cc; }
         .legend-color.ops { background: #fd7e14; }
@@ -200,7 +228,7 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 17:27:29</p>
+            <p><strong>Generated:</strong> 2025-10-25 17:42:32</p>
             <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
@@ -253,8 +281,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security.md:32
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security.md:32</span>
                     </div>
                 </div>
             </div>
@@ -270,8 +299,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-deployment.md:320
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-deployment.md:320</span>
                     </div>
                 </div>
             </div>
@@ -287,8 +317,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-configuration.md:28
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-configuration.md:28</span>
                     </div>
                 </div>
             </div>
@@ -304,8 +335,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:57
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:57</span>
                     </div>
                 </div>
             </div>
@@ -321,8 +353,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:84
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:84</span>
                     </div>
                 </div>
             </div>
@@ -342,8 +375,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-deployment.md:344
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-deployment.md:344</span>
                     </div>
                 </div>
             </div>
@@ -359,8 +393,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-configuration.md:28
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-configuration.md:28</span>
                     </div>
                 </div>
             </div>
@@ -376,8 +411,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-configuration.md:185
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-configuration.md:185</span>
                     </div>
                 </div>
             </div>
@@ -395,8 +431,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:88
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:88</span>
                     </div>
                 </div>
             </div>
@@ -412,8 +449,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:57
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:57</span>
                     </div>
                 </div>
             </div>
@@ -429,8 +467,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:84
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:84</span>
                     </div>
                 </div>
             </div>
@@ -448,8 +487,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -465,8 +505,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -486,8 +527,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-app.md:29
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-app.md:29</span>
                     </div>
                 </div>
             </div>
@@ -503,8 +545,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:38
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:38</span>
                     </div>
                 </div>
             </div>
@@ -522,8 +565,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-architecture-multi-sponsor.md:36
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-architecture-multi-sponsor.md:36</span>
                     </div>
                 </div>
             </div>
@@ -539,8 +583,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:38
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:38</span>
                     </div>
                 </div>
             </div>
@@ -556,8 +601,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-deployment.md:604
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-deployment.md:604</span>
                     </div>
                 </div>
             </div>
@@ -573,8 +619,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:239
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:239</span>
                     </div>
                 </div>
             </div>
@@ -594,8 +641,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-architecture-multi-sponsor.md:60
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-architecture-multi-sponsor.md:60</span>
                     </div>
                 </div>
             </div>
@@ -611,8 +659,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-deployment.md:811
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-deployment.md:811</span>
                     </div>
                 </div>
             </div>
@@ -632,8 +681,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security.md:73
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security.md:73</span>
                     </div>
                 </div>
             </div>
@@ -649,8 +699,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:84
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:84</span>
                     </div>
                 </div>
             </div>
@@ -666,8 +717,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security-authentication.md:6
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security-authentication.md:6</span>
                     </div>
                 </div>
             </div>
@@ -683,8 +735,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:154
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:154</span>
                     </div>
                 </div>
             </div>
@@ -704,8 +757,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:88
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:88</span>
                     </div>
                 </div>
             </div>
@@ -721,8 +775,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:57
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:57</span>
                     </div>
                 </div>
             </div>
@@ -738,8 +793,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:84
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:84</span>
                     </div>
                 </div>
             </div>
@@ -757,8 +813,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -774,8 +831,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -795,8 +853,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database-event-sourcing.md:74
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database-event-sourcing.md:74</span>
                     </div>
                 </div>
             </div>
@@ -812,8 +871,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -829,8 +889,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -848,8 +909,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:40
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:40</span>
                     </div>
                 </div>
             </div>
@@ -865,8 +927,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -882,8 +945,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -905,8 +969,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RBAC.md:36
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RBAC.md:36</span>
                     </div>
                 </div>
             </div>
@@ -922,8 +987,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -939,8 +1005,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -958,8 +1025,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RBAC.md:60
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RBAC.md:60</span>
                     </div>
                 </div>
             </div>
@@ -975,8 +1043,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -992,8 +1061,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1011,8 +1081,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RLS.md:56
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RLS.md:56</span>
                     </div>
                 </div>
             </div>
@@ -1028,8 +1099,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1045,8 +1117,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1068,8 +1141,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RLS.md:56
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RLS.md:56</span>
                     </div>
                 </div>
             </div>
@@ -1085,8 +1159,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1102,8 +1177,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1125,8 +1201,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-app.md:87
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-app.md:87</span>
                     </div>
                 </div>
             </div>
@@ -1142,8 +1219,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:107
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:107</span>
                     </div>
                 </div>
             </div>
@@ -1161,8 +1239,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-app.md:29
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-app.md:29</span>
                     </div>
                 </div>
             </div>
@@ -1178,8 +1257,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:38
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:38</span>
                     </div>
                 </div>
             </div>
@@ -1197,8 +1277,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-architecture-multi-sponsor.md:36
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-architecture-multi-sponsor.md:36</span>
                     </div>
                 </div>
             </div>
@@ -1214,8 +1295,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:38
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:38</span>
                     </div>
                 </div>
             </div>
@@ -1231,8 +1313,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-deployment.md:604
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-deployment.md:604</span>
                     </div>
                 </div>
             </div>
@@ -1248,8 +1331,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-app.md:239
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-app.md:239</span>
                     </div>
                 </div>
             </div>
@@ -1269,8 +1353,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-architecture-multi-sponsor.md:60
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-architecture-multi-sponsor.md:60</span>
                     </div>
                 </div>
             </div>
@@ -1286,8 +1371,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-deployment.md:811
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-deployment.md:811</span>
                     </div>
                 </div>
             </div>
@@ -1305,8 +1391,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-clinical-trials.md:47
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-clinical-trials.md:47</span>
                     </div>
                 </div>
             </div>
@@ -1322,8 +1409,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-clinical-trials.md:74
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-clinical-trials.md:74</span>
                     </div>
                 </div>
             </div>
@@ -1339,8 +1427,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:40
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:40</span>
                     </div>
                 </div>
             </div>
@@ -1356,8 +1445,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -1373,8 +1463,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -1396,8 +1487,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-clinical-trials.md:102
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-clinical-trials.md:102</span>
                     </div>
                 </div>
             </div>
@@ -1413,8 +1505,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-operations.md:853
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-operations.md:853</span>
                     </div>
                 </div>
             </div>
@@ -1432,8 +1525,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:40
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:40</span>
                     </div>
                 </div>
             </div>
@@ -1449,8 +1543,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -1466,8 +1561,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -1487,8 +1583,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RBAC.md:60
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RBAC.md:60</span>
                     </div>
                 </div>
             </div>
@@ -1504,8 +1601,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1521,8 +1619,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1540,8 +1639,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RLS.md:56
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RLS.md:56</span>
                     </div>
                 </div>
             </div>
@@ -1557,8 +1657,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1574,8 +1675,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1599,8 +1701,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-clinical-trials.md:74
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-clinical-trials.md:74</span>
                     </div>
                 </div>
             </div>
@@ -1616,8 +1719,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:40
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:40</span>
                     </div>
                 </div>
             </div>
@@ -1633,8 +1737,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -1650,8 +1755,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -1673,8 +1779,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-clinical-trials.md:102
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-clinical-trials.md:102</span>
                     </div>
                 </div>
             </div>
@@ -1690,8 +1797,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-operations.md:853
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-operations.md:853</span>
                     </div>
                 </div>
             </div>
@@ -1709,8 +1817,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-database.md:40
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-database.md:40</span>
                     </div>
                 </div>
             </div>
@@ -1726,8 +1835,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:128
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:128</span>
                     </div>
                 </div>
             </div>
@@ -1743,8 +1853,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:90
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:90</span>
                     </div>
                 </div>
             </div>
@@ -1764,8 +1875,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RBAC.md:60
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RBAC.md:60</span>
                     </div>
                 </div>
             </div>
@@ -1781,8 +1893,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1798,8 +1911,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1817,8 +1931,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RLS.md:56
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RLS.md:56</span>
                     </div>
                 </div>
             </div>
@@ -1834,8 +1949,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1851,8 +1967,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1874,8 +1991,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-RLS.md:56
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-RLS.md:56</span>
                     </div>
                 </div>
             </div>
@@ -1891,8 +2009,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-security.md:125
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-security.md:125</span>
                     </div>
                 </div>
             </div>
@@ -1908,8 +2027,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:220
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:220</span>
                     </div>
                 </div>
             </div>
@@ -1929,8 +2049,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-data-classification.md:57
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-data-classification.md:57</span>
                     </div>
                 </div>
             </div>
@@ -1946,8 +2067,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-data-classification.md:81
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-data-classification.md:81</span>
                     </div>
                 </div>
             </div>
@@ -1963,8 +2085,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:694
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:694</span>
                     </div>
                 </div>
             </div>
@@ -1984,8 +2107,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-security-data-classification.md:81
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-security-data-classification.md:81</span>
                     </div>
                 </div>
             </div>
@@ -2001,8 +2125,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-security.md:694
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-security.md:694</span>
                     </div>
                 </div>
             </div>
@@ -2020,8 +2145,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: PRD |
-                        File: prd-architecture-multi-sponsor.md:110
+                        <span>PRD</span>
+                        <span>|</span>
+                        <span>prd-architecture-multi-sponsor.md:110</span>
                     </div>
                 </div>
             </div>
@@ -2037,8 +2163,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Ops |
-                        File: ops-database-setup.md:153
+                        <span>Ops</span>
+                        <span>|</span>
+                        <span>ops-database-setup.md:153</span>
                     </div>
                 </div>
             </div>
@@ -2054,8 +2181,9 @@
                     <div class="req-meta">
                         <span class="status-badge status-active">Active</span>
                         <span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>
-                        Level: Dev |
-                        File: dev-database.md:116
+                        <span>Dev</span>
+                        <span>|</span>
+                        <span>dev-database.md:116</span>
                     </div>
                 </div>
             </div>
