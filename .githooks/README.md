@@ -18,13 +18,18 @@ This tells Git to use hooks from `.githooks/` instead of the default `.git/hooks
 
 ### pre-commit
 
-**Purpose**: Validates requirement traceability before allowing commits.
+**Purpose**: Maintains requirement traceability and validates requirements before allowing commits.
 
-**What it checks**:
-- All requirements in `spec/` are properly formatted
-- All requirement IDs are unique
-- All "Implements" references point to existing requirements
-- No orphaned or broken requirement links
+**What it does**:
+1. **Regenerates traceability matrices** (if spec/ files changed):
+   - Automatically regenerates `traceability_matrix.md`
+   - Automatically regenerates `traceability_matrix.html`
+   - Stages updated matrices for commit
+2. **Validates requirements**:
+   - All requirements in `spec/` are properly formatted
+   - All requirement IDs are unique
+   - All "Implements" references point to existing requirements
+   - No orphaned or broken requirement links
 
 **When it runs**: Automatically before every `git commit`
 

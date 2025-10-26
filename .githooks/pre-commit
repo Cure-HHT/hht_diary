@@ -3,10 +3,11 @@
 # Pre-Commit Hook: Requirement Traceability Validation
 # =====================================================
 #
-# This hook validates that:
-# 1. All requirements in spec/ are properly formatted
-# 2. All requirement IDs are unique
-# 3. All "Implements" references exist
+# This hook:
+# 1. Regenerates traceability matrices if spec/ files changed
+# 2. Validates all requirements are properly formatted
+# 3. Validates all requirement IDs are unique
+# 4. Validates all "Implements" references exist
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -17,6 +18,31 @@
 # =====================================================
 
 set -e
+
+# Check if any spec/ files are being committed
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    echo "📊 Regenerating traceability matrices (spec files changed)..."
+    echo ""
+
+    # Check if generation script exists
+    if [ ! -f "tools/requirements/generate_traceability.py" ]; then
+        echo "❌ ERROR: Generation script not found: tools/requirements/generate_traceability.py"
+        exit 1
+    fi
+
+    # Regenerate both markdown and HTML matrices
+    python3 tools/requirements/generate_traceability.py --format markdown
+    python3 tools/requirements/generate_traceability.py --format html
+
+    # Stage the updated matrices
+    git add traceability_matrix.md traceability_matrix.html
+
+    echo ""
+    echo "✅ Traceability matrices regenerated and staged"
+    echo ""
+fi
 
 echo "🔍 Running requirement traceability validation..."
 echo ""
