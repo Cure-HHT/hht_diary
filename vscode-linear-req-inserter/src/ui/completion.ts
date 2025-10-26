@@ -69,7 +69,7 @@ export function getTriggerReplacementRange(
 
     // Find where the pattern starts
     const match = textBeforeCursor.match(/(\/\/|--|#|<!--)\s*req$/i);
-    if (!match && match?.index !== undefined) {
+    if (!match || match.index === undefined) {
         return undefined;
     }
 
