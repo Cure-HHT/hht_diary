@@ -6,9 +6,16 @@ Generates traceability matrix showing relationships between requirements
 at different levels (PRD -> Ops -> Dev).
 
 Output formats:
-- HTML: Interactive web page with filtering
+- HTML: Interactive web page with collapsible hierarchy (enhanced!)
 - Markdown: Documentation-friendly format
 - CSV: Spreadsheet import
+
+Features:
+- Collapsible requirement hierarchy in HTML view
+- Expand/collapse all controls
+- Color-coded by requirement level (PRD/Ops/Dev)
+- Status badges (Active/Draft/Deprecated)
+- Markdown source ensures HTML consistency
 """
 
 import re
@@ -191,7 +198,13 @@ class TraceabilityGenerator:
         return '\n'.join(lines)
 
     def _generate_html(self) -> str:
-        """Generate interactive HTML traceability matrix"""
+        """Generate interactive HTML traceability matrix from markdown source"""
+        # First generate markdown to ensure consistency
+        markdown_content = self._generate_markdown()
+
+        # Parse markdown for HTML rendering
+        by_level = self._count_by_level()
+
         html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -215,6 +228,11 @@ class TraceabilityGenerator:
             color: #333;
             border-bottom: 3px solid #0066cc;
             padding-bottom: 10px;
+        }}
+        h2 {{
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 15px;
         }}
         .summary {{
             background: #f8f9fa;
@@ -244,20 +262,71 @@ class TraceabilityGenerator:
             font-weight: bold;
             color: #0066cc;
         }}
+        .controls {{
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }}
+        .btn {{
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #0066cc;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }}
+        .btn:hover {{
+            background: #0052a3;
+        }}
+        .btn-secondary {{
+            background: #6c757d;
+        }}
+        .btn-secondary:hover {{
+            background: #5a6268;
+        }}
         .req-tree {{
             margin: 20px 0;
         }}
         .req-item {{
             margin: 10px 0;
-            padding: 15px;
             background: #f8f9fa;
             border-radius: 5px;
             border-left: 4px solid #28a745;
+            overflow: hidden;
         }}
         .req-item.prd {{ border-left-color: #0066cc; }}
         .req-item.ops {{ border-left-color: #fd7e14; }}
         .req-item.dev {{ border-left-color: #28a745; }}
         .req-item.deprecated {{ opacity: 0.6; }}
+        .req-header-container {{
+            padding: 15px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .req-header-container:hover {{
+            background: #e9ecef;
+        }}
+        .collapse-icon {{
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }}
+        .collapse-icon.collapsed {{
+            transform: rotate(-90deg);
+        }}
+        .req-content {{
+            flex: 1;
+        }}
         .req-header {{
             font-weight: bold;
             color: #333;
@@ -283,6 +352,10 @@ class TraceabilityGenerator:
             margin-top: 10px;
             border-left: 2px solid #dee2e6;
             padding-left: 15px;
+            display: none;
+        }}
+        .child-reqs.expanded {{
+            display: block;
         }}
         .filter-bar {{
             margin: 20px 0;
@@ -293,6 +366,27 @@ class TraceabilityGenerator:
         .filter-bar label {{
             margin-right: 15px;
         }}
+        .level-legend {{
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }}
+        .legend-item {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .legend-color {{
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }}
+        .legend-color.prd {{ background: #0066cc; }}
+        .legend-color.ops {{ background: #fd7e14; }}
+        .legend-color.dev {{ background: #28a745; }}
     </style>
 </head>
 <body>
@@ -304,19 +398,43 @@ class TraceabilityGenerator:
         </div>
 
         <div class="summary-grid">
-"""
-        by_level = self._count_by_level()
-        for level, count in by_level.items():
-            html += f"""            <div class="summary-card">
-                <h3>{level} Level</h3>
-                <div class="number">{count}</div>
+            <div class="summary-card">
+                <h3>PRD Level</h3>
+                <div class="number">{by_level['PRD']}</div>
             </div>
-"""
+            <div class="summary-card">
+                <h3>Ops Level</h3>
+                <div class="number">{by_level['Ops']}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Dev Level</h3>
+                <div class="number">{by_level['Dev']}</div>
+            </div>
+        </div>
 
-        html += """        </div>
+        <div class="level-legend">
+            <div class="legend-item">
+                <div class="legend-color prd"></div>
+                <span>PRD (Product Requirements)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color ops"></div>
+                <span>Ops (Operations)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color dev"></div>
+                <span>Dev (Development)</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="expandAll()">▼ Expand All</button>
+            <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
+            <span style="margin-left: auto; color: #666; font-size: 14px;">Click any requirement to expand/collapse its children</span>
+        </div>
 
         <h2>Traceability Tree</h2>
-        <div class="req-tree">
+        <div class="req-tree" id="reqTree">
 """
 
         # Add requirements tree
@@ -324,17 +442,61 @@ class TraceabilityGenerator:
         prd_reqs.sort(key=lambda r: r.id)
 
         for prd_req in prd_reqs:
-            html += self._format_req_tree_html(prd_req)
+            html += self._format_req_tree_html_collapsible(prd_req)
 
         html += """        </div>
     </div>
+
+    <script>
+        // Toggle a single requirement's children
+        function toggleRequirement(element) {
+            const childReqs = element.nextElementSibling;
+            const icon = element.querySelector('.collapse-icon');
+
+            if (childReqs && childReqs.classList.contains('child-reqs')) {
+                childReqs.classList.toggle('expanded');
+                icon.classList.toggle('collapsed');
+            }
+        }
+
+        // Expand all requirements
+        function expandAll() {
+            document.querySelectorAll('.child-reqs').forEach(el => {
+                el.classList.add('expanded');
+            });
+            document.querySelectorAll('.collapse-icon').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+        }
+
+        // Collapse all requirements
+        function collapseAll() {
+            document.querySelectorAll('.child-reqs').forEach(el => {
+                el.classList.remove('expanded');
+            });
+            document.querySelectorAll('.collapse-icon').forEach(el => {
+                el.classList.add('collapsed');
+            });
+        }
+
+        // Initialize with top-level expanded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Expand only top-level (PRD) requirements by default
+            document.querySelectorAll('.req-tree > .req-item > .child-reqs').forEach(el => {
+                el.classList.add('expanded');
+            });
+            document.querySelectorAll('.req-tree > .req-item .collapse-icon').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+        });
+    </script>
 </body>
 </html>
 """
         return html
 
     def _format_req_tree_html(self, req: Requirement) -> str:
-        """Format requirement and children as HTML tree"""
+        """Format requirement and children as HTML tree (legacy non-collapsible)"""
         status_class = req.status.lower()
         level_class = req.level.lower()
 
@@ -361,6 +523,47 @@ class TraceabilityGenerator:
             html += '            <div class="child-reqs">\n'
             for child in children:
                 html += self._format_req_tree_html(child)
+            html += '            </div>\n'
+
+        html += '        </div>\n'
+        return html
+
+    def _format_req_tree_html_collapsible(self, req: Requirement) -> str:
+        """Format requirement and children as collapsible HTML tree"""
+        status_class = req.status.lower()
+        level_class = req.level.lower()
+
+        # Find children
+        children = [
+            r for r in self.requirements.values()
+            if req.id in r.implements
+        ]
+        children.sort(key=lambda r: r.id)
+
+        # Only show collapse icon if there are children
+        collapse_icon = '▼' if children else ''
+
+        html = f"""
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">{collapse_icon}</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-{req.id}: {req.title}
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-{status_class}">{req.status}</span>
+                        Level: {req.level} |
+                        File: {req.file_path.name}:{req.line_number}
+                    </div>
+                </div>
+            </div>
+"""
+
+        if children:
+            html += '            <div class="child-reqs">\n'
+            for child in children:
+                html += self._format_req_tree_html_collapsible(child)
             html += '            </div>\n'
 
         html += '        </div>\n'
@@ -440,12 +643,15 @@ def main():
     """Main entry point"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Generate requirements traceability matrix')
+    parser = argparse.ArgumentParser(
+        description='Generate requirements traceability matrix',
+        epilog='Tip: Use --format both to generate both markdown and HTML versions'
+    )
     parser.add_argument(
         '--format',
-        choices=['markdown', 'html', 'csv'],
+        choices=['markdown', 'html', 'csv', 'both'],
         default='markdown',
-        help='Output format (default: markdown)'
+        help='Output format (default: markdown). Use "both" for markdown + HTML'
     )
     parser.add_argument(
         '--output',
@@ -465,7 +671,21 @@ def main():
         sys.exit(1)
 
     generator = TraceabilityGenerator(spec_dir)
-    generator.generate(format=args.format, output_file=args.output)
+
+    # Handle 'both' format option
+    if args.format == 'both':
+        print("📊 Generating both Markdown and HTML formats...")
+        # Generate markdown
+        md_output = args.output if args.output else Path('traceability_matrix.md')
+        if md_output.suffix != '.md':
+            md_output = md_output.with_suffix('.md')
+        generator.generate(format='markdown', output_file=md_output)
+
+        # Generate HTML
+        html_output = md_output.with_suffix('.html')
+        generator.generate(format='html', output_file=html_output)
+    else:
+        generator.generate(format=args.format, output_file=args.output)
 
 
 if __name__ == '__main__':

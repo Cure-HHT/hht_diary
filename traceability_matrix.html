@@ -22,6 +22,11 @@
             border-bottom: 3px solid #0066cc;
             padding-bottom: 10px;
         }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
         .summary {
             background: #f8f9fa;
             padding: 15px;
@@ -50,20 +55,71 @@
             font-weight: bold;
             color: #0066cc;
         }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #0066cc;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #0052a3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
         .req-tree {
             margin: 20px 0;
         }
         .req-item {
             margin: 10px 0;
-            padding: 15px;
             background: #f8f9fa;
             border-radius: 5px;
             border-left: 4px solid #28a745;
+            overflow: hidden;
         }
         .req-item.prd { border-left-color: #0066cc; }
         .req-item.ops { border-left-color: #fd7e14; }
         .req-item.dev { border-left-color: #28a745; }
         .req-item.deprecated { opacity: 0.6; }
+        .req-header-container {
+            padding: 15px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .req-header-container:hover {
+            background: #e9ecef;
+        }
+        .collapse-icon {
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        .req-content {
+            flex: 1;
+        }
         .req-header {
             font-weight: bold;
             color: #333;
@@ -89,6 +145,10 @@
             margin-top: 10px;
             border-left: 2px solid #dee2e6;
             padding-left: 15px;
+            display: none;
+        }
+        .child-reqs.expanded {
+            display: block;
         }
         .filter-bar {
             margin: 20px 0;
@@ -99,99 +159,289 @@
         .filter-bar label {
             margin-right: 15px;
         }
+        .level-legend {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+        .legend-color.prd { background: #0066cc; }
+        .legend-color.ops { background: #fd7e14; }
+        .legend-color.dev { background: #28a745; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 00:42:28</p>
-            <p><strong>Total Requirements:</strong> 6</p>
+            <p><strong>Generated:</strong> 2025-10-25 17:02:04</p>
+            <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
         <div class="summary-grid">
             <div class="summary-card">
                 <h3>PRD Level</h3>
-                <div class="number">2</div>
+                <div class="number">18</div>
             </div>
             <div class="summary-card">
                 <h3>Ops Level</h3>
-                <div class="number">2</div>
+                <div class="number">10</div>
             </div>
             <div class="summary-card">
                 <h3>Dev Level</h3>
-                <div class="number">2</div>
+                <div class="number">11</div>
             </div>
+        </div>
+
+        <div class="level-legend">
+            <div class="legend-item">
+                <div class="legend-color prd"></div>
+                <span>PRD (Product Requirements)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color ops"></div>
+                <span>Ops (Operations)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color dev"></div>
+                <span>Dev (Development)</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="expandAll()">▼ Expand All</button>
+            <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
+            <span style="margin-left: auto; color: #666; font-size: 14px;">Click any requirement to expand/collapse its children</span>
         </div>
 
         <h2>Traceability Tree</h2>
-        <div class="req-tree">
+        <div class="req-tree" id="reqTree">
 
         <div class="req-item prd ">
-            <div class="req-header">
-                REQ-p00001: Complete Multi-Sponsor Data Separation
-            </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: PRD |
-                File: prd-security.md:32
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00001: Complete Multi-Sponsor Data Separation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security.md:32
+                    </div>
+                </div>
             </div>
             <div class="child-reqs">
 
         <div class="req-item ops ">
-            <div class="req-header">
-                REQ-o00001: Separate Supabase Projects Per Sponsor
-            </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: Ops |
-                File: ops-deployment.md:320
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00001: Separate Supabase Projects Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-deployment.md:320
+                    </div>
+                </div>
             </div>
             <div class="child-reqs">
 
         <div class="req-item dev ">
-            <div class="req-header">
-                REQ-d00001: Sponsor-Specific Configuration Loading
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00001: Sponsor-Specific Configuration Loading
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-configuration.md:28
+                    </div>
+                </div>
             </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: Dev |
-                File: dev-configuration.md:28
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00003: Supabase Project Provisioning Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:57
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00003: Supabase Auth Configuration Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:84
+                    </div>
+                </div>
+            </div>
+        </div>
             </div>
         </div>
             </div>
         </div>
 
         <div class="req-item ops ">
-            <div class="req-header">
-                REQ-o00002: Environment-Specific Configuration Management
-            </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: Ops |
-                File: ops-deployment.md:344
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00002: Environment-Specific Configuration Management
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-deployment.md:344
+                    </div>
+                </div>
             </div>
             <div class="child-reqs">
 
         <div class="req-item dev ">
-            <div class="req-header">
-                REQ-d00001: Sponsor-Specific Configuration Loading
-            </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: Dev |
-                File: dev-configuration.md:28
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00001: Sponsor-Specific Configuration Loading
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-configuration.md:28
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="req-item dev ">
-            <div class="req-header">
-                REQ-d00002: Pre-Build Configuration Validation
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00002: Pre-Build Configuration Validation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-configuration.md:185
+                    </div>
+                </div>
             </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: Dev |
-                File: dev-configuration.md:185
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00003: Separate Database Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:88
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00003: Supabase Project Provisioning Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:57
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00003: Supabase Auth Configuration Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:84
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
             </div>
         </div>
             </div>
@@ -200,16 +450,1551 @@
         </div>
 
         <div class="req-item prd ">
-            <div class="req-header">
-                REQ-p00002: Multi-Factor Authentication for Staff
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00007: Automatic Sponsor Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-app.md:29
+                    </div>
+                </div>
             </div>
-            <div class="req-meta">
-                <span class="status-badge status-active">Active</span>
-                Level: PRD |
-                File: prd-security.md:73
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00005: Sponsor Configuration Detection Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:38
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00008: Single Mobile App for All Sponsors
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-architecture-multi-sponsor.md:36
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00005: Sponsor Configuration Detection Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:38
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00010: Mobile App Release Process
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-deployment.md:604
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00006: Mobile App Build and Release Process
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:239
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00009: Sponsor-Specific Web Portals
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-architecture-multi-sponsor.md:60
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00009: Portal Deployment Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-deployment.md:811
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00002: Multi-Factor Authentication for Staff
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security.md:73
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00003: Supabase Auth Configuration Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:84
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00006: MFA Configuration for Staff Accounts
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security-authentication.md:6
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00008: MFA Enrollment and Verification Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:154
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00003: Separate Database Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:88
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00003: Supabase Project Provisioning Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:57
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00003: Supabase Auth Configuration Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:84
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00004: Immutable Audit Trail via Event Sourcing
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database-event-sourcing.md:74
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00013: Complete Data Change History
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:40
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00005: Role-Based Access Control
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RBAC.md:36
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00014: Least Privilege Access
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RBAC.md:60
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00015: Database-Level Access Enforcement
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RLS.md:56
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00015: Database-Level Access Enforcement
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RLS.md:56
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00006: Offline-First Data Entry
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-app.md:87
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00004: Local-First Data Entry Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:107
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00007: Automatic Sponsor Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-app.md:29
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00005: Sponsor Configuration Detection Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:38
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00008: Single Mobile App for All Sponsors
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-architecture-multi-sponsor.md:36
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00005: Sponsor Configuration Detection Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:38
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00010: Mobile App Release Process
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-deployment.md:604
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00006: Mobile App Build and Release Process
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-app.md:239
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00009: Sponsor-Specific Web Portals
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-architecture-multi-sponsor.md:60
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00009: Portal Deployment Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-deployment.md:811
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00010: FDA 21 CFR Part 11 Compliance
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-clinical-trials.md:47
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00011: ALCOA+ Data Integrity Principles
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-clinical-trials.md:74
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00013: Complete Data Change History
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:40
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00012: Clinical Data Retention Requirements
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-clinical-trials.md:102
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00008: Backup and Retention Policy
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-operations.md:853
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00013: Complete Data Change History
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:40
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00014: Least Privilege Access
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RBAC.md:60
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00015: Database-Level Access Enforcement
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RLS.md:56
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00011: ALCOA+ Data Integrity Principles
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-clinical-trials.md:74
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00013: Complete Data Change History
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:40
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00012: Clinical Data Retention Requirements
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-clinical-trials.md:102
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00008: Backup and Retention Policy
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-operations.md:853
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00013: Complete Data Change History
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-database.md:40
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00004: Database Schema Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:128
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00007: Database Schema Implementation and Deployment
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:90
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00014: Least Privilege Access
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RBAC.md:60
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00015: Database-Level Access Enforcement
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RLS.md:56
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00015: Database-Level Access Enforcement
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-RLS.md:56
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00007: Role-Based Permission Configuration
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-security.md:125
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00009: Role-Based Permission Enforcement Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:220
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00016: Separation of Identity and Clinical Data
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-data-classification.md:57
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00017: Data Encryption
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-data-classification.md:81
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00010: Data Encryption Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:694
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00017: Data Encryption
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-security-data-classification.md:81
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00010: Data Encryption Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-security.md:694
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="req-item prd ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-p00018: Multi-Site Support Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: PRD |
+                        File: prd-architecture-multi-sponsor.md:110
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item ops ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-o00011: Multi-Site Data Configuration Per Sponsor
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Ops |
+                        File: ops-database-setup.md:153
+                    </div>
+                </div>
+            </div>
+            <div class="child-reqs">
+
+        <div class="req-item dev ">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-header">
+                        REQ-d00011: Multi-Site Schema Implementation
+                    </div>
+                    <div class="req-meta">
+                        <span class="status-badge status-active">Active</span>
+                        Level: Dev |
+                        File: dev-database.md:116
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
             </div>
         </div>
         </div>
     </div>
+
+    <script>
+        // Toggle a single requirement's children
+        function toggleRequirement(element) {
+            const childReqs = element.nextElementSibling;
+            const icon = element.querySelector('.collapse-icon');
+
+            if (childReqs && childReqs.classList.contains('child-reqs')) {
+                childReqs.classList.toggle('expanded');
+                icon.classList.toggle('collapsed');
+            }
+        }
+
+        // Expand all requirements
+        function expandAll() {
+            document.querySelectorAll('.child-reqs').forEach(el => {
+                el.classList.add('expanded');
+            });
+            document.querySelectorAll('.collapse-icon').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+        }
+
+        // Collapse all requirements
+        function collapseAll() {
+            document.querySelectorAll('.child-reqs').forEach(el => {
+                el.classList.remove('expanded');
+            });
+            document.querySelectorAll('.collapse-icon').forEach(el => {
+                el.classList.add('collapsed');
+            });
+        }
+
+        // Initialize with top-level expanded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Expand only top-level (PRD) requirements by default
+            document.querySelectorAll('.req-tree > .req-item > .child-reqs').forEach(el => {
+                el.classList.add('expanded');
+            });
+            document.querySelectorAll('.req-tree > .req-item .collapse-icon').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+        });
+    </script>
 </body>
 </html>
