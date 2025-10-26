@@ -32,8 +32,6 @@ The database stores patient diary entries with complete history of all changes f
 - Daily symptom reports
 - Activity logs
 - Questionnaire responses
-- Medication adherence
-- Side effects
 
 **Why This Matters**: This data forms the evidence base for clinical trial results. Accurate capture and preservation is critical for drug approval.
 
@@ -45,7 +43,7 @@ The system SHALL preserve the complete history of all data modifications, ensuri
 
 Change history SHALL include:
 - Original value when record first created
-- All subsequent modifications with before/after values
+- All subsequent modifications (new values only)
 - Identity of person who made each change
 - Timestamp of each change
 - Reason for change (when applicable)
@@ -59,19 +57,6 @@ Change history SHALL include:
 - Change history cannot be altered or deleted
 - Complete timeline reconstructable from history
 - History includes who, what, when, why for every change
-
----
-
-### Complete Change History
-
-Every modification recorded:
-- Original entry when first created
-- Any updates or corrections made later
-- Who made each change
-- When each change occurred
-- Why the change was necessary
-
-**Why This Matters**: Regulators need to verify data wasn't altered improperly. Complete history proves data integrity.
 
 ### Study Organization
 
@@ -108,43 +93,9 @@ Database isolation SHALL ensure:
 
 ---
 
-### Separate Databases
-
-Each pharmaceutical sponsor operates their own independent database:
-
-**Complete Isolation**:
-- Pfizer's data in one database
-- Novartis's data in different database
-- No shared infrastructure
-- No possibility of cross-contamination
-
-**Benefits**:
-- Regulatory compliance (each trial independent)
-- Security (one breach doesn't affect others)
-- Flexibility (each sponsor can customize)
-- Confidentiality (sponsors can't see each other's data)
-
----
-
 ## How the Database Works
 
-### Storing Changes as Events
-
-Rather than replacing old data with new data, the system stores every change as a separate event:
-
-**Traditional Approach** (what we DON'T do):
-- Patient enters "pain level: 5"
-- Later corrects to "pain level: 7"
-- Old value (5) is lost forever
-- No record of correction
-
-**Our Approach** (event sourcing):
-- Patient enters "pain level: 5" → stored as Event #1
-- Later corrects to "pain level: 7" → stored as Event #2
-- Both events preserved
-- Complete history maintained
-
-**Why This Matters**: FDA requires complete audit trail. Event storage provides this automatically.
+**See**: prd-database-event-sourcing.md for detailed event sourcing architecture
 
 ---
 

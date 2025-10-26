@@ -50,18 +50,6 @@ Automatic configuration SHALL ensure:
 
 ---
 
-### Patient Enrollment
-
-1. Patient receives an enrollment link or QR code from their clinical site
-2. Patient opens the link, which directs them to download the app (if needed)
-3. App automatically configures itself for the correct study
-4. Patient creates an account and agrees to participate
-5. App displays the sponsor's branding and study information
-
-The enrollment process is designed to be simple - patients don't need to enter complex codes or select their study from a list.
-
----
-
 ### Daily Use
 
 **Recording Entries**:
@@ -104,24 +92,6 @@ Offline capability SHALL ensure:
 - Automatic synchronization when network becomes available
 - No data loss if app closed before synchronization completes
 - Conflict resolution when same entry modified on multiple devices
-
----
-
-### Offline Design
-
-The app is designed to work without constant internet access:
-
-**Why Offline Matters**:
-- Patients may have poor cell coverage
-- Hospital basements or remote areas often lack connectivity
-- Ensures patients can always make their scheduled entries
-- Reduces barriers to participation
-
-**How It Works**:
-- All entries saved on phone first
-- App uploads to server when connection available
-- Handles multiple devices (if patient uses phone and tablet)
-- Resolves conflicts intelligently
 
 ---
 

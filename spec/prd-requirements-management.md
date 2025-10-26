@@ -85,34 +85,6 @@ Decision documentation SHALL ensure:
 
 ---
 
-## Benefits
-
-**Regulatory Compliance**:
-- Enables FDA validation package
-- Supports audit trail requirements
-- Demonstrates systematic development process
-- Facilitates regulatory submission approval
-
-**Quality Assurance**:
-- Forces clear definition of system capabilities
-- Prevents scope creep and feature drift
-- Enables impact analysis for changes
-- Supports regression testing strategies
-
-**Institutional Knowledge**:
-- Documents system design decisions
-- Preserves rationale for future teams
-- Supports onboarding of new developers
-- Reduces dependency on tribal knowledge
-
-**Risk Management**:
-- Identifies gaps in system coverage
-- Enables traceability from risk to mitigation
-- Supports validation testing strategies
-- Facilitates change impact assessment
-
----
-
 ## References
 
 - **FDA Guidance**: 21 CFR Part 11 - Electronic Records; Electronic Signatures

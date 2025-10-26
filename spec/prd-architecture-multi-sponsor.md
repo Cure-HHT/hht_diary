@@ -81,20 +81,6 @@ Portal isolation SHALL ensure:
 
 ---
 
-### System Components
-
-Each sponsor deployment includes:
-
-**Mobile App**: Single app containing all sponsor configurations. When patients enroll, the app automatically connects to their sponsor's system and displays that sponsor's branding.
-
-**Web Portal**: Each sponsor gets their own portal website where investigators and staff can view patient data, run reports, and manage the study. Each portal is separately hosted and customized.
-
-**Database**: Each sponsor has their own private database that stores patient data, study configuration, and audit records. No data is shared between sponsors.
-
-**Authentication**: Each sponsor controls their own user accounts and can integrate with their company's existing login systems.
-
----
-
 ## How Patients Enroll
 
 1. Investigator provides patient with enrollment link or QR code

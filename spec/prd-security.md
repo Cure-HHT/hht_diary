@@ -52,22 +52,6 @@ Each sponsor SHALL operate in a completely separate environment with:
 
 ---
 
-### What Complete Separation Means
-
-**Different Systems Per Sponsor**:
-- Different databases
-- Different user accounts
-- Different encryption keys
-- Different authentication systems
-
-**Practical Examples**:
-- Pfizer users cannot access Novartis data
-- Novartis users cannot access Merck data
-- No shared login credentials
-- No shared infrastructure
-
----
-
 ## User Authentication
 
 ### REQ-p00002: Multi-Factor Authentication for Staff
@@ -113,17 +97,6 @@ The system SHALL NOT allow staff or administrator access without successful MFA 
 - Two-factor authentication mandatory
 - Strong password requirements
 - All actions logged
-
-### Two-Factor Authentication (2FA) - How It Works
-
-**What It Is**: Extra security step beyond just password
-
-**Process**:
-1. User enters password (something they know)
-2. User enters 6-digit code from phone app (something they have)
-3. Both required to log in successfully
-
-**Implementation**: Uses standard TOTP (Time-based One-Time Password) protocol compatible with Google Authenticator, Authy, 1Password, etc.
 
 ---
 

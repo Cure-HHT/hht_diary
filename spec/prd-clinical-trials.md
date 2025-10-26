@@ -124,38 +124,6 @@ Data retention SHALL ensure:
 
 ---
 
-### Complete Audit Trail
-
-**What It Means**: Every change to patient data must be recorded with who made the change, when, and why.
-
-**Why It Matters**: Regulators need to verify that data wasn't tampered with or fabricated. If an entry was changed, they can see the original value and understand why it was modified.
-
-**How We Achieve It**: The system automatically records every data change in a permanent log that cannot be altered or deleted.
-
----
-
-### Data Integrity (ALCOA+ Principles)
-
-**Attributable**: All data clearly linked to the person who entered it
-
-**Legible**: Data readable and understandable
-
-**Contemporaneous**: Data recorded at the time of observation
-
-**Original**: Original records always preserved
-
-**Accurate**: Data is correct and validated
-
-**Complete**: All required information captured
-
-**Consistent**: Data format uniform across system
-
-**Enduring**: Records preserved for required retention period
-
-**Available**: Data accessible when needed for review
-
----
-
 ### System Validation
 
 **What It Means**: The system must be tested and proven to work correctly before use in clinical trials.
