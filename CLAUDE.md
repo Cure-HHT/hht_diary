@@ -192,3 +192,8 @@ git config core.hooksPath .githooks
 # Create feature branch
 git checkout -b feature/descriptive-name
 ```
+
+## User Preferences
+
+- Whenever you stop to ask me a question, play an audible notification using: `paplay ~/freesound/762115__jerryberumen__alarm-misc-message-alert-notification-quick-short-arp.wav`
+- When modifying SQL, before implementing migration, ask the user if ANY database has ever been deployed with this system.

@@ -5,7 +5,11 @@
 --
 -- IMPLEMENTS REQUIREMENTS:
 --   REQ-p00018: Multi-Site Support Per Sponsor
+--   REQ-p00024: Auditor Compliance Access
+--   REQ-p00025: Administrator Break-Glass Access
 --   REQ-d00011: Multi-Site Schema Implementation
+--   REQ-d00024: Auditor Compliance Access RLS Implementation
+--   REQ-d00025: Administrator Break-Glass RLS Implementation
 --
 -- PERFORMANCE OPTIMIZATION:
 --   Indexes designed for multi-site clinical trial query patterns:
@@ -364,9 +368,65 @@ ALTER TABLE record_state ALTER COLUMN patient_id SET STATISTICS 1000;
 ALTER TABLE record_state ALTER COLUMN site_id SET STATISTICS 1000;
 
 -- =====================================================
+-- AUDITOR_EXPORT_LOG TABLE INDEXES (REQ-d00024)
+-- =====================================================
+
+CREATE INDEX idx_export_log_auditor ON auditor_export_log(auditor_id);
+CREATE INDEX idx_export_log_timestamp ON auditor_export_log(export_timestamp DESC);
+CREATE INDEX idx_export_log_case_id ON auditor_export_log(case_id);
+CREATE INDEX idx_export_log_table ON auditor_export_log(table_name);
+
+-- Composite index for auditor activity reports
+CREATE INDEX idx_export_log_auditor_timestamp ON auditor_export_log(auditor_id, export_timestamp DESC);
+
+-- JSONB index for filter queries
+CREATE INDEX idx_export_log_filters_gin ON auditor_export_log USING GIN (filters)
+    WHERE filters != '{}'::jsonb;
+
+-- =====================================================
+-- BREAK_GLASS_AUTHORIZATIONS TABLE INDEXES (REQ-d00025)
+-- =====================================================
+
+CREATE INDEX idx_breakglass_admin ON break_glass_authorizations(admin_id);
+CREATE INDEX idx_breakglass_granted_at ON break_glass_authorizations(granted_at DESC);
+CREATE INDEX idx_breakglass_expires_at ON break_glass_authorizations(expires_at);
+CREATE INDEX idx_breakglass_granted_by ON break_glass_authorizations(granted_by);
+CREATE INDEX idx_breakglass_ticket ON break_glass_authorizations(ticket_id);
+
+-- Partial index for active (non-revoked, non-expired) authorizations
+CREATE INDEX idx_breakglass_active ON break_glass_authorizations(admin_id, expires_at DESC)
+    WHERE revoked_at IS NULL AND expires_at > now();
+
+-- =====================================================
+-- BREAK_GLASS_ACCESS_LOG TABLE INDEXES (REQ-d00025)
+-- =====================================================
+
+CREATE INDEX idx_breakglass_log_authorization ON break_glass_access_log(authorization_id);
+CREATE INDEX idx_breakglass_log_admin ON break_glass_access_log(admin_id);
+CREATE INDEX idx_breakglass_log_timestamp ON break_glass_access_log(access_timestamp DESC);
+CREATE INDEX idx_breakglass_log_table ON break_glass_access_log(accessed_table);
+
+-- Composite index for admin activity tracking
+CREATE INDEX idx_breakglass_log_admin_timestamp ON break_glass_access_log(admin_id, access_timestamp DESC);
+
+-- JSONB index for query details analysis
+CREATE INDEX idx_breakglass_log_query_gin ON break_glass_access_log USING GIN (query_details)
+    WHERE query_details IS NOT NULL;
+
+-- =====================================================
+-- SYSTEM_CONFIG TABLE INDEXES
+-- =====================================================
+
+-- Primary key already provides index on config_key
+CREATE INDEX idx_config_modified_at ON system_config(last_modified_at DESC);
+CREATE INDEX idx_config_modified_by ON system_config(last_modified_by);
+
+-- =====================================================
 -- COMMENTS
 -- =====================================================
 
 COMMENT ON INDEX idx_audit_data_gin IS 'GIN index for JSONB queries on event store (record_audit) data';
 COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records in read model (record_state)';
 COMMENT ON INDEX idx_annotations_unresolved IS 'Partial index for unresolved annotations requiring action';
+COMMENT ON INDEX idx_breakglass_active IS 'Partial index for active break-glass authorizations (not revoked or expired)';
+COMMENT ON INDEX idx_export_log_auditor_timestamp IS 'Composite index for auditor activity reports and compliance monitoring';
