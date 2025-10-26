@@ -225,6 +225,13 @@ class TraceabilityGenerator:
         # Parse markdown for HTML rendering
         by_level = self._count_by_level()
 
+        # Collect all unique topics from requirements
+        all_topics = set()
+        for req in self.requirements.values():
+            topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
+            all_topics.add(topic)
+        sorted_topics = sorted(all_topics)
+
         html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -571,7 +578,7 @@ class TraceabilityGenerator:
             </div>
             <div class="filter-column">
                 <div class="filter-label">Title</div>
-                <input type="text" id="filterTopic" placeholder="Search title or topic..." oninput="applyFilters()">
+                <input type="text" id="filterTitle" placeholder="Search title..." oninput="applyFilters()">
             </div>
             <div class="filter-column">
                 <div class="filter-label">Level</div>
@@ -595,7 +602,16 @@ class TraceabilityGenerator:
                 <div class="filter-label">Tests</div>
             </div>
             <div class="filter-column">
-                <div class="filter-label">Location</div>
+                <div class="filter-label">Topic</div>
+                <select id="filterTopic" onchange="applyFilters()">
+                    <option value="">All</option>
+"""
+
+        # Add topic options dynamically
+        for topic in sorted_topics:
+            html += f'                    <option value="{topic}">{topic}</option>\n'
+
+        html += """                </select>
             </div>
         </div>
 
@@ -647,9 +663,10 @@ class TraceabilityGenerator:
         // Apply filters
         function applyFilters() {
             const reqIdFilter = document.getElementById('filterReqId').value.toLowerCase().trim();
+            const titleFilter = document.getElementById('filterTitle').value.toLowerCase().trim();
             const levelFilter = document.getElementById('filterLevel').value;
-            const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
             const statusFilter = document.getElementById('filterStatus').value;
+            const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
 
             let visibleCount = 0;
             let totalCount = 0;
@@ -660,7 +677,7 @@ class TraceabilityGenerator:
                 const level = item.dataset.level;
                 const topic = item.dataset.topic.toLowerCase();
                 const status = item.dataset.status;
-                const title = item.dataset.title;
+                const title = item.dataset.title.toLowerCase();
 
                 let matches = true;
 
@@ -669,18 +686,23 @@ class TraceabilityGenerator:
                     matches = false;
                 }
 
+                // Title filter (searches in title text)
+                if (titleFilter && !title.includes(titleFilter)) {
+                    matches = false;
+                }
+
                 // Level filter
                 if (levelFilter && level !== levelFilter) {
                     matches = false;
                 }
 
-                // Topic filter (searches in filename topic and title)
-                if (topicFilter && !topic.includes(topicFilter) && !title.includes(topicFilter)) {
+                // Status filter
+                if (statusFilter && status !== statusFilter) {
                     matches = false;
                 }
 
-                // Status filter
-                if (statusFilter && status !== statusFilter) {
+                // Topic filter (exact match on filename topic)
+                if (topicFilter && topic !== topicFilter) {
                     matches = false;
                 }
 
@@ -700,9 +722,10 @@ class TraceabilityGenerator:
         // Clear all filters
         function clearFilters() {
             document.getElementById('filterReqId').value = '';
+            document.getElementById('filterTitle').value = '';
             document.getElementById('filterLevel').value = '';
-            document.getElementById('filterTopic').value = '';
             document.getElementById('filterStatus').value = '';
+            document.getElementById('filterTopic').value = '';
             applyFilters();
         }
 
