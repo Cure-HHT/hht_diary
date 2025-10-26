@@ -60,8 +60,11 @@ Generates traceability matrix showing requirement relationships.
 # Markdown format (default)
 python3 tools/requirements/generate_traceability.py
 
-# HTML format (interactive)
+# HTML format (interactive with collapsible hierarchy)
 python3 tools/requirements/generate_traceability.py --format html
+
+# Generate BOTH markdown and HTML (recommended!)
+python3 tools/requirements/generate_traceability.py --format both
 
 # CSV format (for spreadsheets)
 python3 tools/requirements/generate_traceability.py --format csv
@@ -78,11 +81,14 @@ python3 tools/requirements/generate_traceability.py --format html --output docs/
 - Includes summary statistics
 - Identifies orphaned requirements
 
-**HTML** (`traceability_matrix.html`):
-- Interactive web page
-- Color-coded by level (PRD/Ops/Dev)
+**HTML** (`traceability_matrix.html`) - **ENHANCED with collapsible hierarchy!**:
+- Interactive web page with **collapsible requirement tree**
+- **Click to expand/collapse** individual requirements
+- **Expand All / Collapse All** buttons for convenience
+- Color-coded by level (PRD=blue, Ops=orange, Dev=green)
 - Status badges (Active/Draft/Deprecated)
-- Expandable tree view
+- Professional, responsive design
+- Generated from markdown source for consistency
 - Can be hosted or shared
 
 **CSV** (`traceability_matrix.csv`):
@@ -123,9 +129,7 @@ jobs:
 
       - name: Generate Traceability Matrix
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          python3 tools/requirements/generate_traceability.py --format html
-          python3 tools/requirements/generate_traceability.py --format markdown
+        run: python3 tools/requirements/generate_traceability.py --format both
 
       - name: Upload Traceability Matrix
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -186,8 +190,10 @@ python3 tools/requirements/validate_requirements.py
 
 4. **Regenerate traceability matrix:**
 ```bash
-python3 tools/requirements/generate_traceability.py --format html
+python3 tools/requirements/generate_traceability.py --format both
 ```
+
+This generates both `traceability_matrix.md` (for documentation) and `traceability_matrix.html` (for interactive viewing).
 
 ### Referencing Requirements
 
