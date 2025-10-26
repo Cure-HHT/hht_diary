@@ -315,22 +315,22 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 23:29:58</p>
-            <p><strong>Total Requirements:</strong> 40</p>
+            <p><strong>Generated:</strong> 2025-10-25 23:51:04</p>
+            <p><strong>Total Requirements:</strong> 52</p>
         </div>
 
         <div class="summary-grid">
             <div class="summary-card">
                 <h3>PRD Level</h3>
-                <div class="number">18</div>
+                <div class="number">20</div>
             </div>
             <div class="summary-card">
                 <h3>OPS Level</h3>
-                <div class="number">10</div>
+                <div class="number">15</div>
             </div>
             <div class="summary-card">
                 <h3>DEV Level</h3>
-                <div class="number">12</div>
+                <div class="number">17</div>
             </div>
         </div>
 
@@ -401,6 +401,7 @@
                     <option value="database-setup">database-setup</option>
                     <option value="deployment">deployment</option>
                     <option value="operations">operations</option>
+                    <option value="requirements-management">requirements-management</option>
                     <option value="security">security</option>
                     <option value="security-RBAC">security-RBAC</option>
                     <option value="security-RLS">security-RLS</option>
@@ -1383,7 +1384,7 @@
                         <span class="status-badge status-active">Active</span>
                     </div>
                     <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
-                    <div class="req-location">prd-clinical-trials.md:74</div>
+                    <div class="req-location">prd-clinical-trials.md:75</div>
                 </div>
             </div>
         </div>
@@ -1447,7 +1448,7 @@
                         <span class="status-badge status-active">Active</span>
                     </div>
                     <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
-                    <div class="req-location">prd-clinical-trials.md:102</div>
+                    <div class="req-location">prd-clinical-trials.md:103</div>
                 </div>
             </div>
         </div>
@@ -1612,7 +1613,151 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00011" data-instance-id="inst_75" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
+        <div class="req-item prd " data-req-id="p00020" data-instance-id="inst_75" data-level="PRD" data-indent="1" data-parent-instance-id="inst_59" data-topic="requirements-management" data-status="Active" data-title="system validation and traceability">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-p00020</div>
+                    <div class="req-header">System Validation and Traceability</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-requirements-management.md:34</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00013" data-instance-id="inst_76" data-level="OPS" data-indent="2" data-parent-instance-id="inst_75" data-topic="requirements-management" data-status="Active" data-title="requirements format validation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00013</div>
+                    <div class="req-header">Requirements Format Validation</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:20</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00014" data-instance-id="inst_77" data-level="DEV" data-indent="3" data-parent-instance-id="inst_76" data-topic="requirements-management" data-status="Active" data-title="requirement validation tooling">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00014</div>
+                    <div class="req-header">Requirement Validation Tooling</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:29</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00015" data-instance-id="inst_78" data-level="DEV" data-indent="3" data-parent-instance-id="inst_76" data-topic="requirements-management" data-status="Active" data-title="traceability matrix auto-generation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00015</div>
+                    <div class="req-header">Traceability Matrix Auto-Generation</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:63</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00014" data-instance-id="inst_79" data-level="OPS" data-indent="2" data-parent-instance-id="inst_75" data-topic="requirements-management" data-status="Active" data-title="top-down requirement cascade">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00014</div>
+                    <div class="req-header">Top-Down Requirement Cascade</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:48</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00016" data-instance-id="inst_80" data-level="DEV" data-indent="3" data-parent-instance-id="inst_79" data-topic="requirements-management" data-status="Active" data-title="code-to-requirement linking">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00016</div>
+                    <div class="req-header">Code-to-Requirement Linking</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:101</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00015" data-instance-id="inst_81" data-level="OPS" data-indent="2" data-parent-instance-id="inst_75" data-topic="requirements-management" data-status="Active" data-title="documentation structure enforcement">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00015</div>
+                    <div class="req-header">Documentation Structure Enforcement</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:76</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00017" data-instance-id="inst_82" data-level="OPS" data-indent="2" data-parent-instance-id="inst_75" data-topic="requirements-management" data-status="Active" data-title="version control workflow">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00017</div>
+                    <div class="req-header">Version Control Workflow</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:134</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00018" data-instance-id="inst_83" data-level="DEV" data-indent="3" data-parent-instance-id="inst_82" data-topic="requirements-management" data-status="Active" data-title="git hook implementation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00018</div>
+                    <div class="req-header">Git Hook Implementation</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:164</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item prd " data-req-id="p00011" data-instance-id="inst_84" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1623,12 +1768,12 @@
                         <span class="status-badge status-active">Active</span>
                     </div>
                     <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
-                    <div class="req-location">prd-clinical-trials.md:74</div>
+                    <div class="req-location">prd-clinical-trials.md:75</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_76" data-level="PRD" data-indent="1" data-parent-instance-id="inst_75" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_85" data-level="PRD" data-indent="1" data-parent-instance-id="inst_84" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1644,7 +1789,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_77" data-level="OPS" data-indent="2" data-parent-instance-id="inst_76" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_86" data-level="OPS" data-indent="2" data-parent-instance-id="inst_85" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1660,7 +1805,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_78" data-level="DEV" data-indent="3" data-parent-instance-id="inst_77" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_87" data-level="DEV" data-indent="3" data-parent-instance-id="inst_86" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1676,7 +1821,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00012" data-instance-id="inst_79" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
+        <div class="req-item prd " data-req-id="p00012" data-instance-id="inst_88" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1687,12 +1832,12 @@
                         <span class="status-badge status-active">Active</span>
                     </div>
                     <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
-                    <div class="req-location">prd-clinical-trials.md:102</div>
+                    <div class="req-location">prd-clinical-trials.md:103</div>
                 </div>
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00008" data-instance-id="inst_80" data-level="OPS" data-indent="1" data-parent-instance-id="inst_79" data-topic="operations" data-status="Active" data-title="backup and retention policy">
+        <div class="req-item ops " data-req-id="o00008" data-instance-id="inst_89" data-level="OPS" data-indent="1" data-parent-instance-id="inst_88" data-topic="operations" data-status="Active" data-title="backup and retention policy">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1708,7 +1853,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_81" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_90" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1724,7 +1869,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_82" data-level="OPS" data-indent="1" data-parent-instance-id="inst_81" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_91" data-level="OPS" data-indent="1" data-parent-instance-id="inst_90" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1740,7 +1885,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_83" data-level="DEV" data-indent="2" data-parent-instance-id="inst_82" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_92" data-level="DEV" data-indent="2" data-parent-instance-id="inst_91" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1756,7 +1901,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00014" data-instance-id="inst_84" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
+        <div class="req-item prd " data-req-id="p00014" data-instance-id="inst_93" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1772,7 +1917,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_85" data-level="OPS" data-indent="1" data-parent-instance-id="inst_84" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_94" data-level="OPS" data-indent="1" data-parent-instance-id="inst_93" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1788,7 +1933,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_86" data-level="DEV" data-indent="2" data-parent-instance-id="inst_85" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_95" data-level="DEV" data-indent="2" data-parent-instance-id="inst_94" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1804,7 +1949,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_87" data-level="PRD" data-indent="1" data-parent-instance-id="inst_84" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_96" data-level="PRD" data-indent="1" data-parent-instance-id="inst_93" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1820,7 +1965,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_88" data-level="OPS" data-indent="2" data-parent-instance-id="inst_87" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_97" data-level="OPS" data-indent="2" data-parent-instance-id="inst_96" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1836,7 +1981,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_89" data-level="DEV" data-indent="3" data-parent-instance-id="inst_88" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_98" data-level="DEV" data-indent="3" data-parent-instance-id="inst_97" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1852,7 +1997,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_90" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_99" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1868,7 +2013,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_91" data-level="OPS" data-indent="1" data-parent-instance-id="inst_90" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_100" data-level="OPS" data-indent="1" data-parent-instance-id="inst_99" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1884,7 +2029,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_92" data-level="DEV" data-indent="2" data-parent-instance-id="inst_91" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_101" data-level="DEV" data-indent="2" data-parent-instance-id="inst_100" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1900,7 +2045,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00016" data-instance-id="inst_93" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-data-classification" data-status="Active" data-title="separation of identity and clinical data">
+        <div class="req-item prd " data-req-id="p00016" data-instance-id="inst_102" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-data-classification" data-status="Active" data-title="separation of identity and clinical data">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1916,7 +2061,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00017" data-instance-id="inst_94" data-level="PRD" data-indent="1" data-parent-instance-id="inst_93" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
+        <div class="req-item prd " data-req-id="p00017" data-instance-id="inst_103" data-level="PRD" data-indent="1" data-parent-instance-id="inst_102" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1932,7 +2077,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00010" data-instance-id="inst_95" data-level="DEV" data-indent="2" data-parent-instance-id="inst_94" data-topic="security" data-status="Active" data-title="data encryption implementation">
+        <div class="req-item dev " data-req-id="d00010" data-instance-id="inst_104" data-level="DEV" data-indent="2" data-parent-instance-id="inst_103" data-topic="security" data-status="Active" data-title="data encryption implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1948,7 +2093,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00017" data-instance-id="inst_96" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
+        <div class="req-item prd " data-req-id="p00017" data-instance-id="inst_105" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1964,7 +2109,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00010" data-instance-id="inst_97" data-level="DEV" data-indent="1" data-parent-instance-id="inst_96" data-topic="security" data-status="Active" data-title="data encryption implementation">
+        <div class="req-item dev " data-req-id="d00010" data-instance-id="inst_106" data-level="DEV" data-indent="1" data-parent-instance-id="inst_105" data-topic="security" data-status="Active" data-title="data encryption implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1980,7 +2125,7 @@
             </div>
         </div>
 
-        <div class="req-item prd " data-req-id="p00018" data-instance-id="inst_98" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="architecture-multi-sponsor" data-status="Active" data-title="multi-site support per sponsor">
+        <div class="req-item prd " data-req-id="p00018" data-instance-id="inst_107" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="architecture-multi-sponsor" data-status="Active" data-title="multi-site support per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1996,7 +2141,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00011" data-instance-id="inst_99" data-level="OPS" data-indent="1" data-parent-instance-id="inst_98" data-topic="database-setup" data-status="Active" data-title="multi-site data configuration per sponsor">
+        <div class="req-item ops " data-req-id="o00011" data-instance-id="inst_108" data-level="OPS" data-indent="1" data-parent-instance-id="inst_107" data-topic="database-setup" data-status="Active" data-title="multi-site data configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -2012,7 +2157,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00011" data-instance-id="inst_100" data-level="DEV" data-indent="2" data-parent-instance-id="inst_99" data-topic="database" data-status="Active" data-title="multi-site schema implementation">
+        <div class="req-item dev " data-req-id="d00011" data-instance-id="inst_109" data-level="DEV" data-indent="2" data-parent-instance-id="inst_108" data-topic="database" data-status="Active" data-title="multi-site schema implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -2024,6 +2169,230 @@
                     </div>
                     <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
                     <div class="req-location">dev-database.md:116</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item prd " data-req-id="p00020" data-instance-id="inst_110" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="requirements-management" data-status="Active" data-title="system validation and traceability">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-p00020</div>
+                    <div class="req-header">System Validation and Traceability</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-requirements-management.md:34</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00013" data-instance-id="inst_111" data-level="OPS" data-indent="1" data-parent-instance-id="inst_110" data-topic="requirements-management" data-status="Active" data-title="requirements format validation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00013</div>
+                    <div class="req-header">Requirements Format Validation</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:20</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00014" data-instance-id="inst_112" data-level="DEV" data-indent="2" data-parent-instance-id="inst_111" data-topic="requirements-management" data-status="Active" data-title="requirement validation tooling">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00014</div>
+                    <div class="req-header">Requirement Validation Tooling</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:29</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00015" data-instance-id="inst_113" data-level="DEV" data-indent="2" data-parent-instance-id="inst_111" data-topic="requirements-management" data-status="Active" data-title="traceability matrix auto-generation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00015</div>
+                    <div class="req-header">Traceability Matrix Auto-Generation</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:63</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00014" data-instance-id="inst_114" data-level="OPS" data-indent="1" data-parent-instance-id="inst_110" data-topic="requirements-management" data-status="Active" data-title="top-down requirement cascade">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00014</div>
+                    <div class="req-header">Top-Down Requirement Cascade</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:48</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00016" data-instance-id="inst_115" data-level="DEV" data-indent="2" data-parent-instance-id="inst_114" data-topic="requirements-management" data-status="Active" data-title="code-to-requirement linking">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00016</div>
+                    <div class="req-header">Code-to-Requirement Linking</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:101</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00015" data-instance-id="inst_116" data-level="OPS" data-indent="1" data-parent-instance-id="inst_110" data-topic="requirements-management" data-status="Active" data-title="documentation structure enforcement">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00015</div>
+                    <div class="req-header">Documentation Structure Enforcement</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:76</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00017" data-instance-id="inst_117" data-level="OPS" data-indent="1" data-parent-instance-id="inst_110" data-topic="requirements-management" data-status="Active" data-title="version control workflow">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00017</div>
+                    <div class="req-header">Version Control Workflow</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:134</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00018" data-instance-id="inst_118" data-level="DEV" data-indent="2" data-parent-instance-id="inst_117" data-topic="requirements-management" data-status="Active" data-title="git hook implementation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00018</div>
+                    <div class="req-header">Git Hook Implementation</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:164</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item prd " data-req-id="p00021" data-instance-id="inst_119" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="requirements-management" data-status="Active" data-title="architecture decision documentation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-p00021</div>
+                    <div class="req-header">Architecture Decision Documentation</div>
+                    <div class="req-level">PRD</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">prd-requirements-management.md:61</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00016" data-instance-id="inst_120" data-level="OPS" data-indent="1" data-parent-instance-id="inst_119" data-topic="requirements-management" data-status="Active" data-title="architecture decision process">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00016</div>
+                    <div class="req-header">Architecture Decision Process</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:105</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00017" data-instance-id="inst_121" data-level="DEV" data-indent="2" data-parent-instance-id="inst_120" data-topic="requirements-management" data-status="Active" data-title="adr template and lifecycle tooling">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00017</div>
+                    <div class="req-header">ADR Template and Lifecycle Tooling</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:132</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item ops " data-req-id="o00017" data-instance-id="inst_122" data-level="OPS" data-indent="1" data-parent-instance-id="inst_119" data-topic="requirements-management" data-status="Active" data-title="version control workflow">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">▼</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-o00017</div>
+                    <div class="req-header">Version Control Workflow</div>
+                    <div class="req-level">OPS</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">ops-requirements-management.md:134</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="req-item dev " data-req-id="d00018" data-instance-id="inst_123" data-level="DEV" data-indent="2" data-parent-instance-id="inst_122" data-topic="requirements-management" data-status="Active" data-title="git hook implementation">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">REQ-d00018</div>
+                    <div class="req-header">Git Hook Implementation</div>
+                    <div class="req-level">DEV</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-active">Active</span>
+                    </div>
+                    <div class="req-status"><span class="test-badge test-not-tested" title="No tests implemented">⚡</span></div>
+                    <div class="req-location">dev-requirements-management.md:164</div>
                 </div>
             </div>
         </div>
