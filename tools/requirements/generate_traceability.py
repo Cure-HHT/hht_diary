@@ -5,6 +5,12 @@ Requirements Traceability Matrix Generator
 Generates traceability matrix showing relationships between requirements
 at different levels (PRD -> Ops -> Dev).
 
+Scans both specification files and implementation files:
+- spec/*.md: Requirement definitions
+- database/*.sql: Database implementation
+- diary_app/**/*.dart: Flutter diary app (future)
+- portal_app/**/*.dart: Flutter portal base app (future)
+
 Output formats:
 - HTML: Interactive web page with collapsible hierarchy (enhanced!)
 - Markdown: Documentation-friendly format
@@ -15,6 +21,7 @@ Features:
 - Expand/collapse all controls
 - Color-coded by requirement level (PRD/Ops/Dev)
 - Status badges (Active/Draft/Deprecated)
+- Implementation file tracking (which files implement which requirements)
 - Markdown source ensures HTML consistency
 """
 
@@ -47,6 +54,7 @@ class Requirement:
     file_path: Path
     line_number: int
     test_info: Optional[TestInfo] = None
+    implementation_files: List[str] = field(default_factory=list)  # Files that implement this requirement
 
 
 class TraceabilityGenerator:
@@ -65,11 +73,12 @@ class TraceabilityGenerator:
         'Dev': 'DEV'
     }
 
-    def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None):
+    def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None, impl_dirs: Optional[List[Path]] = None):
         self.spec_dir = spec_dir
         self.requirements: Dict[str, Requirement] = {}
         self.test_mapping_file = test_mapping_file
         self.test_data: Dict[str, TestInfo] = {}
+        self.impl_dirs = impl_dirs or []  # Directories containing implementation files
 
     def generate(self, format: str = 'markdown', output_file: Path = None):
         """Generate traceability matrix in specified format"""
@@ -81,6 +90,11 @@ class TraceabilityGenerator:
             return
 
         print(f"📋 Found {len(self.requirements)} requirements")
+
+        # Scan implementation files for requirement references
+        if self.impl_dirs:
+            print(f"🔎 Scanning implementation files...")
+            self._scan_implementation_files()
 
         # Load test data if mapping file provided
         if self.test_mapping_file and self.test_mapping_file.exists():
@@ -158,6 +172,60 @@ class TraceabilityGenerator:
             )
 
             self.requirements[req_id] = req
+
+    def _scan_implementation_files(self):
+        """Scan implementation files for requirement references"""
+        # Pattern to match requirement references in code comments
+        # Matches: REQ-p00001, REQ-o00042, REQ-d00156
+        req_ref_pattern = re.compile(r'REQ-([pod]\d{5})')
+
+        total_files_scanned = 0
+        total_refs_found = 0
+
+        for impl_dir in self.impl_dirs:
+            if not impl_dir.exists():
+                print(f"   ⚠️  Implementation directory not found: {impl_dir}")
+                continue
+
+            # Determine file patterns based on directory
+            if impl_dir.name == 'database':
+                patterns = ['*.sql']
+            elif impl_dir.name in ['diary_app', 'portal_app']:
+                patterns = ['**/*.dart']
+            else:
+                # Default: scan common code file types
+                patterns = ['**/*.dart', '**/*.sql', '**/*.py', '**/*.js', '**/*.ts']
+
+            for pattern in patterns:
+                for file_path in impl_dir.glob(pattern):
+                    if file_path.is_file():
+                        total_files_scanned += 1
+                        refs = self._scan_file_for_requirements(file_path, req_ref_pattern)
+                        total_refs_found += len(refs)
+
+        print(f"   ✅ Scanned {total_files_scanned} implementation files")
+        print(f"   📌 Found {total_refs_found} requirement references")
+
+    def _scan_file_for_requirements(self, file_path: Path, pattern: re.Pattern) -> Set[str]:
+        """Scan a single implementation file for requirement references"""
+        try:
+            content = file_path.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, PermissionError):
+            # Skip files that can't be read
+            return set()
+
+        # Find all requirement IDs referenced in this file
+        matches = pattern.findall(content)
+        referenced_reqs = set(matches)
+
+        # Add this file to each referenced requirement's implementation_files list
+        for req_id in referenced_reqs:
+            if req_id in self.requirements:
+                rel_path = file_path.relative_to(file_path.parent.parent)  # Relative to repo root
+                if str(rel_path) not in self.requirements[req_id].implementation_files:
+                    self.requirements[req_id].implementation_files.append(str(rel_path))
+
+        return referenced_reqs
 
     def _generate_markdown(self) -> str:
         """Generate markdown traceability matrix"""
@@ -1147,7 +1215,25 @@ def main():
         # Default location
         test_mapping_file = repo_root / 'test_results' / 'requirement_test_mapping.json'
 
-    generator = TraceabilityGenerator(spec_dir, test_mapping_file=test_mapping_file)
+    # Collect implementation directories to scan
+    impl_dirs = []
+
+    # Always scan database directory if it exists
+    database_dir = repo_root / 'database'
+    if database_dir.exists():
+        impl_dirs.append(database_dir)
+
+    # Scan Flutter diary app if it exists (future)
+    diary_app_dir = repo_root / 'diary_app'
+    if diary_app_dir.exists():
+        impl_dirs.append(diary_app_dir)
+
+    # Scan Flutter portal app if it exists (future)
+    portal_app_dir = repo_root / 'portal_app'
+    if portal_app_dir.exists():
+        impl_dirs.append(portal_app_dir)
+
+    generator = TraceabilityGenerator(spec_dir, test_mapping_file=test_mapping_file, impl_dirs=impl_dirs)
 
     # Handle 'both' format option
     if args.format == 'both':
