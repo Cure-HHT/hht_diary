@@ -1,0 +1,99 @@
+{
+  "name": "linear-req-inserter",
+  "displayName": "Linear Requirement Inserter",
+  "description": "Insert requirement references from Linear in-progress tickets into your code",
+  "version": "0.1.0",
+  "publisher": "clinical-diary",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "linear",
+    "requirements",
+    "traceability",
+    "project-management"
+  ],
+  "activationEvents": [
+    "onCommand:linearReqInserter.insertRequirements",
+    "onLanguage:sql",
+    "onLanguage:dart",
+    "onLanguage:python",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "linearReqInserter.insertRequirements",
+        "title": "Insert Requirements from Linear Ticket"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "linearReqInserter.insertRequirements",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Linear Requirement Inserter",
+      "properties": {
+        "linearReqInserter.apiToken": {
+          "type": "string",
+          "default": "",
+          "description": "Linear API token (get from https://linear.app/settings/api)",
+          "markdownDescription": "Linear API token. Get yours from [Linear Settings](https://linear.app/settings/api)"
+        },
+        "linearReqInserter.teamId": {
+          "type": "string",
+          "default": "",
+          "description": "Linear team ID (optional, for filtering)"
+        },
+        "linearReqInserter.specPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/spec",
+          "description": "Path to specification directory containing requirement files"
+        },
+        "linearReqInserter.commentFormat": {
+          "type": "string",
+          "enum": [
+            "multiline",
+            "singleline"
+          ],
+          "default": "multiline",
+          "description": "How to format multiple requirements (multiline: one per line, singleline: comma-separated)"
+        },
+        "linearReqInserter.includeTicketLink": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include Linear ticket link in comment"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.x",
+    "@typescript-eslint/parser": "^6.x",
+    "eslint": "^8.x",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@linear/sdk": "^20.0.0"
+  }
+}
