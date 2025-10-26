@@ -58,6 +58,13 @@ class TraceabilityGenerator:
         re.MULTILINE
     )
 
+    # Map parsed levels to uppercase for consistency
+    LEVEL_MAP = {
+        'PRD': 'PRD',
+        'Ops': 'OPS',
+        'Dev': 'DEV'
+    }
+
     def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None):
         self.spec_dir = spec_dir
         self.requirements: Dict[str, Requirement] = {}
@@ -127,7 +134,8 @@ class TraceabilityGenerator:
             if not metadata_match:
                 continue
 
-            level = metadata_match.group(1)
+            level_raw = metadata_match.group(1)
+            level = self.LEVEL_MAP.get(level_raw, level_raw)  # Normalize to uppercase
             implements_str = metadata_match.group(2).strip()
             status = metadata_match.group(3)
 
@@ -585,8 +593,8 @@ class TraceabilityGenerator:
                 <select id="filterLevel" onchange="applyFilters()">
                     <option value="">All</option>
                     <option value="PRD">PRD</option>
-                    <option value="Ops">Ops</option>
-                    <option value="Dev">Dev</option>
+                    <option value="OPS">OPS</option>
+                    <option value="DEV">DEV</option>
                 </select>
             </div>
             <div class="filter-column">
