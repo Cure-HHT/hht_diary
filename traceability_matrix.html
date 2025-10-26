@@ -210,43 +210,58 @@
         .child-reqs.expanded {
             display: block;
         }
-        .filter-bar {
-            margin: 15px 0;
-            padding: 12px;
+        .filter-header {
+            display: grid;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 10px 8px 42px;
             background: #e9ecef;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .filter-column {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .filter-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filter-column input, .filter-column select {
+            padding: 3px 6px;
+            border: 1px solid #ced4da;
+            border-radius: 2px;
+            font-size: 11px;
+            background: white;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .filter-column input::placeholder {
+            color: #adb5bd;
+            font-size: 10px;
+        }
+        .filter-controls {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
             border-radius: 4px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             align-items: center;
-            flex-wrap: wrap;
-        }
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .filter-bar label {
-            font-size: 12px;
-            font-weight: 500;
-            color: #495057;
-        }
-        .filter-bar input, .filter-bar select {
-            padding: 4px 8px;
-            border: 1px solid #ced4da;
-            border-radius: 3px;
-            font-size: 12px;
-            background: white;
-        }
-        .filter-bar input {
-            width: 120px;
-        }
-        .filter-bar select {
-            width: 100px;
         }
         .filter-stats {
             margin-left: auto;
             font-size: 11px;
             color: #6c757d;
+            font-weight: 500;
         }
         .req-item.filtered-out {
             display: none !important;
@@ -279,7 +294,7 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 17:47:06</p>
+            <p><strong>Generated:</strong> 2025-10-25 17:49:43</p>
             <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
@@ -313,19 +328,26 @@
             </div>
         </div>
 
-        <div class="controls">
+        <div class="filter-controls">
             <button class="btn" onclick="expandAll()">▼ Expand All</button>
             <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
-            <span style="margin-left: auto; color: #666; font-size: 12px;">Click any requirement to expand/collapse its children</span>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+            <span class="filter-stats" id="filterStats"></span>
         </div>
 
-        <div class="filter-bar">
-            <div class="filter-group">
-                <label for="filterReqId">REQ ID:</label>
-                <input type="text" id="filterReqId" placeholder="e.g., p00001" oninput="applyFilters()">
+        <h2>Traceability Tree</h2>
+
+        <div class="filter-header">
+            <div class="filter-column">
+                <div class="filter-label">REQ ID</div>
+                <input type="text" id="filterReqId" placeholder="Filter..." oninput="applyFilters()">
             </div>
-            <div class="filter-group">
-                <label for="filterLevel">Level:</label>
+            <div class="filter-column">
+                <div class="filter-label">Title</div>
+                <input type="text" id="filterTopic" placeholder="Search title or topic..." oninput="applyFilters()">
+            </div>
+            <div class="filter-column">
+                <div class="filter-label">Level</div>
                 <select id="filterLevel" onchange="applyFilters()">
                     <option value="">All</option>
                     <option value="PRD">PRD</option>
@@ -333,12 +355,8 @@
                     <option value="Dev">Dev</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label for="filterTopic">Topic:</label>
-                <input type="text" id="filterTopic" placeholder="e.g., security" oninput="applyFilters()">
-            </div>
-            <div class="filter-group">
-                <label for="filterStatus">Status:</label>
+            <div class="filter-column">
+                <div class="filter-label">Status</div>
                 <select id="filterStatus" onchange="applyFilters()">
                     <option value="">All</option>
                     <option value="Active">Active</option>
@@ -346,11 +364,14 @@
                     <option value="Deprecated">Deprecated</option>
                 </select>
             </div>
-            <button class="btn btn-secondary" onclick="clearFilters()" style="padding: 4px 10px; font-size: 11px;">Clear</button>
-            <span class="filter-stats" id="filterStats"></span>
+            <div class="filter-column">
+                <div class="filter-label">Tests</div>
+            </div>
+            <div class="filter-column">
+                <div class="filter-label">Location</div>
+            </div>
         </div>
 
-        <h2>Traceability Tree</h2>
         <div class="req-tree" id="reqTree">
 
         <div class="req-item prd " data-req-id="p00001" data-level="PRD" data-topic="security" data-status="Active" data-title="complete multi-sponsor data separation">
