@@ -294,7 +294,7 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 17:54:11</p>
+            <p><strong>Generated:</strong> 2025-10-25 17:55:50</p>
             <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
@@ -2188,8 +2188,9 @@
                     matches = false;
                 }
 
-                // Topic filter (exact match on filename topic)
-                if (topicFilter && topic !== topicFilter) {
+                // Topic filter (matches topic and sub-topics)
+                // e.g., "security" matches "security", "security-RBAC", "security-RLS", etc.
+                if (topicFilter && topic !== topicFilter && !topic.startsWith(topicFilter + '-')) {
                     matches = false;
                 }
 

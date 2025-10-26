@@ -701,8 +701,9 @@ class TraceabilityGenerator:
                     matches = false;
                 }
 
-                // Topic filter (exact match on filename topic)
-                if (topicFilter && topic !== topicFilter) {
+                // Topic filter (matches topic and sub-topics)
+                // e.g., "security" matches "security", "security-RBAC", "security-RLS", etc.
+                if (topicFilter && topic !== topicFilter && !topic.startsWith(topicFilter + '-')) {
                     matches = false;
                 }
 
