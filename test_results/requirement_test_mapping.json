@@ -1,0 +1,333 @@
+{
+  "version": "1.0",
+  "generated": "2025-10-25T17:30:00Z",
+  "description": "Maps requirements to automated and manual tests",
+  "mappings": {
+    "p00001": {
+      "requirement_id": "p00001",
+      "requirement_title": "Complete Multi-Sponsor Data Separation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00002": {
+      "requirement_id": "p00002",
+      "requirement_title": "Multi-Factor Authentication for Staff",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00003": {
+      "requirement_id": "p00003",
+      "requirement_title": "Separate Database Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00004": {
+      "requirement_id": "p00004",
+      "requirement_title": "Immutable Audit Trail via Event Sourcing",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00005": {
+      "requirement_id": "p00005",
+      "requirement_title": "Role-Based Access Control",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00006": {
+      "requirement_id": "p00006",
+      "requirement_title": "Offline-First Data Entry",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00007": {
+      "requirement_id": "p00007",
+      "requirement_title": "Automatic Sponsor Configuration",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00008": {
+      "requirement_id": "p00008",
+      "requirement_title": "Single Mobile App for All Sponsors",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00009": {
+      "requirement_id": "p00009",
+      "requirement_title": "Sponsor-Specific Web Portals",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00010": {
+      "requirement_id": "p00010",
+      "requirement_title": "FDA 21 CFR Part 11 Compliance",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00011": {
+      "requirement_id": "p00011",
+      "requirement_title": "ALCOA+ Data Integrity Principles",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00012": {
+      "requirement_id": "p00012",
+      "requirement_title": "Clinical Data Retention Requirements",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00013": {
+      "requirement_id": "p00013",
+      "requirement_title": "Complete Data Change History",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00014": {
+      "requirement_id": "p00014",
+      "requirement_title": "Least Privilege Access",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00015": {
+      "requirement_id": "p00015",
+      "requirement_title": "Database-Level Access Enforcement",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00016": {
+      "requirement_id": "p00016",
+      "requirement_title": "Separation of Identity and Clinical Data",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00017": {
+      "requirement_id": "p00017",
+      "requirement_title": "Data Encryption",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "p00018": {
+      "requirement_id": "p00018",
+      "requirement_title": "Multi-Site Support Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00001": {
+      "requirement_id": "o00001",
+      "requirement_title": "Separate Supabase Projects Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00002": {
+      "requirement_id": "o00002",
+      "requirement_title": "Environment-Specific Configuration Management",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00003": {
+      "requirement_id": "o00003",
+      "requirement_title": "Supabase Project Provisioning Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00004": {
+      "requirement_id": "o00004",
+      "requirement_title": "Database Schema Deployment",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00005": {
+      "requirement_id": "o00005",
+      "requirement_title": "Audit Trail Monitoring",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00006": {
+      "requirement_id": "o00006",
+      "requirement_title": "MFA Configuration for Staff Accounts",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00007": {
+      "requirement_id": "o00007",
+      "requirement_title": "Role-Based Permission Configuration",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00008": {
+      "requirement_id": "o00008",
+      "requirement_title": "Backup and Retention Policy",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00009": {
+      "requirement_id": "o00009",
+      "requirement_title": "Portal Deployment Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00010": {
+      "requirement_id": "o00010",
+      "requirement_title": "Mobile App Release Process",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "o00011": {
+      "requirement_id": "o00011",
+      "requirement_title": "Multi-Site Data Configuration Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00001": {
+      "requirement_id": "d00001",
+      "requirement_title": "Sponsor-Specific Configuration Loading",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00002": {
+      "requirement_id": "d00002",
+      "requirement_title": "Pre-Build Configuration Validation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00003": {
+      "requirement_id": "d00003",
+      "requirement_title": "Supabase Auth Configuration Per Sponsor",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00004": {
+      "requirement_id": "d00004",
+      "requirement_title": "Local-First Data Entry Implementation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00005": {
+      "requirement_id": "d00005",
+      "requirement_title": "Sponsor Configuration Detection Implementation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00006": {
+      "requirement_id": "d00006",
+      "requirement_title": "Mobile App Build and Release Process",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00007": {
+      "requirement_id": "d00007",
+      "requirement_title": "Database Schema Implementation and Deployment",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00008": {
+      "requirement_id": "d00008",
+      "requirement_title": "MFA Enrollment and Verification Implementation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00009": {
+      "requirement_id": "d00009",
+      "requirement_title": "Role-Based Permission Enforcement Implementation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00010": {
+      "requirement_id": "d00010",
+      "requirement_title": "Data Encryption Implementation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    },
+    "d00011": {
+      "requirement_id": "d00011",
+      "requirement_title": "Multi-Site Schema Implementation",
+      "tests": [],
+      "manual_tests": [],
+      "coverage": "not_tested",
+      "notes": "No tests currently implemented"
+    }
+  },
+  "summary": {
+    "total_requirements": 39,
+    "tested_requirements": 0,
+    "untested_requirements": 39,
+    "coverage_percentage": 0.0
+  }
+}

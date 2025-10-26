@@ -21,10 +21,20 @@ Features:
 import re
 import sys
 import csv
+import json
 from pathlib import Path
-from typing import Dict, List, Set
-from dataclasses import dataclass
+from typing import Dict, List, Set, Optional
+from dataclasses import dataclass, field
 from datetime import datetime
+
+@dataclass
+class TestInfo:
+    """Represents test coverage for a requirement"""
+    test_count: int = 0
+    manual_test_count: int = 0
+    test_status: str = "not_tested"  # not_tested, passed, failed, error, skipped
+    test_details: List[Dict] = field(default_factory=list)
+    notes: str = ""
 
 @dataclass
 class Requirement:
@@ -36,6 +46,7 @@ class Requirement:
     status: str
     file_path: Path
     line_number: int
+    test_info: Optional[TestInfo] = None
 
 
 class TraceabilityGenerator:
@@ -47,9 +58,11 @@ class TraceabilityGenerator:
         re.MULTILINE
     )
 
-    def __init__(self, spec_dir: Path):
+    def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None):
         self.spec_dir = spec_dir
         self.requirements: Dict[str, Requirement] = {}
+        self.test_mapping_file = test_mapping_file
+        self.test_data: Dict[str, TestInfo] = {}
 
     def generate(self, format: str = 'markdown', output_file: Path = None):
         """Generate traceability matrix in specified format"""
@@ -61,6 +74,13 @@ class TraceabilityGenerator:
             return
 
         print(f"📋 Found {len(self.requirements)} requirements")
+
+        # Load test data if mapping file provided
+        if self.test_mapping_file and self.test_mapping_file.exists():
+            print(f"📊 Loading test results from {self.test_mapping_file}...")
+            self._load_test_data()
+        else:
+            print("⚠️  No test mapping file provided - all requirements marked as 'not tested'")
         print(f"📝 Generating {format.upper()} traceability matrix...")
 
         if format == 'html':
@@ -343,10 +363,24 @@ class TraceabilityGenerator:
             border-radius: 3px;
             font-size: 12px;
             font-weight: bold;
+            margin-right: 8px;
         }}
         .status-active {{ background: #d4edda; color: #155724; }}
         .status-draft {{ background: #fff3cd; color: #856404; }}
         .status-deprecated {{ background: #f8d7da; color: #721c24; }}
+        .test-badge {{
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
+        }}
+        .test-passed {{ background: #d4edda; color: #155724; }}
+        .test-failed {{ background: #f8d7da; color: #721c24; }}
+        .test-not-tested {{ background: #fff3cd; color: #856404; }}
+        .test-error {{ background: #f5c2c7; color: #842029; }}
+        .test-skipped {{ background: #e2e3e5; color: #41464b; }}
         .child-reqs {{
             margin-left: 30px;
             margin-top: 10px;
@@ -543,6 +577,21 @@ class TraceabilityGenerator:
         # Only show collapse icon if there are children
         collapse_icon = '▼' if children else ''
 
+        # Determine test status
+        test_badge = ''
+        if req.test_info:
+            test_status = req.test_info.test_status
+            test_count = req.test_info.test_count + req.test_info.manual_test_count
+
+            if test_status == 'passed':
+                test_badge = f'<span class="test-badge test-passed" title="{test_count} tests passed">✅ Tested ({test_count})</span>'
+            elif test_status == 'failed':
+                test_badge = f'<span class="test-badge test-failed" title="{test_count} tests, some failed">❌ Failed ({test_count})</span>'
+            elif test_status == 'not_tested':
+                test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>'
+        else:
+            test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡ Not Tested</span>'
+
         html = f"""
         <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}">
             <div class="req-header-container" onclick="toggleRequirement(this)">
@@ -553,6 +602,7 @@ class TraceabilityGenerator:
                     </div>
                     <div class="req-meta">
                         <span class="status-badge status-{status_class}">{req.status}</span>
+                        {test_badge}
                         Level: {req.level} |
                         File: {req.file_path.name}:{req.line_number}
                     </div>
@@ -568,6 +618,40 @@ class TraceabilityGenerator:
 
         html += '        </div>\n'
         return html
+
+    def _load_test_data(self):
+        """Load test coverage data from JSON mapping file"""
+        try:
+            with open(self.test_mapping_file, 'r') as f:
+                data = json.load(f)
+
+            mappings = data.get('mappings', {})
+
+            for req_id, test_data in mappings.items():
+                tests = test_data.get('tests', [])
+                manual_tests = test_data.get('manual_tests', [])
+                coverage = test_data.get('coverage', 'not_tested')
+                notes = test_data.get('notes', '')
+
+                test_info = TestInfo(
+                    test_count=len(tests),
+                    manual_test_count=len(manual_tests),
+                    test_status=coverage,
+                    test_details=tests + manual_tests,
+                    notes=notes
+                )
+
+                # Attach test info to requirement
+                if req_id in self.requirements:
+                    self.requirements[req_id].test_info = test_info
+
+            tested = sum(1 for r in self.requirements.values() if r.test_info and r.test_info.test_count > 0)
+            print(f"   ✅ Loaded test data for {len(mappings)} requirements")
+            print(f"   📊 Test coverage: {tested}/{len(self.requirements)} requirements have tests")
+
+        except Exception as e:
+            print(f"   ⚠️  Error loading test data: {e}")
+            print(f"   All requirements will be marked as 'not tested'")
 
     def _generate_csv(self) -> str:
         """Generate CSV traceability matrix"""
@@ -644,7 +728,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Generate requirements traceability matrix',
+        description='Generate requirements traceability matrix with test coverage',
         epilog='Tip: Use --format both to generate both markdown and HTML versions'
     )
     parser.add_argument(
@@ -658,6 +742,11 @@ def main():
         type=Path,
         help='Output file path (default: traceability_matrix.{format})'
     )
+    parser.add_argument(
+        '--test-mapping',
+        type=Path,
+        help='Path to requirement-test mapping JSON file (default: test_results/requirement_test_mapping.json)'
+    )
 
     args = parser.parse_args()
 
@@ -670,7 +759,14 @@ def main():
         print(f"❌ Spec directory not found: {spec_dir}")
         sys.exit(1)
 
-    generator = TraceabilityGenerator(spec_dir)
+    # Determine test mapping file
+    if args.test_mapping:
+        test_mapping_file = args.test_mapping
+    else:
+        # Default location
+        test_mapping_file = repo_root / 'test_results' / 'requirement_test_mapping.json'
+
+    generator = TraceabilityGenerator(spec_dir, test_mapping_file=test_mapping_file)
 
     # Handle 'both' format option
     if args.format == 'both':
