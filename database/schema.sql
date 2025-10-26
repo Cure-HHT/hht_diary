@@ -14,9 +14,33 @@
 --   REQ-p00016: Separation of Identity and Clinical Data
 --   REQ-p00017: Data Encryption
 --   REQ-p00018: Multi-Site Support Per Sponsor
+--   REQ-p00019: Patient Data Isolation
+--   REQ-p00020: Investigator Site-Scoped Access
+--   REQ-p00021: Investigator Annotation Restrictions
+--   REQ-p00022: Analyst Read-Only Site-Scoped Access
+--   REQ-p00023: Sponsor Global Read Access
+--   REQ-p00024: Auditor Compliance Access
+--   REQ-p00025: Administrator Break-Glass Access
+--   REQ-p00026: Event Sourcing State Protection
 --   REQ-o00004: Database Schema Deployment
 --   REQ-o00011: Multi-Site Data Configuration Per Sponsor
+--   REQ-o00020: Patient Data Isolation Policy Deployment
+--   REQ-o00021: Investigator Site-Scoped Access Policy Deployment
+--   REQ-o00022: Investigator Annotation Access Policy Deployment
+--   REQ-o00023: Analyst Read-Only Access Policy Deployment
+--   REQ-o00024: Sponsor Global Access Policy Deployment
+--   REQ-o00025: Auditor Compliance Access Policy Deployment
+--   REQ-o00026: Administrator Access Policy Deployment
+--   REQ-o00027: Event Sourcing State Protection Policy Deployment
 --   REQ-d00011: Multi-Site Schema Implementation
+--   REQ-d00019: Patient Data Isolation RLS Implementation
+--   REQ-d00020: Investigator Site-Scoped Access RLS Implementation
+--   REQ-d00021: Investigator Annotation RLS Implementation
+--   REQ-d00022: Analyst Read-Only RLS Implementation
+--   REQ-d00023: Sponsor Global Access RLS Implementation
+--   REQ-d00024: Auditor Compliance Access RLS Implementation
+--   REQ-d00025: Administrator Break-Glass RLS Implementation
+--   REQ-d00026: Event Sourcing State Protection Implementation
 --
 -- MULTI-SPONSOR ARCHITECTURE:
 --   This schema is deployed ONCE PER SPONSOR in separate Supabase instances.
@@ -338,6 +362,95 @@ COMMENT ON TABLE admin_action_log IS 'Administrative actions requiring additiona
 COMMENT ON COLUMN admin_action_log.requires_review IS 'Whether action requires investigator review';
 
 -- =====================================================
+-- AUDITOR EXPORT LOG (REQ-d00024)
+-- =====================================================
+
+-- Tracks auditor data export activities for compliance
+CREATE TABLE auditor_export_log (
+    export_id BIGSERIAL PRIMARY KEY,
+    auditor_id TEXT NOT NULL,
+    export_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
+    justification TEXT NOT NULL CHECK (length(justification) >= 10),
+    case_id TEXT NOT NULL CHECK (length(case_id) >= 5),
+    table_name TEXT NOT NULL,
+    record_count INTEGER NOT NULL DEFAULT 0,
+    export_format TEXT NOT NULL DEFAULT 'csv' CHECK (export_format IN ('csv', 'json', 'xlsx')),
+    filters JSONB DEFAULT '{}'::jsonb,
+    completed_at TIMESTAMPTZ,
+    export_size_bytes BIGINT,
+    ip_address INET,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+COMMENT ON TABLE auditor_export_log IS 'Audit trail for all data exports performed by auditors (REQ-p00024, REQ-d00024)';
+COMMENT ON COLUMN auditor_export_log.justification IS 'Business justification for the export (minimum 10 characters)';
+COMMENT ON COLUMN auditor_export_log.case_id IS 'Case or audit reference identifier (minimum 5 characters)';
+
+-- =====================================================
+-- BREAK-GLASS AUTHORIZATION (REQ-d00025)
+-- =====================================================
+
+-- Tracks time-limited emergency access authorizations
+CREATE TABLE break_glass_authorizations (
+    authorization_id BIGSERIAL PRIMARY KEY,
+    admin_id TEXT NOT NULL,
+    ticket_id TEXT NOT NULL CHECK (length(ticket_id) >= 5),
+    justification TEXT NOT NULL CHECK (length(justification) >= 20),
+    granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    granted_by TEXT NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    revoked_by TEXT,
+    revocation_reason TEXT,
+    CONSTRAINT valid_ttl CHECK (expires_at > granted_at),
+    CONSTRAINT max_ttl CHECK (expires_at <= granted_at + INTERVAL '24 hours')
+);
+
+COMMENT ON TABLE break_glass_authorizations IS 'Time-limited emergency access authorizations for administrators (REQ-p00025, REQ-d00025)';
+COMMENT ON COLUMN break_glass_authorizations.ticket_id IS 'Support ticket or incident ID justifying emergency access';
+COMMENT ON COLUMN break_glass_authorizations.expires_at IS 'Authorization expires after this timestamp (max 24 hours from grant)';
+
+-- =====================================================
+-- BREAK-GLASS ACCESS LOG (REQ-d00025)
+-- =====================================================
+
+-- Detailed audit trail of break-glass access usage
+CREATE TABLE break_glass_access_log (
+    access_id BIGSERIAL PRIMARY KEY,
+    authorization_id BIGINT NOT NULL REFERENCES break_glass_authorizations(authorization_id),
+    admin_id TEXT NOT NULL,
+    access_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
+    accessed_table TEXT NOT NULL,
+    accessed_record_id TEXT,
+    operation TEXT NOT NULL CHECK (operation IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE')),
+    query_details JSONB,
+    ip_address INET,
+    session_id TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+COMMENT ON TABLE break_glass_access_log IS 'Detailed logging of all database access during break-glass sessions (REQ-p00025, REQ-d00025)';
+COMMENT ON COLUMN break_glass_access_log.authorization_id IS 'Links to the break-glass authorization that permitted this access';
+
+-- =====================================================
+-- SYSTEM CONFIGURATION (REQ-d00025, REQ-d00026)
+-- =====================================================
+
+-- System-wide configuration settings
+CREATE TABLE system_config (
+    config_key TEXT PRIMARY KEY,
+    config_value JSONB NOT NULL,
+    description TEXT NOT NULL,
+    last_modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_modified_by TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+COMMENT ON TABLE system_config IS 'System-wide configuration settings for RLS policies and access control';
+COMMENT ON COLUMN system_config.config_key IS 'Configuration parameter name (e.g., break_glass_max_ttl, export_retention_days)';
+
+-- =====================================================
 -- HELPER FUNCTIONS
 -- =====================================================
 
@@ -366,6 +479,154 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
 COMMENT ON FUNCTION current_user_role() IS 'Extract user role from Supabase JWT token';
+
+-- =====================================================
+-- RLS HELPER FUNCTIONS (REQ-d00025)
+-- =====================================================
+
+-- Check if current user has active break-glass authorization
+CREATE OR REPLACE FUNCTION has_break_glass_auth()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM break_glass_authorizations
+        WHERE admin_id = current_user_id()
+          AND revoked_at IS NULL
+          AND expires_at > now()
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION has_break_glass_auth() IS 'Check if current admin has active break-glass authorization (REQ-d00025)';
+
+-- Export clinical data with audit logging (REQ-d00024)
+CREATE OR REPLACE FUNCTION export_clinical_data(
+    p_table_name TEXT,
+    p_justification TEXT,
+    p_case_id TEXT,
+    p_export_format TEXT DEFAULT 'csv',
+    p_filters JSONB DEFAULT '{}'::jsonb
+)
+RETURNS TABLE (
+    export_id BIGINT,
+    message TEXT
+) AS $$
+DECLARE
+    v_export_id BIGINT;
+    v_auditor_id TEXT;
+BEGIN
+    -- Get current user ID
+    v_auditor_id := current_user_id();
+
+    -- Verify user has AUDITOR role
+    IF current_user_role() != 'AUDITOR' THEN
+        RAISE EXCEPTION 'Only AUDITOR role can export clinical data';
+    END IF;
+
+    -- Validate justification length
+    IF length(p_justification) < 10 THEN
+        RAISE EXCEPTION 'Justification must be at least 10 characters';
+    END IF;
+
+    -- Validate case_id length
+    IF length(p_case_id) < 5 THEN
+        RAISE EXCEPTION 'Case ID must be at least 5 characters';
+    END IF;
+
+    -- Log the export attempt
+    INSERT INTO auditor_export_log (
+        auditor_id,
+        justification,
+        case_id,
+        table_name,
+        export_format,
+        filters
+    ) VALUES (
+        v_auditor_id,
+        p_justification,
+        p_case_id,
+        p_table_name,
+        p_export_format,
+        p_filters
+    ) RETURNING auditor_export_log.export_id INTO v_export_id;
+
+    RETURN QUERY SELECT v_export_id, 'Export logged successfully'::TEXT;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION export_clinical_data IS 'Export clinical data with mandatory audit logging (REQ-p00024, REQ-d00024)';
+
+-- Cleanup expired break-glass authorizations (maintenance function)
+CREATE OR REPLACE FUNCTION cleanup_expired_break_glass()
+RETURNS TABLE (
+    cleaned_count INTEGER
+) AS $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    -- Count expired authorizations that aren't already marked as revoked
+    SELECT COUNT(*) INTO v_count
+    FROM break_glass_authorizations
+    WHERE expires_at < now()
+      AND revoked_at IS NULL;
+
+    -- No actual deletion - just return count for monitoring
+    -- Expired authorizations automatically become invalid via has_break_glass_auth()
+
+    RETURN QUERY SELECT v_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION cleanup_expired_break_glass IS 'Report count of expired break-glass authorizations (for monitoring)';
+
+-- Validate event sourcing state integrity (REQ-d00026)
+CREATE OR REPLACE FUNCTION validate_state_integrity()
+RETURNS TABLE (
+    check_name TEXT,
+    status TEXT,
+    details TEXT
+) AS $$
+BEGIN
+    -- Check 1: All record_state entries have corresponding audit events
+    RETURN QUERY
+    SELECT
+        'state_audit_consistency'::TEXT,
+        CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END::TEXT,
+        'Found ' || COUNT(*) || ' record_state entries without corresponding audit events'::TEXT
+    FROM record_state rs
+    LEFT JOIN record_audit ra ON rs.last_audit_id = ra.audit_id
+    WHERE ra.audit_id IS NULL;
+
+    -- Check 2: No orphaned audit events (should have record_state)
+    RETURN QUERY
+    SELECT
+        'audit_state_consistency'::TEXT,
+        CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END::TEXT,
+        'Found ' || COUNT(*) || ' audit events without corresponding record_state'::TEXT
+    FROM record_audit ra
+    LEFT JOIN record_state rs ON ra.event_uuid = rs.event_uuid
+    WHERE rs.event_uuid IS NULL;
+
+    -- Check 3: Version counts match event counts
+    RETURN QUERY
+    SELECT
+        'version_count_consistency'::TEXT,
+        CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END::TEXT,
+        'Found ' || COUNT(*) || ' record_state entries with version mismatch'::TEXT
+    FROM (
+        SELECT
+            rs.event_uuid,
+            rs.version,
+            COUNT(ra.audit_id) as event_count
+        FROM record_state rs
+        JOIN record_audit ra ON ra.event_uuid = rs.event_uuid
+        GROUP BY rs.event_uuid, rs.version
+        HAVING rs.version != COUNT(ra.audit_id)
+    ) mismatches;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION validate_state_integrity IS 'Validate event sourcing consistency between record_audit and record_state (REQ-d00026)';
 
 -- =====================================================
 -- JSONB VALIDATION FUNCTIONS

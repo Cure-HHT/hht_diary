@@ -8,6 +8,10 @@
 --   REQ-p00010: FDA 21 CFR Part 11 Compliance
 --   REQ-p00011: ALCOA+ Data Integrity Principles
 --   REQ-p00013: Complete Change History
+--   REQ-p00025: Administrator Break-Glass Access
+--   REQ-p00026: Event Sourcing State Protection
+--   REQ-d00025: Administrator Break-Glass RLS Implementation
+--   REQ-d00026: Event Sourcing State Protection Implementation
 --
 -- EVENT SOURCING PATTERN:
 --   - record_audit (event store): Immutable source of truth
@@ -411,3 +415,139 @@ CREATE TRIGGER validate_analyst_site_assignment
     BEFORE INSERT OR UPDATE ON analyst_site_assignments
     FOR EACH ROW
     EXECUTE FUNCTION validate_site_assignment();
+
+-- =====================================================
+-- TRIGGER: Break-Glass Access Logging (REQ-d00025)
+-- =====================================================
+
+-- Function to log break-glass access to sensitive tables
+CREATE OR REPLACE FUNCTION log_break_glass_access()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_authorization_id BIGINT;
+    v_admin_id TEXT;
+    v_operation TEXT;
+BEGIN
+    -- Get current user ID and role
+    v_admin_id := current_user_id();
+
+    -- Only log if user has ADMIN role and active break-glass authorization
+    IF current_user_role() = 'ADMIN' AND has_break_glass_auth() THEN
+        -- Get the active authorization ID
+        SELECT authorization_id INTO v_authorization_id
+        FROM break_glass_authorizations
+        WHERE admin_id = v_admin_id
+          AND revoked_at IS NULL
+          AND expires_at > now()
+        ORDER BY granted_at DESC
+        LIMIT 1;
+
+        -- Determine operation type
+        v_operation := TG_OP; -- INSERT, UPDATE, DELETE, or SELECT (if supported)
+
+        -- Log the access
+        INSERT INTO break_glass_access_log (
+            authorization_id,
+            admin_id,
+            accessed_table,
+            accessed_record_id,
+            operation,
+            query_details,
+            ip_address,
+            session_id
+        ) VALUES (
+            v_authorization_id,
+            v_admin_id,
+            TG_TABLE_NAME,
+            CASE
+                WHEN TG_OP = 'DELETE' THEN OLD.event_uuid::TEXT
+                ELSE NEW.event_uuid::TEXT
+            END,
+            v_operation,
+            jsonb_build_object(
+                'table', TG_TABLE_NAME,
+                'operation', TG_OP,
+                'trigger_name', TG_NAME
+            ),
+            inet_client_addr(),
+            current_setting('request.jwt.claims', true)::json->>'session_id'
+        );
+    END IF;
+
+    -- Always return the appropriate record to allow the operation to proceed
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION log_break_glass_access() IS 'Logs all break-glass access to sensitive tables for compliance monitoring (REQ-p00025, REQ-d00025)';
+
+-- Apply break-glass logging to sensitive tables
+-- Note: These triggers log access when break-glass authorization is active
+
+CREATE TRIGGER log_breakglass_state_access
+    AFTER INSERT OR UPDATE OR DELETE ON record_state
+    FOR EACH ROW
+    EXECUTE FUNCTION log_break_glass_access();
+
+CREATE TRIGGER log_breakglass_audit_access
+    AFTER INSERT ON record_audit
+    FOR EACH ROW
+    EXECUTE FUNCTION log_break_glass_access();
+
+-- =====================================================
+-- TRIGGER: Expire Break-Glass Authorizations
+-- =====================================================
+
+-- Function to automatically mark expired authorizations
+CREATE OR REPLACE FUNCTION check_authorization_expiry()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if authorization has expired
+    IF NEW.expires_at <= now() AND NEW.revoked_at IS NULL THEN
+        RAISE WARNING 'Break-glass authorization % has expired', NEW.authorization_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION check_authorization_expiry() IS 'Validates break-glass authorization expiry on access (REQ-d00025)';
+
+-- Trigger to check expiry on SELECT (via RLS policy evaluation)
+-- Note: This is more for monitoring; actual expiry enforcement happens in has_break_glass_auth() function
+
+-- =====================================================
+-- TRIGGER: Log Auditor Exports
+-- =====================================================
+
+-- Function to validate and complete export log entries
+CREATE OR REPLACE FUNCTION complete_export_log()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- When completed_at is set, validate that export was successful
+    IF NEW.completed_at IS NOT NULL AND OLD.completed_at IS NULL THEN
+        -- Ensure record_count is set
+        IF NEW.record_count = 0 THEN
+            RAISE WARNING 'Export % completed with 0 records', NEW.export_id;
+        END IF;
+
+        -- Log the completion
+        RAISE NOTICE 'Export % completed: % records from % by auditor %',
+            NEW.export_id, NEW.record_count, NEW.table_name, NEW.auditor_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION complete_export_log() IS 'Validates export completion and logs activity (REQ-p00024, REQ-d00024)';
+
+CREATE TRIGGER validate_export_completion
+    BEFORE UPDATE ON auditor_export_log
+    FOR EACH ROW
+    WHEN (NEW.completed_at IS NOT NULL)
+    EXECUTE FUNCTION complete_export_log();

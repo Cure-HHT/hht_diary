@@ -7,7 +7,31 @@
 --   REQ-p00005: Role-Based Access Control
 --   REQ-p00014: Least Privilege Access
 --   REQ-p00015: Database-Level Access Enforcement
+--   REQ-p00019: Patient Data Isolation
+--   REQ-p00020: Investigator Site-Scoped Access
+--   REQ-p00021: Investigator Annotation Restrictions
+--   REQ-p00022: Analyst Read-Only Site-Scoped Access
+--   REQ-p00023: Sponsor Global Read Access
+--   REQ-p00024: Auditor Compliance Access
+--   REQ-p00025: Administrator Break-Glass Access
+--   REQ-p00026: Event Sourcing State Protection
 --   REQ-o00007: Role-Based Permission Configuration
+--   REQ-o00020: Patient Data Isolation Policy Deployment
+--   REQ-o00021: Investigator Site-Scoped Access Policy Deployment
+--   REQ-o00022: Investigator Annotation Access Policy Deployment
+--   REQ-o00023: Analyst Read-Only Access Policy Deployment
+--   REQ-o00024: Sponsor Global Access Policy Deployment
+--   REQ-o00025: Auditor Compliance Access Policy Deployment
+--   REQ-o00026: Administrator Access Policy Deployment
+--   REQ-o00027: Event Sourcing State Protection Policy Deployment
+--   REQ-d00019: Patient Data Isolation RLS Implementation
+--   REQ-d00020: Investigator Site-Scoped Access RLS Implementation
+--   REQ-d00021: Investigator Annotation RLS Implementation
+--   REQ-d00022: Analyst Read-Only RLS Implementation
+--   REQ-d00023: Sponsor Global Access RLS Implementation
+--   REQ-d00024: Auditor Compliance Access RLS Implementation
+--   REQ-d00025: Administrator Break-Glass RLS Implementation
+--   REQ-d00026: Event Sourcing State Protection Implementation
 --
 -- MULTI-SPONSOR CONTEXT:
 --   These RLS policies enforce SITE-LEVEL access control within a single sponsor.
@@ -15,10 +39,12 @@
 --   Each sponsor's database contains only their sites and users.
 --
 -- ROLE-BASED ACCESS:
---   - USER: Access only their own diary entries
---   - INVESTIGATOR: Access data for assigned sites within this sponsor
---   - ANALYST: Read-only access to assigned sites within this sponsor
---   - ADMIN: Full access to all data within this sponsor's database
+--   - USER: Access only their own diary entries (REQ-p00019)
+--   - INVESTIGATOR: Access data for assigned sites within this sponsor (REQ-p00020)
+--   - ANALYST: Read-only access to assigned sites within this sponsor (REQ-p00022)
+--   - SPONSOR: Read access to all data within this sponsor's database (REQ-p00023)
+--   - AUDITOR: Read access to all data including audit logs (REQ-p00024)
+--   - ADMIN: Full access with break-glass controls for PHI (REQ-p00025)
 --
 -- =====================================================
 
@@ -35,6 +61,10 @@ ALTER TABLE investigator_site_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analyst_site_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_conflicts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_action_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auditor_export_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE break_glass_authorizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE break_glass_access_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_config ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- SITES TABLE POLICIES
@@ -128,6 +158,18 @@ CREATE POLICY audit_admin_all ON record_audit
     USING (current_user_role() = 'ADMIN')
     WITH CHECK (current_user_role() = 'ADMIN');
 
+-- SPONSOR ROLE: Read-only access to all event store entries (REQ-d00023)
+CREATE POLICY audit_sponsor_select ON record_audit
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'SPONSOR');
+
+-- AUDITOR ROLE: Read-only access to all event store entries (REQ-d00024)
+CREATE POLICY audit_auditor_select ON record_audit
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'AUDITOR');
+
 -- =====================================================
 -- RECORD_STATE TABLE POLICIES (Read Model)
 -- =====================================================
@@ -193,6 +235,27 @@ CREATE POLICY state_admin_select ON record_state
     FOR SELECT
     TO authenticated
     USING (current_user_role() = 'ADMIN');
+
+-- ADMIN BREAK-GLASS: Full read access with break-glass authorization (REQ-d00025)
+CREATE POLICY state_admin_breakglass ON record_state
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'ADMIN'
+        AND has_break_glass_auth()
+    );
+
+-- SPONSOR ROLE: Read-only access to all current state (REQ-d00023)
+CREATE POLICY state_sponsor_select ON record_state
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'SPONSOR');
+
+-- AUDITOR ROLE: Read-only access to all current state including deleted (REQ-d00024)
+CREATE POLICY state_auditor_select ON record_state
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'AUDITOR');
 
 -- Backend service role can modify read model (for triggers)
 CREATE POLICY state_service_all ON record_state
@@ -424,6 +487,128 @@ CREATE POLICY admin_log_investigator_review ON admin_action_log
         current_user_role() = 'INVESTIGATOR'
         AND reviewed_by = current_user_id()
     );
+
+-- AUDITOR ROLE: Can view admin action log (REQ-d00024)
+CREATE POLICY admin_log_auditor_select ON admin_action_log
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'AUDITOR');
+
+-- SPONSOR ROLE: Can view admin action log (REQ-d00023)
+CREATE POLICY admin_log_sponsor_select ON admin_action_log
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'SPONSOR');
+
+-- =====================================================
+-- AUDITOR_EXPORT_LOG TABLE POLICIES (REQ-d00024)
+-- =====================================================
+
+-- AUDITOR ROLE: Can view and insert export logs
+CREATE POLICY export_log_auditor_select ON auditor_export_log
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'AUDITOR'
+        AND auditor_id = current_user_id()
+    );
+
+CREATE POLICY export_log_auditor_insert ON auditor_export_log
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        current_user_role() = 'AUDITOR'
+        AND auditor_id = current_user_id()
+    );
+
+-- ADMIN ROLE: Can view all export logs
+CREATE POLICY export_log_admin_select ON auditor_export_log
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'ADMIN');
+
+-- =====================================================
+-- BREAK_GLASS_AUTHORIZATIONS TABLE POLICIES (REQ-d00025)
+-- =====================================================
+
+-- ADMIN ROLE: Can view their own authorizations
+CREATE POLICY breakglass_admin_select ON break_glass_authorizations
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'ADMIN'
+        AND (admin_id = current_user_id() OR granted_by = current_user_id())
+    );
+
+-- ADMIN ROLE: Can insert authorizations (granting to others)
+CREATE POLICY breakglass_admin_insert ON break_glass_authorizations
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        current_user_role() = 'ADMIN'
+        AND granted_by = current_user_id()
+    );
+
+-- ADMIN ROLE: Can revoke authorizations they granted
+CREATE POLICY breakglass_admin_update ON break_glass_authorizations
+    FOR UPDATE
+    TO authenticated
+    USING (
+        current_user_role() = 'ADMIN'
+        AND granted_by = current_user_id()
+    )
+    WITH CHECK (
+        current_user_role() = 'ADMIN'
+        AND granted_by = current_user_id()
+    );
+
+-- AUDITOR ROLE: Can view all authorizations (REQ-d00024)
+CREATE POLICY breakglass_auditor_select ON break_glass_authorizations
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'AUDITOR');
+
+-- =====================================================
+-- BREAK_GLASS_ACCESS_LOG TABLE POLICIES (REQ-d00025)
+-- =====================================================
+
+-- ADMIN ROLE: Can view their own access log
+CREATE POLICY breakglass_log_admin_select ON break_glass_access_log
+    FOR SELECT
+    TO authenticated
+    USING (
+        current_user_role() = 'ADMIN'
+        AND admin_id = current_user_id()
+    );
+
+-- Service role can insert access logs (from triggers)
+CREATE POLICY breakglass_log_service_insert ON break_glass_access_log
+    FOR INSERT
+    TO service_role
+    WITH CHECK (true);
+
+-- AUDITOR ROLE: Can view all access logs (REQ-d00024)
+CREATE POLICY breakglass_log_auditor_select ON break_glass_access_log
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'AUDITOR');
+
+-- =====================================================
+-- SYSTEM_CONFIG TABLE POLICIES
+-- =====================================================
+
+-- ADMIN ROLE: Can view and modify system configuration
+CREATE POLICY config_admin_all ON system_config
+    FOR ALL
+    TO authenticated
+    USING (current_user_role() = 'ADMIN')
+    WITH CHECK (current_user_role() = 'ADMIN');
+
+-- AUDITOR ROLE: Can view system configuration (REQ-d00024)
+CREATE POLICY config_auditor_select ON system_config
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() = 'AUDITOR');
 
 -- =====================================================
 -- GRANT BASIC PERMISSIONS
