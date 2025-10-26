@@ -679,6 +679,9 @@ class TraceabilityGenerator:
             let visibleCount = 0;
             let totalCount = 0;
 
+            // Determine if we're filtering by level (flat view) or using hierarchical view
+            const isLevelFiltering = levelFilter !== '';
+
             // First pass: determine which items match the filter
             const matchedItems = new Set();
 
@@ -723,35 +726,48 @@ class TraceabilityGenerator:
                 }
             });
 
-            // Second pass: show matched items and their ancestors
-            document.querySelectorAll('.req-item').forEach(item => {
-                if (matchedItems.has(item)) {
-                    // This item matches - show it and all ancestors
-                    item.classList.remove('filtered-out');
-                    visibleCount++;
-
-                    // Show all ancestor req-items
-                    let parent = item.parentElement;
-                    while (parent) {
-                        if (parent.classList && parent.classList.contains('req-item')) {
-                            parent.classList.remove('filtered-out');
-                        }
-                        parent = parent.parentElement;
-                    }
-                } else {
-                    // Check if any descendant matches
-                    const hasMatchingDescendant = item.querySelectorAll('.req-item').length > 0 &&
-                        Array.from(item.querySelectorAll('.req-item')).some(child => matchedItems.has(child));
-
-                    if (hasMatchingDescendant) {
-                        // Keep this item visible to show hierarchy
+            // Second pass: apply visibility based on filtering mode
+            if (isLevelFiltering) {
+                // FLAT VIEW: When filtering by level, show only matching items (no hierarchy)
+                document.querySelectorAll('.req-item').forEach(item => {
+                    if (matchedItems.has(item)) {
                         item.classList.remove('filtered-out');
+                        visibleCount++;
                     } else {
-                        // No match and no matching descendants
                         item.classList.add('filtered-out');
                     }
-                }
-            });
+                });
+            } else {
+                // HIERARCHICAL VIEW: Show matched items and their ancestors/descendants
+                document.querySelectorAll('.req-item').forEach(item => {
+                    if (matchedItems.has(item)) {
+                        // This item matches - show it and all ancestors
+                        item.classList.remove('filtered-out');
+                        visibleCount++;
+
+                        // Show all ancestor req-items
+                        let parent = item.parentElement;
+                        while (parent) {
+                            if (parent.classList && parent.classList.contains('req-item')) {
+                                parent.classList.remove('filtered-out');
+                            }
+                            parent = parent.parentElement;
+                        }
+                    } else {
+                        // Check if any descendant matches
+                        const hasMatchingDescendant = item.querySelectorAll('.req-item').length > 0 &&
+                            Array.from(item.querySelectorAll('.req-item')).some(child => matchedItems.has(child));
+
+                        if (hasMatchingDescendant) {
+                            // Keep this item visible to show hierarchy
+                            item.classList.remove('filtered-out');
+                        } else {
+                            // No match and no matching descendants
+                            item.classList.add('filtered-out');
+                        }
+                    }
+                });
+            }
 
             // Update stats
             document.getElementById('filterStats').textContent =
