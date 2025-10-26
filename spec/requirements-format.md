@@ -371,6 +371,139 @@ No. Use requirements for:
 
 Simple implementation details don't need formal requirements.
 
+### When does a section need a REQ-ID?
+
+Sections need formal REQ-IDs when they define **mandatory system capabilities** using prescriptive language (SHALL/MUST). Sections that explain, describe benefits, or provide context do NOT need REQ-IDs.
+
+**Need REQ-ID** (Prescriptive):
+- "The system SHALL ensure..."
+- "Users MUST NOT be able to..."
+- "Access control SHALL enforce..."
+- Defines specific behavior that must be implemented
+- Contains acceptance criteria or testable conditions
+
+**No REQ-ID needed** (Descriptive/Explanatory):
+- "How It Works" sections explaining features to stakeholders
+- "Benefits" lists for users/sponsors
+- "What This Means" explanations
+- Summaries that reference existing REQs
+- Implementation notes that belong in dev-level docs
+
+---
+
+## Document Structure Standards
+
+### Heading Hierarchy in PRD Files
+
+PRD files SHALL follow this standardized heading structure:
+
+```markdown
+# Document Title
+
+## {Major Topic Section}
+High-level section divider (no REQs expected at this level)
+
+### REQ-pXXXXX: {Requirement Title}
+Formal product requirement with complete metadata
+
+**Level**: PRD | **Implements**: {parent-ids} | **Status**: Active
+[requirement body with SHALL/MUST language]
+**Rationale**: [why it exists]
+**Acceptance Criteria**: [testable conditions]
+
+---
+
+### {Explanatory Heading}
+Contextual explanation for stakeholders (no REQ-ID needed)
+- Describes how features work
+- Lists benefits
+- Provides examples
+
+#### {Sub-detail Heading}
+Implementation notes or additional context
+- Lower-level details
+- "How it works" mechanics
+- User-facing explanations
+
+---
+
+### REQ-pXXXXY: {Next Requirement}
+[next formal requirement...]
+```
+
+### Heading Level Guidelines
+
+| Level | Purpose | REQ-ID Required? | Example |
+|-------|---------|------------------|---------|
+| `#` | Document title | Never | `# Security Architecture` |
+| `##` | Major topic section | Never | `## User Authentication` |
+| `###` | Formal requirement OR explanatory section | Only if prescriptive | `### REQ-p00002: MFA for Staff`<br>or<br>`### How Users Log In` |
+| `####` | Sub-details, implementation notes | Never | `#### Password Requirements` |
+
+### Section Ordering Convention
+
+Within each major topic (`##`), organize as:
+
+1. **Formal requirements first** (### REQ-pXXXXX)
+2. **Explanatory sections second** (### heading without REQ)
+3. **Implementation details last** (#### subheadings)
+
+**Example**:
+
+```markdown
+## Access Control
+
+### REQ-p00005: Role-Based Access Control
+[formal requirement with SHALL/MUST]
+
+### REQ-p00014: Least Privilege Access
+[formal requirement with SHALL/MUST]
+
+### How Access Control Works
+[explanatory section describing the implementation]
+
+#### Example Scenarios
+[implementation examples]
+```
+
+### Separating Requirements from Explanations
+
+Use horizontal rules (`---`) to clearly separate formal requirements from explanatory content:
+
+```markdown
+### REQ-p00001: Complete Multi-Sponsor Data Separation
+[requirement body]
+**Rationale**: [...]
+**Acceptance Criteria**: [...]
+
+---
+
+### How Multi-Sponsor Isolation Works
+[explanatory content for stakeholders]
+```
+
+### Policy/Implementation Reference Pattern
+
+When implementation sections reference formal requirements (as in prd-security-RLS.md):
+
+```markdown
+### REQ-p00019: Patient Data Isolation
+[formal requirement]
+
+---
+
+### Policy Implementation Details
+
+#### Policy 1: Patient Data Isolation (Implements REQ-p00019)
+[technical implementation details, SQL policies, etc.]
+```
+
+This pattern:
+- Defines the WHAT (formal requirement)
+- Separates the HOW (implementation details)
+- Links implementation back to requirement
+- Keeps PRD readable for non-technical stakeholders
+
 ---
 
 ## References
