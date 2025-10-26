@@ -294,7 +294,7 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 18:36:00</p>
+            <p><strong>Generated:</strong> 2025-10-25 18:42:26</p>
             <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
@@ -2208,6 +2208,11 @@
             // Second pass: apply visibility based on filtering mode
             if (isLevelFiltering) {
                 // FLAT VIEW: When filtering by level, show only matching items (no hierarchy)
+                // Expand all child-reqs containers so nested items can be seen
+                document.querySelectorAll('.child-reqs').forEach(el => {
+                    el.classList.add('expanded');
+                });
+
                 document.querySelectorAll('.req-item').forEach(item => {
                     if (matchedItems.has(item)) {
                         item.classList.remove('filtered-out');

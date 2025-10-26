@@ -729,6 +729,11 @@ class TraceabilityGenerator:
             // Second pass: apply visibility based on filtering mode
             if (isLevelFiltering) {
                 // FLAT VIEW: When filtering by level, show only matching items (no hierarchy)
+                // Expand all child-reqs containers so nested items can be seen
+                document.querySelectorAll('.child-reqs').forEach(el => {
+                    el.classList.add('expanded');
+                });
+
                 document.querySelectorAll('.req-item').forEach(item => {
                     if (matchedItems.has(item)) {
                         item.classList.remove('filtered-out');
