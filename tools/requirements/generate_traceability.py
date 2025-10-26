@@ -170,8 +170,8 @@ class TraceabilityGenerator:
         by_level = self._count_by_level()
         lines.append("## Summary\n")
         lines.append(f"- **PRD Requirements**: {by_level['PRD']}")
-        lines.append(f"- **Ops Requirements**: {by_level['Ops']}")
-        lines.append(f"- **Dev Requirements**: {by_level['Dev']}\n")
+        lines.append(f"- **OPS Requirements**: {by_level['OPS']}")
+        lines.append(f"- **DEV Requirements**: {by_level['DEV']}\n")
 
         # Full traceability tree
         lines.append("## Traceability Tree\n")
@@ -364,6 +364,32 @@ class TraceabilityGenerator:
         .req-header-container:hover {{
             background: #f8f9fa;
         }}
+        /* Indentation based on hierarchy level (20px per level) */
+        .req-item[data-indent="0"] .req-header-container {{
+            padding-left: 10px;
+        }}
+        .req-item[data-indent="1"] .req-header-container {{
+            padding-left: 30px;
+        }}
+        .req-item[data-indent="2"] .req-header-container {{
+            padding-left: 50px;
+        }}
+        .req-item[data-indent="3"] .req-header-container {{
+            padding-left: 70px;
+        }}
+        .req-item[data-indent="4"] .req-header-container {{
+            padding-left: 90px;
+        }}
+        .req-item[data-indent="5"] .req-header-container {{
+            padding-left: 110px;
+        }}
+        /* Cap indent at level 5 for any deeper nesting */
+        .req-item[data-indent="6"] .req-header-container,
+        .req-item[data-indent="7"] .req-header-container,
+        .req-item[data-indent="8"] .req-header-container,
+        .req-item[data-indent="9"] .req-header-container {{
+            padding-left: 110px;
+        }}
         .collapse-icon {{
             font-size: 10px;
             color: #6c757d;
@@ -443,14 +469,9 @@ class TraceabilityGenerator:
         .test-not-tested {{ background: #fff3cd; color: #856404; }}
         .test-error {{ background: #f5c2c7; color: #842029; }}
         .test-skipped {{ background: #e2e3e5; color: #41464b; }}
-        .child-reqs {{
-            margin-left: 20px;
-            border-left: 1px solid #dee2e6;
-            padding-left: 10px;
+        /* Collapsed items hidden via class */
+        .req-item.collapsed-by-parent {{
             display: none;
-        }}
-        .child-reqs.expanded {{
-            display: block;
         }}
         .filter-header {{
             display: grid;
@@ -546,12 +567,12 @@ class TraceabilityGenerator:
                 <div class="number">{by_level['PRD']}</div>
             </div>
             <div class="summary-card">
-                <h3>Ops Level</h3>
-                <div class="number">{by_level['Ops']}</div>
+                <h3>OPS Level</h3>
+                <div class="number">{by_level['OPS']}</div>
             </div>
             <div class="summary-card">
-                <h3>Dev Level</h3>
-                <div class="number">{by_level['Dev']}</div>
+                <h3>DEV Level</h3>
+                <div class="number">{by_level['DEV']}</div>
             </div>
         </div>
 
@@ -626,32 +647,61 @@ class TraceabilityGenerator:
         <div class="req-tree" id="reqTree">
 """
 
-        # Add requirements tree
-        prd_reqs = [req for req in self.requirements.values() if req.level == 'PRD']
-        prd_reqs.sort(key=lambda r: r.id)
-
-        for prd_req in prd_reqs:
-            html += self._format_req_tree_html_collapsible(prd_req)
+        # Add requirements as flat list (hierarchy via indentation)
+        flat_list = self._build_flat_requirement_list()
+        for req_data in flat_list:
+            html += self._format_req_flat_html(req_data)
 
         html += """        </div>
     </div>
 
     <script>
-        // Toggle a single requirement's children
+        // Track collapsed state for each requirement instance
+        const collapsedInstances = new Set();
+
+        // Toggle a single requirement instance's children
         function toggleRequirement(element) {
-            const childReqs = element.nextElementSibling;
+            const item = element.closest('.req-item');
+            const instanceId = item.dataset.instanceId;
             const icon = element.querySelector('.collapse-icon');
 
-            if (childReqs && childReqs.classList.contains('child-reqs')) {
-                childReqs.classList.toggle('expanded');
-                icon.classList.toggle('collapsed');
+            if (!icon.textContent) return; // No children to collapse
+
+            if (collapsedInstances.has(instanceId)) {
+                // Expand
+                collapsedInstances.delete(instanceId);
+                icon.classList.remove('collapsed');
+                showDescendants(instanceId);
+            } else {
+                // Collapse
+                collapsedInstances.add(instanceId);
+                icon.classList.add('collapsed');
+                hideDescendants(instanceId);
             }
+        }
+
+        // Hide all descendants of a requirement instance
+        function hideDescendants(parentInstanceId) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                child.classList.add('collapsed-by-parent');
+                // Recursively hide descendants' descendants
+                hideDescendants(child.dataset.instanceId);
+            });
+        }
+
+        // Show immediate children of a requirement instance only (not grandchildren)
+        function showDescendants(parentInstanceId) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                child.classList.remove('collapsed-by-parent');
+                // Do NOT recursively show grandchildren - they stay hidden until their parent is expanded
+            });
         }
 
         // Expand all requirements
         function expandAll() {
-            document.querySelectorAll('.child-reqs').forEach(el => {
-                el.classList.add('expanded');
+            collapsedInstances.clear();
+            document.querySelectorAll('.req-item').forEach(item => {
+                item.classList.remove('collapsed-by-parent');
             });
             document.querySelectorAll('.collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
@@ -660,15 +710,16 @@ class TraceabilityGenerator:
 
         // Collapse all requirements
         function collapseAll() {
-            document.querySelectorAll('.child-reqs').forEach(el => {
-                el.classList.remove('expanded');
-            });
-            document.querySelectorAll('.collapse-icon').forEach(el => {
-                el.classList.add('collapsed');
+            document.querySelectorAll('.req-item').forEach(item => {
+                if (item.querySelector('.collapse-icon').textContent) {
+                    collapsedInstances.add(item.dataset.instanceId);
+                    hideDescendants(item.dataset.instanceId);
+                    item.querySelector('.collapse-icon').classList.add('collapsed');
+                }
             });
         }
 
-        // Apply filters
+        // Apply filters (simple flat filtering with duplicate detection)
         function applyFilters() {
             const reqIdFilter = document.getElementById('filterReqId').value.toLowerCase().trim();
             const titleFilter = document.getElementById('filterTitle').value.toLowerCase().trim();
@@ -676,15 +727,14 @@ class TraceabilityGenerator:
             const statusFilter = document.getElementById('filterStatus').value;
             const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
 
+            // Check if any filter is active
+            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter;
+
             let visibleCount = 0;
             let totalCount = 0;
+            const seenReqIds = new Set();  // Track which req IDs we've already shown
 
-            // Determine if we're filtering by level (flat view) or using hierarchical view
-            const isLevelFiltering = levelFilter !== '';
-
-            // First pass: determine which items match the filter
-            const matchedItems = new Set();
-
+            // Simple iteration: show/hide each item based on filters
             document.querySelectorAll('.req-item').forEach(item => {
                 totalCount++;
                 const reqId = item.dataset.reqId.toLowerCase();
@@ -695,84 +745,36 @@ class TraceabilityGenerator:
 
                 let matches = true;
 
-                // REQ ID filter
-                if (reqIdFilter && !reqId.includes(reqIdFilter)) {
-                    matches = false;
-                }
+                // Apply all filters
+                if (reqIdFilter && !reqId.includes(reqIdFilter)) matches = false;
+                if (titleFilter && !title.includes(titleFilter)) matches = false;
+                if (levelFilter && level !== levelFilter) matches = false;
+                if (statusFilter && status !== statusFilter) matches = false;
 
-                // Title filter (searches in title text)
-                if (titleFilter && !title.includes(titleFilter)) {
-                    matches = false;
-                }
-
-                // Level filter
-                if (levelFilter && level !== levelFilter) {
-                    matches = false;
-                }
-
-                // Status filter
-                if (statusFilter && status !== statusFilter) {
-                    matches = false;
-                }
-
-                // Topic filter (matches topic and sub-topics)
-                // e.g., "security" matches "security", "security-RBAC", "security-RLS", etc.
+                // Topic filter: matches exact topic or hierarchical sub-topics
+                // e.g., "security" matches "security", "security-RBAC", "security-RLS"
                 if (topicFilter && topic !== topicFilter && !topic.startsWith(topicFilter + '-')) {
                     matches = false;
                 }
 
+                // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
+                if (matches && anyFilterActive && seenReqIds.has(reqId)) {
+                    matches = false;  // Hide duplicate
+                }
+
+                // Simple show/hide - no hierarchy complexity!
                 if (matches) {
-                    matchedItems.add(item);
+                    item.classList.remove('filtered-out');
+                    // If any filter is active, ignore collapse state and show matching items
+                    if (anyFilterActive) {
+                        item.classList.remove('collapsed-by-parent');
+                        seenReqIds.add(reqId);  // Mark this req ID as shown
+                    }
+                    visibleCount++;
+                } else {
+                    item.classList.add('filtered-out');
                 }
             });
-
-            // Second pass: apply visibility based on filtering mode
-            if (isLevelFiltering) {
-                // FLAT VIEW: When filtering by level, show only matching items (no hierarchy)
-                // Expand all child-reqs containers so nested items can be seen
-                document.querySelectorAll('.child-reqs').forEach(el => {
-                    el.classList.add('expanded');
-                });
-
-                document.querySelectorAll('.req-item').forEach(item => {
-                    if (matchedItems.has(item)) {
-                        item.classList.remove('filtered-out');
-                        visibleCount++;
-                    } else {
-                        item.classList.add('filtered-out');
-                    }
-                });
-            } else {
-                // HIERARCHICAL VIEW: Show matched items and their ancestors/descendants
-                document.querySelectorAll('.req-item').forEach(item => {
-                    if (matchedItems.has(item)) {
-                        // This item matches - show it and all ancestors
-                        item.classList.remove('filtered-out');
-                        visibleCount++;
-
-                        // Show all ancestor req-items
-                        let parent = item.parentElement;
-                        while (parent) {
-                            if (parent.classList && parent.classList.contains('req-item')) {
-                                parent.classList.remove('filtered-out');
-                            }
-                            parent = parent.parentElement;
-                        }
-                    } else {
-                        // Check if any descendant matches
-                        const hasMatchingDescendant = item.querySelectorAll('.req-item').length > 0 &&
-                            Array.from(item.querySelectorAll('.req-item')).some(child => matchedItems.has(child));
-
-                        if (hasMatchingDescendant) {
-                            // Keep this item visible to show hierarchy
-                            item.classList.remove('filtered-out');
-                        } else {
-                            // No match and no matching descendants
-                            item.classList.add('filtered-out');
-                        }
-                    }
-                });
-            }
 
             // Update stats
             document.getElementById('filterStats').textContent =
@@ -789,14 +791,20 @@ class TraceabilityGenerator:
             applyFilters();
         }
 
-        // Initialize with top-level expanded
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Expand only top-level (PRD) requirements by default
-            document.querySelectorAll('.req-tree > .req-item > .child-reqs').forEach(el => {
-                el.classList.add('expanded');
-            });
-            document.querySelectorAll('.req-tree > .req-item .collapse-icon').forEach(el => {
-                el.classList.remove('collapsed');
+            // Start with everything collapsed except top level
+            // First, hide all children of all items with children
+            document.querySelectorAll('.req-item').forEach(item => {
+                const instanceId = item.dataset.instanceId;
+                const icon = item.querySelector('.collapse-icon');
+
+                if (icon && icon.textContent) {
+                    // This item has children - collapse it
+                    collapsedInstances.add(instanceId);
+                    hideDescendants(instanceId);
+                    icon.classList.add('collapsed');
+                }
             });
 
             // Initialize filter stats
@@ -805,6 +813,98 @@ class TraceabilityGenerator:
     </script>
 </body>
 </html>
+"""
+        return html
+
+    def _build_flat_requirement_list(self) -> List[dict]:
+        """Build a flat list of requirements with hierarchy information"""
+        flat_list = []
+        self._instance_counter = 0  # Track unique instance IDs
+
+        # Start with top-level PRD requirements
+        prd_reqs = [req for req in self.requirements.values() if req.level == 'PRD']
+        prd_reqs.sort(key=lambda r: r.id)
+
+        for prd_req in prd_reqs:
+            self._add_requirement_and_children(prd_req, flat_list, indent=0, parent_instance_id='')
+
+        return flat_list
+
+    def _add_requirement_and_children(self, req: Requirement, flat_list: List[dict], indent: int, parent_instance_id: str):
+        """Recursively add requirement and its children to flat list"""
+        # Generate unique instance ID for this occurrence
+        instance_id = f"inst_{self._instance_counter}"
+        self._instance_counter += 1
+
+        # Find children
+        children = [
+            r for r in self.requirements.values()
+            if req.id in r.implements
+        ]
+        children.sort(key=lambda r: r.id)
+
+        # Add this requirement
+        flat_list.append({
+            'req': req,
+            'indent': indent,
+            'instance_id': instance_id,
+            'parent_instance_id': parent_instance_id,
+            'has_children': len(children) > 0
+        })
+
+        # Recursively add children
+        for child in children:
+            self._add_requirement_and_children(child, flat_list, indent + 1, instance_id)
+
+    def _format_req_flat_html(self, req_data: dict) -> str:
+        """Format a single requirement as flat HTML row"""
+        req = req_data['req']
+        indent = req_data['indent']
+        instance_id = req_data['instance_id']
+        parent_instance_id = req_data['parent_instance_id']
+        has_children = req_data['has_children']
+
+        status_class = req.status.lower()
+        level_class = req.level.lower()
+
+        # Only show collapse icon if there are children
+        collapse_icon = '▼' if has_children else ''
+
+        # Determine test status
+        test_badge = ''
+        if req.test_info:
+            test_status = req.test_info.test_status
+            test_count = req.test_info.test_count + req.test_info.manual_test_count
+
+            if test_status == 'passed':
+                test_badge = f'<span class="test-badge test-passed" title="{test_count} tests passed">✅ {test_count}</span>'
+            elif test_status == 'failed':
+                test_badge = f'<span class="test-badge test-failed" title="{test_count} tests, some failed">❌ {test_count}</span>'
+            elif test_status == 'not_tested':
+                test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡</span>'
+        else:
+            test_badge = '<span class="test-badge test-not-tested" title="No tests implemented">⚡</span>'
+
+        # Extract topic from filename
+        topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
+
+        # Build HTML for single flat row with unique instance ID
+        html = f"""
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}">
+            <div class="req-header-container" onclick="toggleRequirement(this)">
+                <span class="collapse-icon">{collapse_icon}</span>
+                <div class="req-content">
+                    <div class="req-id">REQ-{req.id}</div>
+                    <div class="req-header">{req.title}</div>
+                    <div class="req-level">{req.level}</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-{status_class}">{req.status}</span>
+                    </div>
+                    <div class="req-status">{test_badge}</div>
+                    <div class="req-location">{req.file_path.name}:{req.line_number}</div>
+                </div>
+            </div>
+        </div>
 """
         return html
 
@@ -977,7 +1077,7 @@ class TraceabilityGenerator:
 
     def _count_by_level(self) -> Dict[str, int]:
         """Count requirements by level"""
-        counts = {'PRD': 0, 'Ops': 0, 'Dev': 0}
+        counts = {'PRD': 0, 'OPS': 0, 'DEV': 0}
         for req in self.requirements.values():
             if req.status == 'Active':  # Only count active requirements
                 counts[req.level] = counts.get(req.level, 0) + 1

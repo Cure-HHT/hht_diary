@@ -122,6 +122,32 @@
         .req-header-container:hover {
             background: #f8f9fa;
         }
+        /* Indentation based on hierarchy level (20px per level) */
+        .req-item[data-indent="0"] .req-header-container {
+            padding-left: 10px;
+        }
+        .req-item[data-indent="1"] .req-header-container {
+            padding-left: 30px;
+        }
+        .req-item[data-indent="2"] .req-header-container {
+            padding-left: 50px;
+        }
+        .req-item[data-indent="3"] .req-header-container {
+            padding-left: 70px;
+        }
+        .req-item[data-indent="4"] .req-header-container {
+            padding-left: 90px;
+        }
+        .req-item[data-indent="5"] .req-header-container {
+            padding-left: 110px;
+        }
+        /* Cap indent at level 5 for any deeper nesting */
+        .req-item[data-indent="6"] .req-header-container,
+        .req-item[data-indent="7"] .req-header-container,
+        .req-item[data-indent="8"] .req-header-container,
+        .req-item[data-indent="9"] .req-header-container {
+            padding-left: 110px;
+        }
         .collapse-icon {
             font-size: 10px;
             color: #6c757d;
@@ -201,14 +227,9 @@
         .test-not-tested { background: #fff3cd; color: #856404; }
         .test-error { background: #f5c2c7; color: #842029; }
         .test-skipped { background: #e2e3e5; color: #41464b; }
-        .child-reqs {
-            margin-left: 20px;
-            border-left: 1px solid #dee2e6;
-            padding-left: 10px;
+        /* Collapsed items hidden via class */
+        .req-item.collapsed-by-parent {
             display: none;
-        }
-        .child-reqs.expanded {
-            display: block;
         }
         .filter-header {
             display: grid;
@@ -294,7 +315,7 @@
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
-            <p><strong>Generated:</strong> 2025-10-25 18:42:26</p>
+            <p><strong>Generated:</strong> 2025-10-25 20:02:19</p>
             <p><strong>Total Requirements:</strong> 39</p>
         </div>
 
@@ -304,12 +325,12 @@
                 <div class="number">18</div>
             </div>
             <div class="summary-card">
-                <h3>Ops Level</h3>
-                <div class="number">0</div>
+                <h3>OPS Level</h3>
+                <div class="number">10</div>
             </div>
             <div class="summary-card">
-                <h3>Dev Level</h3>
-                <div class="number">0</div>
+                <h3>DEV Level</h3>
+                <div class="number">11</div>
             </div>
         </div>
 
@@ -391,7 +412,7 @@
 
         <div class="req-tree" id="reqTree">
 
-        <div class="req-item prd " data-req-id="p00001" data-level="PRD" data-topic="security" data-status="Active" data-title="complete multi-sponsor data separation">
+        <div class="req-item prd " data-req-id="p00001" data-instance-id="inst_0" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security" data-status="Active" data-title="complete multi-sponsor data separation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -405,9 +426,9 @@
                     <div class="req-location">prd-security.md:32</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00001" data-level="OPS" data-topic="deployment" data-status="Active" data-title="separate supabase projects per sponsor">
+        <div class="req-item ops " data-req-id="o00001" data-instance-id="inst_1" data-level="OPS" data-indent="1" data-parent-instance-id="inst_0" data-topic="deployment" data-status="Active" data-title="separate supabase projects per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -421,9 +442,9 @@
                     <div class="req-location">ops-deployment.md:320</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00001" data-level="DEV" data-topic="configuration" data-status="Active" data-title="sponsor-specific configuration loading">
+        <div class="req-item dev " data-req-id="d00001" data-instance-id="inst_2" data-level="DEV" data-indent="2" data-parent-instance-id="inst_1" data-topic="configuration" data-status="Active" data-title="sponsor-specific configuration loading">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -439,7 +460,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00003" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
+        <div class="req-item ops " data-req-id="o00003" data-instance-id="inst_3" data-level="OPS" data-indent="2" data-parent-instance-id="inst_1" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -453,9 +474,9 @@
                     <div class="req-location">ops-database-setup.md:57</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00003" data-level="DEV" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
+        <div class="req-item dev " data-req-id="d00003" data-instance-id="inst_4" data-level="DEV" data-indent="3" data-parent-instance-id="inst_3" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -470,12 +491,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item ops " data-req-id="o00002" data-level="OPS" data-topic="deployment" data-status="Active" data-title="environment-specific configuration management">
+        <div class="req-item ops " data-req-id="o00002" data-instance-id="inst_5" data-level="OPS" data-indent="1" data-parent-instance-id="inst_0" data-topic="deployment" data-status="Active" data-title="environment-specific configuration management">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -489,9 +506,9 @@
                     <div class="req-location">ops-deployment.md:344</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00001" data-level="DEV" data-topic="configuration" data-status="Active" data-title="sponsor-specific configuration loading">
+        <div class="req-item dev " data-req-id="d00001" data-instance-id="inst_6" data-level="DEV" data-indent="2" data-parent-instance-id="inst_5" data-topic="configuration" data-status="Active" data-title="sponsor-specific configuration loading">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -507,7 +524,7 @@
             </div>
         </div>
 
-        <div class="req-item dev " data-req-id="d00002" data-level="DEV" data-topic="configuration" data-status="Active" data-title="pre-build configuration validation">
+        <div class="req-item dev " data-req-id="d00002" data-instance-id="inst_7" data-level="DEV" data-indent="2" data-parent-instance-id="inst_5" data-topic="configuration" data-status="Active" data-title="pre-build configuration validation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -522,10 +539,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00003" data-level="PRD" data-topic="database" data-status="Active" data-title="separate database per sponsor">
+        <div class="req-item prd " data-req-id="p00003" data-instance-id="inst_8" data-level="PRD" data-indent="1" data-parent-instance-id="inst_0" data-topic="database" data-status="Active" data-title="separate database per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -539,9 +554,9 @@
                     <div class="req-location">prd-database.md:88</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00003" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
+        <div class="req-item ops " data-req-id="o00003" data-instance-id="inst_9" data-level="OPS" data-indent="2" data-parent-instance-id="inst_8" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -555,9 +570,9 @@
                     <div class="req-location">ops-database-setup.md:57</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00003" data-level="DEV" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
+        <div class="req-item dev " data-req-id="d00003" data-instance-id="inst_10" data-level="DEV" data-indent="3" data-parent-instance-id="inst_9" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -572,10 +587,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_11" data-level="OPS" data-indent="2" data-parent-instance-id="inst_8" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -589,9 +602,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_12" data-level="DEV" data-indent="3" data-parent-instance-id="inst_11" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -606,12 +619,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00007" data-level="PRD" data-topic="app" data-status="Active" data-title="automatic sponsor configuration">
+        <div class="req-item prd " data-req-id="p00007" data-instance-id="inst_13" data-level="PRD" data-indent="1" data-parent-instance-id="inst_0" data-topic="app" data-status="Active" data-title="automatic sponsor configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -625,9 +634,9 @@
                     <div class="req-location">prd-app.md:29</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00005" data-level="DEV" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
+        <div class="req-item dev " data-req-id="d00005" data-instance-id="inst_14" data-level="DEV" data-indent="2" data-parent-instance-id="inst_13" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -642,10 +651,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00008" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="single mobile app for all sponsors">
+        <div class="req-item prd " data-req-id="p00008" data-instance-id="inst_15" data-level="PRD" data-indent="1" data-parent-instance-id="inst_0" data-topic="architecture-multi-sponsor" data-status="Active" data-title="single mobile app for all sponsors">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -659,9 +666,9 @@
                     <div class="req-location">prd-architecture-multi-sponsor.md:36</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00005" data-level="DEV" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
+        <div class="req-item dev " data-req-id="d00005" data-instance-id="inst_16" data-level="DEV" data-indent="2" data-parent-instance-id="inst_15" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -677,7 +684,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00010" data-level="OPS" data-topic="deployment" data-status="Active" data-title="mobile app release process">
+        <div class="req-item ops " data-req-id="o00010" data-instance-id="inst_17" data-level="OPS" data-indent="2" data-parent-instance-id="inst_15" data-topic="deployment" data-status="Active" data-title="mobile app release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -691,9 +698,9 @@
                     <div class="req-location">ops-deployment.md:604</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00006" data-level="DEV" data-topic="app" data-status="Active" data-title="mobile app build and release process">
+        <div class="req-item dev " data-req-id="d00006" data-instance-id="inst_18" data-level="DEV" data-indent="3" data-parent-instance-id="inst_17" data-topic="app" data-status="Active" data-title="mobile app build and release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -708,12 +715,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00009" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="sponsor-specific web portals">
+        <div class="req-item prd " data-req-id="p00009" data-instance-id="inst_19" data-level="PRD" data-indent="1" data-parent-instance-id="inst_0" data-topic="architecture-multi-sponsor" data-status="Active" data-title="sponsor-specific web portals">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -727,9 +730,9 @@
                     <div class="req-location">prd-architecture-multi-sponsor.md:60</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00009" data-level="OPS" data-topic="deployment" data-status="Active" data-title="portal deployment per sponsor">
+        <div class="req-item ops " data-req-id="o00009" data-instance-id="inst_20" data-level="OPS" data-indent="2" data-parent-instance-id="inst_19" data-topic="deployment" data-status="Active" data-title="portal deployment per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -744,12 +747,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00002" data-level="PRD" data-topic="security" data-status="Active" data-title="multi-factor authentication for staff">
+        <div class="req-item prd " data-req-id="p00002" data-instance-id="inst_21" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security" data-status="Active" data-title="multi-factor authentication for staff">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -763,9 +762,9 @@
                     <div class="req-location">prd-security.md:73</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00003" data-level="DEV" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
+        <div class="req-item dev " data-req-id="d00003" data-instance-id="inst_22" data-level="DEV" data-indent="1" data-parent-instance-id="inst_21" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -781,7 +780,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00006" data-level="OPS" data-topic="security-authentication" data-status="Active" data-title="mfa configuration for staff accounts">
+        <div class="req-item ops " data-req-id="o00006" data-instance-id="inst_23" data-level="OPS" data-indent="1" data-parent-instance-id="inst_21" data-topic="security-authentication" data-status="Active" data-title="mfa configuration for staff accounts">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -795,9 +794,9 @@
                     <div class="req-location">ops-security-authentication.md:6</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00008" data-level="DEV" data-topic="security" data-status="Active" data-title="mfa enrollment and verification implementation">
+        <div class="req-item dev " data-req-id="d00008" data-instance-id="inst_24" data-level="DEV" data-indent="2" data-parent-instance-id="inst_23" data-topic="security" data-status="Active" data-title="mfa enrollment and verification implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -812,12 +811,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00003" data-level="PRD" data-topic="database" data-status="Active" data-title="separate database per sponsor">
+        <div class="req-item prd " data-req-id="p00003" data-instance-id="inst_25" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="database" data-status="Active" data-title="separate database per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -831,9 +826,9 @@
                     <div class="req-location">prd-database.md:88</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00003" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
+        <div class="req-item ops " data-req-id="o00003" data-instance-id="inst_26" data-level="OPS" data-indent="1" data-parent-instance-id="inst_25" data-topic="database-setup" data-status="Active" data-title="supabase project provisioning per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -847,9 +842,9 @@
                     <div class="req-location">ops-database-setup.md:57</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00003" data-level="DEV" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
+        <div class="req-item dev " data-req-id="d00003" data-instance-id="inst_27" data-level="DEV" data-indent="2" data-parent-instance-id="inst_26" data-topic="security" data-status="Active" data-title="supabase auth configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -864,10 +859,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_28" data-level="OPS" data-indent="1" data-parent-instance-id="inst_25" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -881,9 +874,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_29" data-level="DEV" data-indent="2" data-parent-instance-id="inst_28" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -898,12 +891,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00004" data-level="PRD" data-topic="database-event-sourcing" data-status="Active" data-title="immutable audit trail via event sourcing">
+        <div class="req-item prd " data-req-id="p00004" data-instance-id="inst_30" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="database-event-sourcing" data-status="Active" data-title="immutable audit trail via event sourcing">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -917,9 +906,9 @@
                     <div class="req-location">prd-database-event-sourcing.md:74</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_31" data-level="OPS" data-indent="1" data-parent-instance-id="inst_30" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -933,9 +922,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_32" data-level="DEV" data-indent="2" data-parent-instance-id="inst_31" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -950,10 +939,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_33" data-level="PRD" data-indent="1" data-parent-instance-id="inst_30" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -967,9 +954,9 @@
                     <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_34" data-level="OPS" data-indent="2" data-parent-instance-id="inst_33" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -983,9 +970,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_35" data-level="DEV" data-indent="3" data-parent-instance-id="inst_34" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1000,14 +987,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00005" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="role-based access control">
+        <div class="req-item prd " data-req-id="p00005" data-instance-id="inst_36" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RBAC" data-status="Active" data-title="role-based access control">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1021,9 +1002,9 @@
                     <div class="req-location">prd-security-RBAC.md:36</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_37" data-level="OPS" data-indent="1" data-parent-instance-id="inst_36" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1037,9 +1018,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_38" data-level="DEV" data-indent="2" data-parent-instance-id="inst_37" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1054,10 +1035,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00014" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
+        <div class="req-item prd " data-req-id="p00014" data-instance-id="inst_39" data-level="PRD" data-indent="1" data-parent-instance-id="inst_36" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1071,9 +1050,9 @@
                     <div class="req-location">prd-security-RBAC.md:60</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_40" data-level="OPS" data-indent="2" data-parent-instance-id="inst_39" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1087,9 +1066,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_41" data-level="DEV" data-indent="3" data-parent-instance-id="inst_40" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1104,10 +1083,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_42" data-level="PRD" data-indent="2" data-parent-instance-id="inst_39" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1121,9 +1098,9 @@
                     <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_43" data-level="OPS" data-indent="3" data-parent-instance-id="inst_42" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1137,9 +1114,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_44" data-level="DEV" data-indent="4" data-parent-instance-id="inst_43" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1154,14 +1131,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_45" data-level="PRD" data-indent="1" data-parent-instance-id="inst_36" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1175,9 +1146,9 @@
                     <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_46" data-level="OPS" data-indent="2" data-parent-instance-id="inst_45" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1191,9 +1162,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_47" data-level="DEV" data-indent="3" data-parent-instance-id="inst_46" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1208,14 +1179,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00006" data-level="PRD" data-topic="app" data-status="Active" data-title="offline-first data entry">
+        <div class="req-item prd " data-req-id="p00006" data-instance-id="inst_48" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="app" data-status="Active" data-title="offline-first data entry">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1229,9 +1194,9 @@
                     <div class="req-location">prd-app.md:87</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00004" data-level="DEV" data-topic="app" data-status="Active" data-title="local-first data entry implementation">
+        <div class="req-item dev " data-req-id="d00004" data-instance-id="inst_49" data-level="DEV" data-indent="1" data-parent-instance-id="inst_48" data-topic="app" data-status="Active" data-title="local-first data entry implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1246,10 +1211,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00007" data-level="PRD" data-topic="app" data-status="Active" data-title="automatic sponsor configuration">
+        <div class="req-item prd " data-req-id="p00007" data-instance-id="inst_50" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="app" data-status="Active" data-title="automatic sponsor configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1263,9 +1226,9 @@
                     <div class="req-location">prd-app.md:29</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00005" data-level="DEV" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
+        <div class="req-item dev " data-req-id="d00005" data-instance-id="inst_51" data-level="DEV" data-indent="1" data-parent-instance-id="inst_50" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1280,10 +1243,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00008" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="single mobile app for all sponsors">
+        <div class="req-item prd " data-req-id="p00008" data-instance-id="inst_52" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="architecture-multi-sponsor" data-status="Active" data-title="single mobile app for all sponsors">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1297,9 +1258,9 @@
                     <div class="req-location">prd-architecture-multi-sponsor.md:36</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00005" data-level="DEV" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
+        <div class="req-item dev " data-req-id="d00005" data-instance-id="inst_53" data-level="DEV" data-indent="1" data-parent-instance-id="inst_52" data-topic="app" data-status="Active" data-title="sponsor configuration detection implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1315,7 +1276,7 @@
             </div>
         </div>
 
-        <div class="req-item ops " data-req-id="o00010" data-level="OPS" data-topic="deployment" data-status="Active" data-title="mobile app release process">
+        <div class="req-item ops " data-req-id="o00010" data-instance-id="inst_54" data-level="OPS" data-indent="1" data-parent-instance-id="inst_52" data-topic="deployment" data-status="Active" data-title="mobile app release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1329,9 +1290,9 @@
                     <div class="req-location">ops-deployment.md:604</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00006" data-level="DEV" data-topic="app" data-status="Active" data-title="mobile app build and release process">
+        <div class="req-item dev " data-req-id="d00006" data-instance-id="inst_55" data-level="DEV" data-indent="2" data-parent-instance-id="inst_54" data-topic="app" data-status="Active" data-title="mobile app build and release process">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1346,12 +1307,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00009" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="sponsor-specific web portals">
+        <div class="req-item prd " data-req-id="p00009" data-instance-id="inst_56" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="architecture-multi-sponsor" data-status="Active" data-title="sponsor-specific web portals">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1365,9 +1322,9 @@
                     <div class="req-location">prd-architecture-multi-sponsor.md:60</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00009" data-level="OPS" data-topic="deployment" data-status="Active" data-title="portal deployment per sponsor">
+        <div class="req-item ops " data-req-id="o00009" data-instance-id="inst_57" data-level="OPS" data-indent="1" data-parent-instance-id="inst_56" data-topic="deployment" data-status="Active" data-title="portal deployment per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1382,10 +1339,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00010" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="fda 21 cfr part 11 compliance">
+        <div class="req-item prd " data-req-id="p00010" data-instance-id="inst_58" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="fda 21 cfr part 11 compliance">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1399,9 +1354,9 @@
                     <div class="req-location">prd-clinical-trials.md:47</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item prd " data-req-id="p00011" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
+        <div class="req-item prd " data-req-id="p00011" data-instance-id="inst_59" data-level="PRD" data-indent="1" data-parent-instance-id="inst_58" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1415,9 +1370,9 @@
                     <div class="req-location">prd-clinical-trials.md:74</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_60" data-level="PRD" data-indent="2" data-parent-instance-id="inst_59" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1431,9 +1386,9 @@
                     <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_61" data-level="OPS" data-indent="3" data-parent-instance-id="inst_60" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1447,9 +1402,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_62" data-level="DEV" data-indent="4" data-parent-instance-id="inst_61" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1464,14 +1419,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00012" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
+        <div class="req-item prd " data-req-id="p00012" data-instance-id="inst_63" data-level="PRD" data-indent="1" data-parent-instance-id="inst_58" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1485,9 +1434,9 @@
                     <div class="req-location">prd-clinical-trials.md:102</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00008" data-level="OPS" data-topic="operations" data-status="Active" data-title="backup and retention policy">
+        <div class="req-item ops " data-req-id="o00008" data-instance-id="inst_64" data-level="OPS" data-indent="2" data-parent-instance-id="inst_63" data-topic="operations" data-status="Active" data-title="backup and retention policy">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1502,10 +1451,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_65" data-level="PRD" data-indent="1" data-parent-instance-id="inst_58" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1519,9 +1466,9 @@
                     <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_66" data-level="OPS" data-indent="2" data-parent-instance-id="inst_65" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1535,9 +1482,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_67" data-level="DEV" data-indent="3" data-parent-instance-id="inst_66" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1552,12 +1499,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00014" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
+        <div class="req-item prd " data-req-id="p00014" data-instance-id="inst_68" data-level="PRD" data-indent="1" data-parent-instance-id="inst_58" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1571,9 +1514,9 @@
                     <div class="req-location">prd-security-RBAC.md:60</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_69" data-level="OPS" data-indent="2" data-parent-instance-id="inst_68" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1587,9 +1530,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_70" data-level="DEV" data-indent="3" data-parent-instance-id="inst_69" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1604,10 +1547,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_71" data-level="PRD" data-indent="2" data-parent-instance-id="inst_68" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1621,9 +1562,9 @@
                     <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_72" data-level="OPS" data-indent="3" data-parent-instance-id="inst_71" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1637,9 +1578,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_73" data-level="DEV" data-indent="4" data-parent-instance-id="inst_72" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1654,16 +1595,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00011" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
+        <div class="req-item prd " data-req-id="p00011" data-instance-id="inst_74" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="alcoa+ data integrity principles">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1677,9 +1610,9 @@
                     <div class="req-location">prd-clinical-trials.md:74</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_75" data-level="PRD" data-indent="1" data-parent-instance-id="inst_74" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1693,9 +1626,9 @@
                     <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_76" data-level="OPS" data-indent="2" data-parent-instance-id="inst_75" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1709,9 +1642,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_77" data-level="DEV" data-indent="3" data-parent-instance-id="inst_76" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1726,14 +1659,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00012" data-level="PRD" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
+        <div class="req-item prd " data-req-id="p00012" data-instance-id="inst_78" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="clinical-trials" data-status="Active" data-title="clinical data retention requirements">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1747,9 +1674,9 @@
                     <div class="req-location">prd-clinical-trials.md:102</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00008" data-level="OPS" data-topic="operations" data-status="Active" data-title="backup and retention policy">
+        <div class="req-item ops " data-req-id="o00008" data-instance-id="inst_79" data-level="OPS" data-indent="1" data-parent-instance-id="inst_78" data-topic="operations" data-status="Active" data-title="backup and retention policy">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1764,10 +1691,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00013" data-level="PRD" data-topic="database" data-status="Active" data-title="complete data change history">
+        <div class="req-item prd " data-req-id="p00013" data-instance-id="inst_80" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="database" data-status="Active" data-title="complete data change history">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1781,9 +1706,9 @@
                     <div class="req-location">prd-database.md:40</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00004" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
+        <div class="req-item ops " data-req-id="o00004" data-instance-id="inst_81" data-level="OPS" data-indent="1" data-parent-instance-id="inst_80" data-topic="database-setup" data-status="Active" data-title="database schema deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1797,9 +1722,9 @@
                     <div class="req-location">ops-database-setup.md:128</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00007" data-level="DEV" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
+        <div class="req-item dev " data-req-id="d00007" data-instance-id="inst_82" data-level="DEV" data-indent="2" data-parent-instance-id="inst_81" data-topic="database" data-status="Active" data-title="database schema implementation and deployment">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1814,12 +1739,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00014" data-level="PRD" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
+        <div class="req-item prd " data-req-id="p00014" data-instance-id="inst_83" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RBAC" data-status="Active" data-title="least privilege access">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1833,9 +1754,9 @@
                     <div class="req-location">prd-security-RBAC.md:60</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_84" data-level="OPS" data-indent="1" data-parent-instance-id="inst_83" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1849,9 +1770,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_85" data-level="DEV" data-indent="2" data-parent-instance-id="inst_84" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1866,10 +1787,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_86" data-level="PRD" data-indent="1" data-parent-instance-id="inst_83" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1883,9 +1802,9 @@
                     <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_87" data-level="OPS" data-indent="2" data-parent-instance-id="inst_86" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1899,9 +1818,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_88" data-level="DEV" data-indent="3" data-parent-instance-id="inst_87" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1916,14 +1835,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00015" data-level="PRD" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
+        <div class="req-item prd " data-req-id="p00015" data-instance-id="inst_89" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-RLS" data-status="Active" data-title="database-level access enforcement">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1937,9 +1850,9 @@
                     <div class="req-location">prd-security-RLS.md:56</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00007" data-level="OPS" data-topic="security" data-status="Active" data-title="role-based permission configuration">
+        <div class="req-item ops " data-req-id="o00007" data-instance-id="inst_90" data-level="OPS" data-indent="1" data-parent-instance-id="inst_89" data-topic="security" data-status="Active" data-title="role-based permission configuration">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1953,9 +1866,9 @@
                     <div class="req-location">ops-security.md:125</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00009" data-level="DEV" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
+        <div class="req-item dev " data-req-id="d00009" data-instance-id="inst_91" data-level="DEV" data-indent="2" data-parent-instance-id="inst_90" data-topic="security" data-status="Active" data-title="role-based permission enforcement implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -1970,12 +1883,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00016" data-level="PRD" data-topic="security-data-classification" data-status="Active" data-title="separation of identity and clinical data">
+        <div class="req-item prd " data-req-id="p00016" data-instance-id="inst_92" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-data-classification" data-status="Active" data-title="separation of identity and clinical data">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -1989,9 +1898,9 @@
                     <div class="req-location">prd-security-data-classification.md:57</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item prd " data-req-id="p00017" data-level="PRD" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
+        <div class="req-item prd " data-req-id="p00017" data-instance-id="inst_93" data-level="PRD" data-indent="1" data-parent-instance-id="inst_92" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -2005,9 +1914,9 @@
                     <div class="req-location">prd-security-data-classification.md:81</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00010" data-level="DEV" data-topic="security" data-status="Active" data-title="data encryption implementation">
+        <div class="req-item dev " data-req-id="d00010" data-instance-id="inst_94" data-level="DEV" data-indent="2" data-parent-instance-id="inst_93" data-topic="security" data-status="Active" data-title="data encryption implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -2022,12 +1931,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00017" data-level="PRD" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
+        <div class="req-item prd " data-req-id="p00017" data-instance-id="inst_95" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="security-data-classification" data-status="Active" data-title="data encryption">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -2041,9 +1946,9 @@
                     <div class="req-location">prd-security-data-classification.md:81</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00010" data-level="DEV" data-topic="security" data-status="Active" data-title="data encryption implementation">
+        <div class="req-item dev " data-req-id="d00010" data-instance-id="inst_96" data-level="DEV" data-indent="1" data-parent-instance-id="inst_95" data-topic="security" data-status="Active" data-title="data encryption implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -2058,10 +1963,8 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
 
-        <div class="req-item prd " data-req-id="p00018" data-level="PRD" data-topic="architecture-multi-sponsor" data-status="Active" data-title="multi-site support per sponsor">
+        <div class="req-item prd " data-req-id="p00018" data-instance-id="inst_97" data-level="PRD" data-indent="0" data-parent-instance-id="" data-topic="architecture-multi-sponsor" data-status="Active" data-title="multi-site support per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -2075,9 +1978,9 @@
                     <div class="req-location">prd-architecture-multi-sponsor.md:110</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item ops " data-req-id="o00011" data-level="OPS" data-topic="database-setup" data-status="Active" data-title="multi-site data configuration per sponsor">
+        <div class="req-item ops " data-req-id="o00011" data-instance-id="inst_98" data-level="OPS" data-indent="1" data-parent-instance-id="inst_97" data-topic="database-setup" data-status="Active" data-title="multi-site data configuration per sponsor">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">▼</span>
                 <div class="req-content">
@@ -2091,9 +1994,9 @@
                     <div class="req-location">ops-database-setup.md:153</div>
                 </div>
             </div>
-            <div class="child-reqs">
+        </div>
 
-        <div class="req-item dev " data-req-id="d00011" data-level="DEV" data-topic="database" data-status="Active" data-title="multi-site schema implementation">
+        <div class="req-item dev " data-req-id="d00011" data-instance-id="inst_99" data-level="DEV" data-indent="2" data-parent-instance-id="inst_98" data-topic="database" data-status="Active" data-title="multi-site schema implementation">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon"></span>
                 <div class="req-content">
@@ -2108,29 +2011,56 @@
                 </div>
             </div>
         </div>
-            </div>
-        </div>
-            </div>
-        </div>
         </div>
     </div>
 
     <script>
-        // Toggle a single requirement's children
+        // Track collapsed state for each requirement instance
+        const collapsedInstances = new Set();
+
+        // Toggle a single requirement instance's children
         function toggleRequirement(element) {
-            const childReqs = element.nextElementSibling;
+            const item = element.closest('.req-item');
+            const instanceId = item.dataset.instanceId;
             const icon = element.querySelector('.collapse-icon');
 
-            if (childReqs && childReqs.classList.contains('child-reqs')) {
-                childReqs.classList.toggle('expanded');
-                icon.classList.toggle('collapsed');
+            if (!icon.textContent) return; // No children to collapse
+
+            if (collapsedInstances.has(instanceId)) {
+                // Expand
+                collapsedInstances.delete(instanceId);
+                icon.classList.remove('collapsed');
+                showDescendants(instanceId);
+            } else {
+                // Collapse
+                collapsedInstances.add(instanceId);
+                icon.classList.add('collapsed');
+                hideDescendants(instanceId);
             }
+        }
+
+        // Hide all descendants of a requirement instance
+        function hideDescendants(parentInstanceId) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                child.classList.add('collapsed-by-parent');
+                // Recursively hide descendants' descendants
+                hideDescendants(child.dataset.instanceId);
+            });
+        }
+
+        // Show immediate children of a requirement instance only (not grandchildren)
+        function showDescendants(parentInstanceId) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                child.classList.remove('collapsed-by-parent');
+                // Do NOT recursively show grandchildren - they stay hidden until their parent is expanded
+            });
         }
 
         // Expand all requirements
         function expandAll() {
-            document.querySelectorAll('.child-reqs').forEach(el => {
-                el.classList.add('expanded');
+            collapsedInstances.clear();
+            document.querySelectorAll('.req-item').forEach(item => {
+                item.classList.remove('collapsed-by-parent');
             });
             document.querySelectorAll('.collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
@@ -2139,15 +2069,16 @@
 
         // Collapse all requirements
         function collapseAll() {
-            document.querySelectorAll('.child-reqs').forEach(el => {
-                el.classList.remove('expanded');
-            });
-            document.querySelectorAll('.collapse-icon').forEach(el => {
-                el.classList.add('collapsed');
+            document.querySelectorAll('.req-item').forEach(item => {
+                if (item.querySelector('.collapse-icon').textContent) {
+                    collapsedInstances.add(item.dataset.instanceId);
+                    hideDescendants(item.dataset.instanceId);
+                    item.querySelector('.collapse-icon').classList.add('collapsed');
+                }
             });
         }
 
-        // Apply filters
+        // Apply filters (simple flat filtering with duplicate detection)
         function applyFilters() {
             const reqIdFilter = document.getElementById('filterReqId').value.toLowerCase().trim();
             const titleFilter = document.getElementById('filterTitle').value.toLowerCase().trim();
@@ -2155,15 +2086,14 @@
             const statusFilter = document.getElementById('filterStatus').value;
             const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
 
+            // Check if any filter is active
+            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter;
+
             let visibleCount = 0;
             let totalCount = 0;
+            const seenReqIds = new Set();  // Track which req IDs we've already shown
 
-            // Determine if we're filtering by level (flat view) or using hierarchical view
-            const isLevelFiltering = levelFilter !== '';
-
-            // First pass: determine which items match the filter
-            const matchedItems = new Set();
-
+            // Simple iteration: show/hide each item based on filters
             document.querySelectorAll('.req-item').forEach(item => {
                 totalCount++;
                 const reqId = item.dataset.reqId.toLowerCase();
@@ -2174,84 +2104,36 @@
 
                 let matches = true;
 
-                // REQ ID filter
-                if (reqIdFilter && !reqId.includes(reqIdFilter)) {
-                    matches = false;
-                }
+                // Apply all filters
+                if (reqIdFilter && !reqId.includes(reqIdFilter)) matches = false;
+                if (titleFilter && !title.includes(titleFilter)) matches = false;
+                if (levelFilter && level !== levelFilter) matches = false;
+                if (statusFilter && status !== statusFilter) matches = false;
 
-                // Title filter (searches in title text)
-                if (titleFilter && !title.includes(titleFilter)) {
-                    matches = false;
-                }
-
-                // Level filter
-                if (levelFilter && level !== levelFilter) {
-                    matches = false;
-                }
-
-                // Status filter
-                if (statusFilter && status !== statusFilter) {
-                    matches = false;
-                }
-
-                // Topic filter (matches topic and sub-topics)
-                // e.g., "security" matches "security", "security-RBAC", "security-RLS", etc.
+                // Topic filter: matches exact topic or hierarchical sub-topics
+                // e.g., "security" matches "security", "security-RBAC", "security-RLS"
                 if (topicFilter && topic !== topicFilter && !topic.startsWith(topicFilter + '-')) {
                     matches = false;
                 }
 
+                // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
+                if (matches && anyFilterActive && seenReqIds.has(reqId)) {
+                    matches = false;  // Hide duplicate
+                }
+
+                // Simple show/hide - no hierarchy complexity!
                 if (matches) {
-                    matchedItems.add(item);
+                    item.classList.remove('filtered-out');
+                    // If any filter is active, ignore collapse state and show matching items
+                    if (anyFilterActive) {
+                        item.classList.remove('collapsed-by-parent');
+                        seenReqIds.add(reqId);  // Mark this req ID as shown
+                    }
+                    visibleCount++;
+                } else {
+                    item.classList.add('filtered-out');
                 }
             });
-
-            // Second pass: apply visibility based on filtering mode
-            if (isLevelFiltering) {
-                // FLAT VIEW: When filtering by level, show only matching items (no hierarchy)
-                // Expand all child-reqs containers so nested items can be seen
-                document.querySelectorAll('.child-reqs').forEach(el => {
-                    el.classList.add('expanded');
-                });
-
-                document.querySelectorAll('.req-item').forEach(item => {
-                    if (matchedItems.has(item)) {
-                        item.classList.remove('filtered-out');
-                        visibleCount++;
-                    } else {
-                        item.classList.add('filtered-out');
-                    }
-                });
-            } else {
-                // HIERARCHICAL VIEW: Show matched items and their ancestors/descendants
-                document.querySelectorAll('.req-item').forEach(item => {
-                    if (matchedItems.has(item)) {
-                        // This item matches - show it and all ancestors
-                        item.classList.remove('filtered-out');
-                        visibleCount++;
-
-                        // Show all ancestor req-items
-                        let parent = item.parentElement;
-                        while (parent) {
-                            if (parent.classList && parent.classList.contains('req-item')) {
-                                parent.classList.remove('filtered-out');
-                            }
-                            parent = parent.parentElement;
-                        }
-                    } else {
-                        // Check if any descendant matches
-                        const hasMatchingDescendant = item.querySelectorAll('.req-item').length > 0 &&
-                            Array.from(item.querySelectorAll('.req-item')).some(child => matchedItems.has(child));
-
-                        if (hasMatchingDescendant) {
-                            // Keep this item visible to show hierarchy
-                            item.classList.remove('filtered-out');
-                        } else {
-                            // No match and no matching descendants
-                            item.classList.add('filtered-out');
-                        }
-                    }
-                });
-            }
 
             // Update stats
             document.getElementById('filterStats').textContent =
@@ -2268,14 +2150,20 @@
             applyFilters();
         }
 
-        // Initialize with top-level expanded
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Expand only top-level (PRD) requirements by default
-            document.querySelectorAll('.req-tree > .req-item > .child-reqs').forEach(el => {
-                el.classList.add('expanded');
-            });
-            document.querySelectorAll('.req-tree > .req-item .collapse-icon').forEach(el => {
-                el.classList.remove('collapsed');
+            // Start with everything collapsed except top level
+            // First, hide all children of all items with children
+            document.querySelectorAll('.req-item').forEach(item => {
+                const instanceId = item.dataset.instanceId;
+                const icon = item.querySelector('.collapse-icon');
+
+                if (icon && icon.textContent) {
+                    // This item has children - collapse it
+                    collapsedInstances.add(instanceId);
+                    hideDescendants(instanceId);
+                    icon.classList.add('collapsed');
+                }
             });
 
             // Initialize filter stats
