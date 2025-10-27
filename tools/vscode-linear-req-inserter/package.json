@@ -4,6 +4,11 @@
   "description": "Insert requirement references from Linear in-progress tickets into your code",
   "version": "0.1.0",
   "publisher": "clinical-diary",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/diary",
+    "directory": "tools/vscode-linear-req-inserter"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
