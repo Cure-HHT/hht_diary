@@ -1,7 +1,7 @@
 # Requirements Traceability Matrix
 
-**Generated**: 2025-10-27 08:35:39
-**Total Requirements**: 75
+**Generated**: 2025-10-27 12:21:59
+**Total Requirements**: 95
 
 ## Summary
 
@@ -71,9 +71,75 @@
   - ✅ **REQ-p00009**: Sponsor-Specific Web Portals
     - Level: PRD | Status: Active
     - File: prd-architecture-multi-sponsor.md:60
+    - 🚧 **REQ-d00028**: Portal Frontend Framework
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:90
+    - 🚧 **REQ-d00029**: Portal UI Design System
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:161
+    - 🚧 **REQ-d00030**: Portal Routing and Navigation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:218
+    - 🚧 **REQ-d00031**: Supabase Authentication Integration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:318
+      - 🚧 **REQ-d00034**: Login Page Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:535
+    - 🚧 **REQ-d00033**: Site-Based Data Isolation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:472
+      - 🚧 **REQ-d00040**: User Site Access Table Schema
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:2493
+    - 🚧 **REQ-d00034**: Login Page Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:535
+    - 🚧 **REQ-d00035**: Admin Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:699
+    - 🚧 **REQ-d00039**: Portal Users Table Schema
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2394
+    - 🚧 **REQ-d00040**: User Site Access Table Schema
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2493
+    - 🚧 **REQ-d00041**: Patients Table Extensions for Portal
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2570
+    - 🚧 **REQ-d00042**: Questionnaires Table Schema
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2697
     - ✅ **REQ-o00009**: Portal Deployment Per Sponsor
       - Level: OPS | Status: Active
       - File: ops-deployment.md:811
+      - 🚧 **REQ-d00043**: Netlify Deployment Configuration
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:2810
+    - 🚧 **REQ-p00027**: Questionnaire Management
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:140
+      - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:1269
+    - 🚧 **REQ-p00028**: Token Revocation and Access Control
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:180
+      - 🚧 **REQ-d00031**: Supabase Authentication Integration
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:318
+        - 🚧 **REQ-d00034**: Login Page Implementation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:535
+      - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:434
+    - 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:219
+      - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:2012
 - ✅ **REQ-p00002**: Multi-Factor Authentication for Staff
   - Level: PRD | Status: Active
   - File: prd-security.md:57
@@ -122,12 +188,21 @@
   - ✅ **REQ-p00026**: Event Sourcing State Protection
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:270
+    - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:1269
     - ✅ **REQ-o00027**: Event Sourcing State Protection Policy Deployment
       - Level: OPS | Status: Active
       - File: ops-security-RLS.md:197
       - ✅ **REQ-d00026**: Event Sourcing State Protection RLS Implementation
         - Level: DEV | Status: Active
         - File: dev-security-RLS.md:674
+  - 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:219
+    - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2012
 - ✅ **REQ-p00005**: Role-Based Access Control
   - Level: PRD | Status: Active
   - File: prd-security-RBAC.md:36
@@ -182,6 +257,15 @@
         - ✅ **REQ-d00016**: Code-to-Requirement Linking
           - Level: DEV | Status: Active
           - File: dev-requirements-management.md:101
+          - 🚧 **REQ-d00033**: Site-Based Data Isolation
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:472
+            - 🚧 **REQ-d00040**: User Site Access Table Schema
+              - Level: DEV | Status: Draft
+              - File: dev-portal.md:2493
+          - 🚧 **REQ-d00039**: Portal Users Table Schema
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:2394
       - ✅ **REQ-o00015**: Documentation Structure Enforcement
         - Level: OPS | Status: Active
         - File: ops-requirements-management.md:76
@@ -242,6 +326,18 @@
         - ✅ **REQ-d00023**: Sponsor Global Access RLS Implementation
           - Level: DEV | Status: Active
           - File: dev-security-RLS.md:339
+    - 🚧 **REQ-p00028**: Token Revocation and Access Control
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:180
+      - 🚧 **REQ-d00031**: Supabase Authentication Integration
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:318
+        - 🚧 **REQ-d00034**: Login Page Implementation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:535
+      - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:434
   - ✅ **REQ-p00015**: Database-Level Access Enforcement
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:56
@@ -278,6 +374,15 @@
       - ✅ **REQ-d00016**: Code-to-Requirement Linking
         - Level: DEV | Status: Active
         - File: dev-requirements-management.md:101
+        - 🚧 **REQ-d00033**: Site-Based Data Isolation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:472
+          - 🚧 **REQ-d00040**: User Site Access Table Schema
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:2493
+        - 🚧 **REQ-d00039**: Portal Users Table Schema
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:2394
     - ✅ **REQ-o00015**: Documentation Structure Enforcement
       - Level: OPS | Status: Active
       - File: ops-requirements-management.md:76
@@ -341,15 +446,57 @@
   - ✅ **REQ-p00024**: Auditor Compliance Access
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:222
+    - 🚧 **REQ-d00028**: Portal Frontend Framework
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:90
+    - 🚧 **REQ-d00031**: Supabase Authentication Integration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:318
+      - 🚧 **REQ-d00034**: Login Page Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:535
+    - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:434
+    - 🚧 **REQ-d00036**: Create User Dialog Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:956
     - ✅ **REQ-o00025**: Auditor Compliance Access Policy Deployment
       - Level: OPS | Status: Active
       - File: ops-security-RLS.md:147
       - ✅ **REQ-d00024**: Auditor Compliance RLS Implementation
         - Level: DEV | Status: Active
         - File: dev-security-RLS.md:422
+    - 🚧 **REQ-p00027**: Questionnaire Management
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:140
+      - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:1269
+    - 🚧 **REQ-p00028**: Token Revocation and Access Control
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:180
+      - 🚧 **REQ-d00031**: Supabase Authentication Integration
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:318
+        - 🚧 **REQ-d00034**: Login Page Implementation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:535
+      - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:434
+    - 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:219
+      - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:2012
   - ✅ **REQ-p00025**: Administrator Access with Audit Trail
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:246
+    - 🚧 **REQ-d00038**: Enroll Patient Dialog Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:1776
     - ✅ **REQ-o00026**: Administrator Access Policy Deployment
       - Level: OPS | Status: Active
       - File: ops-security-RLS.md:172
@@ -386,9 +533,75 @@
 - ✅ **REQ-p00009**: Sponsor-Specific Web Portals
   - Level: PRD | Status: Active
   - File: prd-architecture-multi-sponsor.md:60
+  - 🚧 **REQ-d00028**: Portal Frontend Framework
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:90
+  - 🚧 **REQ-d00029**: Portal UI Design System
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:161
+  - 🚧 **REQ-d00030**: Portal Routing and Navigation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:218
+  - 🚧 **REQ-d00031**: Supabase Authentication Integration
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:318
+    - 🚧 **REQ-d00034**: Login Page Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:535
+  - 🚧 **REQ-d00033**: Site-Based Data Isolation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:472
+    - 🚧 **REQ-d00040**: User Site Access Table Schema
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2493
+  - 🚧 **REQ-d00034**: Login Page Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:535
+  - 🚧 **REQ-d00035**: Admin Dashboard Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:699
+  - 🚧 **REQ-d00039**: Portal Users Table Schema
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:2394
+  - 🚧 **REQ-d00040**: User Site Access Table Schema
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:2493
+  - 🚧 **REQ-d00041**: Patients Table Extensions for Portal
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:2570
+  - 🚧 **REQ-d00042**: Questionnaires Table Schema
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:2697
   - ✅ **REQ-o00009**: Portal Deployment Per Sponsor
     - Level: OPS | Status: Active
     - File: ops-deployment.md:811
+    - 🚧 **REQ-d00043**: Netlify Deployment Configuration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2810
+  - 🚧 **REQ-p00027**: Questionnaire Management
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:140
+    - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:1269
+  - 🚧 **REQ-p00028**: Token Revocation and Access Control
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:180
+    - 🚧 **REQ-d00031**: Supabase Authentication Integration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:318
+      - 🚧 **REQ-d00034**: Login Page Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:535
+    - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:434
+  - 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:219
+    - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2012
 - ✅ **REQ-p00010**: FDA 21 CFR Part 11 Compliance
   - Level: PRD | Status: Active
   - File: prd-clinical-trials.md:47
@@ -464,6 +677,15 @@
         - ✅ **REQ-d00016**: Code-to-Requirement Linking
           - Level: DEV | Status: Active
           - File: dev-requirements-management.md:101
+          - 🚧 **REQ-d00033**: Site-Based Data Isolation
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:472
+            - 🚧 **REQ-d00040**: User Site Access Table Schema
+              - Level: DEV | Status: Draft
+              - File: dev-portal.md:2493
+          - 🚧 **REQ-d00039**: Portal Users Table Schema
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:2394
       - ✅ **REQ-o00015**: Documentation Structure Enforcement
         - Level: OPS | Status: Active
         - File: ops-requirements-management.md:76
@@ -524,18 +746,72 @@
         - ✅ **REQ-d00023**: Sponsor Global Access RLS Implementation
           - Level: DEV | Status: Active
           - File: dev-security-RLS.md:339
+    - 🚧 **REQ-p00028**: Token Revocation and Access Control
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:180
+      - 🚧 **REQ-d00031**: Supabase Authentication Integration
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:318
+        - 🚧 **REQ-d00034**: Login Page Implementation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:535
+      - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:434
   - ✅ **REQ-p00024**: Auditor Compliance Access
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:222
+    - 🚧 **REQ-d00028**: Portal Frontend Framework
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:90
+    - 🚧 **REQ-d00031**: Supabase Authentication Integration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:318
+      - 🚧 **REQ-d00034**: Login Page Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:535
+    - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:434
+    - 🚧 **REQ-d00036**: Create User Dialog Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:956
     - ✅ **REQ-o00025**: Auditor Compliance Access Policy Deployment
       - Level: OPS | Status: Active
       - File: ops-security-RLS.md:147
       - ✅ **REQ-d00024**: Auditor Compliance RLS Implementation
         - Level: DEV | Status: Active
         - File: dev-security-RLS.md:422
+    - 🚧 **REQ-p00027**: Questionnaire Management
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:140
+      - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:1269
+    - 🚧 **REQ-p00028**: Token Revocation and Access Control
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:180
+      - 🚧 **REQ-d00031**: Supabase Authentication Integration
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:318
+        - 🚧 **REQ-d00034**: Login Page Implementation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:535
+      - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:434
+    - 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+      - Level: PRD | Status: Draft
+      - File: prd-portal.md:219
+      - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:2012
   - ✅ **REQ-p00025**: Administrator Access with Audit Trail
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:246
+    - 🚧 **REQ-d00038**: Enroll Patient Dialog Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:1776
     - ✅ **REQ-o00026**: Administrator Access Policy Deployment
       - Level: OPS | Status: Active
       - File: ops-security-RLS.md:172
@@ -545,6 +821,9 @@
   - ✅ **REQ-p00026**: Event Sourcing State Protection
     - Level: PRD | Status: Active
     - File: prd-security-RLS.md:270
+    - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:1269
     - ✅ **REQ-o00027**: Event Sourcing State Protection Policy Deployment
       - Level: OPS | Status: Active
       - File: ops-security-RLS.md:197
@@ -623,6 +902,15 @@
       - ✅ **REQ-d00016**: Code-to-Requirement Linking
         - Level: DEV | Status: Active
         - File: dev-requirements-management.md:101
+        - 🚧 **REQ-d00033**: Site-Based Data Isolation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:472
+          - 🚧 **REQ-d00040**: User Site Access Table Schema
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:2493
+        - 🚧 **REQ-d00039**: Portal Users Table Schema
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:2394
     - ✅ **REQ-o00015**: Documentation Structure Enforcement
       - Level: OPS | Status: Active
       - File: ops-requirements-management.md:76
@@ -683,6 +971,18 @@
       - ✅ **REQ-d00023**: Sponsor Global Access RLS Implementation
         - Level: DEV | Status: Active
         - File: dev-security-RLS.md:339
+  - 🚧 **REQ-p00028**: Token Revocation and Access Control
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:180
+    - 🚧 **REQ-d00031**: Supabase Authentication Integration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:318
+      - 🚧 **REQ-d00034**: Login Page Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:535
+    - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:434
 - ✅ **REQ-p00015**: Database-Level Access Enforcement
   - Level: PRD | Status: Active
   - File: prd-security-RLS.md:56
@@ -734,6 +1034,15 @@
       - ✅ **REQ-d00016**: Code-to-Requirement Linking
         - Level: DEV | Status: Active
         - File: dev-requirements-management.md:101
+        - 🚧 **REQ-d00033**: Site-Based Data Isolation
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:472
+          - 🚧 **REQ-d00040**: User Site Access Table Schema
+            - Level: DEV | Status: Draft
+            - File: dev-portal.md:2493
+        - 🚧 **REQ-d00039**: Portal Users Table Schema
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:2394
     - ✅ **REQ-o00015**: Documentation Structure Enforcement
       - Level: OPS | Status: Active
       - File: ops-requirements-management.md:76
@@ -788,6 +1097,15 @@
     - ✅ **REQ-d00016**: Code-to-Requirement Linking
       - Level: DEV | Status: Active
       - File: dev-requirements-management.md:101
+      - 🚧 **REQ-d00033**: Site-Based Data Isolation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:472
+        - 🚧 **REQ-d00040**: User Site Access Table Schema
+          - Level: DEV | Status: Draft
+          - File: dev-portal.md:2493
+      - 🚧 **REQ-d00039**: Portal Users Table Schema
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:2394
   - ✅ **REQ-o00015**: Documentation Structure Enforcement
     - Level: OPS | Status: Active
     - File: ops-requirements-management.md:76
@@ -851,15 +1169,57 @@
 - ✅ **REQ-p00024**: Auditor Compliance Access
   - Level: PRD | Status: Active
   - File: prd-security-RLS.md:222
+  - 🚧 **REQ-d00028**: Portal Frontend Framework
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:90
+  - 🚧 **REQ-d00031**: Supabase Authentication Integration
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:318
+    - 🚧 **REQ-d00034**: Login Page Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:535
+  - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:434
+  - 🚧 **REQ-d00036**: Create User Dialog Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:956
   - ✅ **REQ-o00025**: Auditor Compliance Access Policy Deployment
     - Level: OPS | Status: Active
     - File: ops-security-RLS.md:147
     - ✅ **REQ-d00024**: Auditor Compliance RLS Implementation
       - Level: DEV | Status: Active
       - File: dev-security-RLS.md:422
+  - 🚧 **REQ-p00027**: Questionnaire Management
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:140
+    - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:1269
+  - 🚧 **REQ-p00028**: Token Revocation and Access Control
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:180
+    - 🚧 **REQ-d00031**: Supabase Authentication Integration
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:318
+      - 🚧 **REQ-d00034**: Login Page Implementation
+        - Level: DEV | Status: Draft
+        - File: dev-portal.md:535
+    - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:434
+  - 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+    - Level: PRD | Status: Draft
+    - File: prd-portal.md:219
+    - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:2012
 - ✅ **REQ-p00025**: Administrator Access with Audit Trail
   - Level: PRD | Status: Active
   - File: prd-security-RLS.md:246
+  - 🚧 **REQ-d00038**: Enroll Patient Dialog Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:1776
   - ✅ **REQ-o00026**: Administrator Access Policy Deployment
     - Level: OPS | Status: Active
     - File: ops-security-RLS.md:172
@@ -869,9 +1229,36 @@
 - ✅ **REQ-p00026**: Event Sourcing State Protection
   - Level: PRD | Status: Active
   - File: prd-security-RLS.md:270
+  - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:1269
   - ✅ **REQ-o00027**: Event Sourcing State Protection Policy Deployment
     - Level: OPS | Status: Active
     - File: ops-security-RLS.md:197
     - ✅ **REQ-d00026**: Event Sourcing State Protection RLS Implementation
       - Level: DEV | Status: Active
       - File: dev-security-RLS.md:674
+- 🚧 **REQ-p00027**: Questionnaire Management
+  - Level: PRD | Status: Draft
+  - File: prd-portal.md:140
+  - 🚧 **REQ-d00037**: Investigator Dashboard Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:1269
+- 🚧 **REQ-p00028**: Token Revocation and Access Control
+  - Level: PRD | Status: Draft
+  - File: prd-portal.md:180
+  - 🚧 **REQ-d00031**: Supabase Authentication Integration
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:318
+    - 🚧 **REQ-d00034**: Login Page Implementation
+      - Level: DEV | Status: Draft
+      - File: dev-portal.md:535
+  - 🚧 **REQ-d00032**: Role-Based Access Control Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:434
+- 🚧 **REQ-p00029**: Auditor Dashboard and Data Export
+  - Level: PRD | Status: Draft
+  - File: prd-portal.md:219
+  - 🚧 **REQ-d00051**: Auditor Dashboard Implementation
+    - Level: DEV | Status: Draft
+    - File: dev-portal.md:2012
