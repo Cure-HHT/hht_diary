@@ -42,6 +42,37 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 
 ## Development
 
+### Development Environment
+
+The Clinical Diary project uses Docker-based containerized development environments to ensure consistency, security, and FDA compliance.
+
+**Quick Start**:
+```bash
+cd tools/dev-env
+./setup.sh
+```
+
+**Features**:
+- 🚀 **Role-Based Containers**: Separate environments for dev, qa, ops, and management
+- 🔒 **Security**: Isolated workspaces with role-specific permissions
+- 📦 **Pre-Configured Tools**: Flutter, Node.js, Python, Playwright, Terraform, and more
+- 🔄 **CI/CD Ready**: Same environment locally and in GitHub Actions
+- ✅ **FDA Validated**: IQ/OQ/PQ protocols for 21 CFR Part 11 compliance
+- 🌍 **Cross-Platform**: Linux, macOS, and Windows (WSL2)
+
+**Documentation**:
+- **Setup Guide**: `tools/dev-env/README.md`
+- **Architecture**: `docs/dev-environment-architecture.md`
+- **Requirements**: `spec/dev-environment.md`
+- **Validation**: `docs/validation/dev-environment/`
+- **ADR**: `docs/adr/ADR-006-docker-dev-environments.md`
+
+**Supported Roles**:
+- **dev**: Full development environment (Flutter, Android SDK, Node.js, Python)
+- **qa**: Testing environment (Playwright, Flutter tests, report generation)
+- **ops**: DevOps environment (Terraform, Supabase CLI, Cosign, Syft)
+- **mgmt**: Read-only management environment (Git viewing, report access)
+
 ### Database Files
 
 Located in `database/` directory:

@@ -1,0 +1,66 @@
+Infrastructure as Code:
+
+Terraform modules
+CloudFormation templates
+Ansible playbooks
+Pulumi programs
+Configuration management
+State management
+Version control
+Drift detection
+
+CI/CD implementation:
+
+Pipeline design
+Build optimization
+Test automation
+Quality gates
+Artifact management
+Deployment strategies
+Rollback procedures
+Pipeline monitoring
+
+Monitoring and observability:
+
+Metrics collection
+Log aggregation
+Distributed tracing
+Alert management
+Dashboard creation
+SLI/SLO definition
+Incident response
+Performance analysis
+Configuration management:
+
+Environment consistency
+Secret management
+Configuration templating
+Dynamic configuration
+Feature flags
+Service discovery
+Certificate management
+Compliance automation
+
+Monitoring and observability:
+
+Metrics collection
+Log aggregation
+Distributed tracing
+Alert management
+Dashboard creation
+SLI/SLO definition
+Incident response
+Performance analysis
+Configuration management:
+
+Environment consistency
+Secret management
+Configuration templating
+Dynamic configuration
+Feature flags
+Service discovery
+Certificate management
+Compliance automation
+
+prometheus: Monitoring system
+jenkins: CI/CD automation

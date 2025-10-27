@@ -1,13 +1,13 @@
 # Requirements Traceability Matrix
 
-**Generated**: 2025-10-26 20:08:21
-**Total Requirements**: 74
+**Generated**: 2025-10-27 01:22:39
+**Total Requirements**: 84
 
 ## Summary
 
 - **PRD Requirements**: 26
 - **OPS Requirements**: 23
-- **DEV Requirements**: 25
+- **DEV Requirements**: 35
 
 ## Traceability Tree
 
@@ -131,6 +131,12 @@
 - ✅ **REQ-p00005**: Role-Based Access Control
   - Level: PRD | Status: Active
   - File: prd-security-RBAC.md:36
+  - ✅ **REQ-d00028**: Role-Based Environment Separation
+    - Level: DEV | Status: Active
+    - File: dev-environment.md:56
+  - ✅ **REQ-d00031**: Secrets Management via Doppler
+    - Level: DEV | Status: Active
+    - File: dev-environment.md:137
   - ✅ **REQ-o00007**: Role-Based Permission Configuration
     - Level: OPS | Status: Active
     - File: ops-security.md:125
@@ -140,6 +146,9 @@
   - ✅ **REQ-p00014**: Least Privilege Access
     - Level: PRD | Status: Active
     - File: prd-security-RBAC.md:60
+    - ✅ **REQ-d00028**: Role-Based Environment Separation
+      - Level: DEV | Status: Active
+      - File: dev-environment.md:56
     - ✅ **REQ-o00007**: Role-Based Permission Configuration
       - Level: OPS | Status: Active
       - File: ops-security.md:125
@@ -380,6 +389,9 @@
 - ✅ **REQ-p00010**: FDA 21 CFR Part 11 Compliance
   - Level: PRD | Status: Active
   - File: prd-clinical-trials.md:47
+  - ✅ **REQ-d00035**: Environment Validation & Change Control
+    - Level: DEV | Status: Active
+    - File: dev-environment.md:278
   - ✅ **REQ-p00011**: ALCOA+ Data Integrity Principles
     - Level: PRD | Status: Active
     - File: prd-clinical-trials.md:75
@@ -410,6 +422,9 @@
   - ✅ **REQ-p00014**: Least Privilege Access
     - Level: PRD | Status: Active
     - File: prd-security-RBAC.md:60
+    - ✅ **REQ-d00028**: Role-Based Environment Separation
+      - Level: DEV | Status: Active
+      - File: dev-environment.md:56
     - ✅ **REQ-o00007**: Role-Based Permission Configuration
       - Level: OPS | Status: Active
       - File: ops-security.md:125
@@ -563,6 +578,9 @@
 - ✅ **REQ-p00014**: Least Privilege Access
   - Level: PRD | Status: Active
   - File: prd-security-RBAC.md:60
+  - ✅ **REQ-d00028**: Role-Based Environment Separation
+    - Level: DEV | Status: Active
+    - File: dev-environment.md:56
   - ✅ **REQ-o00007**: Role-Based Permission Configuration
     - Level: OPS | Status: Active
     - File: ops-security.md:125
@@ -842,3 +860,15 @@
     - ✅ **REQ-d00026**: Event Sourcing State Protection RLS Implementation
       - Level: DEV | Status: Active
       - File: dev-security-RLS.md:674
+
+## Orphaned Requirements
+
+*(Requirements not linked from any parent)*
+
+- **REQ-d00027**: Containerized Development Environments (DEV) - dev-environment.md
+- **REQ-d00029**: Cross-Platform Development Support (DEV) - dev-environment.md
+- **REQ-d00030**: CI/CD Environment Parity (DEV) - dev-environment.md
+- **REQ-d00032**: Development Tool Specifications (DEV) - dev-environment.md
+- **REQ-d00033**: VS Code Dev Containers Integration (DEV) - dev-environment.md
+- **REQ-d00034**: Automated QA Workflow (DEV) - dev-environment.md
+- **REQ-d00036**: Shared Workspace and File Exchange (DEV) - dev-environment.md
