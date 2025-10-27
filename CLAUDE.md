@@ -12,8 +12,12 @@
   - Implementation guides, runbooks, design notes
   - **See docs/README.md and docs/adr/README.md for ADR process**
 - **database/**: SQL schema, triggers, functions, migrations, tests
+- **tools/**: Automation and development tooling
+  - `linear-cli/`: Linear API integration tools for requirement-ticket traceability
+  - `requirements/`: Requirement validation and traceability matrix generation
 - **archive/**: Obsolete files - DO NOT use unless explicitly asked
 - **evaluation/**: Mock sponsor evaluation materials
+- **untracked-notes/**: Scratch files, analysis, planning docs (gitignored)
 
 ## Key SOPs
 
@@ -176,6 +180,8 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 | Requirement format | `spec/requirements-format.md` |
 | Traceability matrix | `traceability_matrix.md` |
 | spec/ vs docs/ rules | `docs/README.md` |
+| Linear integration tools | `tools/linear-cli/` (see Linear Integration Tools below) |
+| Requirement validation | `tools/requirements/` |
 
 ### Key Commands
 
@@ -192,6 +198,181 @@ git config core.hooksPath .githooks
 # Create feature branch
 git checkout -b feature/descriptive-name
 ```
+
+---
+
+## Linear Integration Tools
+
+**Location**: `tools/linear-cli/`
+**Implements**: REQ-d00027 (Development Environment and Tooling Setup)
+
+The Linear CLI tools automate requirement-ticket traceability, ensuring all tickets are linked to formal requirements and properly organized.
+
+### Available Tools
+
+#### 1. Ticket Management
+
+**`fetch-tickets.js`** - Fetch all assigned tickets
+```bash
+node fetch-tickets.js --token=<LINEAR_API_TOKEN> --format=json
+```
+- Fetches all tickets assigned to you
+- Outputs JSON or human-readable format
+- Extracts REQ-* references from ticket descriptions
+
+**`fetch-tickets-by-label.js`** - Fetch tickets by label
+```bash
+node fetch-tickets-by-label.js --token=<TOKEN> --label="ai:new"
+```
+- Fetches ALL tickets with a specific label (not just assigned)
+- Used to query tickets created by automation
+- Returns full ticket data including descriptions
+
+#### 2. Requirement-Ticket Linking
+
+**`create-requirement-tickets.js`** - Batch create tickets from requirements
+```bash
+node create-requirement-tickets.js --token=<TOKEN> --team-id=<TEAM_ID> [options]
+
+Options:
+  --dry-run           Preview without creating tickets
+  --level=<PRD|Ops|Dev>  Only create tickets for specific level
+  --project-id=<ID>   Assign tickets to a project
+```
+- Parses all requirements from `spec/` directory
+- Creates Linear tickets for requirements without existing tickets
+- Automatically assigns labels based on keywords
+- Sets priority by level: PRD=P1, Ops=P2, Dev=P3
+- Adds "ai:new" label to all created tickets
+
+**`update-ticket-with-requirement.js`** - Link existing ticket to requirement
+```bash
+node update-ticket-with-requirement.js --token=<TOKEN> --ticket-id=<ID> --req-id=<REQ-xxx>
+```
+- Updates existing ticket description to reference requirement
+- Prepends `**Requirement**: REQ-<id>` to description
+- Preserves existing ticket content
+
+**`add-subsystem-checklists.js`** - Add sub-system checklists to tickets
+```bash
+node add-subsystem-checklists.js --token=<TOKEN> [--dry-run]
+```
+- Analyzes ticket requirements and identifies relevant sub-systems
+- Adds checklist to ticket description showing which systems need updates:
+  - Supabase (Database & Auth)
+  - Google Workspace
+  - GitHub, Doppler, Netlify, Linear
+  - Development Environment, CI/CD Pipeline
+  - Mobile App (Flutter), Web Portal
+  - Compliance & Documentation, Backup & Recovery
+- Security/access control requirements auto-apply to all cloud services
+- Supports dry-run mode for testing
+
+#### 3. Analysis and Debugging
+
+**`check-duplicates.js`** - Find duplicate requirement-ticket mappings
+```bash
+node check-duplicates.js --token=<TOKEN>
+```
+- Analyzes all tickets for duplicate requirement references
+- Helps identify tickets that may need consolidation
+
+**`check-duplicates-advanced.js`** - Advanced duplicate analysis
+```bash
+node check-duplicates-advanced.js --token=<TOKEN>
+```
+- Deep analysis of ticket-requirement relationships
+- Identifies similar titles and potential duplicates
+
+**`list-infrastructure-tickets.js`** - List infrastructure tickets
+```bash
+node list-infrastructure-tickets.js --token=<TOKEN>
+```
+- Fetches all tickets with "infrastructure" label
+- Useful for gap analysis
+
+**`list-security-compliance-infrastructure-tickets.js`** - List security/compliance tickets
+```bash
+node list-security-compliance-infrastructure-tickets.js --token=<TOKEN>
+```
+- Fetches tickets with security, compliance, or infrastructure labels
+- Used for compliance audits
+
+#### 4. Workflow Automation
+
+**`create-tickets.sh`** - Create all requirement tickets in batches
+```bash
+./create-tickets.sh
+```
+- Wrapper script that creates tickets in order: PRD → Ops → Dev
+- Automatically loads nvm for Node.js
+- Pauses between batches for review
+
+**`run-dry-run.sh`** / **`run-dry-run-all.sh`** - Test ticket creation
+```bash
+./run-dry-run.sh <PRD|Ops|Dev>
+./run-dry-run-all.sh
+```
+- Preview ticket creation without making API calls
+- Shows what would be created and which tickets would be skipped
+- Validates configuration before actual creation
+
+### Linear API Token
+
+All tools require a Linear API token. Get yours at:
+https://linear.app/settings/api
+
+**Store token securely** - Do NOT commit tokens to git. Use environment variables or pass via command line.
+
+### Common Workflows
+
+**Create tickets for all new requirements**:
+```bash
+# 1. Dry-run to preview
+./run-dry-run-all.sh
+
+# 2. Create tickets
+./create-tickets.sh
+
+# 3. Add sub-system checklists
+node add-subsystem-checklists.js --token=<TOKEN>
+```
+
+**Link existing ticket to requirement**:
+```bash
+# Find ticket ID from Linear, then:
+node update-ticket-with-requirement.js --token=<TOKEN> --ticket-id=<UUID> --req-id=p00015
+```
+
+**Analyze ticket coverage**:
+```bash
+# Fetch all tickets and check REQ references
+node fetch-tickets.js --token=<TOKEN> --format=json | grep -i "REQ-"
+
+# Find duplicates
+node check-duplicates.js --token=<TOKEN>
+```
+
+### Integration with Requirements System
+
+The Linear CLI tools integrate with the requirement validation system:
+
+1. **Requirement → Ticket**: `create-requirement-tickets.js` reads from `spec/` and creates tickets
+2. **Ticket → Requirement**: All tickets include `**Requirement**: REQ-xxx` in description
+3. **Validation**: Tools check that requirements aren't duplicated across tickets
+4. **Traceability**: Tickets link back to formal requirements for audit trail
+5. **Sub-systems**: Checklists show which systems need configuration for each requirement
+
+### Notes
+
+- **Exclusion List**: `create-requirement-tickets.js` maintains a list of requirements that already have tickets (lines 295-308)
+- **Rate Limiting**: Tools include 100ms delays between API calls to respect Linear rate limits
+- **Error Handling**: All tools include comprehensive error messages with file/line references
+- **Dry-Run Mode**: Most tools support `--dry-run` for testing before making changes
+
+**See**: `tools/linear-cli/README.md` for detailed tool documentation
+
+---
 
 ## User Preferences
 
