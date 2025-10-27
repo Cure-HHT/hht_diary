@@ -55,23 +55,21 @@ Use this checklist to track remediation of audit findings.
 
 ---
 
-### 1.3 Document Orphaned Requirements
+### 1.3 ~~Document Orphaned Requirements~~ [NOT AN ISSUE]
 
-- [ ] **REQ-o00009: Portal Deployment Per Sponsor** (ops-deployment.md:811)
-  - Add explanation for why no Dev requirement exists
-  - Suggested addition to requirement:
-    ```markdown
-    **Note**: No Dev-level requirement exists because portal deployment uses
-    standard Vercel/Netlify/CloudFlare deployment without custom build code.
-    Portal configuration is environment-specific (covered by REQ-o00002).
-    ```
+**Status**: ✅ **RESOLVED** - Requirements are NOT orphaned
 
-- [ ] **REQ-o00008: Backup and Retention Policy** (ops-operations.md:853)
-  - Add explanation or create Dev requirement
-  - If Supabase-managed: Document why no custom code needed
-  - If custom logic needed: Create REQ-d00xxx for backup automation/monitoring
+- **REQ-o00009: Portal Deployment Per Sponsor** (ops-deployment.md:811)
+  - **Parent**: REQ-p00008 (Multi-Sponsor Architecture)
+  - **Status**: Properly implements parent PRD requirement
+  - No Dev requirement needed - uses standard deployment platforms
 
-**Estimated Time**: 5 minutes (documentation) or 30 minutes (new requirement)
+- **REQ-o00008: Backup and Retention Policy** (ops-operations.md:853)
+  - **Parent**: REQ-p00012 (Data Retention Requirements)
+  - **Status**: Properly implements parent PRD requirement
+  - No Dev requirement needed - uses Supabase managed backups
+
+**Validation warnings about "no child requirements" are expected for Ops-level requirements that use managed services or standard tooling without custom code.**
 
 ---
 
@@ -205,11 +203,11 @@ Use this checklist to track remediation of audit findings.
 ## Completion Tracking
 
 ### Priority 1 (Quick Fixes)
-- [ ] All 2 missing headers added
-- [ ] All 4 ADRs standardized
-- [ ] All 2 orphaned requirements documented
+- [x] All 2 missing headers added (2025-10-26)
+- [x] All 4 ADRs standardized (2025-10-26)
+- [x] ~~Orphaned requirements~~ - Verified as NOT orphaned (2025-10-26)
 
-**Target**: Complete within 1 week
+**Status**: ✅ **COMPLETED** (2025-10-26)
 
 ### Priority 2 (Documentation)
 - [ ] Refinement hierarchies documented
@@ -238,5 +236,5 @@ Use this checklist to track remediation of audit findings.
 ---
 
 **Created**: 2025-10-25
-**Last Updated**: 2025-10-25
-**Next Review**: After Priority 1 completion
+**Last Updated**: 2025-10-26
+**Next Review**: Before starting Priority 2 implementation

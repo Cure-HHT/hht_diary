@@ -40,3 +40,6 @@ secrets/
 Thumbs.db
 .Thumbs.db
 desktop.ini
+
+# Planning documents (local use only)
+NEXT_STEPS_OPTIONS.md

@@ -1,9 +1,12 @@
 # ADR-002: JSONB for Flexible Diary Schema
 
 **Date**: 2025-10-14
-**Status**: Accepted
 **Deciders**: Development Team, Clinical Research Team
 **Technical Impact**: High
+
+## Status
+
+Accepted
 
 ---
 

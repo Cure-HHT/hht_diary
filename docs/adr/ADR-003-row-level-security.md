@@ -1,9 +1,12 @@
 # ADR-003: Row-Level Security for Multi-Tenancy
 
 **Date**: 2025-10-14
-**Status**: Accepted
 **Deciders**: Development Team, Security Team
 **Security Impact**: Critical
+
+## Status
+
+Accepted
 
 ---
 

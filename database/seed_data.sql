@@ -1,3 +1,6 @@
+-- TEST FIXTURE - No production requirements
+-- Used for: Development and testing environments only
+--
 -- =====================================================
 -- Seed Data for Testing and Development
 -- Clinical Trial Diary Database
