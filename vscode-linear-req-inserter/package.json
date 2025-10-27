@@ -41,6 +41,15 @@
         "when": "editorTextFocus"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "linearReqInserter.insertRequirements",
+          "group": "9_cutcopypaste",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
     "configuration": {
       "title": "Linear Requirement Inserter",
       "properties": {

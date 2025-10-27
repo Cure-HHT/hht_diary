@@ -54,21 +54,24 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
 
 ## Usage
 
-### Method 1: Keyboard Shortcut
+### Method 1: Keyboard Shortcut (Recommended)
 1. Move cursor to where you want to insert requirements
 2. Press `Ctrl+Shift+R` (or `Cmd+Shift+R` on Mac)
 3. Select requirements from the picker (use Tab for multi-select)
 4. Press Enter to insert
 
-### Method 2: Auto-completion
-1. Type comment prefix + `LINEAR ` (with a space):
-   - SQL files: `--LINEAR `
-   - Dart/JS/TS: `//LINEAR `
-   - Python: `#LINEAR `
-   - Markdown: `<!--LINEAR `
-2. Wait for completion suggestions to appear
-3. Select requirement from list
+### Method 2: Right-Click Context Menu
+1. Right-click where you want to insert requirements
+2. Select **"Insert Requirements from Linear Ticket"**
+3. Select requirements from the picker
 4. Press Enter to insert
+
+### Method 3: Command Palette
+1. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+2. Type "Insert Requirements"
+3. Select **"Insert Requirements from Linear Ticket"**
+4. Select requirements from the picker
+5. Press Enter to insert
 
 ## Example Output
 

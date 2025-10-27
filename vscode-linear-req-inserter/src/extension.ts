@@ -11,7 +11,6 @@ import { extractRequirementsFromIssue } from './requirements/parser';
 import { requirementCache } from './requirements/cache';
 import { insertRequirementsAtCursor } from './comments/inserter';
 import { showRequirementPicker, promptForApiToken } from './ui/quickpick';
-import { createCompletionItems, matchesTriggerPattern, getTriggerReplacementRange } from './ui/completion';
 import { getConfig, updateApiToken, isConfigured, getSpecPath } from './config';
 import { IssueWithRequirements } from './linear/types';
 
@@ -35,35 +34,6 @@ export function activate(context: vscode.ExtensionContext) {
         async () => await handleInsertRequirements()
     );
 
-    // Register completion provider for text patterns
-    const completionProvider = vscode.languages.registerCompletionItemProvider(
-        ['*'], // All file types
-        {
-            async provideCompletionItems(document, position) {
-                const line = document.lineAt(position.line).text;
-
-                // Check if trigger pattern is present
-                if (!matchesTriggerPattern(line, position)) {
-                    return undefined;
-                }
-
-                // Get in-progress issues with requirements
-                const issuesWithReqs = await fetchIssuesWithRequirements();
-                if (!issuesWithReqs || issuesWithReqs.length === 0) {
-                    return undefined;
-                }
-
-                // Get replacement range
-                const range = getTriggerReplacementRange(document, position) ||
-                             new vscode.Range(position, position);
-
-                // Create completion items
-                return createCompletionItems(issuesWithReqs, range);
-            }
-        },
-        ' ' // Trigger on space after pattern
-    );
-
     // Register configuration change handler
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(e => {
@@ -77,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Add to subscriptions
-    context.subscriptions.push(insertCommand, completionProvider);
+    context.subscriptions.push(insertCommand);
 
     // Show welcome message on first activation
     const hasShownWelcome = context.globalState.get<boolean>('hasShownWelcome', false);
@@ -206,20 +176,30 @@ async function fetchIssuesWithRequirements(): Promise<IssueWithRequirements[] | 
         // Extract requirements from each issue
         const issuesWithReqs: IssueWithRequirements[] = [];
 
+        console.log(`[Linear Req Inserter] Found ${issues.length} in-progress issues`);
+
         for (const issue of issues) {
+            console.log(`[Linear Req Inserter] Processing issue ${issue.identifier}: ${issue.title}`);
+            console.log(`[Linear Req Inserter]   Description: ${issue.description?.substring(0, 200) || '(empty)'}`);
+            console.log(`[Linear Req Inserter]   Comments count: ${issue.comments.nodes.length}`);
+
             const reqIds = extractRequirementsFromIssue(
                 issue.description,
                 issue.comments.nodes
             );
 
+            console.log(`[Linear Req Inserter]   Extracted requirement IDs: ${reqIds.join(', ') || '(none)'}`);
+
             if (reqIds.length > 0) {
                 const requirements = requirementCache.getMultiple(reqIds);
+                console.log(`[Linear Req Inserter]   Found ${requirements.length} requirements in cache`);
                 if (requirements.length > 0) {
                     issuesWithReqs.push({ issue, requirements });
                 }
             }
         }
 
+        console.log(`[Linear Req Inserter] Total issues with requirements: ${issuesWithReqs.length}`);
         return issuesWithReqs;
     } catch (error) {
         vscode.window.showErrorMessage(`Failed to fetch Linear tickets: ${error}`);
