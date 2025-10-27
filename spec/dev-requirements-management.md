@@ -198,6 +198,33 @@ Implementation SHALL include:
 
 ---
 
+### REQ-d00027: Development Environment and Tooling Setup
+
+**Level**: Dev | **Implements**: o00017 | **Status**: Active
+
+Development environment SHALL provide standardized, repeatable tooling configuration including IDE integrations, code analysis tools, and workflow automation to ensure consistent developer experience and productivity.
+
+Development environment setup SHALL include:
+- IDE/editor configuration and extensions (e.g., Claude Code with MCP servers)
+- Code quality and analysis tools (e.g., linters, formatters)
+- Project management integrations (e.g., Linear integration with IDE)
+- Documentation and reference tools
+- Setup scripts or documentation for reproducible environment
+- Tool configuration tracked in version control where appropriate
+
+**Rationale**: Standardized development environment ensures all developers have consistent tooling, reducing "works on my machine" issues. IDE integrations and automation tools improve developer productivity. Reproducible setup enables quick onboarding of new developers. Tracking tool configurations in version control ensures team-wide consistency. Project management integrations (Linear, Claude Code tools) streamline workflow and maintain traceability.
+
+**Acceptance Criteria**:
+- Development environment setup documented (e.g., in CLAUDE.md or setup scripts)
+- IDE extensions and configurations specified
+- Integration tools (Linear, code analysis) installed and configured
+- Setup process can be completed by new developer following documentation
+- Tool configurations maintain compatibility across team
+- Setup documentation kept up-to-date with tool changes
+- Integration tools facilitate requirement traceability workflow
+
+---
+
 ## Tool Usage Examples
 
 ### Manual Requirement Validation
