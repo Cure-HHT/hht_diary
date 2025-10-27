@@ -1,0 +1,117 @@
+name: Database Migration Validation
+
+on:
+  push:
+    paths:
+      - 'database/**/*.sql'
+  pull_request:
+    paths:
+      - 'database/**/*.sql'
+  workflow_dispatch:
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Test schema deployment
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
+        run: |
+          echo "🔍 Testing schema deployment..."
+          psql -f database/schema.sql
+          echo "✅ Schema deployed successfully"
+
+      - name: Test triggers
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
+        run: |
+          echo "🔍 Testing triggers..."
+          psql -f database/triggers.sql
+          echo "✅ Triggers deployed successfully"
+
+      - name: Test RLS policies
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
+        run: |
+          echo "🔍 Testing RLS policies..."
+          psql -f database/rls_policies.sql
+          echo "✅ RLS policies deployed successfully"
+
+      - name: Test indexes
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
+        run: |
+          echo "🔍 Testing indexes..."
+          psql -f database/indexes.sql
+          echo "✅ Indexes deployed successfully"
+
+      - name: Run database tests
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
+        run: |
+          echo "🔍 Running database tests..."
+          psql -f database/tests/test_audit_trail.sql
+          psql -f database/tests/test_compliance_functions.sql
+          echo "✅ Database tests passed"
+
+      - name: Validate migration scripts
+        run: |
+          echo "🔍 Validating migration scripts have rollbacks..."
+          for migration in database/migrations/*.sql; do
+            if [ -f "$migration" ]; then
+              filename=$(basename "$migration")
+              # Check for corresponding rollback
+              rollback_dir="database/migrations/rollback"
+              # Try both naming conventions
+              rollback1="${rollback_dir}/${filename}"
+              rollback2="${rollback_dir}/${filename/.sql/_rollback.sql}"
+
+              if [ ! -f "$rollback1" ] && [ ! -f "$rollback2" ]; then
+                echo "❌ Missing rollback for $migration"
+                echo "Expected: $rollback1 or $rollback2"
+                exit 1
+              else
+                echo "✅ Found rollback for $migration"
+              fi
+            fi
+          done
+          echo "✅ All migrations have corresponding rollbacks"
