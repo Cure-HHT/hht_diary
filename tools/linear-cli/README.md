@@ -118,26 +118,68 @@ IN PROGRESS
     Requirements: REQ-d00007
 ```
 
+## Updating Ticket Status
+
+### update-ticket-status.js
+
+Update a ticket's status (Todo, In Progress, Done, Backlog, Canceled) via Linear API.
+
+**Usage:**
+```bash
+node update-ticket-status.js --token=$LINEAR_API_TOKEN --ticket-id=<CUR-XXX> --status=<status>
+```
+
+**Status Options:**
+- `todo` - Move to Todo (unstarted)
+- `in-progress` - Move to In Progress (started)
+- `done` - Move to Done (completed)
+- `backlog` - Move to Backlog
+- `canceled` - Move to Canceled
+
+**Examples:**
+```bash
+# Mark ticket as in progress when starting work
+node update-ticket-status.js --token=$LINEAR_API_TOKEN --ticket-id=CUR-127 --status=in-progress
+
+# Mark ticket as done when complete
+node update-ticket-status.js --token=$LINEAR_API_TOKEN --ticket-id=CUR-127 --status=done
+
+# Move ticket back to backlog if blocked
+node update-ticket-status.js --token=$LINEAR_API_TOKEN --ticket-id=CUR-186 --status=backlog
+```
+
+**Workflow:**
+1. When starting a ticket: `--status=in-progress`
+2. When completing: `--status=done`
+3. If blocked: `--status=todo` or `--status=backlog` (add comment explaining blocker)
+
 ## Integration with Claude
 
-Claude can run this script to:
+Claude can run these scripts to:
 
 1. **Understand your backlog**: See what tickets are assigned to you
 2. **Identify priorities**: Find high-priority and overdue items
 3. **Link to requirements**: See which tickets have requirement references
 4. **Decide what to work on**: Help prioritize based on status, priority, and due dates
+5. **Update ticket status**: Automatically move tickets through workflow states
 
 ### Example Claude Workflow
 
 ```bash
-# Claude runs this to understand your work
+# Claude fetches tickets to understand your work
 node tools/linear-cli/fetch-tickets.js
 
-# Claude can then suggest which ticket to work on based on:
+# Claude suggests which ticket to work on based on:
 # - Current workload (in-progress count)
 # - Priorities and due dates
 # - Requirement coverage
 # - Dependencies (parent/child relationships)
+
+# When starting work, Claude updates status
+node tools/linear-cli/update-ticket-status.js --token=$LINEAR_API_TOKEN --ticket-id=CUR-127 --status=in-progress
+
+# After completing implementation, Claude marks it done
+node tools/linear-cli/update-ticket-status.js --token=$LINEAR_API_TOKEN --ticket-id=CUR-127 --status=done
 ```
 
 ## Requirements
