@@ -32,11 +32,13 @@ npm install -g @vscode/vsce
    linear-req-inserter-0.1.0.vsix
    ```
 
-   **Note:** The `.vscodeignore` file optimizes the package by excluding:
-   - Source TypeScript files (only compiled `.js` files are included)
-   - Development dependencies (TypeScript, ESLint, etc.)
-   - Build artifacts and config files
-   - This reduces the package from 500+ files to only what's needed at runtime
+   **Note:** The extension uses esbuild bundling for optimal packaging:
+   - All code bundled into single `dist/extension.js` file (~1.3MB)
+   - Includes @linear/sdk and all dependencies
+   - Package reduced from 500+ files to ~10 files
+   - No node_modules folder needed (everything bundled)
+   - Production builds are minified for smaller size
+   - The 1.3MB size is normal for bundled extensions with API SDKs
 
 ## Install the Extension
 
