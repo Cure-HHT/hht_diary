@@ -6,9 +6,10 @@
   "publisher": "clinical-diary",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/diary",
+    "url": "https://github.com/faisyrs/diary_prep",
     "directory": "tools/vscode-linear-req-inserter"
   },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
