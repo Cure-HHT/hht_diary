@@ -46,12 +46,12 @@ export function createCompletionItems(
 export function matchesTriggerPattern(line: string, position: vscode.Position): boolean {
     const textBeforeCursor = line.substring(0, position.character);
 
-    // Match patterns like: //req, --req, #req, <!--req
+    // Match patterns like: //LINEAR, --LINEAR, #LINEAR, <!--LINEAR
     const patterns = [
-        /\/\/\s*req$/i,          // //req
-        /--\s*req$/i,            // --req
-        /#\s*req$/i,             // #req
-        /<!--\s*req$/i           // <!--req
+        /\/\/\s*LINEAR$/i,       // //LINEAR
+        /--\s*LINEAR$/i,         // --LINEAR
+        /#\s*LINEAR$/i,          // #LINEAR
+        /<!--\s*LINEAR$/i        // <!--LINEAR
     ];
 
     return patterns.some(pattern => pattern.test(textBeforeCursor));
@@ -68,7 +68,7 @@ export function getTriggerReplacementRange(
     const textBeforeCursor = line.substring(0, position.character);
 
     // Find where the pattern starts
-    const match = textBeforeCursor.match(/(\/\/|--|#|<!--)\s*req$/i);
+    const match = textBeforeCursor.match(/(\/\/|--|#|<!--)\s*LINEAR$/i);
     if (!match || match.index === undefined) {
         return undefined;
     }

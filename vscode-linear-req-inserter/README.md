@@ -61,12 +61,12 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
 4. Press Enter to insert
 
 ### Method 2: Auto-completion
-1. Type comment prefix + `req`:
-   - SQL files: `--req`
-   - Dart/JS/TS: `//req`
-   - Python: `#req`
-   - Markdown: `<!--req`
-2. Wait for completion suggestions
+1. Type comment prefix + `LINEAR ` (with a space):
+   - SQL files: `--LINEAR `
+   - Dart/JS/TS: `//LINEAR `
+   - Python: `#LINEAR `
+   - Markdown: `<!--LINEAR `
+2. Wait for completion suggestions to appear
 3. Select requirement from list
 4. Press Enter to insert
 
