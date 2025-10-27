@@ -197,3 +197,4 @@ git checkout -b feature/descriptive-name
 
 - Whenever you stop to ask me a question, play an audible notification using: `paplay ~/freesound/762115__jerryberumen__alarm-misc-message-alert-notification-quick-short-arp.wav`
 - When modifying SQL, before implementing migration, ask the user if ANY database has ever been deployed with this system.
+- when making notes or todo files that are about your plans or otherwise not part of the project, put them in untracked-notes/ and do not track them in git.
