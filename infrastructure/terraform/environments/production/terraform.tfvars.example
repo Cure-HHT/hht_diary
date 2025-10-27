@@ -1,0 +1,25 @@
+# Production Environment Configuration
+# Copy to terraform.tfvars and fill in actual values
+# ⚠️  CRITICAL: Never commit terraform.tfvars to git
+
+# Supabase Configuration
+# Get from: https://app.supabase.com/account/tokens
+supabase_access_token = "sbp_xxxxxxxxxxxx"
+
+# Get from: https://app.supabase.com/account/organization
+supabase_organization_id = "your-org-id-here"
+
+# Database password (16+ characters for production, store in Doppler)
+database_password = "change-me-to-very-strong-password-16plus-chars"
+
+# Doppler service token (required for production)
+doppler_token = "dp.st.xxxxxxxxxxxx"
+
+# Region (default: us-west-1)
+# region = "us-west-1"
+
+# Site URL (default: https://clinical-diary.com)
+# site_url = "https://clinical-diary.com"
+
+# Enable user signups (default: true)
+# enable_signup = true

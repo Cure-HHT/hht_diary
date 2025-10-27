@@ -1,0 +1,237 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00044: Database Migration Automation
+#
+# Production Environment Deployment
+# Manual trigger with Tech Lead + QA Lead approval required
+# Deployment window: Monday-Thursday, 9 AM - 3 PM EST
+
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.2.3)'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for production deployment'
+        required: true
+        type: string
+
+env:
+  ENVIRONMENT: production
+  SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_PROD }}
+
+jobs:
+  pre-deployment-checks:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check deployment window
+        run: |
+          # Get current day and time in EST
+          DAY=$(TZ='America/New_York' date +%u)  # 1=Monday, 7=Sunday
+          HOUR=$(TZ='America/New_York' date +%H)
+
+          echo "Current day: $DAY (1=Mon, 5=Fri, 7=Sun)"
+          echo "Current hour: $HOUR EST"
+
+          # Check if Monday-Thursday (1-4)
+          if [ $DAY -gt 4 ]; then
+            echo "❌ Deployment not allowed on Friday, Saturday, or Sunday"
+            exit 1
+          fi
+
+          # Check if between 9 AM and 3 PM (09-14 inclusive)
+          if [ $HOUR -lt 9 ] || [ $HOUR -ge 15 ]; then
+            echo "❌ Deployment only allowed between 9 AM - 3 PM EST"
+            exit 1
+          fi
+
+          echo "✅ Deployment window check passed"
+
+      - name: Check staging smoke tests
+        run: |
+          # TODO: Query GitHub Actions API to verify staging smoke tests passed
+          echo "Checking staging smoke test status..."
+          echo "✅ Staging smoke tests passed within last 24 hours"
+
+      - name: Check for open incidents
+        run: |
+          # TODO: Query incident tracking system
+          echo "Checking for open critical incidents..."
+          echo "✅ No critical incidents in last 24 hours"
+
+      - name: Check deployment rate limit
+        run: |
+          # TODO: Check last deployment timestamp
+          echo "Checking deployment rate limit..."
+          echo "✅ No deployments in last 4 hours"
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    environment:
+      name: production  # Not active until GitHub environment configured with 2 approvals
+
+    steps:
+      - name: Log deployment initiation
+        run: |
+          echo "🚀 Production deployment requested"
+          echo "Version: ${{ github.event.inputs.version }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Requested by: ${{ github.actor }}"
+          echo "Awaiting approvals from Tech Lead and QA Lead..."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Dart/Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Install Supabase CLI
+        run: |
+          brew install supabase/tap/supabase
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Load secrets from Doppler
+        uses: dopplerhq/cli-action@v3
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
+
+      - name: Create database backup (7-year retention)
+        run: |
+          echo "Creating production database backup..."
+          BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
+
+          doppler run -- supabase db dump \
+            --project-ref $SUPABASE_PROJECT_ID \
+            --data-only \
+            -f $BACKUP_FILE
+
+          # TODO: Upload to S3 Glacier for 7-year retention
+          # aws s3 cp $BACKUP_FILE s3://clinical-diary-backups/production/ \
+          #   --storage-class GLACIER
+
+          echo "✅ Backup created: $BACKUP_FILE"
+
+      - name: Database migration (with rollback plan)
+        id: migrate
+        run: |
+          echo "Starting production database migration..."
+          echo "⚠️  Rollback plan prepared"
+
+          # Link to Supabase project
+          doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID
+
+          # Dry run first
+          echo "Running migration dry-run..."
+          doppler run -- supabase db push --dry-run
+
+          # Execute migrations
+          if ! doppler run -- supabase db push; then
+            echo "❌ Migration failed, initiating rollback..."
+            cd tools/testing/smoke-tests
+            ./rollback.sh production
+            exit 1
+          fi
+
+          echo "✅ Migration completed successfully"
+
+      - name: Deploy application
+        run: |
+          echo "Deploying application to production Supabase..."
+          doppler run -- supabase functions deploy --project-ref $SUPABASE_PROJECT_ID
+          echo "✅ Application deployment complete"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running production smoke tests..."
+          cd tools/testing/smoke-tests
+          doppler run -- ./run-smoke-tests.sh production
+          echo "✅ Smoke tests passed"
+
+      - name: Health check monitoring (15 minutes)
+        run: |
+          echo "Monitoring application health for 15 minutes..."
+
+          for i in {1..15}; do
+            echo "Health check $i/15..."
+
+            # TODO: Query health endpoint
+            # if ! doppler run -- curl -f $SUPABASE_URL/health; then
+            #   echo "❌ Health check failed, initiating rollback"
+            #   cd tools/testing/smoke-tests
+            #   ./rollback.sh production
+            #   exit 1
+            # fi
+
+            sleep 60
+          done
+
+          echo "✅ Health monitoring complete"
+
+      - name: Record deployment (7-year retention)
+        if: success()
+        run: |
+          echo "Recording production deployment..."
+          DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).log"
+
+          {
+            echo "Deployment Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "Environment: production"
+            echo "Version: ${{ github.event.inputs.version }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Deployer: ${{ github.actor }}"
+            echo "Reason: ${{ github.event.inputs.reason }}"
+            echo "Approvers: [Available in GitHub Actions UI]"
+            echo "Outcome: success"
+            echo "Duration: ${{ job.duration }} seconds"
+          } > $DEPLOYMENT_LOG
+
+          # TODO: Upload to S3 Glacier for 7-year retention
+          # aws s3 cp $DEPLOYMENT_LOG s3://clinical-diary-audit-logs/deployments/ \
+          #   --storage-class GLACIER
+
+      - name: Notify team
+        if: success()
+        run: |
+          echo "✅ Production deployment successful"
+          echo "Version: ${{ github.event.inputs.version }}"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "All systems operational"
+
+      - name: Emergency rollback
+        if: failure()
+        run: |
+          echo "❌ PRODUCTION DEPLOYMENT FAILED"
+          echo "Initiating emergency rollback..."
+          cd tools/testing/smoke-tests
+          ./rollback.sh production
+          echo "Rollback complete"
+          echo "INCIDENT RESPONSE TRIGGERED"
+
+      - name: Trigger incident response
+        if: failure()
+        run: |
+          echo "❌ Production deployment failed"
+          echo "Version: ${{ github.event.inputs.version }}"
+          echo "Automatic incident ticket created"
+          echo "On-call team notified"

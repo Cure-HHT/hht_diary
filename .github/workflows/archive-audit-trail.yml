@@ -1,0 +1,156 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00049: Artifact Retention and Archival
+#   REQ-o00051: Change Control and Audit Trail
+#   REQ-o00048: Audit Log Monitoring
+#
+# Archive Audit Trail (Nightly) to S3 Glacier (7-year retention)
+# Runs daily at 2 AM UTC
+
+name: Archive Audit Trail (Nightly)
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  archive-audit-trail:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Load secrets from Doppler
+        uses: dopplerhq/cli-action@v3
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
+
+      - name: Export audit trail
+        run: |
+          EXPORT_DATE=$(date +%Y-%m-%d)
+          EXPORT_FILE="audit-trail-$EXPORT_DATE.csv"
+          echo "EXPORT_FILE=$EXPORT_FILE" >> $GITHUB_ENV
+
+          echo "Exporting audit trail for date: $EXPORT_DATE"
+
+          # Export yesterday's audit records
+          doppler run -- psql $DATABASE_URL -c "
+            COPY (
+              SELECT
+                id,
+                event_type,
+                user_id,
+                entity_type,
+                entity_id,
+                old_data,
+                new_data,
+                ip_address,
+                user_agent,
+                device_info,
+                session_id,
+                created_at,
+                cryptographic_hash,
+                previous_hash
+              FROM audit_trail
+              WHERE created_at >= CURRENT_DATE - INTERVAL '1 day'
+                AND created_at < CURRENT_DATE
+              ORDER BY created_at
+            ) TO STDOUT WITH CSV HEADER
+          " > $EXPORT_FILE
+
+          # Check if export has records
+          RECORD_COUNT=$(wc -l < $EXPORT_FILE)
+          echo "Exported $RECORD_COUNT records (including header)"
+
+          if [ $RECORD_COUNT -le 1 ]; then
+            echo "⚠️  Warning: No audit records found for yesterday"
+          fi
+
+      - name: Compress export
+        run: |
+          gzip $EXPORT_FILE
+          echo "✅ Compressed: $EXPORT_FILE.gz"
+
+      - name: Generate checksum
+        run: |
+          sha256sum $EXPORT_FILE.gz > $EXPORT_FILE.gz.sha256
+          cat $EXPORT_FILE.gz.sha256
+
+      - name: Verify audit trail integrity
+        run: |
+          echo "Verifying audit trail cryptographic integrity..."
+
+          doppler run -- psql $DATABASE_URL -c "
+            SELECT check_audit_trail_integrity();
+          "
+
+          echo "✅ Audit trail integrity verified"
+
+      - name: Create metadata
+        run: |
+          cat > audit-metadata.json <<EOF
+          {
+            "artifact_type": "audit_trail",
+            "export_date": "$(date +%Y-%m-%d)",
+            "export_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "record_count": $(zcat $EXPORT_FILE.gz | wc -l),
+            "environment": "production",
+            "integrity_verified": true,
+            "retention_years": 7
+          }
+          EOF
+
+          cat audit-metadata.json
+
+      - name: Upload to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          # Upload audit trail
+          aws s3 cp $EXPORT_FILE.gz s3://clinical-diary-artifacts/audit-trail/ \
+            --metadata "date=$(date +%Y-%m-%d),environment=production"
+
+          # Upload checksum
+          aws s3 cp $EXPORT_FILE.gz.sha256 s3://clinical-diary-artifacts/audit-trail/
+
+          # Upload metadata
+          aws s3 cp audit-metadata.json s3://clinical-diary-artifacts/audit-trail/metadata/
+
+          echo "✅ Audit trail archived to S3"
+          echo "Archive: $EXPORT_FILE.gz"
+          echo "Location: s3://clinical-diary-artifacts/audit-trail/$EXPORT_FILE.gz"
+
+      - name: Verify upload
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          # Verify file exists
+          aws s3 ls s3://clinical-diary-artifacts/audit-trail/$EXPORT_FILE.gz
+
+          # Download and verify checksum
+          aws s3 cp s3://clinical-diary-artifacts/audit-trail/$EXPORT_FILE.gz.sha256 verify.sha256
+          sha256sum -c verify.sha256
+
+          echo "✅ Upload verified successfully"
+
+      - name: Log archival success
+        run: |
+          echo "✅ Audit trail archival completed successfully"
+          echo "Date: $(date +%Y-%m-%d)"
+          echo "File: $EXPORT_FILE.gz"
+          echo "Size: $(du -h $EXPORT_FILE.gz | cut -f1)"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ CRITICAL: Audit trail archival failed"
+          echo "Date: $(date +%Y-%m-%d)"
+          echo "This is a compliance issue - investigate immediately"
+          # TODO: Send alert to ops team (email, Slack, PagerDuty)

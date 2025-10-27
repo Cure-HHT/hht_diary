@@ -1,0 +1,119 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00049: Artifact Retention and Archival
+#
+# Archive Build Artifacts to S3
+# Runs after successful production deployment
+
+name: Archive Build Artifacts
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Production"]
+    types: [completed]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --always)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: ./artifacts
+        continue-on-error: true  # May not exist for manual runs
+
+      - name: Create archive metadata
+        run: |
+          cat > metadata.json <<EOF
+          {
+            "artifact_type": "build",
+            "build_id": "${{ github.run_id }}",
+            "workflow_run_id": "${{ github.event.workflow_run.id }}",
+            "commit_sha": "${{ github.sha }}",
+            "version": "${{ steps.version.outputs.version }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployer": "${{ github.actor }}",
+            "environment": "production",
+            "retention_years": 7
+          }
+          EOF
+
+      - name: Package artifacts
+        run: |
+          ARCHIVE_NAME="artifacts-prod-$(date +%Y%m%d-%H%M%S).tar.gz"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+          # Package artifacts if they exist, otherwise just metadata
+          if [ -d "artifacts" ]; then
+            tar -czf $ARCHIVE_NAME artifacts/ metadata.json
+          else
+            echo "No build artifacts found, archiving metadata only"
+            tar -czf $ARCHIVE_NAME metadata.json
+          fi
+
+      - name: Generate checksum
+        run: |
+          sha256sum $ARCHIVE_NAME > $ARCHIVE_NAME.sha256
+          cat $ARCHIVE_NAME.sha256
+
+      - name: Upload to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          # Upload archive
+          aws s3 cp $ARCHIVE_NAME s3://clinical-diary-artifacts/builds/ \
+            --metadata "version=${{ steps.version.outputs.version }},environment=production,build_id=${{ github.run_id }}"
+
+          # Upload checksum
+          aws s3 cp $ARCHIVE_NAME.sha256 s3://clinical-diary-artifacts/builds/
+
+          echo "✅ Artifacts archived to S3"
+          echo "Archive: $ARCHIVE_NAME"
+          echo "Location: s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME"
+
+      - name: Verify upload
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          # Verify file exists in S3
+          aws s3 ls s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME
+
+          # Download checksum and verify
+          aws s3 cp s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME.sha256 verify.sha256
+          sha256sum -c verify.sha256
+
+          echo "✅ Upload verified successfully"
+
+      - name: Log archival
+        run: |
+          cat >> archival-log.txt <<EOF
+          [$(date -u +"%Y-%m-%d %H:%M:%S UTC")] Archived build artifacts
+          Archive: $ARCHIVE_NAME
+          Version: ${{ steps.version.outputs.version }}
+          Build ID: ${{ github.run_id }}
+          Size: $(du -h $ARCHIVE_NAME | cut -f1)
+          ---
+          EOF
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Artifact archival failed"
+          echo "Build ID: ${{ github.run_id }}"
+          echo "Version: ${{ steps.version.outputs.version }}"
