@@ -1,11 +1,44 @@
+# Development files
 .vscode/**
 .vscode-test/**
 src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
+
+# TypeScript config and source
 **/tsconfig.json
 **/.eslintrc.json
+eslint.config.mjs
 **/*.map
 **/*.ts
+
+# Keep compiled output
 !out/**/*.js
+
+# Node modules - exclude dev dependencies
+node_modules/@types/**
+node_modules/@typescript-eslint/**
+node_modules/eslint/**
+node_modules/typescript/**
+
+# Git files
+.git/**
+.github/**
+
+# Documentation (keep README, LICENSE, exclude others)
+PACKAGING.md
+
+# Settings with API tokens
+.vscode/settings.json
+
+# Test files
+**/__tests__/**
+**/*.test.js
+**/*.spec.js
+
+# Build artifacts
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

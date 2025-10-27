@@ -32,6 +32,12 @@ npm install -g @vscode/vsce
    linear-req-inserter-0.1.0.vsix
    ```
 
+   **Note:** The `.vscodeignore` file optimizes the package by excluding:
+   - Source TypeScript files (only compiled `.js` files are included)
+   - Development dependencies (TypeScript, ESLint, etc.)
+   - Build artifacts and config files
+   - This reduces the package from 500+ files to only what's needed at runtime
+
 ## Install the Extension
 
 ### Option 1: Via VS Code UI
