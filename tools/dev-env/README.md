@@ -10,7 +10,32 @@ This directory contains the Docker-based development environment for the Clinica
 
 ## Quick Start
 
-### Prerequisites
+**Choose your approach**:
+
+### Option 1: GitHub Codespaces 🌐 (Recommended for Remote Teams)
+
+**Time**: 5 minutes | **Best for**: Remote work, quick start
+
+1. Go to: `https://github.com/yourorg/clinical-diary`
+2. Click green **"Code"** button → **"Codespaces"** tab
+3. Click **"Create codespace on main"**
+4. Choose your role (Developer/QA/DevOps/Management)
+5. Wait ~2 minutes (first time), then ~30 seconds (subsequent launches)
+6. Start coding in VS Code (browser or desktop)!
+
+**Advantages**:
+- ✅ Zero local setup
+- ✅ Work from any device
+- ✅ Consistent environment for all
+- ✅ ~$300-600/month for 3-person team
+
+**See**: [GITHUB_CODESPACES.md](GITHUB_CODESPACES.md) for complete guide
+
+### Option 2: Local Dev Containers 💻
+
+**Time**: 1-2 hours | **Best for**: Offline work, full control
+
+#### Prerequisites
 
 1. **Docker Desktop** (Windows/Mac) or **Docker Engine** (Linux)
    - Windows: https://www.docker.com/products/docker-desktop
@@ -25,7 +50,7 @@ This directory contains the Docker-based development environment for the Clinica
    - Sign up: https://doppler.com/
    - See: [doppler-setup.md](doppler-setup.md)
 
-### First-Time Setup
+#### First-Time Setup
 
 ```bash
 # Navigate to this directory
@@ -46,6 +71,12 @@ The script will:
 - ✅ Optionally start a container
 
 **Estimated time**: 15-30 minutes (first run, includes downloads)
+
+**Advantages**:
+- ✅ Free (except hardware)
+- ✅ Offline capable
+- ✅ Full control
+- ✅ Better for heavy builds (on powerful machine)
 
 ---
 

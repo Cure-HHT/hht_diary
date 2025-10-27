@@ -1,4 +1,15 @@
-Infrastructure as Code:
+Ultrathink time!
+Our small team is making an android/iOS/web diary app. We are working in an FDA clinical trial setting. 
+It is definitely NOT a medical device. 
+It might even be considered DHT (digital health technology) and fall under much less scrutiny than a full-on EDC. 
+
+Consider each of these categories as if you were an expert in them. 
+Decide if each item in the category is applicable to our system and make a plan to address it, including requirements, tool choice, spec, deployment, ops and deployment approvals.
+
+After all items have been examined, make a recommendation for implementing solutions to the identified gaps.
+
+
+## Infrastructure as Code:
 
 Terraform modules
 CloudFormation templates
@@ -9,7 +20,7 @@ State management
 Version control
 Drift detection
 
-CI/CD implementation:
+## CI/CD implementation:
 
 Pipeline design
 Build optimization
@@ -20,7 +31,7 @@ Deployment strategies
 Rollback procedures
 Pipeline monitoring
 
-Monitoring and observability:
+## Monitoring and observability:
 
 Metrics collection
 Log aggregation
@@ -30,7 +41,9 @@ Dashboard creation
 SLI/SLO definition
 Incident response
 Performance analysis
-Configuration management:
+incident escalation, email, IM, recipient list
+
+## Configuration management:
 
 Environment consistency
 Secret management
@@ -41,26 +54,31 @@ Service discovery
 Certificate management
 Compliance automation
 
-Monitoring and observability:
 
-Metrics collection
-Log aggregation
-Distributed tracing
-Alert management
-Dashboard creation
-SLI/SLO definition
-Incident response
-Performance analysis
-Configuration management:
-
-Environment consistency
-Secret management
-Configuration templating
-Dynamic configuration
-Feature flags
-Service discovery
-Certificate management
-Compliance automation
-
+## Specific Tools: are the applicable to our system?
 prometheus: Monitoring system
 jenkins: CI/CD automation
+grafana: monitoring
+
+
+## Environment management:
+
+Environment provisioning
+Configuration management
+Secret handling
+State synchronization
+Drift detection
+Environment parity
+Cleanup automation
+
+## Artifact management:
+
+Version control
+Binary repositories
+Container registries
+Dependency management
+Artifact promotion
+Retention policies
+Security scanning
+Compliance tracking
+

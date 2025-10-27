@@ -46,7 +46,14 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 
 The Clinical Diary project uses Docker-based containerized development environments to ensure consistency, security, and FDA compliance.
 
-**Quick Start**:
+**Quick Start Options**:
+
+**🌐 GitHub Codespaces** (5 minutes, recommended for remote teams):
+1. Go to: `https://github.com/yourorg/clinical-diary`
+2. Click "Code" → "Codespaces" → "Create codespace"
+3. Choose your role → Start coding!
+
+**💻 Local Dev Containers** (1-2 hours):
 ```bash
 cd tools/dev-env
 ./setup.sh
