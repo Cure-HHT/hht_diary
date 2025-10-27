@@ -322,7 +322,22 @@ node list-security-compliance-infrastructure-tickets.js --token=<TOKEN>
 All tools require a Linear API token. Get yours at:
 https://linear.app/settings/api
 
-**Store token securely** - Do NOT commit tokens to git. Use environment variables or pass via command line.
+**Store token securely** - Do NOT commit tokens to git.
+
+**Recommended: Use environment variable**
+```bash
+# Add to your ~/.bashrc or ~/.zshrc:
+export LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"
+
+# Then use in commands:
+node fetch-tickets.js --token=$LINEAR_API_TOKEN
+
+# Or create a wrapper script that sources the token:
+# tools/linear-cli/.env.local (gitignored)
+LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"
+```
+
+**Note**: The `.env.local` pattern is already in `.gitignore` to prevent accidental commits.
 
 ### Common Workflows
 
@@ -335,22 +350,22 @@ https://linear.app/settings/api
 ./create-tickets.sh
 
 # 3. Add sub-system checklists
-node add-subsystem-checklists.js --token=<TOKEN>
+node add-subsystem-checklists.js --token=$LINEAR_API_TOKEN
 ```
 
 **Link existing ticket to requirement**:
 ```bash
 # Find ticket ID from Linear, then:
-node update-ticket-with-requirement.js --token=<TOKEN> --ticket-id=<UUID> --req-id=p00015
+node update-ticket-with-requirement.js --token=$LINEAR_API_TOKEN --ticket-id=<UUID> --req-id=p00015
 ```
 
 **Analyze ticket coverage**:
 ```bash
 # Fetch all tickets and check REQ references
-node fetch-tickets.js --token=<TOKEN> --format=json | grep -i "REQ-"
+node fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json | grep -i "REQ-"
 
 # Find duplicates
-node check-duplicates.js --token=<TOKEN>
+node check-duplicates.js --token=$LINEAR_API_TOKEN
 ```
 
 ### Integration with Requirements System
