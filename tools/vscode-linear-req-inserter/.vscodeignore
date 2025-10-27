@@ -5,6 +5,7 @@ src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
+esbuild.js
 
 # TypeScript config and source
 **/tsconfig.json
@@ -13,14 +14,11 @@ eslint.config.mjs
 **/*.map
 **/*.ts
 
-# Keep compiled output
-!out/**/*.js
+# Build outputs (keep dist/ bundle, exclude out/ from tests)
+out/**
 
-# Node modules - exclude dev dependencies
-node_modules/@types/**
-node_modules/@typescript-eslint/**
-node_modules/eslint/**
-node_modules/typescript/**
+# Node modules - ALL excluded since everything is bundled in dist/
+node_modules/**
 
 # Git files
 .git/**
