@@ -1,0 +1,44 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-p00009: Sponsor-Specific Web Portals
+#   REQ-p00024: Portal User Roles and Permissions
+#   REQ-d00028: Portal Frontend Framework
+
+name: carina_portal
+description: Clinical Trial Web Portal for Carina Sponsor
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Supabase integration
+  supabase_flutter: ^2.5.0
+
+  # Routing
+  go_router: ^14.0.0
+
+  # State management
+  provider: ^6.1.0
+
+  # UI
+  flutter_svg: ^2.0.0
+
+  # Utilities
+  intl: ^0.19.0
+  url_strategy: ^0.3.0
+  uuid: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logo.png
+    - assets/icon.png

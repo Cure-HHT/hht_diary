@@ -1,0 +1,36 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-p00009: Sponsor-Specific Web Portals
+#   REQ-d00028: Portal Frontend Framework
+
+# Carina Portal Configuration
+sponsor:
+  id: carina
+  name: Carina Clinical Trials
+  display_name: Carina Portal
+
+# Branding
+branding:
+  primary_color: "#0175C2"
+  secondary_color: "#4CAF50"
+  logo: sponsor/assets/carina/logo.png
+  icon: sponsor/assets/carina/icon.png
+  favicon: sponsor/assets/carina/favicon.png
+
+# Features
+features:
+  patient_enrollment: true
+  questionnaires: true
+  edc_sync: false
+  offline_mode: true
+  audit_export: false  # Stub for future
+
+# Portal URLs (per environment)
+urls:
+  development: http://localhost:8080
+  staging: https://carina-portal-staging.example.com
+  production: https://carina-portal.example.com
+
+# Contact
+support:
+  email: support@carina-trials.example.com
+  phone: "+1-555-CARINA"

@@ -1,0 +1,27 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-p00008: Single Mobile App for All Sponsors
+#   REQ-p00007: Automatic Sponsor Configuration
+
+# Carina Mobile App Configuration
+sponsor:
+  id: carina
+  name: Carina Clinical Trials
+
+# App branding
+branding:
+  primary_color: "#0175C2"
+  secondary_color: "#4CAF50"
+  app_name: "Carina Diary"
+  logo: sponsor/assets/carina/logo.png
+  splash_icon: sponsor/assets/carina/icon.png
+
+# Features
+features:
+  offline_mode: true
+  questionnaires: true
+  push_notifications: true
+
+# Linking codes
+enrollment:
+  code_format: "XXXXX-XXXXX"  # 10 characters, non-ambiguous
+  excluded_chars: ["0", "O", "1", "I", "l"]
