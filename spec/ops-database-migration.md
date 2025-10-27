@@ -98,7 +98,7 @@ Core Repository                 Sponsor A              Sponsor B              Sp
 **Each sponsor repo specifies core version**:
 
 ```yaml
-# clinical-diary-pfizer/pubspec.yaml
+# clinical-diary-orion/pubspec.yaml
 dependencies:
   clinical_diary_database:
     hosted:
@@ -142,10 +142,10 @@ clinical-diary/packages/database/migrations/
 ### Sponsor Repository Structure
 
 ```
-clinical-diary-pfizer/database/migrations/
+clinical-diary-orion/database/migrations/
 ├── README.md                    # Sponsor-specific migration instructions
-├── 001_edc_integration.sql      # Pfizer EDC sync tables (proxy mode)
-├── 002_custom_reports.sql       # Pfizer-specific reporting views
+├── 001_edc_integration.sql      # Orion EDC sync tables (proxy mode)
+├── 002_custom_reports.sql       # Orion-specific reporting views
 └── rollback/
     ├── 001_rollback.sql
     └── 002_rollback.sql
@@ -623,14 +623,14 @@ pg_restore -d dbtest_prod backup_YYYYMMDD_HHMM.sql
 
 ```bash
 # 1. Clone/update sponsor repository
-cd clinical-diary-pfizer
+cd clinical-diary-orion
 git pull origin main
 
 # 2. Update core database dependency
 npm install @clinical-diary/database@1.3.0
 
 # 3. Link to sponsor's Supabase staging instance
-supabase link --project-ref pfizer-staging-xyz
+supabase link --project-ref orion-staging-xyz
 
 # 4. Apply migration to staging
 supabase db push --include node_modules/@clinical-diary/database/migrations/005_description.sql
@@ -644,7 +644,7 @@ flutter test integration_test/database_test.dart --dart-define=ENV=staging
 # 7. Get UAT sign-off
 
 # 8. Link to production instance
-supabase link --project-ref pfizer-prod-abc
+supabase link --project-ref orion-prod-abc
 
 # 9. Create backup
 supabase db dump > backup-$(date +%Y%m%d).sql
@@ -666,13 +666,13 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=production
 
 ### Applying Sponsor-Specific Migration
 
-**Scenario**: Pfizer adds custom EDC sync table
+**Scenario**: Orion adds custom EDC sync table
 
-**Process** (Pfizer only):
+**Process** (Orion only):
 
 ```bash
 # 1. Create migration in sponsor repo
-cd clinical-diary-pfizer/database/migrations
+cd clinical-diary-orion/database/migrations
 touch 003_add_edc_queue.sql
 touch rollback/003_rollback.sql
 
@@ -680,17 +680,17 @@ touch rollback/003_rollback.sql
 # ... write migration ...
 
 # 3. Test in staging
-supabase link --project-ref pfizer-staging-xyz
+supabase link --project-ref orion-staging-xyz
 supabase db push --include ./database/migrations/003_add_edc_queue.sql
 
 # 4. UAT approval
 
 # 5. Deploy to production
-supabase link --project-ref pfizer-prod-abc
+supabase link --project-ref orion-prod-abc
 supabase db push --include ./database/migrations/003_add_edc_queue.sql
 ```
 
-**No coordination needed** - only affects Pfizer's instance.
+**No coordination needed** - only affects Orion's instance.
 
 ### Emergency Hotfix Procedure
 

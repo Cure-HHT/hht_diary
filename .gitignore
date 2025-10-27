@@ -43,3 +43,90 @@ desktop.ini
 
 # Untracked notes and scratch files
 /untracked-notes/
+
+# =====================================
+# SPONSOR-SPECIFIC SECRETS (CRITICAL!)
+# =====================================
+# Sponsor configuration secrets
+sponsor/*/config/*.env
+sponsor/*/config/supabase.env
+sponsor/*/config/secrets.*
+sponsor/*/config/.env*
+sponsor/*/.env*
+
+# Sponsor credentials and keys
+sponsor/*/config/*.key
+sponsor/*/config/*.pem
+sponsor/*/config/credentials.*
+
+# Sponsor build outputs (local testing)
+sponsor/*/build/
+sponsor/*/.dart_tool/
+sponsor/*/.flutter-plugins
+sponsor/*/.flutter-plugins-dependencies
+
+# =====================================
+# BUILD ARTIFACTS
+# =====================================
+# Flutter/Dart
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+flutter_*.log
+
+# iOS
+*.ipa
+*.app
+*.dSYM.zip
+*.dSYM
+Pods/
+.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/.symlinks/
+**/ios/Podfile.lock
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+local.properties
+**/android/captures/
+**/android/.gradle/
+**/android/gradle-wrapper.jar
+**/android/key.properties
+
+# Web
+**/*.js.map
+**/*.part
+
+# =====================================
+# NODE MODULES (for Edge Functions)
+# =====================================
+node_modules/
+package-lock.json
+yarn.lock
+
+# =====================================
+# PYTHON (for tools)
+# =====================================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
+env/
+
+# =====================================
+# TESTING
+# =====================================
+coverage/
+test_results/
+*.lcov

@@ -320,11 +320,11 @@ void main() {
         url: 'https://test123.supabase.co',
         anonKey: 'test-key',
         projectRef: 'test123',
-        sponsorId: 'pfizer',
+        sponsorId: 'orion',
       );
 
       expect(config.url, contains('.supabase.co'));
-      expect(config.sponsorId, equals('pfizer'));
+      expect(config.sponsorId, equals('orion'));
     });
   });
 }

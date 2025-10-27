@@ -113,38 +113,49 @@ external-contributors:
 
 ---
 
-### Sponsor Repositories (`clinical-diary-{sponsor}`)
+### Sponsor Directory (`sponsor/`)
 
-**Purpose**: Private sponsor-specific configuration and secrets
-**Visibility**: Private
-**Access Control**: Sponsor-specific teams
+**Purpose**: Sponsor-specific code within monorepo
+**Location**: `/sponsor/` directory in `clinical-diary` monorepo
+**Access Control**: CODEOWNERS-based per sponsor
 
 ```
-clinical-diary-pfizer:
-  pfizer-dev-team:
-    Role: Write
-    Members: Pfizer developers, designated consultants
+sponsor/ directory structure:
+  sponsor/orion/:
+    CODEOWNERS: @orion-dev-team @orion-admins
+    Access: Orion team only
 
-  pfizer-admins:
-    Role: Admin
-    Members: Pfizer IT, project leads
+  sponsor/andromeda/:
+    CODEOWNERS: @andromeda-dev-team @andromeda-admins
+    Access: Andromeda team only
+
+  sponsor/*/config/:
+    CODEOWNERS: @{sponsor}-admins (admin approval required)
+    Contains: Deployment configs, secrets references
+
+Teams:
+  orion-dev-team:
+    Role: Write (sponsor/orion/ only)
+    Members: Orion developers, designated consultants
+
+  orion-admins:
+    Role: Admin (sponsor/orion/ only)
+    Members: Orion IT, project leads
+
+  andromeda-dev-team:
+    Role: Write (sponsor/andromeda/ only)
+    Members: Andromeda developers
+
+  andromeda-admins:
+    Role: Admin (sponsor/andromeda/ only)
+    Members: Andromeda IT, project leads
 
   clinical-diary-core-team:
-    Role: Read (for integration support)
+    Role: Write (root directories, read sponsor/)
     Members: Core platform developers
-
-clinical-diary-novartis:
-  novartis-dev-team:
-    Role: Write
-
-  novartis-admins:
-    Role: Admin
-
-  clinical-diary-core-team:
-    Role: Read
 ```
 
-**Principle**: No cross-sponsor access. Pfizer team cannot access Novartis repo.
+**Principle**: CODEOWNERS enforces sponsor isolation within monorepo. Orion team cannot modify Andromeda files.
 
 ---
 
@@ -189,27 +200,28 @@ Allow deletions:
   ❌ Disabled
 ```
 
-### Sponsor Repositories (`main` branch)
+### Sponsor Directory Protection
 
-```yaml
-Branch Protection Settings:
+**Note**: Sponsor isolation enforced via CODEOWNERS, not separate branch protection
 
-Require pull request reviews:
-  ✅ Enabled
-  Required approvals: 1
-  Require review from CODEOWNERS: Yes
+```
+sponsor/ directory access:
+  ✅ Enforced via CODEOWNERS file
+  ✅ Required review from sponsor teams
+  ✅ Core team can read all sponsor/ dirs
+  ✅ Sponsor teams cannot modify other sponsors
+  ✅ Changes to sponsor/ trigger sponsor-specific CI/CD
 
-Require status checks to pass:
-  ✅ Enabled
-  Required checks:
-    - validate-sponsor-repo (from core build system)
+Path-based status checks:
+  Changes to sponsor/orion/:
+    Required checks:
+      - validate-orion-sponsor
+      - test-orion-config
 
-Include administrators:
-  ✅ Enabled
-
-Restrict who can push:
-  ✅ Enabled
-  Allowed: {sponsor}-admins only
+  Changes to sponsor/andromeda/:
+    Required checks:
+      - validate-andromeda-sponsor
+      - test-andromeda-config
 ```
 
 ---
@@ -218,9 +230,13 @@ Restrict who can push:
 
 **File**: `.github/CODEOWNERS` (implement post-UAT)
 
-### Core Repository
+### Monorepo CODEOWNERS
 
 ```
+# ========================================
+# CORE PLATFORM (Root directories)
+# ========================================
+
 # Default owner for everything (unless overridden below)
 * @clinical-diary-core-team
 
@@ -249,21 +265,30 @@ Restrict who can push:
 
 # Build system (requires security review - can modify workflows)
 /tools/build_system/ @security-team @devops-team
+
+# ========================================
+# SPONSOR-SPECIFIC CODE (sponsor/ directory)
+# ========================================
+
+# Orion sponsor (isolated)
+/sponsor/orion/ @orion-dev-team @orion-admins
+/sponsor/orion/config/ @orion-admins
+/sponsor/orion/spec/ @orion-admins @orion-product-team
+
+# Andromeda sponsor (isolated)
+/sponsor/andromeda/ @andromeda-dev-team @andromeda-admins
+/sponsor/andromeda/config/ @andromeda-admins
+/sponsor/andromeda/spec/ @andromeda-admins @andromeda-product-team
+
+# Sponsor assets require admin approval
+/sponsor/*/config/ @{sponsor}-admins
+/sponsor/*/assets/ @{sponsor}-dev-team
+
+# Sponsor specs require product team
+/sponsor/*/spec/ @{sponsor}-product-team
 ```
 
-### Sponsor Repository
-
-```
-# Default owner
-* @{sponsor}-dev-team
-
-# Sponsor configuration (requires admin approval)
-/config/ @{sponsor}-admins
-/lib/sponsor_config.dart @{sponsor}-admins
-
-# Assets and branding (product approval)
-/assets/ @{sponsor}-dev-team @{sponsor}-product-team
-```
+**Key Principle**: Sponsor teams can only modify their own `sponsor/{sponsor-name}/` directory. Core team has read access to all sponsor directories for support purposes.
 
 ---
 
