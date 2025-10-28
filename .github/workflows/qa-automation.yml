@@ -104,10 +104,13 @@ jobs:
           timeout 60 bash -c 'until docker compose exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
 
       - name: Authenticate with Doppler (if configured)
-        if: ${{ secrets.DOPPLER_TOKEN_QA != '' }}
         working-directory: tools/dev-env
         run: |
-          docker compose exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
+          if [ -n "${{ secrets.DOPPLER_TOKEN_QA }}" ]; then
+            docker compose exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
+          else
+            echo "Doppler token not configured, skipping authentication"
+          fi
         continue-on-error: true
 
       - name: Run Flutter unit tests
