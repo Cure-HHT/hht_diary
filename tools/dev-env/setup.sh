@@ -48,6 +48,20 @@ error() {
 # Check Prerequisites
 # ============================================================
 
+check_environment() {
+  info "Checking environment variables..."
+
+  # Check for HOME environment variable (needed for volume mounts)
+  if [ -z "${HOME:-}" ]; then
+    error "HOME environment variable is not set."
+    echo "  This is required for mounting SSH keys and git config."
+    echo "  Please ensure HOME is set in your environment."
+    exit 1
+  fi
+
+  success "Environment variables validated"
+}
+
 check_docker() {
   info "Checking Docker installation..."
 
@@ -93,6 +107,28 @@ detect_platform() {
   info "Detected platform: $PLATFORM"
 }
 
+check_doppler() {
+  info "Checking Doppler CLI configuration (optional)..."
+
+  if ! command -v doppler &> /dev/null; then
+    warning "Doppler CLI not found on host system."
+    echo "  Doppler is available inside containers but you may want it on host too."
+    echo "  Install: https://docs.doppler.com/docs/install-cli"
+    return 0
+  fi
+
+  success "Doppler CLI found: $(doppler --version)"
+
+  # Check if doppler is configured
+  if doppler whoami &> /dev/null; then
+    success "Doppler is configured and authenticated"
+  else
+    warning "Doppler CLI found but not authenticated."
+    echo "  Run 'doppler login' to authenticate, or configure inside containers later."
+    echo "  See: tools/dev-env/doppler-setup.md"
+  fi
+}
+
 # ============================================================
 # Build Docker Images
 # ============================================================
@@ -112,6 +148,14 @@ build_base_image() {
 build_role_image() {
   local role=$1
   info "Building $role image..."
+
+  # Check if base image exists
+  if ! docker images clinical-diary-base:latest --format "{{.Repository}}" | grep -q "clinical-diary-base"; then
+    error "Base image 'clinical-diary-base:latest' not found!"
+    echo "  Please build the base image first with:"
+    echo "  ./setup.sh --build-only"
+    exit 1
+  fi
 
   docker build \
     -f "docker/${role}.Dockerfile" \
@@ -160,6 +204,105 @@ start_service() {
 }
 
 # ============================================================
+# Management Commands
+# ============================================================
+
+show_status() {
+  info "Checking container status..."
+  echo ""
+
+  cd "$SCRIPT_DIR"
+
+  # Show running containers
+  echo "Running Containers:"
+  docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  No containers running"
+  echo ""
+
+  # Show images
+  echo "Built Images:"
+  for image in clinical-diary-base clinical-diary-dev clinical-diary-qa clinical-diary-ops clinical-diary-mgmt; do
+    if docker images "$image:latest" --format "{{.Repository}}:{{.Tag}} ({{.Size}})" | grep -q "$image"; then
+      echo "  ✓ $(docker images "$image:latest" --format "{{.Repository}}:{{.Tag}} - {{.Size}}")"
+    else
+      echo "  ✗ $image:latest - Not built"
+    fi
+  done
+  echo ""
+
+  # Show volumes
+  echo "Volumes:"
+  for volume in clinical-diary-repos clinical-diary-exchange qa-reports; do
+    if docker volume ls --format "{{.Name}}" | grep -q "^${volume}$"; then
+      size=$(docker system df -v --format "{{.Name}} {{.Size}}" | grep "$volume" | awk '{print $2}' || echo "unknown")
+      echo "  ✓ $volume ($size)"
+    else
+      echo "  ✗ $volume - Not created"
+    fi
+  done
+  echo ""
+}
+
+cleanup_all() {
+  warning "This will remove ALL Clinical Diary containers, images, and volumes!"
+  echo ""
+  echo "  • All containers (dev, qa, ops, mgmt)"
+  echo "  • All images (base + role images)"
+  echo "  • All volumes (repos, exchange, reports)"
+  echo ""
+  read -p "Are you sure? Type 'yes' to confirm: " -r
+  echo ""
+
+  if [ "$REPLY" != "yes" ]; then
+    info "Cleanup cancelled."
+    return 0
+  fi
+
+  cd "$SCRIPT_DIR"
+
+  info "Stopping and removing containers..."
+  docker compose down 2>/dev/null || true
+  success "Containers removed"
+
+  info "Removing images..."
+  for image in clinical-diary-base clinical-diary-dev clinical-diary-qa clinical-diary-ops clinical-diary-mgmt; do
+    docker rmi "${image}:latest" 2>/dev/null && success "Removed $image" || warning "$image not found"
+  done
+
+  info "Removing volumes..."
+  for volume in clinical-diary-repos clinical-diary-exchange qa-reports; do
+    docker volume rm "$volume" 2>/dev/null && success "Removed $volume" || warning "$volume not found"
+  done
+
+  echo ""
+  success "Cleanup complete!"
+}
+
+backup_volumes() {
+  local backup_dir="${BACKUP_DIR:-$PROJECT_ROOT/backups}"
+  local timestamp=$(date +%Y%m%d_%H%M%S)
+  local backup_path="$backup_dir/volumes_$timestamp"
+
+  info "Backing up volumes to: $backup_path"
+  mkdir -p "$backup_path"
+
+  for volume in clinical-diary-repos clinical-diary-exchange qa-reports; do
+    if docker volume ls --format "{{.Name}}" | grep -q "^${volume}$"; then
+      info "Backing up $volume..."
+      docker run --rm \
+        -v "$volume:/source:ro" \
+        -v "$backup_path:/backup" \
+        ubuntu:24.04 \
+        tar czf "/backup/${volume}.tar.gz" -C /source . 2>/dev/null || true
+      success "Backed up $volume"
+    fi
+  done
+
+  echo ""
+  success "Backup complete: $backup_path"
+  echo "  To restore: docker run --rm -v <volume>:/dest -v $backup_path:/backup ubuntu:24.04 tar xzf /backup/<volume>.tar.gz -C /dest"
+}
+
+# ============================================================
 # Validation
 # ============================================================
 
@@ -198,10 +341,18 @@ validate_setup() {
 # ============================================================
 
 interactive_setup() {
+  local dry_run=${1:-false}
+
   echo ""
   echo "════════════════════════════════════════════════════════════"
   echo "  Clinical Diary Development Environment Setup"
+  if [ "$dry_run" = true ]; then
+    echo "  [DRY RUN MODE - No changes will be made]"
+  fi
   echo "════════════════════════════════════════════════════════════"
+  echo ""
+
+  check_environment
   echo ""
 
   detect_platform
@@ -213,12 +364,24 @@ interactive_setup() {
   check_docker_compose
   echo ""
 
+  check_doppler
+  echo ""
+
   info "This will build Docker images for all roles:"
   echo "  • dev  - Developer environment (Flutter, Android SDK)"
   echo "  • qa   - QA environment (Playwright, testing tools)"
   echo "  • ops  - DevOps environment (Terraform, deployment)"
   echo "  • mgmt - Management environment (read-only)"
   echo ""
+
+  if [ "$dry_run" = true ]; then
+    info "DRY RUN: Would build images but skipping in dry-run mode"
+    echo ""
+    validate_setup
+    echo ""
+    info "Dry run complete. Run without --dry-run to actually build images."
+    return 0
+  fi
 
   read -p "Continue? [Y/n] " -n 1 -r
   echo ""
@@ -282,13 +445,24 @@ Options:
   --build-only        Build images without starting containers
   --validate          Validate installation only
   --rebuild           Rebuild all images from scratch (no cache)
+  --dry-run           Preview setup without making changes
+  --status            Show status of containers, images, and volumes
+  --cleanup           Remove all containers, images, and volumes
+  --backup            Backup all volumes to PROJECT_ROOT/backups
+
+Environment Variables:
+  BACKUP_DIR          Custom backup directory (default: PROJECT_ROOT/backups)
 
 Examples:
   ./setup.sh                 # Interactive setup
+  ./setup.sh --dry-run       # Preview without building
   ./setup.sh --role dev      # Build and start dev container
   ./setup.sh --build-only    # Build all images
   ./setup.sh --validate      # Check installation
+  ./setup.sh --status        # Show current status
+  ./setup.sh --backup        # Backup volumes before rebuild
   ./setup.sh --rebuild       # Rebuild everything
+  ./setup.sh --cleanup       # Clean up everything
 
 EOF
 }
@@ -299,6 +473,7 @@ main() {
       show_help
       ;;
     --role)
+      check_environment
       detect_platform
       check_docker
       check_docker_compose
@@ -311,6 +486,7 @@ main() {
       start_service "$2"
       ;;
     --build-only)
+      check_environment
       detect_platform
       check_docker
       check_docker_compose
@@ -318,22 +494,42 @@ main() {
       validate_setup
       ;;
     --validate)
+      check_environment
       detect_platform
       check_docker
       check_docker_compose
       validate_setup
       ;;
     --rebuild)
+      check_environment
       detect_platform
       check_docker
       check_docker_compose
+      info "Backing up volumes before rebuild..."
+      backup_volumes
+      echo ""
       info "Rebuilding all images from scratch..."
       docker compose build --no-cache
       success "Rebuild complete!"
       validate_setup
       ;;
+    --dry-run)
+      interactive_setup true
+      ;;
+    --status)
+      check_docker
+      show_status
+      ;;
+    --cleanup)
+      check_docker
+      cleanup_all
+      ;;
+    --backup)
+      check_docker
+      backup_volumes
+      ;;
     "")
-      interactive_setup
+      interactive_setup false
       ;;
     *)
       error "Unknown option: $1"
