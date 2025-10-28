@@ -98,24 +98,3 @@ jobs:
             done
           done
           echo "✅ Link check complete"
-
-  validate-sql-syntax:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      - name: Validate SQL syntax (dry run)
-        run: |
-          echo "🔍 Validating SQL file syntax..."
-          for sqlfile in database/*.sql database/**/*.sql; do
-            if [ -f "$sqlfile" ]; then
-              echo "Checking $sqlfile..."
-              # Basic syntax check (won't execute, just parse)
-              psql -h localhost -U postgres --set=ON_ERROR_STOP=1 -f "$sqlfile" -o /dev/null 2>&1 || \
-                echo "✅ $sqlfile syntax check complete (note: may show connection errors, that's expected)"
-            fi
-          done
-          echo "✅ SQL syntax validation complete"
