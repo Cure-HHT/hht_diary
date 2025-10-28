@@ -1,26 +1,27 @@
-# Sponsor Directory Structure
+# Sponsor Directory
 
-This document describes the organization of sponsor-specific implementations in the multi-sponsor Clinical Diary platform.
+This directory contains all sponsor-specific implementations for the multi-sponsor Clinical Diary platform.
 
 ---
 
-## Directory Pattern
-
-Each sponsor is a **self-contained directory** at the root level:
+## Directory Structure
 
 ```
-clinical-diary/
-├── sponsor-{name}/              # Self-contained sponsor implementation
+sponsor/
+├── carina/                      # Carina sponsor (self-contained)
 │   ├── lib/                     # Dart code (config, portal, mobile extensions)
 │   ├── config/                  # Configuration files (GITIGNORED secrets!)
 │   ├── assets/                  # Branding (logos, icons, fonts)
 │   ├── edge_functions/          # Sponsor-specific Edge Functions
-│   └── spec/                    # Sponsor-specific requirements
+│   ├── spec/                    # Sponsor-specific requirements
+│   └── README.md                # Sponsor-specific documentation
 │
-├── database/                    # SHARED schema (deployed per-sponsor)
-├── spec/                        # Core platform specifications
-└── docs/                        # Architecture Decision Records
+├── _template/                   # Template for new sponsors (future)
+├── _abstractions/               # Shared sponsor abstractions (future)
+└── README.md                    # This file
 ```
+
+Each sponsor subdirectory is **self-contained** and can be moved/archived independently.
 
 ---
 
@@ -28,7 +29,7 @@ clinical-diary/
 
 ### Carina
 **Status**: Development / Scaffold
-**Directory**: `sponsor-carina/`
+**Directory**: `sponsor/carina/`
 **Mode**: Endpoint (no EDC sync)
 **Codename**: Carina (constellation)
 
@@ -38,7 +39,7 @@ clinical-diary/
 - ✅ Placeholder branding assets
 - ✅ Full requirement traceability
 
-**Documentation**: See `sponsor-carina/README.md`
+**Documentation**: See `sponsor/carina/README.md`
 
 ---
 
@@ -46,7 +47,7 @@ clinical-diary/
 
 ### 1. Create Directory
 ```bash
-mkdir -p sponsor-{name}/{lib,config,assets,edge_functions,spec}
+mkdir -p sponsor/{name}/{lib,config,assets,edge_functions,spec}
 ```
 
 ### 2. Choose Codename
@@ -54,26 +55,26 @@ Select an astronomical phenomenon (constellation, star, nebula, etc.):
 - Examples: Orion, Andromeda, Vega, Polaris, Nebula, Carina
 
 ### 3. Implement Configuration
-Create in `sponsor-{name}/config/`:
+Create in `sponsor/{name}/config/`:
 - `portal.yaml` - Portal configuration
 - `mobile.yaml` - Mobile app configuration
 - `supabase.env.example` - Credentials template
 - `.gitignore` - Protect secrets
 
 ### 4. Add Branding
-Create in `sponsor-{name}/assets/`:
+Create in `sponsor/{name}/assets/`:
 - `logo.png` (200x60px, transparent)
 - `icon.png` (512x512px)
 - `favicon.png` (32x32px)
 
 ### 5. Implement Portal
-Create Flutter Web app in `sponsor-{name}/lib/portal/`
+Create Flutter Web app in `sponsor/{name}/lib/portal/`
 
 ### 6. Deploy Infrastructure
 - Create Supabase project
-- Deploy schema from `database/schema.sql`
-- Deploy RLS policies from `database/rls_policies.sql`
-- Configure credentials in `sponsor-{name}/config/supabase.env`
+- Deploy schema from `../database/schema.sql`
+- Deploy RLS policies from `../database/rls_policies.sql`
+- Configure credentials in `sponsor/{name}/config/supabase.env`
 
 ---
 
@@ -97,9 +98,9 @@ The **mobile app** contains all sponsor configurations bundled, with dynamic sel
 ## Directory Benefits
 
 ### Self-Contained Units
-✅ **Move**: `mv sponsor-carina /archive/`
-✅ **Archive**: `tar -czf carina-2025-10-27.tar.gz sponsor-carina/`
-✅ **Share**: `zip -r carina-portal.zip sponsor-carina/` (exclude secrets)
+✅ **Move**: `mv sponsor/carina /archive/`
+✅ **Archive**: `tar -czf carina-2025-10-27.tar.gz sponsor/carina/`
+✅ **Share**: `zip -r carina-portal.zip sponsor/carina/` (exclude secrets)
 ✅ **Independent Versioning**: Can be separate git repo if needed
 
 ### Clean Separation
@@ -182,7 +183,7 @@ dart tools/build_system/deploy.dart --sponsor carina --env production
 ## Deployment
 
 ### Portal
-1. Navigate to `sponsor-{name}/lib/portal/`
+1. Navigate to `sponsor/{name}/lib/portal/`
 2. Build: `flutter build web --release --web-renderer html`
 3. Deploy `build/web/` to Netlify/Vercel/Cloudflare Pages
 4. Configure custom domain: `{sponsor}-portal.example.com`
@@ -233,22 +234,22 @@ flutter test integration_test/
 
 ---
 
-## Migration from Old Structure
+## Templates and Abstractions
 
-If you have sponsors in the old `sponsor/lib/{name}/` structure:
-
+### _template/ (Future)
+A template directory for quickly scaffolding new sponsors:
 ```bash
-# Create new sponsor directory
-mkdir -p sponsor-{name}
-
-# Move files
-mv sponsor/lib/{name}/* sponsor-{name}/lib/
-mv sponsor/config/{name}/* sponsor-{name}/config/
-mv sponsor/assets/{name}/* sponsor-{name}/assets/
-
-# Remove old structure
-rm -rf sponsor/
+cp -r sponsor/_template sponsor/new-sponsor-name
+# Then customize configuration and branding
 ```
+
+### _abstractions/ (Future)
+Shared code that multiple sponsors might use:
+- Common EDC integration patterns
+- Shared UI components
+- Utility functions
+
+**Note**: Keep abstractions minimal. Prefer sponsor isolation over code reuse.
 
 ---
 
@@ -272,4 +273,4 @@ rm -rf sponsor/
 ---
 
 **Last Updated**: 2025-10-27
-**Pattern**: Self-contained sponsor directories at root level
+**Pattern**: Self-contained sponsor subdirectories within sponsor/
