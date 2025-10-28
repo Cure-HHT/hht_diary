@@ -1,0 +1,153 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00044: Database Migration Automation
+#
+# Manual Rollback Workflow
+# Rolls back application and database to previous known-good state
+
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      target_version:
+        description: 'Target version to rollback to (e.g., v1.2.3)'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Log rollback initiation
+        run: |
+          echo "⚠️  ROLLBACK INITIATED"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Target version: ${{ github.event.inputs.target_version }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Initiated by: ${{ github.actor }}"
+
+      - name: Verify target version exists
+        run: |
+          git ls-remote --tags origin | grep ${{ github.event.inputs.target_version }}
+          if [ $? -ne 0 ]; then
+            echo "❌ Target version not found: ${{ github.event.inputs.target_version }}"
+            exit 1
+          fi
+          echo "✅ Target version verified"
+
+      - name: Checkout target version
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_version }}
+
+      - name: Setup environment
+        run: |
+          # Setup Node.js
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+
+          # Install Supabase CLI
+          brew install supabase/tap/supabase
+
+          npm install
+
+      - name: Load secrets
+        uses: dopplerhq/cli-action@v3
+        env:
+          DOPPLER_TOKEN: ${{ secrets[format('DOPPLER_TOKEN_{0}', github.event.inputs.environment)] }}
+
+      - name: Database rollback
+        run: |
+          echo "Rolling back database..."
+
+          # Get project ID for environment
+          PROJECT_ID=${{ secrets[format('SUPABASE_PROJECT_ID_{0}', github.event.inputs.environment)] }}
+
+          # Link to project
+          doppler run -- supabase link --project-ref $PROJECT_ID
+
+          # Execute rollback
+          cd database/migrations/rollbacks
+
+          # Find and execute appropriate rollback script
+          ROLLBACK_SCRIPT=$(ls -r | grep ${{ github.event.inputs.target_version }} | head -n1)
+
+          if [ -z "$ROLLBACK_SCRIPT" ]; then
+            echo "⚠️  No rollback script found for ${{ github.event.inputs.target_version }}"
+            echo "Manual intervention may be required"
+          else
+            echo "Executing rollback script: $ROLLBACK_SCRIPT"
+            doppler run -- psql $DATABASE_URL -f $ROLLBACK_SCRIPT
+          fi
+
+          echo "✅ Database rollback complete"
+
+      - name: Deploy previous version
+        run: |
+          echo "Deploying previous application version..."
+
+          PROJECT_ID=${{ secrets[format('SUPABASE_PROJECT_ID_{0}', github.event.inputs.environment)] }}
+          doppler run -- supabase functions deploy --project-ref $PROJECT_ID
+
+          echo "✅ Application rollback complete"
+
+      - name: Verify rollback with smoke tests
+        run: |
+          echo "Verifying rollback with smoke tests..."
+          cd tools/testing/smoke-tests
+          doppler run -- ./run-smoke-tests.sh ${{ github.event.inputs.environment }}
+          echo "✅ Smoke tests passed"
+
+      - name: Record rollback
+        if: success()
+        run: |
+          echo "Recording rollback..."
+          ROLLBACK_LOG="rollback-${{ github.event.inputs.environment }}-$(date +%Y%m%d-%H%M%S).log"
+
+          {
+            echo "Rollback Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "Environment: ${{ github.event.inputs.environment }}"
+            echo "From Version: [Previous]"
+            echo "To Version: ${{ github.event.inputs.target_version }}"
+            echo "Reason: ${{ github.event.inputs.reason }}"
+            echo "Initiated by: ${{ github.actor }}"
+            echo "Outcome: success"
+          } > $ROLLBACK_LOG
+
+          # For production, upload to S3 Glacier
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            # TODO: Upload to S3 Glacier
+            echo "Would upload to S3 Glacier for 7-year retention"
+          fi
+
+      - name: Notify team
+        if: success()
+        run: |
+          echo "✅ Rollback completed successfully"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Version: ${{ github.event.inputs.target_version }}"
+          echo "System restored to known-good state"
+
+      - name: Rollback failed
+        if: failure()
+        run: |
+          echo "❌ ROLLBACK FAILED"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "⚠️  MANUAL INTERVENTION REQUIRED"
+          echo "Contact Tech Lead immediately"

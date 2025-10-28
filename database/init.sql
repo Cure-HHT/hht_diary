@@ -1,3 +1,6 @@
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-o00004: Database Schema Deployment
+--
 -- =====================================================
 -- Clinical Trial Diary Database - Complete Initialization
 -- For Supabase Deployment

@@ -47,3 +47,6 @@ desktop.ini
 # Auto-generated build artifacts (regenerate via tools/requirements/)
 traceability_matrix.md
 traceability_matrix.html
+
+# Planning documents (local use only)
+NEXT_STEPS_OPTIONS.md

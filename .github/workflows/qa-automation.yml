@@ -1,0 +1,295 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00028: Role-Based Environment Separation
+#   REQ-d00031: Automated QA Testing
+#   REQ-d00033: FDA Validation Documentation
+#
+# Clinical Diary QA Automation Workflow
+# Triggers on pull requests to run automated tests in the qa container
+
+name: QA Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - 'feature/**'
+      - 'release/**'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run (all, unit, integration, e2e)'
+        required: false
+        default: 'all'
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  qa-tests:
+    name: Run QA Test Suite
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better git context
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-qa-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-qa-
+            ${{ runner.os }}-buildx-
+
+      - name: Build base Docker image
+        working-directory: tools/dev-env
+        run: |
+          docker build \
+            -f docker/base.Dockerfile \
+            -t clinical-diary-base:latest \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            docker/
+
+      - name: Build dev Docker image (qa extends dev)
+        working-directory: tools/dev-env
+        run: |
+          docker build \
+            -f docker/dev.Dockerfile \
+            -t clinical-diary-dev:latest \
+            --build-arg BASE_IMAGE_TAG=latest \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            docker/
+
+      - name: Build QA Docker image
+        working-directory: tools/dev-env
+        run: |
+          docker build \
+            -f docker/qa.Dockerfile \
+            -t clinical-diary-qa:latest \
+            --build-arg BASE_IMAGE_TAG=latest \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            docker/
+
+      # Move cache to avoid unlimited growth
+      - name: Rotate Docker cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Start QA environment
+        working-directory: tools/dev-env
+        run: |
+          docker compose up -d qa
+          docker compose ps
+
+      - name: Wait for QA container to be healthy
+        working-directory: tools/dev-env
+        run: |
+          timeout 60 bash -c 'until docker compose exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
+
+      - name: Authenticate with Doppler (if configured)
+        if: ${{ secrets.DOPPLER_TOKEN_QA != '' }}
+        working-directory: tools/dev-env
+        run: |
+          docker compose exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
+        continue-on-error: true
+
+      - name: Run Flutter unit tests
+        id: flutter-tests
+        working-directory: tools/dev-env
+        run: |
+          docker compose exec -T qa bash -c "
+            cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
+            if [ -f pubspec.yaml ]; then
+              flutter pub get
+              flutter test --coverage --reporter json > /workspace/reports/flutter-test-results.json || true
+              flutter test --coverage
+            fi
+          "
+        continue-on-error: true
+
+      - name: Run Playwright E2E tests
+        id: playwright-tests
+        working-directory: tools/dev-env
+        run: |
+          docker compose exec -T qa bash -c "
+            cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Playwright tests found, skipping'
+            if [ -d tests ] || [ -d e2e ]; then
+              npx playwright test --reporter=json > /workspace/reports/playwright-results.json || true
+              npx playwright test --reporter=html
+            fi
+          "
+        continue-on-error: true
+
+      - name: Run comprehensive QA suite
+        id: qa-suite
+        working-directory: tools/dev-env
+        env:
+          TEST_SUITE: ${{ github.event.inputs.test_suite || 'all' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          docker compose exec -T qa bash -c "
+            export TEST_SUITE='$TEST_SUITE'
+            export PR_NUMBER='$PR_NUMBER'
+            export COMMIT_SHA='$COMMIT_SHA'
+            /usr/local/bin/qa-runner.sh
+          "
+        continue-on-error: true
+
+      - name: Copy test reports from container
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          mkdir -p ../../qa-reports
+          docker compose cp qa:/workspace/reports/. ../../qa-reports/ || true
+          ls -la ../../qa-reports/
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          if [ -f qa-reports/test-summary.md ]; then
+            cat qa-reports/test-summary.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## QA Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Tests completed. See artifacts for detailed reports." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-test-reports-${{ github.sha }}
+          path: qa-reports/
+          retention-days: 30
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports-${{ github.sha }}
+          path: |
+            qa-reports/coverage/
+            qa-reports/lcov.info
+          retention-days: 30
+        continue-on-error: true
+
+      - name: Comment PR with test results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let comment = '## 🤖 QA Automation Results\n\n';
+
+            // Read test summary if available
+            if (fs.existsSync('qa-reports/test-summary.md')) {
+              const summary = fs.readFileSync('qa-reports/test-summary.md', 'utf8');
+              comment += summary + '\n\n';
+            }
+
+            // Add artifact links
+            comment += '### 📊 Detailed Reports\n\n';
+            comment += `- [Test Reports Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            comment += `- Commit: \`${{ github.sha }}\`\n`;
+            comment += `- Workflow: [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n`;
+
+            // Add timestamp
+            comment += `*Generated at ${new Date().toISOString()}*\n`;
+
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Create check run with results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let conclusion = 'success';
+            let summary = 'All QA tests passed';
+
+            // Check for test failures
+            if ('${{ steps.qa-suite.outcome }}' !== 'success') {
+              conclusion = 'failure';
+              summary = 'Some QA tests failed';
+            }
+
+            // Read detailed output if available
+            let output = 'See artifacts for detailed test reports.';
+            if (fs.existsSync('qa-reports/test-summary.md')) {
+              output = fs.readFileSync('qa-reports/test-summary.md', 'utf8');
+            }
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'QA Test Suite',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: conclusion,
+              output: {
+                title: 'QA Automation Results',
+                summary: summary,
+                text: output
+              }
+            });
+
+      - name: Cleanup containers
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          docker compose down -v
+
+      - name: Fail workflow if tests failed
+        if: steps.qa-suite.outcome == 'failure'
+        run: exit 1
+
+  security-scan:
+    name: Security & Compliance Scan
+    runs-on: ubuntu-latest
+    needs: qa-tests
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run SAST scan
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true

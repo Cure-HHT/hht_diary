@@ -1,0 +1,62 @@
+{
+  "name": "Clinical Diary - QA",
+  "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
+  "service": "qa",
+  "workspaceFolder": "/workspace/src",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Playwright testing
+        "ms-playwright.playwright",
+
+        // Flutter & Dart (for integration tests)
+        "Dart-Code.flutter",
+        "Dart-Code.dart-code",
+
+        // JavaScript/TypeScript
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+
+        // Git
+        "github.vscode-pull-request-github",
+
+        // Test reporting
+        "hbenl.vscode-test-explorer",
+        "ms-vscode.test-adapter-converter",
+
+        // General productivity
+        "streetsidesoftware.code-spell-checker",
+        "gruntfuggly.todo-tree",
+
+        // Markdown (for test documentation)
+        "yzhang.markdown-all-in-one"
+      ],
+
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        },
+
+        // Playwright settings
+        "playwright.reuseBrowser": true,
+
+        // Editor settings
+        "editor.formatOnSave": true,
+
+        // Role identification
+        "window.title": "[QA] ${dirty}${activeEditorShort}${separator}${rootName}"
+      }
+    }
+  },
+
+  "forwardPorts": [8080, 9323],
+
+  "postCreateCommand": "echo '✅ QA environment ready! Run tests with: qa-runner.sh'",
+
+  "remoteUser": "ubuntu"
+}

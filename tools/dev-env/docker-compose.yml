@@ -1,0 +1,283 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00028: Role-Based Environment Separation
+#   REQ-d00030: CI/CD Environment Parity
+#   REQ-d00036: Shared Workspace and File Exchange
+#
+# Clinical Diary Development Environment
+# Docker Compose configuration for role-based containerized development
+#
+# Usage:
+#   docker-compose up -d dev    # Start developer container
+#   docker-compose exec dev bash  # Enter developer shell
+#   docker-compose down         # Stop all containers
+#
+# See: tools/dev-env/README.md for complete setup instructions
+
+version: '3.9'
+
+services:
+  # ============================================================
+  # Developer Environment
+  # Full development tools: Flutter, Android SDK, hot reload
+  # ============================================================
+  dev:
+    build:
+      context: ./docker
+      dockerfile: dev.Dockerfile
+      args:
+        BASE_IMAGE_TAG: latest
+    image: clinical-diary-dev:latest
+    container_name: clinical-diary-dev
+    hostname: dev
+
+    # User configuration (non-root for security)
+    user: "ubuntu:ubuntu"
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 6G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+    # Volumes
+    volumes:
+      # Named volumes (persistent)
+      - clinical-diary-repos:/workspace/repos
+      - clinical-diary-exchange:/workspace/exchange
+
+      # Bind mount for source code editing (host IDE)
+      - ../../:/workspace/src:cached
+
+      # SSH keys (read-only)
+      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+
+      # Git config from host (optional)
+      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
+
+    # Environment variables
+    environment:
+      - ROLE=dev
+      - DOPPLER_PROJECT=clinical-diary-dev
+      - ANDROID_HOME=/opt/android
+      - ANDROID_SDK_ROOT=/opt/android
+      - FLUTTER_ROOT=/opt/flutter
+      - PATH=/opt/flutter/bin:/opt/android/cmdline-tools/latest/bin:/opt/android/platform-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    # Network
+    networks:
+      - clinical-diary-net
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "flutter", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Keep container running
+    stdin_open: true
+    tty: true
+
+    # Working directory
+    working_dir: /workspace/src
+
+  # ============================================================
+  # QA Environment
+  # Testing tools: Playwright, Flutter tests, report generation
+  # ============================================================
+  qa:
+    build:
+      context: ./docker
+      dockerfile: qa.Dockerfile
+      args:
+        BASE_IMAGE_TAG: latest
+    image: clinical-diary-qa:latest
+    container_name: clinical-diary-qa
+    hostname: qa
+
+    user: "ubuntu:ubuntu"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 6G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+    volumes:
+      - clinical-diary-repos:/workspace/repos
+      - clinical-diary-exchange:/workspace/exchange
+      - ../../:/workspace/src:cached
+      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
+
+      # QA-specific: mount for test reports
+      - qa-reports:/workspace/reports
+
+    environment:
+      - ROLE=qa
+      - DOPPLER_PROJECT=clinical-diary-dev
+      - ANDROID_HOME=/opt/android
+      - ANDROID_SDK_ROOT=/opt/android
+      - FLUTTER_ROOT=/opt/flutter
+      - PATH=/opt/flutter/bin:/opt/android/cmdline-tools/latest/bin:/opt/android/platform-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    networks:
+      - clinical-diary-net
+
+    healthcheck:
+      test: ["CMD", "npx", "playwright", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/src
+
+  # ============================================================
+  # DevOps Environment
+  # Infrastructure tools: Terraform, Supabase CLI, deployment
+  # ============================================================
+  ops:
+    build:
+      context: ./docker
+      dockerfile: ops.Dockerfile
+      args:
+        BASE_IMAGE_TAG: latest
+    image: clinical-diary-ops:latest
+    container_name: clinical-diary-ops
+    hostname: ops
+
+    user: "ubuntu:ubuntu"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+    volumes:
+      - clinical-diary-repos:/workspace/repos
+      - clinical-diary-exchange:/workspace/exchange
+      - ../../:/workspace/src:cached
+      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
+
+    environment:
+      - ROLE=ops
+      - DOPPLER_PROJECT=clinical-diary-dev
+      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    networks:
+      - clinical-diary-net
+
+    healthcheck:
+      test: ["CMD", "terraform", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/src
+
+  # ============================================================
+  # Management Environment
+  # Read-only tools: Git viewer, audit logs, reports
+  # ============================================================
+  mgmt:
+    build:
+      context: ./docker
+      dockerfile: mgmt.Dockerfile
+      args:
+        BASE_IMAGE_TAG: latest
+    image: clinical-diary-mgmt:latest
+    container_name: clinical-diary-mgmt
+    hostname: mgmt
+
+    user: "ubuntu:ubuntu"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+    volumes:
+      # Read-only mounts for management role
+      - clinical-diary-repos:/workspace/repos:ro
+      - clinical-diary-exchange:/workspace/exchange:ro
+      - ../../:/workspace/src:ro
+      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig.host:ro
+      - qa-reports:/workspace/reports:ro
+
+    environment:
+      - ROLE=mgmt
+      - DOPPLER_PROJECT=clinical-diary-dev
+      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    networks:
+      - clinical-diary-net
+
+    healthcheck:
+      test: ["CMD", "gh", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/src
+
+# ============================================================
+# Named Volumes (persistent storage)
+# ============================================================
+volumes:
+  # Repository storage (git clones)
+  clinical-diary-repos:
+    driver: local
+    labels:
+      com.clinical-diary.description: "Git repository storage"
+      com.clinical-diary.role: "all"
+
+  # File exchange between roles
+  clinical-diary-exchange:
+    driver: local
+    labels:
+      com.clinical-diary.description: "Inter-role file exchange"
+      com.clinical-diary.role: "all"
+
+  # QA test reports
+  qa-reports:
+    driver: local
+    labels:
+      com.clinical-diary.description: "QA test reports and artifacts"
+      com.clinical-diary.role: "qa"
+
+# ============================================================
+# Networks
+# ============================================================
+networks:
+  clinical-diary-net:
+    driver: bridge
+    labels:
+      com.clinical-diary.description: "Development environment network"

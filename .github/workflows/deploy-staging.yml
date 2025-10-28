@@ -1,0 +1,145 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00044: Database Migration Automation
+#
+# Staging Environment Deployment
+# Manual trigger with QA Lead approval required
+
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for staging deployment'
+        required: true
+        type: string
+
+env:
+  ENVIRONMENT: staging
+  SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_STAGING }}
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging  # Not active until GitHub environment configured with approval
+
+    steps:
+      - name: Log deployment initiation
+        run: |
+          echo "Staging deployment requested"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Requested by: ${{ github.actor }}"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Dart/Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Install Supabase CLI
+        run: |
+          brew install supabase/tap/supabase
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Load secrets from Doppler
+        uses: dopplerhq/cli-action@v3
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_STAGING }}
+
+      - name: Run full test suite
+        run: |
+          npm run lint
+          npm run check-types
+          npm test
+          npm run test:integration
+
+      - name: Create database backup
+        run: |
+          echo "Creating database backup before migration..."
+          doppler run -- supabase db dump \
+            --project-ref $SUPABASE_PROJECT_ID \
+            --data-only \
+            -f backup-staging-$(date +%Y%m%d-%H%M%S).sql
+
+      - name: Database migration (with rollback on failure)
+        id: migrate
+        run: |
+          echo "Starting database migration..."
+
+          # Link to Supabase project
+          doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID
+
+          # Execute migrations
+          if ! doppler run -- supabase db push; then
+            echo "Migration failed, attempting rollback..."
+            doppler run -- supabase db reset --db-url $DATABASE_URL
+            exit 1
+          fi
+
+          echo "Migration completed successfully"
+
+      - name: Deploy application
+        run: |
+          echo "Deploying application to Supabase..."
+          doppler run -- supabase functions deploy --project-ref $SUPABASE_PROJECT_ID
+          echo "Deployment complete"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          cd tools/testing/smoke-tests
+          doppler run -- ./run-smoke-tests.sh staging
+
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests..."
+          cd tools/testing
+          doppler run -- npm run test:integration
+
+      - name: Record deployment
+        if: success()
+        run: |
+          echo "Recording deployment..."
+          echo "$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> deployment-log.txt
+          echo "Environment: staging" >> deployment-log.txt
+          echo "Commit: ${{ github.sha }}" >> deployment-log.txt
+          echo "Deployer: ${{ github.actor }}" >> deployment-log.txt
+          echo "Reason: ${{ github.event.inputs.reason }}" >> deployment-log.txt
+          echo "Outcome: success" >> deployment-log.txt
+          echo "---" >> deployment-log.txt
+
+      - name: Notify QA team
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful"
+          echo "Environment ready for QA testing"
+          echo "Commit: ${{ github.sha }}"
+          echo "Deployer: ${{ github.actor }}"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, initiating rollback..."
+          cd tools/testing/smoke-tests
+          ./rollback.sh staging
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed and rolled back"
+          echo "Commit: ${{ github.sha }}"
+          echo "QA Lead: Please investigate"
