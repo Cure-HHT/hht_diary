@@ -21,8 +21,7 @@ USER root
 RUN npm install -g playwright && \
     npx playwright --version
 
-# Install Playwright browsers and dependencies
-USER ubuntu
+# Install Playwright browsers and dependencies (needs root for system packages)
 RUN npx playwright install --with-deps
 
 # ============================================================
