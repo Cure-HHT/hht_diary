@@ -77,7 +77,7 @@ jobs:
         run: |
           echo "🔍 Linting markdown files..."
           # Lint with relaxed rules (allow inline HTML, line length)
-          markdownlint --config .markdownlint.json '**/*.md' || true
+          markdownlint --config .markdownlint.json '**/*.md'
           echo "✅ Markdown validation complete"
 
       - name: Check for broken internal links
