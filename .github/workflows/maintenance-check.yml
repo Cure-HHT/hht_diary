@@ -1,0 +1,270 @@
+# Maintenance Enforcement - FDA 21 CFR Part 11 Compliance
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00052: CI/CD Pipeline with Automated Quality Gates
+#
+# Enforces quarterly review of critical configuration files
+# to ensure FDA compliance and system validation
+
+name: Maintenance Check
+
+on:
+  schedule:
+    # Run on the 1st of every month at 9:00 UTC
+    - cron: '0 9 1 * *'
+  workflow_dispatch: # Allow manual trigger
+  pull_request:
+    paths:
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/EXPECTED_WARNINGS.md'
+      - '.github/workflows/maintenance-check.yml'
+
+jobs:
+  check-maintenance-status:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git log analysis
+
+      - name: Check file modification dates
+        id: check_dates
+        run: |
+          # Files that require quarterly review (90 days)
+          QUARTERLY_FILES=(
+            "tools/dev-env/docker/dev.Dockerfile"
+            "tools/dev-env/docker/qa.Dockerfile"
+            "tools/dev-env/docker/ops.Dockerfile"
+            "tools/dev-env/EXPECTED_WARNINGS.md"
+          )
+
+          # Files that require annual review (365 days)
+          ANNUAL_FILES=(
+            "tools/dev-env/docker/base.Dockerfile"
+          )
+
+          CURRENT_DATE=$(date +%s)
+          STALE_FILES=()
+
+          echo "=== Checking Quarterly Review Files (90 days) ==="
+          for file in "${QUARTERLY_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              LAST_MOD=$(git log -1 --format="%at" -- "$file")
+              DAYS_AGO=$(( (CURRENT_DATE - LAST_MOD) / 86400 ))
+              echo "📄 $file: Last modified $DAYS_AGO days ago"
+
+              if [ $DAYS_AGO -gt 90 ]; then
+                STALE_FILES+=("$file (${DAYS_AGO} days - QUARTERLY REVIEW OVERDUE)")
+              fi
+            else
+              echo "⚠️  $file: NOT FOUND"
+            fi
+          done
+
+          echo ""
+          echo "=== Checking Annual Review Files (365 days) ==="
+          for file in "${ANNUAL_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              LAST_MOD=$(git log -1 --format="%at" -- "$file")
+              DAYS_AGO=$(( (CURRENT_DATE - LAST_MOD) / 86400 ))
+              echo "📄 $file: Last modified $DAYS_AGO days ago"
+
+              if [ $DAYS_AGO -gt 365 ]; then
+                STALE_FILES+=("$file (${DAYS_AGO} days - ANNUAL REVIEW OVERDUE)")
+              fi
+            else
+              echo "⚠️  $file: NOT FOUND"
+            fi
+          done
+
+          # Check if any files are stale
+          if [ ${#STALE_FILES[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ MAINTENANCE OVERDUE"
+            echo ""
+            echo "The following files have not been reviewed:"
+            for stale in "${STALE_FILES[@]}"; do
+              echo "  ❌ $stale"
+            done
+            echo ""
+            echo "FDA 21 CFR Part 11 Compliance Requirement:"
+            echo "  - Quarterly review: Dockerfile versions, warning baselines"
+            echo "  - Annual review: Base image configuration"
+            echo ""
+            echo "To resolve:"
+            echo "  1. Review the file for necessary updates"
+            echo "  2. Update version numbers if newer stable versions exist"
+            echo "  3. Test the changes"
+            echo "  4. Commit with message: [MAINTENANCE] Quarterly review - <date>"
+            echo ""
+            exit 1
+          else
+            echo ""
+            echo "✅ All maintenance reviews are up to date"
+          fi
+
+      - name: Check for outdated tool versions
+        if: always()
+        run: |
+          echo "=== Checking for Outdated Tool Versions ==="
+          echo ""
+          echo "Current pinned versions (from Dockerfiles):"
+          echo ""
+
+          # Extract pinned versions
+          echo "📦 Supabase CLI:"
+          grep "ENV SUPABASE_CLI_VERSION" tools/dev-env/docker/dev.Dockerfile | head -1
+          echo "   Latest: Check https://github.com/supabase/cli/releases"
+          echo ""
+
+          echo "📦 kubectl:"
+          grep "ENV KUBECTL_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
+          echo "   Latest: Check https://github.com/kubernetes/kubernetes/releases"
+          echo ""
+
+          echo "📦 Cosign:"
+          grep "ENV COSIGN_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
+          echo "   Latest: Check https://github.com/sigstore/cosign/releases"
+          echo ""
+
+          echo "📦 Syft:"
+          grep "ENV SYFT_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
+          echo "   Latest: Check https://github.com/anchore/syft/releases"
+          echo ""
+
+          echo "📦 Grype:"
+          grep "ENV GRYPE_VERSION" tools/dev-env/docker/ops.Dockerfile | head -1
+          echo "   Latest: Check https://github.com/anchore/grype/releases"
+          echo ""
+
+          echo "ℹ️  This is informational - manual review required for FDA compliance"
+          echo "   Review release notes and test before updating pinned versions"
+
+      - name: Generate maintenance report
+        if: always()
+        run: |
+          REPORT_FILE="maintenance-report-$(date +%Y-%m-%d).md"
+
+          cat > "$REPORT_FILE" <<EOF
+          # Docker Environment Maintenance Report
+
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Repository**: \${{ github.repository }}
+          **Branch**: \${{ github.ref_name }}
+
+          ## Review Status
+
+          This report documents the maintenance status of the Docker development environment
+          for FDA 21 CFR Part 11 compliance.
+
+          ### Files Checked
+
+          **Quarterly Review Required (90 days)**:
+          - tools/dev-env/docker/dev.Dockerfile
+          - tools/dev-env/docker/qa.Dockerfile
+          - tools/dev-env/docker/ops.Dockerfile
+          - tools/dev-env/EXPECTED_WARNINGS.md
+
+          **Annual Review Required (365 days)**:
+          - tools/dev-env/docker/base.Dockerfile
+
+          ### Pinned Tool Versions
+
+          EOF
+
+          echo "\`\`\`" >> "$REPORT_FILE"
+          grep "ENV.*_VERSION" tools/dev-env/docker/*.Dockerfile | sed 's/.*ENV //' >> "$REPORT_FILE"
+          echo "\`\`\`" >> "$REPORT_FILE"
+
+          cat >> "$REPORT_FILE" <<EOF
+
+          ### Compliance Notes
+
+          - **Version Pinning**: All critical tools have pinned versions for reproducibility
+          - **Review Frequency**: Quarterly for role-specific images, Annual for base image
+          - **Update Policy**: Security patches applied immediately, feature updates quarterly
+          - **Testing Required**: All version updates must pass full test suite before merge
+
+          ### Next Steps
+
+          1. Review latest releases for each pinned tool
+          2. Check security advisories
+          3. Test any necessary updates in dev environment
+          4. Document changes in commit message with [MAINTENANCE] prefix
+
+          ---
+
+          **Audit Trail**: This report generated automatically by GitHub Actions
+          **Workflow**: .github/workflows/maintenance-check.yml
+          EOF
+
+          echo "📄 Report generated: $REPORT_FILE"
+          cat "$REPORT_FILE"
+
+      - name: Create issue if maintenance overdue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '🔧 Maintenance Overdue: Docker Environment Review Required';
+            const body = `## Quarterly Maintenance Review Overdue
+
+            One or more Docker environment files have not been reviewed in the required timeframe.
+
+            ### FDA 21 CFR Part 11 Compliance
+
+            This project requires regular review of development environment configuration:
+            - **Quarterly (90 days)**: Role-specific Dockerfiles, warning baselines
+            - **Annual (365 days)**: Base image configuration
+
+            ### Required Actions
+
+            1. Review the files listed in the workflow run
+            2. Check for updated tool versions:
+               - Supabase CLI: https://github.com/supabase/cli/releases
+               - kubectl: https://github.com/kubernetes/kubernetes/releases
+               - Cosign: https://github.com/sigstore/cosign/releases
+               - Syft: https://github.com/anchore/syft/releases
+               - Grype: https://github.com/anchore/grype/releases
+            3. Test any necessary updates
+            4. Commit changes with: \`[MAINTENANCE] Quarterly review - ${new Date().toISOString().split('T')[0]}\`
+
+            ### How to Resolve
+
+            Even if no changes are needed, you must "touch" the file to update its timestamp:
+
+            \`\`\`bash
+            # Review the file, then update timestamp
+            git add tools/dev-env/docker/dev.Dockerfile
+            git commit -m "[MAINTENANCE] Quarterly review - no changes required"
+            git push
+            \`\`\`
+
+            This demonstrates due diligence for audit purposes.
+
+            **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            `;
+
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'maintenance'
+            });
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes('Maintenance Overdue')
+            );
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['maintenance', 'compliance', 'priority:high']
+              });
+            }
