@@ -59,6 +59,7 @@ class RequirementValidator:
         self.requirements: Dict[str, Requirement] = {}
         self.errors: List[str] = []
         self.warnings: List[str] = []
+        self.info: List[str] = []
 
     def validate_all(self) -> bool:
         """Run all validation checks. Returns True if valid."""
@@ -215,11 +216,11 @@ class RequirementValidator:
 
                 # Check hierarchy flows downward
                 if level_hierarchy[req.level] <= level_hierarchy[parent.level]:
-                    self.warnings.append(
+                    self.info.append(
                         f"{req.file_path.name}:{req.line_number} - "
                         f"REQ-{req_id} ({req.level}) implements "
                         f"REQ-{parent_id} ({parent.level}): "
-                        f"Same-level refinement (verify intentional, not error). "
+                        f"Same-level refinement (valid pattern). "
                         f"See spec/requirements-format.md 'Requirement Refinement vs. Cascade'"
                     )
 
@@ -236,6 +237,11 @@ class RequirementValidator:
             print(f"\n⚠️  {len(self.warnings)} WARNING(S):\n")
             for warning in self.warnings:
                 print(f"  • {warning}")
+
+        if self.info:
+            print(f"\nℹ️  {len(self.info)} INFO:\n")
+            for info in self.info:
+                print(f"  • {info}")
 
         if not self.errors and not self.warnings:
             print("\n✅ ALL REQUIREMENTS VALID\n")
