@@ -60,8 +60,10 @@ jobs:
       - name: Build QA Docker images with docker-compose
         working-directory: tools/dev-env
         run: |
-          # docker-compose will build base -> dev -> qa in correct order
-          # Uses regular Docker daemon, not buildx, so multi-stage builds work
+          # Build in dependency order: base -> dev -> qa
+          # Classic Docker builder (BuildKit=0) handles FROM references properly
+          docker compose build base
+          docker compose build dev
           docker compose build qa
 
       - name: Start QA environment
