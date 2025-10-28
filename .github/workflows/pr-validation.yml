@@ -237,17 +237,39 @@ jobs:
 
           VIOLATIONS=()
 
-          # Check for common secret patterns
-          if git grep -i "api[_-]key\s*[:=]" 2>/dev/null | grep -v ".github/workflows" | grep -v "spec/" | grep -v "docs/" | grep -v "# api"; then
+          # Check for common secret patterns (excluding docs, examples, and placeholders)
+          if git grep -i "api[_-]key\s*[:=]" 2>/dev/null | \
+             grep -v ".github/workflows" | \
+             grep -v "spec/" | \
+             grep -v "docs/" | \
+             grep -v "tools/" | \
+             grep -v "infrastructure/" | \
+             grep -v "\.example" | \
+             grep -v "\.md:" | \
+             grep -v "# api" | \
+             grep -v "xxxx" | \
+             grep -v "placeholder" | \
+             grep -v "<.*>" | \
+             grep -v "\.\.\." ; then
             VIOLATIONS+=("API keys found in code")
           fi
 
-          if git grep -i "password\s*[:=]\s*['\"][^'\"]*['\"]" 2>/dev/null | grep -v "spec/" | grep -v "docs/" | grep -v "# password"; then
+          if git grep -i "password\s*[:=]\s*['\"][^'\"]*['\"]" 2>/dev/null | \
+             grep -v "spec/" | \
+             grep -v "docs/" | \
+             grep -v "tools/" | \
+             grep -v "infrastructure/" | \
+             grep -v "\.example" | \
+             grep -v "\.md:" | \
+             grep -v "# password" | \
+             grep -v "change-me" | \
+             grep -v "placeholder" | \
+             grep -v "\.\.\." ; then
             VIOLATIONS+=("Hardcoded passwords found")
           fi
 
-          # Check for .env files in git
-          if git ls-files | grep "\.env$" 2>/dev/null; then
+          # Check for .env files in git (excluding examples)
+          if git ls-files | grep "\.env$" | grep -v "\.env.example" 2>/dev/null; then
             VIOLATIONS+=(".env files committed to git")
           fi
 

@@ -456,12 +456,16 @@ EOF
 2. Add file with fake secret:
    ```bash
    cat > config_test.txt <<'EOF'
-api_key = "sk_test_1234567890abcdefghijklmnop"
-password = "MySecretPassword123"
+# Test file with intentional security violations
+api_key = "sk_test_YOUR_KEY_HERE"
+password = "YOUR_PASSWORD_HERE"
+database_url = "postgresql://user:pass@host/db"
 EOF
    git add config_test.txt
    git commit -m "Test: Add file with secrets"
    ```
+
+   **Note**: Replace `YOUR_KEY_HERE` and `YOUR_PASSWORD_HERE` with actual-looking values when testing (e.g., `sk_test_1234567890`, `MyPass123`) to trigger detection.
 
 3. Push and create PR:
    ```bash
