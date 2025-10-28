@@ -108,10 +108,12 @@ jobs:
         if: steps.docker-changes.outputs.docker_changed == 'true' || steps.pull-images.outputs.images_pulled != 'true'
         working-directory: tools/dev-env
         run: |
+          # Export base image to tar and re-import so buildx can see it
+          docker save clinical-diary-base:latest -o /tmp/base.tar
           docker buildx build \
             -f docker/dev.Dockerfile \
             -t clinical-diary-dev:latest \
-            --build-arg BASE_IMAGE_TAG=latest \
+            --build-context clinical-diary-base=docker-image://clinical-diary-base:latest \
             --load \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
@@ -121,10 +123,12 @@ jobs:
         if: steps.docker-changes.outputs.docker_changed == 'true' || steps.pull-images.outputs.images_pulled != 'true'
         working-directory: tools/dev-env
         run: |
+          # Export dev image so buildx can see it
+          docker save clinical-diary-dev:latest -o /tmp/dev.tar
           docker buildx build \
             -f docker/qa.Dockerfile \
             -t clinical-diary-qa:latest \
-            --build-arg BASE_IMAGE_TAG=latest \
+            --build-context clinical-diary-dev=docker-image://clinical-diary-dev:latest \
             --load \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
