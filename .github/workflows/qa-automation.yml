@@ -57,9 +57,10 @@ jobs:
       - name: Build base Docker image
         working-directory: tools/dev-env
         run: |
-          docker build \
+          docker buildx build \
             -f docker/base.Dockerfile \
             -t clinical-diary-base:latest \
+            --load \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             docker/
@@ -67,10 +68,11 @@ jobs:
       - name: Build dev Docker image (qa extends dev)
         working-directory: tools/dev-env
         run: |
-          docker build \
+          docker buildx build \
             -f docker/dev.Dockerfile \
             -t clinical-diary-dev:latest \
             --build-arg BASE_IMAGE_TAG=latest \
+            --load \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             docker/
@@ -78,10 +80,11 @@ jobs:
       - name: Build QA Docker image
         working-directory: tools/dev-env
         run: |
-          docker build \
+          docker buildx build \
             -f docker/qa.Dockerfile \
             -t clinical-diary-qa:latest \
             --build-arg BASE_IMAGE_TAG=latest \
+            --load \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             docker/
@@ -90,7 +93,7 @@ jobs:
       - name: Rotate Docker cache
         run: |
           rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true
 
       - name: Start QA environment
         working-directory: tools/dev-env
