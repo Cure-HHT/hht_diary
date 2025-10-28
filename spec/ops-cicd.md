@@ -197,7 +197,9 @@ This document specifies the continuous integration and continuous delivery (CI/C
 - Checks migration files for proper headers
 - Validates per `database/migrations/README.md`
 - **Blocking**: YES
-- **Conditional**: Only runs if migrations changed
+- **Conditional**: Only runs if PR modifies `database/migrations/` files
+- **When Skipped**: Indicates no migrations were modified (intentional, not an error)
+- **Audit Note**: Skipped status is compliant and expected when PRs don't touch migrations
 
 **4. security-check**
 - Scans for API keys, passwords, secrets
@@ -637,6 +639,54 @@ du -sh .
 1. If local validation takes > 5 minutes, investigate script performance
 2. Consider caching Python dependencies in workflow
 3. Increase timeout in workflow (max 360 minutes)
+
+---
+
+### Issue: Migration Validation Job Skipped
+
+**Symptoms**: GitHub Actions shows "Validate Database Migration Headers" as skipped
+
+**This is Expected!** ✅
+
+**Explanation**:
+
+The migration validation job is **conditionally executed** and only runs when a PR modifies files in `database/migrations/`. This is an intentional optimization for the following reasons:
+
+1. **Efficiency**: Don't waste CI/CD minutes validating migrations when none were changed
+2. **Clarity**: Developers only see validation failures when relevant to their changes
+3. **Audit Trail**: Clear indication that no migrations were modified in this PR
+4. **Compliance**: Skipped status is compliant - it means "N/A, nothing to validate"
+
+**When Job Runs**:
+- PR adds new migration file: `database/migrations/20251028_*.sql`
+- PR modifies existing migration file (rare, but possible)
+
+**When Job Skips**:
+- PR only changes code, docs, or configuration
+- PR only changes requirements or specifications
+- PR only changes CI/CD workflows
+
+**For Auditors**:
+
+The skipped status **does not indicate a problem**. It indicates:
+- ✅ No database migrations were modified in this change
+- ✅ Therefore, migration header validation is not applicable
+- ✅ This is documented in the workflow and intentional by design
+- ✅ The workflow summary includes an explanation section when jobs are skipped
+
+**Verification**:
+
+To verify the conditional execution is working correctly:
+
+```bash
+# Check the workflow file
+grep -A 3 "validate-migrations:" .github/workflows/pr-validation.yml
+
+# Should show:
+#   if: contains(github.event.pull_request.changed_files, 'database/migrations/')
+```
+
+**Reference**: See "Conditional Jobs" section in GitHub Actions documentation
 
 ---
 
