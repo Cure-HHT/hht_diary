@@ -18,19 +18,12 @@ on:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
       - '.github/workflows/build-publish-images.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/docker-compose.yml'
-      - '.github/workflows/build-publish-images.yml'
   workflow_dispatch:
     inputs:
       push_to_registry:
         description: 'Push images to GitHub Container Registry'
         required: false
-        default: 'false'
+        default: 'true'
         type: choice
         options:
           - 'true'
@@ -88,7 +81,7 @@ jobs:
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/base.Dockerfile
-          push: true  # Always push (PRs use pr-X tags, main uses latest)
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -169,7 +162,7 @@ jobs:
           file: tools/dev-env/docker/dev.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: true  # Always push (PRs use pr-X tags, main uses latest)
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -261,7 +254,7 @@ jobs:
           file: tools/dev-env/docker/qa.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: true  # Always push (PRs use pr-X tags, main uses latest)
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -324,7 +317,7 @@ jobs:
           file: tools/dev-env/docker/ops.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: true  # Always push (PRs use pr-X tags, main uses latest)
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -387,7 +380,7 @@ jobs:
           file: tools/dev-env/docker/mgmt.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: true  # Always push (PRs use pr-X tags, main uses latest)
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
