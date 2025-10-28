@@ -83,12 +83,15 @@ RUN flutter --version && \
 RUN echo 'export PATH="$HOME/.pub-cache/bin:$PATH"' >> /home/ubuntu/.profile
 
 # ============================================================
-# Supabase CLI (using Linux package manager)
+# Supabase CLI v2.54.10 (pinned for FDA 21 CFR Part 11 compliance)
+# Version pinned: 2025-10-28
+# Update policy: Manual update with testing required
 # ============================================================
 USER root
+ENV SUPABASE_CLI_VERSION=v2.54.10
 RUN apt-get update -y && \
     apt-get install -y ca-certificates && \
-    curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
+    curl -fsSL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
     supabase --version && \
     rm -rf /var/lib/apt/lists/*
 

@@ -26,11 +26,13 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | \
     rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# Supabase CLI (using Linux package manager)
+# Supabase CLI v2.54.10 (pinned for FDA 21 CFR Part 11 compliance)
+# Version pinned: 2025-10-28
 # ============================================================
+ENV SUPABASE_CLI_VERSION=v2.54.10
 RUN apt-get update -y && \
     apt-get install -y ca-certificates && \
-    curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
+    curl -fsSL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
     supabase --version && \
     rm -rf /var/lib/apt/lists/*
 
@@ -52,31 +54,39 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     aws --version
 
 # ============================================================
-# kubectl (Kubernetes CLI, optional)
+# kubectl v1.34.1 (Kubernetes CLI, pinned for compliance)
+# Version pinned: 2025-10-28
 # ============================================================
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+ENV KUBECTL_VERSION=v1.34.1
+RUN curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
     rm kubectl && \
     kubectl version --client
 
 # ============================================================
-# Cosign (for signing container images)
+# Cosign v3.0.2 (container image signing, pinned for compliance)
+# Version pinned: 2025-10-28
 # ============================================================
-RUN curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && \
+ENV COSIGN_VERSION=v3.0.2
+RUN curl -O -L "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64" && \
     mv cosign-linux-amd64 /usr/local/bin/cosign && \
     chmod +x /usr/local/bin/cosign && \
     cosign version
 
 # ============================================================
-# Syft (for generating SBOMs)
+# Syft v1.36.0 (SBOM generation, pinned for compliance)
+# Version pinned: 2025-10-28
 # ============================================================
-RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin && \
+ENV SYFT_VERSION=v1.36.0
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin ${SYFT_VERSION} && \
     syft version
 
 # ============================================================
-# Grype (for vulnerability scanning)
+# Grype v0.102.0 (vulnerability scanning, pinned for compliance)
+# Version pinned: 2025-10-28
 # ============================================================
-RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin && \
+ENV GRYPE_VERSION=v0.102.0
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin ${GRYPE_VERSION} && \
     grype version
 
 # ============================================================
