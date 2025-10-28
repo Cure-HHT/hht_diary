@@ -73,11 +73,11 @@ RUN yes | sdkmanager --licenses || true && \
 # ============================================================
 # Flutter configuration
 # ============================================================
+# Suppress warnings for unused platforms (mobile-first app)
 RUN flutter --version && \
     flutter config --no-analytics && \
-    flutter config --enable-web && \
-    flutter config --enable-linux-desktop && \
-    flutter precache --web --linux --android
+    flutter config --android-studio-dir=/opt/nonexistent && \
+    flutter precache --android
 
 # Add pub global bin to PATH
 RUN echo 'export PATH="$HOME/.pub-cache/bin:$PATH"' >> /home/ubuntu/.profile
