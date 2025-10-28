@@ -19,11 +19,17 @@ dart --version
 
 # Chrome (for web development)
 google-chrome --version  # or chromium --version
+
+# unzip (required for Flutter)
+unzip --version
 ```
 
 If you need to install Flutter:
 ```bash
-# Quick install (if not already installed)
+# Install unzip first (required for Flutter SDK)
+sudo apt-get install -y unzip
+
+# Install Flutter
 # See: https://docs.flutter.dev/get-started/install/linux
 ```
 
