@@ -219,7 +219,8 @@ class RequirementValidator:
                         f"{req.file_path.name}:{req.line_number} - "
                         f"REQ-{req_id} ({req.level}) implements "
                         f"REQ-{parent_id} ({parent.level}): "
-                        f"Unusual hierarchy (expected: PRD -> Ops -> Dev)"
+                        f"Same-level refinement (verify intentional, not error). "
+                        f"See spec/requirements-format.md 'Requirement Refinement vs. Cascade'"
                     )
 
     def _print_results(self):

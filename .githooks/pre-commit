@@ -36,11 +36,11 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
     python3 tools/requirements/generate_traceability.py --format markdown
     python3 tools/requirements/generate_traceability.py --format html
 
-    # Stage the updated matrices
-    git add traceability_matrix.md traceability_matrix.html
+    # Stage the updated matrices (ignore errors if they're gitignored)
+    git add traceability_matrix.md traceability_matrix.html 2>/dev/null || true
 
     echo ""
-    echo "✅ Traceability matrices regenerated and staged"
+    echo "✅ Traceability matrices regenerated"
     echo ""
 fi
 

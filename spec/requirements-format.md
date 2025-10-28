@@ -142,6 +142,94 @@ When retroactively adding requirements to existing code (like our database schem
 
 The requirement text should be **prescriptive** (SHALL/MUST), not **descriptive** (currently has/does).
 
+---
+
+### Requirement Refinement vs. Cascade
+
+Requirements can follow two valid patterns: **cascade** (cross-level) and **refinement** (same-level).
+
+#### Pattern 1: Cascade (PRD → Ops → Dev)
+
+**Purpose**: Decompose business requirement into operational and implementation details
+
+**Example**:
+```
+REQ-p00006: System SHALL support offline data entry (PRD)
+  ├─ REQ-o00002: Deploy local-first database (Ops)
+  │    └─ REQ-d00002: Implement IndexedDB sync layer (Dev)
+  └─ REQ-o00003: Configure offline sync policies (Ops)
+       └─ REQ-d00003: Implement conflict resolution (Dev)
+```
+
+**Characteristics**:
+- Moves DOWN abstraction levels (business → operations → implementation)
+- Each level adds more concrete detail
+- Standard pattern for most requirements
+
+#### Pattern 2: Refinement (PRD → PRD or Ops → Ops)
+
+**Purpose**: Refine broad requirement into peer-level specifics
+
+**Example**:
+```
+REQ-p00005: System SHALL protect PHI (broad security requirement)
+  ├─ REQ-p00024: System SHALL enforce row-level security (refinement)
+  │    ├─ REQ-o00009: Deploy RLS policies (cascade)
+  │    └─ REQ-d00008: Implement RLS (cascade)
+  └─ REQ-p00025: System SHALL maintain audit trail (refinement)
+       ├─ REQ-o00010: Configure audit logging (cascade)
+       └─ REQ-d00009: Implement audit triggers (cascade)
+```
+
+**Characteristics**:
+- Stays at SAME abstraction level (PRD → PRD)
+- Parent requirement is too broad to implement directly
+- Each child refines a specific aspect
+- Each refined requirement then cascades to Ops/Dev
+
+#### When to Use Each Pattern
+
+**Use Cascade When**:
+- Requirement is concrete enough to implement
+- Moving from business need to technical solution
+- Standard progression: PRD → Ops → Dev
+
+**Use Refinement When**:
+- Requirement is too broad ("protect data", "ensure security")
+- Multiple distinct aspects need to be specified
+- Need to break down before implementation planning
+
+#### Validation Warnings
+
+The validation tool warns about same-level relationships ("PRD implements PRD") to catch accidental errors. These warnings are **informational** - verify the relationship is intentional refinement, not a mistake.
+
+**Valid refinement triggers warning** → Expected, acceptable
+**Accidental same-level reference** → Needs fixing
+
+When in doubt, ask: "Is this breaking a broad requirement into specifics (refinement) or implementing a business need technically (cascade)?"
+
+#### Real-World Examples from This Project
+
+**FDA Compliance Refinement**:
+```
+REQ-p00010: FDA 21 CFR Part 11 Compliance (broad)
+  ├─ REQ-p00011: ALCOA+ Principles (specific aspect)
+  ├─ REQ-p00012: Data Retention (specific aspect)
+  └─ REQ-p00013: Change History (specific aspect)
+```
+
+**Security Architecture Refinement**:
+```
+REQ-p00001: Multi-Sponsor Data Separation (broad)
+  ├─ REQ-p00003: Separate Database Per Sponsor (specific mechanism)
+  ├─ REQ-p00007: Automatic Configuration (specific behavior)
+  └─ REQ-p00008: Single Mobile App (specific deployment)
+```
+
+Both patterns are valid and necessary for a complete requirements hierarchy.
+
+---
+
 ### Code Comments Referencing Requirements
 
 When adding requirement references to code files:
