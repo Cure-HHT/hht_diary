@@ -160,8 +160,9 @@ async function updateTicketStatus(apiToken, issueId, stateId) {
     const result = await response.json();
 
     if (result.errors) {
-        console.error('GraphQL errors:', JSON.stringify(result.errors, null, 2));
-        throw new Error('Failed to update issue status');
+        const errorDetails = JSON.stringify(result.errors, null, 2);
+        console.error('GraphQL errors:', errorDetails);
+        throw new Error(`Failed to update issue status: ${errorDetails}`);
     }
 
     return result.data.issueUpdate;
