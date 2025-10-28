@@ -1,0 +1,361 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00002: Requirements validation tool
+#   REQ-o00052: CI/CD Pipeline for Requirement Traceability
+
+name: PR Validation - Requirements & Traceability
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'release/**'
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  validate-requirements:
+    name: Validate Requirements Format & Traceability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate change detection
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          # Add any requirements if needed in the future
+          # pip install -r tools/requirements/requirements.txt
+
+      - name: Validate requirement format and IDs
+        id: validate
+        run: |
+          echo "::group::Requirement Validation"
+          python3 tools/requirements/validate_requirements.py
+          RESULT=$?
+          echo "::endgroup::"
+
+          if [ $RESULT -ne 0 ]; then
+            echo "::error::Requirement validation failed. See details above."
+            exit 1
+          fi
+
+          echo "✅ Requirement validation passed"
+
+      - name: Generate traceability matrix (Markdown)
+        if: success()
+        run: |
+          echo "::group::Generate Traceability Matrix (Markdown)"
+          python3 tools/requirements/generate_traceability.py --format markdown
+          echo "::endgroup::"
+
+      - name: Generate traceability matrix (HTML)
+        if: success()
+        run: |
+          echo "::group::Generate Traceability Matrix (HTML)"
+          python3 tools/requirements/generate_traceability.py --format html
+          echo "::endgroup::"
+
+      - name: Upload traceability matrix as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traceability-matrix-${{ github.sha }}
+          path: |
+            traceability_matrix.md
+            traceability_matrix.html
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Check for changed spec files
+        id: check-changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_SPECS=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^spec/.*\.md$' || true)
+            if [ -n "$CHANGED_SPECS" ]; then
+              echo "spec_changed=true" >> $GITHUB_OUTPUT
+              echo "Changed spec files:"
+              echo "$CHANGED_SPECS"
+            else
+              echo "spec_changed=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Comment on PR with validation results
+        if: github.event_name == 'pull_request' && steps.check-changes.outputs.spec_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let comment = '## ✅ Requirements Validation Passed\n\n';
+            comment += 'All requirements have been validated successfully.\n\n';
+
+            // Try to read traceability matrix summary
+            try {
+              const matrix = fs.readFileSync('traceability_matrix.md', 'utf8');
+              const lines = matrix.split('\n');
+
+              // Extract summary stats
+              const summaryStart = lines.findIndex(l => l.includes('## Summary'));
+              if (summaryStart >= 0) {
+                const summaryLines = lines.slice(summaryStart, summaryStart + 20);
+                comment += '### Traceability Summary\n\n';
+                comment += summaryLines.join('\n');
+              }
+            } catch (err) {
+              console.log('Could not read traceability matrix:', err);
+            }
+
+            comment += '\n\n📊 [View full traceability matrix in artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  validate-code-headers:
+    name: Validate Code Implementation Headers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check implementation files have requirement headers
+        run: |
+          echo "::group::Checking Implementation Headers"
+
+          MISSING_HEADERS=()
+
+          # Check SQL files
+          for file in $(find database -name "*.sql" -not -path "*/tests/*" -not -path "*/migrations/*" 2>/dev/null || true); do
+            if [ -f "$file" ]; then
+              if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+                MISSING_HEADERS+=("$file")
+              fi
+            fi
+          done
+
+          # Check Dart files (when they exist)
+          for file in $(find packages apps -name "*.dart" 2>/dev/null || true); do
+            if [ -f "$file" ] && [ "$(basename "$file")" != "main.dart" ]; then
+              if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+                MISSING_HEADERS+=("$file")
+              fi
+            fi
+          done
+
+          echo "::endgroup::"
+
+          if [ ${#MISSING_HEADERS[@]} -gt 0 ]; then
+            echo "::warning::The following implementation files are missing requirement headers:"
+            for file in "${MISSING_HEADERS[@]}"; do
+              echo "::warning file=$file::Missing IMPLEMENTS REQUIREMENTS header"
+            done
+            echo ""
+            echo "ℹ️  Note: This is a warning, not a failure. Please add requirement headers when possible."
+            echo "See spec/requirements-format.md for the correct format."
+          else
+            echo "✅ All implementation files have requirement headers"
+          fi
+
+  validate-migrations:
+    name: Validate Database Migration Headers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: contains(github.event.pull_request.changed_files, 'database/migrations/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check migration files have proper headers
+        run: |
+          echo "::group::Checking Migration Headers"
+
+          INVALID_MIGRATIONS=()
+
+          for file in database/migrations/*.sql; do
+            if [ -f "$file" ]; then
+              # Check for required header components
+              if ! grep -q "-- Migration:" "$file" || \
+                 ! grep -q "-- Date:" "$file" || \
+                 ! grep -q "-- Description:" "$file"; then
+                INVALID_MIGRATIONS+=("$file")
+              fi
+            fi
+          done
+
+          echo "::endgroup::"
+
+          if [ ${#INVALID_MIGRATIONS[@]} -gt 0 ]; then
+            echo "::error::The following migration files have invalid headers:"
+            for file in "${INVALID_MIGRATIONS[@]}"; do
+              echo "::error file=$file::Missing required migration header fields"
+            done
+            echo ""
+            echo "See database/migrations/README.md for the correct format."
+            exit 1
+          else
+            echo "✅ All migration files have proper headers"
+          fi
+
+  security-check:
+    name: Security - Check for Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for accidentally committed secrets
+        run: |
+          echo "::group::Checking for Secrets"
+
+          VIOLATIONS=()
+
+          # Check for common secret patterns
+          if git grep -i "api[_-]key\s*[:=]" 2>/dev/null | grep -v ".github/workflows" | grep -v "spec/" | grep -v "docs/" | grep -v "# api"; then
+            VIOLATIONS+=("API keys found in code")
+          fi
+
+          if git grep -i "password\s*[:=]\s*['\"][^'\"]*['\"]" 2>/dev/null | grep -v "spec/" | grep -v "docs/" | grep -v "# password"; then
+            VIOLATIONS+=("Hardcoded passwords found")
+          fi
+
+          # Check for .env files in git
+          if git ls-files | grep "\.env$" 2>/dev/null; then
+            VIOLATIONS+=(".env files committed to git")
+          fi
+
+          echo "::endgroup::"
+
+          if [ ${#VIOLATIONS[@]} -gt 0 ]; then
+            echo "::error::Security violations detected:"
+            for violation in "${VIOLATIONS[@]}"; do
+              echo "::error::$violation"
+            done
+            exit 1
+          else
+            echo "✅ No secrets detected"
+          fi
+
+  fda-compliance-check:
+    name: FDA Compliance - Audit Trail Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify audit trail requirements
+        run: |
+          echo "::group::FDA 21 CFR Part 11 Compliance Check"
+
+          COMPLIANCE_ISSUES=()
+
+          # Check that event sourcing requirements exist
+          if ! grep -q "REQ-p00004" spec/prd-database-event-sourcing.md 2>/dev/null; then
+            COMPLIANCE_ISSUES+=("Event sourcing requirement REQ-p00004 not found")
+          fi
+
+          # Check that audit trail implementation exists
+          if [ ! -f "database/triggers.sql" ]; then
+            COMPLIANCE_ISSUES+=("Audit trail triggers not found")
+          fi
+
+          # Check that RLS policies exist
+          if [ ! -f "database/rls_policies.sql" ]; then
+            COMPLIANCE_ISSUES+=("Row-level security policies not found")
+          fi
+
+          echo "::endgroup::"
+
+          if [ ${#COMPLIANCE_ISSUES[@]} -gt 0 ]; then
+            echo "::error::FDA compliance issues detected:"
+            for issue in "${COMPLIANCE_ISSUES[@]}"; do
+              echo "::error::$issue"
+            done
+            exit 1
+          else
+            echo "✅ FDA compliance checks passed"
+          fi
+
+  summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check]
+    if: always()
+
+    steps:
+      - name: Check all validations passed
+        run: |
+          echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.validate-requirements.result }}" = "success" ]; then
+            echo "✅ Requirements validation: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Requirements validation: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.validate-code-headers.result }}" = "success" ]; then
+            echo "✅ Code headers validation: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️  Code headers validation: WARNING" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.validate-migrations.result }}" = "success" ] || [ "${{ needs.validate-migrations.result }}" = "skipped" ]; then
+            echo "✅ Migration headers validation: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Migration headers validation: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.security-check.result }}" = "success" ]; then
+            echo "✅ Security check: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Security check: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.fda-compliance-check.result }}" = "success" ]; then
+            echo "✅ FDA compliance check: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ FDA compliance check: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Overall result
+          if [ "${{ needs.validate-requirements.result }}" = "success" ] && \
+             [ "${{ needs.security-check.result }}" = "success" ] && \
+             [ "${{ needs.fda-compliance-check.result }}" = "success" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 All critical validations passed!" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  Some validations failed. Please review the errors above." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
