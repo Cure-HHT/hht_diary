@@ -83,11 +83,14 @@ RUN flutter --version && \
 RUN echo 'export PATH="$HOME/.pub-cache/bin:$PATH"' >> /home/ubuntu/.profile
 
 # ============================================================
-# Supabase CLI
+# Supabase CLI (using Linux package manager)
 # ============================================================
 USER root
-RUN npm install -g supabase && \
-    supabase --version
+RUN apt-get update -y && \
+    apt-get install -y ca-certificates && \
+    curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
+    supabase --version && \
+    rm -rf /var/lib/apt/lists/*
 
 # ============================================================
 # Git configuration for dev role

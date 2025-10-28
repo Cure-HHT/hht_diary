@@ -45,10 +45,14 @@ USER ubuntu
 RUN flutter pub global activate junitreport || true
 
 # ============================================================
-# Supabase CLI (for QA database access)
+# Supabase CLI (for QA database access - using Linux package manager)
 # ============================================================
 USER root
-RUN npm install -g supabase || true
+RUN apt-get update -y && \
+    apt-get install -y ca-certificates && \
+    curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
+    supabase --version && \
+    rm -rf /var/lib/apt/lists/*
 
 # ============================================================
 # Git configuration for QA role
