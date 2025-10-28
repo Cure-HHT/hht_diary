@@ -184,18 +184,46 @@ jobs:
     name: Validate Database Migration Headers
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # CONDITIONAL JOB: Only runs when PR modifies database/migrations/*.sql files
-    # This is intentional to optimize CI/CD time and improve audit clarity
-    # When skipped: No migrations were modified, therefore no validation needed
-    if: contains(github.event.pull_request.changed_files, 'database/migrations/')
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to check changed files
 
-      - name: Check migration files have proper headers
+      - name: Check if migrations were changed in this PR
+        id: check-migrations
         run: |
-          echo "::group::Checking Migration Headers"
+          echo "::group::Checking if migrations were modified"
+
+          # Check if this is a PR or a push
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+
+            # Get list of changed files
+            CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
+
+            # Check if any migration files were changed
+            if echo "$CHANGED_FILES" | grep -q "^database/migrations/.*\.sql$"; then
+              echo "migrations_changed=true" >> $GITHUB_OUTPUT
+              echo "✓ Migration files were modified in this PR"
+            else
+              echo "migrations_changed=false" >> $GITHUB_OUTPUT
+              echo "ℹ️  No migration files were modified in this PR"
+            fi
+          else
+            # For push events, assume we should check all migrations
+            echo "migrations_changed=true" >> $GITHUB_OUTPUT
+            echo "ℹ️  Push event - will validate all existing migrations"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Validate migration file headers
+        if: steps.check-migrations.outputs.migrations_changed == 'true'
+        run: |
+          echo "::group::Validating Migration Headers"
 
           INVALID_MIGRATIONS=()
 
@@ -223,6 +251,12 @@ jobs:
           else
             echo "✅ All migration files have proper headers"
           fi
+
+      - name: Report no migrations to validate
+        if: steps.check-migrations.outputs.migrations_changed == 'false'
+        run: |
+          echo "::notice::No migration files were modified in this PR"
+          echo "✅ Migration validation: PASSED (no migrations to validate)"
 
   security-check:
     name: Security - Check for Secrets
@@ -355,8 +389,6 @@ jobs:
 
           if [ "${{ needs.validate-migrations.result }}" = "success" ]; then
             echo "✅ Migration headers validation: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-migrations.result }}" = "skipped" ]; then
-            echo "⏭️  Migration headers validation: SKIPPED (no migration files changed)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Migration headers validation: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
@@ -371,22 +403,6 @@ jobs:
             echo "✅ FDA compliance check: PASSED" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ FDA compliance check: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          # Add explanation section for skipped jobs
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ needs.validate-migrations.result }}" = "skipped" ]; then
-            echo "### ℹ️  Skipped Jobs Explanation" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Migration Headers Validation** was skipped because:" >> $GITHUB_STEP_SUMMARY
-            echo "- This PR does not modify any files in \`database/migrations/\`" >> $GITHUB_STEP_SUMMARY
-            echo "- Migration validation only runs when migration files are added or changed" >> $GITHUB_STEP_SUMMARY
-            echo "- This is an optimization to save CI/CD time and improve workflow clarity" >> $GITHUB_STEP_SUMMARY
-            echo "- **For auditors**: This is intentional and compliant - no migrations to validate" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Overall result

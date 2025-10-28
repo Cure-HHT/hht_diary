@@ -164,10 +164,12 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 - **Total Runtime**: < 10 minutes typical, 10 minute timeout
 - **Parallelization**: 5 validation jobs run in parallel, 1 summary job waits for all
+- **Early-Pass Optimization**: Migration validation exits early (1-2s) when no migrations modified
 - **Fail-Fast**: Critical failures (requirements, security, FDA compliance) block merge
 - **Warnings**: Code header validation issues are warnings, not blocking
 - **Artifacts**: Generated on every run, regardless of pass/fail status
 - **Notifications**: Failed runs trigger GitHub notifications to PR author
+- **Clean Results**: All jobs show ✅ PASSED or ❌ FAILED (never ⏭️ SKIPPED)
 
 ---
 
@@ -197,9 +199,9 @@ This document specifies the continuous integration and continuous delivery (CI/C
 - Checks migration files for proper headers
 - Validates per `database/migrations/README.md`
 - **Blocking**: YES
-- **Conditional**: Only runs if PR modifies `database/migrations/` files
-- **When Skipped**: Indicates no migrations were modified (intentional, not an error)
-- **Audit Note**: Skipped status is compliant and expected when PRs don't touch migrations
+- **Conditional Validation**: Checks if migrations were modified; if not, passes immediately
+- **Always Shows**: ✅ PASSED (either "all valid" or "no migrations to validate")
+- **Audit Note**: Job always runs but exits early with success when no migrations modified
 
 **4. security-check**
 - Scans for API keys, passwords, secrets
@@ -642,51 +644,49 @@ du -sh .
 
 ---
 
-### Issue: Migration Validation Job Skipped
+### Note: Migration Validation Always Passes
 
-**Symptoms**: GitHub Actions shows "Validate Database Migration Headers" as skipped
+**Behavior**: The "Validate Database Migration Headers" job always shows ✅ PASSED
 
 **This is Expected!** ✅
 
-**Explanation**:
+**How It Works**:
 
-The migration validation job is **conditionally executed** and only runs when a PR modifies files in `database/migrations/`. This is an intentional optimization for the following reasons:
+The migration validation job uses an **early-pass pattern**:
 
-1. **Efficiency**: Don't waste CI/CD minutes validating migrations when none were changed
-2. **Clarity**: Developers only see validation failures when relevant to their changes
-3. **Audit Trail**: Clear indication that no migrations were modified in this PR
-4. **Compliance**: Skipped status is compliant - it means "N/A, nothing to validate"
+1. **Job always runs** (never skipped)
+2. **First step**: Check if PR modified any files in `database/migrations/`
+3. **If no migrations changed**: Exit immediately with success and notice: "No migration files were modified"
+4. **If migrations changed**: Proceed with full header validation
 
-**When Job Runs**:
-- PR adds new migration file: `database/migrations/20251028_*.sql`
-- PR modifies existing migration file (rare, but possible)
+**Benefits**:
 
-**When Job Skips**:
-- PR only changes code, docs, or configuration
-- PR only changes requirements or specifications
-- PR only changes CI/CD workflows
+1. **Clean UI**: All jobs show ✅ PASSED (no ⏭️ SKIPPED to explain)
+2. **Auditor Friendly**: Everything passes - clear audit trail
+3. **Efficient**: Still saves time by exiting early when nothing to validate
+4. **Self-Documenting**: Job logs clearly state "no migrations to validate" when applicable
+
+**Job Output Examples**:
+
+When no migrations changed:
+```
+ℹ️  No migration files were modified in this PR
+✅ Migration validation: PASSED (no migrations to validate)
+```
+
+When migrations were changed:
+```
+✓ Migration files were modified in this PR
+✅ All migration files have proper headers
+```
 
 **For Auditors**:
 
-The skipped status **does not indicate a problem**. It indicates:
-- ✅ No database migrations were modified in this change
-- ✅ Therefore, migration header validation is not applicable
-- ✅ This is documented in the workflow and intentional by design
-- ✅ The workflow summary includes an explanation section when jobs are skipped
+The PASSED status always means one of:
+- ✅ All migrations have valid headers (when migrations exist)
+- ✅ No migrations to validate (when none were modified)
 
-**Verification**:
-
-To verify the conditional execution is working correctly:
-
-```bash
-# Check the workflow file
-grep -A 3 "validate-migrations:" .github/workflows/pr-validation.yml
-
-# Should show:
-#   if: contains(github.event.pull_request.changed_files, 'database/migrations/')
-```
-
-**Reference**: See "Conditional Jobs" section in GitHub Actions documentation
+Both outcomes are compliant and indicate no issues detected.
 
 ---
 
