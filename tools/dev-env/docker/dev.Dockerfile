@@ -64,12 +64,12 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
     echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ${ANDROID_HOME}/licenses/android-sdk-preview-license
 
 # Install Android SDK components
-RUN yes | sdkmanager --licenses || true && \
-    sdkmanager "platform-tools" \
+RUN yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true && \
+    ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platform-tools" \
                "build-tools;34.0.0" \
                "platforms;android-34" \
                "cmdline-tools;latest" && \
-    sdkmanager --list | head -20
+    ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --list | head -20
 
 # ============================================================
 # Flutter configuration
