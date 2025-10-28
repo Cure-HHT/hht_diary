@@ -97,8 +97,9 @@ RUN apt-get update -y && \
     pip3 --version && \
     rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip to latest
-RUN pip3 install --upgrade pip
+# Note: Skip pip upgrade on Ubuntu 24.04 due to Debian-managed pip
+# System pip (24.0+) is sufficient for our needs
+# Using --break-system-packages flag when installing packages per PEP 668
 
 # ============================================================
 # Doppler CLI (secrets management)
@@ -115,14 +116,15 @@ RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com
 # ============================================================
 # Anthropic Python SDK & Claude Code CLI
 # ============================================================
-RUN pip3 install --no-cache-dir anthropic && \
+RUN pip3 install --no-cache-dir --break-system-packages anthropic && \
     npm install -g @anthropic-ai/claude-code
 
 # ============================================================
 # Create non-root user: ubuntu
+# Ubuntu 24.04 image may already have ubuntu user, so check first
 # ============================================================
-RUN useradd -m -s /bin/bash -u 1000 ubuntu && \
-    usermod -aG sudo ubuntu && \
+RUN id -u ubuntu &>/dev/null || useradd -m -s /bin/bash -u 1000 ubuntu && \
+    usermod -aG sudo ubuntu 2>/dev/null || true && \
     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # ============================================================
