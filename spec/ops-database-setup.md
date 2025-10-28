@@ -82,7 +82,7 @@ Provisioning SHALL include:
 
 **Each sponsor requires**:
 1. Dedicated Supabase project (separate account or organization)
-2. Unique project name: `clinical-diary-{sponsor-name}` (e.g., `clinical-diary-pfizer`)
+2. Unique project name: `clinical-diary-{sponsor-name}` (e.g., `clinical-diary-orion`)
 3. Region selection based on sponsor's primary user base
 4. Appropriate tier (Free for dev/staging, Pro+ for production)
 
@@ -91,9 +91,9 @@ Provisioning SHALL include:
 **Format**: `clinical-diary-{sponsor}-{environment}`
 
 **Examples**:
-- `clinical-diary-pfizer-prod` - Pfizer production
-- `clinical-diary-pfizer-staging` - Pfizer staging/UAT
-- `clinical-diary-novartis-prod` - Novartis production
+- `clinical-diary-orion-prod` - Orion production
+- `clinical-diary-orion-staging` - Orion staging/UAT
+- `clinical-diary-andromeda-prod` - Andromeda production
 
 ### Schema Consistency
 

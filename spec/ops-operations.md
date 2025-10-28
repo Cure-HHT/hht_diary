@@ -62,8 +62,8 @@ supabase projects list
 
 ```bash
 # Check each sponsor portal
-curl -I https://pfizer-portal.clinicaldiary.com
-curl -I https://novartis-portal.clinicaldiary.com
+curl -I https://orion-portal.clinicaldiary.com
+curl -I https://andromeda-portal.clinicaldiary.com
 
 # Expected: HTTP 200, <2 second response time
 ```
@@ -275,7 +275,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 1. **Verify Outage** (2 minutes):
    ```bash
    # Check portal status
-   curl -I https://pfizer-portal.clinicaldiary.com
+   curl -I https://orion-portal.clinicaldiary.com
 
    # Check Netlify status page
    curl https://netlifystatus.com/api/v2/status.json
@@ -825,7 +825,7 @@ Increased connection pool to 200, added monitoring for connection usage.
 
 ```
 [2025-10-24 14:35 UTC] Investigating
-We are currently investigating elevated API error rates affecting the Pfizer portal.
+We are currently investigating elevated API error rates affecting the Orion portal.
 
 [2025-10-24 14:50 UTC] Identified
 We have identified the issue as database connection pool exhaustion and are implementing a fix.
@@ -838,7 +838,7 @@ The issue has been resolved. All services are operating normally.
 
 **Contact Channels**:
 - Email: sponsor-ops@clinicaldiary.com
-- Slack: #sponsor-pfizer-ops (private channel per sponsor)
+- Slack: #sponsor-orion-ops (private channel per sponsor)
 - Phone: Emergency contact list (for critical incidents)
 
 **Communication Policy**:

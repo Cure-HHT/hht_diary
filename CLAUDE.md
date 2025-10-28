@@ -2,8 +2,10 @@
 
 ## Directory Organization
 
+### Core Platform (Root)
+
 - **README.md**: Project overview and documentation structure
-- **spec/**: Formal requirements (WHAT, WHY, HOW to build/deploy)
+- **spec/**: Core platform formal requirements (WHAT, WHY, HOW to build/deploy)
   - Use hierarchical naming: `{audience}-{topic}(-{subtopic}).md`
   - Audiences: `prd-` (product), `ops-` (operations), `dev-` (development)
   - **ALWAYS read spec/README.md before modifying spec/ files**
@@ -11,13 +13,71 @@
   - `adr/`: Architecture Decision Records (ADRs)
   - Implementation guides, runbooks, design notes
   - **See docs/README.md and docs/adr/README.md for ADR process**
-- **database/**: SQL schema, triggers, functions, migrations, tests
+- **database/**: Shared SQL schema for ALL sponsors (deployed per-sponsor)
+  - Schema, triggers, functions, migrations, RLS policies
+  - **NOT sponsor-specific** - same schema deployed to each sponsor's Supabase instance
+- **packages/**: Core Flutter packages (abstract interfaces)
+- **apps/**: Flutter app templates (mobile, portal)
 - **tools/**: Automation and development tooling
+  - `build_system/`: Build scripts for composing core + sponsor code
   - `linear-cli/`: Linear API integration tools for requirement-ticket traceability
   - `requirements/`: Requirement validation and traceability matrix generation
 - **archive/**: Obsolete files - DO NOT use unless explicitly asked
 - **evaluation/**: Mock sponsor evaluation materials
 - **untracked-notes/**: Scratch files, analysis, planning docs (gitignored)
+
+### Sponsor-Specific Code (`sponsor/`)
+
+⭐ **IMPORTANT**: The `sponsor/` directory contains sponsor-specific implementations and configurations. It mirrors the root structure but contains ONLY sponsor-specific code.
+
+```
+sponsor/
+├── lib/                        # Sponsor implementations
+│   ├── orion/                  # Sponsor: Orion
+│   │   ├── orion_config.dart
+│   │   ├── orion_edc_sync.dart
+│   │   └── orion_theme.dart
+│   └── andromeda/              # Sponsor: Andromeda
+│       ├── andromeda_config.dart
+│       └── andromeda_theme.dart
+│
+├── config/                     # Sponsor configurations (GITIGNORED!)
+│   ├── orion/
+│   │   ├── mobile.yaml
+│   │   ├── portal.yaml
+│   │   └── supabase.env        # SECRETS - NEVER COMMIT!
+│   └── andromeda/
+│       └── supabase.env        # SECRETS - NEVER COMMIT!
+│
+├── assets/                     # Sponsor branding
+│   ├── orion/
+│   │   ├── logo.png
+│   │   └── icon.png
+│   └── andromeda/
+│       └── logo.png
+│
+├── edge_functions/             # Sponsor Edge Functions (EDC integrations)
+│   ├── orion/
+│   │   └── edc_sync/
+│   └── andromeda/
+│       └── edc_sync/
+│
+└── spec/                       # Sponsor-specific requirements (from Google Docs)
+    ├── orion/
+    │   └── (imported later)
+    └── andromeda/
+        └── (imported later)
+```
+
+**Key Principles**:
+- ✅ Sponsor code extends core abstractions (SponsorConfig, EdcSync, etc.)
+- ✅ Each sponsor isolated in their own subdirectory
+- ✅ Build system composes core + sponsor at build time
+- ✅ Database schema is shared (deployed per-sponsor, but same schema)
+- ❌ NO sponsor-specific secrets committed to git (use `sponsor/*/config/*.env`)
+- ❌ NO cross-sponsor code dependencies
+
+**Codenames**: Use astronomical phenomena (e.g., Orion, Andromeda, Carina, Nebula) instead of real company names
 
 ## Key SOPs
 

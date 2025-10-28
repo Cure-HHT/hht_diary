@@ -112,15 +112,15 @@ dart run tools/build_system/build_mobile.dart \
 **Examples**:
 
 ```bash
-# Build Pfizer iOS app for production
+# Build Orion iOS app for production
 dart run tools/build_system/build_mobile.dart \
-  --sponsor-repo ../clinical-diary-pfizer \
+  --sponsor-repo ../clinical-diary-orion \
   --platform ios \
   --environment production
 
-# Build Novartis Android app for staging
+# Build Andromeda Android app for staging
 dart run tools/build_system/build_mobile.dart \
-  --sponsor-repo ../clinical-diary-novartis \
+  --sponsor-repo ../clinical-diary-andromeda \
   --platform android \
   --environment staging
 ```
@@ -142,9 +142,9 @@ dart run tools/build_system/build_portal.dart \
 **Example**:
 
 ```bash
-# Build Pfizer portal for production
+# Build Orion portal for production
 dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-pfizer \
+  --sponsor-repo ../clinical-diary-orion \
   --environment production
 ```
 
@@ -387,7 +387,7 @@ config/
 ```yaml
 app:
   name: "Clinical Diary"
-  bundle_id: "com.clinicaldiary.pfizer"
+  bundle_id: "com.clinicaldiary.orion"
   version: "1.2.3"
   build_number: 42
 
@@ -406,9 +406,9 @@ features:
 
 ```yaml
 portal:
-  title: "Pfizer Clinical Trial Portal"
-  domain: "pfizer-portal.clinicaldiary.com"
-  theme: "pfizer"
+  title: "Orion Clinical Trial Portal"
+  domain: "orion-portal.clinicaldiary.com"
+  theme: "orion"
 
 features:
   custom_reports: true
@@ -878,7 +878,7 @@ dart run tools/build_system/build_portal.dart \
 cd sponsor-repo
 
 # First time: Link site
-netlify link --name pfizer-clinical-diary-portal
+netlify link --name orion-clinical-diary-portal
 
 # Deploy production
 netlify deploy --prod --dir=../clinical-diary/build/web
@@ -892,10 +892,10 @@ netlify deploy --prod --dir=../clinical-diary/build/web
 
 ```bash
 # Add custom domain
-netlify domains:add pfizer-portal.clinicaldiary.com
+netlify domains:add orion-portal.clinicaldiary.com
 
 # Configure DNS (in domain registrar):
-# CNAME pfizer-portal -> pfizer-clinical-diary-portal.netlify.app
+# CNAME orion-portal -> orion-clinical-diary-portal.netlify.app
 ```
 
 #### 5. Enable HTTPS

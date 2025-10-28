@@ -42,10 +42,10 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                   SPONSOR DEPLOYMENT                            │
-│                  (e.g., Pfizer Production)                      │
+│                  (e.g., Orion Production)                      │
 │                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │ Supabase Project: clinical-diary-pfizer                    │ │
+│  │ Supabase Project: clinical-diary-orion                    │ │
 │  │                                                            │ │
 │  │  ├─ PostgreSQL (Event Sourcing schema + RLS)               │ │
 │  │  ├─ Supabase Auth (OAuth/SAML with sponsor SSO)            │ │
@@ -54,8 +54,8 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                 │
 │  Accessed by:                                                   │
-│  ├─ Mobile App (iOS/Android) → Pfizer configuration selected    │
-│  ├─ Portal (Flutter Web) → https://pfizer-portal.example.com    │
+│  ├─ Mobile App (iOS/Android) → Orion configuration selected    │
+│  ├─ Portal (Flutter Web) → https://orion-portal.example.com    │
 │  └─ EDC System (Medidata Rave) ← Edge Function pushes events    │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -69,83 +69,105 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 
 ## Repository Structure
 
-### Single Public Repository
+### Monorepo Architecture
 
-**Repository**: `clinical-diary` (public)
+**Repository**: `clinical-diary` (single monorepo)
+
+The repository uses a **monorepo** structure with a `sponsor/` directory that mirrors the root directory structure but contains only sponsor-specific code.
 
 ```
-clinical-diary/
+clinical-diary/                  (Root - Core platform)
 ├── packages/
-│   ├── core/                   (Abstract interfaces + core logic)
-│   ├── database/               (SQL schema, migrations, RLS policies)
-│   └── edge_functions_shared/  (Shared utilities for Edge Functions)
+│   ├── core/                    (Abstract interfaces + core logic)
+│   └── edge_functions_shared/   (Shared utilities for Edge Functions)
 │
 ├── apps/
-│   ├── mobile/                 (Flutter app template)
-│   └── portal/                 (Flutter Web template)
+│   ├── mobile/                  (Flutter app template)
+│   └── portal/                  (Flutter Web template)
+│
+├── database/                    (Shared SQL schema for ALL sponsors)
+│   ├── schema.sql               (Event Sourcing pattern + RLS)
+│   ├── migrations/              (Schema changes over time)
+│   ├── rls_policies.sql         (Row-Level Security)
+│   └── functions.sql            (PostgreSQL functions)
 │
 ├── tools/
-│   ├── build_system/           (Build scripts - compose core + sponsor)
-│   └── templates/              (Scaffold new sponsor repo)
+│   ├── build_system/            (Build scripts)
+│   ├── requirements/            (Requirement validation)
+│   └── linear-cli/              (Linear ticket tools)
 │
-├── examples/
-│   └── reference_sponsor/      (Complete example implementation)
+├── spec/                        (Core specifications)
+│   ├── prd-*.md                 (Product requirements)
+│   ├── ops-*.md                 (Operations requirements)
+│   └── dev-*.md                 (Development requirements)
 │
-└── docs/
-    ├── ARCHITECTURE.md
-    ├── CREATING_SPONSOR.md
-    └── BUILD_SYSTEM.md
+├── docs/                        (Architecture Decision Records)
+│   └── adr/                     (ADRs)
+│
+└── sponsor/                     ⭐ Sponsor-specific code
+    ├── lib/                     (Sponsor implementations)
+    │   ├── orion/
+    │   │   ├── orion_config.dart      (extends SponsorConfig)
+    │   │   ├── orion_edc_sync.dart    (extends EdcSync)
+    │   │   ├── orion_theme.dart       (branding)
+    │   │   └── widgets/               (custom UI components)
+    │   └── andromeda/
+    │       ├── andromeda_config.dart
+    │       ├── andromeda_edc_sync.dart
+    │       └── andromeda_theme.dart
+    │
+    ├── edge_functions/          (Sponsor Edge Functions)
+    │   ├── orion/
+    │   │   └── edc_sync/        (EDC integration for Orion)
+    │   └── andromeda/
+    │       └── edc_sync/        (EDC integration for Andromeda)
+    │
+    ├── config/                  (Sponsor configurations)
+    │   ├── orion/
+    │   │   ├── mobile.yaml
+    │   │   ├── portal.yaml
+    │   │   └── supabase.env     (credentials - gitignored)
+    │   └── andromeda/
+    │       ├── mobile.yaml
+    │       ├── portal.yaml
+    │       └── supabase.env
+    │
+    ├── assets/                  (Sponsor branding)
+    │   ├── orion/
+    │   │   ├── logo.png
+    │   │   ├── icon.png
+    │   │   └── fonts/
+    │   └── andromeda/
+    │       ├── logo.png
+    │       └── icon.png
+    │
+    └── spec/                    (Sponsor requirements - from Google Docs)
+        ├── orion/
+        │   └── (sponsor-specific REQs - imported later)
+        └── andromeda/
+            └── (sponsor-specific REQs - imported later)
 ```
 
-**What's public**:
-- Database schema (Event Sourcing pattern)
+**What's in root (core platform)**:
+- Database schema (shared by ALL sponsors)
 - Abstract base classes defining extension points
 - Mobile app UI framework
 - Portal UI framework
 - Build tooling
-- Documentation
+- Core specifications (prd/ops/dev)
 
-**What's NOT included**:
-- Sponsor-specific branding
-- EDC integration code
+**What's in sponsor/ (sponsor-specific)**:
+- Sponsor implementations (extends core interfaces)
+- EDC integration code (proprietary)
 - Authentication configurations
-- Proprietary business logic
+- Branding assets (logos, fonts, colors)
+- Sponsor-specific requirements (imported from Google Docs)
 
-### Sponsor Private Repositories
-
-**Repository per sponsor**: `clinical-diary-{sponsor}` (private)
-
-```
-clinical-diary-pfizer/
-├── lib/
-│   ├── pfizer_config.dart      (extends SponsorConfig)
-│   ├── pfizer_edc_sync.dart    (extends EdcSync - if proxy mode)
-│   ├── pfizer_theme.dart       (branding)
-│   └── widgets/                (custom UI components)
-│
-├── edge_functions/
-│   └── edc_sync/               (Medidata Rave integration)
-│
-├── database/
-│   └── extensions.sql          (sponsor-specific tables)
-│
-├── config/
-│   ├── mobile.yaml             (mobile build configuration)
-│   ├── portal.yaml             (portal build configuration)
-│   └── supabase.env            (credentials - gitignored)
-│
-├── assets/
-│   ├── logo.png
-│   ├── icon.png
-│   └── fonts/
-│
-├── build.yaml                  (build configuration)
-├── pubspec.yaml                (depends on core packages)
-│
-└── .github/workflows/
-    ├── deploy_staging.yml
-    └── deploy_production.yml
-```
+**Database Deployment**:
+- Schema is **shared** (same schema.sql for all sponsors)
+- Each sponsor gets **separate Supabase project** (deployed instance)
+- Sponsor-specific: Authorized users, deployment configuration
+- No sponsor-specific schema extensions (database is generic)
 
 **Dependency management**:
 
@@ -191,12 +213,12 @@ This ensures:
 
 ### Composition at Build Time
 
-The build system combines public core code with private sponsor code to produce deployable artifacts.
+The build system composes core platform code with sponsor-specific code from the `sponsor/` directory to produce deployable artifacts.
 
 **Build Process**:
 
-1. **Validate** sponsor repository structure and implementations
-2. **Copy** sponsor code into build workspace
+1. **Validate** sponsor implementation (in `sponsor/{sponsor-name}/`)
+2. **Load** sponsor configuration from `sponsor/config/{sponsor-name}/`
 3. **Compose** core + sponsor into unified codebase
 4. **Generate** integration glue code
 5. **Build** Flutter app (mobile) or Flutter Web (portal)
@@ -204,21 +226,88 @@ The build system combines public core code with private sponsor code to produce 
 
 **Build Scripts** (in `tools/build_system/`):
 - `build_mobile.dart` - Builds mobile app with sponsor configuration
+  ```bash
+  dart tools/build_system/build_mobile.dart --sponsor orion --platform ios
+  ```
 - `build_portal.dart` - Builds portal with sponsor customization
-- `validate_sponsor.dart` - Validates sponsor repo before build
+  ```bash
+  dart tools/build_system/build_portal.dart --sponsor orion --environment production
+  ```
+- `validate_sponsor.dart` - Validates sponsor implementation
+  ```bash
+  dart tools/build_system/validate_sponsor.dart --sponsor orion
+  ```
 - `deploy.dart` - Orchestrates deployment to Supabase + hosting
+  ```bash
+  dart tools/build_system/deploy.dart --sponsor orion --environment production
+  ```
 
 **Usage**:
 
+```bash
+# Validate Orion sponsor implementation
+dart tools/build_system/validate_sponsor.dart --sponsor orion
+
+# Build Orion mobile app for iOS
+dart tools/build_system/build_mobile.dart --sponsor orion --platform ios
+
+# Build Orion portal
+dart tools/build_system/build_portal.dart --sponsor orion --environment production
+
+# Deploy Orion to production
+dart tools/build_system/deploy.dart --sponsor orion --environment production
+```
 
 ### CI/CD Integration
 
-Each sponsor repository has GitHub Actions workflows that:
-- Trigger on push to main branch
-- Clone public `clinical-diary` repository
-- Run build scripts with sponsor repo as input
-- Execute tests against staging Supabase instance
-- Deploy to production on success
+The monorepo uses GitHub Actions workflows that:
+- Trigger on changes to `sponsor/{sponsor-name}/` directory
+- Run sponsor-specific validation and tests
+- Build artifacts for affected sponsor only
+- Deploy to sponsor's Supabase project
+- Support manual triggers for full rebuilds
+
+**Workflow Example** (`.github/workflows/deploy-sponsor.yml`):
+```yaml
+name: Deploy Sponsor
+
+on:
+  push:
+    paths:
+      - 'sponsor/**'
+      - 'database/**'
+      - 'packages/**'
+      - 'apps/**'
+  workflow_dispatch:
+    inputs:
+      sponsor:
+        description: 'Sponsor to deploy (orion, andromeda, etc.)'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed sponsor
+        id: detect
+        run: |
+          # Auto-detect which sponsor changed
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "sponsor=${{ github.event.inputs.sponsor }}" >> $GITHUB_OUTPUT
+          else
+            # Extract sponsor from changed paths
+            sponsor=$(git diff --name-only HEAD~1 | grep '^sponsor/' | cut -d/ -f2 | sort -u)
+            echo "sponsor=$sponsor" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and deploy
+        run: |
+          dart tools/build_system/deploy.dart \
+            --sponsor ${{ steps.detect.outputs.sponsor }} \
+            --environment production
+```
 
 ---
 
@@ -248,7 +337,7 @@ Each sponsor repository has GitHub Actions workflows that:
 ### Separate Deployment per Sponsor
 
 Each sponsor gets independent portal deployment:
-- Unique domain: `pfizer-portal.clinicaldiary.com`
+- Unique domain: `orion-portal.clinicaldiary.com`
 - Sponsor-specific theme and branding
 - Custom pages and reports
 - Connects to sponsor's Supabase instance
@@ -320,7 +409,7 @@ For sponsors in **proxy mode**, Edge Functions sync diary events to their EDC sy
 **Execution**: Deno runtime on Supabase infrastructure
 
 **Example EDC systems**:
-- Medidata Rave (Pfizer example)
+- Medidata Rave (Orion example)
 - Oracle InForm
 - Veeva Vault CDMS
 - Custom RDBMS
@@ -351,7 +440,7 @@ Test core functionality: Event Sourcing, RLS policies, database functions, base 
 **3. Sponsor Implementation Tests** (in sponsor repos)
 Test sponsor-specific implementations custom behavior.
 
-**Location**: `clinical-diary-pfizer/test/`
+**Location**: `clinical-diary-orion/test/`
 
 ### Integration Testing
 
