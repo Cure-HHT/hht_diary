@@ -96,7 +96,7 @@ async function getWorkflowStates(apiToken, ticketId) {
 
     if (result.errors) {
         console.error('GraphQL errors:', JSON.stringify(result.errors, null, 2));
-        throw new Error('Failed to fetch workflow states');
+        throw new Error('Failed to fetch workflow states: ' + JSON.stringify(result.errors, null, 2));
     }
 
     return result.data.issue;
