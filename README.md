@@ -1,3 +1,7 @@
+# Clinical Trial Diary System
+
+[![PR Validation](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml)
+
 ## Documentation Structure
 
 Project documentation is split into two directories:
