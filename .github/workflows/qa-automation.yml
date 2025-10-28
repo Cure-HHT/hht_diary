@@ -15,6 +15,21 @@ on:
       - main
       - 'feature/**'
       - 'release/**'
+    paths:
+      # Trigger on Docker environment changes
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
+      - 'tools/dev-env/setup.sh'
+      # Trigger on workflow changes
+      - '.github/workflows/qa-automation.yml'
+      # Trigger on application code changes (mounted as volume, but tests need to run)
+      - 'apps/**'
+      - 'packages/**'
+      - 'database/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'pubspec.yaml'
+      - 'package.json'
   workflow_dispatch:
     inputs:
       test_suite:
@@ -54,7 +69,31 @@ jobs:
             ${{ runner.os }}-buildx-qa-
             ${{ runner.os }}-buildx-
 
+      - name: Check if Docker files changed
+        id: docker-changes
+        run: |
+          if git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+            echo "docker_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "docker_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pull pre-built images (if Docker unchanged)
+        id: pull-images
+        if: steps.docker-changes.outputs.docker_changed == 'false'
+        continue-on-error: true
+        run: |
+          echo "Docker files unchanged, attempting to pull pre-built images..."
+          docker pull ghcr.io/${{ github.repository }}/clinical-diary-base:latest && \
+          docker tag ghcr.io/${{ github.repository }}/clinical-diary-base:latest clinical-diary-base:latest && \
+          docker pull ghcr.io/${{ github.repository }}/clinical-diary-dev:latest && \
+          docker tag ghcr.io/${{ github.repository }}/clinical-diary-dev:latest clinical-diary-dev:latest && \
+          docker pull ghcr.io/${{ github.repository }}/clinical-diary-qa:latest && \
+          docker tag ghcr.io/${{ github.repository }}/clinical-diary-qa:latest clinical-diary-qa:latest && \
+          echo "images_pulled=true" >> $GITHUB_OUTPUT || echo "images_pulled=false" >> $GITHUB_OUTPUT
+
       - name: Build base Docker image
+        if: steps.docker-changes.outputs.docker_changed == 'true' || steps.pull-images.outputs.images_pulled != 'true'
         working-directory: tools/dev-env
         run: |
           docker buildx build \
@@ -66,6 +105,7 @@ jobs:
             docker/
 
       - name: Build dev Docker image (qa extends dev)
+        if: steps.docker-changes.outputs.docker_changed == 'true' || steps.pull-images.outputs.images_pulled != 'true'
         working-directory: tools/dev-env
         run: |
           docker buildx build \
@@ -78,6 +118,7 @@ jobs:
             docker/
 
       - name: Build QA Docker image
+        if: steps.docker-changes.outputs.docker_changed == 'true' || steps.pull-images.outputs.images_pulled != 'true'
         working-directory: tools/dev-env
         run: |
           docker buildx build \
