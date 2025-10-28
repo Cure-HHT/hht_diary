@@ -35,7 +35,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-alcoa'::UUID, 'test_patient_alcoa', 'test_site_alcoa', 'USER_CREATE',
+    '00000000-0000-0000-0000-00000000000a'::UUID, 'test_patient_alcoa', 'test_site_alcoa', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -83,7 +83,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-complete'::UUID, 'test_patient_complete', 'test_site_complete', 'USER_CREATE',
+    '00000000-0000-0000-0000-00000000000b'::UUID, 'test_patient_complete', 'test_site_complete', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -94,7 +94,7 @@ DECLARE
     v_all_pass BOOLEAN := true;
 BEGIN
     FOR v_check IN
-        SELECT * FROM check_audit_completeness('test-uuid-complete'::UUID)
+        SELECT * FROM check_audit_completeness('00000000-0000-0000-0000-00000000000b'::UUID)
     LOOP
         IF NOT v_check.is_valid THEN
             v_all_pass := false;
@@ -125,10 +125,10 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES
-    ('test-uuid-report-1'::UUID, 'test_patient_r1', 'test_site_r1', 'USER_CREATE',
+    ('00000000-0000-0000-0000-0000000000r1'::UUID, 'test_patient_r1', 'test_site_r1', 'USER_CREATE',
      '{"test": "1"}'::jsonb, 'test_user1', 'USER', now(), 'entry 1',
      '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session1'),
-    ('test-uuid-report-2'::UUID, 'test_patient_r2', 'test_site_r2', 'USER_UPDATE',
+    ('00000000-0000-0000-0000-0000000000r2'::UUID, 'test_patient_r2', 'test_site_r2', 'USER_UPDATE',
      '{"test": "2"}'::jsonb, 'test_user2', 'INVESTIGATOR', now(), 'entry 2',
      '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session2');
 
@@ -193,10 +193,10 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES
-    ('test-uuid-batch-1'::UUID, 'test_patient_b1', 'test_site_b1', 'USER_CREATE',
+    ('00000000-0000-0000-0000-0000000000b1'::UUID, 'test_patient_b1', 'test_site_b1', 'USER_CREATE',
      '{"test": "1"}'::jsonb, 'test_user', 'USER', now(), 'batch test 1',
      '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'),
-    ('test-uuid-batch-2'::UUID, 'test_patient_b2', 'test_site_b2', 'USER_CREATE',
+    ('00000000-0000-0000-0000-0000000000b2'::UUID, 'test_patient_b2', 'test_site_b2', 'USER_CREATE',
      '{"test": "2"}'::jsonb, 'test_user', 'USER', now(), 'batch test 2',
      '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session');
 

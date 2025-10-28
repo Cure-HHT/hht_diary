@@ -35,7 +35,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-001'::UUID, 'test_patient_001', 'test_site_001', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000001'::UUID, 'test_patient_001', 'test_site_001', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -83,7 +83,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-002'::UUID, 'test_patient_002', 'test_site_002', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000002'::UUID, 'test_patient_002', 'test_site_002', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -127,7 +127,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-003'::UUID, 'test_patient_003', 'test_site_003', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000003'::UUID, 'test_patient_003', 'test_site_003', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -162,7 +162,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-004'::UUID, 'test_patient_004', 'test_site_004', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000004'::UUID, 'test_patient_004', 'test_site_004', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -200,7 +200,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-005'::UUID, 'test_patient_005', 'test_site_005', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000005'::UUID, 'test_patient_005', 'test_site_005', 'USER_CREATE',
     '{"symptoms": ["headache"]}'::jsonb, 'test_user', 'USER', now(), 'initial entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -212,12 +212,12 @@ DECLARE
 BEGIN
     v_state_exists := EXISTS(
         SELECT 1 FROM record_state
-        WHERE event_uuid = 'test-uuid-005'::UUID
+        WHERE event_uuid = '00000000-0000-0000-0000-000000000005'::UUID
     );
 
     SELECT current_data INTO v_state_data
     FROM record_state
-    WHERE event_uuid = 'test-uuid-005'::UUID;
+    WHERE event_uuid = '00000000-0000-0000-0000-000000000005'::UUID;
 
     IF v_state_exists AND v_state_data->>'symptoms' = '["headache"]' THEN
         RAISE NOTICE 'PASS: Read model automatically updated via trigger';
@@ -241,7 +241,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-006'::UUID, 'test_patient_006', 'test_site_006', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000006'::UUID, 'test_patient_006', 'test_site_006', 'USER_CREATE',
     '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -289,7 +289,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    'test-uuid-007'::UUID, 'test_patient_007', 'test_site_007', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000007'::UUID, 'test_patient_007', 'test_site_007', 'USER_CREATE',
     '{"value": 1}'::jsonb, 'test_user', 'USER', now(), 'initial',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -300,7 +300,7 @@ INSERT INTO record_audit (
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id, parent_audit_id
 ) VALUES (
-    'test-uuid-007'::UUID, 'test_patient_007', 'test_site_007', 'USER_UPDATE',
+    '00000000-0000-0000-0000-000000000007'::UUID, 'test_patient_007', 'test_site_007', 'USER_UPDATE',
     '{"value": 2}'::jsonb, 'test_user', 'USER', now(), 'update',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session',
     (SELECT audit_id FROM record_audit WHERE patient_id = 'test_patient_007' ORDER BY audit_id LIMIT 1)
@@ -312,7 +312,7 @@ DECLARE
 BEGIN
     -- Validate audit chain
     v_chain_valid := NOT EXISTS(
-        SELECT 1 FROM validate_audit_chain('test-uuid-007'::UUID)
+        SELECT 1 FROM validate_audit_chain('00000000-0000-0000-0000-000000000007'::UUID)
         WHERE is_valid = false
     );
 
