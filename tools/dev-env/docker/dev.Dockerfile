@@ -43,13 +43,12 @@ ENV ANDROID_HOME=/opt/android
 ENV ANDROID_SDK_ROOT=/opt/android
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
 
-RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
-    cd ${ANDROID_HOME} && \
+RUN cd /tmp && \
     wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
     unzip -q commandlinetools-linux-11076708_latest.zip && \
+    mkdir -p ${ANDROID_HOME}/cmdline-tools/latest && \
+    mv cmdline-tools/* ${ANDROID_HOME}/cmdline-tools/latest/ && \
     rm commandlinetools-linux-11076708_latest.zip && \
-    [ -d ${ANDROID_HOME}/cmdline-tools/cmdline-tools ] && \
-    mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest || true && \
     chown -R ubuntu:ubuntu ${ANDROID_HOME}
 
 # ============================================================
@@ -63,13 +62,13 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
     echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> ${ANDROID_HOME}/licenses/android-sdk-license && \
     echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ${ANDROID_HOME}/licenses/android-sdk-preview-license
 
-# Install Android SDK components
-RUN yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true && \
-    ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platform-tools" \
+# Install Android SDK components (PATH now includes sdkmanager)
+RUN yes | sdkmanager --licenses || true && \
+    sdkmanager "platform-tools" \
                "build-tools;34.0.0" \
                "platforms;android-34" \
                "cmdline-tools;latest" && \
-    ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --list | head -20
+    sdkmanager --list | head -20
 
 # ============================================================
 # Flutter configuration
