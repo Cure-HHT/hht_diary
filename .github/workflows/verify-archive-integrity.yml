@@ -1,0 +1,131 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00049: Artifact Retention and Archival
+#
+# Verify Archive Integrity (Monthly)
+# Verifies checksums for all artifacts in hot storage
+
+name: Verify Archive Integrity (Monthly)
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'  # 3 AM UTC on 1st of each month
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  verify-integrity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: List hot storage artifacts
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          echo "Listing all artifacts with checksums..."
+
+          # Get list of all checksum files
+          aws s3 ls s3://clinical-diary-artifacts/ --recursive | grep '.sha256$' > checksums.txt
+
+          CHECKSUM_COUNT=$(wc -l < checksums.txt)
+          echo "Found $CHECKSUM_COUNT artifacts to verify"
+
+          if [ $CHECKSUM_COUNT -eq 0 ]; then
+            echo "⚠️  No artifacts found to verify"
+            exit 0
+          fi
+
+      - name: Verify checksums
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          FAILED=0
+          VERIFIED=0
+
+          while read line; do
+            # Extract filename from S3 ls output
+            CHECKSUM_FILE=$(echo $line | awk '{print $4}')
+            ARTIFACT_FILE="${CHECKSUM_FILE%.sha256}"
+
+            echo "----------------------------------------"
+            echo "Verifying: $ARTIFACT_FILE"
+
+            # Download artifact and checksum
+            if aws s3 cp "s3://clinical-diary-artifacts/$ARTIFACT_FILE" "$(basename $ARTIFACT_FILE)"; then
+              aws s3 cp "s3://clinical-diary-artifacts/$CHECKSUM_FILE" "$(basename $CHECKSUM_FILE)"
+
+              # Verify checksum
+              if sha256sum -c "$(basename $CHECKSUM_FILE)"; then
+                echo "✅ Verified: $ARTIFACT_FILE"
+                VERIFIED=$((VERIFIED + 1))
+              else
+                echo "❌ FAILED: $ARTIFACT_FILE"
+                FAILED=$((FAILED + 1))
+              fi
+
+              # Cleanup
+              rm "$(basename $ARTIFACT_FILE)" "$(basename $CHECKSUM_FILE)"
+            else
+              echo "⚠️  Could not download: $ARTIFACT_FILE"
+              FAILED=$((FAILED + 1))
+            fi
+
+          done < checksums.txt
+
+          echo "========================================"
+          echo "Verification Complete"
+          echo "Verified: $VERIFIED"
+          echo "Failed: $FAILED"
+          echo "========================================"
+
+          if [ $FAILED -gt 0 ]; then
+            echo "❌ $FAILED artifacts failed verification"
+            exit 1
+          fi
+
+          echo "✅ All artifacts verified successfully"
+
+      - name: Generate verification report
+        if: always()
+        run: |
+          cat > verification-report.json <<EOF
+          {
+            "verification_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "artifacts_verified": $VERIFIED,
+            "artifacts_failed": $FAILED,
+            "status": "$([ $FAILED -eq 0 ] && echo 'success' || echo 'failed')"
+          }
+          EOF
+
+          cat verification-report.json
+
+      - name: Upload verification report
+        if: always()
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          REPORT_NAME="verification-report-$(date +%Y%m).json"
+
+          aws s3 cp verification-report.json s3://clinical-diary-artifacts/verification-reports/$REPORT_NAME \
+            --metadata "date=$(date +%Y-%m-%d)"
+
+          echo "✅ Verification report uploaded"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ CRITICAL: Archive integrity verification failed"
+          echo "Date: $(date +%Y-%m-%d)"
+          echo "Some artifacts may be corrupted - investigate immediately"
+          # TODO: Send alert to ops team
+
+      - name: Report success
+        if: success()
+        run: |
+          echo "✅ Monthly integrity verification complete"
+          echo "Date: $(date +%Y-%m-%d)"
+          echo "All artifacts verified successfully"
