@@ -1,0 +1,141 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00049: Artifact Retention and Archival
+#   REQ-o00051: Change Control and Audit Trail
+#
+# Archive Deployment Logs to S3 (7-year retention)
+# Runs after any deployment or rollback
+
+name: Archive Deployment Logs
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Development", "Deploy to Staging", "Deploy to Production", "Rollback Deployment"]
+    types: [completed]
+  workflow_dispatch:  # Allow manual trigger
+    inputs:
+      workflow_run_id:
+        description: 'Workflow run ID to archive'
+        required: true
+        type: string
+
+jobs:
+  archive-logs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine workflow run ID
+        id: workflow
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run_id=${{ github.event.inputs.workflow_run_id }}" >> $GITHUB_OUTPUT
+          else
+            echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch deployment logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Fetching logs for workflow run: ${{ steps.workflow.outputs.run_id }}"
+
+          # Get workflow run logs
+          gh run view ${{ steps.workflow.outputs.run_id }} --log > deployment-log.txt
+
+          # If logs are too large, truncate (GitHub has size limits)
+          if [ $(wc -c < deployment-log.txt) -gt 50000000 ]; then
+            echo "Logs exceed 50MB, truncating..."
+            head -c 50000000 deployment-log.txt > deployment-log-truncated.txt
+            mv deployment-log-truncated.txt deployment-log.txt
+          fi
+
+      - name: Fetch workflow details
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get workflow run details as JSON
+          gh api repos/${{ github.repository }}/actions/runs/${{ steps.workflow.outputs.run_id }} > workflow-details.json
+
+      - name: Create deployment record
+        run: |
+          # Extract key fields from workflow details
+          WORKFLOW_NAME=$(jq -r '.name' workflow-details.json)
+          COMMIT_SHA=$(jq -r '.head_sha' workflow-details.json)
+          CREATED_AT=$(jq -r '.created_at' workflow-details.json)
+          UPDATED_AT=$(jq -r '.updated_at' workflow-details.json)
+          CONCLUSION=$(jq -r '.conclusion' workflow-details.json)
+          ACTOR=$(jq -r '.actor.login' workflow-details.json)
+
+          # Determine environment from workflow name
+          ENVIRONMENT="unknown"
+          case "$WORKFLOW_NAME" in
+            *Development*) ENVIRONMENT="development" ;;
+            *Staging*) ENVIRONMENT="staging" ;;
+            *Production*) ENVIRONMENT="production" ;;
+            *Rollback*) ENVIRONMENT="rollback" ;;
+          esac
+
+          cat > deployment-record.json <<EOF
+          {
+            "artifact_type": "deployment_log",
+            "workflow_id": "${{ steps.workflow.outputs.run_id }}",
+            "workflow_name": "$WORKFLOW_NAME",
+            "commit_sha": "$COMMIT_SHA",
+            "timestamp_start": "$CREATED_AT",
+            "timestamp_end": "$UPDATED_AT",
+            "outcome": "$CONCLUSION",
+            "deployer": "$ACTOR",
+            "environment": "$ENVIRONMENT",
+            "retention_years": 7
+          }
+          EOF
+
+      - name: Package deployment record
+        run: |
+          RECORD_NAME="deployment-${{ steps.workflow.outputs.run_id }}.tar.gz"
+          echo "RECORD_NAME=$RECORD_NAME" >> $GITHUB_ENV
+
+          tar -czf $RECORD_NAME deployment-log.txt deployment-record.json workflow-details.json
+
+      - name: Generate checksum
+        run: |
+          sha256sum $RECORD_NAME > $RECORD_NAME.sha256
+          cat $RECORD_NAME.sha256
+
+      - name: Upload to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          ENVIRONMENT=$(jq -r '.environment' deployment-record.json)
+
+          # Upload deployment record
+          aws s3 cp $RECORD_NAME s3://clinical-diary-artifacts/deployments/ \
+            --metadata "workflow_id=${{ steps.workflow.outputs.run_id }},environment=$ENVIRONMENT"
+
+          # Upload checksum
+          aws s3 cp $RECORD_NAME.sha256 s3://clinical-diary-artifacts/deployments/
+
+          echo "✅ Deployment logs archived to S3"
+          echo "Record: $RECORD_NAME"
+          echo "Location: s3://clinical-diary-artifacts/deployments/$RECORD_NAME"
+
+      - name: Verify upload
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          aws s3 ls s3://clinical-diary-artifacts/deployments/$RECORD_NAME
+
+          # Download and verify checksum
+          aws s3 cp s3://clinical-diary-artifacts/deployments/$RECORD_NAME.sha256 verify.sha256
+          sha256sum -c verify.sha256
+
+          echo "✅ Upload verified successfully"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment log archival failed"
+          echo "Workflow ID: ${{ steps.workflow.outputs.run_id }}"

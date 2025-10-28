@@ -1,0 +1,69 @@
+{
+  "name": "Clinical Diary - DevOps",
+  "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
+  "service": "ops",
+  "workspaceFolder": "/workspace/src",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Terraform
+        "hashicorp.terraform",
+
+        // Docker & Kubernetes
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+
+        // YAML
+        "redhat.vscode-yaml",
+
+        // Supabase
+        "supabase.supabase",
+
+        // Git
+        "github.vscode-pull-request-github",
+
+        // AWS (if using)
+        "amazonwebservices.aws-toolkit-vscode",
+
+        // General productivity
+        "streetsidesoftware.code-spell-checker",
+        "gruntfuggly.todo-tree",
+
+        // Markdown
+        "yzhang.markdown-all-in-one"
+      ],
+
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        },
+
+        // Terraform settings
+        "terraform.languageServer.enable": true,
+        "terraform.experimentalFeatures.validateOnSave": true,
+
+        // YAML settings
+        "yaml.schemas": {
+          "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+        },
+
+        // Editor settings
+        "editor.formatOnSave": true,
+
+        // Role identification
+        "window.title": "[OPS] ${dirty}${activeEditorShort}${separator}${rootName}"
+      }
+    }
+  },
+
+  "forwardPorts": [],
+
+  "postCreateCommand": "echo '✅ DevOps environment ready! Tools: terraform, supabase, kubectl, cosign, syft'",
+
+  "remoteUser": "ubuntu"
+}

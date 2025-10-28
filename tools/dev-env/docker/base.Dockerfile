@@ -1,0 +1,215 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00032: Development Tool Specifications
+#
+# Base Docker Image for Clinical Diary Development Environments
+# Provides common tools used across all roles (dev, qa, ops, mgmt)
+#
+# Built on: Ubuntu 24.04 LTS (support until 2029)
+# Contains: Git, GitHub CLI, Node.js, Python, Doppler, Claude Code CLI
+
+FROM ubuntu:24.04
+
+LABEL maintainer="Clinical Diary Team"
+LABEL description="Base development environment for Clinical Diary project"
+LABEL org.opencontainers.image.source="https://github.com/yourorg/clinical-diary"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set timezone
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# ============================================================
+# System Packages & Dependencies
+# ============================================================
+RUN apt-get update -y && apt-get install -y \
+    # Core utilities
+    curl \
+    wget \
+    git \
+    unzip \
+    zip \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    apt-transport-https \
+    # Build tools
+    build-essential \
+    # Text processing
+    jq \
+    # Network tools
+    openssh-client \
+    # Process management
+    procps \
+    # For adding repositories
+    gpg \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Git Configuration (latest stable)
+# ============================================================
+RUN add-apt-repository ppa:git-core/ppa -y && \
+    apt-get update -y && \
+    apt-get install -y git && \
+    git --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# GitHub CLI (2.40+)
+# ============================================================
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+    dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+    tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update -y && \
+    apt-get install -y gh && \
+    gh --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Node.js 20.x LTS (support until 2026-04-30)
+# ============================================================
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    node --version && \
+    npm --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# Enable pnpm (faster package manager, optional)
+RUN npm install -g pnpm && \
+    pnpm --version
+
+# ============================================================
+# Python 3.12+ (Ubuntu 24.04 default)
+# ============================================================
+RUN apt-get update -y && \
+    apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev && \
+    python3 --version && \
+    pip3 --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip to latest
+RUN pip3 install --upgrade pip
+
+# ============================================================
+# Doppler CLI (secrets management)
+# ============================================================
+RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | \
+    gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" | \
+    tee /etc/apt/sources.list.d/doppler-cli.list && \
+    apt-get update -y && \
+    apt-get install -y doppler && \
+    doppler --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Anthropic Python SDK & Claude Code CLI
+# ============================================================
+RUN pip3 install --no-cache-dir anthropic && \
+    npm install -g @anthropic-ai/claude-code
+
+# ============================================================
+# Create non-root user: ubuntu
+# ============================================================
+RUN useradd -m -s /bin/bash -u 1000 ubuntu && \
+    usermod -aG sudo ubuntu && \
+    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# ============================================================
+# Set up workspace directories
+# ============================================================
+RUN mkdir -p /workspace/repos /workspace/exchange /workspace/src && \
+    chown -R ubuntu:ubuntu /workspace
+
+# ============================================================
+# Git global configuration defaults
+# ============================================================
+USER ubuntu
+WORKDIR /home/ubuntu
+
+RUN git config --global pull.rebase false && \
+    git config --global init.defaultBranch main && \
+    git config --global core.editor "vim"
+
+# ============================================================
+# Shell configuration with role-based prompt
+# ============================================================
+RUN cat >> /home/ubuntu/.bashrc <<'EOF'
+
+# Function to show current git branch
+parse_git_branch() {
+  git rev-parse --abbrev-ref HEAD 2>/dev/null | sed "s/^/ (/;s/$/)/"
+}
+
+# Role-based prompt configuration
+ROLE_LABEL="${ROLE:-unknown}"
+
+# Colors
+RED="\[\033[0;31m\]"
+GREEN="\[\033[0;32m\]"
+YELLOW="\[\033[1;33m\]"
+BLUE="\[\033[0;34m\]"
+CYAN="\[\033[0;36m\]"
+RESET="\[\033[0m\]"
+
+# Role color map
+case "$ROLE_LABEL" in
+  dev)   ROLE_COLOR=$GREEN ;;
+  qa)    ROLE_COLOR=$YELLOW ;;
+  ops)   ROLE_COLOR=$CYAN ;;
+  mgmt)  ROLE_COLOR=$BLUE ;;
+  *)     ROLE_COLOR=$RED ;;
+esac
+
+# Prompt: [role] path (branch)
+export PS1="${ROLE_COLOR}[${ROLE_LABEL}]${RESET} \w\$(parse_git_branch)\n$ "
+
+# Path additions (will be extended by role-specific Dockerfiles)
+export PATH="/home/ubuntu/.local/bin:$PATH"
+
+EOF
+
+# Source profile on login
+RUN echo '[ -f /home/ubuntu/.bashrc ] && . /home/ubuntu/.bashrc' >> /home/ubuntu/.profile
+
+# ============================================================
+# Health check script
+# ============================================================
+USER root
+RUN cat > /usr/local/bin/health-check.sh <<'EOF'
+#!/bin/bash
+# Basic health check: verify essential tools
+set -e
+git --version >/dev/null
+gh --version >/dev/null
+node --version >/dev/null
+python3 --version >/dev/null
+doppler --version >/dev/null
+echo "Health check passed"
+EOF
+
+RUN chmod +x /usr/local/bin/health-check.sh
+
+# ============================================================
+# Final configuration
+# ============================================================
+USER ubuntu
+WORKDIR /workspace/src
+
+# Default command: keep container running
+CMD ["/bin/bash", "-l"]
+
+# Labels for container metadata
+LABEL com.clinical-diary.role="base"
+LABEL com.clinical-diary.version="1.0.0"
+LABEL com.clinical-diary.requirement="REQ-d00027,REQ-d00032"

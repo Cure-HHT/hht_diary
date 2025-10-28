@@ -1,9 +1,12 @@
 # ADR-004: Separation of Investigator Annotations
 
 **Date**: 2025-10-14
-**Status**: Accepted
 **Deciders**: Development Team, Clinical Research Team, Compliance Officer
 **Compliance Impact**: High
+
+## Status
+
+Accepted
 
 ---
 

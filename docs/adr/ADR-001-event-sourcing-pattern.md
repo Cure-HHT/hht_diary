@@ -1,9 +1,12 @@
 # ADR-001: Event Sourcing Pattern for Diary Data
 
 **Date**: 2025-10-14
-**Status**: Accepted
 **Deciders**: Development Team, Compliance Officer
 **Compliance**: FDA 21 CFR Part 11, HIPAA
+
+## Status
+
+Accepted
 
 ---
 

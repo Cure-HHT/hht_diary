@@ -1,0 +1,121 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00043: Automated Deployment Pipeline
+#   REQ-o00044: Database Migration Automation
+#
+# Development Environment Deployment
+# Triggers automatically on push to main branch
+
+name: Deploy to Development
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  ENVIRONMENT: development
+  SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_DEV }}
+
+jobs:
+  deploy:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    environment: development  # Not active until GitHub environment configured
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Dart/Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Install Supabase CLI
+        run: |
+          brew install supabase/tap/supabase
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Load secrets from Doppler
+        uses: dopplerhq/cli-action@v3
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_DEV }}
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Type check
+        run: npm run check-types
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Database migration (with rollback on failure)
+        id: migrate
+        run: |
+          echo "Starting database migration..."
+
+          # Link to Supabase project
+          doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID
+
+          # Execute migrations
+          if ! doppler run -- supabase db push; then
+            echo "Migration failed, attempting rollback..."
+            doppler run -- supabase db reset --db-url $DATABASE_URL
+            exit 1
+          fi
+
+          echo "Migration completed successfully"
+
+      - name: Deploy application
+        run: |
+          echo "Deploying application to Supabase..."
+          doppler run -- supabase functions deploy --project-ref $SUPABASE_PROJECT_ID
+          echo "Deployment complete"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          cd tools/testing/smoke-tests
+          doppler run -- ./run-smoke-tests.sh development
+
+      - name: Record deployment
+        if: success()
+        run: |
+          echo "Recording deployment..."
+          echo "$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> deployment-log.txt
+          echo "Environment: development" >> deployment-log.txt
+          echo "Commit: ${{ github.sha }}" >> deployment-log.txt
+          echo "Deployer: ${{ github.actor }}" >> deployment-log.txt
+          echo "Outcome: success" >> deployment-log.txt
+          echo "---" >> deployment-log.txt
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Development deployment successful"
+          echo "Commit: ${{ github.sha }}"
+          echo "Deployer: ${{ github.actor }}"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, initiating rollback..."
+          cd tools/testing/smoke-tests
+          ./rollback.sh development
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Development deployment failed and rolled back"
+          echo "Commit: ${{ github.sha }}"
+          echo "Check logs for details"

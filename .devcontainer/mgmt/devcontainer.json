@@ -1,0 +1,49 @@
+{
+  "name": "Clinical Diary - Management (Read-Only)",
+  "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
+  "service": "mgmt",
+  "workspaceFolder": "/workspace/src",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Git viewing
+        "eamodio.gitlens",
+        "github.vscode-pull-request-github",
+
+        // Markdown viewing
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-preview-github-styles",
+
+        // Code viewing
+        "streetsidesoftware.code-spell-checker"
+      ],
+
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        },
+
+        // Read-only indicators
+        "files.readonlyInclude": {
+          "**/*": true
+        },
+
+        "editor.readonlyMessage": "⚠️ Management role has read-only access. Switch to dev/qa/ops to edit.",
+
+        // Role identification
+        "window.title": "[MGMT-READ-ONLY] ${activeEditorShort}${separator}${rootName}"
+      }
+    }
+  },
+
+  "forwardPorts": [],
+
+  "postCreateCommand": "cat /etc/motd && echo '' && echo 'Available commands: view-repo-status.sh, view-qa-reports.sh'",
+
+  "remoteUser": "ubuntu"
+}
