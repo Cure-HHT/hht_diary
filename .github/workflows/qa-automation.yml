@@ -61,8 +61,10 @@ jobs:
         working-directory: tools/dev-env
         run: |
           # Build in dependency order: base -> dev -> qa
-          # Classic Docker builder (BuildKit=0) handles FROM references properly
-          docker compose build base
+          # Base is not a compose service, build it directly with docker build
+          docker build -f docker/base.Dockerfile -t clinical-diary-base:latest docker/
+
+          # Dev and qa are compose services that extend base
           docker compose build dev
           docker compose build qa
 
