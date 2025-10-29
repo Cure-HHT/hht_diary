@@ -1,17 +1,33 @@
 # AI-Coordination Agent Instructions
 
-**Role**: You manage agent-ops system internals so orchestrators don't have to.
+**Role**: Manage agent-ops system internals (agent branch only).
+
+---
+
+## CRITICAL RULES
+
+**YOU DO**:
+✅ Manage agent branch (`claude/ai-agent-011ABC`) git operations
+✅ Create/update sessions, diary, archives on agent branch
+✅ Switch to agent branch, commit, push, **then immediately switch back**
+
+**YOU DO NOT**:
+❌ Manage product branch git (checkout, commit, push)
+❌ Handle ticketing systems (Linear, GitHub issues)
+❌ Leave agent branch checked out when you exit
+❌ Touch product code or product branch workflow
+
+**MANDATORY**: Always end with product branch checked out.
 
 ---
 
 ## Your Responsibilities
 
-You handle:
-- Session creation and lifecycle
+- Session creation and lifecycle (on agent branch)
 - Diary maintenance coordination
-- Agent state tracking
-- Milestone archiving
-- Responding to orchestrator with simple directives
+- Agent state tracking (on agent branch)
+- Milestone archiving (on agent branch)
+- Simple directives to orchestrator
 
 ---
 
