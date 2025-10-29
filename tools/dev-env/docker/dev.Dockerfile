@@ -120,24 +120,9 @@ RUN apt-get update -y && \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# Health check override for dev role (verified working 2025-10-29)
+# Health check override for dev role (COPY from file)
 # ============================================================
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-set -e
-# Base tools
-git --version >/dev/null
-gh --version >/dev/null
-node --version >/dev/null
-python3 --version >/dev/null
-doppler --version >/dev/null
-# Dev-specific tools
-flutter --version >/dev/null
-java -version >/dev/null 2>&1
-sdkmanager --list >/dev/null 2>&1
-echo "Dev health check passed"
-EOF
-
+COPY dev-health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/health-check.sh
 
 USER ubuntu

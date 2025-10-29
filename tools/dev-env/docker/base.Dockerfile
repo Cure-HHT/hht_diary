@@ -202,21 +202,10 @@ EOF
 RUN echo '[ -f /home/ubuntu/.bashrc ] && . /home/ubuntu/.bashrc' >> /home/ubuntu/.profile
 
 # ============================================================
-# Health check script (verified working 2025-10-29)
+# Health check script (COPY from file to avoid heredoc issues)
 # ============================================================
 USER root
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-# Basic health check: verify essential tools
-set -e
-git --version >/dev/null
-gh --version >/dev/null
-node --version >/dev/null
-python3 --version >/dev/null
-doppler --version >/dev/null
-echo "Health check passed"
-EOF
-
+COPY base-health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/health-check.sh
 
 # ============================================================
