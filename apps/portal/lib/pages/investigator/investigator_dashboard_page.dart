@@ -3,6 +3,8 @@
 //   REQ-p00025: Patient Enrollment Workflow
 //   REQ-p00026: Patient Monitoring Dashboard
 //   REQ-p00027: Questionnaire Management
+//   REQ-p00030: Role-Based Visual Indicators
+//   REQ-d00052: Role-Based Banner Component
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,7 @@ import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
 import '../../widgets/portal_drawer.dart';
+import '../../widgets/role_banner.dart';
 import 'patient_enrollment_tab.dart';
 import 'patient_monitoring_tab.dart';
 
@@ -47,30 +50,37 @@ class _InvestigatorDashboardPageState
     return Scaffold(
       appBar: const PortalAppBar(title: 'Investigator Dashboard'),
       drawer: const PortalDrawer(),
-      body: Row(
+      body: Column(
         children: [
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            labelType: NavigationRailLabelType.all,
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.monitor_heart_outlined),
-                selectedIcon: Icon(Icons.monitor_heart),
-                label: Text('Monitor'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.person_add_outlined),
-                selectedIcon: Icon(Icons.person_add),
-                label: Text('Enroll'),
-              ),
-            ],
-          ),
-          const VerticalDivider(thickness: 1, width: 1),
+          RoleBanner(role: authService.currentUser!.role),
           Expanded(
-            child: tabs[_selectedIndex],
+            child: Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (index) {
+                    setState(() => _selectedIndex = index);
+                  },
+                  labelType: NavigationRailLabelType.all,
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.monitor_heart_outlined),
+                      selectedIcon: Icon(Icons.monitor_heart),
+                      label: Text('Monitor'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.person_add_outlined),
+                      selectedIcon: Icon(Icons.person_add),
+                      label: Text('Enroll'),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(
+                  child: tabs[_selectedIndex],
+                ),
+              ],
+            ),
           ),
         ],
       ),

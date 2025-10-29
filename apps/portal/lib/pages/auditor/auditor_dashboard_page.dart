@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00029: Auditor Dashboard and Data Export
+//   REQ-p00030: Role-Based Visual Indicators
+//   REQ-d00052: Role-Based Banner Component
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/portal_app_bar.dart';
 import '../../widgets/portal_drawer.dart';
+import '../../widgets/role_banner.dart';
 import '../../theme/portal_theme.dart';
 
 class AuditorDashboardPage extends StatefulWidget {
@@ -128,13 +131,17 @@ class _AuditorDashboardPageState extends State<AuditorDashboardPage> {
     return Scaffold(
       appBar: const PortalAppBar(title: 'Auditor Dashboard'),
       drawer: const PortalDrawer(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Audit mode indicator
-            Container(
+      body: Column(
+        children: [
+          RoleBanner(role: authService.currentUser!.role),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Audit mode indicator
+                  Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.amber.shade100,
@@ -293,10 +300,13 @@ class _AuditorDashboardPageState extends State<AuditorDashboardPage> {
                   );
                 }).toList(),
               ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
+    ),
     );
   }
 }

@@ -39,6 +39,26 @@ Before deploying a portal instance, ensure you have:
 
 ---
 
+### REQ-o00055: Role-Based Visual Indicator Verification
+
+**Level**: Ops | **Implements**: p00030 | **Status**: Active
+
+**Description**: Portal deployments SHALL include verification that role-based color banners display correctly for all user roles.
+
+**Acceptance Criteria**:
+
+1. ✅ Visual smoke test confirms banner appears on portal homepage
+2. ✅ Banner displays correct role name after authentication
+3. ✅ Banner colors match specification for each role type
+4. ✅ Feature included in all sponsor portal deployments (core platform feature)
+
+**Validation Method**: After deployment, log in as each role type and verify banner color and text
+
+**Implementation Files**:
+- Portal UI components (see dev-portal.md)
+
+---
+
 ## Build Portal
 
 ### Build Command

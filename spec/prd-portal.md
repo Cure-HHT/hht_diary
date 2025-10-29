@@ -255,6 +255,25 @@ Auditor capabilities SHALL ensure:
 
 ---
 
+### REQ-p00030: Role-Based Visual Indicators
+
+**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Active
+
+The portal SHALL display a color-coded banner at the top of the interface indicating the user's current role to prevent accidental actions in the wrong role context.
+
+Role colors SHALL be:
+- Patient: Blue | Investigator: Green | Sponsor: Purple | Auditor: Orange
+- Analyst: Teal | Administrator: Red | Developer Admin: Dark Red
+
+**Rationale**: Visual role indication reduces cognitive load and prevents role confusion for users with multiple roles.
+
+**Acceptance Criteria**:
+- Banner displays current role name with role-specific color
+- Banner visible on all portal pages
+- Colors meet accessibility contrast standards
+
+---
+
 ## Architecture Overview
 
 The portal connects to the sponsor-specific Supabase database with role-based access control enforced both at the application and database levels:
