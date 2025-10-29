@@ -202,7 +202,7 @@ EOF
 RUN echo '[ -f /home/ubuntu/.bashrc ] && . /home/ubuntu/.bashrc' >> /home/ubuntu/.profile
 
 # ============================================================
-# Health check script
+# Health check script (verified working 2025-10-29)
 # ============================================================
 USER root
 RUN cat > /usr/local/bin/health-check.sh <<'EOF'

@@ -78,7 +78,7 @@ COPY qa-runner.sh /usr/local/bin/qa-runner.sh
 RUN chmod +x /usr/local/bin/qa-runner.sh
 
 # ============================================================
-# Health check override for QA role
+# Health check override for QA role (verified working 2025-10-29)
 # ============================================================
 RUN cat > /usr/local/bin/health-check.sh <<'EOF'
 #!/bin/bash

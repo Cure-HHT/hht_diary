@@ -120,7 +120,7 @@ RUN apt-get update -y && \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# Health check override for dev role
+# Health check override for dev role (verified working 2025-10-29)
 # ============================================================
 RUN cat > /usr/local/bin/health-check.sh <<'EOF'
 #!/bin/bash
