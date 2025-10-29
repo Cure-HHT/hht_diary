@@ -53,11 +53,19 @@ You → ai-coordination:
 ai-coordination → You:
   {"action": "session_status",
    "outstanding_work": [
-     {"session": "20251028_143000", "description": "RLS policies", "status": "incomplete"}
+     {
+       "session": "20251028_143000",
+       "location": "local",
+       "state": "stale_abandoned",
+       "description": "RLS policies",
+       "last_entry": "Error: permission denied on table users",
+       "recommended_action": "clean_up"
+     }
    ],
    "instruction": "Previous work interrupted. Review and decide: resume or start new feature."}
 
-You: [Review with user, decide to start fresh]
+You: [Review session state: stale_abandoned = safe to clean up]
+You: [Inform user about abandoned session, decide to start fresh]
 
 User: "Implement authentication"
 
@@ -92,6 +100,72 @@ ai-coordination → You:
   {"action": "feature_archived", "instruction": "Ready for next task"}
 
 You: [Continue to next task]
+```
+
+---
+
+## Understanding Session States
+
+When you call `new_session`, ai-coordination reports outstanding work with state information. Here's how to interpret and respond:
+
+### State Types
+
+**🟢 `active`** - Process running, recent activity (<10min)
+- **Meaning**: Another Claude Code instance may be actively working
+- **Action**: **WARN USER** - Risk of conflict if you continue
+- **Response**: Ask user if they want to:
+  - Wait for other instance to finish
+  - Take over (other instance will detect abandoned state)
+  - Work on different feature (avoid conflicts)
+
+**🟡 `active_idle`** - Process running, no recent activity (>10min)
+- **Meaning**: Claude Code running but agent paused/idle
+- **Action**: **INFORM USER** - Likely safe but verify first
+- **Response**: Check if user has another window open, then:
+  - If same instance: Resume normally
+  - If different instance: Treat as `active` above
+
+**🟠 `recently_abandoned`** - Process dead, recent activity (<1hr)
+- **Meaning**: Crash or close happened recently
+- **Action**: **INVESTIGATE** - Check what was being worked on
+- **Response**: Show user last diary entries, then:
+  - Resume if work is valuable
+  - Start fresh if work was exploratory
+
+**🔴 `stale_abandoned`** - Process dead, old activity (>1hr)
+- **Meaning**: Old session never properly closed
+- **Action**: **SAFE TO CLEAN UP** - Can start fresh
+- **Response**: Inform user about abandoned session:
+  - Option 1: Start new feature (recommended)
+  - Option 2: Check diary first if user wants to review
+  - Suggest: Run cleanup-abandoned.sh
+
+### Recommended Actions (from ai-coordination)
+
+- `resume`: Session can be continued - offer to continue or start fresh
+- `investigate`: Check diary entries before deciding - show to user
+- `start_fresh`: Safe to proceed with new work - just inform user
+- `clean_up`: Should clean up first - suggest cleanup-abandoned.sh
+
+### Decision Framework
+
+```
+IF state is "active":
+  WARN user about potential conflict
+  DO NOT proceed without explicit confirmation
+
+ELSE IF state is "active_idle":
+  INFORM user (may be same instance paused)
+  PROCEED with caution
+
+ELSE IF state is "recently_abandoned":
+  SHOW last diary entries to user
+  LET user decide: resume vs start fresh
+
+ELSE IF state is "stale_abandoned":
+  INFORM user (old abandoned session)
+  PROCEED with new session
+  SUGGEST cleanup later
 ```
 
 ---

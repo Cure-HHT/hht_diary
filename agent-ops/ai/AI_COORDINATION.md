@@ -113,11 +113,30 @@ MAIN_DIR=$(pwd)
 {
   "action": "session_status",
   "outstanding_work": [
-    {"session": "YYYYMMDD_HHMMSS", "description": "feature desc", "status": "incomplete", "last_entry": "brief summary"}
+    {
+      "session": "YYYYMMDD_HHMMSS",
+      "location": "agent_branch|local|both",
+      "state": "active|active_idle|recently_abandoned|stale_abandoned",
+      "description": "feature desc",
+      "last_entry": "brief summary",
+      "recommended_action": "resume|investigate|start_fresh|clean_up"
+    }
   ],
   "instruction": "Previous work interrupted. Review with user and decide: resume or start new feature."
 }
 ```
+
+**Session State Types**:
+- `active`: Process running, recent activity (<10min) - **WARN**: Another agent may be working
+- `active_idle`: Process running, no recent activity (>10min) - **CAUTION**: May be paused or idle
+- `recently_abandoned`: Process dead, recent activity (<1hr) - **INFO**: Recent crash/close
+- `stale_abandoned`: Process dead, old activity (>1hr) - **SAFE**: Can clean up or start fresh
+
+**Recommended Actions**:
+- `resume`: Session can be continued (recent, resumable state)
+- `investigate`: Check last diary entries before deciding
+- `start_fresh`: Safe to start new session (clean up old one)
+- `clean_up`: Should run cleanup-abandoned.sh first
 
 **Note**: Orchestrator/user decides what to do with this information. You just report state.
 
@@ -173,7 +192,13 @@ MAIN_DIR=$(pwd)
    ## [HH:MM] [entry_type]
    [content]
    ```
-3. Sync to agent branch via worktree:
+3. **Update heartbeat** (for session state tracking):
+   ```bash
+   # Update heartbeat to mark agent as active
+   HEARTBEAT_FILE="untracked-notes/agent-ops-heartbeat"
+   date -Iseconds > "$HEARTBEAT_FILE"
+   ```
+4. Sync to agent branch via worktree:
    ```bash
    # Read agent configuration
    CONFIG_FILE="untracked-notes/agent-ops.json"
