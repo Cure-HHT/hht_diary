@@ -87,10 +87,13 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
 
 # ============================================================
 # Node.js 20.x LTS (support until 2026-04-30)
+# Version pinned: 2025-10-28
 # ============================================================
+ENV NODE_MAJOR_VERSION=20
+
 # Suppress apt warnings from NodeSource setup script (uses apt internally, not apt-get)
 # Safe: NodeSource script uses 'apt' (not 'apt-get') which warns about script usage but functions correctly
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | grep -v "apt does not have a stable CLI" && \
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash - 2>&1 | grep -v "apt does not have a stable CLI" && \
     apt-get install -y nodejs && \
     node --version && \
     npm --version && \
