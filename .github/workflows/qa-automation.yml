@@ -137,7 +137,7 @@ jobs:
       - name: Start QA environment
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d qa
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up --no-build -d qa
           docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
       - name: Wait for QA container to be healthy
