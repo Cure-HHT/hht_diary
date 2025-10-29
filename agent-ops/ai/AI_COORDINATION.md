@@ -35,14 +35,16 @@ fi
 
 AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
 AGENT_BRANCH=$(jq -r '.agent_branch' "$CONFIG_FILE")
-WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+AGENT_WORKTREE_PATH=$(jq -r '.agent_worktree_path' "$CONFIG_FILE")
+PRODUCT_WORKTREE_PATH=$(jq -r '.product_worktree_path' "$CONFIG_FILE")
 MAIN_DIR=$(pwd)
 ```
 
 **Agent initialization**: Run `./agent-ops/scripts/init-agent.sh` once per session to generate:
 - Agent name (mechanical object: wrench, hammer, gear, etc.)
 - Agent branch name (claude/wrench)
-- Worktree path (/home/user/diary_prep-wrench)
+- Agent worktree path (/home/user/diary-wrench) - for coordination
+- Product worktree path (/home/user/diary/worktrees/wrench) - for orchestrator
 
 **See**: `agent-ops/ai/AGENT_NAMES.md` for naming details.
 
@@ -76,7 +78,7 @@ MAIN_DIR=$(pwd)
 
    AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
    AGENT_BRANCH=$(jq -r '.agent_branch' "$CONFIG_FILE")
-   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+   AGENT_WORKTREE_PATH=$(jq -r '.agent_worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
 
    # Check if agent branch exists
@@ -84,12 +86,12 @@ MAIN_DIR=$(pwd)
 
    if exists:
      # Setup worktree if not already created
-     if [ ! -d "$WORKTREE_PATH" ]; then
-       git worktree add "$WORKTREE_PATH" "origin/$AGENT_BRANCH"
+     if [ ! -d "$AGENT_WORKTREE_PATH" ]; then
+       git worktree add "$AGENT_WORKTREE_PATH" "origin/$AGENT_BRANCH"
      fi
 
      # Check for outstanding work in worktree
-     cd "$WORKTREE_PATH"
+     cd "$AGENT_WORKTREE_PATH"
      # Check agent-ops/sessions/ for incomplete sessions
      # Read agent-ops/agents/$AGENT_NAME/CONTEXT.md for work-in-progress list
      cd "$MAIN_DIR"
@@ -135,11 +137,11 @@ MAIN_DIR=$(pwd)
    # Read agent configuration
    CONFIG_FILE="untracked-notes/agent-ops.json"
    AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
-   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+   AGENT_WORKTREE_PATH=$(jq -r '.agent_worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
 
    # Work in agent branch worktree
-   cd "$WORKTREE_PATH"
+   cd "$AGENT_WORKTREE_PATH"
 
    # Update CONTEXT.md to add this feature to work-in-progress list
    # Add: - [Session YYYYMMDD_HHMMSS] Feature description (#CUR-XXX) - In Progress
@@ -177,15 +179,15 @@ MAIN_DIR=$(pwd)
    ```bash
    # Read agent configuration
    CONFIG_FILE="untracked-notes/agent-ops.json"
-   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+   AGENT_WORKTREE_PATH=$(jq -r '.agent_worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
    SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
    # Copy latest session state from main dir to worktree
-   cp -r "$SESSION_DIR" "$WORKTREE_PATH/agent-ops/sessions/"
+   cp -r "$SESSION_DIR" "$AGENT_WORKTREE_PATH/agent-ops/sessions/"
 
    # Work in agent branch worktree
-   cd "$WORKTREE_PATH"
+   cd "$AGENT_WORKTREE_PATH"
 
    git add agent-ops/sessions/
    git commit -m "[SESSION] Update: [entry_type]"
@@ -217,15 +219,15 @@ MAIN_DIR=$(pwd)
    # Read agent configuration
    CONFIG_FILE="untracked-notes/agent-ops.json"
    AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
-   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+   AGENT_WORKTREE_PATH=$(jq -r '.agent_worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
    SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
    # Copy session to worktree archive
-   cp -r "$SESSION_DIR" "$WORKTREE_PATH/agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/"
+   cp -r "$SESSION_DIR" "$AGENT_WORKTREE_PATH/agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/"
 
    # Work in agent branch worktree
-   cd "$WORKTREE_PATH"
+   cd "$AGENT_WORKTREE_PATH"
 
    # Update CONTEXT.md:
    # - Move this feature from work-in-progress to completed list
@@ -282,7 +284,7 @@ If agent branch doesn't exist, create it:
 CONFIG_FILE="untracked-notes/agent-ops.json"
 AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
 AGENT_BRANCH=$(jq -r '.agent_branch' "$CONFIG_FILE")
-WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+AGENT_WORKTREE_PATH=$(jq -r '.agent_worktree_path' "$CONFIG_FILE")
 PRODUCT_BRANCH=$(jq -r '.product_branch' "$CONFIG_FILE")
 MAIN_DIR=$(pwd)
 
@@ -290,10 +292,10 @@ MAIN_DIR=$(pwd)
 git branch "$AGENT_BRANCH"
 
 # Create worktree for agent branch
-git worktree add "$WORKTREE_PATH" "$AGENT_BRANCH"
+git worktree add "$AGENT_WORKTREE_PATH" "$AGENT_BRANCH"
 
 # Work in worktree
-cd "$WORKTREE_PATH"
+cd "$AGENT_WORKTREE_PATH"
 
 mkdir -p agent-ops/agents/$AGENT_NAME
 

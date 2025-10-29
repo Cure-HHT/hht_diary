@@ -1,5 +1,51 @@
 # Project Structure and SOPs
 
+---
+
+## ⚠️ MANDATORY STARTUP CHECK - Agent Ops ⚠️
+
+**EVERY Claude session MUST begin by checking and announcing agent-ops status.**
+
+### At Session Start, IMMEDIATELY:
+
+1. **Check if running in git root vs worktree**:
+   ```bash
+   git rev-parse --is-inside-work-tree
+   git worktree list
+   ```
+
+   **ALWAYS prompt if started in git root**:
+   - ⚠️ "You're in the git root directory. Use a worktree for all normal development work."
+   - Provide instructions to initialize agent-ops or switch to existing worktree
+
+2. **Check if agent-ops is initialized**:
+   ```bash
+   [ -f untracked-notes/agent-ops.json ] && echo "Initialized" || echo "Not initialized"
+   ```
+
+3. **If initialized**: Read config and announce yourself
+   ```bash
+   # Read the config
+   AGENT_NAME=$(jq -r '.agent_name' untracked-notes/agent-ops.json)
+   WORKTREE_PATH=$(jq -r '.product_worktree_path' untracked-notes/agent-ops.json)
+
+   # Check if in correct worktree
+   CURRENT_DIR=$(pwd)
+   ```
+
+   **Then announce**:
+   - ✅ If in product worktree: "Hi, I'm agent `{name}`. Ready to work."
+   - ⚠️ If NOT in product worktree: "I'm agent `{name}`, but I'm not in my worktree. Please restart Claude from: `{product_worktree_path}`"
+
+4. **If NOT initialized**: Tell user to run initialization
+   ```
+   "Agent-ops not initialized. Please run: ./agent-ops/scripts/init-agent.sh"
+   ```
+
+**This check is MANDATORY and must happen before any other work.**
+
+---
+
 ## Directory Organization
 
 ### Core Platform (Root)
@@ -629,15 +675,58 @@ echo "# Diary - $(date +%Y-%m-%d) - CI/CD Optimization" > untracked-notes/diary-
 
 ## Agent Ops System
 
-This project uses the agent-ops system for multi-agent coordination.
+This project uses the agent-ops system for multi-agent coordination and worktree isolation.
 
-**For AI Agents**:
+### Architecture: Dual Worktrees
+
+**Every agent session uses TWO isolated worktrees:**
+
+1. **Agent Coordination Worktree**:
+   - Path: `/path/to/project-{agent_name}` (e.g., `/home/user/diary-vise`)
+   - Branch: `claude/{agent_name}`
+   - Used by: `ai-coordination` sub-agent
+   - Purpose: Session tracking (diary.md, results.md)
+   - Management: Automated by ai-coordination sub-agent
+
+2. **Product Work Worktree**:
+   - Path: `/path/to/project-worktrees/{agent_name}` (e.g., `/home/user/diary-worktrees/vise`)
+   - Branch: Current feature/fix branch
+   - Used by: Orchestrator (Claude) for ALL coding work
+   - Purpose: Isolated workspace - prevents clobbering between sessions
+   - Management: Claude works here 100% of the time
+
+**Benefits**:
+- ✅ No branch switching conflicts
+- ✅ Multiple Claude instances can work simultaneously
+- ✅ Clear separation between coordination and product work
+- ✅ Session tracking isolated from feature development
+
+### Setup
+
+**Initial Setup** (run once per session):
+```bash
+./agent-ops/scripts/init-agent.sh
+```
+
+This script will:
+1. Generate deterministic agent name from session ID
+2. Create agent coordination worktree at `../project-{agent_name}/`
+3. Create product work worktree at `./worktrees/{agent_name}/`
+4. Write config to `untracked-notes/agent-ops.json`
+
+**After initialization**, restart Claude from the product worktree directory.
+
+### Workflow
+
+**For AI Agents (Orchestrator)**:
 - Read `agent-ops/ai/ORCHESTRATOR.md` for orchestrator workflow
 - Use `ai-coordination` sub-agent for session management
-- Run `./agent-ops/scripts/init-agent.sh` once per session
+- Work ONLY in product worktree
+- Never touch agent coordination worktree
 
 **Documentation**:
 - `agent-ops/README.md` - System overview
 - `agent-ops/HUMAN.md` - Human-readable guide
 - `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions
+- `agent-ops/ai/ORCHESTRATOR.md` - Orchestrator workflow
 

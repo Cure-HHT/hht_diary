@@ -4,14 +4,46 @@
 
 ---
 
+## ⚠️ MANDATORY: Session Startup Check ⚠️
+
+**EVERY session MUST begin with this check:**
+
+```bash
+./agent-ops/scripts/check-worktree.sh
+```
+
+**Possible outcomes:**
+
+1. **STATUS: ready** → Announce yourself and proceed with work
+   - Example: "Hi, I'm agent vise. Ready to work."
+
+2. **STATUS: wrong_location** → Tell user to restart Claude from product worktree
+   - Do NOT proceed with any work
+   - Provide the exact path from the check output
+
+3. **STATUS: not_initialized** → Tell user to run initialization
+   - Provide command: `./agent-ops/scripts/init-agent.sh`
+
+4. **STATUS: worktree_missing** → Tell user to run initialization again
+   - Worktrees need to be created
+
+---
+
 ## Setup (One-Time Per Session)
 
-**Before first delegation**, initialize the agent:
+**To initialize agent** (if not already done):
 ```bash
 ./agent-ops/scripts/init-agent.sh
 ```
 
-This creates `untracked-notes/agent-ops.json` with your agent name (wrench, hammer, etc.) and worktree path.
+This script:
+1. Generates deterministic agent name from session ID
+2. Creates TWO worktrees:
+   - Agent coordination worktree: `../project-{agent_name}/` (for ai-coordination)
+   - Product work worktree: `./worktrees/{agent_name}/` (for you)
+3. Writes config to `untracked-notes/agent-ops.json`
+
+**After initialization**, user must restart Claude from product worktree.
 
 ---
 
@@ -134,24 +166,36 @@ Use these `entry_type` values:
 
 **Config file** (`untracked-notes/agent-ops.json`):
 - Created by `init-agent.sh` once per session
-- Contains agent name, branch, and worktree path
+- Contains agent name, branches, and BOTH worktree paths
 - ai-coordination reads this for every operation
 - Never committed (in .gitignore)
 
-**Main directory** (`/home/user/diary_prep`):
-- You work here 100% of the time
-- Always on product branch
-- Session files created here temporarily
+**Main directory** (`/home/user/diary/`):
+- Original repository location
+- Used ONLY for initialization
+- DO NOT work here - always use product worktree
 
-**Worktree** (e.g., `/home/user/diary_prep-wrench`):
-- ai-coordination uses this for agent branch operations
-- Named after mechanical objects (wrench, hammer, gear, etc.)
-- Completely isolated from your work
-- You never interact with it
+**TWO Worktrees per agent:**
 
-**Benefits**: Multiple sub-agents can run in parallel safely. No branch switching chaos.
+1. **Agent Coordination Worktree** (e.g., `/home/user/diary-vise`):
+   - Branch: `claude/vise`
+   - Used by: ai-coordination sub-agent
+   - Contains: diary.md, results.md (session tracking)
+   - You never interact with this
 
-**Note**: Agent names are deterministically generated from your session ID - same session always gets the same name.
+2. **Product Work Worktree** (e.g., `/home/user/diary/worktrees/vise`):
+   - Branch: Current feature branch
+   - Used by: YOU (orchestrator) for ALL coding work
+   - Contains: Your actual code changes
+   - This is where you work 100% of the time
+
+**Benefits**:
+- ✅ Multiple Claude instances can work simultaneously without conflicts
+- ✅ No branch switching chaos
+- ✅ Clear separation between coordination and product work
+- ✅ Each agent fully isolated in its own workspace
+
+**Note**: Agent names are deterministically generated from your session ID - same session always gets the same name (wrench, hammer, vise, etc.).
 
 ---
 
