@@ -21,7 +21,7 @@ This guide covers deployment, configuration, monitoring, and operational procedu
 **Hosting**: Netlify (static site hosting)
 **Database**: Supabase (PostgreSQL with RLS)
 **Authentication**: Supabase Auth (OAuth + email/password)
-**Domains**: Custom subdomain per sponsor (e.g., `portal-orion.example.com`)
+**Domains**: Custom subdomain per sponsor (e.g., `portal-pfizer.example.com`)
 
 ---
 
@@ -58,9 +58,9 @@ dart run tools/build_system/build_portal.dart \
 **Example**:
 
 ```bash
-# Build Orion production portal
+# Build Pfizer production portal
 dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-orion \
+  --sponsor-repo ../clinical-diary-pfizer \
   --environment production
 ```
 
@@ -115,7 +115,7 @@ netlify login
 
 # Create new site
 netlify sites:create \
-  --name portal-orion-production \
+  --name portal-pfizer-production \
   --account-slug your-team-name
 ```
 
@@ -163,7 +163,7 @@ SUPABASE_MICROSOFT_CLIENT_ID="abc123-def456-..."
 
 # Environment Identifier
 ENVIRONMENT="production"
-SPONSOR_ID="orion"
+SPONSOR_ID="pfizer"
 ```
 
 **IMPORTANT**: Never use `SUPABASE_SERVICE_KEY` in Netlify environment variables (portal uses anon key + RLS).
@@ -177,14 +177,14 @@ SPONSOR_ID="orion"
 ```bash
 # Build portal first
 dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-orion \
+  --sponsor-repo ../clinical-diary-pfizer \
   --environment production
 
 # Deploy to Netlify
 netlify deploy \
   --prod \
   --dir build/web/ \
-  --site portal-orion-production
+  --site portal-pfizer-production
 ```
 
 **Automated Deployment (CI/CD)**:
@@ -245,8 +245,8 @@ jobs:
 
 ```bash
 # Via CLI
-netlify domains:add portal-orion.example.com \
-  --site portal-orion-production
+netlify domains:add portal-pfizer.example.com \
+  --site portal-pfizer-production
 
 # Or via Netlify Dashboard:
 # Site Settings → Domain Management → Add Custom Domain
@@ -258,11 +258,11 @@ Add DNS records in your domain registrar:
 
 ```
 # If using Netlify DNS (recommended)
-CNAME portal-orion -> apex-loadbalancer.netlify.com
+CNAME portal-pfizer -> apex-loadbalancer.netlify.com
 
 # If using external DNS
-A     portal-orion -> 75.2.60.5
-AAAA  portal-orion -> 2600:1f18:...
+A     portal-pfizer -> 75.2.60.5
+AAAA  portal-pfizer -> 2600:1f18:...
 ```
 
 **Step 3: Enable HTTPS**
@@ -271,16 +271,16 @@ Netlify automatically provisions SSL certificate via Let's Encrypt:
 
 ```bash
 # Verify SSL certificate
-netlify domains:status portal-orion.example.com
+netlify domains:status portal-pfizer.example.com
 
 # Check HTTPS enforcement
 netlify sites:update \
-  --site portal-orion-production \
+  --site portal-pfizer-production \
   --force-https
 ```
 
 **Expected Result**:
-- `https://portal-orion.example.com` resolves to portal
+- `https://portal-pfizer.example.com` resolves to portal
 - SSL certificate valid and auto-renewing
 - HTTP requests redirect to HTTPS
 - HSTS header enabled
@@ -352,10 +352,10 @@ Navigate to: Authentication → Providers
 In Supabase Dashboard → Authentication → URL Configuration:
 
 ```
-Site URL: https://portal-orion.example.com
+Site URL: https://portal-pfizer.example.com
 Redirect URLs:
-  - https://portal-orion.example.com
-  - https://portal-orion.example.com/auth/callback
+  - https://portal-pfizer.example.com
+  - https://portal-pfizer.example.com/auth/callback
   - http://localhost:8080 (for local development only)
 ```
 
@@ -398,7 +398,7 @@ curl -X POST "https://abc123.supabase.co/auth/v1/signup" \
 
 ```bash
 # Add UptimeRobot or Pingdom monitor
-# Endpoint: https://portal-orion.example.com
+# Endpoint: https://portal-pfizer.example.com
 # Method: GET
 # Expected: HTTP 200
 # Interval: 5 minutes
@@ -406,7 +406,7 @@ curl -X POST "https://abc123.supabase.co/auth/v1/signup" \
 
 **Example UptimeRobot Configuration**:
 - Monitor Type: HTTPS
-- URL: `https://portal-orion.example.com`
+- URL: `https://portal-pfizer.example.com`
 - Alert Contacts: devops@example.com
 - Monitoring Interval: 5 minutes
 - SSL Certificate Expiration Alert: 7 days before
@@ -500,7 +500,7 @@ supabase link --project-ref abc123
 supabase db migrations rollback
 
 # Verify portal functionality
-curl -I https://portal-orion.example.com
+curl -I https://portal-pfizer.example.com
 ```
 
 **Important**: Database rollbacks may cause data loss if users have created records using new schema. Test rollback in staging first.
@@ -589,7 +589,7 @@ WHERE schemaname = 'public' AND tablename = 'portal_users';
 
 ```bash
 # Test CDN response time
-curl -w "@curl-format.txt" -o /dev/null -s https://portal-orion.example.com
+curl -w "@curl-format.txt" -o /dev/null -s https://portal-pfizer.example.com
 ```
 
 **curl-format.txt**:
@@ -713,13 +713,13 @@ Before production deployment, validate:
 
 ```bash
 # Check environment variables set
-netlify env:list --site portal-orion-production | grep SUPABASE_URL
+netlify env:list --site portal-pfizer-production | grep SUPABASE_URL
 
 # Verify SSL certificate
-openssl s_client -connect portal-orion.example.com:443 -servername portal-orion.example.com
+openssl s_client -connect portal-pfizer.example.com:443 -servername portal-pfizer.example.com
 
 # Test authentication flow
-curl -X POST "https://portal-orion.example.com/api/test-auth" \
+curl -X POST "https://portal-pfizer.example.com/api/test-auth" \
   -H "Content-Type: application/json"
 ```
 

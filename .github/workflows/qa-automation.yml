@@ -15,20 +15,6 @@ on:
       - main
       - 'feature/**'
       - 'release/**'
-    paths:
-      # Trigger on Docker environment changes
-      - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/docker-compose.yml'
-      - 'tools/dev-env/setup.sh'
-      # Trigger on application code changes (mounted as volume, but tests need to run)
-      - 'apps/**'
-      - 'packages/**'
-      - 'database/**'
-      - 'tests/**'
-      - 'e2e/**'
-      - 'pubspec.yaml'
-      - 'package.json'
-      # Note: Workflow changes don't trigger QA - use workflow_dispatch to test manually
   workflow_dispatch:
     inputs:
       test_suite:
@@ -58,20 +44,6 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better git context
 
-      - name: Free up disk space
-        run: |
-          echo "Disk space before cleanup:"
-          df -h
-          echo "Cleaning up unnecessary files..."
-          docker image prune -af
-          docker container prune -f
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/local/share/boost
-          echo "Disk space after cleanup:"
-          df -h
-
       - name: Detect Docker file changes
         id: docker-changes
         run: |
@@ -85,6 +57,21 @@ jobs:
             echo "No Docker changes in this push - will pull pre-built images from GHCR"
           fi
 
+      - name: Free up disk space
+        if: steps.docker-changes.outputs.changed == 'true'
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          echo "Cleaning up unnecessary files..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -94,34 +81,49 @@ jobs:
 
       - name: Pull pre-built images from GHCR
         if: steps.docker-changes.outputs.changed == 'false'
+        id: pull-images
+        continue-on-error: true
         run: |
           echo "Pulling pre-built images from GHCR..."
 
-          # Pull and tag base image
-          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
-          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest clinical-diary-base:latest
+          # Docker requires lowercase repository names
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
-          # Pull and tag dev image
-          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
-          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest clinical-diary-dev:latest
+          # Pull and tag images (allow failure if images don't exist yet)
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || exit 1
+          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-base:latest clinical-diary-base:latest
 
-          # Pull and tag qa image
-          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
-          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest clinical-diary-qa:latest
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || exit 1
+          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest clinical-diary-dev:latest
+
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || exit 1
+          docker tag ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest clinical-diary-qa:latest
 
           echo "Images pulled and tagged successfully"
 
+      - name: Free up disk space for build (if pulling failed)
+        if: steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
+        run: |
+          echo "Pull failed, need to build images. Freeing up disk space..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+
       - name: Set up Docker Buildx
-        if: steps.docker-changes.outputs.changed == 'true'
+        if: steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker images to GHCR
-        if: steps.docker-changes.outputs.changed == 'true'
+        if: steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure'
         working-directory: tools/dev-env
-        env:
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           echo "Docker files changed - building from source with registry caching"
+
+          # Docker requires lowercase repository names
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
           # PROPER REGISTRY-BASED CACHING:
           # 1. Pull existing images from GHCR for cache (|| true allows failure if not exists)
@@ -130,27 +132,27 @@ jobs:
           # This ensures FROM directives can resolve from GHCR and layer caching works
 
           echo "Pulling previous images for cache..."
-          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest || true
-          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest || true
-          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest || true
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || true
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || true
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || true
 
           echo "Building base image..."
           docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build base
           echo "Pushing base to GHCR..."
-          docker tag clinical-diary-base:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
-          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          docker tag clinical-diary-base:latest ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
+          docker push ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
 
           echo "Building dev image (FROM GHCR base)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE=ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
           echo "Pushing dev to GHCR..."
-          docker tag clinical-diary-dev:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
-          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          docker tag clinical-diary-dev:latest ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
+          docker push ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
 
           echo "Building qa image (FROM GHCR dev)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg BASE_IMAGE=ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
           echo "Pushing qa to GHCR..."
-          docker tag clinical-diary-qa:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
-          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+          docker tag clinical-diary-qa:latest ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
+          docker push ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
 
           echo "All images built and pushed to GHCR successfully"
 
