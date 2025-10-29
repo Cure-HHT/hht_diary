@@ -38,17 +38,19 @@ RUN cd /opt && \
 
 # ============================================================
 # Android SDK (cmdline-tools latest)
+# Version pinned: 2025-10-28
 # ============================================================
 ENV ANDROID_HOME=/opt/android
 ENV ANDROID_SDK_ROOT=/opt/android
 ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
+ENV ANDROID_CMDLINE_TOOLS_VERSION=11076708
 
 RUN cd /tmp && \
-    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
-    unzip -q commandlinetools-linux-11076708_latest.zip && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS_VERSION}_latest.zip && \
+    unzip -q commandlinetools-linux-${ANDROID_CMDLINE_TOOLS_VERSION}_latest.zip && \
     mkdir -p ${ANDROID_HOME}/cmdline-tools/latest && \
     mv cmdline-tools/* ${ANDROID_HOME}/cmdline-tools/latest/ && \
-    rm commandlinetools-linux-11076708_latest.zip && \
+    rm commandlinetools-linux-${ANDROID_CMDLINE_TOOLS_VERSION}_latest.zip && \
     chown -R ubuntu:ubuntu ${ANDROID_HOME}
 
 # ============================================================
@@ -63,11 +65,11 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
     echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ${ANDROID_HOME}/licenses/android-sdk-preview-license
 
 # Install Android SDK components (PATH now includes sdkmanager)
+# Note: cmdline-tools already installed manually above - don't reinstall
 RUN yes | sdkmanager --licenses || true && \
     sdkmanager "platform-tools" \
                "build-tools;34.0.0" \
-               "platforms;android-34" \
-               "cmdline-tools;latest" && \
+               "platforms;android-34" && \
     sdkmanager --list | head -20
 
 # ============================================================
