@@ -350,7 +350,8 @@ jobs:
   security-scan:
     name: Security & Compliance Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # Disabled: GitHub Code Scanning not available for private repos without GitHub Advanced Security
+    if: false
 
     permissions:
       contents: read
