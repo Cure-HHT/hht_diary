@@ -76,7 +76,7 @@ This portal implements the following requirements from spec/:
 
 ### Project Structure
 ```
-sponsor/lib/carina/portal/
+apps/portal/
 ├── lib/
 │   ├── main.dart                      # App entry point
 │   ├── config/
@@ -127,7 +127,7 @@ sponsor/lib/carina/portal/
 
 2. **Navigate to portal directory**
    ```bash
-   cd sponsor/lib/carina/portal
+   cd apps/portal
    ```
 
 3. **Install dependencies**

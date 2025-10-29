@@ -29,4 +29,4 @@ Currently using placeholder assets. Replace with actual Carina branding assets b
 Assets are referenced in:
 - `sponsor/config/carina/portal.yaml`
 - `sponsor/config/carina/mobile.yaml`
-- `sponsor/lib/carina/portal/pubspec.yaml`
+- `apps/portal/pubspec.yaml`
