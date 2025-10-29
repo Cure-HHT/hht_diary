@@ -1,0 +1,10 @@
+{
+  "agents": [
+    {
+      "name": "ai-coordination",
+      "description": "Manages all agent branch operations via worktree. Agent branches named after mechanical objects (wrench, hammer, etc.). Use at session start (check outstanding work), when starting features, reporting work, or completing features.",
+      "instructions_file": "agent-ops/ai/AI_COORDINATION.md",
+      "tools": ["*"]
+    }
+  ]
+}
