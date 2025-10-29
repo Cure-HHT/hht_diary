@@ -31,27 +31,12 @@ CONFIG_FILE="$REPO_ROOT/untracked-notes/agent-ops.json"
 AGENT_WORKTREE_PATH="$(dirname "$REPO_ROOT")/$(basename "$REPO_ROOT")-$AGENT_NAME"
 AGENT_BRANCH="claude/$AGENT_NAME"
 
-# Check if we're in the main worktree (not a separate worktree)
-CURRENT_DIR=$(pwd)
-IS_MAIN_WORKTREE=false
-if [ "$REPO_ROOT" == "$CURRENT_DIR" ] || [[ "$CURRENT_DIR" == "$REPO_ROOT"/* ]]; then
-  # We're in the main worktree
-  IS_MAIN_WORKTREE=true
-fi
-
-# Determine product worktree path
-# If we're already in main worktree on the product branch, use main worktree
-# Otherwise, create a separate worktree
-if [ "$IS_MAIN_WORKTREE" == "true" ]; then
-  PRODUCT_WORKTREE_PATH="$REPO_ROOT"
-  echo "Using main repository as product worktree (already on $PRODUCT_BRANCH)"
-else
-  PRODUCT_WORKTREE_PATH="$REPO_ROOT/worktrees/$AGENT_NAME"
-fi
+# Product worktree path - ALWAYS a sibling directory, never a child
+# Pattern: /parent/repo-worktrees/agent_name
+PRODUCT_WORKTREE_PATH="$(dirname "$REPO_ROOT")/$(basename "$REPO_ROOT")-worktrees/$AGENT_NAME"
 
 # Ensure config directory exists
 mkdir -p "$REPO_ROOT/untracked-notes"
-mkdir -p "$REPO_ROOT/worktrees"
 
 # Check if config already exists
 if [ -f "$CONFIG_FILE" ]; then
@@ -103,20 +88,14 @@ fi
 echo ""
 
 # Create product work worktree (for Claude to work in)
-if [ "$IS_MAIN_WORKTREE" == "true" ]; then
-  echo "✓ Using main repository as product worktree"
-  echo "  Already on branch: $PRODUCT_BRANCH"
-  echo "  Location: $PRODUCT_WORKTREE_PATH"
+if [ ! -d "$PRODUCT_WORKTREE_PATH" ]; then
+  echo "Creating product work worktree..."
+  echo "  Adding worktree: $PRODUCT_WORKTREE_PATH"
+  echo "  Branch: $PRODUCT_BRANCH"
+  git worktree add "$PRODUCT_WORKTREE_PATH" "$PRODUCT_BRANCH"
+  echo "  ✓ Product work worktree created"
 else
-  if [ ! -d "$PRODUCT_WORKTREE_PATH" ]; then
-    echo "Creating product work worktree..."
-    echo "  Adding worktree: $PRODUCT_WORKTREE_PATH"
-    echo "  Branch: $PRODUCT_BRANCH"
-    git worktree add "$PRODUCT_WORKTREE_PATH" "$PRODUCT_BRANCH"
-    echo "  ✓ Product work worktree created"
-  else
-    echo "✓ Product work worktree already exists: $PRODUCT_WORKTREE_PATH"
-  fi
+  echo "✓ Product work worktree already exists: $PRODUCT_WORKTREE_PATH"
 fi
 
 echo ""
@@ -164,19 +143,11 @@ EOF
 chmod +x "$HOME/claude_agent_terminal.sh"
 
 echo "════════════════════════════════════════════════════════════"
-if [ "$IS_MAIN_WORKTREE" == "true" ]; then
-  echo "✓ READY: You're already in the product worktree!"
-  echo ""
-  echo "  Just restart Claude in this directory to begin working."
-  echo ""
-  echo "  To restart Claude: exit this session and run 'claude' again"
-else
-  echo "⚠️  NEXT STEPS:"
-  echo ""
-  echo "1. Open a NEW terminal (this will auto-switch to worktree)"
-  echo "2. Run: claude"
-  echo ""
-  echo "Or manually switch now:"
-  echo "    cd $PRODUCT_WORKTREE_PATH"
-fi
+echo "⚠️  NEXT STEPS:"
+echo ""
+echo "1. Open a NEW terminal (this will auto-switch to worktree)"
+echo "2. Run: claude"
+echo ""
+echo "Or manually switch now:"
+echo "    cd $PRODUCT_WORKTREE_PATH"
 echo "════════════════════════════════════════════════════════════"

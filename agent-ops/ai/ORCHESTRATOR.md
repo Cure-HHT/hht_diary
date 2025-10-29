@@ -38,9 +38,9 @@
 
 This script:
 1. Generates deterministic agent name from session ID
-2. Creates TWO worktrees:
+2. Creates TWO worktrees (both as SIBLING directories):
    - Agent coordination worktree: `../project-{agent_name}/` (for ai-coordination)
-   - Product work worktree: `./worktrees/{agent_name}/` (for you)
+   - Product work worktree: `../project-worktrees/{agent_name}/` (for you)
 3. Writes config to `untracked-notes/agent-ops.json`
 
 **After initialization**, user must restart Claude from product worktree.
@@ -183,7 +183,8 @@ Use these `entry_type` values:
    - Contains: diary.md, results.md (session tracking)
    - You never interact with this
 
-2. **Product Work Worktree** (e.g., `/home/user/diary/worktrees/vise`):
+2. **Product Work Worktree** (e.g., `/home/user/diary-worktrees/vise`):
+   - **SIBLING directory**, not a child of the repo
    - Branch: Current feature branch
    - Used by: YOU (orchestrator) for ALL coding work
    - Contains: Your actual code changes

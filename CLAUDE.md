@@ -689,7 +689,8 @@ This project uses the agent-ops system for multi-agent coordination and worktree
    - Management: Automated by ai-coordination sub-agent
 
 2. **Product Work Worktree**:
-   - Path: `/path/to/project-worktrees/{agent_name}` (e.g., `/home/user/diary-worktrees/vise`)
+   - Path: `/path/to/parent/project-worktrees/{agent_name}` (e.g., `/home/user/diary-worktrees/vise`)
+   - **CRITICAL**: Sibling directory to git root, NOT a child
    - Branch: Current feature/fix branch
    - Used by: Orchestrator (Claude) for ALL coding work
    - Purpose: Isolated workspace - prevents clobbering between sessions
@@ -710,8 +711,8 @@ This project uses the agent-ops system for multi-agent coordination and worktree
 
 This script will:
 1. Generate deterministic agent name from session ID
-2. Create agent coordination worktree at `../project-{agent_name}/`
-3. Create product work worktree at `./worktrees/{agent_name}/`
+2. Create agent coordination worktree at `../project-{agent_name}/` (sibling)
+3. Create product work worktree at `../project-worktrees/{agent_name}/` (sibling)
 4. Write config to `untracked-notes/agent-ops.json`
 
 **After initialization**, restart Claude from the product worktree directory.
