@@ -6,17 +6,20 @@
       "instructions_file": "agent-ops/ai/AI_COORDINATION.md",
       "purpose": "Handles session lifecycle and agent branch git operations so orchestrator stays on product branch",
       "when_to_use": [
-        "Starting new feature/task",
+        "At session start (first thing) - check for outstanding work",
+        "Starting new feature/task - add to WIP list",
         "Reporting any significant work (implementation, testing, error, decision)",
-        "Completing feature"
+        "Completing feature - archive and update WIP"
       ],
       "input_format": {
+        "new_session": {"event": "new_session"},
         "start_feature": {"event": "start_feature", "description": "string", "tickets": ["#CUR-XXX"]},
         "log_work": {"event": "log_work", "entry_type": "string", "content": "string"},
         "complete_feature": {"event": "complete_feature"}
       },
       "output_format": {
-        "action": "string (session_created|logged|feature_archived|error)",
+        "action": "string (session_status|feature_started|logged|feature_archived|error)",
+        "outstanding_work": "array (optional - for session_status)",
         "instruction": "string (simple directive for orchestrator)"
       }
     }

@@ -6,17 +6,22 @@
 
 ## When to Delegate
 
-### 1. Starting Feature
-**When**: User asks to implement a feature
+### 1. New Session (First Thing)
+**When**: You start working (before anything else)
+**Pass**: `{"event": "new_session"}`
+**You get back**: Status report about outstanding work, if any
+
+### 2. Starting Feature
+**When**: User asks to implement a feature (after reviewing session status)
 **Pass**: `{"event": "start_feature", "description": "brief description", "tickets": ["#CUR-123"]}`
 **You get back**: Confirmation to proceed
 
-### 2. Reporting Work
+### 3. Reporting Work
 **When**: After any significant action (implementation, testing, error, decision, etc.)
 **Pass**: `{"event": "log_work", "entry_type": "Implementation", "content": "Created src/auth/jwt.dart implementing REQ-p00085"}`
 **You get back**: Confirmation logged
 
-### 3. Completing Feature
+### 4. Completing Feature
 **When**: Feature fully implemented
 **Pass**: `{"event": "complete_feature"}`
 **You get back**: Confirmation of archive
@@ -26,13 +31,27 @@
 ## Your Workflow
 
 ```
+[You start working]
+
+You → ai-coordination:
+  {"event": "new_session"}
+
+ai-coordination → You:
+  {"action": "session_status",
+   "outstanding_work": [
+     {"session": "20251028_143000", "description": "RLS policies", "status": "incomplete"}
+   ],
+   "instruction": "Previous work interrupted. Review and decide: resume or start new feature."}
+
+You: [Review with user, decide to start fresh]
+
 User: "Implement authentication"
 
 You → ai-coordination:
   {"event": "start_feature", "description": "authentication", "tickets": ["#CUR-85"]}
 
 ai-coordination → You:
-  {"action": "session_created", "instruction": "Proceed with implementation"}
+  {"action": "feature_started", "instruction": "Proceed with implementation"}
 
 You: [Write code: src/auth/jwt_validator.dart]
 

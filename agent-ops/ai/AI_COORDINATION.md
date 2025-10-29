@@ -33,7 +33,53 @@
 
 ## Events You Handle
 
-### 1. `start_feature`
+### 1. `new_session`
+
+**Input**: `{"event": "new_session"}`
+
+**Actions**:
+1. Check agent branch for agent state:
+   ```bash
+   PRODUCT_BRANCH=$(git branch --show-current)
+   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
+
+   # Check if agent branch exists
+   git fetch origin claude/ai-agent-$AGENT_ID 2>/dev/null
+
+   if exists:
+     git checkout claude/ai-agent-$AGENT_ID
+     # Check agent-ops/sessions/ for incomplete sessions
+     # Read CONTEXT.md for work-in-progress list
+     git checkout $PRODUCT_BRANCH
+   ```
+
+2. Report findings to orchestrator
+
+**Responses**:
+
+**If clean slate (no agent branch or no outstanding work)**:
+```json
+{
+  "action": "session_status",
+  "outstanding_work": [],
+  "instruction": "No outstanding work. Ready to start new feature."
+}
+```
+
+**If outstanding work found**:
+```json
+{
+  "action": "session_status",
+  "outstanding_work": [
+    {"session": "YYYYMMDD_HHMMSS", "description": "feature desc", "status": "incomplete", "last_entry": "brief summary"}
+  ],
+  "instruction": "Previous work interrupted. Review with user and decide: resume or start new feature."
+}
+```
+
+**Note**: Orchestrator/user decides what to do with this information. You just report state.
+
+### 2. `start_feature`
 
 **Input**: `{"event": "start_feature", "description": "...", "tickets": ["#CUR-XXX"]}`
 
@@ -42,19 +88,34 @@
 2. Create session on product branch: `./agent-ops/scripts/new-session.sh "description"`
 3. Fill `plan.md` with tasks from tickets/description
 4. Initialize `diary.md` with session start entry
-5. Keep product branch checked out
+5. Update agent branch work-in-progress:
+   ```bash
+   PRODUCT_BRANCH=$(git branch --show-current)
+
+   git checkout claude/ai-agent-$AGENT_ID
+
+   # Update CONTEXT.md to add this feature to work-in-progress list
+   # Add: - [Session YYYYMMDD_HHMMSS] Feature description (#CUR-XXX) - In Progress
+
+   git add agent-ops/agents/$AGENT_ID/CONTEXT.md
+   git commit -m "[WIP] Started: [description]"
+   git push
+
+   # CRITICAL: Switch back to product branch
+   git checkout $PRODUCT_BRANCH
+   ```
 
 **Response**:
 ```json
 {
-  "action": "session_created",
+  "action": "feature_started",
   "instruction": "Proceed with implementation"
 }
 ```
 
-**Note**: Session created on product branch. You'll sync to agent branch when orchestrator reports work.
+**Note**: Session created on product branch, WIP list updated on agent branch.
 
-### 2. `log_work`
+### 3. `log_work`
 
 **Input**: `{"event": "log_work", "entry_type": "Implementation", "content": "Created src/auth/jwt.dart..."}`
 
@@ -92,25 +153,28 @@
 
 **CRITICAL**: Must end with product branch checked out.
 
-### 3. `complete_feature`
+### 4. `complete_feature`
 
 **Input**: `{"event": "complete_feature"}`
 
 **Actions**:
 1. Read `diary.md` and `plan.md` from product branch session
 2. Generate `results.md` summary based on diary content
-3. Archive to agent branch:
+3. Archive to agent branch and update WIP:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
+   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
 
    # Switch to agent branch
-   git checkout claude/ai-agent-011ABC
+   git checkout claude/ai-agent-$AGENT_ID
 
    # Move session to archive
    cp -r ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
          agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/
 
-   # Update CONTEXT.md with completion status
+   # Update CONTEXT.md:
+   # - Move this feature from work-in-progress to completed list
+   # - Update: - [Session YYYYMMDD_HHMMSS] Feature description (#CUR-XXX) - ✅ Completed
 
    git add agent-ops/archive/ agent-ops/agents/
    git commit -m "[ARCHIVE] Feature: [name]"
@@ -243,10 +307,6 @@ If orchestrator calls `log_work` or `complete_feature` but no session:
 - `diary.md` - Format for diary entries
 - `results.md` - Use when completing feature
 
-**Detailed workflows**: `agent-ops/docs/workflows/`
-- Reference if you need implementation details
-- Don't pass these to orchestrator
-
 ---
 
 ## Response Format
@@ -262,7 +322,8 @@ Always respond with JSON directive:
 ```
 
 **Actions**:
-- `session_created` - New session started
+- `session_status` - Report of outstanding work from agent branch
+- `feature_started` - New feature started and added to WIP list
 - `logged` - Work entry added to diary
 - `feature_archived` - Feature complete and archived
 - `session_exists` - Session already active (error)
@@ -273,7 +334,26 @@ Always respond with JSON directive:
 
 ## Example Complete Flow
 
-### 1. Orchestrator Starts Feature
+### 1. Orchestrator Checks Session Status
+
+**Input**: `{"event": "new_session"}`
+
+**You do**:
+1. Check agent branch for outstanding work
+2. Find incomplete session from yesterday
+
+**You respond**:
+```json
+{
+  "action": "session_status",
+  "outstanding_work": [
+    {"session": "20251028_143000", "description": "RLS policies", "status": "incomplete", "last_entry": "Error: permission denied on table users"}
+  ],
+  "instruction": "Previous work interrupted. Review with user and decide: resume or start new feature."
+}
+```
+
+### 2. Orchestrator Starts New Feature
 
 **Input**: `{"event": "start_feature", "description": "auth module", "tickets": ["#CUR-85"]}`
 
@@ -295,16 +375,17 @@ Always respond with JSON directive:
    **Goal**: Implement auth module
    **Tickets**: #CUR-85
    ```
+5. Update agent branch CONTEXT.md with WIP item
 
 **You respond**:
 ```json
 {
-  "action": "session_created",
+  "action": "feature_started",
   "instruction": "Proceed with implementation"
 }
 ```
 
-### 2. Orchestrator Reports Implementation
+### 3. Orchestrator Reports Implementation
 
 **Input**: `{"event": "log_work", "entry_type": "Implementation", "content": "Created src/auth/jwt_validator.dart (120 lines)\n- JWT validation\n- Expiry checking\nRequirements: REQ-p00085"}`
 
@@ -327,7 +408,7 @@ Always respond with JSON directive:
 }
 ```
 
-### 3. Orchestrator Reports Testing
+### 4. Orchestrator Reports Testing
 
 **Input**: `{"event": "log_work", "entry_type": "Testing", "content": "Running: dart test test/auth/\nResult: ✅ All tests pass"}`
 
@@ -343,7 +424,7 @@ Always respond with JSON directive:
 }
 ```
 
-### 4. Orchestrator Completes Feature
+### 5. Orchestrator Completes Feature
 
 **Input**: `{"event": "complete_feature"}`
 
