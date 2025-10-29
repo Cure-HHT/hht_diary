@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00027: Containerized Development Environments
 #   REQ-d00032: Development Tool Specifications
