@@ -215,6 +215,40 @@ final portalTheme = ThemeData(
 
 ---
 
+### REQ-d00052: Role-Based Banner Component
+
+**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active
+
+The portal SHALL display a color-coded banner component at the top of all authenticated pages showing the current user's role.
+
+**Technical Details**:
+- **Component**: `RoleBanner` widget in `lib/widgets/role_banner.dart`
+- **Placement**: Top of authenticated scaffold, above AppBar
+- **Height**: 48px fixed height
+- **Color Mapping**:
+  ```dart
+  final roleColors = {
+    'Patient': Color(0xFF2196F3),        // Blue
+    'Investigator': Color(0xFF4CAF50),   // Green
+    'Sponsor': Color(0xFF9C27B0),        // Purple
+    'Auditor': Color(0xFFFF9800),        // Orange
+    'Analyst': Color(0xFF009688),        // Teal
+    'Administrator': Color(0xFFF44336),  // Red
+    'Developer Admin': Color(0xFFC62828),// Dark Red
+  };
+  ```
+- **Text Display**: Role name centered in white text (WCAG AA compliant contrast)
+- **State Management**: Read from authenticated user's role claim
+
+**Acceptance Criteria**:
+- [ ] Banner displays on all authenticated pages
+- [ ] Banner shows correct role name from user claims
+- [ ] Banner uses correct color per role
+- [ ] Text contrast meets WCAG AA standards (4.5:1 minimum)
+- [ ] Banner included in core platform (all sponsor portals)
+
+---
+
 ### REQ-d00030: Portal Routing and Navigation
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
