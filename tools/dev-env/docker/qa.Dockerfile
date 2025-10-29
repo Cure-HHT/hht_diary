@@ -46,18 +46,6 @@ USER ubuntu
 RUN PATH="/home/ubuntu/.pub-cache/bin:$PATH" flutter pub global activate junitreport || true
 
 # ============================================================
-# Supabase CLI v2.54.10 (pinned for FDA 21 CFR Part 11 compliance)
-# Version pinned: 2025-10-28
-# ============================================================
-USER root
-ENV SUPABASE_CLI_VERSION=v2.54.10
-RUN apt-get update -y && \
-    apt-get install -y ca-certificates && \
-    curl -fsSL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
-    supabase --version && \
-    rm -rf /var/lib/apt/lists/*
-
-# ============================================================
 # Git configuration for QA role
 # ============================================================
 USER ubuntu
