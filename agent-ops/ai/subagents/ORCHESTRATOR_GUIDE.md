@@ -64,6 +64,65 @@ Context: Need to ensure all PRD requirements have Ops/Dev cascade"
 
 ---
 
+### Documentation Sub-Agent
+
+**File**: `agent-ops/ai/subagents/DOCUMENTATION.md`
+
+**Use when**:
+- Documentation is verbose or out of scope
+- Need to eliminate repetition across files
+- Converting text to properly scoped document
+- Too many unnecessary examples
+- Inline templates should be references
+- Rewriting documentation for conciseness
+
+**How to invoke**:
+```
+Use Task tool with subagent_type="general-purpose" and provide detailed prompt:
+
+"Read agent-ops/ai/subagents/DOCUMENTATION.md and follow its instructions.
+
+Task: {specific documentation task}
+
+Context: {text to analyze or rewrite}"
+```
+
+**Example invocations**:
+
+1. **Analyze scope**:
+```
+"Read agent-ops/ai/subagents/DOCUMENTATION.md and follow its instructions.
+
+Task: Check if spec/prd-database.md is properly scoped
+Context: File may contain SQL code (should be in dev- file)"
+```
+
+2. **Eliminate repetition**:
+```
+"Read agent-ops/ai/subagents/DOCUMENTATION.md and follow its instructions.
+
+Task: Remove repetition across CLAUDE.md and spec/README.md
+Context: Requirement format is explained in both files"
+```
+
+3. **Rewrite for conciseness**:
+```
+"Read agent-ops/ai/subagents/DOCUMENTATION.md and follow its instructions.
+
+Task: Rewrite docs/adr/ADR-001.md to be more concise
+Context: Currently 450 lines, should be ~150 lines"
+```
+
+4. **Replace inline templates**:
+```
+"Read agent-ops/ai/subagents/DOCUMENTATION.md and follow its instructions.
+
+Task: Replace inline templates in docs/README.md with references
+Context: Full ADR template is embedded, should reference template file"
+```
+
+---
+
 ## Delegation Best Practices
 
 ### When to Delegate
@@ -255,6 +314,11 @@ Each sub-agent follows the same pattern:
 | Code headers | Requirements | "Generate header for {file} implementing {REQs}" |
 | Validate requirements | Requirements | "Validate requirements for {topic}" |
 | Requirement tracing | Requirements | "Show full trace for REQ-{id}" |
+| Check doc scope | Documentation | "Check if {file} is properly scoped" |
+| Eliminate repetition | Documentation | "Remove repetition across {files}" |
+| Rewrite doc concisely | Documentation | "Rewrite {file} to be more concise" |
+| Replace inline templates | Documentation | "Replace inline templates in {file} with references" |
+| Remove unnecessary examples | Documentation | "Review examples in {file}, keep only essential" |
 
 ---
 

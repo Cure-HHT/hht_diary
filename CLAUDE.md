@@ -222,6 +222,7 @@ For complex domain-specific tasks, use specialized sub-agents:
 | Sub-Agent | Purpose | Documentation |
 |-----------|---------|---------------|
 | **Requirements** | Find, create, validate requirements; generate code headers; analyze traceability | `agent-ops/ai/subagents/REQUIREMENTS.md` |
+| **Documentation** | Proper scoping, eliminate repetition, concise rewriting, minimal examples | `agent-ops/ai/subagents/DOCUMENTATION.md` |
 
 **How to use**: See `agent-ops/ai/subagents/ORCHESTRATOR_GUIDE.md` for delegation patterns.
 

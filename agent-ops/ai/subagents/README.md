@@ -41,6 +41,28 @@ Sub-agents are **specialized AI assistants** with deep knowledge of specific dom
 
 ---
 
+### Documentation Sub-Agent
+
+**File**: `DOCUMENTATION.md`
+
+**Expertise**:
+- Proper documentation scoping (spec/ vs docs/, prd/ops/dev)
+- Repetition elimination across files
+- Concise rewriting (removing extraneous details)
+- Example minimization (keep only essential)
+- Template reference enforcement (no inline templates)
+
+**Use when**:
+- Documentation is verbose or out of scope
+- Repetition across multiple files
+- Converting text to properly scoped document
+- Too many unnecessary examples
+- Inline templates should be references
+
+**Example**: "Rewrite this file to be more concise and properly scoped"
+
+---
+
 ## How to Use Sub-Agents
 
 ### 1. Orchestrator Delegates
@@ -236,12 +258,6 @@ Don't create sub-agents for:
 - Coverage analysis
 - Test strategy recommendations
 - Mock data generation
-
-**Documentation Sub-Agent**:
-- ADR creation
-- README updates
-- API documentation generation
-- Comment style checking
 
 **Security Sub-Agent**:
 - Threat modeling
