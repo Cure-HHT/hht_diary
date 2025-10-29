@@ -1,0 +1,58 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00030: CI/CD Environment Parity
+#
+# Docker Compose Local Registry Override
+# Use local registry (localhost:5000) instead of GHCR for testing
+#
+# Usage:
+#   1. Start local registry: docker run -d -p 5000:5000 --name registry registry:2
+#   2. Build with local registry: docker-compose -f docker-compose.yml -f docker-compose.local.yml build
+#
+# This mirrors the GHCR workflow but uses a local registry for faster iteration.
+
+services:
+  base:
+    build:
+      cache_from:
+        - clinical-diary-base:latest
+        - localhost:5000/clinical-diary-base:latest
+    image: localhost:5000/clinical-diary-base:latest
+
+  dev:
+    build:
+      cache_from:
+        - clinical-diary-base:latest
+        - localhost:5000/clinical-diary-base:latest
+        - clinical-diary-dev:latest
+        - localhost:5000/clinical-diary-dev:latest
+    image: localhost:5000/clinical-diary-dev:latest
+
+  qa:
+    build:
+      cache_from:
+        - clinical-diary-base:latest
+        - localhost:5000/clinical-diary-base:latest
+        - clinical-diary-dev:latest
+        - localhost:5000/clinical-diary-dev:latest
+        - clinical-diary-qa:latest
+        - localhost:5000/clinical-diary-qa:latest
+    image: localhost:5000/clinical-diary-qa:latest
+
+  ops:
+    build:
+      cache_from:
+        - clinical-diary-base:latest
+        - localhost:5000/clinical-diary-base:latest
+        - clinical-diary-ops:latest
+        - localhost:5000/clinical-diary-ops:latest
+    image: localhost:5000/clinical-diary-ops:latest
+
+  mgmt:
+    build:
+      cache_from:
+        - clinical-diary-base:latest
+        - localhost:5000/clinical-diary-base:latest
+        - clinical-diary-mgmt:latest
+        - localhost:5000/clinical-diary-mgmt:latest
+    image: localhost:5000/clinical-diary-mgmt:latest

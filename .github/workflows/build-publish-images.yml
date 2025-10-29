@@ -18,19 +18,12 @@ on:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
       - '.github/workflows/build-publish-images.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/docker-compose.yml'
-      - '.github/workflows/build-publish-images.yml'
   workflow_dispatch:
     inputs:
       push_to_registry:
         description: 'Push images to GitHub Container Registry'
         required: false
-        default: 'false'
+        default: 'true'
         type: choice
         options:
           - 'true'
@@ -79,7 +72,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push base image
@@ -88,11 +81,13 @@ jobs:
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/base.Dockerfile
-          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true') }}
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # COHERENT CACHING: GHCR only (no GHA cache)
+          # Images in GHCR serve as cache - pull latest before build
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -104,7 +99,7 @@ jobs:
           file: tools/dev-env/docker/base.Dockerfile
           tags: clinical-diary-base:latest
           outputs: type=docker,dest=/tmp/base-image.tar
-          cache-from: type=gha
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
 
       - name: Upload base image artifact
         if: github.event_name == 'pull_request'
@@ -158,7 +153,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push dev image
@@ -169,11 +164,11 @@ jobs:
           file: tools/dev-env/docker/dev.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true') }}
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -187,7 +182,7 @@ jobs:
             BASE_IMAGE_TAG=latest
           tags: clinical-diary-dev:latest
           outputs: type=docker,dest=/tmp/dev-image.tar
-          cache-from: type=gha
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
 
       - name: Upload dev image artifact
         if: github.event_name == 'pull_request'
@@ -250,7 +245,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push QA image
@@ -261,11 +256,11 @@ jobs:
           file: tools/dev-env/docker/qa.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true') }}
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -313,7 +308,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push ops image
@@ -324,11 +319,11 @@ jobs:
           file: tools/dev-env/docker/ops.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true') }}
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -376,7 +371,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push management image
@@ -387,11 +382,11 @@ jobs:
           file: tools/dev-env/docker/mgmt.Dockerfile
           build-args: |
             BASE_IMAGE_TAG=latest
-          push: ${{ github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true') }}
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -478,19 +473,45 @@ jobs:
             *-sbom.spdx.json
           retention-days: 90
 
-      - name: Attach SBOM attestations to images
+      - name: Attach SBOM attestation to base image
         run: |
-          for image in base dev qa ops mgmt; do
-            cosign attest --yes \
-              --predicate ${image}-sbom.spdx.json \
-              --type spdxjson \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${image}@${{ needs.build-${image}.outputs.image_digest }}
-          done
+          cosign attest --yes \
+            --predicate base-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base@${{ needs.build-base.outputs.image_digest }}
+
+      - name: Attach SBOM attestation to dev image
+        run: |
+          cosign attest --yes \
+            --predicate dev-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev@${{ needs.build-dev.outputs.image_digest }}
+
+      - name: Attach SBOM attestation to QA image
+        run: |
+          cosign attest --yes \
+            --predicate qa-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa@${{ needs.build-qa.outputs.image_digest }}
+
+      - name: Attach SBOM attestation to ops image
+        run: |
+          cosign attest --yes \
+            --predicate ops-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops@${{ needs.build-ops.outputs.image_digest }}
+
+      - name: Attach SBOM attestation to mgmt image
+        run: |
+          cosign attest --yes \
+            --predicate mgmt-sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt@${{ needs.build-mgmt.outputs.image_digest }}
 
   verify-images:
     name: Verify Image Signatures
     runs-on: ubuntu-latest
-    needs: sign-and-sbom
+    needs: [sign-and-sbom, build-base, build-dev, build-qa, build-ops, build-mgmt]
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
 
     steps:
@@ -504,15 +525,45 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify signatures
+      - name: Verify base image signature
         run: |
-          for image in base dev qa ops mgmt; do
-            echo "Verifying $image..."
-            cosign verify \
-              --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
-              --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${image}@${{ needs.build-${image}.outputs.image_digest }}
-          done
+          echo "Verifying base image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base@${{ needs.build-base.outputs.image_digest }}
+
+      - name: Verify dev image signature
+        run: |
+          echo "Verifying dev image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev@${{ needs.build-dev.outputs.image_digest }}
+
+      - name: Verify QA image signature
+        run: |
+          echo "Verifying qa image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa@${{ needs.build-qa.outputs.image_digest }}
+
+      - name: Verify ops image signature
+        run: |
+          echo "Verifying ops image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops@${{ needs.build-ops.outputs.image_digest }}
+
+      - name: Verify mgmt image signature
+        run: |
+          echo "Verifying mgmt image..."
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt@${{ needs.build-mgmt.outputs.image_digest }}
 
   summary:
     name: Build Summary

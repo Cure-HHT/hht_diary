@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00028: Role-Based Environment Separation
 #   REQ-d00032: Development Tool Specifications
@@ -104,28 +105,9 @@ RUN mkdir -p /opt/deployment-scripts && \
     chown -R ubuntu:ubuntu /opt/deployment-scripts
 
 # ============================================================
-# Health check override for ops role
+# Health check override for ops role (COPY from file)
 # ============================================================
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-set -e
-# Base tools
-git --version >/dev/null
-gh --version >/dev/null
-node --version >/dev/null
-python3 --version >/dev/null
-doppler --version >/dev/null
-# Ops-specific tools
-terraform --version >/dev/null
-supabase --version >/dev/null
-aws --version >/dev/null
-kubectl version --client >/dev/null 2>&1
-cosign version >/dev/null
-syft version >/dev/null
-grype version >/dev/null
-echo "Ops health check passed"
-EOF
-
+COPY ops-health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/health-check.sh
 
 USER ubuntu

@@ -397,6 +397,35 @@ project-root/
 
 ---
 
+## Git Configuration
+
+Each role has a default git identity set in its Dockerfile:
+- **dev**: "Developer <dev@clinical-diary.local>"
+- **qa**: "QA Automation Bot <qa@clinical-diary.local>"
+- **ops**: "DevOps Engineer <ops@clinical-diary.local>"
+- **mgmt**: "Manager <mgmt@clinical-diary.local>"
+
+### Using Your Host Git Identity
+
+The host `.gitconfig` is mounted at `/home/ubuntu/.gitconfig.host` (read-only).
+
+To use your personal git identity instead of the role default, run inside the container:
+
+```bash
+git config --global include.path /home/ubuntu/.gitconfig.host
+```
+
+**Or** add to your shell profile for automatic setup:
+
+```bash
+echo 'git config --global include.path /home/ubuntu/.gitconfig.host' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Rationale**: Default identities ensure commits are clearly labeled by role, but developers can override with their personal identity for actual commits.
+
+---
+
 ## Common Tasks
 
 ### Update Docker Images

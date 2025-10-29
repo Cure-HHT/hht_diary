@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00028: Role-Based Environment Separation
 #   REQ-d00032: Development Tool Specifications
@@ -125,19 +126,9 @@ EOF
 RUN chmod +x /usr/local/bin/view-qa-reports.sh
 
 # ============================================================
-# Health check for mgmt role
+# Health check for mgmt role (COPY from file)
 # ============================================================
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-set -e
-# Base tools only (no development tools needed)
-git --version >/dev/null
-gh --version >/dev/null
-jq --version >/dev/null
-doppler --version >/dev/null
-echo "Mgmt health check passed"
-EOF
-
+COPY mgmt-health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/health-check.sh
 
 # ============================================================
