@@ -4,10 +4,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 
-import '../../config/supabase_config.dart';
+import '../../config/database_config.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 
 class PatientEnrollmentTab extends StatefulWidget {
   const PatientEnrollmentTab({super.key});
@@ -41,41 +41,21 @@ class _PatientEnrollmentTabState extends State<PatientEnrollmentTab> {
     try {
       final authService = context.read<AuthService>();
       final assignedSites = authService.currentUser?.assignedSites ?? [];
+      final db = DatabaseConfig.getDatabaseService();
 
-      var query = SupabaseConfig.client.from('sites').select();
-
-      // Filter to assigned sites if not admin
-      if (assignedSites.isNotEmpty) {
-        query = query.in_('site_id', assignedSites);
-      }
-
-      final response = await query;
+      // Get sites (filtered by assigned sites if not admin)
+      final sites = await db.getSites(
+        siteIds: assignedSites.isNotEmpty ? assignedSites : null,
+      );
 
       setState(() {
-        _sites = List<Map<String, dynamic>>.from(response);
+        _sites = sites;
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('Error loading sites: $e');
       setState(() => _isLoading = false);
     }
-  }
-
-  String _generateLinkingCode() {
-    // Generate 10-character code: XXXXX-XXXXX
-    // Use non-ambiguous characters (no 0, O, 1, I, l)
-    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-    final random = DateTime.now().millisecondsSinceEpoch.toString();
-    final uuid = const Uuid().v4();
-    final combined = random + uuid;
-
-    String code = '';
-    for (int i = 0; i < 10; i++) {
-      final index = combined.codeUnitAt(i % combined.length) % chars.length;
-      code += chars[index];
-      if (i == 4) code += '-';
-    }
-    return code;
   }
 
   Future<void> _enrollPatient() async {
@@ -88,18 +68,16 @@ class _PatientEnrollmentTabState extends State<PatientEnrollmentTab> {
     }
 
     try {
-      final linkingCode = _generateLinkingCode();
       final patientId = _patientIdController.text.trim();
+      final db = DatabaseConfig.getDatabaseService();
 
-      await SupabaseConfig.client.from('patients').insert({
-        'patient_id': patientId,
-        'site_id': _selectedSiteId,
-        'linking_code': linkingCode,
-        'is_active': true,
-      });
+      final result = await db.enrollPatient(
+        patientId: patientId,
+        siteId: _selectedSiteId!,
+      );
 
       setState(() {
-        _generatedCode = linkingCode;
+        _generatedCode = result['linking_code'] as String;
         _patientIdController.clear();
         _selectedSiteId = null;
       });
@@ -121,7 +99,7 @@ class _PatientEnrollmentTabState extends State<PatientEnrollmentTab> {
                 ),
                 const SizedBox(height: 8),
                 SelectableText(
-                  linkingCode,
+                  _generatedCode!,
                   style: Theme.of(context).textTheme.displayMedium,
                 ),
                 const SizedBox(height: 16),
@@ -134,7 +112,7 @@ class _PatientEnrollmentTabState extends State<PatientEnrollmentTab> {
             actions: [
               TextButton(
                 onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: linkingCode));
+                  await Clipboard.setData(ClipboardData(text: _generatedCode!));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Code copied to clipboard')),

@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 
-import 'config/supabase_config.dart';
+import 'config/database_config.dart';
 import 'router/app_router.dart';
 import 'services/auth_service.dart';
 import 'theme/portal_theme.dart';
@@ -19,8 +19,8 @@ void main() async {
   // Remove # from URLs
   setPathUrlStrategy();
 
-  // Initialize Supabase
-  await SupabaseConfig.initialize();
+  // Note: Database initialization happens in DatabaseConfig
+  // Set DatabaseConfig.useLocalDatabase = true for local testing
 
   runApp(const CarinaPortalApp());
 }
