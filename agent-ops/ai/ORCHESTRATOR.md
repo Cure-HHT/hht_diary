@@ -123,12 +123,15 @@ Use these `entry_type` values:
 - Always on product branch
 - Session files created here temporarily
 
-**Worktree** (`/home/user/diary_prep-agent-$AGENT_ID`):
+**Worktree** (`/home/user/diary_prep-wrench`):
 - ai-coordination uses this for agent branch operations
+- Named after mechanical objects (wrench, hammer, gear, etc.)
 - Completely isolated from your work
 - You never interact with it
 
 **Benefits**: Multiple sub-agents can run in parallel safely. No branch switching chaos.
+
+**Note**: Agent names are deterministically generated from your session ID - same session always gets the same name.
 
 ---
 

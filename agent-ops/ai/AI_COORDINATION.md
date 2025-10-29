@@ -7,7 +7,7 @@
 ## CRITICAL RULES
 
 **YOU DO**:
-✅ Manage agent branch (`claude/ai-agent-011ABC`) via worktree
+✅ Manage agent branch (`claude/wrench`) via worktree
 ✅ Create/update sessions, diary, archives on agent branch
 ✅ Use `cd` to worktree, commit, push, **then `cd` back to main directory**
 
@@ -18,6 +18,32 @@
 ❌ Touch product code or product branch workflow
 
 **MANDATORY**: Use git worktree for all agent branch operations. Orchestrator stays on product branch 100% of time.
+
+---
+
+## Agent Naming
+
+Agents are named after **inanimate mechanical objects** (wrench, hammer, gear, etc.). The name is deterministically derived from the product branch session ID.
+
+**Naming algorithm**:
+```bash
+# Extract session ID from product branch
+SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+
+# Generate deterministic name
+NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
+HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
+INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
+AGENT_NAME=${NAMES[$INDEX]}
+```
+
+**Examples**:
+- Product branch: `claude/refactor-tool-docs-011CUamedUhto5wQEfRLSKTQ`
+- Agent name: `wrench` (from hashing session ID)
+- Agent branch: `claude/wrench`
+- Worktree: `/home/user/diary_prep-wrench/`
+
+**See**: `agent-ops/ai/AGENT_NAMES.md` for complete list and details.
 
 ---
 
@@ -41,23 +67,30 @@
 1. Setup worktree and check agent branch for agent state:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
-   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
-   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+
+   # Generate agent name from session ID
+   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
+   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
+   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
+   AGENT_NAME=${NAMES[$INDEX]}
+
+   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
    MAIN_DIR=$(pwd)
 
    # Check if agent branch exists
-   git fetch origin claude/ai-agent-$AGENT_ID 2>/dev/null
+   git fetch origin claude/$AGENT_NAME 2>/dev/null
 
    if exists:
      # Setup worktree if not already created
      if [ ! -d "$WORKTREE_PATH" ]; then
-       git worktree add -b agent-$AGENT_ID "$WORKTREE_PATH" origin/claude/ai-agent-$AGENT_ID
+       git worktree add "$WORKTREE_PATH" origin/claude/$AGENT_NAME
      fi
 
      # Check for outstanding work in worktree
      cd "$WORKTREE_PATH"
      # Check agent-ops/sessions/ for incomplete sessions
-     # Read agent-ops/agents/$AGENT_ID/CONTEXT.md for work-in-progress list
+     # Read agent-ops/agents/$AGENT_NAME/CONTEXT.md for work-in-progress list
      cd "$MAIN_DIR"
    ```
 
@@ -99,8 +132,15 @@
 5. Update agent branch work-in-progress via worktree:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
-   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
-   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+
+   # Generate agent name from session ID
+   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
+   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
+   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
+   AGENT_NAME=${NAMES[$INDEX]}
+
+   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
    MAIN_DIR=$(pwd)
 
    # Work in agent branch worktree
@@ -109,7 +149,7 @@
    # Update CONTEXT.md to add this feature to work-in-progress list
    # Add: - [Session YYYYMMDD_HHMMSS] Feature description (#CUR-XXX) - In Progress
 
-   git add agent-ops/agents/$AGENT_ID/CONTEXT.md
+   git add agent-ops/agents/$AGENT_NAME/CONTEXT.md
    git commit -m "[WIP] Started: [description]"
    git push
 
@@ -141,8 +181,15 @@
 3. Sync to agent branch via worktree:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
-   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
-   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+
+   # Generate agent name from session ID
+   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
+   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
+   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
+   AGENT_NAME=${NAMES[$INDEX]}
+
+   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
    MAIN_DIR=$(pwd)
    SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
@@ -180,8 +227,15 @@
 3. Archive to agent branch and update WIP via worktree:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
-   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
-   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+
+   # Generate agent name from session ID
+   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
+   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
+   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
+   AGENT_NAME=${NAMES[$INDEX]}
+
+   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
    MAIN_DIR=$(pwd)
    SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
@@ -226,7 +280,7 @@
 - You append to `diary.md` when orchestrator reports work
 - You generate: `results.md` on completion
 
-**Worktree** (`/home/user/diary_prep-agent-$AGENT_ID` - agent branch, tracking/archive):
+**Worktree** (`/home/user/diary_prep-wrench` - agent branch, tracking/archive):
 - You sync session state after each `log_work` event
 - You archive completed session to `agent-ops/archive/`
 - You maintain `CONTEXT.md` with agent status
@@ -242,26 +296,34 @@
 If orchestrator starting new feature and no agent branch exists:
 
 ```bash
-# Get product branch and extract agent ID
+# Get product branch and generate agent name
 PRODUCT_BRANCH=$(git branch --show-current)
-# Example: claude/feature-xyz-011ABC → 011ABC
-AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
-WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+# Example: claude/feature-xyz-011CUamedUhto5wQEfRLSKTQ
+
+# Generate agent name from session ID
+SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
+HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
+INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
+AGENT_NAME=${NAMES[$INDEX]}
+# Example: AGENT_NAME="wrench"
+
+WORKTREE_PATH="../diary_prep-$AGENT_NAME"
 MAIN_DIR=$(pwd)
 
 # Create agent branch locally (no checkout - stays on product branch)
-git branch claude/ai-agent-$AGENT_ID
+git branch claude/$AGENT_NAME
 
 # Create worktree for agent branch
-git worktree add -b agent-$AGENT_ID "$WORKTREE_PATH" claude/ai-agent-$AGENT_ID
+git worktree add "$WORKTREE_PATH" claude/$AGENT_NAME
 
 # Work in worktree
 cd "$WORKTREE_PATH"
 
-mkdir -p agent-ops/agents/$AGENT_ID
+mkdir -p agent-ops/agents/$AGENT_NAME
 
-cat > agent-ops/agents/$AGENT_ID/CONTEXT.md <<EOF
-# Agent: $AGENT_ID
+cat > agent-ops/agents/$AGENT_NAME/CONTEXT.md <<EOF
+# Agent: $AGENT_NAME
 **Status**: 🟢 Active
 **Product Branch**: $PRODUCT_BRANCH
 **Started**: $(date +"%Y-%m-%d %H:%M:%S")
@@ -274,8 +336,8 @@ cat > agent-ops/agents/$AGENT_ID/CONTEXT.md <<EOF
 EOF
 
 git add agent-ops/
-git commit -m "[AGENT] $AGENT_ID: Initialize"
-git push -u origin claude/ai-agent-$AGENT_ID
+git commit -m "[AGENT] $AGENT_NAME: Initialize"
+git push -u origin claude/$AGENT_NAME
 
 # Return to main directory (stays on product branch)
 cd "$MAIN_DIR"
