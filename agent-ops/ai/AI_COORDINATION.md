@@ -7,17 +7,17 @@
 ## CRITICAL RULES
 
 **YOU DO**:
-✅ Manage agent branch (`claude/ai-agent-011ABC`) git operations
+✅ Manage agent branch (`claude/ai-agent-011ABC`) via worktree
 ✅ Create/update sessions, diary, archives on agent branch
-✅ Switch to agent branch, commit, push, **then immediately switch back**
+✅ Use `cd` to worktree, commit, push, **then `cd` back to main directory**
 
 **YOU DO NOT**:
 ❌ Manage product branch git (checkout, commit, push)
 ❌ Handle ticketing systems (Linear, GitHub issues)
-❌ Leave agent branch checked out when you exit
+❌ Use `git checkout` to switch branches (causes chaos for parallel agents)
 ❌ Touch product code or product branch workflow
 
-**MANDATORY**: Always end with product branch checked out.
+**MANDATORY**: Use git worktree for all agent branch operations. Orchestrator stays on product branch 100% of time.
 
 ---
 
@@ -38,19 +38,27 @@
 **Input**: `{"event": "new_session"}`
 
 **Actions**:
-1. Check agent branch for agent state:
+1. Setup worktree and check agent branch for agent state:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
    AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
+   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+   MAIN_DIR=$(pwd)
 
    # Check if agent branch exists
    git fetch origin claude/ai-agent-$AGENT_ID 2>/dev/null
 
    if exists:
-     git checkout claude/ai-agent-$AGENT_ID
+     # Setup worktree if not already created
+     if [ ! -d "$WORKTREE_PATH" ]; then
+       git worktree add -b agent-$AGENT_ID "$WORKTREE_PATH" origin/claude/ai-agent-$AGENT_ID
+     fi
+
+     # Check for outstanding work in worktree
+     cd "$WORKTREE_PATH"
      # Check agent-ops/sessions/ for incomplete sessions
-     # Read CONTEXT.md for work-in-progress list
-     git checkout $PRODUCT_BRANCH
+     # Read agent-ops/agents/$AGENT_ID/CONTEXT.md for work-in-progress list
+     cd "$MAIN_DIR"
    ```
 
 2. Report findings to orchestrator
@@ -88,11 +96,15 @@
 2. Create session on product branch: `./agent-ops/scripts/new-session.sh "description"`
 3. Fill `plan.md` with tasks from tickets/description
 4. Initialize `diary.md` with session start entry
-5. Update agent branch work-in-progress:
+5. Update agent branch work-in-progress via worktree:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
+   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
+   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+   MAIN_DIR=$(pwd)
 
-   git checkout claude/ai-agent-$AGENT_ID
+   # Work in agent branch worktree
+   cd "$WORKTREE_PATH"
 
    # Update CONTEXT.md to add this feature to work-in-progress list
    # Add: - [Session YYYYMMDD_HHMMSS] Feature description (#CUR-XXX) - In Progress
@@ -101,8 +113,8 @@
    git commit -m "[WIP] Started: [description]"
    git push
 
-   # CRITICAL: Switch back to product branch
-   git checkout $PRODUCT_BRANCH
+   # Return to main directory (product branch)
+   cd "$MAIN_DIR"
    ```
 
 **Response**:
@@ -126,21 +138,26 @@
    ## [HH:MM] [entry_type]
    [content]
    ```
-3. Sync to agent branch:
+3. Sync to agent branch via worktree:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
+   AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
+   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+   MAIN_DIR=$(pwd)
+   SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
-   # Copy latest session state to agent branch
-   git checkout claude/ai-agent-011ABC
-   cp -r ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
-         agent-ops/sessions/YYYYMMDD_HHMMSS/
+   # Copy latest session state from main dir to worktree
+   cp -r "$SESSION_DIR" "$WORKTREE_PATH/agent-ops/sessions/"
+
+   # Work in agent branch worktree
+   cd "$WORKTREE_PATH"
 
    git add agent-ops/sessions/
    git commit -m "[SESSION] Update: [entry_type]"
    git push
 
-   # CRITICAL: Switch back to product branch
-   git checkout $PRODUCT_BRANCH
+   # Return to main directory (product branch)
+   cd "$MAIN_DIR"
    ```
 
 **Response**:
@@ -151,7 +168,7 @@
 }
 ```
 
-**CRITICAL**: Must end with product branch checked out.
+**Note**: Main directory stays on product branch throughout (worktree isolation).
 
 ### 4. `complete_feature`
 
@@ -160,17 +177,19 @@
 **Actions**:
 1. Read `diary.md` and `plan.md` from product branch session
 2. Generate `results.md` summary based on diary content
-3. Archive to agent branch and update WIP:
+3. Archive to agent branch and update WIP via worktree:
    ```bash
    PRODUCT_BRANCH=$(git branch --show-current)
    AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
+   WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+   MAIN_DIR=$(pwd)
+   SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
-   # Switch to agent branch
-   git checkout claude/ai-agent-$AGENT_ID
+   # Copy session to worktree archive
+   cp -r "$SESSION_DIR" "$WORKTREE_PATH/agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/"
 
-   # Move session to archive
-   cp -r ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
-         agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/
+   # Work in agent branch worktree
+   cd "$WORKTREE_PATH"
 
    # Update CONTEXT.md:
    # - Move this feature from work-in-progress to completed list
@@ -180,9 +199,9 @@
    git commit -m "[ARCHIVE] Feature: [name]"
    git push
 
-   # Clean up product branch session
-   git checkout $PRODUCT_BRANCH
-   rm -rf agent-ops/sessions/YYYYMMDD_HHMMSS/
+   # Return to main directory and clean up product branch session
+   cd "$MAIN_DIR"
+   rm -rf "$SESSION_DIR"
    ```
 
 **Response**:
@@ -193,7 +212,7 @@
 }
 ```
 
-**CRITICAL**: Must end with product branch checked out.
+**Note**: Main directory stays on product branch throughout (worktree isolation).
 
 ---
 
@@ -201,24 +220,24 @@
 
 ### Session Lifecycle
 
-**Product Branch** (where orchestrator works):
+**Main Directory** (`/home/user/diary_prep` - product branch, where orchestrator works):
 - Session created: `agent-ops/sessions/YYYYMMDD_HHMMSS/`
 - You create: `plan.md`, `diary.md` (initial entry)
 - You append to `diary.md` when orchestrator reports work
 - You generate: `results.md` on completion
 
-**Agent Branch** (tracking/archive):
+**Worktree** (`/home/user/diary_prep-agent-$AGENT_ID` - agent branch, tracking/archive):
 - You sync session state after each `log_work` event
 - You archive completed session to `agent-ops/archive/`
 - You maintain `CONTEXT.md` with agent status
 
-**Note**: Orchestrator never touches these files. You manage all file operations.
+**Note**: Orchestrator never touches these files. You manage all file operations via worktree isolation.
 
 ---
 
 ## Agent Branch Management
 
-### First-Time Setup
+### First-Time Setup (Worktree)
 
 If orchestrator starting new feature and no agent branch exists:
 
@@ -227,9 +246,18 @@ If orchestrator starting new feature and no agent branch exists:
 PRODUCT_BRANCH=$(git branch --show-current)
 # Example: claude/feature-xyz-011ABC → 011ABC
 AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
+WORKTREE_PATH="../diary_prep-agent-$AGENT_ID"
+MAIN_DIR=$(pwd)
 
-# Create agent branch
-git checkout -b claude/ai-agent-$AGENT_ID
+# Create agent branch locally (no checkout - stays on product branch)
+git branch claude/ai-agent-$AGENT_ID
+
+# Create worktree for agent branch
+git worktree add -b agent-$AGENT_ID "$WORKTREE_PATH" claude/ai-agent-$AGENT_ID
+
+# Work in worktree
+cd "$WORKTREE_PATH"
+
 mkdir -p agent-ops/agents/$AGENT_ID
 
 cat > agent-ops/agents/$AGENT_ID/CONTEXT.md <<EOF
@@ -238,17 +266,26 @@ cat > agent-ops/agents/$AGENT_ID/CONTEXT.md <<EOF
 **Product Branch**: $PRODUCT_BRANCH
 **Started**: $(date +"%Y-%m-%d %H:%M:%S")
 
-## Current Work
-[Feature description]
+## Work In Progress
+(Features will be added here)
+
+## Completed
+(Completed features will be listed here)
 EOF
 
 git add agent-ops/
 git commit -m "[AGENT] $AGENT_ID: Initialize"
 git push -u origin claude/ai-agent-$AGENT_ID
 
-# CRITICAL: Switch back
-git checkout $PRODUCT_BRANCH
+# Return to main directory (stays on product branch)
+cd "$MAIN_DIR"
 ```
+
+**Benefits of worktree approach**:
+- ✅ Main directory never changes branches (orchestrator safe)
+- ✅ Multiple sub-agents can run in parallel without interference
+- ✅ Agent branch work completely isolated
+- ✅ Both directories share same .git database
 
 ---
 
@@ -398,7 +435,7 @@ Always respond with JSON directive:
    - Expiry checking
    Requirements: REQ-p00085
    ```
-2. Sync to agent branch (checkout, copy, commit, push, checkout product)
+2. Sync to agent branch (via worktree: copy, cd, commit, push, cd back)
 
 **You respond**:
 ```json

@@ -110,8 +110,25 @@ Use these `entry_type` values:
 ## What You Don't Do
 
 ❌ **Never write to diary.md directly** - ai-coordination does this
-❌ **Never switch branches** - always work on product branch
+❌ **Never switch branches** - always stay on product branch
 ❌ **Never manage sessions** - ai-coordination handles lifecycle
+❌ **Never worry about agent branch** - ai-coordination uses worktree for isolation
+
+---
+
+## How It Works (Technical)
+
+**Main directory** (`/home/user/diary_prep`):
+- You work here 100% of the time
+- Always on product branch
+- Session files created here temporarily
+
+**Worktree** (`/home/user/diary_prep-agent-$AGENT_ID`):
+- ai-coordination uses this for agent branch operations
+- Completely isolated from your work
+- You never interact with it
+
+**Benefits**: Multiple sub-agents can run in parallel safely. No branch switching chaos.
 
 ---
 
