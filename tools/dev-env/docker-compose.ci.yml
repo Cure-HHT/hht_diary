@@ -8,8 +8,6 @@
 # Usage:
 #   docker-compose -f docker-compose.yml -f docker-compose.ci.yml up
 
-version: '3.9'
-
 services:
   # ============================================================
   # Developer Environment - CI Limits

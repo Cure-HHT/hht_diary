@@ -78,23 +78,8 @@ RUN chmod +x /usr/local/bin/qa-runner.sh
 # ============================================================
 # Health check override for QA role
 # ============================================================
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-set -e
-# Base tools
-git --version >/dev/null
-gh --version >/dev/null
-node --version >/dev/null
-python3 --version >/dev/null
-doppler --version >/dev/null
-# QA-specific tools
-flutter --version >/dev/null
-npx playwright --version >/dev/null 2>&1
-pandoc --version >/dev/null
-echo "QA health check passed"
-EOF
-
-RUN chmod +x /usr/local/bin/health-check.sh
+RUN printf '#!/bin/bash\nset -e\n# Base tools\ngit --version >/dev/null\ngh --version >/dev/null\nnode --version >/dev/null\npython3 --version >/dev/null\ndoppler --version >/dev/null\n# QA-specific tools\nflutter --version >/dev/null\nnpx playwright --version >/dev/null 2>&1\npandoc --version >/dev/null\necho "QA health check passed"\n' > /usr/local/bin/health-check.sh && \
+    chmod +x /usr/local/bin/health-check.sh
 
 USER ubuntu
 WORKDIR /workspace/src

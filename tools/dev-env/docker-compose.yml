@@ -14,8 +14,6 @@
 #
 # See: tools/dev-env/README.md for complete setup instructions
 
-version: '3.9'
-
 services:
   # ============================================================
   # Developer Environment
