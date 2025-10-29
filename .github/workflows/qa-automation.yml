@@ -108,23 +108,11 @@ jobs:
         run: |
           echo "Docker files changed - building from source"
 
-          # COHERENT CACHING: Use GHCR images as cache source
-          # BuildKit will pull layers from registry if available
-          # No --no-cache flag - let BuildKit do smart caching
-
-          # Build base with BuildKit and registry cache
-          docker buildx build \
-            --pull \
-            --cache-from type=registry,ref=ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest \
-            --cache-to type=inline \
-            --load \
-            -f docker/base.Dockerfile \
-            -t clinical-diary-base:latest \
-            docker/
-
-          # Build dev and qa using docker compose (BuildKit enabled via env)
+          # COHERENT CACHING: Use GHCR images as cache source via docker compose
+          # Compose will build base -> dev -> qa in dependency order
+          # BuildKit will pull layers from GHCR registry if available
           # Use CI override to limit resources to GitHub Actions constraints
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build dev
+
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build qa
 
           echo "Images built successfully"
