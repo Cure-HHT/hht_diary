@@ -110,9 +110,15 @@ jobs:
           echo "Docker files changed - building from source with registry caching"
 
           # PROPER REGISTRY-BASED CACHING:
-          # Build each image, push to GHCR immediately, so subsequent builds can pull from registry
-          # This ensures FROM directives can resolve from GHCR
-          # BuildKit uses cache_from to pull layers from GHCR for faster builds
+          # 1. Pull existing images from GHCR for cache (|| true allows failure if not exists)
+          # 2. Build each image (BuildKit uses cache_from to reuse layers from pulled images)
+          # 3. Push to GHCR immediately so subsequent builds can use as cache
+          # This ensures FROM directives can resolve from GHCR and layer caching works
+
+          echo "Pulling previous images for cache..."
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest || true
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest || true
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest || true
 
           echo "Building base image..."
           docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build base
