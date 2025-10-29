@@ -15,20 +15,6 @@ on:
       - main
       - 'feature/**'
       - 'release/**'
-    paths:
-      # Trigger on Docker environment changes
-      - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/docker-compose.yml'
-      - 'tools/dev-env/setup.sh'
-      # Trigger on application code changes (mounted as volume, but tests need to run)
-      - 'apps/**'
-      - 'packages/**'
-      - 'database/**'
-      - 'tests/**'
-      - 'e2e/**'
-      - 'pubspec.yaml'
-      - 'package.json'
-      # Note: Workflow changes don't trigger QA - use workflow_dispatch to test manually
   workflow_dispatch:
     inputs:
       test_suite:
