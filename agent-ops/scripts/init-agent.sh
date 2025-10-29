@@ -68,6 +68,12 @@ fi
 echo "Initializing agent: $AGENT_NAME"
 echo ""
 
+# Register agent-ops agents in .claude/agents.json
+echo "Registering agent-ops agents..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/register-agents.sh"
+echo ""
+
 # Create agent coordination worktree (for ai-coordination sub-agent)
 if [ ! -d "$AGENT_WORKTREE_PATH" ]; then
   echo "Creating agent coordination worktree..."

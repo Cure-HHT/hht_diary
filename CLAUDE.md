@@ -532,140 +532,6 @@ The Linear CLI tools integrate with the requirement validation system:
 
 ---
 
-## Feature Diary System
-
-**IMPORTANT**: Record all significant work in feature-based diary entries in `untracked-notes/`.
-
-### When to Create a Diary Entry
-
-Create a diary entry when:
-- Working on a feature/bug/task that involves multiple files or steps
-- Implementing requirements that will take more than 30 minutes
-- Making architectural decisions or significant changes
-- Any work that would benefit from a detailed record for future reference
-
-**Do NOT create diary entries for**:
-- Trivial fixes (typo corrections, formatting)
-- Single-file changes that are self-explanatory
-
-### Diary File Naming
-
-**Format**: `diary-YYYY-MM-DD-feature-name.md`
-
-**Examples**:
-- `diary-2025-10-28-cicd-workflow-optimization.md`
-- `diary-2025-10-27-carina-portal.md`
-- `diary-2025-10-26-requirement-validation-tool.md`
-
-**Key Points**:
-- One file per feature (not per day)
-- Use kebab-case for feature names
-- Descriptive feature names that indicate what was worked on
-
-### Diary Entry Structure
-
-```markdown
-# Diary - YYYY-MM-DD - Feature Name
-
-## Project: Brief project description
-
-**Start Time**: HH:MM
-**Status**: ✅ Completed / 🚧 In Progress / ⚠️ Blocked
-**Branch**: `feature/branch-name`
-
----
-
-## Overview
-
-Brief description of the goal and what was accomplished.
-
----
-
-## Work Completed
-
-### Phase 1: Phase Name (HH:MM - HH:MM)
-
-✅ Task 1 completed
-✅ Task 2 completed
-🚧 Task 3 in progress
-
-**Key Files Created/Modified**:
-- `path/to/file1.ext` - Description
-- `path/to/file2.ext` - Description
-
-**Technologies/Tools Used**:
-- Tool 1
-- Tool 2
-
-### Phase 2: Phase Name (HH:MM - HH:MM)
-
-...
-
----
-
-## Requirements Implemented
-
-- REQ-p00XXX: Requirement description
-- REQ-o00YYY: Requirement description
-- REQ-d00ZZZ: Requirement description
-
----
-
-## Issues Encountered and Solutions
-
-### Issue 1: Description
-
-**Problem**: Detailed description
-**Solution**: How it was resolved
-**Files Changed**: List of files
-
----
-
-## Commits Made
-
-- `abc1234` - Commit message 1
-- `def5678` - Commit message 2
-
----
-
-## Next Steps / Follow-up
-
-- [ ] Task 1 remaining
-- [ ] Task 2 remaining
-
----
-
-## Lessons Learned
-
-- Lesson 1
-- Lesson 2
-```
-
-### Key Guidelines
-
-1. **Update as you work**: Add entries incrementally, don't wait until the end
-2. **Be specific**: Include file paths, requirement IDs, commit hashes
-3. **Record decisions**: Document WHY choices were made, not just WHAT was done
-4. **Track time**: Use time ranges to show progression through phases
-5. **Link requirements**: Always reference REQ-* IDs for traceability
-6. **Note blockers**: If blocked, document the blocker clearly
-
-### Example Workflow
-
-```bash
-# Start work on feature
-echo "# Diary - $(date +%Y-%m-%d) - CI/CD Optimization" > untracked-notes/diary-$(date +%Y-%m-%d)-cicd-optimization.md
-
-# Add overview and initial phase
-# ... work on feature ...
-
-# Update diary with completed tasks
-# ... mark tasks as ✅ ...
-
-# At end, ensure requirements and commits are documented
-```
-
----
 
 ## User Preferences
 
@@ -705,7 +571,7 @@ This project uses the agent-ops system for multi-agent coordination and worktree
 
 ### Setup
 
-**Initial Setup** (run once per session):
+**Initial Setup** (run once per worktree, or if not in worktree):
 ```bash
 ./agent-ops/scripts/init-agent.sh
 ```
@@ -732,4 +598,18 @@ This script will:
 - `agent-ops/HUMAN.md` - Human-readable guide
 - `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions
 - `agent-ops/ai/ORCHESTRATOR.md` - Orchestrator workflow
+
+### When to use the coordinator agent:
+- Working on a feature/bug/task that involves multiple files or steps
+- Implementing requirements that will take more than 30 minutes
+- Making architectural decisions or significant changes
+- Any work that would benefit from a detailed record for future reference
+
+1. **Update as you work**: use the coordinator incrementally, don't wait until the end
+2. **Be specific**: Include file paths, requirement IDs, commit hashes
+3. **Record decisions**: Document WHY choices were made, not just WHAT was done
+4. **Track time**: Use time ranges to show progression through phases
+5. **Link requirements**: Always reference REQ-* IDs for traceability
+6. **Note blockers**: If blocked, document the blocker clearly
+
 

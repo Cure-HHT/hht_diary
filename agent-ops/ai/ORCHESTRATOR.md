@@ -6,26 +6,28 @@
 
 ## ⚠️ MANDATORY: Session Startup Check ⚠️
 
-**EVERY session MUST begin with this check:**
+**EVERY session MUST begin with the startup command:**
 
 ```bash
-./agent-ops/scripts/check-worktree.sh
+/startup
 ```
+
+This runs the `agent-ops-startup` sub-agent which verifies your configuration and announces your agent identity.
 
 **Possible outcomes:**
 
-1. **STATUS: ready** → Announce yourself and proceed with work
-   - Example: "Hi, I'm agent vise. Ready to work."
+1. **✅ STATUS: READY** → Announce yourself and proceed with work
+   - Example: "Hi, I'm agent motor. Ready to work on branch feature/xyz."
 
-2. **STATUS: wrong_location** → Tell user to restart Claude from product worktree
+2. **⚠️ STATUS: WARNING - Wrong Worktree** → Tell user to restart Claude from product worktree
    - Do NOT proceed with any work
-   - Provide the exact path from the check output
+   - Provide the exact path from the startup report
 
-3. **STATUS: not_initialized** → Tell user to run initialization
+3. **🚫 STATUS: NOT_INITIALIZED** → Tell user to run initialization
    - Provide command: `./agent-ops/scripts/init-agent.sh`
+   - Do NOT proceed with any work
 
-4. **STATUS: worktree_missing** → Tell user to run initialization again
-   - Worktrees need to be created
+**The `/startup` command is composable** - it will run all registered startup agents, not just agent-ops. Other systems can add their own startup checks.
 
 ---
 
