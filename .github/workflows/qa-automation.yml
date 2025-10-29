@@ -62,13 +62,14 @@ jobs:
       - name: Detect Docker file changes
         id: docker-changes
         run: |
-          # Check if any Docker-related files changed in this PR
-          if git diff --name-only origin/main...${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+          # Check if any Docker-related files changed in THIS PUSH (not entire PR vs main)
+          # This allows subsequent commits without Docker changes to use fast pull path
+          if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Docker files changed - will rebuild images"
+            echo "Docker files changed in this push - will rebuild images"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "No Docker changes - will pull pre-built images from GHCR"
+            echo "No Docker changes in this push - will pull pre-built images from GHCR"
           fi
 
       - name: Log in to GitHub Container Registry
