@@ -263,6 +263,24 @@ rm -rf "$SESSION_DIR"
 echo "   Removed: $SESSION_DIR"
 echo ""
 
+# Offer to clean up worktree
+echo -e "${CYAN}Worktree cleanup...${NC}"
+echo ""
+echo "Session is complete and archived. The worktree can now be removed."
+echo ""
+read -p "Remove worktree for this session? (y/n): " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  "$SCRIPT_DIR/cleanup-worktree.sh" || {
+    echo -e "${YELLOW}Warning: Worktree cleanup failed${NC}"
+    echo "You can manually run: ./agent-ops/scripts/cleanup-worktree.sh"
+  }
+else
+  echo -e "${YELLOW}Worktree kept. Remove later with:${NC}"
+  echo "  ./agent-ops/scripts/cleanup-worktree.sh"
+fi
+echo ""
+
 # Switch back to product branch
 if [ "$PRODUCT_BRANCH" != "unknown" ] && [ -n "$PRODUCT_BRANCH" ]; then
     echo -e "${CYAN}Switching back to product branch: $PRODUCT_BRANCH${NC}"

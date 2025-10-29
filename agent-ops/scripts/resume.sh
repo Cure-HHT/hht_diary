@@ -183,8 +183,44 @@ else
     if [ -n "$LATEST_SESSION" ]; then
         if [ -f "$LATEST_SESSION/results.md" ] && ! grep -q "^\[2-4 sentence summary" "$LATEST_SESSION/results.md" 2>/dev/null; then
             echo -e "${YELLOW}Latest session is complete. Start a new one when ready.${NC}"
+            echo "  ./agent-ops/scripts/new-session.sh"
         else
-            echo -e "${YELLOW}Continue working in: $LATEST_SESSION${NC}"
+            echo -e "${CYAN}Found incomplete session: $(basename "$LATEST_SESSION")${NC}"
+            echo ""
+            echo "Options:"
+            echo "  1. Continue session (resume work)"
+            echo "  2. Start new session"
+            echo "  3. View session diary first"
+            echo ""
+            read -p "Choose option (1-3): " -n 1 -r
+            echo ""
+            echo ""
+
+            case "$REPLY" in
+                1)
+                    "$SCRIPT_DIR/continue-session.sh" "$LATEST_SESSION"
+                    exit 0
+                    ;;
+                2)
+                    echo "Start a new session with:"
+                    echo "  ./agent-ops/scripts/new-session.sh"
+                    ;;
+                3)
+                    if [ -f "$LATEST_SESSION/diary.md" ]; then
+                        ${EDITOR:-less} "$LATEST_SESSION/diary.md"
+                        echo ""
+                        read -p "Continue this session now? (y/n): " -n 1 -r
+                        echo ""
+                        if [[ $REPLY =~ ^[Yy]$ ]]; then
+                            "$SCRIPT_DIR/continue-session.sh" "$LATEST_SESSION"
+                            exit 0
+                        fi
+                    fi
+                    ;;
+                *)
+                    echo "Invalid option."
+                    ;;
+            esac
         fi
     else
         echo -e "${YELLOW}Start a new session when ready: ./agent-ops/scripts/new-session.sh${NC}"

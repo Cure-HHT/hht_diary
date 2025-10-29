@@ -144,17 +144,41 @@ if [ -f "$CLAUDE_MD" ] && ! grep -q "agent-ops" "$CLAUDE_MD" 2>/dev/null; then
 
 ## Agent Ops System
 
-This project uses the agent-ops system for multi-agent coordination.
+This project uses the agent-ops system for multi-agent coordination and session tracking.
 
-**For AI Agents**:
-- Read `agent-ops/ai/ORCHESTRATOR.md` for orchestrator workflow
-- Use `ai-coordination` sub-agent for session management
-- Run `./agent-ops/scripts/init-agent.sh` once per session
+### MANDATORY Workflow Instructions
+
+**At the start of EVERY session**, you MUST:
+
+1. **Read orchestrator instructions**: `agent-ops/ai/ORCHESTRATOR.md`
+   - Contains complete workflow for session management
+   - Describes when and how to delegate to ai-coordination sub-agent
+   - Defines event types and response handling
+
+2. **Assess if session tracking applies**:
+   - ✅ **Use session tracking for**: Multi-step features, significant implementations, work involving multiple files/requirements
+   - ❌ **Skip session tracking for**: Trivial fixes, single-file edits, quick questions, research-only tasks
+
+3. **If using session tracking**:
+   - Run `./agent-ops/scripts/init-agent.sh` once per session
+   - Follow orchestrator workflow from ORCHESTRATOR.md
+   - Delegate to `ai-coordination` sub-agent for session lifecycle events
+
+4. **If NOT using session tracking**:
+   - Work normally without agent-ops overhead
+   - No manual diary documentation needed
+
+### Quick Reference
 
 **Documentation**:
+- `agent-ops/ai/ORCHESTRATOR.md` - **READ THIS FIRST** - Your workflow instructions
+- `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions (for ai-coordination agent only)
 - `agent-ops/README.md` - System overview
 - `agent-ops/HUMAN.md` - Human-readable guide
-- `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions
+
+**Key Tools**:
+- `./agent-ops/scripts/init-agent.sh` - Initialize agent for session (run once)
+- `Task` tool with `subagent_type="ai-coordination"` - Delegate session management events
 
 EOF
     echo -e "${GREEN}✓ Added agent-ops reference to CLAUDE.md${NC}"

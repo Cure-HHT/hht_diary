@@ -486,141 +486,6 @@ The Linear CLI tools integrate with the requirement validation system:
 
 ---
 
-## Feature Diary System
-
-**IMPORTANT**: Record all significant work in feature-based diary entries in `untracked-notes/`.
-
-### When to Create a Diary Entry
-
-Create a diary entry when:
-- Working on a feature/bug/task that involves multiple files or steps
-- Implementing requirements that will take more than 30 minutes
-- Making architectural decisions or significant changes
-- Any work that would benefit from a detailed record for future reference
-
-**Do NOT create diary entries for**:
-- Trivial fixes (typo corrections, formatting)
-- Single-file changes that are self-explanatory
-
-### Diary File Naming
-
-**Format**: `diary-YYYY-MM-DD-feature-name.md`
-
-**Examples**:
-- `diary-2025-10-28-cicd-workflow-optimization.md`
-- `diary-2025-10-27-carina-portal.md`
-- `diary-2025-10-26-requirement-validation-tool.md`
-
-**Key Points**:
-- One file per feature (not per day)
-- Use kebab-case for feature names
-- Descriptive feature names that indicate what was worked on
-
-### Diary Entry Structure
-
-```markdown
-# Diary - YYYY-MM-DD - Feature Name
-
-## Project: Brief project description
-
-**Start Time**: HH:MM
-**Status**: ✅ Completed / 🚧 In Progress / ⚠️ Blocked
-**Branch**: `feature/branch-name`
-
----
-
-## Overview
-
-Brief description of the goal and what was accomplished.
-
----
-
-## Work Completed
-
-### Phase 1: Phase Name (HH:MM - HH:MM)
-
-✅ Task 1 completed
-✅ Task 2 completed
-🚧 Task 3 in progress
-
-**Key Files Created/Modified**:
-- `path/to/file1.ext` - Description
-- `path/to/file2.ext` - Description
-
-**Technologies/Tools Used**:
-- Tool 1
-- Tool 2
-
-### Phase 2: Phase Name (HH:MM - HH:MM)
-
-...
-
----
-
-## Requirements Implemented
-
-- REQ-p00XXX: Requirement description
-- REQ-o00YYY: Requirement description
-- REQ-d00ZZZ: Requirement description
-
----
-
-## Issues Encountered and Solutions
-
-### Issue 1: Description
-
-**Problem**: Detailed description
-**Solution**: How it was resolved
-**Files Changed**: List of files
-
----
-
-## Commits Made
-
-- `abc1234` - Commit message 1
-- `def5678` - Commit message 2
-
----
-
-## Next Steps / Follow-up
-
-- [ ] Task 1 remaining
-- [ ] Task 2 remaining
-
----
-
-## Lessons Learned
-
-- Lesson 1
-- Lesson 2
-```
-
-### Key Guidelines
-
-1. **Update as you work**: Add entries incrementally, don't wait until the end
-2. **Be specific**: Include file paths, requirement IDs, commit hashes
-3. **Record decisions**: Document WHY choices were made, not just WHAT was done
-4. **Track time**: Use time ranges to show progression through phases
-5. **Link requirements**: Always reference REQ-* IDs for traceability
-6. **Note blockers**: If blocked, document the blocker clearly
-
-### Example Workflow
-
-```bash
-# Start work on feature
-echo "# Diary - $(date +%Y-%m-%d) - CI/CD Optimization" > untracked-notes/diary-$(date +%Y-%m-%d)-cicd-optimization.md
-
-# Add overview and initial phase
-# ... work on feature ...
-
-# Update diary with completed tasks
-# ... mark tasks as ✅ ...
-
-# At end, ensure requirements and commits are documented
-```
-
----
-
 ## User Preferences
 
 - Whenever you stop to ask me a question, play an audible notification using: `paplay ~/freesound/762115__jerryberumen__alarm-misc-message-alert-notification-quick-short-arp.wav`
@@ -629,15 +494,39 @@ echo "# Diary - $(date +%Y-%m-%d) - CI/CD Optimization" > untracked-notes/diary-
 
 ## Agent Ops System
 
-This project uses the agent-ops system for multi-agent coordination.
+This project uses the agent-ops system for multi-agent coordination and session tracking.
 
-**For AI Agents**:
-- Read `agent-ops/ai/ORCHESTRATOR.md` for orchestrator workflow
-- Use `ai-coordination` sub-agent for session management
-- Run `./agent-ops/scripts/init-agent.sh` once per session
+### MANDATORY Workflow Instructions
+
+**At the start of EVERY session**, you MUST:
+
+1. **Read orchestrator instructions**: `agent-ops/ai/ORCHESTRATOR.md`
+   - Contains complete workflow for session management
+   - Describes when and how to delegate to ai-coordination sub-agent
+   - Defines event types and response handling
+
+2. **Assess if session tracking applies**:
+   - ✅ **Use session tracking for**: Multi-step features, significant implementations, work involving multiple files/requirements
+   - ❌ **Skip session tracking for**: Trivial fixes, single-file edits, quick questions, research-only tasks
+
+3. **If using session tracking**:
+   - Run `./agent-ops/scripts/init-agent.sh` once per session
+   - Follow orchestrator workflow from ORCHESTRATOR.md
+   - Delegate to `ai-coordination` sub-agent for session lifecycle events
+
+4. **If NOT using session tracking**:
+   - Work normally without agent-ops overhead
+   - No manual diary documentation needed
+
+### Quick Reference
 
 **Documentation**:
+- `agent-ops/ai/ORCHESTRATOR.md` - **READ THIS FIRST** - Your workflow instructions
+- `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions (for ai-coordination agent only)
 - `agent-ops/README.md` - System overview
 - `agent-ops/HUMAN.md` - Human-readable guide
-- `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions
+
+**Key Tools**:
+- `./agent-ops/scripts/init-agent.sh` - Initialize agent for session (run once)
+- `Task` tool with `subagent_type="ai-coordination"` - Delegate session management events
 
