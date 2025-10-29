@@ -515,21 +515,9 @@ fi
 # =============================================================================
 
 echo
-echo -e "${GREEN}=== Integration Complete ===${NC}"
+echo -e "${GREEN}=== Complete ===${NC}"
 echo
-echo "Created/updated:"
-echo "  • .claude/instructions.md (Agent Ops section)"
-echo "  • .claude/commands/agent-start.md"
-echo "  • .claude/commands/agent-end.md"
-echo "  • .claude/commands/agent-resume.md"
-echo "  • .claude/commands/agent-guide.md"
+echo "Slash commands: /agent-start, /agent-end, /agent-resume, /agent-guide"
+echo "Guide: agent-ops/ai/AGENT_GUIDE.md"
 echo
-echo "Available slash commands:"
-echo "  • /agent-start - Start new session"
-echo "  • /agent-end - End current session"
-echo "  • /agent-resume - Resume after interruption"
-echo "  • /agent-guide - Show quick reference"
-echo
-echo "Quick reference: agent-ops/ai/AGENT_GUIDE.md"
-echo
-echo -e "${BLUE}You're all set! Use /agent-start to begin.${NC}"
+echo -e "${BLUE}Ready! Use /agent-start to begin.${NC}"

@@ -1,103 +1,44 @@
 ---
-description: Resume Agent Ops work from previous session
+description: Resume Agent Ops work
 ---
 
-# Task: Resume Agent Ops Work
+# Resume Agent Ops Work
 
-Resume Agent Ops work after reboot, context limit, or new day.
-
-## Instructions
-
-### 1. Check Current State
+### 1. Check State
 
 ```bash
-./agent-ops/scripts/resume.sh
+./agent-ops/scripts/resume.sh  # Shows git status, context, latest session
 ```
-
-This shows:
-- Git status
-- Agent CONTEXT.md (your last state)
-- Latest session info
-- Prompt to start new session
 
 ### 2. Read Context
 
-**If you have agent branch** (e.g., `claude/ai-agent-011ABC`):
-
 ```bash
-# See your last status (no checkout needed!)
+# Your last status (no checkout needed)
 git show origin/claude/ai-agent-011ABC:agent-ops/agents/011ABC/CONTEXT.md
-```
 
-**Read**:
-- Current work
-- Last session
-- Current state
-- Next steps
-
-### 3. Read Latest Results
-
-**If session still exists locally**:
-```bash
+# Latest results
 cat agent-ops/sessions/LATEST/results.md
+# Or: git show origin/claude/ai-agent-011ABC:agent-ops/archive/LATEST/results.md
 ```
 
-**If archived on agent branch**:
-```bash
-git show origin/claude/ai-agent-011ABC:agent-ops/archive/LATEST/results.md
-```
+### 3. Resume or New
 
-Look for:
-- What was completed
-- What's incomplete
-- What to do next
-
-### 4. Decide: Resume or New Session
-
-**Resume existing session** if:
-- Context limit hit mid-work
-- Same task continuing
-- Session directory still exists locally
-
+**Resume existing** (context limit mid-work, session still local):
 ```bash
 cd agent-ops/sessions/YYYYMMDD_HHMMSS/
-
-# Continue appending to diary.md
-```
-
-Add entry:
-```markdown
+# Continue diary.md:
 ## [HH:MM] Session Resumed
-
-Last action: [summarize last entry]
-Continuing with: [next task]
+Last: [summary]
+Continuing: [task]
 ```
 
-**Start new session** if:
-- Starting new task
-- After reboot (sessions/ cleared)
-- New day
-
+**Start new** (after reboot, new task):
 ```bash
-./agent-ops/scripts/new-session.sh "continue previous work"
+./agent-ops/scripts/new-session.sh "continue work"
+# In plan.md: **Continuing From**: sessions/20251027_160000/
 ```
 
-In plan.md, reference previous session:
-```markdown
-**Continuing From**: sessions/20251027_160000/ or archive/20251027_name/
-```
+## Reference
 
-### 5. Continue Work
-
-Follow normal Agent Ops workflow:
-- Maintain diary.md after every action
-- Update plan.md checkboxes
-- Reference requirements and tickets
-
-## Quick Reference
-
-**Resume script**: `./agent-ops/scripts/resume.sh`
-**Start new session**: `/agent-start`
-**End session**: `/agent-end`
-
-**Full guide**: `agent-ops/docs/workflows/resume.md`
+**Script**: `./agent-ops/scripts/resume.sh`
+**Guide**: `agent-ops/docs/workflows/resume.md`

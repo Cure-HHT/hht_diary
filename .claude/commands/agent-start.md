@@ -1,95 +1,56 @@
 ---
-description: Start an Agent Ops session for multi-session work
+description: Start Agent Ops session
 ---
 
-# Task: Start Agent Ops Session
-
-Start a new Agent Ops session for tracking multi-session work with complete audit trail.
+# Start Agent Ops Session
 
 ## When to Use
 
-Use Agent Ops when:
-- Work spans multiple Claude Code sessions
-- Need complete audit trail (FDA compliance)
-- Coordinating with other agents/developers
-- Want to resume after context limits/reboots
-
-**Don't use for**: Simple, single-session tasks that will complete in one go.
+Multi-session work requiring audit trail or coordination.
+**Skip for**: Single-session tasks.
 
 ## Instructions
 
-### 1. Check for Other Agents
-
-First, see if anyone else is working on related files:
+### 1. Check Agents
 
 ```bash
-./agent-ops/scripts/show-agents.sh
+./agent-ops/scripts/show-agents.sh  # Coordinate if editing same files
 ```
 
-If someone is editing the same files → coordinate with them!
-
-### 2. Start Session
+### 2. Start
 
 ```bash
-./agent-ops/scripts/new-session.sh "brief description of work"
+./agent-ops/scripts/new-session.sh "description"
 ```
 
-This creates: `agent-ops/sessions/YYYYMMDD_HHMMSS/`
+### 3. Fill `plan.md`
 
-### 3. Fill Out Plan
+- Goal, tasks, success criteria
+- Requirements (REQ-*), tickets (#CUR-XXX)
 
-Edit: `agent-ops/sessions/YYYYMMDD_HHMMSS/plan.md`
-
-Include:
-- Session goal (one sentence)
-- Tasks (checkboxes)
-- Success criteria
-- Related requirements (REQ-*)
-- Linear tickets (#CUR-XXX)
-
-### 4. Start Diary
-
-Edit: `agent-ops/sessions/YYYYMMDD_HHMMSS/diary.md`
-
-Add initial entry:
+### 4. Start `diary.md`
 
 ```markdown
 ## [HH:MM] Session Start
-
 **Goal**: [from plan.md]
-**Context**: [current state]
-**Tasks**: [list from plan.md]
+**Tasks**: [list]
 ```
 
 ### 5. During Work
 
-**CRITICAL**: Append to diary.md after EVERY action:
-
+Append after EVERY action:
 ```markdown
 ## [HH:MM] [Action Type]
-
 [What happened]
-
 **Files**: [if applicable]
-**Result**: [outcome]
 ```
 
-Action types: User Request, Investigation, Implementation, Error Encountered, Solution Applied, Decision Made, Task Complete, Blocked
+Action types: User Request, Investigation, Implementation, Error, Solution, Decision, Complete, Blocked
 
-**Update plan.md**: Check off tasks as completed.
+**Update** `plan.md` checkboxes as tasks complete.
 
-## Quick Reference
+## Reference
 
-**Diary entry types**: See `agent-ops/docs/workflows/during-session.md`
-
-**End session**: Run `/agent-end` when done
-
-**Full guide**: `agent-ops/ai/AGENT_GUIDE.md`
-
----
-
-**Notes**:
-- Maintain diary.md continuously (not at end!)
-- Reference requirements: REQ-pXXXXX, REQ-oXXXXX, REQ-dXXXXX
-- Link to Linear tickets: #CUR-XXX
-- Keep plan.md updated with checkboxes
+**Details**: `agent-ops/docs/workflows/during-session.md`
+**End**: `/agent-end`
+**Guide**: `agent-ops/ai/AGENT_GUIDE.md`

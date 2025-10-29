@@ -8,15 +8,11 @@
 
 ## Installation
 
-**One-time setup** (for Claude Code integration):
-
 ```bash
 ./agent-ops/scripts/init-claude-integration.sh
 ```
 
-This creates slash commands (`/agent-start`, `/agent-end`, `/agent-resume`, `/agent-guide`) and updates `.claude/instructions.md`.
-
-**See**: [INSTALL.md](INSTALL.md) for details.
+Creates slash commands and updates `.claude/instructions.md`. See [INSTALL.md](INSTALL.md).
 
 ---
 
@@ -24,17 +20,16 @@ This creates slash commands (`/agent-start`, `/agent-end`, `/agent-resume`, `/ag
 
 ### For AI Agents
 
-1. **Install**: Run `./agent-ops/scripts/init-claude-integration.sh` (one-time)
-2. **Read this first**: [AI Agent Guide](ai/AGENT_GUIDE.md) (~5 min read)
-3. **Check for other agents**: `./agent-ops/scripts/show-agents.sh`
-4. **Start working**: `/agent-start` or `./agent-ops/scripts/new-session.sh "description"`
+1. **Install**: `./agent-ops/scripts/init-claude-integration.sh`
+2. **Read**: [AI Agent Guide](ai/AGENT_GUIDE.md)
+3. **Check agents**: `./agent-ops/scripts/show-agents.sh`
+4. **Start**: `/agent-start`
 
 ### For Humans
 
-1. **Install**: Run `./agent-ops/scripts/init-claude-integration.sh` (one-time)
-2. **Overview**: [Core Concepts](docs/concepts.md)
-3. **Setup**: [Two-Branch System](docs/two-branch-system.md)
-4. **Daily use**: [Quick Reference](docs/quick-ref.md)
+1. **Install**: `./agent-ops/scripts/init-claude-integration.sh`
+2. **Read**: [Core Concepts](docs/concepts.md), [Two-Branch System](docs/two-branch-system.md)
+3. **Reference**: [Quick Reference](docs/quick-ref.md)
 
 ---
 
@@ -50,15 +45,9 @@ Traditional tracking fails when:
 
 ## The Solution
 
-**Two-Branch Architecture**:
-
-- **Product branches**: Contain code + system docs
-  - Example: `claude/feature-name-011ABC`
-  - Merged to `main` when complete
-
-- **Agent branches**: Contain coordination state only
-  - Pattern: `*/ai-agent-{agent-id}`
-  - Never merged (persist for history)
+**Two branches**:
+- **Product** (`claude/feature-name-011ABC`): Code + docs, merged to `main`
+- **Agent** (`*/ai-agent-{agent-id}`): Coordination state, never merged
 
 **Result**: No conflicts, async coordination, clean history.
 
@@ -177,26 +166,14 @@ git checkout claude/ai-agent-011ABC
 
 ## Integration with Claude Code
 
-Add to your `CLAUDE.md`:
+Add to `CLAUDE.md`:
 
 ```markdown
 ## Agent Ops
 
-This project uses Agent Ops for multi-agent coordination.
-
-**Before starting work**:
-1. Read: `agent-ops/ai/AGENT_GUIDE.md`
-2. Check agents: `./agent-ops/scripts/show-agents.sh`
-3. Start session: `./agent-ops/scripts/new-session.sh "description"`
-
-**During work**:
-- Maintain `diary.md` after every action
-- Reference requirements: REQ-pXXXXX
-- Update `plan.md` checkboxes
-
-**After work**:
-- End session: `./agent-ops/scripts/end-session.sh`
-- Update agent state on agent branch
+**Before**: Check agents, read `agent-ops/ai/AGENT_GUIDE.md`, start with `/agent-start`
+**During**: Maintain `diary.md`, reference REQ-*, update `plan.md`
+**After**: `/agent-end`, update agent branch
 ```
 
 ---
