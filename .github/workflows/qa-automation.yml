@@ -166,6 +166,21 @@ jobs:
         run: |
           timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
 
+      - name: Prepare repository in QA container
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
+            mkdir -p /workspace/repos
+            # Copy the checked-out repository from /workspace/src to expected location
+            if [ ! -d /workspace/repos/clinical-diary ]; then
+              echo 'Copying repository to /workspace/repos/clinical-diary...'
+              cp -r /workspace/src /workspace/repos/clinical-diary
+              echo 'Repository prepared successfully'
+            else
+              echo 'Repository already exists at /workspace/repos/clinical-diary'
+            fi
+          "
+
       - name: Authenticate with Doppler (if configured)
         working-directory: tools/dev-env
         run: |
