@@ -1,0 +1,66 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00030: CI/CD Environment Parity
+#
+# Docker Compose CI Override
+# Reduces resource limits for GitHub Actions (2 CPU limit)
+#
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.ci.yml up
+
+version: '3.9'
+
+services:
+  # ============================================================
+  # Developer Environment - CI Limits
+  # ============================================================
+  dev:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'      # GitHub Actions max (reduced from 4)
+          memory: 4G     # Reduced from 6G for stability
+        reservations:
+          cpus: '1'      # Reduced from 2
+          memory: 2G     # Reduced from 4G
+
+  # ============================================================
+  # QA Environment - CI Limits
+  # ============================================================
+  qa:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'      # GitHub Actions max (reduced from 4)
+          memory: 4G     # Reduced from 6G for stability
+        reservations:
+          cpus: '1'      # Reduced from 2
+          memory: 2G     # Reduced from 4G
+
+  # ============================================================
+  # DevOps Environment - CI Limits
+  # Already at 2 CPUs, but reduce memory for stability
+  # ============================================================
+  ops:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 3G     # Reduced from 4G
+        reservations:
+          cpus: '1'
+          memory: 1G     # Reduced from 2G
+
+  # ============================================================
+  # Management Environment - CI Limits
+  # Already at 2 CPUs, keep as-is
+  # ============================================================
+  mgmt:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G

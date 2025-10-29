@@ -65,25 +65,26 @@ jobs:
           docker build -f docker/base.Dockerfile -t clinical-diary-base:latest docker/
 
           # Dev and qa are compose services that extend base
-          docker compose build dev
-          docker compose build qa
+          # Use CI override to limit resources to GitHub Actions constraints (2 CPUs)
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build dev
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build qa
 
       - name: Start QA environment
         working-directory: tools/dev-env
         run: |
-          docker compose up -d qa
-          docker compose ps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d qa
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
       - name: Wait for QA container to be healthy
         working-directory: tools/dev-env
         run: |
-          timeout 60 bash -c 'until docker compose exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
 
       - name: Authenticate with Doppler (if configured)
         working-directory: tools/dev-env
         run: |
           if [ -n "${{ secrets.DOPPLER_TOKEN_QA }}" ]; then
-            docker compose exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
           else
             echo "No Doppler token configured, skipping authentication"
           fi
@@ -93,7 +94,7 @@ jobs:
         id: flutter-tests
         working-directory: tools/dev-env
         run: |
-          docker compose exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
             if [ -f pubspec.yaml ]; then
               flutter pub get
@@ -107,7 +108,7 @@ jobs:
         id: playwright-tests
         working-directory: tools/dev-env
         run: |
-          docker compose exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Playwright tests found, skipping'
             if [ -d tests ] || [ -d e2e ]; then
               npx playwright test --reporter=json > /workspace/reports/playwright-results.json || true
@@ -124,7 +125,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          docker compose exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             export TEST_SUITE='$TEST_SUITE'
             export PR_NUMBER='$PR_NUMBER'
             export COMMIT_SHA='$COMMIT_SHA'
@@ -137,7 +138,7 @@ jobs:
         working-directory: tools/dev-env
         run: |
           mkdir -p ../../qa-reports
-          docker compose cp qa:/workspace/reports/. ../../qa-reports/ || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml cp qa:/workspace/reports/. ../../qa-reports/ || true
           ls -la ../../qa-reports/
 
       - name: Generate test summary
@@ -240,7 +241,7 @@ jobs:
         if: always()
         working-directory: tools/dev-env
         run: |
-          docker compose down -v
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
 
       - name: Fail workflow if tests failed
         if: steps.qa-suite.outcome == 'failure'
