@@ -24,6 +24,9 @@ services:
     build:
       context: ./docker
       dockerfile: base.Dockerfile
+      cache_from:
+        - clinical-diary-base:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
     image: clinical-diary-base:latest
     # Base is not meant to be run directly, only built
     profiles:
@@ -41,7 +44,11 @@ services:
       dockerfile: dev.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
-    pull_policy: build
+      cache_from:
+        - clinical-diary-base:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
+        - clinical-diary-dev:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
     image: clinical-diary-dev:latest
     container_name: clinical-diary-dev
     hostname: dev
@@ -114,7 +121,13 @@ services:
       dockerfile: qa.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
-    pull_policy: build
+      cache_from:
+        - clinical-diary-base:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
+        - clinical-diary-dev:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
+        - clinical-diary-qa:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-qa:latest
     image: clinical-diary-qa:latest
     container_name: clinical-diary-qa
     hostname: qa
@@ -174,7 +187,11 @@ services:
       dockerfile: ops.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
-    pull_policy: build
+      cache_from:
+        - clinical-diary-base:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
+        - clinical-diary-ops:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-ops:latest
     image: clinical-diary-ops:latest
     container_name: clinical-diary-ops
     hostname: ops
@@ -228,7 +245,11 @@ services:
       dockerfile: mgmt.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
-    pull_policy: build
+      cache_from:
+        - clinical-diary-base:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
+        - clinical-diary-mgmt:latest
+        - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-mgmt:latest
     image: clinical-diary-mgmt:latest
     container_name: clinical-diary-mgmt
     hostname: mgmt
