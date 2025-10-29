@@ -6,19 +6,35 @@
 
 ---
 
+## Installation
+
+**One-time setup** (for Claude Code integration):
+
+```bash
+./agent-ops/scripts/init-claude-integration.sh
+```
+
+This creates slash commands (`/agent-start`, `/agent-end`, `/agent-resume`, `/agent-guide`) and updates `.claude/instructions.md`.
+
+**See**: [INSTALL.md](INSTALL.md) for details.
+
+---
+
 ## Quick Start
 
 ### For AI Agents
 
-1. **Read this first**: [AI Agent Guide](ai/AGENT_GUIDE.md) (~5 min read)
-2. **Check for other agents**: `./agent-ops/scripts/show-agents.sh`
-3. **Start working**: `./agent-ops/scripts/new-session.sh "description"`
+1. **Install**: Run `./agent-ops/scripts/init-claude-integration.sh` (one-time)
+2. **Read this first**: [AI Agent Guide](ai/AGENT_GUIDE.md) (~5 min read)
+3. **Check for other agents**: `./agent-ops/scripts/show-agents.sh`
+4. **Start working**: `/agent-start` or `./agent-ops/scripts/new-session.sh "description"`
 
 ### For Humans
 
-1. **Overview**: [Core Concepts](docs/concepts.md)
-2. **Setup**: [Two-Branch System](docs/two-branch-system.md)
-3. **Daily use**: [Quick Reference](docs/quick-ref.md)
+1. **Install**: Run `./agent-ops/scripts/init-claude-integration.sh` (one-time)
+2. **Overview**: [Core Concepts](docs/concepts.md)
+3. **Setup**: [Two-Branch System](docs/two-branch-system.md)
+4. **Daily use**: [Quick Reference](docs/quick-ref.md)
 
 ---
 
