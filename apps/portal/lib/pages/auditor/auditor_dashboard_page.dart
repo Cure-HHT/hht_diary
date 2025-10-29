@@ -7,8 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-import '../../config/supabase_config.dart';
+import '../../config/database_config.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 import '../../widgets/portal_app_bar.dart';
 import '../../widgets/portal_drawer.dart';
 import '../../theme/portal_theme.dart';
@@ -34,16 +35,13 @@ class _AuditorDashboardPageState extends State<AuditorDashboardPage> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final usersResponse =
-          await SupabaseConfig.client.from('portal_users').select();
-      final patientsResponse = await SupabaseConfig.client
-          .from('patients')
-          .select('*, sites(site_name), questionnaires(*)')
-          .order('created_at', ascending: false);
+      final db = DatabaseConfig.getDatabaseService();
+      final users = await db.getPortalUsers();
+      final patients = await db.getPatients();
 
       setState(() {
-        _users = List<Map<String, dynamic>>.from(usersResponse);
-        _patients = List<Map<String, dynamic>>.from(patientsResponse);
+        _users = users;
+        _patients = patients;
         _isLoading = false;
       });
     } catch (e) {
