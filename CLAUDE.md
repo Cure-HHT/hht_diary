@@ -141,62 +141,42 @@ sponsor/
 
 **This project uses formal requirement traceability. ALL code and specs MUST be linked to requirements.**
 
-## CRITICAL: When Creating/Modifying Code Files
+### For Complex Requirement Tasks
 
-**BEFORE** editing ANY implementation file (.sql, .dart, .ts, .py, .js, etc.):
+**Use the Requirements Sub-Agent**: For finding, creating, or analyzing requirements, delegate to the specialized Requirements sub-agent.
 
-1. ✅ **Identify requirements**: Which requirements does this code implement?
-2. ✅ **Add header comments**: Include requirement references at top of file
-3. ✅ **Use correct format**: `IMPLEMENTS REQUIREMENTS: REQ-p00xxx, REQ-o00yyy, REQ-d00zzz`
+**See**: `agent-ops/ai/subagents/ORCHESTRATOR_GUIDE.md` for how to use sub-agents.
 
-**Example (SQL)**:
+### Quick Rules for Simple Cases
 
+**Code files need headers**:
 ```sql
 -- IMPLEMENTS REQUIREMENTS:
 --   REQ-p00004: Immutable Audit Trail via Event Sourcing
---   REQ-p00010: FDA 21 CFR Part 11 Compliance
 --   REQ-d00007: Database Schema Implementation
 ```
 
-**Example (Dart/TypeScript)**:
+**New requirements follow top-down cascade**:
+1. PRD level (REQ-p00xxx): Business need
+2. Ops level (REQ-o00xxx): How to deploy/operate
+3. Dev level (REQ-d00xxx): How to implement
+4. Code: Implements the requirements
 
-```dart
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00006: Offline-First Data Entry
-//   REQ-d00004: Local-First Data Entry Implementation
-```
-
-## CRITICAL: When Creating/Modifying Requirements
-
-**ALL new requirements MUST follow TOP-DOWN cascade** (never bottom-up from code):
-
-1. **START at PRD level**: What business need exists? (REQ-p00xxx)
-2. **Add Ops requirement**: How to deploy/operate? (REQ-o00xxx)
-3. **Add Dev requirement**: How to build/implement? (REQ-d00xxx)
-4. **THEN modify code**: Link code to requirements
-
-**NEVER**:
-
+**Never**:
 - ❌ Write code first, then add requirements
 - ❌ Skip PRD and start at Ops/Dev
-- ❌ Add requirements that describe existing code (use prescriptive SHALL/MUST)
+- ❌ Describe existing code (use prescriptive SHALL/MUST)
 
-**See**: `spec/requirements-format.md` for complete methodology
+### Quick Reference
 
-## Where to Find Requirements
-
-- **All requirements**: Scan `spec/` directory for `### REQ-{id}:` blocks
-- **Validation tool**: `python3 tools/requirements/validate_requirements.py`
-- **Traceability matrix**: See `traceability_matrix.md`
-- **Format specification**: See `spec/requirements-format.md`
-
-## Enforcement
-
-- **Pre-commit hook**: Validates requirement format and links (`.githooks/pre-commit`)
-  - **Setup required**: `git config core.hooksPath .githooks` (one-time per developer)
-  - **See**: `.githooks/README.md` for installation and troubleshooting
-- **CI/CD check**: GitHub Actions validates on pull requests (see `TODO_CI_CD_SETUP.md`)
-- **Manual validation**: Run `python3 tools/requirements/validate_requirements.py`
+| Need | Action |
+|------|--------|
+| Complex requirement work | Delegate to Requirements sub-agent (see ORCHESTRATOR_GUIDE.md) |
+| Find requirements | Grep `spec/` for `### REQ-{id}:` OR use sub-agent |
+| Create requirements | Use Requirements sub-agent for proper cascade |
+| Validate requirements | Run `python3 tools/requirements/validate_requirements.py` |
+| Format specification | Read `spec/requirements-format.md` |
+| Linear ticket integration | See `tools/linear-cli/` section below |
 
 **Violations will cause build failures. Add requirements BEFORE committing code.**
 
@@ -210,16 +190,11 @@ sponsor/
 2. **Assess if ADR needed**: Significant architectural decision with trade-offs?
    - ✅ Yes → Draft ADR in `docs/adr/` with "Proposed" status
    - ❌ No → Proceed to requirements
-3. **Create requirements** (top-down cascade):
-   - Start with PRD: `REQ-p00xxx` in appropriate `spec/prd-*.md`
-   - Add Ops: `REQ-o00xxx` in `spec/ops-*.md` (implements PRD)
-   - Add Dev: `REQ-d00xxx` in `spec/dev-*.md` (implements Ops)
+3. **Create requirements**: Delegate to Requirements sub-agent for proper top-down cascade (PRD → Ops → Dev)
 4. **Validate requirements**: Run `python3 tools/requirements/validate_requirements.py`
-5. **Create feature branch**: `git checkout -b feature/descriptive-name`
-6. **Implement code**: Add requirement references in file headers
-7. **Update ADR** (if applicable): Set status to "Accepted"
-8. **Commit**: Include ticket and requirement references in commit message
-9. **Merge to main**: Pre-commit hook validates automatically
+5. **Implement code**: Add requirement references in file headers (use sub-agent to generate headers if needed)
+6. **Update ADR** (if applicable): Set status to "Accepted"
+7. **Commit**: Include ticket and requirement references in commit message
 
 ### Commit Message Format
 
@@ -240,6 +215,17 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ## Quick Reference
 
+### Specialized Sub-Agents
+
+For complex domain-specific tasks, use specialized sub-agents:
+
+| Sub-Agent | Purpose | Documentation |
+|-----------|---------|---------------|
+| **Requirements** | Find, create, validate requirements; generate code headers; analyze traceability | `agent-ops/ai/subagents/REQUIREMENTS.md` |
+| **Documentation** | Proper scoping, eliminate repetition, concise rewriting, minimal examples | `agent-ops/ai/subagents/DOCUMENTATION.md` |
+
+**How to use**: See `agent-ops/ai/subagents/ORCHESTRATOR_GUIDE.md` for delegation patterns.
+
 ### Finding Documentation
 
 | Need | Location |
@@ -253,6 +239,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 | spec/ vs docs/ rules | `docs/README.md` |
 | Linear integration tools | `tools/linear-cli/` (see Linear Integration Tools below) |
 | Requirement validation | `tools/requirements/` |
+| Sub-agent delegation | `agent-ops/ai/subagents/ORCHESTRATOR_GUIDE.md` |
 
 ### Key Commands
 
