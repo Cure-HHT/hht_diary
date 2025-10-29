@@ -56,10 +56,12 @@ class RequirementValidator:
 
     def __init__(self, spec_dir: Path):
         self.spec_dir = spec_dir
+        self.repo_root = spec_dir.parent  # Parent of spec/ is repo root
         self.requirements: Dict[str, Requirement] = {}
         self.errors: List[str] = []
         self.warnings: List[str] = []
         self.info: List[str] = []
+        self.implemented_in_code: Set[str] = set()  # REQ IDs found in implementation files
 
     def validate_all(self) -> bool:
         """Run all validation checks. Returns True if valid."""
@@ -73,6 +75,12 @@ class RequirementValidator:
             return True
 
         print(f"📋 Found {len(self.requirements)} requirements\n")
+
+        # Scan implementation files for requirement references
+        print(f"🔎 Scanning implementation files for requirement references...\n")
+        self._scan_implementation_files()
+        if self.implemented_in_code:
+            print(f"📝 Found {len(self.implemented_in_code)} requirements referenced in code\n")
 
         # Run validation checks
         self._check_unique_ids()
@@ -188,8 +196,43 @@ class RequirementValidator:
                         f"REQ-{req_id}: References non-existent requirement '{parent_id}'"
                     )
 
+    def _scan_implementation_files(self):
+        """Scan implementation files for 'IMPLEMENTS REQUIREMENTS:' declarations"""
+        # Pattern to find "IMPLEMENTS REQUIREMENTS:" followed by REQ-* IDs
+        impl_pattern = re.compile(r'IMPLEMENTS\s+REQUIREMENTS?:\s*\n?(.*?)(?=\n\s*\n|\Z)', re.IGNORECASE | re.DOTALL)
+        req_pattern = re.compile(r'REQ-([pod]\d{5})', re.IGNORECASE)
+
+        # File patterns to scan
+        patterns = [
+            '.github/workflows/**/*.yml',
+            '.github/workflows/**/*.yaml',
+            'database/**/*.sql',
+            'tools/**/*.sh',
+            'tools/**/*.py',
+            'tools/**/*.js',
+            'tools/**/*.ts',
+            'tools/dev-env/docker/**/*Dockerfile*',
+        ]
+
+        for pattern in patterns:
+            for file_path in self.repo_root.glob(pattern):
+                if file_path.is_file():
+                    try:
+                        content = file_path.read_text(encoding='utf-8', errors='ignore')
+
+                        # Find all IMPLEMENTS REQUIREMENTS blocks
+                        for match in impl_pattern.finditer(content):
+                            req_block = match.group(1)
+                            # Extract all REQ-* IDs from the block
+                            for req_match in req_pattern.finditer(req_block):
+                                req_id = req_match.group(1).lower()
+                                self.implemented_in_code.add(req_id)
+                    except Exception:
+                        # Skip files that can't be read
+                        continue
+
     def _check_orphaned_requirements(self):
-        """Find requirements that aren't implemented by any child requirements"""
+        """Find requirements that aren't implemented by any child requirements or code"""
         implemented = set()
         for req in self.requirements.values():
             implemented.update(req.implements)
@@ -197,10 +240,11 @@ class RequirementValidator:
         for req_id, req in self.requirements.items():
             # PRD and Ops requirements should have children (unless deprecated)
             if req.level in ['PRD', 'Ops'] and req.status == 'Active':
-                if req_id not in implemented:
+                # Check if implemented by child requirements OR referenced in code
+                if req_id not in implemented and req_id not in self.implemented_in_code:
                     self.warnings.append(
                         f"{req.file_path.name}:{req.line_number} - "
-                        f"REQ-{req_id}: No child requirements implement this (may need dev/ops work)"
+                        f"REQ-{req_id}: No child requirements implement this and not found in implementation files"
                     )
 
     def _check_level_consistency(self):

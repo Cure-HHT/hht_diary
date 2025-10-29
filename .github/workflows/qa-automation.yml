@@ -15,6 +15,20 @@ on:
       - main
       - 'feature/**'
       - 'release/**'
+    paths:
+      # Trigger on Docker environment changes
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
+      - 'tools/dev-env/setup.sh'
+      # Trigger on application code changes (mounted as volume, but tests need to run)
+      - 'apps/**'
+      - 'packages/**'
+      - 'database/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'pubspec.yaml'
+      - 'package.json'
+      # Note: Workflow changes don't trigger QA - use workflow_dispatch to test manually
   workflow_dispatch:
     inputs:
       test_suite:
@@ -23,6 +37,7 @@ on:
         default: 'all'
 
 env:
+  # COHERENT CACHING: Use BuildKit with GHCR registry cache
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -35,6 +50,7 @@ jobs:
       contents: read
       pull-requests: write
       checks: write
+      packages: write  # Required to push/pull images to/from GHCR
 
     steps:
       - name: Checkout code
@@ -42,74 +58,135 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better git context
 
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          echo "Cleaning up unnecessary files..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Detect Docker file changes
+        id: docker-changes
+        run: |
+          # Check if any Docker-related files changed in THIS PUSH (not entire PR vs main)
+          # This allows subsequent commits without Docker changes to use fast pull path
+          if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Docker files changed in this push - will rebuild images"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No Docker changes in this push - will pull pre-built images from GHCR"
+          fi
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull pre-built images from GHCR
+        if: steps.docker-changes.outputs.changed == 'false'
+        run: |
+          echo "Pulling pre-built images from GHCR..."
+
+          # Pull and tag base image
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest clinical-diary-base:latest
+
+          # Pull and tag dev image
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest clinical-diary-dev:latest
+
+          # Pull and tag qa image
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest clinical-diary-qa:latest
+
+          echo "Images pulled and tagged successfully"
+
       - name: Set up Docker Buildx
+        if: steps.docker-changes.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-qa-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-qa-
-            ${{ runner.os }}-buildx-
-
-      - name: Build base Docker image
+      - name: Build and push Docker images to GHCR
+        if: steps.docker-changes.outputs.changed == 'true'
         working-directory: tools/dev-env
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
-          docker build \
-            -f docker/base.Dockerfile \
-            -t clinical-diary-base:latest \
-            --cache-from type=local,src=/tmp/.buildx-cache \
-            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            docker/
+          echo "Docker files changed - building from source with registry caching"
 
-      - name: Build dev Docker image (qa extends dev)
-        working-directory: tools/dev-env
-        run: |
-          docker build \
-            -f docker/dev.Dockerfile \
-            -t clinical-diary-dev:latest \
-            --build-arg BASE_IMAGE_TAG=latest \
-            --cache-from type=local,src=/tmp/.buildx-cache \
-            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            docker/
+          # PROPER REGISTRY-BASED CACHING:
+          # 1. Pull existing images from GHCR for cache (|| true allows failure if not exists)
+          # 2. Build each image (BuildKit uses cache_from to reuse layers from pulled images)
+          # 3. Push to GHCR immediately so subsequent builds can use as cache
+          # This ensures FROM directives can resolve from GHCR and layer caching works
 
-      - name: Build QA Docker image
-        working-directory: tools/dev-env
-        run: |
-          docker build \
-            -f docker/qa.Dockerfile \
-            -t clinical-diary-qa:latest \
-            --build-arg BASE_IMAGE_TAG=latest \
-            --cache-from type=local,src=/tmp/.buildx-cache \
-            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
-            docker/
+          echo "Pulling previous images for cache..."
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest || true
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest || true
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest || true
 
-      # Move cache to avoid unlimited growth
-      - name: Rotate Docker cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          echo "Building base image..."
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build base
+          echo "Pushing base to GHCR..."
+          docker tag clinical-diary-base:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+
+          echo "Building dev image (FROM GHCR base)..."
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          echo "Pushing dev to GHCR..."
+          docker tag clinical-diary-dev:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+
+          echo "Building qa image (FROM GHCR dev)..."
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg BASE_IMAGE=ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          echo "Pushing qa to GHCR..."
+          docker tag clinical-diary-qa:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+
+          echo "All images built and pushed to GHCR successfully"
 
       - name: Start QA environment
         working-directory: tools/dev-env
         run: |
-          docker compose up -d qa
-          docker compose ps
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up --no-build -d qa
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
       - name: Wait for QA container to be healthy
         working-directory: tools/dev-env
         run: |
-          timeout 60 bash -c 'until docker compose exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
+
+      - name: Prepare repository in QA container
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
+            mkdir -p /workspace/repos
+            # Copy the checked-out repository from /workspace/src to expected location
+            if [ ! -d /workspace/repos/clinical-diary ]; then
+              echo 'Copying repository to /workspace/repos/clinical-diary...'
+              cp -r /workspace/src /workspace/repos/clinical-diary
+              echo 'Repository prepared successfully'
+            else
+              echo 'Repository already exists at /workspace/repos/clinical-diary'
+            fi
+          "
 
       - name: Authenticate with Doppler (if configured)
         working-directory: tools/dev-env
         run: |
           if [ -n "${{ secrets.DOPPLER_TOKEN_QA }}" ]; then
-            docker compose exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "echo '${{ secrets.DOPPLER_TOKEN_QA }}' | doppler configure set token --scope /workspace"
           else
-            echo "Doppler token not configured, skipping authentication"
+            echo "No Doppler token configured, skipping authentication"
           fi
         continue-on-error: true
 
@@ -117,7 +194,7 @@ jobs:
         id: flutter-tests
         working-directory: tools/dev-env
         run: |
-          docker compose exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
             if [ -f pubspec.yaml ]; then
               flutter pub get
@@ -131,7 +208,7 @@ jobs:
         id: playwright-tests
         working-directory: tools/dev-env
         run: |
-          docker compose exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Playwright tests found, skipping'
             if [ -d tests ] || [ -d e2e ]; then
               npx playwright test --reporter=json > /workspace/reports/playwright-results.json || true
@@ -148,7 +225,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          docker compose exec -T qa bash -c "
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             export TEST_SUITE='$TEST_SUITE'
             export PR_NUMBER='$PR_NUMBER'
             export COMMIT_SHA='$COMMIT_SHA'
@@ -161,7 +238,7 @@ jobs:
         working-directory: tools/dev-env
         run: |
           mkdir -p ../../qa-reports
-          docker compose cp qa:/workspace/reports/. ../../qa-reports/ || true
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml cp qa:/workspace/reports/. ../../qa-reports/ || true
           ls -la ../../qa-reports/
 
       - name: Generate test summary
@@ -264,7 +341,7 @@ jobs:
         if: always()
         working-directory: tools/dev-env
         run: |
-          docker compose down -v
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml down -v
 
       - name: Fail workflow if tests failed
         if: steps.qa-suite.outcome == 'failure'
@@ -273,8 +350,13 @@ jobs:
   security-scan:
     name: Security & Compliance Scan
     runs-on: ubuntu-latest
-    needs: qa-tests
-    if: github.event_name == 'pull_request'
+    # Disabled: GitHub Code Scanning not available for private repos without GitHub Advanced Security
+    if: false
+
+    permissions:
+      contents: read
+      security-events: write  # Required to upload SARIF results
+      actions: read
 
     steps:
       - name: Checkout code

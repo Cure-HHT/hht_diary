@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00028: Role-Based Environment Separation
 #   REQ-d00032: Development Tool Specifications
@@ -6,9 +7,9 @@
 # QA Environment Dockerfile
 # Extends dev with: Playwright, testing tools, report generation
 
-ARG BASE_IMAGE_TAG=latest
+ARG BASE_IMAGE=clinical-diary-dev:latest
 # QA inherits from dev since it needs Flutter for integration tests
-FROM clinical-diary-dev:${BASE_IMAGE_TAG}
+FROM ${BASE_IMAGE}
 
 LABEL com.clinical-diary.role="qa"
 LABEL description="QA environment with testing frameworks and report generation"
@@ -22,7 +23,8 @@ RUN npm install -g playwright && \
     npx playwright --version
 
 # Install Playwright browsers and dependencies (needs root for system packages)
-RUN npx playwright install --with-deps
+# Safe: DEBIAN_FRONTEND=noninteractive prevents debconf prompts in Playwright's apt-get subprocess
+RUN DEBIAN_FRONTEND=noninteractive npx playwright install --with-deps
 
 # ============================================================
 # Report generation tools
@@ -40,20 +42,9 @@ RUN apt-get update -y && \
 # ============================================================
 USER ubuntu
 
-# Install Flutter test report generators
-RUN flutter pub global activate junitreport || true
-
-# ============================================================
-# Supabase CLI v2.54.10 (pinned for FDA 21 CFR Part 11 compliance)
-# Version pinned: 2025-10-28
-# ============================================================
-USER root
-ENV SUPABASE_CLI_VERSION=v2.54.10
-RUN apt-get update -y && \
-    apt-get install -y ca-certificates && \
-    curl -fsSL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
-    supabase --version && \
-    rm -rf /var/lib/apt/lists/*
+# Install Flutter test report generators (configure PATH inline to avoid warning)
+# Safe: PATH set inline for this command only - pub cache bin not needed in permanent PATH
+RUN PATH="/home/ubuntu/.pub-cache/bin:$PATH" flutter pub global activate junitreport || true
 
 # ============================================================
 # Git configuration for QA role
@@ -76,24 +67,9 @@ COPY qa-runner.sh /usr/local/bin/qa-runner.sh
 RUN chmod +x /usr/local/bin/qa-runner.sh
 
 # ============================================================
-# Health check override for QA role
+# Health check override for QA role (COPY from file)
 # ============================================================
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-set -e
-# Base tools
-git --version >/dev/null
-gh --version >/dev/null
-node --version >/dev/null
-python3 --version >/dev/null
-doppler --version >/dev/null
-# QA-specific tools
-flutter --version >/dev/null
-npx playwright --version >/dev/null 2>&1
-pandoc --version >/dev/null
-echo "QA health check passed"
-EOF
-
+COPY qa-health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/health-check.sh
 
 USER ubuntu

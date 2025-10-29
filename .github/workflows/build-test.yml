@@ -1,0 +1,100 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, release/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-requirements-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          cd tools/requirements
+          pip install -r requirements.txt || echo "No requirements.txt found"
+
+      - name: Test requirement validation
+        run: |
+          echo "🔍 Testing requirement validation..."
+          python3 tools/requirements/validate_requirements.py
+          echo "✅ Requirement validation passed"
+
+      - name: Test traceability matrix generation
+        run: |
+          echo "🔍 Testing traceability matrix generation..."
+          python3 tools/requirements/generate_traceability.py --format markdown
+          python3 tools/requirements/generate_traceability.py --format html
+          echo "✅ Traceability matrix generation passed"
+
+      - name: Upload traceability artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: traceability-matrix
+          path: |
+            traceability_matrix.md
+            traceability_matrix.html
+
+  test-linear-cli-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Validate Linear CLI scripts
+        run: |
+          echo "🔍 Validating Linear CLI scripts syntax..."
+          cd tools/linear-cli
+          # Check all JavaScript files for syntax errors
+          for file in *.js; do
+            if [ -f "$file" ]; then
+              node --check "$file" && echo "✅ $file syntax valid" || exit 1
+            fi
+          done
+          echo "✅ All Linear CLI scripts validated"
+
+  validate-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install markdown linter
+        run: npm install -g markdownlint-cli
+
+      - name: Lint markdown files
+        run: |
+          echo "🔍 Linting markdown files..."
+          # Lint with relaxed rules (allow inline HTML, line length)
+          markdownlint --config .markdownlint.json '**/*.md'
+          echo "✅ Markdown validation complete"
+
+      - name: Check for broken internal links
+        run: |
+          echo "🔍 Checking for broken internal links..."
+          # Simple check for file references
+          find . -name "*.md" -type f | while read file; do
+            # Extract markdown links [text](path)
+            grep -oP '\]\(\K[^)]+' "$file" 2>/dev/null | while read link; do
+              # Skip external links
+              if [[ ! "$link" =~ ^http ]]; then
+                # Check if referenced file exists (relative to the markdown file's location)
+                dir=$(dirname "$file")
+                if [ ! -f "$dir/$link" ] && [ ! -f "$link" ]; then
+                  echo "⚠️ Potentially broken link in $file: $link"
+                fi
+              fi
+            done
+          done
+          echo "✅ Link check complete"

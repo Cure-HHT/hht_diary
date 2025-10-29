@@ -1,16 +1,22 @@
 #!/bin/bash
 # =====================================================
-# Pre-Commit Hook: Requirement Traceability Validation
+# Pre-Commit Hook: Validation
 # =====================================================
 #
 # This hook:
-# 1. Regenerates traceability matrices if spec/ files changed
-# 2. Validates all requirements are properly formatted
-# 3. Validates all requirement IDs are unique
-# 4. Validates all "Implements" references exist
+# 1. Validates Dockerfiles with hadolint (if available)
+# 2. Regenerates traceability matrices if spec/ files changed
+# 3. Validates all requirements are properly formatted
+# 4. Validates all requirement IDs are unique
+# 5. Validates all "Implements" references exist
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
+#
+# To install hadolint (recommended):
+#   Ubuntu/Debian: sudo apt-get install hadolint
+#   macOS: brew install hadolint
+#   Manual: wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 && chmod +x /usr/local/bin/hadolint
 #
 # To bypass this hook (NOT RECOMMENDED):
 #   git commit --no-verify
@@ -18,6 +24,54 @@
 # =====================================================
 
 set -e
+
+# =====================================================
+# 1. Dockerfile Linting
+# =====================================================
+
+# Check if any Dockerfiles are being committed
+DOCKERFILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(Dockerfile|\.dockerfile)$' || true)
+
+if [ -n "$DOCKERFILES_CHANGED" ]; then
+    echo "🐳 Linting Dockerfiles..."
+    echo ""
+
+    # Check if hadolint is installed
+    if command -v hadolint &> /dev/null; then
+        HADOLINT_FAILED=0
+
+        while IFS= read -r dockerfile; do
+            echo "  Checking: $dockerfile"
+            if ! hadolint "$dockerfile"; then
+                HADOLINT_FAILED=1
+            fi
+        done <<< "$DOCKERFILES_CHANGED"
+
+        if [ $HADOLINT_FAILED -eq 1 ]; then
+            echo ""
+            echo "❌ Dockerfile linting failed!"
+            echo ""
+            echo "Fix the errors above before committing."
+            echo "See https://github.com/hadolint/hadolint for rules."
+            echo ""
+            echo "To bypass this check (NOT RECOMMENDED):"
+            echo "  git commit --no-verify"
+            exit 1
+        fi
+
+        echo ""
+        echo "✅ Dockerfile linting passed!"
+        echo ""
+    else
+        echo "⚠️  WARNING: hadolint not installed - skipping Dockerfile linting"
+        echo "   Install: https://github.com/hadolint/hadolint#install"
+        echo ""
+    fi
+fi
+
+# =====================================================
+# 2. Traceability Matrix Regeneration
+# =====================================================
 
 # Check if any spec/ files are being committed
 SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
@@ -43,6 +97,10 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
     echo "✅ Traceability matrices regenerated"
     echo ""
 fi
+
+# =====================================================
+# 3. Requirement Traceability Validation
+# =====================================================
 
 echo "🔍 Running requirement traceability validation..."
 echo ""

@@ -1,0 +1,66 @@
+# Docker ignore file for clinical-diary development environments
+# Excludes unnecessary files from Docker build context
+
+# Version control
+**/.git
+**/.github
+**/.gitignore
+
+# Dependencies
+**/node_modules
+**/pub-cache
+**/.pub-cache
+**/flutter/.pub-cache
+
+# Build outputs
+**/build
+**/dist
+**/out
+**/.dart_tool
+**/coverage
+**/*.lcov
+
+# IDE
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+**/*~
+
+# Logs
+**/*.log
+**/logs
+
+# Temporary files
+**/tmp
+**/temp
+**/.temp
+
+# Environment files (may contain secrets)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Test artifacts
+**/test-results
+**/playwright-report
+
+# Documentation (not needed in build)
+**/docs
+**/README.md
+**/CHANGELOG.md
+
+# Untracked notes (working documents)
+**/untracked-notes
+
+# Archive
+**/archive
+
+# Evaluation materials
+**/evaluation
+
+# Linear CLI tools (not needed in containers)
+**/tools/linear-cli
+
+# Requirement validation tools (not needed in containers)
+**/tools/requirements

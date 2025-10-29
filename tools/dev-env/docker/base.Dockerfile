@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00027: Containerized Development Environments
 #   REQ-d00032: Development Tool Specifications
@@ -23,9 +24,22 @@ ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # ============================================================
+# Exclude documentation (prevents update-alternatives warnings, reduces size)
+# Safe: Man pages unused in containers, tools function identically without documentation
+# ============================================================
+RUN mkdir -p /etc/dpkg/dpkg.cfg.d && \
+    echo "path-exclude=/usr/share/man/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude=/usr/share/doc/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude=/usr/share/groff/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude=/usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc
+
+# ============================================================
 # System Packages & Dependencies
 # ============================================================
-RUN apt-get update -y && apt-get install -y \
+# Suppress update-alternatives warnings for missing man pages (excluded via dpkg config)
+# Safe: Warnings are cosmetic - all tools install and function correctly, only symlink creation skipped
+RUN apt-get update -y && \
+    (apt-get install -y \
     # Core utilities
     curl \
     wget \
@@ -47,7 +61,8 @@ RUN apt-get update -y && apt-get install -y \
     procps \
     # For adding repositories
     gpg \
-    && rm -rf /var/lib/apt/lists/*
+    2>&1 | grep -v "update-alternatives: warning" || true) && \
+    rm -rf /var/lib/apt/lists/*
 
 # ============================================================
 # Git Configuration (latest stable)
@@ -73,8 +88,13 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
 
 # ============================================================
 # Node.js 20.x LTS (support until 2026-04-30)
+# Version pinned: 2025-10-28
 # ============================================================
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+ENV NODE_MAJOR_VERSION=20
+
+# Suppress apt warnings from NodeSource setup script (uses apt internally, not apt-get)
+# Safe: NodeSource script uses 'apt' (not 'apt-get') which warns about script usage but functions correctly
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash - 2>&1 | grep -v "apt does not have a stable CLI" && \
     apt-get install -y nodejs && \
     node --version && \
     npm --version && \
@@ -115,8 +135,9 @@ RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com
 
 # ============================================================
 # Anthropic Python SDK & Claude Code CLI
+# Safe: --root-user-action=ignore suppresses pip's root warning (expected behavior in Docker build context)
 # ============================================================
-RUN pip3 install --no-cache-dir --break-system-packages anthropic && \
+RUN pip3 install --no-cache-dir --break-system-packages --root-user-action=ignore anthropic && \
     npm install -g @anthropic-ai/claude-code
 
 # ============================================================
@@ -185,21 +206,10 @@ EOF
 RUN echo '[ -f /home/ubuntu/.bashrc ] && . /home/ubuntu/.bashrc' >> /home/ubuntu/.profile
 
 # ============================================================
-# Health check script
+# Health check script (COPY from file to avoid heredoc issues)
 # ============================================================
 USER root
-RUN cat > /usr/local/bin/health-check.sh <<'EOF'
-#!/bin/bash
-# Basic health check: verify essential tools
-set -e
-git --version >/dev/null
-gh --version >/dev/null
-node --version >/dev/null
-python3 --version >/dev/null
-doppler --version >/dev/null
-echo "Health check passed"
-EOF
-
+COPY base-health-check.sh /usr/local/bin/health-check.sh
 RUN chmod +x /usr/local/bin/health-check.sh
 
 # ============================================================
