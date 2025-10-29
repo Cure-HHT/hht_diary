@@ -41,6 +41,7 @@ services:
       dockerfile: dev.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
+    pull_policy: build
     image: clinical-diary-dev:latest
     container_name: clinical-diary-dev
     hostname: dev
@@ -113,6 +114,7 @@ services:
       dockerfile: qa.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
+    pull_policy: build
     image: clinical-diary-qa:latest
     container_name: clinical-diary-qa
     hostname: qa
@@ -172,6 +174,7 @@ services:
       dockerfile: ops.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
+    pull_policy: build
     image: clinical-diary-ops:latest
     container_name: clinical-diary-ops
     hostname: ops
@@ -225,6 +228,7 @@ services:
       dockerfile: mgmt.Dockerfile
       args:
         BASE_IMAGE_TAG: latest
+    pull_policy: build
     image: clinical-diary-mgmt:latest
     container_name: clinical-diary-mgmt
     hostname: mgmt
