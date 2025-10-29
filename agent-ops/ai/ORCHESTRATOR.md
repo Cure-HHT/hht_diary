@@ -4,10 +4,21 @@
 
 ---
 
+## Setup (One-Time Per Session)
+
+**Before first delegation**, initialize the agent:
+```bash
+./agent-ops/scripts/init-agent.sh
+```
+
+This creates `untracked-notes/agent-ops.json` with your agent name (wrench, hammer, etc.) and worktree path.
+
+---
+
 ## When to Delegate
 
 ### 1. New Session (First Thing)
-**When**: You start working (before anything else)
+**When**: You start working (after running init-agent.sh)
 **Pass**: `{"event": "new_session"}`
 **You get back**: Status report about outstanding work, if any
 
@@ -32,6 +43,9 @@
 
 ```
 [You start working]
+
+You: Run ./agent-ops/scripts/init-agent.sh
+     ✓ Agent initialized: wrench
 
 You → ai-coordination:
   {"event": "new_session"}
@@ -118,12 +132,18 @@ Use these `entry_type` values:
 
 ## How It Works (Technical)
 
+**Config file** (`untracked-notes/agent-ops.json`):
+- Created by `init-agent.sh` once per session
+- Contains agent name, branch, and worktree path
+- ai-coordination reads this for every operation
+- Never committed (in .gitignore)
+
 **Main directory** (`/home/user/diary_prep`):
 - You work here 100% of the time
 - Always on product branch
 - Session files created here temporarily
 
-**Worktree** (`/home/user/diary_prep-wrench`):
+**Worktree** (e.g., `/home/user/diary_prep-wrench`):
 - ai-coordination uses this for agent branch operations
 - Named after mechanical objects (wrench, hammer, gear, etc.)
 - Completely isolated from your work

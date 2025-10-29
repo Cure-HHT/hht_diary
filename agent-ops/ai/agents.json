@@ -4,7 +4,7 @@
       "name": "ai-coordination",
       "description": "Manages all agent branch operations via worktree. Agent branches named after mechanical objects (wrench, hammer, etc.).",
       "instructions_file": "agent-ops/ai/AI_COORDINATION.md",
-      "naming": "Deterministic mechanical object names derived from product branch session ID (see agent-ops/ai/AGENT_NAMES.md)",
+      "naming": "Run agent-ops/scripts/init-agent.sh once per session to generate agent name and store in untracked-notes/agent-ops.json",
       "purpose": "Handles session lifecycle and agent branch git operations so orchestrator stays on product branch",
       "when_to_use": [
         "At session start (first thing) - check for outstanding work",

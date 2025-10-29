@@ -16,13 +16,17 @@
 
 ### Orchestrator Agent (You)
 
-1. **Read**: [`ai/ORCHESTRATOR.md`](ai/ORCHESTRATOR.md)
-2. **Delegate** to `ai-coordination` sub-agent at key events:
+1. **Initialize** agent (once per session):
+   ```bash
+   ./agent-ops/scripts/init-agent.sh
+   ```
+2. **Read**: [`ai/ORCHESTRATOR.md`](ai/ORCHESTRATOR.md)
+3. **Delegate** to `ai-coordination` sub-agent at key events:
+   - New session (check for outstanding work)
    - Starting feature
-   - Milestone reached
-   - User question
+   - Reporting work
    - Feature complete
-3. **Follow** simple directives returned
+4. **Follow** simple directives returned
 
 ### AI-Coordination Sub-Agent
 
@@ -40,10 +44,14 @@ See: [`HUMAN.md`](HUMAN.md)
 ## Architecture
 
 **Two branches**:
-- **Product** (`claude/feature-xyz-011ABC`): Your code, you manage
-- **Agent** (`claude/ai-agent-011ABC`): Session tracking, ai-coordination manages
+- **Product** (`claude/feature-xyz-011CUamedUhto5wQEfRLSKTQ`): Your code, you manage
+- **Agent** (`claude/wrench`): Session tracking, ai-coordination manages via worktree
 
-**Key**: ai-coordination handles agent branch, you handle product branch.
+**Agent naming**: Mechanical objects (wrench, hammer, gear, etc.) - deterministic from session ID
+
+**Worktree**: ai-coordination works in `/home/user/diary_prep-wrench/` (isolated from main directory)
+
+**Key**: ai-coordination handles agent branch via worktree, you stay on product branch 100% of time.
 
 ---
 

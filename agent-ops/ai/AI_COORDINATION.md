@@ -21,29 +21,30 @@
 
 ---
 
-## Agent Naming
+## Agent Configuration
 
-Agents are named after **inanimate mechanical objects** (wrench, hammer, gear, etc.). The name is deterministically derived from the product branch session ID.
+**First action on every event**: Read agent configuration from `untracked-notes/agent-ops.json`:
 
-**Naming algorithm**:
 ```bash
-# Extract session ID from product branch
-SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
+CONFIG_FILE="untracked-notes/agent-ops.json"
 
-# Generate deterministic name
-NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
-HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
-INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
-AGENT_NAME=${NAMES[$INDEX]}
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "Error: Agent not initialized. Run: ./agent-ops/scripts/init-agent.sh"
+  exit 1
+fi
+
+AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
+AGENT_BRANCH=$(jq -r '.agent_branch' "$CONFIG_FILE")
+WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+MAIN_DIR=$(pwd)
 ```
 
-**Examples**:
-- Product branch: `claude/refactor-tool-docs-011CUamedUhto5wQEfRLSKTQ`
-- Agent name: `wrench` (from hashing session ID)
-- Agent branch: `claude/wrench`
-- Worktree: `/home/user/diary_prep-wrench/`
+**Agent initialization**: Run `./agent-ops/scripts/init-agent.sh` once per session to generate:
+- Agent name (mechanical object: wrench, hammer, gear, etc.)
+- Agent branch name (claude/wrench)
+- Worktree path (/home/user/diary_prep-wrench)
 
-**See**: `agent-ops/ai/AGENT_NAMES.md` for complete list and details.
+**See**: `agent-ops/ai/AGENT_NAMES.md` for naming details.
 
 ---
 
@@ -64,27 +65,27 @@ AGENT_NAME=${NAMES[$INDEX]}
 **Input**: `{"event": "new_session"}`
 
 **Actions**:
-1. Setup worktree and check agent branch for agent state:
+1. Read agent config and setup worktree:
    ```bash
-   PRODUCT_BRANCH=$(git branch --show-current)
+   # Read agent configuration
+   CONFIG_FILE="untracked-notes/agent-ops.json"
+   if [ ! -f "$CONFIG_FILE" ]; then
+     echo "Error: Agent not initialized. Run: ./agent-ops/scripts/init-agent.sh"
+     exit 1
+   fi
 
-   # Generate agent name from session ID
-   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
-   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
-   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
-   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
-   AGENT_NAME=${NAMES[$INDEX]}
-
-   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
+   AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
+   AGENT_BRANCH=$(jq -r '.agent_branch' "$CONFIG_FILE")
+   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
 
    # Check if agent branch exists
-   git fetch origin claude/$AGENT_NAME 2>/dev/null
+   git fetch origin "$AGENT_BRANCH" 2>/dev/null
 
    if exists:
      # Setup worktree if not already created
      if [ ! -d "$WORKTREE_PATH" ]; then
-       git worktree add "$WORKTREE_PATH" origin/claude/$AGENT_NAME
+       git worktree add "$WORKTREE_PATH" "origin/$AGENT_BRANCH"
      fi
 
      # Check for outstanding work in worktree
@@ -131,16 +132,10 @@ AGENT_NAME=${NAMES[$INDEX]}
 4. Initialize `diary.md` with session start entry
 5. Update agent branch work-in-progress via worktree:
    ```bash
-   PRODUCT_BRANCH=$(git branch --show-current)
-
-   # Generate agent name from session ID
-   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
-   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
-   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
-   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
-   AGENT_NAME=${NAMES[$INDEX]}
-
-   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
+   # Read agent configuration
+   CONFIG_FILE="untracked-notes/agent-ops.json"
+   AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
+   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
 
    # Work in agent branch worktree
@@ -180,16 +175,9 @@ AGENT_NAME=${NAMES[$INDEX]}
    ```
 3. Sync to agent branch via worktree:
    ```bash
-   PRODUCT_BRANCH=$(git branch --show-current)
-
-   # Generate agent name from session ID
-   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
-   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
-   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
-   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
-   AGENT_NAME=${NAMES[$INDEX]}
-
-   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
+   # Read agent configuration
+   CONFIG_FILE="untracked-notes/agent-ops.json"
+   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
    SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
@@ -226,16 +214,10 @@ AGENT_NAME=${NAMES[$INDEX]}
 2. Generate `results.md` summary based on diary content
 3. Archive to agent branch and update WIP via worktree:
    ```bash
-   PRODUCT_BRANCH=$(git branch --show-current)
-
-   # Generate agent name from session ID
-   SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
-   NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
-   HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
-   INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
-   AGENT_NAME=${NAMES[$INDEX]}
-
-   WORKTREE_PATH="../diary_prep-$AGENT_NAME"
+   # Read agent configuration
+   CONFIG_FILE="untracked-notes/agent-ops.json"
+   AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
+   WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
    MAIN_DIR=$(pwd)
    SESSION_DIR="agent-ops/sessions/YYYYMMDD_HHMMSS"
 
@@ -293,29 +275,22 @@ AGENT_NAME=${NAMES[$INDEX]}
 
 ### First-Time Setup (Worktree)
 
-If orchestrator starting new feature and no agent branch exists:
+If agent branch doesn't exist, create it:
 
 ```bash
-# Get product branch and generate agent name
-PRODUCT_BRANCH=$(git branch --show-current)
-# Example: claude/feature-xyz-011CUamedUhto5wQEfRLSKTQ
-
-# Generate agent name from session ID
-SESSION_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Za-z]+$')
-NAMES=(anvil axle bearing bellows bolt cam clamp clutch crank drill flywheel forge fulcrum gear hammer hinge hoist jack lathe lever motor piston pulley pump ratchet rivet rotor saw spindle spring sprocket turbine valve vise wedge wheel winch wrench)
-HASH=$(echo -n "$SESSION_ID" | md5sum | grep -oP '^[0-9a-f]+')
-INDEX=$((0x${HASH:0:8} % ${#NAMES[@]}))
-AGENT_NAME=${NAMES[$INDEX]}
-# Example: AGENT_NAME="wrench"
-
-WORKTREE_PATH="../diary_prep-$AGENT_NAME"
+# Read agent configuration
+CONFIG_FILE="untracked-notes/agent-ops.json"
+AGENT_NAME=$(jq -r '.agent_name' "$CONFIG_FILE")
+AGENT_BRANCH=$(jq -r '.agent_branch' "$CONFIG_FILE")
+WORKTREE_PATH=$(jq -r '.worktree_path' "$CONFIG_FILE")
+PRODUCT_BRANCH=$(jq -r '.product_branch' "$CONFIG_FILE")
 MAIN_DIR=$(pwd)
 
 # Create agent branch locally (no checkout - stays on product branch)
-git branch claude/$AGENT_NAME
+git branch "$AGENT_BRANCH"
 
 # Create worktree for agent branch
-git worktree add "$WORKTREE_PATH" claude/$AGENT_NAME
+git worktree add "$WORKTREE_PATH" "$AGENT_BRANCH"
 
 # Work in worktree
 cd "$WORKTREE_PATH"
@@ -337,7 +312,7 @@ EOF
 
 git add agent-ops/
 git commit -m "[AGENT] $AGENT_NAME: Initialize"
-git push -u origin claude/$AGENT_NAME
+git push -u origin "$AGENT_BRANCH"
 
 # Return to main directory (stays on product branch)
 cd "$MAIN_DIR"
