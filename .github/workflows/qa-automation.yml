@@ -113,7 +113,7 @@ jobs:
           # BuildKit will pull layers from GHCR registry if available
           # Use CI override to limit resources to GitHub Actions constraints
 
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build qa
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa
 
           echo "Images built successfully"
 
