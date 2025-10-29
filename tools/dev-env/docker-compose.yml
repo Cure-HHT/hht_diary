@@ -37,8 +37,6 @@ services:
   # Full development tools: Flutter, Android SDK, hot reload
   # ============================================================
   dev:
-    depends_on:
-      - base
     build:
       context: ./docker
       dockerfile: dev.Dockerfile
@@ -115,8 +113,6 @@ services:
   # Testing tools: Playwright, Flutter tests, report generation
   # ============================================================
   qa:
-    depends_on:
-      - base
     build:
       context: ./docker
       dockerfile: qa.Dockerfile
@@ -182,8 +178,6 @@ services:
   # Infrastructure tools: Terraform, Supabase CLI, deployment
   # ============================================================
   ops:
-    depends_on:
-      - base
     build:
       context: ./docker
       dockerfile: ops.Dockerfile
@@ -241,8 +235,6 @@ services:
   # Read-only tools: Git viewer, audit logs, reports
   # ============================================================
   mgmt:
-    depends_on:
-      - base
     build:
       context: ./docker
       dockerfile: mgmt.Dockerfile
