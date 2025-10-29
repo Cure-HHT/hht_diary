@@ -39,46 +39,43 @@
 
 **Actions**:
 1. Check for other agents: `./agent-ops/scripts/show-agents.sh`
-2. Create session: `./agent-ops/scripts/new-session.sh "description"`
+2. Create session on product branch: `./agent-ops/scripts/new-session.sh "description"`
 3. Fill `plan.md` with tasks from tickets/description
 4. Initialize `diary.md` with session start entry
+5. Keep product branch checked out
 
 **Response**:
 ```json
 {
   "action": "session_created",
-  "diary": "agent-ops/sessions/YYYYMMDD_HHMMSS/diary.md",
-  "plan": "agent-ops/sessions/YYYYMMDD_HHMMSS/plan.md",
-  "instruction": "Write to diary.md as you work. Append after every significant action."
+  "instruction": "Proceed with implementation"
 }
 ```
 
-**Note**: Orchestrator will write directly to diary.md during work. You only set it up.
+**Note**: Session created on product branch. You'll sync to agent branch when orchestrator reports work.
 
-### 2. `complete_feature`
+### 2. `log_work`
 
-**Input**: `{"event": "complete_feature"}`
+**Input**: `{"event": "log_work", "entry_type": "Implementation", "content": "Created src/auth/jwt.dart..."}`
 
 **Actions**:
-1. Read orchestrator's `diary.md` and `plan.md` from session
-2. Generate `results.md` summary based on diary content
-3. Update agent branch:
+1. Get current product branch and session directory
+2. Append to product branch `diary.md`:
+   ```markdown
+   ## [HH:MM] [entry_type]
+   [content]
+   ```
+3. Sync to agent branch:
    ```bash
-   # Get current product branch
    PRODUCT_BRANCH=$(git branch --show-current)
 
-   # Switch to agent branch
+   # Copy latest session state to agent branch
    git checkout claude/ai-agent-011ABC
-
-   # Copy session to archive
    cp -r ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
-         agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/
+         agent-ops/sessions/YYYYMMDD_HHMMSS/
 
-   # Update CONTEXT.md
-   # Update with completion status
-
-   git add agent-ops/archive/ agent-ops/agents/
-   git commit -m "[ARCHIVE] Feature: [name]"
+   git add agent-ops/sessions/
+   git commit -m "[SESSION] Update: [entry_type]"
    git push
 
    # CRITICAL: Switch back to product branch
@@ -88,9 +85,47 @@
 **Response**:
 ```json
 {
+  "action": "logged",
+  "instruction": "Continue"
+}
+```
+
+**CRITICAL**: Must end with product branch checked out.
+
+### 3. `complete_feature`
+
+**Input**: `{"event": "complete_feature"}`
+
+**Actions**:
+1. Read `diary.md` and `plan.md` from product branch session
+2. Generate `results.md` summary based on diary content
+3. Archive to agent branch:
+   ```bash
+   PRODUCT_BRANCH=$(git branch --show-current)
+
+   # Switch to agent branch
+   git checkout claude/ai-agent-011ABC
+
+   # Move session to archive
+   cp -r ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
+         agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/
+
+   # Update CONTEXT.md with completion status
+
+   git add agent-ops/archive/ agent-ops/agents/
+   git commit -m "[ARCHIVE] Feature: [name]"
+   git push
+
+   # Clean up product branch session
+   git checkout $PRODUCT_BRANCH
+   rm -rf agent-ops/sessions/YYYYMMDD_HHMMSS/
+   ```
+
+**Response**:
+```json
+{
   "action": "feature_archived",
-  "archive": "agent-ops/archive/YYYYMMDD_HHMMSS_feature_name",
-  "instruction": "Feature complete and archived. Ready for next task."
+  "instruction": "Ready for next task"
 }
 ```
 
@@ -100,15 +135,20 @@
 
 ## Session Management
 
-### Current Session Tracking
+### Session Lifecycle
 
-When session created:
-- Location: `agent-ops/sessions/YYYYMMDD_HHMMSS/`
-- You create: `plan.md`, `diary.md` (with initial entry)
-- Orchestrator writes to: `diary.md` (throughout work)
-- You create on complete: `results.md`
+**Product Branch** (where orchestrator works):
+- Session created: `agent-ops/sessions/YYYYMMDD_HHMMSS/`
+- You create: `plan.md`, `diary.md` (initial entry)
+- You append to `diary.md` when orchestrator reports work
+- You generate: `results.md` on completion
 
-**Note**: Orchestrator maintains diary.md. You just set it up and archive it.
+**Agent Branch** (tracking/archive):
+- You sync session state after each `log_work` event
+- You archive completed session to `agent-ops/archive/`
+- You maintain `CONTEXT.md` with agent status
+
+**Note**: Orchestrator never touches these files. You manage all file operations.
 
 ---
 
@@ -178,14 +218,13 @@ If orchestrator calls `start_feature` but session active:
 ```json
 {
   "action": "session_exists",
-  "session": "agent-ops/sessions/20251029_140000",
-  "instruction": "Session already active. Use milestone events to update."
+  "instruction": "Session already active. Use log_work to report progress or complete_feature to finish."
 }
 ```
 
 ### No Session Active
 
-If orchestrator calls `milestone` but no session:
+If orchestrator calls `log_work` or `complete_feature` but no session:
 
 **Response**:
 ```json
@@ -224,36 +263,33 @@ Always respond with JSON directive:
 
 **Actions**:
 - `session_created` - New session started
-- `milestone_recorded` - Milestone logged in diary
-- `question_logged` - Question saved in diary
+- `logged` - Work entry added to diary
 - `feature_archived` - Feature complete and archived
-- `session_exists` - Session already active
-- `no_session` - No active session
+- `session_exists` - Session already active (error)
+- `no_session` - No active session (error)
 - `error` - Error occurred
 
 ---
 
 ## Example Complete Flow
 
-### Orchestrator Starts Feature
+### 1. Orchestrator Starts Feature
 
 **Input**: `{"event": "start_feature", "description": "auth module", "tickets": ["#CUR-85"]}`
 
 **You do**:
 1. `./agent-ops/scripts/show-agents.sh` → No conflicts
-2. `./agent-ops/scripts/new-session.sh "auth module"`
+2. `./agent-ops/scripts/new-session.sh "auth module"` (creates on product branch)
 3. Fill `plan.md`:
    ```markdown
    # Session Plan: Auth Module
-
    **Tickets**: #CUR-85
-
    ## Tasks
    - [ ] JWT validation
    - [ ] Token refresh
    - [ ] RLS policies
    ```
-4. Start `diary.md`:
+4. Initialize `diary.md`:
    ```markdown
    ## [10:00] Session Start
    **Goal**: Implement auth module
@@ -264,50 +300,63 @@ Always respond with JSON directive:
 ```json
 {
   "action": "session_created",
-  "session": "agent-ops/sessions/20251029_100000",
-  "instruction": "Session created. Continue implementing auth module."
+  "instruction": "Proceed with implementation"
 }
 ```
 
-### Orchestrator Reports Milestone
+### 2. Orchestrator Reports Implementation
 
-**Input**: `{"event": "milestone", "summary": "JWT validation complete, tests passing"}`
+**Input**: `{"event": "log_work", "entry_type": "Implementation", "content": "Created src/auth/jwt_validator.dart (120 lines)\n- JWT validation\n- Expiry checking\nRequirements: REQ-p00085"}`
 
 **You do**:
-1. Append to `diary.md`:
+1. Append to product branch `diary.md`:
    ```markdown
-   ## [11:30] Milestone: JWT Validation
-
-   Orchestrator completed: JWT validation with tests
-
-   **Status**: Tests passing
+   ## [10:30] Implementation
+   Created src/auth/jwt_validator.dart (120 lines)
+   - JWT validation
+   - Expiry checking
+   Requirements: REQ-p00085
    ```
-2. Update `plan.md`: Check off JWT validation task
+2. Sync to agent branch (checkout, copy, commit, push, checkout product)
 
 **You respond**:
 ```json
 {
-  "action": "milestone_recorded",
-  "instruction": "Milestone tracked. Continue to token refresh."
+  "action": "logged",
+  "instruction": "Continue"
 }
 ```
 
-### Orchestrator Completes Feature
+### 3. Orchestrator Reports Testing
 
-**Input**: `{"event": "complete_feature", "summary": "Auth module complete with all tests passing"}`
+**Input**: `{"event": "log_work", "entry_type": "Testing", "content": "Running: dart test test/auth/\nResult: ✅ All tests pass"}`
 
 **You do**:
-1. Write `results.md`
-2. Update agent CONTEXT.md
-3. Archive session
-4. Commit to agent branch
+1. Append to `diary.md`
+2. Sync to agent branch
+
+**You respond**:
+```json
+{
+  "action": "logged",
+  "instruction": "Continue"
+}
+```
+
+### 4. Orchestrator Completes Feature
+
+**Input**: `{"event": "complete_feature"}`
+
+**You do**:
+1. Generate `results.md` from diary content
+2. Archive to agent branch
+3. Clean up product branch session
 
 **You respond**:
 ```json
 {
   "action": "feature_archived",
-  "archive": "agent-ops/archive/20251029_100000_auth_module",
-  "instruction": "Auth module complete and archived. Ready for next feature."
+  "instruction": "Ready for next task"
 }
 ```
 

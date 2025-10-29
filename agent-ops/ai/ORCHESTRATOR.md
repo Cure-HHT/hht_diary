@@ -1,6 +1,6 @@
 # Orchestrator Agent Instructions
 
-**Role**: You coordinate high-level work. Delegate session tracking to ai-coordination.
+**Role**: You coordinate high-level work. Report your workflow to ai-coordination.
 
 ---
 
@@ -9,49 +9,17 @@
 ### 1. Starting Feature
 **When**: User asks to implement a feature
 **Pass**: `{"event": "start_feature", "description": "brief description", "tickets": ["#CUR-123"]}`
-**You get back**: Path to diary file
+**You get back**: Confirmation to proceed
 
-### 2. Completing Feature
+### 2. Reporting Work
+**When**: After any significant action (implementation, testing, error, decision, etc.)
+**Pass**: `{"event": "log_work", "entry_type": "Implementation", "content": "Created src/auth/jwt.dart implementing REQ-p00085"}`
+**You get back**: Confirmation logged
+
+### 3. Completing Feature
 **When**: Feature fully implemented
 **Pass**: `{"event": "complete_feature"}`
 **You get back**: Confirmation of archive
-
----
-
-## What You Do
-
-### After Getting Diary Path
-
-ai-coordination returns: `{"action": "session_created", "diary": "agent-ops/sessions/20251029_140000/diary.md"}`
-
-**You write to that file directly** as you work:
-
-```markdown
-## [HH:MM] User Request
-> User: "Implement JWT validation"
-Starting implementation...
-
-## [HH:MM] Implementation
-Created: src/auth/jwt_validator.dart
-- Validates JWT tokens
-- Checks expiry
-
-Requirements: REQ-p00085
-
-## [HH:MM] Error Encountered
-Error: Invalid signature algorithm
-Location: jwt_validator.dart:42
-
-## [HH:MM] Solution Applied
-Fixed: Added RS256 support
-Result: ✅ Tests passing
-
-## [HH:MM] Task Complete
-✅ JWT validation implemented
-Files: src/auth/jwt_validator.dart (120 lines)
-```
-
-**You maintain the diary** throughout your work. ai-coordination just created the session and will archive it when done.
 
 ---
 
@@ -60,57 +28,71 @@ Files: src/auth/jwt_validator.dart (120 lines)
 ```
 User: "Implement authentication"
 
-You → ai-coordination: {"event": "start_feature", "description": "authentication", "tickets": ["#CUR-85"]}
+You → ai-coordination:
+  {"event": "start_feature", "description": "authentication", "tickets": ["#CUR-85"]}
 
-ai-coordination → You: {"action": "session_created", "diary": "agent-ops/sessions/20251029_140000/diary.md"}
+ai-coordination → You:
+  {"action": "session_created", "instruction": "Proceed with implementation"}
 
-You: [Write code, append to diary.md as you work]
+You: [Write code: src/auth/jwt_validator.dart]
 
-## [10:15] Implementation
-Created: src/auth/jwt_validator.dart
-...
+You → ai-coordination:
+  {"event": "log_work", "entry_type": "Implementation",
+   "content": "Created src/auth/jwt_validator.dart (120 lines)\n- JWT validation\n- Expiry checking\nRequirements: REQ-p00085"}
 
-## [10:30] Testing
-Running: dart test test/auth/
-Result: ✅ All tests pass
-...
+ai-coordination → You:
+  {"action": "logged", "instruction": "Continue"}
 
-## [11:00] Complete
-✅ JWT validation done
-✅ Token refresh done
-✅ All tests passing
+You: [Run tests]
 
-You → ai-coordination: {"event": "complete_feature"}
+You → ai-coordination:
+  {"event": "log_work", "entry_type": "Testing",
+   "content": "Running: dart test test/auth/\nResult: ✅ All tests pass"}
 
-ai-coordination → You: {"action": "feature_archived"}
+ai-coordination → You:
+  {"action": "logged", "instruction": "Continue"}
+
+You → ai-coordination:
+  {"event": "complete_feature"}
+
+ai-coordination → You:
+  {"action": "feature_archived", "instruction": "Ready for next task"}
 
 You: [Continue to next task]
 ```
 
 ---
 
-## Key Points
+## Entry Types for Reporting
 
-✅ **You write** to diary.md during work (append after each significant action)
-✅ **You focus** on your core task (coding, testing)
-✅ **ai-coordination** handles session setup/teardown and archiving
-❌ **Don't** manage agent branch git operations
-❌ **Don't** worry about where diary gets archived
+Use these `entry_type` values:
+
+- **User Request** - Initial user request
+- **Investigation** - Researching codebase
+- **Implementation** - Code written
+- **Command Execution** - Bash/CLI command run
+- **Testing** - Tests run
+- **Error Encountered** - Error/failure occurred
+- **Solution Applied** - Fix implemented
+- **Decision Made** - Technical decision
+- **Milestone** - Major progress point
+- **Complete** - Task finished
+- **Blocked** - Can't proceed
 
 ---
 
-## Diary Entry Format
+## What You Do
 
-Append after every significant action:
+✅ **Focus on your core work**: coding, testing, debugging
+✅ **Report significant actions** to ai-coordination as you work
+✅ **Never touch agent branch** - ai-coordination handles it
+✅ **Never worry about file paths** - just report your work
 
-```markdown
-## [HH:MM] [Action Type]
-[What happened]
-**Files**: [if applicable]
-**Result**: [outcome]
-```
+## What You Don't Do
 
-**Action types**: User Request, Investigation, Implementation, Command Execution, Error Encountered, Solution Applied, Decision Made, Task Complete, Blocked
+❌ **Never write to diary.md directly** - ai-coordination does this
+❌ **Never switch branches** - always work on product branch
+❌ **Never manage sessions** - ai-coordination handles lifecycle
 
 ---
 

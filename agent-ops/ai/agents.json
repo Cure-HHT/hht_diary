@@ -2,25 +2,22 @@
   "agents": [
     {
       "name": "ai-coordination",
-      "description": "Manages agent-ops system internals (sessions, diary, archives)",
+      "description": "Manages all agent branch operations. Orchestrator never touches agent branch.",
       "instructions_file": "agent-ops/ai/AI_COORDINATION.md",
-      "purpose": "Handles session lifecycle so orchestrators can focus on core tasks",
+      "purpose": "Handles session lifecycle and agent branch git operations so orchestrator stays on product branch",
       "when_to_use": [
         "Starting new feature/task",
-        "Recording milestone",
-        "Logging user question",
+        "Reporting any significant work (implementation, testing, error, decision)",
         "Completing feature"
       ],
       "input_format": {
         "start_feature": {"event": "start_feature", "description": "string", "tickets": ["#CUR-XXX"]},
-        "milestone": {"event": "milestone", "summary": "string"},
-        "question": {"event": "question", "question": "string"},
-        "complete_feature": {"event": "complete_feature", "summary": "string"}
+        "log_work": {"event": "log_work", "entry_type": "string", "content": "string"},
+        "complete_feature": {"event": "complete_feature"}
       },
       "output_format": {
-        "action": "string (session_created|milestone_recorded|question_logged|feature_archived|error)",
-        "session": "string (path, optional)",
-        "instruction": "string (directive for orchestrator)"
+        "action": "string (session_created|logged|feature_archived|error)",
+        "instruction": "string (simple directive for orchestrator)"
       }
     }
   ],
