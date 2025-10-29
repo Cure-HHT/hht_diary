@@ -44,20 +44,6 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better git context
 
-      - name: Free up disk space
-        run: |
-          echo "Disk space before cleanup:"
-          df -h
-          echo "Cleaning up unnecessary files..."
-          docker image prune -af
-          docker container prune -f
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/local/share/boost
-          echo "Disk space after cleanup:"
-          df -h
-
       - name: Detect Docker file changes
         id: docker-changes
         run: |
@@ -71,6 +57,21 @@ jobs:
             echo "No Docker changes in this push - will pull pre-built images from GHCR"
           fi
 
+      - name: Free up disk space
+        if: steps.docker-changes.outputs.changed == 'true'
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          echo "Cleaning up unnecessary files..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -80,32 +81,43 @@ jobs:
 
       - name: Pull pre-built images from GHCR
         if: steps.docker-changes.outputs.changed == 'false'
+        id: pull-images
+        continue-on-error: true
         run: |
           echo "Pulling pre-built images from GHCR..."
 
           # Docker requires lowercase repository names
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
 
-          # Pull and tag base image
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
+          # Pull and tag images (allow failure if images don't exist yet)
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-base:latest || exit 1
           docker tag ghcr.io/${REPO_OWNER}/clinical-diary-base:latest clinical-diary-base:latest
 
-          # Pull and tag dev image
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest || exit 1
           docker tag ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest clinical-diary-dev:latest
 
-          # Pull and tag qa image
-          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
+          docker pull ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest || exit 1
           docker tag ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest clinical-diary-qa:latest
 
           echo "Images pulled and tagged successfully"
 
+      - name: Free up disk space for build (if pulling failed)
+        if: steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
+        run: |
+          echo "Pull failed, need to build images. Freeing up disk space..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+
       - name: Set up Docker Buildx
-        if: steps.docker-changes.outputs.changed == 'true'
+        if: steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker images to GHCR
-        if: steps.docker-changes.outputs.changed == 'true'
+        if: steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure'
         working-directory: tools/dev-env
         run: |
           echo "Docker files changed - building from source with registry caching"
