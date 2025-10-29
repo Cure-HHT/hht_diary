@@ -20,8 +20,6 @@ on:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
       - 'tools/dev-env/setup.sh'
-      # Trigger on workflow changes
-      - '.github/workflows/qa-automation.yml'
       # Trigger on application code changes (mounted as volume, but tests need to run)
       - 'apps/**'
       - 'packages/**'
@@ -30,6 +28,7 @@ on:
       - 'e2e/**'
       - 'pubspec.yaml'
       - 'package.json'
+      # Note: Workflow changes don't trigger QA - use workflow_dispatch to test manually
   workflow_dispatch:
     inputs:
       test_suite:
@@ -351,7 +350,6 @@ jobs:
   security-scan:
     name: Security & Compliance Scan
     runs-on: ubuntu-latest
-    needs: qa-tests
     if: github.event_name == 'pull_request'
 
     permissions:
