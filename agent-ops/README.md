@@ -16,20 +16,40 @@ Creates slash commands and updates `.claude/instructions.md`. See [INSTALL.md](I
 
 ---
 
-## Quick Start
+## For Different Agent Roles
 
-### For AI Agents
+### Orchestrator Agents (Recommended)
 
-1. **Install**: `./agent-ops/scripts/init-claude-integration.sh`
-2. **Read**: [AI Agent Guide](ai/AGENT_GUIDE.md)
-3. **Check agents**: `./agent-ops/scripts/show-agents.sh`
-4. **Start**: `/agent-start`
+**You coordinate work but don't manage agent-ops internals.**
 
-### For Humans
+1. **Read**: [Orchestrator Instructions](ai/ORCHESTRATOR.md)
+2. **Delegate** to `ai-coordination` sub-agent at key events:
+   - Starting feature
+   - Milestone reached
+   - User question needed
+   - Feature complete
+3. **Follow** simple directives you receive back
 
-1. **Install**: `./agent-ops/scripts/init-claude-integration.sh`
-2. **Read**: [Core Concepts](docs/concepts.md), [Two-Branch System](docs/two-branch-system.md)
-3. **Reference**: [Quick Reference](docs/quick-ref.md)
+### AI-Coordination Agent
+
+**You manage agent-ops system for orchestrators.**
+
+1. **Read**: [AI-Coordination Instructions](ai/AI_COORDINATION.md)
+2. **Handle** events from orchestrators
+3. **Manage** sessions, diary, archives
+4. **Respond** with simple directives
+
+### Direct Agent Use (Full Control)
+
+**You manage agent-ops directly.**
+
+1. **Read**: [AI Agent Guide](ai/AGENT_GUIDE.md)
+2. **Use**: Scripts or slash commands (`/agent-start`, `/agent-end`)
+
+### Humans
+
+1. **Read**: [Core Concepts](docs/concepts.md), [Two-Branch System](docs/two-branch-system.md)
+2. **Reference**: [Quick Reference](docs/quick-ref.md)
 
 ---
 
