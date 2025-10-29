@@ -354,6 +354,11 @@ jobs:
     needs: qa-tests
     if: github.event_name == 'pull_request'
 
+    permissions:
+      contents: read
+      security-events: write  # Required to upload SARIF results
+      actions: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
