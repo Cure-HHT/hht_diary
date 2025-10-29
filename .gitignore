@@ -44,6 +44,9 @@ desktop.ini
 # Untracked notes and scratch files
 /untracked-notes/
 
+# Agent Ops - Local session files (archived to agent branches)
+agent-ops/sessions/
+
 # Auto-generated build artifacts (regenerate via tools/requirements/)
 traceability_matrix.md
 traceability_matrix.html

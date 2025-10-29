@@ -7,12 +7,16 @@ set -e
 # Get product branch
 PRODUCT_BRANCH=$(git branch --show-current)
 
-# Extract session ID from product branch
-SESSION_ID=$(echo "$PRODUCT_BRANCH" | grep -oP '\d+[A-Za-z]+$')
+# Extract session ID from product branch (pattern: digits followed by letters)
+SESSION_ID=$(echo "$PRODUCT_BRANCH" | grep -oP '\d+[A-Za-z]+$' || echo "")
 
 if [ -z "$SESSION_ID" ]; then
-  echo "Error: Could not extract session ID from branch: $PRODUCT_BRANCH"
-  exit 1
+  # No session ID in branch name - generate one from branch name hash
+  echo "No session ID found in branch: $PRODUCT_BRANCH"
+  echo "Generating session ID from branch name..."
+  BRANCH_HASH=$(echo -n "$PRODUCT_BRANCH" | md5sum | grep -oP '^[0-9a-f]+')
+  SESSION_ID="${BRANCH_HASH:0:6}"  # Use first 6 hex chars as session ID
+  echo "Generated session ID: $SESSION_ID"
 fi
 
 # Generate deterministic agent name

@@ -626,3 +626,18 @@ echo "# Diary - $(date +%Y-%m-%d) - CI/CD Optimization" > untracked-notes/diary-
 - Whenever you stop to ask me a question, play an audible notification using: `paplay ~/freesound/762115__jerryberumen__alarm-misc-message-alert-notification-quick-short-arp.wav`
 - When modifying SQL, before implementing migration, ask the user if ANY database has ever been deployed with this system.
 - When making notes or todo files that are about your plans or otherwise not part of the project, put them in untracked-notes/ and do not track them in git.
+
+## Agent Ops System
+
+This project uses the agent-ops system for multi-agent coordination.
+
+**For AI Agents**:
+- Read `agent-ops/ai/ORCHESTRATOR.md` for orchestrator workflow
+- Use `ai-coordination` sub-agent for session management
+- Run `./agent-ops/scripts/init-agent.sh` once per session
+
+**Documentation**:
+- `agent-ops/README.md` - System overview
+- `agent-ops/HUMAN.md` - Human-readable guide
+- `agent-ops/ai/AI_COORDINATION.md` - Sub-agent instructions
+

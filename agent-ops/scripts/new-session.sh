@@ -31,9 +31,10 @@ echo ""
 # Optional: Show other agents
 echo -e "${CYAN}Checking for other active agents...${NC}"
 if command -v "$SCRIPT_DIR/show-agents.sh" &> /dev/null; then
-    AGENT_COUNT=$(git branch -r 2>/dev/null | grep -c "ai-agent-" || echo "0")
+    AGENT_COUNT=$(git branch -r 2>/dev/null | grep -c "claude/" || echo "0")
+    AGENT_COUNT=$(echo "$AGENT_COUNT" | tr -d '\n\r ')  # Remove any whitespace/newlines
 
-    if [ "$AGENT_COUNT" -gt "0" ]; then
+    if [ "$AGENT_COUNT" -gt 0 ]; then
         echo -e "${YELLOW}Found $AGENT_COUNT other agent(s). Run './agent-ops/scripts/show-agents.sh' to see details.${NC}"
         echo ""
         read -p "Show other agents now? (y/n): " -n 1 -r
@@ -62,24 +63,26 @@ echo ""
 
 # Copy templates
 echo -e "${GREEN}[1/4]${NC} Copying templates..."
-cp "$AGENT_OPS_ROOT/meta/templates/plan.md" "$SESSION_DIR/plan.md"
-cp "$AGENT_OPS_ROOT/meta/templates/diary.md" "$SESSION_DIR/diary.md"
-cp "$AGENT_OPS_ROOT/meta/templates/results.md" "$SESSION_DIR/results.md"
+cp "$AGENT_OPS_ROOT/ai/templates/diary.md" "$SESSION_DIR/diary.md"
+cp "$AGENT_OPS_ROOT/ai/templates/results.md" "$SESSION_DIR/results.md"
 touch "$SESSION_DIR/notes.md"
 
 # Fill in timestamp in templates
-sed -i "s/\[YYYY-MM-DD HH:MM:SS\]/$(date +"%Y-%m-%d %H:%M:%S")/g" "$SESSION_DIR/plan.md"
-sed -i "s/\[YYYYMMDD_HHMMSS\]/${TIMESTAMP}/g" "$SESSION_DIR/plan.md"
-
 sed -i "s/\[YYYY-MM-DD HH:MM:SS\]/$(date +"%Y-%m-%d %H:%M:%S")/g" "$SESSION_DIR/diary.md"
 sed -i "s/\[YYYYMMDD_HHMMSS\]/${TIMESTAMP}/g" "$SESSION_DIR/diary.md"
-
 sed -i "s/\[YYYYMMDD_HHMMSS\]/${TIMESTAMP}/g" "$SESSION_DIR/results.md"
 
 # Update session name placeholders
-sed -i "s/\[Session name\]/${SESSION_NAME}/g" "$SESSION_DIR/plan.md"
 sed -i "s/\[Session name\]/${SESSION_NAME}/g" "$SESSION_DIR/diary.md"
 sed -i "s/\[Session name\]/${SESSION_NAME}/g" "$SESSION_DIR/results.md"
+
+# Get git info
+GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+# Update diary with git info (using | as delimiter to handle / in branch names)
+sed -i "s|\[git branch\]|$GIT_BRANCH|g" "$SESSION_DIR/diary.md"
+sed -i "s|\[short commit hash\]|$GIT_COMMIT|g" "$SESSION_DIR/diary.md"
 
 # Check for previous session
 echo -e "${GREEN}[2/4]${NC} Checking for previous sessions..."
@@ -117,50 +120,78 @@ fi
 
 if [ -n "$LATEST_SESSION" ]; then
     echo "   Previous local session: $(basename "$LATEST_SESSION")"
-    sed -i "s|\[Link to previous session if applicable, or \"New session\"\]|Previous session: sessions/$(basename "$LATEST_SESSION")/|g" "$SESSION_DIR/plan.md"
+    PREV_SESSION_NOTE="Previous session: sessions/$(basename "$LATEST_SESSION")/"
 elif [ -n "$LATEST_ARCHIVE" ]; then
     echo "   Previous session (archived): $LATEST_ARCHIVE"
-    sed -i "s|\[Link to previous session if applicable, or \"New session\"\]|Previous session: archive/$LATEST_ARCHIVE/ (on agent branch)|g" "$SESSION_DIR/plan.md"
+    PREV_SESSION_NOTE="Previous session: archive/$LATEST_ARCHIVE/ (on agent branch)"
 else
     echo "   No previous session found (first session)"
-    sed -i "s|\[Link to previous session if applicable, or \"New session\"\]|First session|g" "$SESSION_DIR/plan.md"
+    PREV_SESSION_NOTE="First session"
 fi
 
-# Add initial diary entry
+# Add initial diary entry with session plan
 echo -e "${GREEN}[3/4]${NC} Creating initial diary entry..."
 cat >> "$SESSION_DIR/diary.md" <<EOF
+
+---
+
+## Session Plan
+
+**Branch**: $GIT_BRANCH
+**Commit**: $GIT_COMMIT
+**Continuing From**: $PREV_SESSION_NOTE
+
+### Goal
+
+[What are we trying to accomplish? Be specific.]
+
+### Tasks
+
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
+
+### Success Criteria
+
+- [ ] Criterion 1
+- [ ] Criterion 2
+
+### Related Requirements
+
+- REQ-pXXXXX: [Name]
+Or: N/A
+
+### Potential Blockers
+
+- **Risk**: [Description]
+  - Mitigation: [How to handle]
+Or: None identified
+
+---
 
 ## [$(date +"%H:%M")] Session Start
 
 **Current Branch**: $CURRENT_BRANCH
 **Session Goal**: $SESSION_NAME
-
 EOF
 
 if [ -n "$AGENT_BRANCH" ]; then
     cat >> "$SESSION_DIR/diary.md" <<EOF
 **Agent Branch**: $AGENT_BRANCH
-
 EOF
 fi
 
 cat >> "$SESSION_DIR/diary.md" <<EOF
-**Plan**: [Fill out plan.md and summarize here]
+
+**Next**: Fill out session plan above, then begin work
 
 ---
 
 EOF
 
-# Get git info
 echo -e "${GREEN}[4/4]${NC} Recording git state..."
-GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
-GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-
 echo "   Branch: $GIT_BRANCH"
 echo "   Commit: $GIT_COMMIT"
-
-# Update plan.md with git info
-sed -i "s/\[git branch\]/$GIT_BRANCH/g" "$SESSION_DIR/plan.md"
 
 # Success message
 echo ""
@@ -170,8 +201,8 @@ echo -e "${BLUE}Session directory:${NC} $SESSION_DIR"
 echo -e "${BLUE}Relative path:${NC} agent-ops/sessions/${TIMESTAMP}/"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
-echo "1. Fill out $SESSION_DIR/plan.md"
-echo "2. Start working and update $SESSION_DIR/diary.md as you go"
+echo "1. Fill out the session plan section at top of $SESSION_DIR/diary.md"
+echo "2. Append entries to diary.md as you work"
 echo "3. When done, run ./agent-ops/scripts/end-session.sh"
 echo ""
 echo -e "${CYAN}Note:${NC} This session is local (gitignored)."
