@@ -50,6 +50,7 @@ jobs:
       contents: read
       pull-requests: write
       checks: write
+      packages: read  # Required to pull images from GHCR
 
     steps:
       - name: Checkout code
@@ -57,9 +58,51 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better git context
 
-      - name: Build QA Docker images with docker-compose
+      - name: Detect Docker file changes
+        id: docker-changes
+        run: |
+          # Check if any Docker-related files changed in this PR
+          if git diff --name-only origin/main...${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Docker files changed - will rebuild images"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No Docker changes - will pull pre-built images from GHCR"
+          fi
+
+      - name: Log in to GitHub Container Registry
+        if: steps.docker-changes.outputs.changed == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull pre-built images from GHCR
+        if: steps.docker-changes.outputs.changed == 'false'
+        run: |
+          echo "Pulling pre-built images from GHCR..."
+
+          # Pull and tag base image
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest clinical-diary-base:latest
+
+          # Pull and tag dev image
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest clinical-diary-dev:latest
+
+          # Pull and tag qa image
+          docker pull ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+          docker tag ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest clinical-diary-qa:latest
+
+          echo "Images pulled and tagged successfully"
+
+      - name: Build QA Docker images from source
+        if: steps.docker-changes.outputs.changed == 'true'
         working-directory: tools/dev-env
         run: |
+          echo "Docker files changed - building from source..."
+
           # Build in dependency order: base -> dev -> qa
           # Base is not a compose service, build it directly with docker build
           docker build -f docker/base.Dockerfile -t clinical-diary-base:latest docker/
@@ -68,6 +111,8 @@ jobs:
           # Use CI override to limit resources to GitHub Actions constraints (2 CPUs)
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build dev
           docker compose -f docker-compose.yml -f docker-compose.ci.yml build qa
+
+          echo "Images built successfully"
 
       - name: Start QA environment
         working-directory: tools/dev-env
