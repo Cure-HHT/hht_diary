@@ -16,13 +16,14 @@ on:
       - '.devcontainer/**'
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '.devcontainer/**'
-      - 'tools/dev-env/docker/**'
-      - 'tools/dev-env/docker-compose.yml'
+  # Disabled for PRs - QA automation workflow builds from source instead
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - '.devcontainer/**'
+  #     - 'tools/dev-env/docker/**'
+  #     - 'tools/dev-env/docker-compose.yml'
   workflow_dispatch:
 
 jobs:
