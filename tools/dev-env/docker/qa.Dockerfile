@@ -22,7 +22,7 @@ RUN npm install -g playwright && \
     npx playwright --version
 
 # Install Playwright browsers and dependencies (needs root for system packages)
-RUN npx playwright install --with-deps
+RUN DEBIAN_FRONTEND=noninteractive npx playwright install --with-deps
 
 # ============================================================
 # Report generation tools
