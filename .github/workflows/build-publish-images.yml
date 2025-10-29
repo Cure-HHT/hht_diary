@@ -84,8 +84,10 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # COHERENT CACHING: GHCR only (no GHA cache)
+          # Images in GHCR serve as cache - pull latest before build
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -97,7 +99,7 @@ jobs:
           file: tools/dev-env/docker/base.Dockerfile
           tags: clinical-diary-base:latest
           outputs: type=docker,dest=/tmp/base-image.tar
-          cache-from: type=gha
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
 
       - name: Upload base image artifact
         if: github.event_name == 'pull_request'
@@ -165,8 +167,8 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -180,7 +182,7 @@ jobs:
             BASE_IMAGE_TAG=latest
           tags: clinical-diary-dev:latest
           outputs: type=docker,dest=/tmp/dev-image.tar
-          cache-from: type=gha
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
 
       - name: Upload dev image artifact
         if: github.event_name == 'pull_request'
@@ -257,8 +259,8 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -320,8 +322,8 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
@@ -383,8 +385,8 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt:latest
+          cache-to: type=inline
           provenance: true
           sbom: true
 
