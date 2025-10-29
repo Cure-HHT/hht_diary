@@ -41,92 +41,48 @@
 1. Check for other agents: `./agent-ops/scripts/show-agents.sh`
 2. Create session: `./agent-ops/scripts/new-session.sh "description"`
 3. Fill `plan.md` with tasks from tickets/description
-4. Initialize `diary.md` with session start
+4. Initialize `diary.md` with session start entry
 
 **Response**:
 ```json
 {
   "action": "session_created",
-  "session": "agent-ops/sessions/YYYYMMDD_HHMMSS",
-  "instruction": "Continue your work. Coordinate with me at milestones."
+  "diary": "agent-ops/sessions/YYYYMMDD_HHMMSS/diary.md",
+  "plan": "agent-ops/sessions/YYYYMMDD_HHMMSS/plan.md",
+  "instruction": "Write to diary.md as you work. Append after every significant action."
 }
 ```
 
-### 2. `milestone`
+**Note**: Orchestrator will write directly to diary.md during work. You only set it up.
 
-**Input**: `{"event": "milestone", "summary": "what was done"}`
+### 2. `complete_feature`
 
-**Actions**:
-1. Append to current session's `diary.md`:
-   ```markdown
-   ## [HH:MM] Milestone Reached
-
-   **Summary**: [from input]
-
-   Orchestrator completed: [what was done]
-   ```
-2. Update `plan.md` checkboxes for completed tasks
-
-**Response**:
-```json
-{
-  "action": "milestone_recorded",
-  "instruction": "Milestone tracked. Continue to next task."
-}
-```
-
-### 3. `question`
-
-**Input**: `{"event": "question", "question": "user question"}`
+**Input**: `{"event": "complete_feature"}`
 
 **Actions**:
-1. Append to current session's `diary.md`:
-   ```markdown
-   ## [HH:MM] User Question Needed
-
-   **Question**: [from input]
-
-   Awaiting user response to proceed.
-   ```
-
-**Response**:
-```json
-{
-  "action": "question_logged",
-  "instruction": "Question logged. Ask user and report answer as next milestone."
-}
-```
-
-### 4. `complete_feature`
-
-**Input**: `{"event": "complete_feature", "summary": "final summary"}`
-
-**Actions**:
-1. Write `results.md` with:
-   - Summary from input
-   - Completed tasks from `plan.md`
-   - Files changed (ask orchestrator if needed)
-   - Requirements addressed
-   - Next steps
-
-2. Update agent branch `CONTEXT.md` (if exists):
+1. Read orchestrator's `diary.md` and `plan.md` from session
+2. Generate `results.md` summary based on diary content
+3. Update agent branch:
    ```bash
-   git checkout claude/ai-agent-011ABC
-   # Update CONTEXT.md with completion
-   git commit -m "[AGENT] Feature complete"
-   git push
-   git checkout [product-branch]
-   ```
+   # Get current product branch
+   PRODUCT_BRANCH=$(git branch --show-current)
 
-3. Archive session:
-   ```bash
+   # Switch to agent branch
    git checkout claude/ai-agent-011ABC
-   mv ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
-      agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/
-   git add agent-ops/archive/
+
+   # Copy session to archive
+   cp -r ../[product]/agent-ops/sessions/YYYYMMDD_HHMMSS/ \
+         agent-ops/archive/YYYYMMDD_HHMMSS_feature_name/
+
+   # Update CONTEXT.md
+   # Update with completion status
+
+   git add agent-ops/archive/ agent-ops/agents/
    git commit -m "[ARCHIVE] Feature: [name]"
    git push
-   git checkout [product-branch]
+
+   # CRITICAL: Switch back to product branch
+   git checkout $PRODUCT_BRANCH
    ```
 
 **Response**:
@@ -138,59 +94,21 @@
 }
 ```
 
+**CRITICAL**: Must end with product branch checked out.
+
 ---
 
 ## Session Management
 
 ### Current Session Tracking
 
-Maintain state of active session:
+When session created:
 - Location: `agent-ops/sessions/YYYYMMDD_HHMMSS/`
-- Files: `plan.md`, `diary.md`, `results.md`
+- You create: `plan.md`, `diary.md` (with initial entry)
+- Orchestrator writes to: `diary.md` (throughout work)
+- You create on complete: `results.md`
 
-### Diary Format
-
-When orchestrator reports work, append using standard formats:
-
-**Milestone**:
-```markdown
-## [HH:MM] Milestone: [Name]
-
-Orchestrator completed: [summary]
-
-**Files**: [if known]
-**Status**: [in progress | blocked | complete]
-```
-
-**Implementation**:
-```markdown
-## [HH:MM] Implementation
-
-Orchestrator implemented: [what]
-
-Created: [files]
-Modified: [files]
-Requirements: REQ-pXXXXX, REQ-oXXXXX
-```
-
-**Question**:
-```markdown
-## [HH:MM] User Question
-
-**Question**: [question]
-
-Orchestrator needs user input to proceed.
-Awaiting response.
-```
-
-**Answer**:
-```markdown
-## [HH:MM] User Response
-
-**Answer**: [answer]
-
-Orchestrator can now proceed with [next step].
-```
+**Note**: Orchestrator maintains diary.md. You just set it up and archive it.
 
 ---
 
@@ -201,16 +119,19 @@ Orchestrator can now proceed with [next step].
 If orchestrator starting new feature and no agent branch exists:
 
 ```bash
-# Extract agent ID from product branch
+# Get product branch and extract agent ID
+PRODUCT_BRANCH=$(git branch --show-current)
 # Example: claude/feature-xyz-011ABC → 011ABC
+AGENT_ID=$(echo $PRODUCT_BRANCH | grep -oP '\d+[A-Z]+$')
 
-git checkout -b claude/ai-agent-011ABC
-mkdir -p agent-ops/agents/011ABC
+# Create agent branch
+git checkout -b claude/ai-agent-$AGENT_ID
+mkdir -p agent-ops/agents/$AGENT_ID
 
-cat > agent-ops/agents/011ABC/CONTEXT.md <<EOF
-# Agent: 011ABC
+cat > agent-ops/agents/$AGENT_ID/CONTEXT.md <<EOF
+# Agent: $AGENT_ID
 **Status**: 🟢 Active
-**Product Branch**: claude/feature-xyz-011ABC
+**Product Branch**: $PRODUCT_BRANCH
 **Started**: $(date +"%Y-%m-%d %H:%M:%S")
 
 ## Current Work
@@ -218,21 +139,11 @@ cat > agent-ops/agents/011ABC/CONTEXT.md <<EOF
 EOF
 
 git add agent-ops/
-git commit -m "[AGENT] 011ABC: Initialize"
-git push -u origin claude/ai-agent-011ABC
-git checkout claude/feature-xyz-011ABC
-```
+git commit -m "[AGENT] $AGENT_ID: Initialize"
+git push -u origin claude/ai-agent-$AGENT_ID
 
-### Periodic Updates
-
-Every milestone, update agent CONTEXT.md:
-
-```bash
-git checkout claude/ai-agent-011ABC
-# Edit CONTEXT.md with current state
-git commit -m "[AGENT] 011ABC: Milestone update"
-git push
-git checkout [product-branch]
+# CRITICAL: Switch back
+git checkout $PRODUCT_BRANCH
 ```
 
 ---
