@@ -67,7 +67,8 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
 
 # Install Android SDK components (PATH now includes sdkmanager)
 # Note: cmdline-tools already installed manually above - don't reinstall
-RUN yes | sdkmanager --licenses || true && \
+# Suppress verbose license output but keep errors visible
+RUN yes | sdkmanager --licenses >/dev/null || true && \
     sdkmanager "platform-tools" \
                "build-tools;34.0.0" \
                "platforms;android-34" && \
