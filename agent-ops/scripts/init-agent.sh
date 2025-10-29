@@ -28,15 +28,17 @@ AGENT_NAME=${NAMES[$INDEX]}
 # Define paths
 REPO_ROOT=$(git rev-parse --show-toplevel)
 CONFIG_FILE="$REPO_ROOT/untracked-notes/agent-ops.json"
-AGENT_WORKTREE_PATH="$(dirname "$REPO_ROOT")/$(basename "$REPO_ROOT")-$AGENT_NAME"
+WORKTREES_DIR="$(dirname "$REPO_ROOT")/$(basename "$REPO_ROOT")-worktrees"
 AGENT_BRANCH="claude/$AGENT_NAME"
 
-# Product worktree path - ALWAYS a sibling directory, never a child
-# Pattern: /parent/repo-worktrees/agent_name
-PRODUCT_WORKTREE_PATH="$(dirname "$REPO_ROOT")/$(basename "$REPO_ROOT")-worktrees/$AGENT_NAME"
+# Both worktrees in same container directory with clear naming
+# Pattern: /parent/repo-worktrees/agent_name and /parent/repo-worktrees/agent_name-ops
+AGENT_WORKTREE_PATH="$WORKTREES_DIR/$AGENT_NAME-ops"
+PRODUCT_WORKTREE_PATH="$WORKTREES_DIR/$AGENT_NAME"
 
-# Ensure config directory exists
+# Ensure directories exist
 mkdir -p "$REPO_ROOT/untracked-notes"
+mkdir -p "$WORKTREES_DIR"
 
 # Check if config already exists
 if [ -f "$CONFIG_FILE" ]; then

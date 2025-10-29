@@ -38,8 +38,8 @@
 
 This script:
 1. Generates deterministic agent name from session ID
-2. Creates TWO worktrees (both as SIBLING directories):
-   - Agent coordination worktree: `../project-{agent_name}/` (for ai-coordination)
+2. Creates TWO worktrees in same container directory:
+   - Agent coordination worktree: `../project-worktrees/{agent_name}-ops/` (for ai-coordination)
    - Product work worktree: `../project-worktrees/{agent_name}/` (for you)
 3. Writes config to `untracked-notes/agent-ops.json`
 
@@ -175,20 +175,21 @@ Use these `entry_type` values:
 - Used ONLY for initialization
 - DO NOT work here - always use product worktree
 
-**TWO Worktrees per agent:**
+**TWO Worktrees per agent (in same container directory):**
 
-1. **Agent Coordination Worktree** (e.g., `/home/user/diary-vise`):
-   - Branch: `claude/vise`
+1. **Agent Coordination Worktree** (e.g., `/home/user/diary-worktrees/motor-ops`):
+   - Branch: `claude/motor`
    - Used by: ai-coordination sub-agent
    - Contains: diary.md, results.md (session tracking)
    - You never interact with this
 
-2. **Product Work Worktree** (e.g., `/home/user/diary-worktrees/vise`):
-   - **SIBLING directory**, not a child of the repo
+2. **Product Work Worktree** (e.g., `/home/user/diary-worktrees/motor`):
    - Branch: Current feature branch
    - Used by: YOU (orchestrator) for ALL coding work
    - Contains: Your actual code changes
    - This is where you work 100% of the time
+
+**Both worktrees** are siblings in `project-worktrees/` directory
 
 **Benefits**:
 - ✅ Multiple Claude instances can work simultaneously without conflicts
