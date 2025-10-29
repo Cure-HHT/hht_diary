@@ -7,9 +7,9 @@
 # QA Environment Dockerfile
 # Extends dev with: Playwright, testing tools, report generation
 
-ARG BASE_IMAGE_TAG=latest
+ARG BASE_IMAGE=clinical-diary-dev:latest
 # QA inherits from dev since it needs Flutter for integration tests
-FROM clinical-diary-dev:${BASE_IMAGE_TAG}
+FROM ${BASE_IMAGE}
 
 LABEL com.clinical-diary.role="qa"
 LABEL description="QA environment with testing frameworks and report generation"

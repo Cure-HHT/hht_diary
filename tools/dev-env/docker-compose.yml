@@ -43,7 +43,7 @@ services:
       context: ./docker
       dockerfile: dev.Dockerfile
       args:
-        BASE_IMAGE_TAG: latest
+        BASE_IMAGE: clinical-diary-base:latest
       cache_from:
         - clinical-diary-base:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
@@ -121,7 +121,7 @@ services:
       context: ./docker
       dockerfile: qa.Dockerfile
       args:
-        BASE_IMAGE_TAG: latest
+        BASE_IMAGE: clinical-diary-dev:latest
       cache_from:
         - clinical-diary-base:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
