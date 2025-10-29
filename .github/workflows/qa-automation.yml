@@ -51,7 +51,7 @@ jobs:
       contents: read
       pull-requests: write
       checks: write
-      packages: read  # Required to pull images from GHCR
+      packages: write  # Required to push/pull images to/from GHCR
 
     steps:
       - name: Checkout code
@@ -72,7 +72,6 @@ jobs:
           fi
 
       - name: Log in to GitHub Container Registry
-        if: steps.docker-changes.outputs.changed == 'false'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -102,22 +101,38 @@ jobs:
         if: steps.docker-changes.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build QA Docker images from source
+      - name: Build and push Docker images to GHCR
         if: steps.docker-changes.outputs.changed == 'true'
         working-directory: tools/dev-env
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
-          echo "Docker files changed - building from source"
+          echo "Docker files changed - building from source with registry caching"
 
-          # COHERENT CACHING: Use GHCR images as cache source via docker compose
-          # Build images explicitly in dependency order to avoid pull attempts
-          # BuildKit will pull layers from GHCR registry if available
-          # Use CI override to limit resources to GitHub Actions constraints
+          # PROPER REGISTRY-BASED CACHING:
+          # Build each image, push to GHCR immediately, so subsequent builds can pull from registry
+          # This ensures FROM directives can resolve from GHCR
+          # BuildKit uses cache_from to pull layers from GHCR for faster builds
 
+          echo "Building base image..."
           docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build base
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa
+          echo "Pushing base to GHCR..."
+          docker tag clinical-diary-base:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
+          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-base:latest
 
-          echo "Images built successfully"
+          echo "Building dev image..."
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev
+          echo "Pushing dev to GHCR..."
+          docker tag clinical-diary-dev:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-dev:latest
+
+          echo "Building qa image..."
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa
+          echo "Pushing qa to GHCR..."
+          docker tag clinical-diary-qa:latest ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+          docker push ghcr.io/${{ github.repository_owner }}/clinical-diary-qa:latest
+
+          echo "All images built and pushed to GHCR successfully"
 
       - name: Start QA environment
         working-directory: tools/dev-env
