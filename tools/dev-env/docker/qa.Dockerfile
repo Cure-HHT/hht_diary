@@ -22,6 +22,7 @@ RUN npm install -g playwright && \
     npx playwright --version
 
 # Install Playwright browsers and dependencies (needs root for system packages)
+# Safe: DEBIAN_FRONTEND=noninteractive prevents debconf prompts in Playwright's apt-get subprocess
 RUN DEBIAN_FRONTEND=noninteractive npx playwright install --with-deps
 
 # ============================================================
@@ -41,6 +42,7 @@ RUN apt-get update -y && \
 USER ubuntu
 
 # Install Flutter test report generators (configure PATH inline to avoid warning)
+# Safe: PATH set inline for this command only - pub cache bin not needed in permanent PATH
 RUN PATH="/home/ubuntu/.pub-cache/bin:$PATH" flutter pub global activate junitreport || true
 
 # ============================================================
