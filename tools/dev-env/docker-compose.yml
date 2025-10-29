@@ -49,6 +49,7 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
         - clinical-diary-dev:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
+    pull_policy: build
     image: clinical-diary-dev:latest
     container_name: clinical-diary-dev
     hostname: dev
@@ -128,6 +129,7 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
         - clinical-diary-qa:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-qa:latest
+    pull_policy: build
     image: clinical-diary-qa:latest
     container_name: clinical-diary-qa
     hostname: qa
@@ -192,6 +194,7 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
         - clinical-diary-ops:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-ops:latest
+    pull_policy: build
     image: clinical-diary-ops:latest
     container_name: clinical-diary-ops
     hostname: ops
@@ -250,6 +253,7 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
         - clinical-diary-mgmt:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-mgmt:latest
+    pull_policy: build
     image: clinical-diary-mgmt:latest
     container_name: clinical-diary-mgmt
     hostname: mgmt
