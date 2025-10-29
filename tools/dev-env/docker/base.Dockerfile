@@ -23,9 +23,20 @@ ENV TZ=UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # ============================================================
+# Exclude documentation (prevents update-alternatives warnings, reduces size)
+# ============================================================
+RUN mkdir -p /etc/dpkg/dpkg.cfg.d && \
+    echo "path-exclude=/usr/share/man/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude=/usr/share/doc/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude=/usr/share/groff/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude=/usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc
+
+# ============================================================
 # System Packages & Dependencies
 # ============================================================
-RUN apt-get update -y && apt-get install -y \
+# Suppress update-alternatives warnings for missing man pages (excluded via dpkg config)
+RUN apt-get update -y && \
+    (apt-get install -y \
     # Core utilities
     curl \
     wget \
@@ -47,7 +58,8 @@ RUN apt-get update -y && apt-get install -y \
     procps \
     # For adding repositories
     gpg \
-    && rm -rf /var/lib/apt/lists/*
+    2>&1 | grep -v "update-alternatives: warning" || true) && \
+    rm -rf /var/lib/apt/lists/*
 
 # ============================================================
 # Git Configuration (latest stable)
@@ -74,7 +86,8 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
 # ============================================================
 # Node.js 20.x LTS (support until 2026-04-30)
 # ============================================================
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# Suppress apt warnings from NodeSource setup script (uses apt internally, not apt-get)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | grep -v "apt does not have a stable CLI" && \
     apt-get install -y nodejs && \
     node --version && \
     npm --version && \
@@ -116,7 +129,7 @@ RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com
 # ============================================================
 # Anthropic Python SDK & Claude Code CLI
 # ============================================================
-RUN pip3 install --no-cache-dir --break-system-packages anthropic && \
+RUN pip3 install --no-cache-dir --break-system-packages --root-user-action=ignore anthropic && \
     npm install -g @anthropic-ai/claude-code
 
 # ============================================================

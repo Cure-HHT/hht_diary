@@ -40,8 +40,8 @@ RUN apt-get update -y && \
 # ============================================================
 USER ubuntu
 
-# Install Flutter test report generators
-RUN flutter pub global activate junitreport || true
+# Install Flutter test report generators (configure PATH inline to avoid warning)
+RUN PATH="/home/ubuntu/.pub-cache/bin:$PATH" flutter pub global activate junitreport || true
 
 # ============================================================
 # Supabase CLI v2.54.10 (pinned for FDA 21 CFR Part 11 compliance)
