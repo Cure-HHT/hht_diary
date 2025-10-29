@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../services/auth_service.dart';
-import '../../config/supabase_config.dart';
+import '../../services/database_service.dart';
+import '../../config/database_config.dart';
 
 class UserManagementTab extends StatefulWidget {
   const UserManagementTab({super.key});
@@ -29,14 +30,13 @@ class _UserManagementTabState extends State<UserManagementTab> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final usersResponse =
-          await SupabaseConfig.client.from('portal_users').select();
-      final sitesResponse =
-          await SupabaseConfig.client.from('sites').select();
+      final db = DatabaseConfig.getDatabaseService();
+      final users = await db.getPortalUsers();
+      final sites = await db.getSites();
 
       setState(() {
-        _users = List<Map<String, dynamic>>.from(usersResponse);
-        _sites = List<Map<String, dynamic>>.from(sitesResponse);
+        _users = users;
+        _sites = sites;
         _isLoading = false;
       });
     } catch (e) {
@@ -79,9 +79,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
 
     if (confirm == true && mounted) {
       try {
-        await SupabaseConfig.client
-            .from('portal_users')
-            .update({'is_active': false}).eq('id', userId);
+        final db = DatabaseConfig.getDatabaseService();
+        await db.revokeUserAccess(userId);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -237,20 +236,17 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     }
 
     try {
-      final linkingCode = _generateLinkingCode();
-
-      await SupabaseConfig.client.from('portal_users').insert({
-        'email': _emailController.text.trim(),
-        'name': _nameController.text.trim(),
-        'role': _selectedRole.name,
-        'assigned_sites': _selectedRole == UserRole.investigator
+      final db = DatabaseConfig.getDatabaseService();
+      final result = await db.createPortalUser(
+        email: _emailController.text.trim(),
+        name: _nameController.text.trim(),
+        role: _selectedRole!.name,
+        assignedSites: _selectedRole == UserRole.investigator
             ? _selectedSites.toList()
             : null,
-        'linking_code': linkingCode,
-        'is_active': true,
-      });
+      );
 
-      setState(() => _linkingCode = linkingCode);
+      setState(() => _linkingCode = result['linking_code'] as String);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-import '../../config/supabase_config.dart';
+import '../../config/database_config.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 import '../../theme/portal_theme.dart';
 
 enum QuestionnaireType {
@@ -50,22 +51,16 @@ class _PatientMonitoringTabState extends State<PatientMonitoringTab> {
     try {
       final authService = context.read<AuthService>();
       final assignedSites = authService.currentUser?.assignedSites ?? [];
+      final db = DatabaseConfig.getDatabaseService();
 
-      var query = SupabaseConfig.client
-          .from('patients')
-          .select('*, sites(site_name), questionnaires(*)')
-          .eq('is_active', true)
-          .order('created_at', ascending: false);
-
-      // Filter to assigned sites
-      if (assignedSites.isNotEmpty) {
-        query = query.in_('site_id', assignedSites);
-      }
-
-      final response = await query;
+      // Get patients (filtered by assigned sites if not admin)
+      final patients = await db.getPatients(
+        siteIds: assignedSites.isNotEmpty ? assignedSites : null,
+        includeInactive: false,
+      );
 
       setState(() {
-        _patients = List<Map<String, dynamic>>.from(response);
+        _patients = patients;
         _isLoading = false;
       });
     } catch (e) {
@@ -111,12 +106,11 @@ class _PatientMonitoringTabState extends State<PatientMonitoringTab> {
     QuestionnaireType type,
   ) async {
     try {
-      await SupabaseConfig.client.from('questionnaires').insert({
-        'patient_id': patientId,
-        'questionnaire_type': type.name,
-        'status': QuestionnaireStatus.sent.name,
-        'sent_at': DateTime.now().toIso8601String(),
-      });
+      final db = DatabaseConfig.getDatabaseService();
+      await db.sendQuestionnaire(
+        patientId: patientId,
+        questionnaireType: type.name,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -135,13 +129,8 @@ class _PatientMonitoringTabState extends State<PatientMonitoringTab> {
 
   Future<void> _acknowledgeCompletion(String questionnaireId) async {
     try {
-      await SupabaseConfig.client
-          .from('questionnaires')
-          .update({
-            'status': QuestionnaireStatus.notSent.name,
-            'acknowledged_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', questionnaireId);
+      final db = DatabaseConfig.getDatabaseService();
+      await db.acknowledgeQuestionnaire(questionnaireId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,15 +171,14 @@ class _PatientMonitoringTabState extends State<PatientMonitoringTab> {
 
     if (confirm == true && mounted) {
       try {
-        await SupabaseConfig.client
-            .from('patients')
-            .update({'is_active': false}).eq('patient_id', patientId);
+        // TODO: Add revokePatientToken to DatabaseService
+        // For now, patients remain active in local database
+        debugPrint('Patient token revocation not yet implemented');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Patient token revoked')),
+            const SnackBar(content: Text('Feature not yet implemented')),
           );
-          _loadPatients();
         }
       } catch (e) {
         if (mounted) {

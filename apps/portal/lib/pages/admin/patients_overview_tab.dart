@@ -4,7 +4,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../config/supabase_config.dart';
+import '../../config/database_config.dart';
+import '../../services/database_service.dart';
 import '../../theme/portal_theme.dart';
 
 class PatientsOverviewTab extends StatefulWidget {
@@ -27,13 +28,11 @@ class _PatientsOverviewTabState extends State<PatientsOverviewTab> {
   Future<void> _loadPatients() async {
     setState(() => _isLoading = true);
     try {
-      final response = await SupabaseConfig.client
-          .from('patients')
-          .select('*, sites(site_name)')
-          .order('created_at', ascending: false);
+      final db = DatabaseConfig.getDatabaseService();
+      final patients = await db.getPatients();
 
       setState(() {
-        _patients = List<Map<String, dynamic>>.from(response);
+        _patients = patients;
         _isLoading = false;
       });
     } catch (e) {

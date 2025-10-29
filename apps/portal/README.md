@@ -76,12 +76,15 @@ This portal implements the following requirements from spec/:
 
 ### Project Structure
 ```
-sponsor/lib/carina/portal/
+apps/portal/
 ├── lib/
 │   ├── main.dart                      # App entry point
 │   ├── config/
-│   │   └── supabase_config.dart       # Supabase configuration
+│   │   └── database_config.dart       # Multi-environment database configuration
 │   ├── services/
+│   │   ├── database_service.dart      # Database abstraction interface
+│   │   ├── local_database_service.dart # Local mock database (dev)
+│   │   ├── supabase_database_service.dart # Supabase implementation (qa/prod)
 │   │   └── auth_service.dart          # Authentication service
 │   ├── router/
 │   │   └── app_router.dart            # Route configuration
@@ -108,6 +111,21 @@ sponsor/lib/carina/portal/
 └── pubspec.yaml                       # Dependencies
 ```
 
+### Database Abstraction Layer
+
+The portal uses a **database abstraction layer** to support multiple environments without code changes:
+
+- **`DatabaseService`** (interface): Abstract interface defining all database operations
+- **`LocalDatabaseService`**: Mock implementation with in-memory test data (dev environment)
+- **`SupabaseDatabaseService`**: Production implementation using Supabase (qa/prod environments)
+- **`DatabaseConfig`**: Configuration controller that selects the appropriate implementation based on build-time environment variables
+
+Benefits:
+- Develop and test without Supabase credentials
+- Environment-specific configuration at build time
+- Clean separation of concerns
+- Easy to add additional implementations (SQLite, Firebase, etc.)
+
 ---
 
 ## Getting Started
@@ -127,7 +145,7 @@ sponsor/lib/carina/portal/
 
 2. **Navigate to portal directory**
    ```bash
-   cd sponsor/lib/carina/portal
+   cd apps/portal
    ```
 
 3. **Install dependencies**
@@ -178,15 +196,52 @@ Deploy RLS policies from `database/rls_policies.sql`.
 
 ## Configuration
 
-### Environment Variables
-Create `sponsor/config/carina/supabase.env`:
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+### Multi-Environment Setup
+
+The portal supports three environments via build-time environment variables:
+
+1. **Dev** (local): Uses `LocalDatabaseService` with mock in-memory data
+2. **QA/UAT**: Uses `SupabaseDatabaseService` with QA Supabase instance
+3. **Prod/Mgmt**: Uses `SupabaseDatabaseService` with production Supabase instance
+
+Environment variables are set using `--dart-define` flags at build/run time. **The app will fail to start if the environment is not properly configured** - no silent defaults.
+
+### Build Commands
+
+**Development (local mock database)**:
+```bash
+flutter run -d chrome --dart-define=DB_ENV=dev
 ```
 
-**NEVER commit this file to git!**
+**QA/UAT (Supabase QA instance)**:
+```bash
+flutter run -d chrome \
+  --dart-define=DB_ENV=qa \
+  --dart-define=SUPABASE_URL=https://qa-project.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=qa-anon-key-here
+```
+
+**Production (Supabase prod instance)**:
+```bash
+flutter build web --release \
+  --dart-define=DB_ENV=prod \
+  --dart-define=SUPABASE_URL=https://prod-project.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=prod-anon-key-here
+```
+
+### Automatic Environment Configuration
+
+In deployed environments (QA, Prod), the deployment platform automatically sets environment variables:
+
+- **Netlify/Vercel**: Configure env vars in dashboard, use build command with `--dart-define`
+- **GitHub Actions**: Use secrets and pass via build command
+- **Cloudflare Pages**: Configure env vars, inject via build script
+
+Users should **never manually enter credentials** - the deployment environment determines the configuration automatically.
+
+### Legacy Configuration (Deprecated)
+
+Previously used `sponsor/config/carina/supabase.env` file - this approach is deprecated in favor of build-time environment variables.
 
 ### Branding
 Replace placeholder assets in `sponsor/assets/carina/`:
@@ -203,20 +258,40 @@ Replace placeholder assets in `sponsor/assets/carina/`:
 flutter test
 ```
 
-### Hot Reload
+### Local Development
 ```bash
-flutter run -d chrome
+# Run with local mock database (recommended for development)
+flutter run -d chrome --dart-define=DB_ENV=dev
+
 # Press 'r' to hot reload
 # Press 'R' to hot restart
 ```
 
+### Testing with QA Database
+```bash
+# Run with QA Supabase instance
+flutter run -d chrome \
+  --dart-define=DB_ENV=qa \
+  --dart-define=SUPABASE_URL=$QA_SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$QA_SUPABASE_ANON_KEY
+```
+
 ### Building
 ```bash
-# Development build
-flutter build web
+# Development build (local mock)
+flutter build web --dart-define=DB_ENV=dev
+
+# QA/UAT build
+flutter build web --release \
+  --dart-define=DB_ENV=qa \
+  --dart-define=SUPABASE_URL=$QA_SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$QA_SUPABASE_ANON_KEY
 
 # Production build
-flutter build web --release --web-renderer html
+flutter build web --release \
+  --dart-define=DB_ENV=prod \
+  --dart-define=SUPABASE_URL=$PROD_SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$PROD_SUPABASE_ANON_KEY
 ```
 
 ---
@@ -224,20 +299,81 @@ flutter build web --release --web-renderer html
 ## Deployment
 
 ### Netlify (Recommended)
-1. Build the web app: `flutter build web --release`
-2. Deploy `build/web/` to Netlify
-3. Configure environment variables in Netlify dashboard
-4. Custom domain: `carina-portal.example.com`
+
+**QA Environment**:
+1. Configure environment variables in Netlify dashboard:
+   - `QA_SUPABASE_URL`: QA Supabase project URL
+   - `QA_SUPABASE_ANON_KEY`: QA Supabase anon key
+2. Build command:
+   ```bash
+   flutter build web --release \
+     --dart-define=DB_ENV=qa \
+     --dart-define=SUPABASE_URL=$QA_SUPABASE_URL \
+     --dart-define=SUPABASE_ANON_KEY=$QA_SUPABASE_ANON_KEY
+   ```
+3. Publish directory: `build/web/`
+4. Custom domain: `qa-portal.example.com`
+
+**Production Environment**:
+1. Configure environment variables in Netlify dashboard:
+   - `PROD_SUPABASE_URL`: Production Supabase project URL
+   - `PROD_SUPABASE_ANON_KEY`: Production Supabase anon key
+2. Build command:
+   ```bash
+   flutter build web --release \
+     --dart-define=DB_ENV=prod \
+     --dart-define=SUPABASE_URL=$PROD_SUPABASE_URL \
+     --dart-define=SUPABASE_ANON_KEY=$PROD_SUPABASE_ANON_KEY
+   ```
+3. Publish directory: `build/web/`
+4. Custom domain: `portal.example.com`
 
 ### Vercel
-1. Build: `flutter build web --release --web-renderer html`
-2. Deploy `build/web/` to Vercel
-3. Configure environment variables
+
+Configure environment variables in Vercel dashboard, then use build command:
+```bash
+flutter build web --release \
+  --dart-define=DB_ENV=$DEPLOY_ENV \
+  --dart-define=SUPABASE_URL=$SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+```
 
 ### Cloudflare Pages
-1. Build: `flutter build web --release`
-2. Deploy `build/web/` to Cloudflare Pages
-3. Configure Workers for environment variables
+
+Configure environment variables in Pages dashboard, then inject via build script:
+```bash
+#!/bin/bash
+flutter build web --release \
+  --dart-define=DB_ENV=$CF_PAGES_BRANCH \
+  --dart-define=SUPABASE_URL=$SUPABASE_URL \
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+```
+
+### GitHub Actions CI/CD
+
+Example workflow:
+```yaml
+name: Deploy Portal
+on:
+  push:
+    branches: [main, qa]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+      - run: flutter pub get
+      - name: Build
+        run: |
+          flutter build web --release \
+            --dart-define=DB_ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'qa' }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+      - name: Deploy
+        # Deploy to hosting platform
+```
 
 ---
 

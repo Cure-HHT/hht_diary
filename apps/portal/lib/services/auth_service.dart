@@ -3,8 +3,8 @@
 //   REQ-p00014: Authentication and Authorization
 
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../config/supabase_config.dart';
+import 'database_service.dart';
+import '../config/database_config.dart';
 
 enum UserRole {
   admin,
@@ -45,7 +45,7 @@ class PortalUser {
 }
 
 class AuthService extends ChangeNotifier {
-  final SupabaseClient _supabase = SupabaseConfig.client;
+  final DatabaseService _db = DatabaseConfig.getDatabaseService();
   PortalUser? _currentUser;
   bool _isLoading = false;
 
@@ -53,48 +53,15 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
 
-  AuthService() {
-    _initializeAuthListener();
-  }
-
-  void _initializeAuthListener() {
-    _supabase.auth.onAuthStateChange.listen((data) {
-      if (data.session != null) {
-        _loadUserProfile(data.session!.user.id);
-      } else {
-        _currentUser = null;
-        notifyListeners();
-      }
-    });
-  }
-
-  Future<void> _loadUserProfile(String userId) async {
-    try {
-      final response = await _supabase
-          .from('portal_users')
-          .select()
-          .eq('id', userId)
-          .single();
-
-      _currentUser = PortalUser.fromMap(response);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading user profile: $e');
-    }
-  }
-
   Future<bool> signIn(String email, String password) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final response = await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-
-      if (response.user != null) {
-        await _loadUserProfile(response.user!.id);
+      final userData = await _db.signInWithEmail(email, password);
+      if (userData != null) {
+        _currentUser = PortalUser.fromMap(userData);
+        notifyListeners();
         return true;
       }
       return false;
@@ -108,7 +75,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    await _db.signOut();
     _currentUser = null;
     notifyListeners();
   }
