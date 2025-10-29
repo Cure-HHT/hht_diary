@@ -97,20 +97,42 @@ jobs:
 
           echo "Images pulled and tagged successfully"
 
+      - name: Compute Docker context hash for cache-busting
+        if: steps.docker-changes.outputs.changed == 'true'
+        id: docker-hash
+        working-directory: tools/dev-env
+        run: |
+          # Generate hash of all Docker files to bust cache when they change
+          HASH=$(find docker -type f \( -name "Dockerfile" -o -name "*.sh" \) -exec sha256sum {} \; | sha256sum | cut -d' ' -f1)
+          echo "hash=${HASH}" >> $GITHUB_OUTPUT
+          echo "Docker context hash: ${HASH}"
+
       - name: Build QA Docker images from source
         if: steps.docker-changes.outputs.changed == 'true'
         working-directory: tools/dev-env
+        env:
+          DOCKER_CONTEXT_HASH: ${{ steps.docker-hash.outputs.hash }}
         run: |
-          echo "Docker files changed - building from source..."
+          echo "Docker files changed - building from source with hash: $DOCKER_CONTEXT_HASH"
 
           # Build in dependency order: base -> dev -> qa
-          # Base is not a compose service, build it directly with docker build
-          docker build -f docker/base.Dockerfile -t clinical-diary-base:latest docker/
+          # Force clean rebuild to prevent caching issues
+          # --pull: Always fetch latest base images
+          # --no-cache: Rebuild all layers (critical for script permission changes)
+          # --build-arg: Inject hash to invalidate cache when Docker files change
+          docker build \
+            --pull \
+            --no-cache \
+            --build-arg BUILD_HASH="$DOCKER_CONTEXT_HASH" \
+            -f docker/base.Dockerfile \
+            -t clinical-diary-base:latest \
+            docker/
 
           # Dev and qa are compose services that extend base
           # Use CI override to limit resources to GitHub Actions constraints (2 CPUs)
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build dev
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml build qa
+          # --no-cache ensures fresh build with updated base layer
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build --no-cache dev
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build --no-cache qa
 
           echo "Images built successfully"
 
