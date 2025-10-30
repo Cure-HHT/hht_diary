@@ -1,0 +1,35 @@
+{
+  "name": "traceability-matrix",
+  "version": "1.0.0",
+  "description": "Git hook integration for automatic traceability matrix regeneration on spec changes",
+  "author": "Anspar Foundation",
+  "type": "automation",
+  "components": {
+    "hooks": {
+      "pre-commit": {
+        "file": "hooks/pre-commit-traceability-matrix",
+        "description": "Regenerates traceability matrices when spec/ files change",
+        "triggers": ["spec/**/*.md"]
+      }
+    }
+  },
+  "dependencies": {
+    "python3": ">=3.8"
+  },
+  "references": {
+    "implementation": "tools/requirements/generate_traceability.py",
+    "documentation": "tools/requirements/README.md"
+  },
+  "configuration": {
+    "auto_stage_matrices": true,
+    "generate_markdown": true,
+    "generate_html": true
+  },
+  "installation": {
+    "steps": [
+      "1. Ensure git hooks are enabled: git config core.hooksPath .githooks",
+      "2. Make hook executable: chmod +x tools/claude-marketplace/traceability-matrix/hooks/pre-commit-traceability-matrix",
+      "3. Hook is called automatically by main .githooks/pre-commit"
+    ]
+  }
+}

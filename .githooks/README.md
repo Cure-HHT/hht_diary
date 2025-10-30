@@ -2,7 +2,14 @@
 
 ## Overview
 
-This directory contains Git hooks that enforce requirement traceability in the project.
+This directory contains Git hooks that orchestrate validation plugins from the Claude Code marketplace.
+
+The main pre-commit hook delegates to specialized plugins for modular, maintainable validation:
+
+**Plugins (in `tools/claude-marketplace/`)**:
+1. **traceability-matrix** - Auto-regenerates requirement traceability matrices
+2. **requirement-validation** - Validates requirement format and links
+3. **spec-compliance** - Enforces spec/ directory compliance rules
 
 ## Installation
 
@@ -18,18 +25,24 @@ This tells Git to use hooks from `.githooks/` instead of the default `.git/hooks
 
 ### pre-commit
 
-**Purpose**: Maintains requirement traceability and validates requirements before allowing commits.
+**Purpose**: Orchestrates validation by calling marketplace plugins.
 
 **What it does**:
-1. **Regenerates traceability matrices** (if spec/ files changed):
-   - Automatically regenerates `traceability_matrix.md`
-   - Automatically regenerates `traceability_matrix.html`
+1. **Dockerfile linting** (hadolint) - If Dockerfiles changed
+2. **Traceability Matrix Regeneration** (plugin):
+   - Automatically regenerates `traceability_matrix.md` and `traceability_matrix.html`
    - Stages updated matrices for commit
-2. **Validates requirements**:
-   - All requirements in `spec/` are properly formatted
-   - All requirement IDs are unique
-   - All "Implements" references point to existing requirements
-   - No orphaned or broken requirement links
+   - Only runs when spec/ files change
+3. **Requirement Validation** (plugin):
+   - Validates requirement format (REQ-{p|o|d}NNNNN)
+   - Checks requirement ID uniqueness
+   - Verifies "Implements" references exist
+   - Detects orphaned requirements
+4. **Spec Compliance Validation** (plugin):
+   - Validates file naming conventions
+   - Enforces audience scope rules (PRD/Ops/Dev)
+   - Detects code in PRD files
+   - Validates requirement format
 
 **When it runs**: Automatically before every `git commit`
 
@@ -58,9 +71,21 @@ If not set:
 git config core.hooksPath .githooks
 ```
 
+### Plugin not found warnings
+
+If you see "WARNING: Plugin not found", verify plugins are installed:
+
+```bash
+# Check plugins exist
+ls -l tools/claude-marketplace/
+
+# Make plugins executable
+chmod +x tools/claude-marketplace/*/hooks/*
+```
+
 ### Validation errors
 
-The hook runs `tools/requirements/validate_requirements.py`. If it fails:
+Plugins call validation scripts from `tools/requirements/`. If validation fails:
 
 1. Read the error message carefully
 2. See `spec/requirements-format.md` for format rules
@@ -71,14 +96,22 @@ The hook runs `tools/requirements/validate_requirements.py`. If it fails:
 
 ### Permission denied
 
-Make sure the hook is executable:
+Make sure hooks are executable:
 ```bash
 chmod +x .githooks/pre-commit
+chmod +x tools/claude-marketplace/*/hooks/*
 ```
+
+### Plugin-specific issues
+
+See plugin documentation for detailed troubleshooting:
+- `tools/claude-marketplace/spec-compliance/README.md`
+- `tools/claude-marketplace/requirement-validation/README.md`
+- `tools/claude-marketplace/traceability-matrix/README.md`
 
 ## Related Documentation
 
+- **Marketplace Overview**: `tools/claude-marketplace/README.md`
 - **Requirement format**: `spec/requirements-format.md`
-- **Validation tool**: `tools/requirements/README.md`
+- **Validation tools**: `tools/requirements/README.md`
 - **Project instructions**: `CLAUDE.md`
-- **CI/CD setup**: `TODO_CI_CD_SETUP.md`

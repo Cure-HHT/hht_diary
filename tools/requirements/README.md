@@ -2,6 +2,10 @@
 
 Tools for validating and tracking requirements across PRD, Operations, and Development specifications.
 
+> **Git Hook Integration**: These tools are automatically run via git hooks through the
+> requirement-validation and traceability-matrix plugins in `tools/claude-marketplace/`.
+> See `.githooks/README.md` for hook configuration.
+
 ## Overview
 
 This directory contains Python scripts that:

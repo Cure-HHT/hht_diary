@@ -1,0 +1,90 @@
+{
+  "marketplace": {
+    "name": "diary-marketplace",
+    "version": "1.0.0",
+    "description": "Official plugin marketplace for diary project - validation, automation, and development tools",
+    "author": "Anspar Foundation",
+    "repository": "local",
+    "type": "project-local"
+  },
+  "plugins": [
+    {
+      "id": "spec-compliance",
+      "name": "Spec Compliance Enforcer",
+      "description": "Enforces spec/ directory compliance through automated validation and AI-powered analysis",
+      "version": "1.0.0",
+      "category": "validation",
+      "path": "spec-compliance",
+      "enabled": true,
+      "components": {
+        "agent": true,
+        "hooks": true,
+        "scripts": true
+      },
+      "tags": ["validation", "spec", "compliance", "ai-agent", "requirements"]
+    },
+    {
+      "id": "requirement-validation",
+      "name": "Requirement Validation",
+      "description": "Validates requirement format, uniqueness, and links before commits",
+      "version": "1.0.0",
+      "category": "validation",
+      "path": "requirement-validation",
+      "enabled": true,
+      "components": {
+        "hooks": true
+      },
+      "references": {
+        "implementation": "tools/requirements/validate_requirements.py"
+      },
+      "tags": ["validation", "requirements", "traceability", "git-hook"]
+    },
+    {
+      "id": "traceability-matrix",
+      "name": "Traceability Matrix Generator",
+      "description": "Auto-regenerates requirement traceability matrices on spec/ changes",
+      "version": "1.0.0",
+      "category": "automation",
+      "path": "traceability-matrix",
+      "enabled": true,
+      "components": {
+        "hooks": true
+      },
+      "references": {
+        "implementation": "tools/requirements/generate_traceability.py"
+      },
+      "tags": ["automation", "traceability", "requirements", "documentation", "git-hook"]
+    }
+  ],
+  "configuration": {
+    "auto_enable_new_plugins": false,
+    "require_explicit_approval": true,
+    "check_dependencies": true
+  },
+  "hooks": {
+    "pre-commit": {
+      "enabled": true,
+      "plugins": [
+        "traceability-matrix",
+        "requirement-validation",
+        "spec-compliance"
+      ],
+      "order": "sequential"
+    }
+  },
+  "dependencies": {
+    "python3": {
+      "version": ">=3.8",
+      "required_for": ["requirement-validation", "traceability-matrix"]
+    },
+    "bash": {
+      "version": ">=4.0",
+      "required_for": ["spec-compliance", "requirement-validation", "traceability-matrix"]
+    }
+  },
+  "installation": {
+    "git_hooks_path": ".githooks",
+    "hook_integration": "automatic",
+    "documentation": "README.md"
+  }
+}

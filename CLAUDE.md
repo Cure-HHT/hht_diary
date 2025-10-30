@@ -22,6 +22,10 @@
   - `build_system/`: Build scripts for composing core + sponsor code
   - `linear-cli/`: Linear API integration tools for requirement-ticket traceability
   - `requirements/`: Requirement validation and traceability matrix generation
+  - `claude-marketplace/`: Claude Code plugins for validation and automation
+    - `spec-compliance/`: AI-powered spec/ directory compliance enforcement
+    - `requirement-validation/`: Git hook for requirement format validation
+    - `traceability-matrix/`: Auto-regenerate traceability matrices on spec/ changes
 - **archive/**: Obsolete files - DO NOT use unless explicitly asked
 - **evaluation/**: Mock sponsor evaluation materials
 - **untracked-notes/**: Scratch files, analysis, planning docs (gitignored)
@@ -239,6 +243,7 @@ For complex domain-specific tasks, use specialized sub-agents:
 | spec/ vs docs/ rules | `docs/README.md` |
 | Linear integration tools | `tools/linear-cli/` (see Linear Integration Tools below) |
 | Requirement validation | `tools/requirements/` |
+| Claude Code plugins | `tools/claude-marketplace/` (see Claude Code Marketplace below) |
 | Sub-agent delegation | `agent-ops/ai/subagents/ORCHESTRATOR_GUIDE.md` |
 
 ### Key Commands
@@ -470,6 +475,177 @@ The Linear CLI tools integrate with the requirement validation system:
 - **Dry-Run Mode**: Most tools support `--dry-run` for testing before making changes
 
 **See**: `tools/linear-cli/README.md` for detailed tool documentation
+
+---
+
+## Claude Code Marketplace
+
+**Location**: `tools/claude-marketplace/`
+**Configuration**: `tools/claude-marketplace/settings.json`
+
+The Claude Code marketplace contains production-ready plugins for validation, automation, and AI-powered development workflows. All plugins integrate with git hooks for seamless enforcement.
+
+### Available Plugins
+
+#### 1. spec-compliance (v1.0.0)
+
+**Category**: Validation | **Components**: AI Agent + Git Hook + Scripts
+
+Enforces spec/ directory compliance through automated validation and AI-powered analysis.
+
+**Features**:
+- AI agent (spec-compliance-enforcer) for intelligent validation
+- File naming convention enforcement
+- Audience scope rules (PRD/Ops/Dev)
+- Code detection in PRD files
+- Requirement format validation
+
+**Usage**:
+```bash
+# Run validation manually
+tools/claude-marketplace/spec-compliance/scripts/validate-spec-compliance.sh
+
+# Invoke AI agent in Claude Code
+# Use Task tool with subagent_type="spec-compliance-enforcer"
+```
+
+**Documentation**: `tools/claude-marketplace/spec-compliance/README.md`
+
+---
+
+#### 2. requirement-validation (v1.0.0)
+
+**Category**: Validation | **Components**: Git Hook
+
+Validates requirement format, uniqueness, and links before allowing commits.
+
+**Features**:
+- REQ-{p|o|d}NNNNN format validation
+- Unique ID enforcement
+- "Implements" link validation
+- Level consistency checks
+- Orphaned requirement detection
+
+**Implementation**: References `tools/requirements/validate_requirements.py` (shared with CI/CD)
+
+**Usage**:
+```bash
+# Run validation manually
+python3 tools/requirements/validate_requirements.py
+
+# Automatically runs on commit via git hook
+```
+
+**Documentation**: `tools/claude-marketplace/requirement-validation/README.md`
+
+---
+
+#### 3. traceability-matrix (v1.0.0)
+
+**Category**: Automation | **Components**: Git Hook
+
+Auto-regenerates requirement traceability matrices when spec/ files change.
+
+**Features**:
+- Automatic regeneration on spec/ modifications
+- Multiple formats: Markdown, HTML, CSV
+- Interactive HTML with collapsible hierarchy
+- Advanced filtering and search
+- Automatic staging of updated matrices
+
+**Implementation**: References `tools/requirements/generate_traceability.py` (shared with CI/CD)
+
+**Usage**:
+```bash
+# Generate manually
+python3 tools/requirements/generate_traceability.py --format both
+
+# Automatically runs on commit when spec/ changes
+```
+
+**Documentation**: `tools/claude-marketplace/traceability-matrix/README.md`
+
+---
+
+### Plugin Architecture
+
+**Design Principle**: Reference, Don't Duplicate
+
+Plugins follow a "thin wrapper" pattern:
+- **Core logic** lives in canonical locations (e.g., `tools/requirements/`)
+- **Plugins provide integration** (git hooks, AI agents, automation)
+- **Single source of truth** - CI/CD and local use the same code
+
+This ensures consistency across environments and eliminates version drift.
+
+### Git Hook Integration
+
+The main pre-commit hook (`.githooks/pre-commit`) orchestrates plugins:
+
+1. **Dockerfile linting** (hadolint) - Built-in
+2. **traceability-matrix** - Regenerate matrices on spec/ changes
+3. **requirement-validation** - Validate all requirements
+4. **spec-compliance** - Enforce spec/ rules
+
+**Enable hooks**:
+```bash
+git config core.hooksPath .githooks
+```
+
+### Installation & Verification
+
+```bash
+# 1. Verify marketplace exists
+ls tools/claude-marketplace/
+
+# 2. Make plugins executable
+chmod +x tools/claude-marketplace/*/hooks/*
+
+# 3. Test plugins individually
+tools/claude-marketplace/requirement-validation/hooks/pre-commit-requirement-validation
+tools/claude-marketplace/traceability-matrix/hooks/pre-commit-traceability-matrix
+tools/claude-marketplace/spec-compliance/hooks/pre-commit-spec-compliance
+
+# 4. Verify main hook calls plugins
+grep "claude-marketplace" .githooks/pre-commit
+```
+
+### Common Workflows
+
+**Validate all requirements manually**:
+```bash
+python3 tools/requirements/validate_requirements.py
+```
+
+**Generate traceability matrix manually**:
+```bash
+python3 tools/requirements/generate_traceability.py --format both
+```
+
+**Validate spec/ compliance manually**:
+```bash
+tools/claude-marketplace/spec-compliance/scripts/validate-spec-compliance.sh spec/prd-app.md
+```
+
+**Invoke spec-compliance AI agent**:
+```
+# In Claude Code session:
+I've updated spec/prd-app.md. Please validate it for compliance.
+# Agent automatically detects the request and uses spec-compliance-enforcer
+```
+
+### Marketplace Structure
+
+```
+tools/claude-marketplace/
+├── settings.json                           # Marketplace configuration
+├── README.md                               # Marketplace overview
+├── spec-compliance/                        # AI-powered validation plugin
+├── requirement-validation/                 # Format & link validation plugin
+└── traceability-matrix/                    # Auto-regeneration plugin
+```
+
+**See**: `tools/claude-marketplace/README.md` for complete marketplace documentation
 
 ---
 

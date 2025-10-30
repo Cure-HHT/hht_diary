@@ -1,0 +1,33 @@
+{
+  "name": "requirement-validation",
+  "version": "1.0.0",
+  "description": "Git hook integration for requirement validation - validates requirement format, uniqueness, and links",
+  "author": "Anspar Foundation",
+  "type": "validation",
+  "components": {
+    "hooks": {
+      "pre-commit": {
+        "file": "hooks/pre-commit-requirement-validation",
+        "description": "Validates requirements before commit",
+        "triggers": ["spec/**/*.md"]
+      }
+    }
+  },
+  "dependencies": {
+    "python3": ">=3.8"
+  },
+  "references": {
+    "implementation": "tools/requirements/validate_requirements.py",
+    "documentation": "tools/requirements/README.md"
+  },
+  "configuration": {
+    "block_on_violation": true
+  },
+  "installation": {
+    "steps": [
+      "1. Ensure git hooks are enabled: git config core.hooksPath .githooks",
+      "2. Make hook executable: chmod +x tools/claude-marketplace/requirement-validation/hooks/pre-commit-requirement-validation",
+      "3. Hook is called automatically by main .githooks/pre-commit"
+    ]
+  }
+}
