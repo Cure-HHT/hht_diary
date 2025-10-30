@@ -5,6 +5,9 @@
  * IMPLEMENTS REQUIREMENTS:
  *   (Supporting tool for project management - no specific REQ-* yet)
  *
+ * FUTURE ENHANCEMENT: Environment variables will be fetched from Doppler
+ * or similar secret management system instead of local env vars.
+ *
  * Usage:
  *   node fetch-tickets.js [options]
  *
@@ -14,6 +17,7 @@
  *   --status=all        Filter by status (all, backlog, active, blocked, done)
  */
 
+const { validateEnvironment, getCredentialsFromArgs } = require('./lib/env-validation');
 const LINEAR_API_ENDPOINT = 'https://api.linear.app/graphql';
 
 // GraphQL query to fetch all assigned issues
@@ -320,14 +324,11 @@ async function main() {
     const args = process.argv.slice(2);
 
     // Parse arguments
-    let apiToken = process.env.LINEAR_API_TOKEN;
     let format = 'summary';
     let statusFilter = 'all';
 
     for (const arg of args) {
-        if (arg.startsWith('--token=')) {
-            apiToken = arg.substring('--token='.length);
-        } else if (arg.startsWith('--format=')) {
+        if (arg.startsWith('--format=')) {
             format = arg.substring('--format='.length);
         } else if (arg.startsWith('--status=')) {
             statusFilter = arg.substring('--status='.length);
@@ -343,13 +344,22 @@ async function main() {
         }
     }
 
-    if (!apiToken) {
-        console.error('Error: Linear API token required');
-        console.error('Set LINEAR_API_TOKEN environment variable or use --token=<token>');
-        console.error('');
-        console.error('Get your token from: https://linear.app/settings/api');
-        process.exit(1);
-    }
+    // Validate environment and get credentials
+    // Checks for LINEAR_API_TOKEN (required)
+    // Command-line args override environment variables
+    const credentials = getCredentialsFromArgs(process.argv.slice(2));
+
+    // Override environment with command-line args temporarily
+    if (credentials.token) process.env.LINEAR_API_TOKEN = credentials.token;
+
+    const env = await validateEnvironment({
+        requireToken: true,
+        requireTeamId: false,
+        autoDiscover: false,
+        silent: false
+    });
+
+    const apiToken = env.token;
 
     try {
         console.error('Fetching tickets from Linear...');

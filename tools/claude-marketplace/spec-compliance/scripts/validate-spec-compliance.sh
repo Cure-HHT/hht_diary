@@ -5,6 +5,9 @@
 #
 # Validates spec/ files against compliance rules defined in spec/README.md
 #
+# FUTURE ENHANCEMENT: Environment variables will be fetched from Doppler
+# or similar secret management system instead of local env vars.
+#
 # Usage:
 #   ./validate-spec-compliance.sh [file1.md file2.md ...]
 #
@@ -18,6 +21,13 @@
 # =====================================================
 
 set -e
+
+# Load environment validation library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/env-validation.sh" ]; then
+    source "$SCRIPT_DIR/lib/env-validation.sh"
+    validate_environment "silent"  # Silent mode for now, no env vars needed
+fi
 
 # Colors
 RED='\033[0;31m'

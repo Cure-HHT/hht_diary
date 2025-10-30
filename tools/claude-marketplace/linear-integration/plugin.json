@@ -1,0 +1,90 @@
+{
+  "name": "linear-integration",
+  "version": "1.0.0",
+  "description": "Linear API integration tools for requirement-ticket traceability and project management automation",
+  "author": "Anspar Foundation",
+  "type": "integration",
+  "components": {
+    "scripts": {
+      "fetch-tickets": {
+        "file": "scripts/fetch-tickets.js",
+        "description": "Fetch all assigned Linear tickets with requirement references"
+      },
+      "fetch-tickets-by-label": {
+        "file": "scripts/fetch-tickets-by-label.js",
+        "description": "Fetch tickets filtered by label"
+      },
+      "create-requirement-tickets": {
+        "file": "scripts/create-requirement-tickets.js",
+        "description": "Batch create Linear tickets from requirements in spec/"
+      },
+      "update-ticket-with-requirement": {
+        "file": "scripts/update-ticket-with-requirement.js",
+        "description": "Link existing ticket to a requirement"
+      },
+      "add-subsystem-checklists": {
+        "file": "scripts/add-subsystem-checklists.js",
+        "description": "Add subsystem checklists to tickets based on requirements"
+      },
+      "check-duplicates": {
+        "file": "scripts/check-duplicates.js",
+        "description": "Find duplicate requirement-ticket mappings"
+      },
+      "list-infrastructure-tickets": {
+        "file": "scripts/list-infrastructure-tickets.js",
+        "description": "List tickets tagged with infrastructure label"
+      },
+      "create-tickets": {
+        "file": "scripts/create-tickets.sh",
+        "description": "Batch script to create tickets in order (PRD → Ops → Dev)"
+      },
+      "run-dry-run": {
+        "file": "scripts/run-dry-run.sh",
+        "description": "Preview ticket creation without making API calls"
+      },
+      "setup-env": {
+        "file": "scripts/setup-env.sh",
+        "description": "Auto-discover and export LINEAR_TEAM_ID from Linear API"
+      }
+    }
+  },
+  "dependencies": {
+    "node": ">=18.0.0",
+    "bash": ">=4.0"
+  },
+  "environment": {
+    "LINEAR_API_TOKEN": {
+      "required": true,
+      "description": "Linear Personal API token (get from https://linear.app/settings/api)",
+      "format": "lin_api_*"
+    },
+    "LINEAR_TEAM_ID": {
+      "required": false,
+      "description": "Linear team ID for filtering (optional)"
+    }
+  },
+  "configuration": {
+    "auto_label_tickets": true,
+    "priority_mapping": {
+      "PRD": "P1",
+      "Ops": "P2",
+      "Dev": "P3"
+    }
+  },
+  "installation": {
+    "steps": [
+      "1. Get Linear API token from https://linear.app/settings/api",
+      "2. Set environment variable: export LINEAR_API_TOKEN='lin_api_...'",
+      "3. Optional: export LINEAR_TEAM_ID='team-id'",
+      "4. Run scripts from tools/claude-marketplace/linear-integration/scripts/"
+    ]
+  },
+  "documentation": {
+    "readme": "README.md",
+    "original_location": "tools/linear-cli (moved to plugin)",
+    "related_docs": [
+      "spec/requirements-format.md",
+      "CLAUDE.md (Linear Integration Tools section)"
+    ]
+  }
+}

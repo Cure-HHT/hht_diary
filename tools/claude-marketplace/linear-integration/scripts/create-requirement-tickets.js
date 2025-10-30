@@ -5,29 +5,37 @@
  * IMPLEMENTS REQUIREMENTS:
  *   (Supporting tool for requirement traceability - no specific REQ-* yet)
  *
+ * FUTURE ENHANCEMENT: Environment variables will be fetched from Doppler
+ * or similar secret management system instead of local env vars.
+ *
  * Usage:
  *   node create-requirement-tickets.js --token=<token> [options]
  *
  * Options:
  *   --token=<token>     Linear API token (required)
- *   --team-id=<id>      Linear team ID (required)
+ *   --team-id=<id>      Linear team ID (required, or auto-discovered)
  *   --project-id=<id>   Linear project ID (optional, for grouping)
  *   --dry-run           Show what would be created without creating
+ *   --refresh-cache     Force refresh of requirement-ticket cache from Linear
  *   --level=<level>     Only create tickets for level (PRD, Ops, or Dev)
  */
 
+const { validateEnvironment, getCredentialsFromArgs } = require('./lib/env-validation');
+const { getExcludedRequirements } = require('./lib/requirement-cache');
 const fs = require('fs');
 const path = require('path');
 
 const LINEAR_API_ENDPOINT = 'https://api.linear.app/graphql';
 
 // Parse command line arguments
+// Note: Token and team-id validation is handled by env-validation module
 function parseArgs() {
     const args = {
         token: null,
         teamId: null,
         projectId: null,
         dryRun: false,
+        refreshCache: false,
         level: null,
     };
 
@@ -40,20 +48,14 @@ function parseArgs() {
             args.projectId = arg.split('=')[1];
         } else if (arg === '--dry-run') {
             args.dryRun = true;
+        } else if (arg === '--refresh-cache') {
+            args.refreshCache = true;
         } else if (arg.startsWith('--level=')) {
             args.level = arg.split('=')[1];
         }
     }
 
-    if (!args.token || !args.teamId) {
-        console.error('Error: --token and --team-id are required');
-        console.error('');
-        console.error('Usage: node create-requirement-tickets.js --token=<token> --team-id=<team-id> [options]');
-        console.error('');
-        console.error('Get your team ID by running: node fetch-tickets.js --token=<token> --format=json | grep teamId');
-        process.exit(1);
-    }
-
+    // Token and team-id are validated by env-validation module in main()
     return args;
 }
 
@@ -261,13 +263,33 @@ function getLabelsForRequirement(req, availableLabels, aiNewLabelId) {
 async function main() {
     const args = parseArgs();
 
+    // Validate environment and get credentials
+    // Checks for LINEAR_API_TOKEN (required) and LINEAR_TEAM_ID (auto-discovers if missing)
+    // Command-line args override environment variables
+    const credentials = getCredentialsFromArgs(process.argv.slice(2));
+
+    // Override environment with command-line args temporarily
+    if (credentials.token) process.env.LINEAR_API_TOKEN = credentials.token;
+    if (credentials.teamId) process.env.LINEAR_TEAM_ID = credentials.teamId;
+
+    const env = await validateEnvironment({
+        requireToken: true,
+        requireTeamId: true,
+        autoDiscover: true,
+        silent: false
+    });
+
+    // Override args with validated credentials
+    args.token = env.token;
+    args.teamId = env.teamId;
+
     console.log('================================================================================');
     console.log('CREATE LINEAR TICKETS FOR REQUIREMENTS');
     console.log('================================================================================');
     console.log('');
 
-    // Parse requirements from spec directory
-    const specDir = path.join(__dirname, '../../spec');
+    // Parse requirements from spec directory (repo root)
+    const specDir = path.join(__dirname, '../../../../spec');
 
     if (!fs.existsSync(specDir)) {
         console.error(`Error: spec directory not found: ${specDir}`);
@@ -288,24 +310,22 @@ async function main() {
         console.log('');
     }
 
-    // Skip requirements that already have tickets
-    // REQ-p00001 has CUR-134, REQ-p00015 has CUR-92, REQ-p00011 has CUR-82, REQ-p00020 has CUR-145
-    // REQ-o00003 has CUR-188, REQ-o00004 has CUR-127, REQ-o00009 has CUR-189, REQ-o00010 has CUR-84
-    // REQ-d00006 has CUR-186, REQ-d00010 has CUR-109, REQ-d00013 has CUR-83, REQ-d00027 has CUR-80/81/19
-    requirements = requirements.filter(r =>
-        r.id !== 'p00001' &&
-        r.id !== 'p00015' &&
-        r.id !== 'p00011' &&
-        r.id !== 'p00020' &&
-        r.id !== 'o00003' &&
-        r.id !== 'o00004' &&
-        r.id !== 'o00009' &&
-        r.id !== 'o00010' &&
-        r.id !== 'd00006' &&
-        r.id !== 'd00010' &&
-        r.id !== 'd00013' &&
-        r.id !== 'd00027'
-    );
+    // Skip requirements that already have tickets (dynamically fetched from Linear)
+    // Cache is automatically refreshed if older than 24 hours
+    // Use --refresh-cache to force immediate refresh
+    const excludedRequirements = await getExcludedRequirements(args.token, {
+        forceRefresh: args.refreshCache,
+        silent: false
+    });
+
+    const beforeFilter = requirements.length;
+    requirements = requirements.filter(r => !excludedRequirements.has(r.id));
+    const excluded = beforeFilter - requirements.length;
+
+    if (excluded > 0) {
+        console.log(`Skipped ${excluded} requirements that already have tickets`);
+        console.log('');
+    }
 
     console.log(`Creating tickets for ${requirements.length} requirements`);
     console.log('');

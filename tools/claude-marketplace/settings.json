@@ -54,6 +54,23 @@
         "implementation": "tools/requirements/generate_traceability.py"
       },
       "tags": ["automation", "traceability", "requirements", "documentation", "git-hook"]
+    },
+    {
+      "id": "linear-integration",
+      "name": "Linear Integration",
+      "description": "Linear API integration tools for requirement-ticket traceability and project management automation",
+      "version": "1.0.0",
+      "category": "integration",
+      "path": "linear-integration",
+      "enabled": true,
+      "components": {
+        "scripts": true
+      },
+      "environment": {
+        "LINEAR_API_TOKEN": "required",
+        "LINEAR_TEAM_ID": "optional"
+      },
+      "tags": ["integration", "linear", "tickets", "traceability", "project-management", "automation"]
     }
   ],
   "configuration": {
@@ -79,7 +96,11 @@
     },
     "bash": {
       "version": ">=4.0",
-      "required_for": ["spec-compliance", "requirement-validation", "traceability-matrix"]
+      "required_for": ["spec-compliance", "requirement-validation", "traceability-matrix", "linear-integration"]
+    },
+    "node": {
+      "version": ">=18.0.0",
+      "required_for": ["linear-integration"]
     }
   },
   "installation": {
