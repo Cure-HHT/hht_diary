@@ -241,7 +241,7 @@ For complex domain-specific tasks, use specialized sub-agents:
 | Requirement format | `spec/requirements-format.md` |
 | Traceability matrix | `traceability_matrix.md` |
 | spec/ vs docs/ rules | `docs/README.md` |
-| Linear integration tools | `tools/claude-marketplace/linear-integration/scripts/` (see Linear Integration Tools below) |
+| Linear integration tools | `tools/claude-marketplace/anspar-linear-integration/scripts/` (see Linear Integration Tools below) |
 | Requirement validation | `tools/requirements/` |
 | Claude Code plugins | `tools/claude-marketplace/` (see Claude Code Marketplace below) |
 | Sub-agent delegation | `agent-ops/ai/subagents/ORCHESTRATOR_GUIDE.md` |
@@ -266,7 +266,7 @@ git checkout -b feature/descriptive-name
 
 ## Linear Integration Tools
 
-**Location**: `tools/claude-marketplace/linear-integration/scripts/`
+**Location**: `tools/claude-marketplace/anspar-linear-integration/scripts/`
 **Plugin**: `linear-integration` (Claude Code Marketplace)
 **Implements**: REQ-d00027 (Development Environment and Tooling Setup)
 
@@ -279,7 +279,7 @@ The Linear CLI tools automate requirement-ticket traceability, ensuring all tick
 **`fetch-tickets.js`** - Fetch all assigned tickets
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/fetch-tickets.js --token=<LINEAR_API_TOKEN> --format=json
+node tools/claude-marketplace/anspar-linear-integration/scripts/fetch-tickets.js --token=<LINEAR_API_TOKEN> --format=json
 ```
 
 - Fetches all tickets assigned to you
@@ -289,7 +289,7 @@ node tools/claude-marketplace/linear-integration/scripts/fetch-tickets.js --toke
 **`fetch-tickets-by-label.js`** - Fetch tickets by label
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/fetch-tickets-by-label.js --token=<TOKEN> --label="ai:new"
+node tools/claude-marketplace/anspar-linear-integration/scripts/fetch-tickets-by-label.js --token=<TOKEN> --label="ai:new"
 ```
 
 - Fetches ALL tickets with a specific label (not just assigned)
@@ -301,7 +301,7 @@ node tools/claude-marketplace/linear-integration/scripts/fetch-tickets-by-label.
 **`create-requirement-tickets.js`** - Batch create tickets from requirements
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/create-requirement-tickets.js --token=<TOKEN> --team-id=<TEAM_ID> [options]
+node tools/claude-marketplace/anspar-linear-integration/scripts/create-requirement-tickets.js --token=<TOKEN> --team-id=<TEAM_ID> [options]
 
 Options:
   --dry-run           Preview without creating tickets
@@ -318,7 +318,7 @@ Options:
 **`update-ticket-with-requirement.js`** - Link existing ticket to requirement
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/update-ticket-with-requirement.js --token=<TOKEN> --ticket-id=<ID> --req-id=<REQ-xxx>
+node tools/claude-marketplace/anspar-linear-integration/scripts/update-ticket-with-requirement.js --token=<TOKEN> --ticket-id=<ID> --req-id=<REQ-xxx>
 ```
 
 - Updates existing ticket description to reference requirement
@@ -328,7 +328,7 @@ node tools/claude-marketplace/linear-integration/scripts/update-ticket-with-requ
 **`add-subsystem-checklists.js`** - Add sub-system checklists to tickets
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/add-subsystem-checklists.js --token=<TOKEN> [--dry-run]
+node tools/claude-marketplace/anspar-linear-integration/scripts/add-subsystem-checklists.js --token=<TOKEN> [--dry-run]
 ```
 
 - Analyzes ticket requirements and identifies relevant sub-systems
@@ -347,7 +347,7 @@ node tools/claude-marketplace/linear-integration/scripts/add-subsystem-checklist
 **`check-duplicates.js`** - Find duplicate requirement-ticket mappings
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/check-duplicates.js --token=<TOKEN>
+node tools/claude-marketplace/anspar-linear-integration/scripts/check-duplicates.js --token=<TOKEN>
 ```
 
 - Analyzes all tickets for duplicate requirement references
@@ -356,7 +356,7 @@ node tools/claude-marketplace/linear-integration/scripts/check-duplicates.js --t
 **`check-duplicates-advanced.js`** - Advanced duplicate analysis
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/check-duplicates-advanced.js --token=<TOKEN>
+node tools/claude-marketplace/anspar-linear-integration/scripts/check-duplicates-advanced.js --token=<TOKEN>
 ```
 
 - Deep analysis of ticket-requirement relationships
@@ -365,7 +365,7 @@ node tools/claude-marketplace/linear-integration/scripts/check-duplicates-advanc
 **`list-infrastructure-tickets.js`** - List infrastructure tickets
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/list-infrastructure-tickets.js --token=<TOKEN>
+node tools/claude-marketplace/anspar-linear-integration/scripts/list-infrastructure-tickets.js --token=<TOKEN>
 ```
 
 - Fetches all tickets with "infrastructure" label
@@ -374,7 +374,7 @@ node tools/claude-marketplace/linear-integration/scripts/list-infrastructure-tic
 **`list-security-compliance-infrastructure-tickets.js`** - List security/compliance tickets
 
 ```bash
-node tools/claude-marketplace/linear-integration/scripts/list-security-compliance-infrastructure-tickets.js --token=<TOKEN>
+node tools/claude-marketplace/anspar-linear-integration/scripts/list-security-compliance-infrastructure-tickets.js --token=<TOKEN>
 ```
 
 - Fetches tickets with security, compliance, or infrastructure labels
@@ -385,7 +385,7 @@ node tools/claude-marketplace/linear-integration/scripts/list-security-complianc
 **`create-tickets.sh`** - Create all requirement tickets in batches
 
 ```bash
-cd tools/claude-marketplace/linear-integration/scripts && ./create-tickets.sh
+cd tools/claude-marketplace/anspar-linear-integration/scripts && ./create-tickets.sh
 ```
 
 - Wrapper script that creates tickets in order: PRD → Ops → Dev
@@ -395,8 +395,8 @@ cd tools/claude-marketplace/linear-integration/scripts && ./create-tickets.sh
 **`run-dry-run.sh`** / **`run-dry-run-all.sh`** - Test ticket creation
 
 ```bash
-cd tools/claude-marketplace/linear-integration/scripts && ./run-dry-run.sh <PRD|Ops|Dev>
-cd tools/claude-marketplace/linear-integration/scripts && ./run-dry-run-all.sh
+cd tools/claude-marketplace/anspar-linear-integration/scripts && ./run-dry-run.sh <PRD|Ops|Dev>
+cd tools/claude-marketplace/anspar-linear-integration/scripts && ./run-dry-run-all.sh
 ```
 
 - Preview ticket creation without making API calls
@@ -417,10 +417,10 @@ Recommended: Use environment variable
 export LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"
 
 # Then use in commands:
-node tools/claude-marketplace/linear-integration/scripts/fetch-tickets.js --token=$LINEAR_API_TOKEN
+node tools/claude-marketplace/anspar-linear-integration/scripts/fetch-tickets.js --token=$LINEAR_API_TOKEN
 
 # Or create a wrapper script that sources the token:
-# tools/claude-marketplace/linear-integration/.env.local (gitignored)
+# tools/claude-marketplace/anspar-linear-integration/.env.local (gitignored)
 LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"
 ```
 
@@ -432,30 +432,30 @@ LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"
 
 ```bash
 # 1. Dry-run to preview
-cd tools/claude-marketplace/linear-integration/scripts && ./run-dry-run-all.sh
+cd tools/claude-marketplace/anspar-linear-integration/scripts && ./run-dry-run-all.sh
 
 # 2. Create tickets
-cd tools/claude-marketplace/linear-integration/scripts && ./create-tickets.sh
+cd tools/claude-marketplace/anspar-linear-integration/scripts && ./create-tickets.sh
 
 # 3. Add sub-system checklists
-node tools/claude-marketplace/linear-integration/scripts/add-subsystem-checklists.js --token=$LINEAR_API_TOKEN
+node tools/claude-marketplace/anspar-linear-integration/scripts/add-subsystem-checklists.js --token=$LINEAR_API_TOKEN
 ```
 
 **Link existing ticket to requirement**:
 
 ```bash
 # Find ticket ID from Linear, then:
-node tools/claude-marketplace/linear-integration/scripts/update-ticket-with-requirement.js --token=$LINEAR_API_TOKEN --ticket-id=<UUID> --req-id=p00015
+node tools/claude-marketplace/anspar-linear-integration/scripts/update-ticket-with-requirement.js --token=$LINEAR_API_TOKEN --ticket-id=<UUID> --req-id=p00015
 ```
 
 **Analyze ticket coverage**:
 
 ```bash
 # Fetch all tickets and check REQ references
-node tools/claude-marketplace/linear-integration/scripts/fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json | grep -i "REQ-"
+node tools/claude-marketplace/anspar-linear-integration/scripts/fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json | grep -i "REQ-"
 
 # Find duplicates
-node tools/claude-marketplace/linear-integration/scripts/check-duplicates.js --token=$LINEAR_API_TOKEN
+node tools/claude-marketplace/anspar-linear-integration/scripts/check-duplicates.js --token=$LINEAR_API_TOKEN
 ```
 
 ### Integration with Requirements System
@@ -475,7 +475,7 @@ The Linear CLI tools integrate with the requirement validation system:
 - **Error Handling**: All tools include comprehensive error messages with file/line references
 - **Dry-Run Mode**: Most tools support `--dry-run` for testing before making changes
 
-**See**: `tools/claude-marketplace/linear-integration/README.md` for detailed tool documentation
+**See**: `tools/claude-marketplace/anspar-linear-integration/README.md` for detailed tool documentation
 
 ---
 
@@ -504,13 +504,13 @@ Enforces spec/ directory compliance through automated validation and AI-powered 
 **Usage**:
 ```bash
 # Run validation manually
-tools/claude-marketplace/spec-compliance/scripts/validate-spec-compliance.sh
+tools/claude-marketplace/anspar-spec-compliance/scripts/validate-spec-compliance.sh
 
 # Invoke AI agent in Claude Code
 # Use Task tool with subagent_type="spec-compliance-enforcer"
 ```
 
-**Documentation**: `tools/claude-marketplace/spec-compliance/README.md`
+**Documentation**: `tools/claude-marketplace/anspar-spec-compliance/README.md`
 
 ---
 
@@ -537,7 +537,7 @@ python3 tools/requirements/validate_requirements.py
 # Automatically runs on commit via git hook
 ```
 
-**Documentation**: `tools/claude-marketplace/requirement-validation/README.md`
+**Documentation**: `tools/claude-marketplace/anspar-requirement-validation/README.md`
 
 ---
 
@@ -564,7 +564,7 @@ python3 tools/requirements/generate_traceability.py --format both
 # Automatically runs on commit when spec/ changes
 ```
 
-**Documentation**: `tools/claude-marketplace/traceability-matrix/README.md`
+**Documentation**: `tools/claude-marketplace/anspar-traceability-matrix/README.md`
 
 ---
 
@@ -603,9 +603,9 @@ ls tools/claude-marketplace/
 chmod +x tools/claude-marketplace/*/hooks/*
 
 # 3. Test plugins individually
-tools/claude-marketplace/requirement-validation/hooks/pre-commit-requirement-validation
-tools/claude-marketplace/traceability-matrix/hooks/pre-commit-traceability-matrix
-tools/claude-marketplace/spec-compliance/hooks/pre-commit-spec-compliance
+tools/claude-marketplace/anspar-requirement-validation/hooks/pre-commit-requirement-validation
+tools/claude-marketplace/anspar-traceability-matrix/hooks/pre-commit-traceability-matrix
+tools/claude-marketplace/anspar-spec-compliance/hooks/pre-commit-spec-compliance
 
 # 4. Verify main hook calls plugins
 grep "claude-marketplace" .githooks/pre-commit
@@ -625,7 +625,7 @@ python3 tools/requirements/generate_traceability.py --format both
 
 **Validate spec/ compliance manually**:
 ```bash
-tools/claude-marketplace/spec-compliance/scripts/validate-spec-compliance.sh spec/prd-app.md
+tools/claude-marketplace/anspar-spec-compliance/scripts/validate-spec-compliance.sh spec/prd-app.md
 ```
 
 **Invoke spec-compliance AI agent**:

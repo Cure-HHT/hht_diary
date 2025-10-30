@@ -7,9 +7,9 @@
 #
 # Plugins (in tools/claude-marketplace/):
 # 1. Dockerfile linting (hadolint) - built-in
-# 2. traceability-matrix - Auto-regenerates matrices on spec/ changes
-# 3. requirement-validation - Validates requirement format and links
-# 4. spec-compliance - Enforces spec/ directory compliance rules
+# 2. anspar-traceability-matrix - Auto-regenerates matrices on spec/ changes
+# 3. anspar-requirement-validation - Validates requirement format and links
+# 4. anspar-spec-compliance - Enforces spec/ directory compliance rules
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -74,12 +74,12 @@ fi
 # 2. Traceability Matrix Regeneration (Plugin)
 # =====================================================
 
-TRACEABILITY_HOOK="tools/claude-marketplace/traceability-matrix/hooks/pre-commit-traceability-matrix"
+TRACEABILITY_HOOK="tools/claude-marketplace/anspar-traceability-matrix/hooks/pre-commit-traceability-matrix"
 if [ -f "$TRACEABILITY_HOOK" ]; then
     "$TRACEABILITY_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Traceability matrix plugin not found: $TRACEABILITY_HOOK"
-    echo "   Install: See tools/claude-marketplace/traceability-matrix/README.md"
+    echo "   Install: See tools/claude-marketplace/anspar-traceability-matrix/README.md"
     echo ""
 fi
 
@@ -87,12 +87,12 @@ fi
 # 3. Requirement Validation (Plugin)
 # =====================================================
 
-REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/requirement-validation/hooks/pre-commit-requirement-validation"
+REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/anspar-requirement-validation/hooks/pre-commit-requirement-validation"
 if [ -f "$REQUIREMENT_VALIDATION_HOOK" ]; then
     "$REQUIREMENT_VALIDATION_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Requirement validation plugin not found: $REQUIREMENT_VALIDATION_HOOK"
-    echo "   Install: See tools/claude-marketplace/requirement-validation/README.md"
+    echo "   Install: See tools/claude-marketplace/anspar-requirement-validation/README.md"
     echo ""
 fi
 
@@ -100,12 +100,12 @@ fi
 # 4. Spec Compliance Validation (Plugin)
 # =====================================================
 
-SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/spec-compliance/hooks/pre-commit-spec-compliance"
+SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/anspar-spec-compliance/hooks/pre-commit-spec-compliance"
 if [ -f "$SPEC_COMPLIANCE_HOOK" ]; then
     "$SPEC_COMPLIANCE_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Spec compliance plugin not found: $SPEC_COMPLIANCE_HOOK"
-    echo "   Install: See tools/claude-marketplace/spec-compliance/README.md"
+    echo "   Install: See tools/claude-marketplace/anspar-spec-compliance/README.md"
     echo ""
 fi
 

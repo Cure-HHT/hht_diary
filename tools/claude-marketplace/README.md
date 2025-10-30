@@ -1,434 +1,385 @@
-# Claude Code Plugin Marketplace
+# Anspar Claude Code Marketplace
 
-**Version**: 1.0.0
-**Type**: Project-Local Marketplace
-**Status**: Active
+**Independent, Distributable Plugins for Claude Code**
 
 ## Overview
 
-This is the official plugin marketplace for the diary project. It contains curated, production-ready plugins for validation, automation, and development workflows integrated with Claude Code.
-
-All plugins in this marketplace are designed to work together as part of the project's quality assurance and development infrastructure.
-
-## Philosophy
-
-### Reference, Don't Duplicate
-
-Plugins in this marketplace follow a "thin wrapper" pattern:
-- **Core implementation** lives in canonical locations (`tools/requirements/`, etc.)
-- **Plugins provide integration** (git hooks, AI agents, automation)
-- **Single source of truth** - CI/CD and local development use the same code
-
-This ensures consistency across all environments and eliminates version drift.
+This marketplace contains independently distributable Claude Code plugins developed by the Anspar Foundation. Each plugin is fully self-contained and can be extracted, published, or shared separately.
 
 ## Available Plugins
 
-### 1. spec-compliance
+### 1. anspar-linear-integration
 
-**Category**: Validation
-**Version**: 1.0.0
-**Status**: ✅ Active
+**Category**: Integration | **Version**: 1.0.0
 
-**Description**: Enforces spec/ directory compliance through automated validation and AI-powered analysis.
+Linear API integration tools for requirement-ticket traceability and project management automation.
 
-**Features**:
-- AI agent (spec-compliance-enforcer) for intelligent validation
-- Validates file naming conventions
-- Enforces audience scope rules (PRD/Ops/Dev)
-- Detects code in PRD files
-- Validates requirement format
-- Git hook integration
+**Key Features**:
+- Batch ticket creation from requirements
+- Intelligent caching system (24-hour auto-refresh)
+- Environment variable auto-discovery
+- Smart labeling and priority assignment
+- 15+ automation scripts
 
-**Components**:
-- AI Agent: `agent.md`
-- Git Hook: `hooks/pre-commit-spec-compliance`
-- Validation Script: `scripts/validate-spec-compliance.sh`
-
-**Documentation**: `spec-compliance/README.md`
+**Location**: `anspar-linear-integration/`
+**Documentation**: [README.md](./anspar-linear-integration/README.md)
+**License**: MIT
 
 ---
 
-### 2. requirement-validation
+### 2. anspar-spec-compliance
 
-**Category**: Validation
-**Version**: 1.0.0
-**Status**: ✅ Active
+**Category**: Validation | **Version**: 1.0.0
 
-**Description**: Validates requirement format, uniqueness, and links before allowing commits.
+Enforces spec/ directory compliance through automated validation and AI-powered analysis.
 
-**Features**:
-- Requirement ID format validation
-- Uniqueness checking across all spec/ files
-- "Implements" link validation
-- Level consistency verification
-- Orphaned requirement detection
+**Key Features**:
+- AI-powered validation agent
+- Git pre-commit hook integration
+- File naming convention enforcement
+- Audience scope rules (PRD/Ops/Dev)
+- Code detection in PRD files
 
-**Components**:
-- Git Hook: `hooks/pre-commit-requirement-validation`
-- Implementation: `tools/requirements/validate_requirements.py` (referenced)
-
-**Documentation**: `requirement-validation/README.md`
+**Location**: `anspar-spec-compliance/`
+**Documentation**: [README.md](./anspar-spec-compliance/README.md)
+**License**: MIT
 
 ---
 
-### 3. traceability-matrix
+### 3. anspar-requirement-validation
 
-**Category**: Automation
-**Version**: 1.0.0
-**Status**: ✅ Active
+**Category**: Validation | **Version**: 1.0.0
 
-**Description**: Automatically regenerates requirement traceability matrices when spec/ files change.
+Validates requirement format, uniqueness, and links before commits.
 
-**Features**:
-- Auto-regeneration on spec/ modifications
-- Multiple output formats (Markdown, HTML, CSV)
-- Interactive HTML with collapsible hierarchy
-- Automatic staging of updated matrices
-- Requirement relationship visualization
+**Key Features**:
+- Requirement format validation
+- Uniqueness checking (no duplicate IDs)
+- Link validation (parent requirements exist)
+- Git pre-commit hook integration
+- References shared validation script (CI/CD compatible)
 
-**Components**:
-- Git Hook: `hooks/pre-commit-traceability-matrix`
-- Implementation: `tools/requirements/generate_traceability.py` (referenced)
-
-**Documentation**: `traceability-matrix/README.md`
+**Location**: `anspar-requirement-validation/`
+**Documentation**: [README.md](./anspar-requirement-validation/README.md)
+**License**: MIT
 
 ---
 
-## Marketplace Structure
+### 4. anspar-traceability-matrix
+
+**Category**: Automation | **Version**: 1.0.0
+
+Auto-regenerates requirement traceability matrices on spec/ changes.
+
+**Key Features**:
+- Automatic matrix regeneration
+- Markdown and HTML output formats
+- Requirement hierarchy visualization
+- Implementation tracking (requirements → code)
+- Git pre-commit hook integration
+
+**Location**: `anspar-traceability-matrix/`
+**Documentation**: [README.md](./anspar-traceability-matrix/README.md)
+**License**: MIT
+
+---
+
+## Plugin Architecture
+
+### Independence Principle
+
+Each plugin is **fully self-contained** and relocatable:
+
+- ✅ Complete documentation (README, CHANGELOG, LICENSE)
+- ✅ All necessary files included
+- ✅ Can be extracted and published separately
+- ✅ No dependencies on marketplace structure
+- ✅ Individual versioning and release cycles
+
+### Directory Structure
 
 ```
 tools/claude-marketplace/
-├── settings.json                           # Marketplace configuration
-├── README.md                               # This file
+├── anspar-linear-integration/           # Independent plugin
+│   ├── .claude-plugin/
+│   │   └── plugin.json                  # Claude Code manifest
+│   ├── package.json                     # npm manifest (if Node.js)
+│   ├── README.md                        # Standalone documentation
+│   ├── LICENSE                          # MIT
+│   ├── CHANGELOG.md                     # Version history
+│   ├── docs/
+│   ├── scripts/
+│   └── ...
 │
-├── spec-compliance/
-│   ├── plugin.json                         # Plugin metadata
-│   ├── README.md                           # Full documentation
-│   ├── agent.md                            # AI agent definition
-│   ├── hooks/
-│   │   └── pre-commit-spec-compliance      # Git hook
-│   └── scripts/
-│       └── validate-spec-compliance.sh     # Validation script
+├── anspar-spec-compliance/              # Independent plugin
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   ├── README.md
+│   ├── LICENSE
+│   ├── CHANGELOG.md
+│   └── ...
 │
-├── requirement-validation/
-│   ├── plugin.json                         # Plugin metadata
-│   ├── README.md                           # Full documentation
-│   └── hooks/
-│       └── pre-commit-requirement-validation  # Git hook (calls tools/requirements/)
+├── anspar-requirement-validation/       # Independent plugin
+│   └── ... (same structure)
 │
-└── traceability-matrix/
-    ├── plugin.json                         # Plugin metadata
-    ├── README.md                           # Full documentation
-    └── hooks/
-        └── pre-commit-traceability-matrix     # Git hook (calls tools/requirements/)
+└── anspar-traceability-matrix/          # Independent plugin
+    └── ... (same structure)
 ```
+
+### Reference Architecture
+
+Some plugins follow a "thin wrapper" pattern, referencing shared scripts for CI/CD compatibility:
+
+```
+anspar-requirement-validation/
+└── hooks/
+    └── pre-commit-requirement-validation  ← Git hook (plugin)
+                 |
+                 v
+        tools/requirements/
+        └── validate_requirements.py       ← Shared script (CI/CD)
+```
+
+**Benefits**:
+- ✅ Single source of truth
+- ✅ Git hooks and CI/CD use same logic
+- ✅ No code duplication
+- ✅ Updates apply everywhere
 
 ## Installation
 
-### Prerequisites
+### Install All Plugins
 
-- Claude Code installed
-- Git repository with `.githooks/` configured
-- Python 3.8+
-- Bash 4.0+
+```bash
+# From repository root
+git config core.hooksPath .githooks
 
-### Quick Setup
+# Make hooks executable
+chmod +x tools/claude-marketplace/*/hooks/*
 
-1. **Enable git hooks**:
-   ```bash
-   git config core.hooksPath .githooks
-   ```
+# Verify installation
+.githooks/pre-commit
+```
 
-2. **Verify marketplace is configured**:
-   ```bash
-   cat tools/claude-marketplace/settings.json
-   ```
+### Install Individual Plugin
 
-3. **Make all hooks executable**:
-   ```bash
-   chmod +x tools/claude-marketplace/*/hooks/*
-   chmod +x tools/claude-marketplace/spec-compliance/scripts/*
-   ```
+Each plugin can be installed independently. See the plugin's README for specific instructions.
 
-4. **Test plugins**:
-   ```bash
-   # Test traceability matrix
-   tools/claude-marketplace/traceability-matrix/hooks/pre-commit-traceability-matrix
+**Example** (anspar-linear-integration):
+```bash
+# Clone just this plugin
+git clone --depth 1 --filter=blob:none --sparse \
+  https://github.com/anspar/diary.git
+cd diary
+git sparse-checkout set tools/claude-marketplace/anspar-linear-integration
 
-   # Test requirement validation
-   tools/claude-marketplace/requirement-validation/hooks/pre-commit-requirement-validation
-
-   # Test spec compliance
-   tools/claude-marketplace/spec-compliance/hooks/pre-commit-spec-compliance
-   ```
-
-5. **Verify integration**:
-   ```bash
-   # Main hook should call all plugins
-   grep "claude-marketplace" .githooks/pre-commit
-   ```
-
-### Individual Plugin Installation
-
-Each plugin can be installed independently. See plugin-specific README.md files for detailed instructions.
+# Follow plugin README for setup
+cd tools/claude-marketplace/anspar-linear-integration
+cat README.md
+```
 
 ## Usage
 
-### Automatic (Git Hooks)
+### Claude Code Integration
 
-Plugins run automatically when you commit:
+Claude Code automatically discovers plugins with `.claude-plugin/plugin.json` manifests.
+
+**Available components**:
+- **Agents**: AI sub-agents for specialized tasks
+- **Hooks**: Git hook integration
+- **Commands**: Custom slash commands (not used in these plugins)
+- **MCP Servers**: Model Context Protocol servers (not used in these plugins)
+
+### Git Hook Integration
+
+All validation and automation plugins integrate with git pre-commit hook:
 
 ```bash
+# Hooks run automatically on commit
 git add spec/prd-app.md
-git commit -m "Add new requirement"
+git commit -m "Update requirements"
 
-# Output shows all plugin validations:
-# 1. Dockerfile linting (if Dockerfiles changed)
-# 2. Traceability matrix regeneration (if spec/ changed)
-# 3. Requirement validation (always)
-# 4. Spec compliance validation (if spec/ changed)
+# Output:
+# ✅ Regenerating traceability matrix...
+# ✅ Validating requirements...
+# ✅ Checking spec compliance...
+# ✅ All validations passed!
 ```
 
 ### Manual Execution
 
-Run plugins manually anytime:
+Each plugin can be run manually:
 
+**Spec Compliance**:
 ```bash
-# Traceability matrix
-python3 tools/requirements/generate_traceability.py --format both
-
-# Requirement validation
-python3 tools/requirements/validate_requirements.py
-
-# Spec compliance
-tools/claude-marketplace/spec-compliance/scripts/validate-spec-compliance.sh
+tools/claude-marketplace/anspar-spec-compliance/scripts/validate-spec-compliance.sh
 ```
 
-### AI Agent (spec-compliance-enforcer)
+**Requirement Validation**:
+```bash
+python3 tools/requirements/validate_requirements.py
+```
 
-The spec-compliance-enforcer AI agent can be invoked directly in Claude Code:
+**Traceability Matrix**:
+```bash
+python3 tools/requirements/generate_traceability.py --format both
+```
 
-1. Open Claude Code
-2. Use the Task tool with `subagent_type="spec-compliance-enforcer"`
-3. Provide context about spec/ changes to validate
+**Linear Integration**:
+```bash
+node tools/claude-marketplace/anspar-linear-integration/scripts/fetch-tickets.js
+```
 
-## Plugin Execution Order
+## Dependencies
 
-Pre-commit hooks run plugins in this sequence:
+### System Requirements
 
-1. **Dockerfile linting** (hadolint) - If Dockerfiles changed
-2. **traceability-matrix** - If spec/ files changed
-3. **requirement-validation** - Always
-4. **spec-compliance** - If spec/ files changed
+**All plugins require**:
+- Bash >=4.0
+- Git
 
-This order ensures:
-- Matrices are regenerated before validation
-- Validation checks the updated state
-- Spec compliance is the final gate
+**Individual plugin requirements**:
+- **anspar-linear-integration**: Node.js >=18.0.0
+- **anspar-spec-compliance**: Claude Code (for AI agent)
+- **anspar-requirement-validation**: Python >=3.8
+- **anspar-traceability-matrix**: Python >=3.8
+
+### Plugin Dependencies
+
+No inter-plugin dependencies - each plugin is fully independent.
+
+However, plugins work best together:
+- **requirement-validation** ensures requirements are valid
+- **traceability-matrix** shows requirement relationships
+- **spec-compliance** enforces file organization
+- **linear-integration** creates tickets from requirements
 
 ## Configuration
 
-### Marketplace Settings
+### Environment Variables
 
-Edit `settings.json` to configure the marketplace:
+**anspar-linear-integration**:
+- `LINEAR_API_TOKEN` (required)
+- `LINEAR_TEAM_ID` (optional, auto-discovered)
 
-```json
-{
-  "plugins": [...],
-  "configuration": {
-    "auto_enable_new_plugins": false,
-    "require_explicit_approval": true,
-    "check_dependencies": true
-  }
-}
-```
+**Other plugins**: No environment variables required
 
-### Plugin Configuration
+See individual plugin documentation for details.
 
-Each plugin has its own `plugin.json` for configuration:
+### Git Hooks
+
+Customize hook behavior in `.githooks/pre-commit`:
+- Execution order
+- Error handling
+- Conditional execution
+
+## Publishing Plugins
+
+Each plugin can be published independently:
+
+### As npm Package
 
 ```bash
-# View plugin config
-cat tools/claude-marketplace/spec-compliance/plugin.json
-cat tools/claude-marketplace/requirement-validation/plugin.json
-cat tools/claude-marketplace/traceability-matrix/plugin.json
+cd tools/claude-marketplace/anspar-linear-integration
+npm publish
 ```
 
-## Troubleshooting
+### As Git Repository
 
-### Plugins Not Running
-
-**Problem**: Git hooks don't execute plugins
-
-**Solutions**:
 ```bash
-# 1. Verify hooks path
-git config --get core.hooksPath
-# Should output: .githooks
-
-# 2. Verify main hook calls plugins
-cat .githooks/pre-commit | grep claude-marketplace
-
-# 3. Make hooks executable
-chmod +x tools/claude-marketplace/*/hooks/*
-
-# 4. Test individual plugin
-tools/claude-marketplace/requirement-validation/hooks/pre-commit-requirement-validation
+# Extract plugin to separate repo
+git subtree split --prefix=tools/claude-marketplace/anspar-linear-integration -b plugin-linear
+git push git@github.com:anspar/linear-integration.git plugin-linear:main
 ```
 
-### Plugin Not Found Warnings
+### As Claude Code Plugin
 
-**Problem**: Hook shows "WARNING: Plugin not found"
+Submit to Claude Code plugin registry (when available).
 
-**Solutions**:
-```bash
-# Verify plugin exists
-ls -l tools/claude-marketplace/
+## Versioning
 
-# Verify hook exists
-ls -l tools/claude-marketplace/*/hooks/
+Each plugin follows [Semantic Versioning](https://semver.org/):
+- **Major**: Breaking changes
+- **Minor**: New features (backward compatible)
+- **Patch**: Bug fixes
 
-# Check file paths in .githooks/pre-commit
-cat .githooks/pre-commit
-```
-
-### Dependency Issues
-
-**Problem**: Python or bash version issues
-
-**Solutions**:
-```bash
-# Check Python version (need 3.8+)
-python3 --version
-
-# Check Bash version (need 4.0+)
-bash --version
-
-# Test scripts directly
-python3 tools/requirements/validate_requirements.py
-```
-
-## CI/CD Integration
-
-Plugins are designed to work both locally (via git hooks) and in CI/CD pipelines.
-
-**GitHub Actions Example**:
-```yaml
-name: Validate Requirements
-on: [push, pull_request]
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      # Use the same scripts the plugins use
-      - name: Validate Requirements
-        run: python3 tools/requirements/validate_requirements.py
-
-      - name: Generate Traceability Matrix
-        run: python3 tools/requirements/generate_traceability.py --format both
-```
-
-This ensures local development and CI/CD use identical validation logic.
-
-## Development
-
-### Adding a New Plugin
-
-1. **Create plugin directory**:
-   ```bash
-   mkdir -p tools/claude-marketplace/my-plugin/hooks
-   ```
-
-2. **Create plugin.json**:
-   ```json
-   {
-     "name": "my-plugin",
-     "version": "1.0.0",
-     "description": "...",
-     "components": { ... }
-   }
-   ```
-
-3. **Create hook script**:
-   ```bash
-   touch tools/claude-marketplace/my-plugin/hooks/pre-commit-my-plugin
-   chmod +x tools/claude-marketplace/my-plugin/hooks/pre-commit-my-plugin
-   ```
-
-4. **Document the plugin**:
-   ```bash
-   touch tools/claude-marketplace/my-plugin/README.md
-   ```
-
-5. **Register in marketplace**:
-   Add entry to `settings.json` plugins array
-
-6. **Integrate with main hook**:
-   Add call in `.githooks/pre-commit`
-
-### Plugin Standards
-
-All plugins should:
-- ✅ Have comprehensive README.md
-- ✅ Include plugin.json metadata
-- ✅ Be executable (chmod +x)
-- ✅ Exit 0 on success, non-zero on failure
-- ✅ Provide clear error messages
-- ✅ Document dependencies
-- ✅ Reference (not duplicate) core implementations when possible
-
-## Related Documentation
-
-- **Git Hooks**: `.githooks/README.md`
-- **Project Instructions**: `CLAUDE.md`
-- **Requirements Tools**: `tools/requirements/README.md`
-- **Spec Guidelines**: `spec/README.md`
-- **Requirement Format**: `spec/requirements-format.md`
-
-## Plugin Categories
-
-- **Validation**: Enforce quality standards and compliance
-- **Automation**: Automate repetitive tasks
-- **AI Integration**: Leverage AI for intelligent analysis
-- **Development Tools**: Enhance developer workflows
-
-## Marketplace Metadata
-
-- **Marketplace Name**: diary-marketplace
-- **Version**: 1.0.0
-- **Type**: project-local
-- **Plugins**: 3 active
-- **Configuration**: `settings.json`
-
-## Changelog
-
-### v1.0.0 (2025-10-30)
-
-- Initial marketplace release
-- 3 plugins: spec-compliance, requirement-validation, traceability-matrix
-- Extracted from monolithic `.githooks/pre-commit`
-- Implemented reference-based architecture (no code duplication)
-- Full documentation for each plugin
-- Marketplace configuration and metadata
+See each plugin's CHANGELOG.md for version history.
 
 ## License
 
-Part of the diary project. See project LICENSE for details.
+All plugins are licensed under the MIT License. See individual LICENSE files.
+
+## Contributing
+
+Contributions welcome! Each plugin has its own:
+- README.md (usage and development)
+- CHANGELOG.md (version history)
+- LICENSE (MIT)
 
 ## Support
 
-For issues or questions about plugins:
-1. Check plugin-specific README.md
-2. Verify installation steps followed correctly
-3. Test plugin independently
-4. Check related documentation
-5. Review git hook logs
+For issues, questions, or contributions:
+- **Repository**: https://github.com/anspar/diary
+- **Marketplace Path**: `tools/claude-marketplace/`
+- **Individual Plugins**: See each plugin's README
 
-Each plugin is production-ready and actively maintained as part of the project infrastructure.
+## Plugin Development
+
+### Creating a New Plugin
+
+Use existing plugins as templates:
+
+**Bash-only plugin** (no external dependencies):
+```bash
+cp -r anspar-spec-compliance anspar-new-plugin
+cd anspar-new-plugin
+# Edit .claude-plugin/plugin.json
+# Edit README.md, CHANGELOG.md
+# Add your scripts
+```
+
+**Node.js plugin** (with dependencies):
+```bash
+cp -r anspar-linear-integration anspar-new-plugin
+cd anspar-new-plugin
+# Edit .claude-plugin/plugin.json
+# Edit package.json
+# Edit README.md, CHANGELOG.md
+# Add your scripts
+```
+
+**Python plugin** (reference architecture):
+```bash
+cp -r anspar-requirement-validation anspar-new-plugin
+cd anspar-new-plugin
+# Edit .claude-plugin/plugin.json
+# Edit README.md, CHANGELOG.md
+# Add your hooks (reference external scripts)
+```
+
+### Plugin Checklist
+
+- [ ] `.claude-plugin/plugin.json` (Claude Code manifest)
+- [ ] `package.json` (if Node.js dependencies)
+- [ ] `README.md` (standalone documentation)
+- [ ] `LICENSE` (MIT)
+- [ ] `CHANGELOG.md` (version history)
+- [ ] Executable scripts (`chmod +x`)
+- [ ] Test locally before publishing
+
+## Related Documentation
+
+- **Project Instructions**: [CLAUDE.md](../../CLAUDE.md)
+- **Requirement Format**: [spec/requirements-format.md](../../spec/requirements-format.md)
+- **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
+
+## Credits
+
+**Developed by**: Anspar Foundation
+**Plugin System**: Claude Code by Anthropic
+
+---
+
+**Version**: 1.0.0
+**Last Updated**: 2025-10-30
+**Total Plugins**: 4
