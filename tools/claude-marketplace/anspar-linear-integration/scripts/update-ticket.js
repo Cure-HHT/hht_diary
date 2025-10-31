@@ -11,6 +11,7 @@ async function updateTicket() {
     let ticketId = '';
     let description = null;
     let addChecklist = null;
+    let addRequirement = null;
 
     for (const arg of args) {
         if (arg.startsWith('--ticketId=')) {
@@ -19,6 +20,8 @@ async function updateTicket() {
             description = arg.split('=').slice(1).join('=');
         } else if (arg.startsWith('--addChecklist=')) {
             addChecklist = arg.split('=').slice(1).join('=');
+        } else if (arg.startsWith('--addRequirement=')) {
+            addRequirement = arg.split('=')[1];
         }
     }
 
@@ -27,8 +30,8 @@ async function updateTicket() {
         process.exit(1);
     }
 
-    if (!description && !addChecklist) {
-        console.error('❌ Nothing to update. Provide --description or --addChecklist');
+    if (!description && !addChecklist && !addRequirement) {
+        console.error('❌ Nothing to update. Provide --description, --addChecklist, or --addRequirement');
         process.exit(1);
     }
 
@@ -77,6 +80,15 @@ async function updateTicket() {
 
         // Build updated description
         let newDescription = description || ticket.description || '';
+
+        // Prepend requirement reference if specified
+        if (addRequirement) {
+            const reqLine = `**Requirement**: ${addRequirement}\n\n`;
+            // Check if requirement already exists in description
+            if (!newDescription.includes(addRequirement)) {
+                newDescription = reqLine + newDescription;
+            }
+        }
 
         if (addChecklist) {
             // Add checklist to the description

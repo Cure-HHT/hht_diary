@@ -1,8 +1,14 @@
 {
-  "hooks": {},
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/test-config.js"
+      }
+    ]
+  },
   "preApprovals": [
-    "node tools/claude-marketplace/anspar-linear-integration/scripts/*.js:*",
-    "bash tools/claude-marketplace/anspar-linear-integration/scripts/*.sh:*",
-    "node /home/mclew/dev24/diary-worktrees/local-env/tools/claude-marketplace/anspar-linear-integration/scripts/*.js:*"
+    "node ${CLAUDE_PLUGIN_ROOT}/scripts/*.js:*",
+    "bash ${CLAUDE_PLUGIN_ROOT}/scripts/*.sh:*"
   ]
 }
