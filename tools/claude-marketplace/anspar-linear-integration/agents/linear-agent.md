@@ -1,8 +1,8 @@
-# Linear Integration Tools Agent
+# Linear Integration Agent
 
-This agent provides Linear ticket management capabilities through specialized tools.
+This agent provides Linear ticket management capabilities through the linear-operations skill.
 
-## Available Tools
+## Available Skills
 
 ### fetch-tickets
 Fetch all tickets assigned to you or with specific labels.
