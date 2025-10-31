@@ -373,14 +373,95 @@ class TicketFetcher {
                 const data = await graphql.execute(query, { id: ticketId });
                 return data.issue || null;
             } else {
+                // For identifiers, we need to search differently
+                // Linear doesn't have a direct query by identifier, we need to search
                 const teamId = await teamResolver.getTeamId();
-                // Extract the number part from identifier like "CUR-123"
-                const number = ticketId.split('-')[1];
-                const data = await graphql.execute(query, {
+                const searchQuery = `
+                    query SearchByIdentifier($teamId: String!, $term: String!) {
+                        team(id: $teamId) {
+                            issues(filter: { searchableContent: { contains: $term } }) {
+                                nodes {
+                                    id
+                                    identifier
+                                    title
+                                    description
+                                    url
+                                    state {
+                                        name
+                                        type
+                                    }
+                                    priority
+                                    priorityLabel
+                                    labels {
+                                        nodes {
+                                            id
+                                            name
+                                            description
+                                        }
+                                    }
+                                    assignee {
+                                        id
+                                        name
+                                        email
+                                    }
+                                    creator {
+                                        name
+                                        email
+                                    }
+                                    project {
+                                        id
+                                        name
+                                    }
+                                    team {
+                                        id
+                                        key
+                                        name
+                                    }
+                                    parent {
+                                        id
+                                        identifier
+                                        title
+                                    }
+                                    children {
+                                        nodes {
+                                            id
+                                            identifier
+                                            title
+                                            state {
+                                                type
+                                            }
+                                        }
+                                    }
+                                    comments {
+                                        nodes {
+                                            id
+                                            body
+                                            createdAt
+                                            user {
+                                                name
+                                            }
+                                        }
+                                    }
+                                    createdAt
+                                    updatedAt
+                                    completedAt
+                                    canceledAt
+                                    startedAt
+                                    dueDate
+                                }
+                            }
+                        }
+                    }
+                `;
+
+                const data = await graphql.execute(searchQuery, {
                     teamId,
-                    identifier: number
+                    term: ticketId
                 });
-                return data.team?.issue || null;
+
+                // Find the exact match
+                const issues = data.team?.issues?.nodes || [];
+                return issues.find(issue => issue.identifier === ticketId) || null;
             }
         } catch (error) {
             // If not found, return null instead of throwing
