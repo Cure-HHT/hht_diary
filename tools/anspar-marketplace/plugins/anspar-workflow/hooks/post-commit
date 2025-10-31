@@ -1,0 +1,83 @@
+#!/bin/bash
+# =====================================================
+# Git Hook: post-commit
+# =====================================================
+#
+# Updates .git/WORKFLOW_STATE history after a successful
+# commit, recording the commit hash and REQ references.
+#
+# Called by: git commit (after successful commit)
+#
+# This hook always succeeds (exit 0) - it does not block
+# commits, only records history.
+#
+# =====================================================
+
+set -e
+
+# =====================================================
+# Find Plugin Directory
+# =====================================================
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PLUGIN_DIR="$REPO_ROOT/tools/anspar-marketplace/plugins/anspar-workflow"
+STATE_FILE="$REPO_ROOT/.git/WORKFLOW_STATE"
+
+if [ ! -d "$PLUGIN_DIR" ]; then
+    # Plugin not found - nothing to do
+    exit 0
+fi
+
+if [ ! -f "$STATE_FILE" ]; then
+    # No workflow state - nothing to do
+    exit 0
+fi
+
+# =====================================================
+# Get Commit Info
+# =====================================================
+
+COMMIT_HASH=$(git rev-parse HEAD)
+COMMIT_MSG=$(git log -1 --pretty=%B)
+
+# Extract REQ references from commit message
+REQ_REFS=$(echo "$COMMIT_MSG" | grep -oE 'REQ-[pdo][0-9]{5}' | jq -R . | jq -s . || echo "[]")
+
+# Get active ticket ID
+ACTIVE_TICKET=$(jq -r '.activeTicket.id // "unknown"' "$STATE_FILE" 2>/dev/null || echo "unknown")
+
+# =====================================================
+# Update History
+# =====================================================
+
+TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+# Create commit history entry
+COMMIT_HISTORY_ENTRY=$(jq -n \
+    --arg action "commit" \
+    --arg timestamp "$TIMESTAMP" \
+    --arg ticketId "$ACTIVE_TICKET" \
+    --arg commitHash "$COMMIT_HASH" \
+    --argjson requirements "$REQ_REFS" \
+    '{
+        action: $action,
+        timestamp: $timestamp,
+        ticketId: $ticketId,
+        details: {
+            commitHash: $commitHash,
+            requirements: $requirements
+        }
+    }')
+
+# Append to history
+jq --argjson entry "$COMMIT_HISTORY_ENTRY" \
+    '.history += [$entry]' \
+    "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+if [ $? -eq 0 ]; then
+    echo "📝 Updated workflow state history"
+else
+    echo "⚠️  WARNING: Failed to update workflow state history" >&2
+fi
+
+exit 0

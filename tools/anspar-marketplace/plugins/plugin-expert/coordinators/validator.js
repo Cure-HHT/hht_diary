@@ -427,24 +427,115 @@ async function validateSecurity(pathManager) {
     warnings: []
   };
 
-  // Check for sensitive data in plugin.json
+  // Patterns that trigger marketplace security scanners
+  // Even in example/documentation code, these will cause issues
+  const marketplaceScannerPatterns = [
+    { pattern: /\bAPI_KEY\b/g, name: 'API_KEY', severity: 'error' },
+    { pattern: /\bSECRET_KEY\b/g, name: 'SECRET_KEY', severity: 'error' },
+    { pattern: /\bPRIVATE_KEY\b/g, name: 'PRIVATE_KEY', severity: 'error' },
+    { pattern: /\bTOKEN\b(?!_)/g, name: 'TOKEN', severity: 'error' },
+    { pattern: /\bPASSWORD\b/g, name: 'PASSWORD', severity: 'error' },
+    { pattern: /\bACCESS_KEY\b/g, name: 'ACCESS_KEY', severity: 'error' },
+    { pattern: /\bAUTH_TOKEN\b/g, name: 'AUTH_TOKEN', severity: 'error' }
+  ];
+
+  // Patterns for actual secrets (looser matching)
+  const secretPatterns = [
+    { pattern: /api[_-]?key\s*[=:]\s*['"][^'"]+['"]/i, name: 'API key value', severity: 'error' },
+    { pattern: /secret\s*[=:]\s*['"][^'"]+['"]/i, name: 'Secret value', severity: 'error' },
+    { pattern: /password\s*[=:]\s*['"][^'"]+['"]/i, name: 'Password value', severity: 'error' },
+    { pattern: /token\s*[=:]\s*['"][^'"]+['"]/i, name: 'Token value', severity: 'error' },
+    { pattern: /Bearer\s+[A-Za-z0-9_-]{20,}/i, name: 'Bearer token', severity: 'error' }
+  ];
+
+  // Check all plugin files, not just plugin.json
+  const filesToCheck = [];
+
+  // Check plugin.json
   const pluginJsonPath = pathManager.getConfigFilePath('plugin.json');
   if (fs.existsSync(pluginJsonPath)) {
-    const content = fs.readFileSync(pluginJsonPath, 'utf8');
+    filesToCheck.push({ path: pluginJsonPath, type: 'plugin.json' });
+  }
 
-    // Check for potential secrets
-    const secretPatterns = [
-      /api[_-]?key/i,
-      /secret/i,
-      /password/i,
-      /token/i,
-      /private[_-]?key/i
-    ];
+  // Check commands
+  if (pathManager.exists('commands')) {
+    const commands = pathManager.listComponentItems('commands');
+    for (const cmd of commands) {
+      const filePath = pathManager.getComponentItemPath('commands', cmd, '.md');
+      if (fs.existsSync(filePath)) {
+        filesToCheck.push({ path: filePath, type: `commands/${cmd}.md` });
+      }
+    }
+  }
 
-    for (const pattern of secretPatterns) {
+  // Check agents
+  if (pathManager.exists('agents')) {
+    const agents = pathManager.listComponentItems('agents');
+    for (const agent of agents) {
+      const filePath = pathManager.getComponentItemPath('agents', agent, '.md');
+      if (fs.existsSync(filePath)) {
+        filesToCheck.push({ path: filePath, type: `agents/${agent}.md` });
+      }
+    }
+  }
+
+  // Check skills
+  if (pathManager.exists('skills')) {
+    const skills = pathManager.listComponentItems('skills');
+    for (const skill of skills) {
+      const skillPath = pathManager.resolve('skills', skill, 'SKILL.md');
+      if (fs.existsSync(skillPath)) {
+        filesToCheck.push({ path: skillPath, type: `skills/${skill}/SKILL.md` });
+      }
+    }
+  }
+
+  // Check examples directory
+  if (pathManager.exists('examples')) {
+    const examples = fs.readdirSync(pathManager.resolve('examples'));
+    for (const file of examples) {
+      if (file.endsWith('.md') || file.endsWith('.js') || file.endsWith('.sh')) {
+        const filePath = pathManager.resolve('examples', file);
+        filesToCheck.push({ path: filePath, type: `examples/${file}` });
+      }
+    }
+  }
+
+  // Check README and other docs
+  ['README.md', 'docs/USAGE.md', 'docs/INSTALLATION.md'].forEach(docPath => {
+    const parts = docPath.split('/');
+    if (pathManager.exists(...parts)) {
+      const fullPath = pathManager.resolve(...parts);
+      filesToCheck.push({ path: fullPath, type: docPath });
+    }
+  });
+
+  // Scan all files
+  for (const file of filesToCheck) {
+    const content = fs.readFileSync(file.path, 'utf8');
+
+    // Check for marketplace scanner triggers
+    for (const { pattern, name, severity } of marketplaceScannerPatterns) {
+      const matches = content.match(pattern);
+      if (matches) {
+        const message = `${file.type}: Contains "${name}" which triggers marketplace security scanners. Use generic names like "PLUGIN_CONFIG" or "SETTING" instead.`;
+        if (severity === 'error') {
+          result.errors.push(message);
+        } else {
+          result.warnings.push(message);
+        }
+      }
+    }
+
+    // Check for actual secret values
+    for (const { pattern, name, severity } of secretPatterns) {
       if (pattern.test(content)) {
-        result.warnings.push('Potential sensitive data found in plugin.json');
-        break;
+        const message = `${file.type}: Contains actual ${name} - never commit real credentials!`;
+        if (severity === 'error') {
+          result.errors.push(message);
+        } else {
+          result.warnings.push(message);
+        }
       }
     }
   }

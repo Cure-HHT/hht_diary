@@ -1,0 +1,20 @@
+{
+  "name": "anspar-requirement-validation",
+  "version": "1.0.0",
+  "description": "Validates requirement format, uniqueness, and links before commits",
+  "author": {
+    "name": "Anspar Foundation",
+    "url": "https://github.com/anspar"
+  },
+  "license": "MIT",
+  "keywords": [
+    "validation",
+    "requirements",
+    "traceability",
+    "git-hook",
+    "compliance"
+  ],
+  "repository": "https://github.com/anspar/diary",
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/anspar-requirement-validation",
+  "hooks": "./hooks/hooks.json"
+}
