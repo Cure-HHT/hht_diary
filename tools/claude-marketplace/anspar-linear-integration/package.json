@@ -1,0 +1,38 @@
+{
+  "name": "@anspar/linear-integration",
+  "version": "1.0.0",
+  "description": "Linear API integration tools for requirement-ticket traceability and project management automation",
+  "keywords": [
+    "linear",
+    "integration",
+    "tickets",
+    "traceability",
+    "project-management",
+    "requirements",
+    "automation",
+    "claude-code-plugin"
+  ],
+  "author": "Anspar Foundation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anspar/diary.git",
+    "directory": "tools/claude-marketplace/anspar-linear-integration"
+  },
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/claude-marketplace/anspar-linear-integration",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "fetch-tickets": "node scripts/fetch-tickets.js",
+    "create-tickets": "node scripts/create-requirement-tickets.js",
+    "setup-env": "bash scripts/setup-env.sh"
+  },
+  "files": [
+    "scripts/",
+    ".claude-plugin/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ]
+}

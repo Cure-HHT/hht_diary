@@ -141,3 +141,6 @@ env/
 coverage/
 test_results/
 *.lcov
+# Linear integration cache
+tools/claude-marketplace/linear-integration/scripts/config/
+tools/claude-marketplace/anspar-linear-integration/.linear-config.json

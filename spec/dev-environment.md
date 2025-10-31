@@ -53,7 +53,7 @@ Containerization SHALL provide:
 
 ---
 
-### REQ-d00028: Role-Based Environment Separation
+### REQ-d00055: Role-Based Environment Separation
 
 **Level**: Dev | **Implements**: p00005, p00014 | **Status**: Active
 
@@ -82,7 +82,7 @@ Role-based environments SHALL include:
 
 ---
 
-### REQ-d00029: Cross-Platform Development Support
+### REQ-d00056: Cross-Platform Development Support
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 
@@ -108,7 +108,7 @@ Cross-platform support SHALL ensure:
 
 ---
 
-### REQ-d00030: CI/CD Environment Parity
+### REQ-d00057: CI/CD Environment Parity
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 
@@ -134,7 +134,7 @@ CI/CD parity SHALL be achieved through:
 
 ---
 
-### REQ-d00031: Secrets Management via Doppler
+### REQ-d00058: Secrets Management via Doppler
 
 **Level**: Dev | **Implements**: p00005 | **Status**: Active
 
@@ -161,7 +161,7 @@ Doppler integration SHALL provide:
 
 ---
 
-### REQ-d00032: Development Tool Specifications
+### REQ-d00059: Development Tool Specifications
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 
@@ -215,7 +215,7 @@ Tool specifications SHALL include:
 
 ---
 
-### REQ-d00033: VS Code Dev Containers Integration
+### REQ-d00060: VS Code Dev Containers Integration
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 
@@ -244,7 +244,7 @@ Dev Containers SHALL provide:
 
 ---
 
-### REQ-d00034: Automated QA Workflow
+### REQ-d00061: Automated QA Workflow
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 
@@ -275,7 +275,7 @@ QA automation SHALL provide:
 
 ---
 
-### REQ-d00035: Environment Validation & Change Control
+### REQ-d00062: Environment Validation & Change Control
 
 **Level**: Dev | **Implements**: p00010 | **Status**: Active
 
@@ -325,7 +325,7 @@ Validation SHALL include:
 
 ---
 
-### REQ-d00036: Shared Workspace and File Exchange
+### REQ-d00063: Shared Workspace and File Exchange
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 

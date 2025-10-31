@@ -1,14 +1,16 @@
 #!/bin/bash
 # =====================================================
-# Pre-Commit Hook: Validation
+# Pre-Commit Hook: Orchestrator
 # =====================================================
 #
-# This hook:
-# 1. Validates Dockerfiles with hadolint (if available)
-# 2. Regenerates traceability matrices if spec/ files changed
-# 3. Validates all requirements are properly formatted
-# 4. Validates all requirement IDs are unique
-# 5. Validates all "Implements" references exist
+# This hook orchestrates validation by calling plugin hooks.
+#
+# Plugins (in tools/claude-marketplace/):
+# 1. anspar-workflow - Enforces active ticket requirement
+# 2. Dockerfile linting (hadolint) - built-in
+# 3. anspar-traceability-matrix - Auto-regenerates matrices on spec/ changes
+# 4. anspar-requirement-validation - Validates requirement format and links
+# 5. anspar-spec-compliance - Enforces spec/ directory compliance rules
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -26,7 +28,20 @@
 set -e
 
 # =====================================================
-# 1. Dockerfile Linting
+# 1. Workflow Enforcement (Plugin)
+# =====================================================
+
+WORKFLOW_PRECOMMIT_HOOK="tools/claude-marketplace/anspar-workflow/hooks/pre-commit"
+if [ -f "$WORKFLOW_PRECOMMIT_HOOK" ]; then
+    "$WORKFLOW_PRECOMMIT_HOOK" || exit 1
+else
+    echo "⚠️  WARNING: Workflow enforcement plugin not found: $WORKFLOW_PRECOMMIT_HOOK"
+    echo "   Install: See tools/claude-marketplace/anspar-workflow/README.md"
+    echo ""
+fi
+
+# =====================================================
+# 2. Dockerfile Linting
 # =====================================================
 
 # Check if any Dockerfiles are being committed
@@ -70,60 +85,46 @@ if [ -n "$DOCKERFILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 2. Traceability Matrix Regeneration
+# 3. Traceability Matrix Regeneration (Plugin)
 # =====================================================
 
-# Check if any spec/ files are being committed
-SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
-
-if [ -n "$SPEC_FILES_CHANGED" ]; then
-    echo "📊 Regenerating traceability matrices (spec files changed)..."
-    echo ""
-
-    # Check if generation script exists
-    if [ ! -f "tools/requirements/generate_traceability.py" ]; then
-        echo "❌ ERROR: Generation script not found: tools/requirements/generate_traceability.py"
-        exit 1
-    fi
-
-    # Regenerate both markdown and HTML matrices
-    python3 tools/requirements/generate_traceability.py --format markdown
-    python3 tools/requirements/generate_traceability.py --format html
-
-    # Stage the updated matrices (ignore errors if they're gitignored)
-    git add traceability_matrix.md traceability_matrix.html 2>/dev/null || true
-
-    echo ""
-    echo "✅ Traceability matrices regenerated"
-    echo ""
-fi
-
-# =====================================================
-# 3. Requirement Traceability Validation
-# =====================================================
-
-echo "🔍 Running requirement traceability validation..."
-echo ""
-
-# Check if validation script exists
-if [ ! -f "tools/requirements/validate_requirements.py" ]; then
-    echo "❌ ERROR: Validation script not found: tools/requirements/validate_requirements.py"
-    exit 1
-fi
-
-# Run validation
-if python3 tools/requirements/validate_requirements.py; then
-    echo ""
-    echo "✅ Requirement validation passed!"
-    exit 0
+TRACEABILITY_HOOK="tools/claude-marketplace/anspar-traceability-matrix/hooks/pre-commit-traceability-matrix"
+if [ -f "$TRACEABILITY_HOOK" ]; then
+    "$TRACEABILITY_HOOK" || exit 1
 else
+    echo "⚠️  WARNING: Traceability matrix plugin not found: $TRACEABILITY_HOOK"
+    echo "   Install: See tools/claude-marketplace/anspar-traceability-matrix/README.md"
     echo ""
-    echo "❌ Requirement validation failed!"
-    echo ""
-    echo "Fix the errors above before committing."
-    echo "See spec/requirements-format.md for format specification."
-    echo ""
-    echo "To bypass this check (NOT RECOMMENDED):"
-    echo "  git commit --no-verify"
-    exit 1
 fi
+
+# =====================================================
+# 4. Requirement Validation (Plugin)
+# =====================================================
+
+REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/anspar-requirement-validation/hooks/pre-commit-requirement-validation"
+if [ -f "$REQUIREMENT_VALIDATION_HOOK" ]; then
+    "$REQUIREMENT_VALIDATION_HOOK" || exit 1
+else
+    echo "⚠️  WARNING: Requirement validation plugin not found: $REQUIREMENT_VALIDATION_HOOK"
+    echo "   Install: See tools/claude-marketplace/anspar-requirement-validation/README.md"
+    echo ""
+fi
+
+# =====================================================
+# 5. Spec Compliance Validation (Plugin)
+# =====================================================
+
+SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/anspar-spec-compliance/hooks/pre-commit-spec-compliance"
+if [ -f "$SPEC_COMPLIANCE_HOOK" ]; then
+    "$SPEC_COMPLIANCE_HOOK" || exit 1
+else
+    echo "⚠️  WARNING: Spec compliance plugin not found: $SPEC_COMPLIANCE_HOOK"
+    echo "   Install: See tools/claude-marketplace/anspar-spec-compliance/README.md"
+    echo ""
+fi
+
+# =====================================================
+# All Validations Passed
+# =====================================================
+
+exit 0

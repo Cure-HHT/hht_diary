@@ -1,0 +1,22 @@
+{
+  "name": "anspar-spec-compliance",
+  "version": "1.0.0",
+  "description": "Enforces spec/ directory compliance through automated validation and AI-powered analysis",
+  "author": {
+    "name": "Anspar Foundation",
+    "url": "https://github.com/anspar"
+  },
+  "license": "MIT",
+  "keywords": [
+    "validation",
+    "spec",
+    "compliance",
+    "requirements",
+    "ai-agent",
+    "documentation"
+  ],
+  "repository": "https://github.com/anspar/diary",
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/claude-marketplace/anspar-spec-compliance",
+  "agents": "./agent.md",
+  "hooks": "./hooks/hooks.json"
+}

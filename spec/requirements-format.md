@@ -254,7 +254,7 @@ Code comments explain HOW the code implements requirements, but they don't defin
 ### Top-Level PRD Requirement
 
 ```markdown
-### REQ-p00001: Multi-Sponsor Data Isolation
+### REQ-p00031: Multi-Sponsor Data Isolation
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -281,7 +281,7 @@ cross-sponsor access. Critical for regulatory compliance and sponsor trust.
 ### Ops Requirement Implementing PRD
 
 ```markdown
-### REQ-o00001: Separate Supabase Projects Per Sponsor
+### REQ-o00056: Separate Supabase Projects Per Sponsor
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
@@ -541,10 +541,10 @@ Within each major topic (`##`), organize as:
 ```markdown
 ## Access Control
 
-### REQ-p00005: Role-Based Access Control
+### REQ-p00033: Role-Based Access Control
 [formal requirement with SHALL/MUST]
 
-### REQ-p00014: Least Privilege Access
+### REQ-p00034: Least Privilege Access
 [formal requirement with SHALL/MUST]
 
 ### How Access Control Works
@@ -559,7 +559,7 @@ Within each major topic (`##`), organize as:
 Use horizontal rules (`---`) to clearly separate formal requirements from explanatory content:
 
 ```markdown
-### REQ-p00001: Complete Multi-Sponsor Data Separation
+### REQ-p00032: Complete Multi-Sponsor Data Separation
 [requirement body]
 **Rationale**: [...]
 **Acceptance Criteria**: [...]
