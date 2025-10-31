@@ -8,7 +8,27 @@ This marketplace contains independently distributable Claude Code plugins develo
 
 ## Available Plugins
 
-### 1. anspar-linear-integration
+### 1. anspar-workflow
+
+**Category**: Workflow | **Version**: 1.0.0
+
+Git workflow enforcement for requirement traceability and ticket lifecycle management with distributed worktree support.
+
+**Key Features**:
+- Per-worktree state management (.git/WORKFLOW_STATE)
+- REQ reference validation in commit messages
+- Active ticket enforcement before commits
+- Paused/resumed ticket workflow
+- Distributed worktree support
+- Tracker-agnostic design
+
+**Location**: `anspar-workflow/`
+**Documentation**: [README.md](./anspar-workflow/README.md)
+**License**: MIT
+
+---
+
+### 2. anspar-linear-integration
 
 **Category**: Integration | **Version**: 1.0.0
 
@@ -27,7 +47,7 @@ Linear API integration tools for requirement-ticket traceability and project man
 
 ---
 
-### 2. anspar-spec-compliance
+### 3. anspar-spec-compliance
 
 **Category**: Validation | **Version**: 1.0.0
 
@@ -46,7 +66,7 @@ Enforces spec/ directory compliance through automated validation and AI-powered 
 
 ---
 
-### 3. anspar-requirement-validation
+### 4. anspar-requirement-validation
 
 **Category**: Validation | **Version**: 1.0.0
 
@@ -65,7 +85,7 @@ Validates requirement format, uniqueness, and links before commits.
 
 ---
 
-### 4. anspar-traceability-matrix
+### 5. anspar-traceability-matrix
 
 **Category**: Automation | **Version**: 1.0.0
 
@@ -382,4 +402,4 @@ cd anspar-new-plugin
 
 **Version**: 1.0.0
 **Last Updated**: 2025-10-30
-**Total Plugins**: 4
+**Total Plugins**: 5

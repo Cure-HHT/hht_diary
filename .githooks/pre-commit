@@ -6,10 +6,11 @@
 # This hook orchestrates validation by calling plugin hooks.
 #
 # Plugins (in tools/claude-marketplace/):
-# 1. Dockerfile linting (hadolint) - built-in
-# 2. anspar-traceability-matrix - Auto-regenerates matrices on spec/ changes
-# 3. anspar-requirement-validation - Validates requirement format and links
-# 4. anspar-spec-compliance - Enforces spec/ directory compliance rules
+# 1. anspar-workflow - Enforces active ticket requirement
+# 2. Dockerfile linting (hadolint) - built-in
+# 3. anspar-traceability-matrix - Auto-regenerates matrices on spec/ changes
+# 4. anspar-requirement-validation - Validates requirement format and links
+# 5. anspar-spec-compliance - Enforces spec/ directory compliance rules
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -27,7 +28,20 @@
 set -e
 
 # =====================================================
-# 1. Dockerfile Linting
+# 1. Workflow Enforcement (Plugin)
+# =====================================================
+
+WORKFLOW_PRECOMMIT_HOOK="tools/claude-marketplace/anspar-workflow/hooks/pre-commit"
+if [ -f "$WORKFLOW_PRECOMMIT_HOOK" ]; then
+    "$WORKFLOW_PRECOMMIT_HOOK" || exit 1
+else
+    echo "⚠️  WARNING: Workflow enforcement plugin not found: $WORKFLOW_PRECOMMIT_HOOK"
+    echo "   Install: See tools/claude-marketplace/anspar-workflow/README.md"
+    echo ""
+fi
+
+# =====================================================
+# 2. Dockerfile Linting
 # =====================================================
 
 # Check if any Dockerfiles are being committed
@@ -71,7 +85,7 @@ if [ -n "$DOCKERFILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 2. Traceability Matrix Regeneration (Plugin)
+# 3. Traceability Matrix Regeneration (Plugin)
 # =====================================================
 
 TRACEABILITY_HOOK="tools/claude-marketplace/anspar-traceability-matrix/hooks/pre-commit-traceability-matrix"
@@ -84,7 +98,7 @@ else
 fi
 
 # =====================================================
-# 3. Requirement Validation (Plugin)
+# 4. Requirement Validation (Plugin)
 # =====================================================
 
 REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/anspar-requirement-validation/hooks/pre-commit-requirement-validation"
@@ -97,7 +111,7 @@ else
 fi
 
 # =====================================================
-# 4. Spec Compliance Validation (Plugin)
+# 5. Spec Compliance Validation (Plugin)
 # =====================================================
 
 SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/anspar-spec-compliance/hooks/pre-commit-spec-compliance"

@@ -18,5 +18,5 @@
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/claude-marketplace/anspar-spec-compliance",
   "agents": "./agent.md",
-  "hooks": "./hooks/"
+  "hooks": "./hooks/hooks.json"
 }

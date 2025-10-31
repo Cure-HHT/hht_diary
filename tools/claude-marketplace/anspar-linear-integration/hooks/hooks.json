@@ -1,0 +1,8 @@
+{
+  "hooks": {},
+  "preApprovals": [
+    "node tools/claude-marketplace/anspar-linear-integration/scripts/*.js:*",
+    "bash tools/claude-marketplace/anspar-linear-integration/scripts/*.sh:*",
+    "node /home/mclew/dev24/diary-worktrees/local-env/tools/claude-marketplace/anspar-linear-integration/scripts/*.js:*"
+  ]
+}

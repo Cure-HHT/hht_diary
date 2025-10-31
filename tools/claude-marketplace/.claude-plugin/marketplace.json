@@ -1,0 +1,44 @@
+{
+  "name": "anspar-local",
+  "owner": {
+    "name": "Anspar Foundation",
+    "url": "https://github.com/anspar"
+  },
+  "metadata": {
+    "description": "Anspar Foundation Claude Code Plugins - Local Development Marketplace",
+    "version": "1.0.0",
+    "pluginRoot": "."
+  },
+  "plugins": [
+    {
+      "name": "anspar-workflow",
+      "source": "./anspar-workflow",
+      "description": "Git workflow enforcement for requirement traceability and ticket lifecycle management",
+      "version": "1.0.0"
+    },
+    {
+      "name": "anspar-spec-compliance",
+      "source": "./anspar-spec-compliance",
+      "description": "Enforces spec/ directory compliance through automated validation and AI-powered analysis",
+      "version": "1.0.0"
+    },
+    {
+      "name": "anspar-requirement-validation",
+      "source": "./anspar-requirement-validation",
+      "description": "Validates requirement format, uniqueness, and links before commits",
+      "version": "1.0.0"
+    },
+    {
+      "name": "anspar-traceability-matrix",
+      "source": "./anspar-traceability-matrix",
+      "description": "Auto-regenerates requirement traceability matrices on spec/ changes",
+      "version": "1.0.0"
+    },
+    {
+      "name": "anspar-linear-integration",
+      "source": "./anspar-linear-integration",
+      "description": "Linear API integration tools for requirement-ticket traceability",
+      "version": "1.0.0"
+    }
+  ]
+}
