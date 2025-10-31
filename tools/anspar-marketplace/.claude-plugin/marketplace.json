@@ -1,0 +1,16 @@
+{
+  "name": "anspar-marketplace",
+  "description": "ANSPAR's curated Claude Code plugin marketplace",
+  "owner": {
+    "name": "ANSPAR",
+    "url": "https://github.com/Cure-HHT"
+  },
+  "plugins": [
+    {
+      "name": "plugin-expert",
+      "source": "./plugins/plugin-expert",
+      "version": "1.0.0",
+      "description": "Expert guidance and automation for creating Claude Code plugins with best practices"
+    }
+  ]
+}
