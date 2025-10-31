@@ -321,7 +321,7 @@ ${safeJSONStringify({
 ## Environment Variables
 
 \`\`\`bash
-export PLUGIN_API_KEY="your-api-key"
+export PLUGIN_SETTING="value"
 export PLUGIN_DEBUG=true
 \`\`\`
 `;
