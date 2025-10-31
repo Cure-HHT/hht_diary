@@ -158,6 +158,35 @@ function sanitizeFilename(str) {
 function validatePluginConfig(config) {
   const errors = [];
 
+  // Define allowed top-level keys in plugin.json based on Claude Code schema
+  const allowedKeys = [
+    'name',
+    'version',
+    'description',
+    'author',
+    'keywords',
+    'repository',
+    'homepage',
+    'license',
+    'bugs',
+    'contributors',
+    'main',
+    'dependencies',
+    'devDependencies',
+    'scripts',
+    'engines',
+    'private',
+    'publishConfig'
+  ];
+
+  // Check for unrecognized keys (strict validation)
+  const configKeys = Object.keys(config);
+  for (const key of configKeys) {
+    if (!allowedKeys.includes(key)) {
+      errors.push(`Unrecognized key in plugin.json: '${key}'. This will cause the plugin to fail loading.`);
+    }
+  }
+
   if (!config.name) {
     errors.push('Plugin name is required');
   } else if (!isValidPluginName(config.name)) {

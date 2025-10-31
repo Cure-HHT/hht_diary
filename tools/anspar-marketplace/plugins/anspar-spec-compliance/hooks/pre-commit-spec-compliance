@@ -1,0 +1,104 @@
+#!/bin/bash
+# =====================================================
+# Pre-Commit Hook: Spec Compliance Validation
+# =====================================================
+#
+# This hook is part of the spec-compliance plugin for Claude Code.
+# It validates spec/ directory files against compliance rules before commit.
+#
+# This hook:
+# 1. Detects changes to spec/ directory files
+# 2. Invokes the spec-compliance-enforcer agent to validate changes
+# 3. Blocks commit if violations are found
+# 4. Provides detailed violation reports with remediation steps
+#
+# Plugin: spec-compliance v1.0.0
+# Location: .claude/plugins/spec-compliance/
+#
+# To install:
+#   See .claude/plugins/spec-compliance/README.md
+#
+# To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Plugin configuration
+# Dynamically detect plugin directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+AGENT_NAME="spec-compliance-enforcer"
+NOTIFICATION_SOUND="$HOME/freesound/762115__jerryberumen__alarm-misc-message-alert-notification-quick-short-arp.wav"
+
+# =====================================================
+# 1. Detect spec/ changes
+# =====================================================
+
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
+
+if [ -z "$SPEC_FILES_CHANGED" ]; then
+    # No spec/ files changed, skip validation
+    exit 0
+fi
+
+echo -e "${BLUE}📋 Spec Compliance Validation${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "Detected changes in spec/ directory:"
+echo "$SPEC_FILES_CHANGED" | sed 's/^/  - /'
+echo ""
+
+# =====================================================
+# 2. Run standalone validation script
+# =====================================================
+
+echo -e "${BLUE}Running spec compliance checks...${NC}"
+echo ""
+
+VALIDATION_SCRIPT="$PLUGIN_DIR/scripts/validate-spec-compliance.sh"
+
+if [ ! -f "$VALIDATION_SCRIPT" ]; then
+    echo -e "${RED}❌ ERROR: Validation script not found: $VALIDATION_SCRIPT${NC}"
+    echo ""
+    echo "The spec-compliance plugin may not be properly installed."
+    echo "See $PLUGIN_DIR/README.md for installation instructions."
+    exit 1
+fi
+
+# Make sure script is executable
+chmod +x "$VALIDATION_SCRIPT"
+
+# Run validation
+if "$VALIDATION_SCRIPT" "$SPEC_FILES_CHANGED"; then
+    echo ""
+    echo -e "${GREEN}✅ Spec compliance validation passed!${NC}"
+    echo ""
+    exit 0
+else
+    VALIDATION_EXIT_CODE=$?
+    echo ""
+    echo -e "${RED}❌ Spec compliance validation failed!${NC}"
+    echo ""
+    echo -e "${YELLOW}Fix the violations above before committing.${NC}"
+    echo "See spec/README.md for compliance rules."
+    echo ""
+    echo "To bypass this check (NOT RECOMMENDED):"
+    echo "  git commit --no-verify"
+    echo ""
+
+    # Play notification sound if available
+    if [ -f "$NOTIFICATION_SOUND" ]; then
+        paplay "$NOTIFICATION_SOUND" 2>/dev/null || true
+    fi
+
+    exit $VALIDATION_EXIT_CODE
+fi

@@ -16,8 +16,5 @@
   ],
   "repository": "https://github.com/claude-code/plugin-expert",
   "homepage": "https://docs.claude.com/en/docs/claude-code/plugins",
-  "license": "MIT",
-  "claudeCode": {
-    "minVersion": "1.0.0"
-  }
+  "license": "MIT"
 }
