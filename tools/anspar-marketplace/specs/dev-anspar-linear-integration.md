@@ -52,7 +52,7 @@ The plugin SHALL implement 24-hour auto-refresh caching for requirement-ticket m
 
 Caching system SHALL include:
 - Cache file: scripts/config/requirement-ticket-cache.json
-- Cache max age: 24 hours (24 * 60 * 60 * 1000 ms)
+- Cache max age: 24 hours (`24 * 60 * 60 * 1000` ms)
 - Auto-refresh on cache expiration
 - Manual refresh via --refresh-cache flag
 - Stale cache fallback if API unavailable
