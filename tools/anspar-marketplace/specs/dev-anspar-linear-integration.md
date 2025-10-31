@@ -19,9 +19,9 @@ ANSPAR Linear Integration provides comprehensive Linear API integration for requ
 
 ### REQ-d00130: Batch Ticket Creation from Requirements
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Periodic
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
-The plugin SHALL automate ticket creation from formal requirements in spec/ directory, parsing requirement blocks and creating Linear tickets with appropriate metadata, labels, and priority assignments, with robust API failure handling.
+The plugin SHALL automate ticket creation from formal requirements in spec/ directory, parsing requirement blocks and creating Linear tickets with appropriate metadata, labels, and priority assignments.
 
 Implementation SHALL include:
 - Requirement parsing from spec/*.md files
@@ -31,11 +31,8 @@ Implementation SHALL include:
 - Duplicate detection using requirement-ticket cache
 - Dry-run mode for preview before creation
 - Batch processing with rate limiting (100ms delays)
-- API failure handling: Retry with exponential backoff (3 attempts max)
-- Partial success: Report which tickets created, which failed
-- Resume capability: Re-run creates only missing tickets (idempotent)
 
-**Rationale**: Automated ticket creation eliminates manual effort. Requirement parsing ensures consistency. Priority assignment follows criticality hierarchy. Caching prevents duplicate tickets. Failure handling ensures small teams don't manually track partial completions.
+**Rationale**: Automated ticket creation eliminates manual effort. Requirement parsing ensures consistency. Priority assignment follows criticality hierarchy. Caching prevents duplicate tickets.
 
 **Acceptance Criteria**:
 - create-requirement-tickets.js parses spec/ directory
@@ -133,9 +130,9 @@ Checklist generation SHALL include:
 
 ### REQ-d00134: Duplicate Detection and Analysis
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Optional | **Maintenance**: Periodic
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
-The plugin MAY detect duplicate requirement-ticket mappings and provide advanced analysis of ticket relationships, preventing duplicate work and identifying potential consolidation opportunities.
+The plugin SHALL detect duplicate requirement-ticket mappings and provide advanced analysis of ticket relationships, preventing duplicate work and identifying potential consolidation opportunities.
 
 Duplicate detection SHALL include:
 - check-duplicates.js: finds requirement IDs in multiple tickets
@@ -144,7 +141,7 @@ Duplicate detection SHALL include:
 - Warnings for potential duplicates
 - Consolidation recommendations
 
-**Rationale**: Duplicate detection prevents wasted effort. Analysis identifies consolidation opportunities. Clear reporting aids cleanup. For small teams: Nice-to-have feature that adds value but is not critical for core workflow. Focus on core requirement-ticket linking first.
+**Rationale**: Duplicate detection prevents wasted effort. Analysis identifies consolidation opportunities. Clear reporting aids cleanup.
 
 **Acceptance Criteria**:
 - check-duplicates.js parses all ticket descriptions
@@ -157,7 +154,7 @@ Duplicate detection SHALL include:
 
 ### REQ-d00135: Claude Code Integration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Periodic
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
 The plugin SHALL provide Claude Code agents, skills, and commands for Linear interaction within Claude Code sessions, enabling AI-assisted ticket management and requirement traceability.
 

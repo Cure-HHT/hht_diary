@@ -19,7 +19,7 @@ ANSPAR Workflow enforces requirement traceability and ticket lifecycle managemen
 
 ### REQ-d00120: Per-Worktree State Management
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
 The plugin SHALL maintain independent workflow state per git worktree using .git/WORKFLOW_STATE file, enabling multiple worktrees to work on same or different tickets concurrently without state conflicts.
 
@@ -44,7 +44,7 @@ Implementation SHALL include:
 
 ### REQ-d00121: Requirement Reference Validation
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
 The plugin SHALL validate all commit messages contain at least one requirement reference in format REQ-{type}{number} where type is p/o/d and number is 5 digits, blocking commits lacking requirement references.
 
@@ -69,27 +69,23 @@ Validation SHALL ensure:
 
 ### REQ-d00122: Active Ticket Enforcement
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
-The plugin SHALL require active ticket to be claimed before allowing commits, enforcing ticket-driven development workflow and preventing uncommitted work from orphaned tickets, with emergency bypass mechanism for critical situations.
+The plugin SHALL require active ticket to be claimed before allowing commits, enforcing ticket-driven development workflow and preventing uncommitted work from orphaned tickets.
 
 Enforcement SHALL include:
 - Pre-commit hook checks for activeTicket in state
 - Block commit if activeTicket is null
-- Emergency bypass: ANSPAR_WORKFLOW_SKIP=true git commit (logged to history)
-- Emergency commits flagged for post-hoc ticket association
 - Clear error with claim-ticket.sh usage instructions
 - Ticket claiming via scripts/claim-ticket.sh
 - Ticket release via scripts/release-ticket.sh
 - Support for ticket switching and resuming
 
-**Rationale**: Ticket enforcement ensures all work linked to tickets. Prevents orphaned commits. Emergency bypass accommodates critical situations while maintaining audit trail. Post-hoc flagging ensures emergencies are reviewed.
+**Rationale**: Ticket enforcement ensures all work linked to tickets. Prevents orphaned commits. Facilitates project management integration.
 
 **Acceptance Criteria**:
 - Pre-commit hook validates activeTicket exists
 - Hook blocks commit if no ticket claimed (exit 1)
-- ANSPAR_WORKFLOW_SKIP=true bypasses check and logs to history
-- Emergency bypasses marked with flag for review
 - Error shows how to claim ticket
 - claim-ticket.sh updates state with ticket ID and metadata
 - release-ticket.sh sets activeTicket = null
@@ -98,35 +94,32 @@ Enforcement SHALL include:
 
 ### REQ-d00123: Workflow State Transitions
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
-The plugin SHALL support essential ticket operations (claim, release, status) with optional convenience operations for workflow flexibility.
+The plugin SHALL support complete ticket lifecycle including claim, switch, pause, resume, and release operations with full history tracking and interactive selection for resume operations.
 
-Essential operations:
+Workflow operations SHALL include:
 - Claim: claim-ticket.sh <TICKET-ID> - start working on ticket
 - Release: release-ticket.sh [REASON] - stop working, mark complete
+- Switch: switch-ticket.sh <NEW-ID> <REASON> - pause current, claim new
+- Resume: resume-ticket.sh - interactive selection of paused tickets
+- History: list-history.sh - view all workflow events
 - Status: get-active-ticket.sh - show current state
 
-Optional operations (nice-to-have for small teams):
-- Switch: switch-ticket.sh <NEW-ID> <REASON> - convenience for claim after release
-- Resume: resume-ticket.sh - interactive selection from history
-- History: list-history.sh - audit trail viewer
-
-**Rationale**: Essential operations (claim/release/status) provide core workflow. Optional operations add convenience without complexity. Small teams can start with essentials, add optional features as needed.
+**Rationale**: Complete lifecycle support accommodates real workflows. Interactive resume aids ticket management. History provides audit trail.
 
 **Acceptance Criteria**:
-- Claim, release, and status scripts are functional (required)
-- Optional scripts may be implemented for convenience
-- Switch atomically releases current and claims new (if implemented)
-- Resume shows list of recently released tickets (if implemented)
-- History shows chronological workflow events (if implemented)
+- All scripts executable and functional
+- Switch atomically releases current and claims new
+- Resume shows list of recently released tickets
+- History shows chronological workflow events
 - Scripts use jq for safe JSON manipulation
 
 ---
 
 ### REQ-d00124: Distributed Worktree Support
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
 The plugin SHALL support git worktrees with independent state management, enabling multiple worktrees to work on same ticket (valid for multi-PR workflows) or different tickets concurrently.
 
@@ -151,7 +144,7 @@ Worktree support SHALL ensure:
 
 ### REQ-d00125: Git Hook Integration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
+**Level**: Dev | **Implements**: d00100 | **Status**: Active
 
 The plugin SHALL provide git hooks for pre-commit, commit-msg, post-commit, and session-start events, integrating workflow enforcement into git operations and Claude Code sessions.
 
@@ -172,31 +165,6 @@ Hook integration SHALL include:
 - post-commit always exits 0 (never blocks)
 - session-start outputs JSON for Claude Code
 - README documents hook installation
-
----
-
-### REQ-d00126: State File Recovery
-
-**Level**: Dev | **Implements**: d00120 | **Status**: Required | **Maintenance**: Set-and-Forget
-
-The plugin SHALL detect and recover from corrupted state files without blocking development, ensuring workflow resilience in face of file corruption or JSON parsing errors.
-
-Recovery SHALL include:
-- Corruption detection on state file read
-- Backup restoration if .git/WORKFLOW_STATE.bak exists
-- State regeneration with user input if no backup
-- Graceful degradation: Allow commits with warning if state unrecoverable
-- Corruption causes logged for debugging
-
-**Rationale**: Small team can't afford blocked development due to corrupted state. Auto-recovery keeps workflow moving. Backup files provide safety net. Graceful degradation ensures work continues even with issues.
-
-**Acceptance Criteria**:
-- Invalid JSON triggers recovery workflow
-- Automatic backup created before each state write
-- Recovery never blocks commits (worst case: warning + allow)
-- Corruption events logged to .git/WORKFLOW_ERRORS.log
-- User prompted to manually fix or regenerate state if auto-recovery fails
-- Backup files retain last 2 versions (.bak, .bak2)
 
 ---
 
