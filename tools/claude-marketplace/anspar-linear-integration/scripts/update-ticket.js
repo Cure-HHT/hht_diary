@@ -92,15 +92,10 @@ async function updateTicket() {
 
         if (addChecklist) {
             // Add checklist to the description
-            if (newDescription && !newDescription.endsWith('
-
-')) {
-                newDescription += '
-
-';
+            if (newDescription && !newDescription.endsWith('\n\n')) {
+                newDescription += '\n\n';
             }
-            newDescription += '### Checklist
-' + addChecklist;
+            newDescription += '### Checklist\n' + addChecklist;
         }
 
         // Update the ticket
