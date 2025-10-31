@@ -58,10 +58,13 @@ class LinearConfig {
         // 3. Check local .env file (gitignored)
         this.loadFromLocalEnv();
 
-        // 4. Check user config directory
+        // 4. Check saved config from auto-discovery
+        this.loadFromSavedConfig();
+
+        // 5. Check user config directory
         this.loadFromUserConfig();
 
-        // 5. Check legacy token file
+        // 6. Check legacy token file
         this.loadFromLegacyToken();
     }
 
@@ -258,6 +261,10 @@ class LinearConfig {
                 // Single team - auto-select
                 console.log(`✓ Auto-discovered team: ${teams[0].name} (${teams[0].key})`);
                 this.config.teamId = teams[0].id;
+
+                // Save discovered configuration
+                this.saveDiscoveredConfig(teams[0]);
+
                 return teams[0].id;
             } else {
                 // Multiple teams - show options
@@ -309,6 +316,45 @@ class LinearConfig {
             fs.mkdirSync(cacheDir, { recursive: true });
         }
         return cacheDir;
+    }
+
+    /**
+     * Save discovered configuration to local config file
+     * @param {Object} team - Team information from Linear
+     */
+    saveDiscoveredConfig(team) {
+        try {
+            const configPath = path.join(PLUGIN_ROOT, '.linear-config.json');
+            const configData = {
+                teamId: team.id,
+                teamName: team.name,
+                teamKey: team.key,
+                discoveredAt: new Date().toISOString()
+            };
+
+            fs.writeFileSync(configPath, JSON.stringify(configData, null, 2));
+            console.log(`   Configuration saved to ${configPath}`);
+        } catch (error) {
+            // Silently fail - not critical
+            console.log(`   (Could not save config: ${error.message})`);
+        }
+    }
+
+    /**
+     * Load saved configuration from .linear-config.json
+     */
+    loadFromSavedConfig() {
+        const configPath = path.join(PLUGIN_ROOT, '.linear-config.json');
+        if (fs.existsSync(configPath)) {
+            try {
+                const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+                if (!this.config.teamId && savedConfig.teamId) {
+                    this.config.teamId = savedConfig.teamId;
+                }
+            } catch (error) {
+                // Silently ignore errors
+            }
+        }
     }
 }
 

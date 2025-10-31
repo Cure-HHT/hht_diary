@@ -14,14 +14,17 @@ const { validateEnvironment, getCredentialsFromArgs } = require('./lib/env-valid
 const args = process.argv.slice(2);
 let title = '';
 let description = '';
+let descriptionFile = '';
 let priority = 0; // Default priority (no priority)
 let labels = [];
 
 args.forEach(arg => {
     if (arg.startsWith('--title=')) {
-        title = arg.split('=')[1];
+        title = arg.split('=').slice(1).join('=');
     } else if (arg.startsWith('--description=')) {
-        description = arg.split('=')[1];
+        description = arg.split('=').slice(1).join('=');
+    } else if (arg.startsWith('--description-file=')) {
+        descriptionFile = arg.split('=')[1];
     } else if (arg.startsWith('--priority=')) {
         priority = parseInt(arg.split('=')[1]);
     } else if (arg.startsWith('--labels=')) {
@@ -29,8 +32,19 @@ args.forEach(arg => {
     }
 });
 
-if (!title || !description) {
-    console.error('Error: --title and --description are required');
+// Read description from file if specified
+if (descriptionFile && !description) {
+    const fs = require('fs');
+    try {
+        description = fs.readFileSync(descriptionFile, 'utf-8');
+    } catch (error) {
+        console.error(`Error reading description file: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+if (!title || (!description && !descriptionFile)) {
+    console.error('Error: --title and (--description or --description-file) are required');
     console.error('Usage: node create-single-ticket.js --title="Title" --description="Description" [--priority=<0-4>] [--labels="label1,label2"]');
     console.error('\nPriority values: 0=No priority, 1=Urgent, 2=High, 3=Normal, 4=Low');
     process.exit(1);
@@ -137,15 +151,24 @@ async function createTicket(apiToken, teamId, title, description, priority, labe
         }
     `;
 
+    // Ensure description is properly escaped for GraphQL
+    // GraphQL strings should handle newlines and quotes properly
+    const safeDescription = description;
+
     const variables = {
         teamId,
         title,
-        description,
+        description: safeDescription,
         priority: priority || 0,
         labelIds: labelIds.length > 0 ? labelIds : undefined
     };
 
     const result = await makeGraphQLRequest(mutation, variables, apiToken);
+
+    if (!result.data) {
+        console.error('\n❌ GraphQL Error:', JSON.stringify(result, null, 2));
+        throw new Error('No data in response - check GraphQL errors above');
+    }
 
     if (result.data.issueCreate.success) {
         const issue = result.data.issueCreate.issue;

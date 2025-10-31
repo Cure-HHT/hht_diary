@@ -53,8 +53,8 @@ function parseArgs() {
 /**
  * Find and read requirement from spec files
  */
-function findRequirement(reqId) {
-    const projectRoot = path.resolve(__dirname, '../../..');
+function findRequirement(reqId, preferredTitle = null) {
+    const projectRoot = path.resolve(__dirname, '../../../..');
     const specDir = path.join(projectRoot, 'spec');
 
     // Search all spec files for the requirement
@@ -62,14 +62,16 @@ function findRequirement(reqId) {
         .filter(f => f.endsWith('.md'))
         .map(f => path.join(specDir, f));
 
+    const foundRequirements = [];
+
     for (const file of specFiles) {
         const content = fs.readFileSync(file, 'utf-8');
 
         // Look for the requirement header
-        const reqPattern = new RegExp(`^### ${reqId}:(.*)$`, 'mi');
-        const match = content.match(reqPattern);
+        const reqPattern = new RegExp(`^### ${reqId}:(.*)$`, 'gmi');
+        const matches = content.matchAll(reqPattern);
 
-        if (match) {
+        for (const match of matches) {
             // Extract requirement section
             const startIdx = match.index;
             const lines = content.substring(startIdx).split('\n');
@@ -86,16 +88,25 @@ function findRequirement(reqId) {
                 reqLines.push(line);
             }
 
-            return {
+            foundRequirements.push({
                 id: reqId,
                 title: match[1].trim(),
                 content: reqLines.join('\n'),
                 file: path.basename(file)
-            };
+            });
         }
     }
 
-    return null;
+    // If multiple requirements found and we have a preferred title, try to match it
+    if (foundRequirements.length > 1 && preferredTitle) {
+        const preferred = foundRequirements.find(req =>
+            req.title.toLowerCase().includes(preferredTitle.toLowerCase())
+        );
+        if (preferred) return preferred;
+    }
+
+    // Return first found or null
+    return foundRequirements.length > 0 ? foundRequirements[0] : null;
 }
 
 /**
@@ -367,7 +378,9 @@ async function main() {
         }
 
         // Find and parse the requirement
-        const requirement = findRequirement(reqId);
+        // For REQ-d00027, prefer the "Development Environment and Tooling Setup" version
+        const preferredTitle = reqId === 'REQ-d00027' ? 'Development Environment and Tooling Setup' : null;
+        const requirement = findRequirement(reqId, preferredTitle);
         if (!requirement) {
             console.error(`❌ Requirement ${reqId} not found in spec files`);
             process.exit(1);
@@ -388,7 +401,7 @@ async function main() {
         }
 
         // Add sub-requirements
-        const projectRoot = path.resolve(__dirname, '../../..');
+        const projectRoot = path.resolve(__dirname, '../../../..');
         const specDir = path.join(projectRoot, 'spec');
         const subReqs = findSubRequirements(reqId, specDir);
 
