@@ -222,10 +222,9 @@ class TicketFetcher {
      * @returns {Promise<Object|null>} Ticket object or null if not found
      */
     async getTicketById(ticketId) {
-        // Determine if it's a UUID or identifier
-        const isUuid = ticketId.includes('-') && ticketId.length > 10 && !ticketId.match(/^[A-Z]+-\d+$/);
-
-        const query = isUuid ? `
+        // Linear accepts both UUID and shorthand identifiers (e.g., "CUR-312")
+        // in the same query field
+        const query = `
             query GetIssueById($id: String!) {
                 issue(id: $id) {
                     id
@@ -297,172 +296,11 @@ class TicketFetcher {
                     dueDate
                 }
             }
-        ` : `
-            query GetIssueByIdentifier($teamId: String!, $identifier: String!) {
-                team(id: $teamId) {
-                    issue(number: $identifier) {
-                        id
-                        identifier
-                        title
-                        description
-                        url
-                        state {
-                            name
-                            type
-                        }
-                        priority
-                        priorityLabel
-                        labels {
-                            nodes {
-                                id
-                                name
-                                description
-                            }
-                        }
-                        assignee {
-                            id
-                            name
-                            email
-                        }
-                        creator {
-                            name
-                            email
-                        }
-                        project {
-                            id
-                            name
-                        }
-                        parent {
-                            id
-                            identifier
-                            title
-                        }
-                        children {
-                            nodes {
-                                id
-                                identifier
-                                title
-                                state {
-                                    type
-                                }
-                            }
-                        }
-                        comments {
-                            nodes {
-                                id
-                                body
-                                createdAt
-                                user {
-                                    name
-                                }
-                            }
-                        }
-                        createdAt
-                        updatedAt
-                        completedAt
-                        canceledAt
-                        startedAt
-                        dueDate
-                    }
-                }
-            }
         `;
 
         try {
-            if (isUuid) {
-                const data = await graphql.execute(query, { id: ticketId });
-                return data.issue || null;
-            } else {
-                // For identifiers, we need to search differently
-                // Linear doesn't have a direct query by identifier, we need to search
-                const teamId = await teamResolver.getTeamId();
-                const searchQuery = `
-                    query SearchByIdentifier($teamId: String!, $term: String!) {
-                        team(id: $teamId) {
-                            issues(filter: { searchableContent: { contains: $term } }) {
-                                nodes {
-                                    id
-                                    identifier
-                                    title
-                                    description
-                                    url
-                                    state {
-                                        name
-                                        type
-                                    }
-                                    priority
-                                    priorityLabel
-                                    labels {
-                                        nodes {
-                                            id
-                                            name
-                                            description
-                                        }
-                                    }
-                                    assignee {
-                                        id
-                                        name
-                                        email
-                                    }
-                                    creator {
-                                        name
-                                        email
-                                    }
-                                    project {
-                                        id
-                                        name
-                                    }
-                                    team {
-                                        id
-                                        key
-                                        name
-                                    }
-                                    parent {
-                                        id
-                                        identifier
-                                        title
-                                    }
-                                    children {
-                                        nodes {
-                                            id
-                                            identifier
-                                            title
-                                            state {
-                                                type
-                                            }
-                                        }
-                                    }
-                                    comments {
-                                        nodes {
-                                            id
-                                            body
-                                            createdAt
-                                            user {
-                                                name
-                                            }
-                                        }
-                                    }
-                                    createdAt
-                                    updatedAt
-                                    completedAt
-                                    canceledAt
-                                    startedAt
-                                    dueDate
-                                }
-                            }
-                        }
-                    }
-                `;
-
-                const data = await graphql.execute(searchQuery, {
-                    teamId,
-                    term: ticketId
-                });
-
-                // Find the exact match
-                const issues = data.team?.issues?.nodes || [];
-                return issues.find(issue => issue.identifier === ticketId) || null;
-            }
+            const data = await graphql.execute(query, { id: ticketId });
+            return data.issue || null;
         } catch (error) {
             // If not found, return null instead of throwing
             if (error.message.includes('not found') || error.message.includes('Invalid identifier')) {
