@@ -1,0 +1,38 @@
+#!/bin/bash
+# =====================================================
+# Git Hook: commit-msg
+# =====================================================
+#
+# This hook validates commit messages.
+#
+# Plugins (in tools/claude-marketplace/):
+# 1. anspar-workflow - Validates REQ reference in commit message
+#
+# To install this hook:
+#   git config core.hooksPath .githooks
+#
+# To bypass this hook (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+# =====================================================
+# 1. Workflow Enforcement (Plugin)
+# =====================================================
+
+WORKFLOW_COMMITMSG_HOOK="tools/claude-marketplace/anspar-workflow/hooks/commit-msg"
+if [ -f "$WORKFLOW_COMMITMSG_HOOK" ]; then
+    "$WORKFLOW_COMMITMSG_HOOK" "$1" || exit 1
+else
+    echo "⚠️  WARNING: Workflow enforcement plugin not found: $WORKFLOW_COMMITMSG_HOOK"
+    echo "   Install: See tools/claude-marketplace/anspar-workflow/README.md"
+    echo ""
+fi
+
+# =====================================================
+# All Validations Passed
+# =====================================================
+
+exit 0

@@ -1,0 +1,71 @@
+#!/bin/bash
+# =====================================================
+# Git Hook: pre-commit
+# =====================================================
+#
+# Validates that this worktree has an active ticket in
+# .git/WORKFLOW_STATE before allowing commits.
+#
+# Called by: git commit (before commit-msg hook)
+#
+# Exit codes:
+#   0  Valid (active ticket exists)
+#   1  Invalid (no active ticket, blocks commit)
+#
+# To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+# =====================================================
+# Find Plugin Directory
+# =====================================================
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PLUGIN_DIR="$REPO_ROOT/tools/claude-marketplace/anspar-workflow"
+
+if [ ! -d "$PLUGIN_DIR" ]; then
+    echo "⚠️  WARNING: anspar-workflow plugin not found: $PLUGIN_DIR" >&2
+    echo "   Skipping active ticket validation" >&2
+    exit 0
+fi
+
+# =====================================================
+# Check for Active Ticket
+# =====================================================
+
+GET_TICKET_SCRIPT="$PLUGIN_DIR/scripts/get-active-ticket.sh"
+
+if [ ! -f "$GET_TICKET_SCRIPT" ]; then
+    echo "⚠️  WARNING: get-active-ticket.sh not found: $GET_TICKET_SCRIPT" >&2
+    echo "   Skipping active ticket validation" >&2
+    exit 0
+fi
+
+# Make sure script is executable
+chmod +x "$GET_TICKET_SCRIPT" 2>/dev/null || true
+
+# Check if active ticket exists
+if ! "$GET_TICKET_SCRIPT" --format=id &>/dev/null; then
+    echo "❌ ERROR: No active ticket claimed for this worktree" >&2
+    echo "" >&2
+    echo "Before committing, claim a ticket:" >&2
+    echo "  cd $PLUGIN_DIR" >&2
+    echo "  ./scripts/claim-ticket.sh <TICKET-ID>" >&2
+    echo "" >&2
+    echo "Example:" >&2
+    echo "  ./scripts/claim-ticket.sh CUR-262" >&2
+    echo "" >&2
+    echo "Or to bypass this check (NOT RECOMMENDED):" >&2
+    echo "  git commit --no-verify" >&2
+    echo "" >&2
+    exit 1
+fi
+
+# Active ticket found - allow commit to proceed
+TICKET_ID=$("$GET_TICKET_SCRIPT" --format=id)
+echo "✅ Active ticket: $TICKET_ID"
+
+exit 0
