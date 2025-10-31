@@ -27,11 +27,14 @@ This is a multi-sponsor clinical trial platform with strict requirement traceabi
 
 ## ⚡ Development Workflow
 
-1. **Claim ticket** (enforced by workflow plugin)
-2. **Assess if ADR needed** - Significant architectural decision? **ASK USER if they agree**
-3. **Create requirements** - Use requirements subagent for proper cascade (PRD→Ops→Dev)
-4. **Implement** - Add requirement references in file headers
-5. **Commit** - Include ticket and REQ references
+**⚠️ ALWAYS start with `git pull` to sync with remote and resolve conflicts early**
+
+1. **Sync with remote** - Run `git pull` on startup and before claiming tickets
+2. **Claim ticket** (enforced by workflow plugin)
+3. **Assess if ADR needed** - Significant architectural decision? **ASK USER if they agree**
+4. **Create requirements** - Use requirements subagent for proper cascade (PRD→Ops→Dev)
+5. **Implement** - Add requirement references in file headers
+6. **Commit** - Include ticket and REQ references
 
 ### Commit Format
 ```

@@ -84,15 +84,15 @@ Format support SHALL include:
 - Combined output: --format both (markdown + HTML)
 - Consistent data across all formats
 
-**Rationale**: Multiple formats serve different workflows. Markdown for documentation, HTML for browsing, CSV for analysis. Format consistency ensures data integrity.
+**Rationale**: Markdown for git diffs, HTML for browsing. These two formats cover primary use cases for small teams. CSV rarely used by small teams, adds complexity without significant value.
 
 **Acceptance Criteria**:
-- --format markdown generates traceability_matrix.md
-- --format html generates traceability_matrix.html
-- --format csv generates traceability_matrix.csv
+- --format markdown generates traceability_matrix.md (required)
+- --format html generates traceability_matrix.html (required)
+- --format csv generates traceability_matrix.csv (optional)
 - --format both generates .md and .html
 - All formats contain same requirement data
-- CSV includes: ID, Level, Status, Title, Implements, File
+- CSV (if implemented) includes: ID, Level, Status, Title, Implements, File
 
 ---
 

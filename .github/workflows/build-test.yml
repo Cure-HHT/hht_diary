@@ -56,7 +56,7 @@ jobs:
       - name: Validate Linear CLI scripts
         run: |
           echo "🔍 Validating Linear CLI scripts syntax..."
-          cd tools/claude-marketplace/anspar-linear-integration/scripts
+          cd tools/anspar-marketplace/plugins/anspar-linear-integration/scripts
           # Check all JavaScript files for syntax errors
           for file in *.js; do
             if [ -f "$file" ]; then
