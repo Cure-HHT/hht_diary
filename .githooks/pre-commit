@@ -28,6 +28,32 @@
 set -e
 
 # =====================================================
+# 0. Branch Protection - Block Commits to Main
+# =====================================================
+
+CURRENT_BRANCH=$(git branch --show-current)
+
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+    echo "❌ ERROR: Direct commits to '$CURRENT_BRANCH' branch are not allowed!"
+    echo ""
+    echo "This repository enforces a feature branch workflow."
+    echo "All changes must go through pull requests."
+    echo ""
+    echo "To fix this:"
+    echo "  1. Create a feature branch: git checkout -b feature/your-feature-name"
+    echo "  2. Commit your changes to the feature branch"
+    echo "  3. Push and create a pull request"
+    echo ""
+    echo "To move this commit to a feature branch:"
+    echo "  git branch feature/your-feature-name"
+    echo "  git reset --soft HEAD~1"
+    echo "  git checkout feature/your-feature-name"
+    echo "  git commit"
+    echo ""
+    exit 1
+fi
+
+# =====================================================
 # 1. Workflow Enforcement (Plugin)
 # =====================================================
 
