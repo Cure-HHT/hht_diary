@@ -1,0 +1,23 @@
+{
+  "name": "plugin-expert",
+  "version": "1.0.0",
+  "description": "Expert guidance and automation for creating Claude Code plugins with best practices",
+  "author": {
+    "name": "Claude Code Plugin Expert Team"
+  },
+  "keywords": [
+    "plugin",
+    "development",
+    "automation",
+    "validation",
+    "best-practices",
+    "code-generation",
+    "claude-code"
+  ],
+  "repository": "https://github.com/claude-code/plugin-expert",
+  "homepage": "https://docs.claude.com/en/docs/claude-code/plugins",
+  "license": "MIT",
+  "claudeCode": {
+    "minVersion": "1.0.0"
+  }
+}
