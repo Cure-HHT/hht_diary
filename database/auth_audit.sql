@@ -435,3 +435,4 @@ WHERE timestamp > now() - interval '24 hours';
 SELECT * FROM daily_login_stats
 WHERE login_date >= current_date - 7;
 */
+ 
