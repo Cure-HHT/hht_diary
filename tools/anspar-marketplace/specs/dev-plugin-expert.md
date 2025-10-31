@@ -18,7 +18,7 @@ Plugin Expert provides comprehensive guidance and automation for creating Claude
 
 ### REQ-d00110: Interactive Plugin Creation
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: High-Touch
 
 Plugin Expert SHALL provide guided interview workflow for creating new Claude Code plugins, gathering requirements through structured questions and generating complete plugin structure with all necessary components.
 
@@ -29,8 +29,11 @@ Implementation SHALL include:
 - Template application based on plugin type
 - Complete file structure generation
 - Initial plugin.json configuration
+- Session pause/resume: Save incomplete interviews for later completion
+- Quick mode: Skip interview with defaults for experienced users
+- Regeneration: Generate plugin from previously saved answers
 
-**Rationale**: Interactive creation reduces friction in plugin development. Structured questions ensure complete specification. Template-based generation ensures consistency and best practices.
+**Rationale**: Interactive creation reduces friction in plugin development. Structured questions ensure complete specification. Template-based generation ensures consistency. Pause/resume accommodates interruptions common in small teams. Quick mode enables fast iteration for experienced users.
 
 **Acceptance Criteria**:
 - Interview covers: name, description, components, dependencies
@@ -38,40 +41,39 @@ Implementation SHALL include:
 - Creates directory structure matching component selections
 - Applies appropriate templates for selected components
 - Generated plugins pass validation without modification
+- Incomplete sessions saved to .plugin-interview-state.json
+- Resume prompts: "Continue previous interview or start new?"
+- Quick mode flag: --quick generates plugin with sensible defaults
 
 ---
 
-### REQ-d00111: Plugin Validation and Scoring
+### REQ-d00111: Plugin Validation
 
-**Level**: Dev | **Implements**: d00101 | **Status**: Active
+**Level**: Dev | **Implements**: d00101 | **Status**: Required | **Maintenance**: Set-and-Forget
 
-Plugin Expert SHALL validate plugin structure, syntax, security, and performance, providing comprehensive scoring (0-100) with detailed feedback and actionable recommendations for improvement.
+Plugin Expert SHALL validate plugins using marketplace quality standards (REQ-d00101), providing detailed feedback on CRITICAL, REQUIRED, and RECOMMENDED issues.
 
-Validation SHALL check:
-- Plugin structure (required directories and files)
-- Syntax (valid JSON, proper markdown, script syntax)
-- Security (no hardcoded secrets, safe permissions)
-- Performance (efficient patterns, no blocking operations)
-- Documentation (README completeness, inline comments)
-- Naming conventions (kebab-case, PascalCase as appropriate)
+Validation SHALL use same criteria as REQ-d00101:
+- **CRITICAL**: Security issues, broken core functionality
+- **REQUIRED**: Missing documentation, naming violations, hardcoded paths
+- **RECOMMENDED**: Code quality, test coverage, error handling
 
-**Rationale**: Automated validation catches issues before distribution. Scoring provides objective quality metric. Detailed feedback enables improvement.
+**Rationale**: Single source of truth for validation rules. Avoids duplication between plugin-expert and marketplace. Clear severity levels guide fixing priorities for small teams.
 
 **Acceptance Criteria**:
-- Validation produces score 0-100
-- Score breakdown by category (structure, security, docs, etc.)
+- Validation reports CRITICAL, REQUIRED, RECOMMENDED levels
 - Each issue includes: severity, location, description, fix suggestion
-- Security scan detects common credential patterns
-- Permission validator checks file modes
-- Path validator detects hardcoded paths
+- Exit codes: 1 if CRITICAL failures, 0 otherwise
+- Summary shows: X CRITICAL, Y REQUIRED, Z RECOMMENDED
+- References REQ-d00101 for validation rule definitions
 
 ---
 
 ### REQ-d00112: Auto-Fix Capabilities
 
-**Level**: Dev | **Implements**: d00101 | **Status**: Active
+**Level**: Dev | **Implements**: d00101 | **Status**: Recommended | **Maintenance**: Periodic
 
-Plugin Expert SHALL automatically fix common plugin issues including file permissions, path corrections, missing required files, and documentation formatting, with user confirmation before applying fixes.
+Plugin Expert SHALL automatically fix common plugin issues with explicit safety mechanisms protecting against data loss.
 
 Auto-fix SHALL handle:
 - File permissions (755 for executables, 644 for data)
@@ -80,20 +82,28 @@ Auto-fix SHALL handle:
 - plugin.json schema corrections
 - Documentation formatting (consistent headings, structure)
 
-**Rationale**: Auto-fix reduces manual effort in plugin maintenance. Confirmation prevents unwanted changes. Common issues fixed consistently.
+Safety mechanisms (CRITICAL for small teams):
+- Non-destructive: Creates .bak files before any modification
+- Explicit consent: Lists ALL changes, requires y/n confirmation
+- Dry-run mode: --dry-run shows changes without applying
+- Rollback command: Provides undo command if changes unwanted
+- Atomic operations: All fixes applied together or none applied
+
+**Rationale**: Auto-fix reduces manual effort. Safety mechanisms prevent data loss critical for small teams without extensive backups. Dry-run enables review before commitment.
 
 **Acceptance Criteria**:
-- Auto-fix detects fixable vs non-fixable issues
-- User prompted before applying fixes
-- Backup created before modifications
-- Fix report shows: issue, action taken, result
-- Fixes improve validation score measurably
+- Backup files created with .bak extension before modification
+- User sees full change list before confirmation prompt
+- --dry-run flag shows changes without modifying files
+- On completion, shows: "To undo: plugin-expert rollback <plugin-dir>"
+- Rollback restores .bak files and deletes generated files
+- If any fix fails, all fixes rolled back (transaction semantics)
 
 ---
 
 ### REQ-d00113: Template Library
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Recommended | **Maintenance**: Periodic
 
 Plugin Expert SHALL provide template library for common plugin patterns including workflow automation, API integration, validation enforcement, and documentation generation, accelerating plugin development.
 
@@ -117,7 +127,7 @@ Template library SHALL include:
 
 ### REQ-d00114: Documentation Generation
 
-**Level**: Dev | **Implements**: d00102 | **Status**: Active
+**Level**: Dev | **Implements**: d00102 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 Plugin Expert SHALL generate comprehensive plugin documentation including README.md with standard sections, CHANGELOG.md with version history, and inline code documentation following language conventions.
 
@@ -141,26 +151,30 @@ Documentation generation SHALL produce:
 
 ### REQ-d00115: Test Suite Creation
 
-**Level**: Dev | **Status**: Active
+**Level**: Dev | **Status**: Recommended | **Maintenance**: Set-and-Forget
 
-Plugin Expert SHALL generate test suite scaffolding for plugin validation including structure tests, component tests, integration tests, and test runner scripts.
+Plugin Expert SHALL generate minimum viable test suite focusing on structure and basic functionality, with optional complex tests for API-heavy plugins.
 
-Test suite SHALL include:
-- Structure tests: validate plugin.json, directory layout
-- Component tests: verify agents/skills/commands load correctly
-- Integration tests: test hooks execute, scripts run
-- Test runner: bash or npm script to execute all tests
-- Test documentation: how to run tests, interpret results
+Minimum viable test suite (always generated):
+- Structure test: plugin.json is valid JSON and schema-compliant
+- Reference test: All files referenced in plugin.json exist
+- Permission test: Scripts are executable (755), data files are not (644)
+- Hook syntax test: Hooks have valid shebang and pass bash -n validation
 
-**Rationale**: Automated testing catches regressions. Test scaffolding reduces testing friction. Consistent test structure across plugins.
+Optional tests (generated for complex plugins):
+- Integration tests: For plugins with API interactions
+- End-to-end tests: For workflow plugins with multi-step operations
+- Performance tests: For plugins processing large datasets
+
+**Rationale**: Minimum viable tests catch 80% of issues with 20% of effort (Pareto principle). Small teams benefit from quick, reliable tests over comprehensive coverage. Optional tests add value for complex plugins without burdening simple plugins.
 
 **Acceptance Criteria**:
-- Test suite validates plugin.json schema
-- Tests verify all referenced files exist
-- Integration tests run hooks without errors
-- Test runner exits 0 on success, non-zero on failure
-- Test output shows pass/fail for each test
-- Generated tests executable without modification
+- All plugins get 4 minimum viable tests
+- Test runner: npm test or ./run-tests.sh
+- Test output format: TAP (Test Anything Protocol) or simple pass/fail
+- Test runner exits 0 only if all tests pass
+- Optional tests generated if plugin has: API clients, multi-step workflows, data processing
+- README includes: "Running Tests" section with examples
 
 ---
 

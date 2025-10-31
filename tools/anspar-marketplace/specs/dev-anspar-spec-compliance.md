@@ -19,7 +19,7 @@ ANSPAR Spec Compliance enforces spec/ directory compliance through automated val
 
 ### REQ-d00140: File Naming Convention Enforcement
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL validate spec/ files follow hierarchical naming pattern {audience}-{topic}(-{subtopic}).md with valid audience prefixes (prd-, ops-, dev-), rejecting files violating the naming convention.
 
@@ -45,22 +45,28 @@ Validation SHALL include:
 
 ### REQ-d00141: Audience Scope Rule Enforcement
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
-The plugin SHALL enforce audience scope rules preventing code examples in PRD files, ensuring product requirements remain technology-agnostic and suitable for business review.
+The plugin SHALL enforce audience scope rules preventing code examples in PRD files, ensuring product requirements remain technology-agnostic and suitable for business review, with draft exemption for early iteration.
 
 Scope enforcement SHALL include:
 - PRD file code detection: no code blocks, no SQL keywords, no function calls
+- Draft exemption: Files with "Status: Draft" may contain code for early iteration
+- Warning mode: Draft violations warn but don't block
+- Strict mode: Active requirements strictly enforced
 - Code block detection: ````language markers (sql, bash, javascript, etc.)
 - Inline code detection: SQL keywords (SELECT, INSERT, CREATE TABLE)
 - Function call detection: someFunction(), obj.method()
 - Clear violations reported with line numbers
 - Ops/dev files exempted from code restrictions
 
-**Rationale**: PRD files reviewed by non-technical stakeholders. Code examples obscure business requirements. Technology-agnostic PRDs enable multiple implementation approaches.
+**Rationale**: PRD files reviewed by non-technical stakeholders. Code examples obscure business requirements. Technology-agnostic PRDs enable multiple implementation approaches. Draft exemption provides small teams flexibility during early spec drafting.
 
 **Acceptance Criteria**:
 - Scans prd-*.md files only
+- Checks file header for "Status: Draft" marker
+- Draft files with code violations show warnings, not errors
+- Active/non-draft files with code violations block commit
 - Detects code blocks with language tags
 - Detects SQL keywords in prose
 - Detects function call patterns
@@ -71,7 +77,7 @@ Scope enforcement SHALL include:
 
 ### REQ-d00142: Requirement Format Validation
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL validate requirement block format ensuring proper headers, unique IDs, valid metadata fields, and consistent structure across all spec/ files.
 
@@ -97,9 +103,9 @@ Format validation SHALL include:
 
 ### REQ-d00143: AI-Powered Compliance Analysis
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Optional | **Maintenance**: High-Touch
 
-The plugin SHALL provide AI agent for spec compliance analysis offering context-aware recommendations, detecting subtle scope violations, and suggesting improvements beyond automated validation rules.
+The plugin MAY provide AI agent for manual compliance review when automated rules insufficient, offering context-aware recommendations and detecting subtle scope violations.
 
 AI agent SHALL provide:
 - Context-aware scope analysis
@@ -109,7 +115,7 @@ AI agent SHALL provide:
 - Integration with Claude Code via agent.md
 - Manual invocation for detailed analysis
 
-**Rationale**: AI analysis detects nuanced issues beyond regex patterns. Context awareness enables intelligent recommendations. Manual invocation provides detailed review option.
+**Rationale**: AI analysis detects nuanced issues beyond regex patterns. Context awareness enables intelligent recommendations. Manual invocation provides detailed review option. For small teams: Automated validation (REQ-d00140-142) is sufficient for core workflow. AI analysis provides value for complex specs but is not required, and can be expensive (time/tokens).
 
 **Acceptance Criteria**:
 - agent.md defines spec-compliance-enforcer agent
@@ -123,7 +129,7 @@ AI agent SHALL provide:
 
 ### REQ-d00144: PostToolUse Hook Integration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL integrate with Claude Code PostToolUse hook triggering validation after Write or Edit operations on spec/ files, providing real-time feedback during documentation editing.
 
@@ -150,27 +156,32 @@ Hook integration SHALL include:
 
 ### REQ-d00145: Git Pre-Commit Hook Integration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
-The plugin SHALL provide pre-commit hook enforcing spec compliance before commits, blocking commits with spec violations and ensuring repository maintains documentation standards.
+The plugin SHALL provide pre-commit hook enforcing spec compliance before commits, blocking commits with spec violations and ensuring repository maintains documentation standards, with WIP bypass for work-in-progress.
 
 Pre-commit integration SHALL include:
 - pre-commit-spec-compliance executable hook
 - Detection of staged spec/*.md files
 - Validation execution only on spec file changes
 - Commit blocking on validation failures (exit 1)
+- WIP bypass: Commit message starting with "WIP:" skips validation (commits not pushed)
+- Post-hoc fix: WIP commits flagged for cleanup before PR creation
 - Clear error messages with fix instructions
 - Integration instructions in README.md
 
-**Rationale**: Pre-commit enforcement prevents invalid specs from entering git history. Early validation reduces rework. Clear errors guide compliance.
+**Rationale**: Pre-commit enforcement prevents invalid specs from entering git history. Early validation reduces rework. Clear errors guide compliance. WIP bypass provides small teams ability to checkpoint work-in-progress without perfect compliance, with post-hoc cleanup requirement.
 
 **Acceptance Criteria**:
 - Hook detects staged spec/*.md files
-- Runs validation on staged files only
-- Exits 1 to block commit on violations
-- Exits 0 to allow commit when valid
+- Checks commit message for "WIP:" prefix
+- WIP commits skip validation entirely
+- Non-WIP commits run full validation
+- Exits 1 to block commit on violations (non-WIP only)
+- Exits 0 to allow commit when valid or WIP
 - Error messages show: file, line, issue, fix
-- README documents installation in .githooks/
+- WIP commits logged for later review
+- README documents installation in .githooks/ and WIP bypass
 
 ---
 

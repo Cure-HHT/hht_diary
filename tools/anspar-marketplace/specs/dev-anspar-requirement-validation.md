@@ -19,7 +19,7 @@ ANSPAR Requirement Validation validates requirement format, uniqueness, and link
 
 ### REQ-d00150: Requirement Format Validation
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL validate requirement ID format matching pattern REQ-{type}{number} where type is p/o/d and number is 5 digits, ensuring consistent requirement identification across all spec/ files.
 
@@ -45,7 +45,7 @@ Format validation SHALL include:
 
 ### REQ-d00151: Requirement Uniqueness Checking
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL detect duplicate requirement IDs across all spec/ files, preventing ID conflicts and ensuring each requirement has unique identifier.
 
@@ -71,9 +71,9 @@ Uniqueness checking SHALL include:
 
 ### REQ-d00152: Parent Link Validation
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
-The plugin SHALL validate all "Implements" references point to existing parent requirements, ensuring requirement hierarchy integrity and preventing broken references.
+The plugin SHALL validate all "Implements" references point to existing parent requirements with helpful error messages suggesting corrections, ensuring requirement hierarchy integrity and preventing broken references.
 
 Link validation SHALL include:
 - Parse "Implements" field from requirements
@@ -81,9 +81,11 @@ Link validation SHALL include:
 - Detect circular references (A implements B, B implements A)
 - Warn about unusual hierarchies (PRD implements PRD)
 - Report missing parent requirements
+- Missing parent warnings include: "Did you mean REQ-o00017?" suggestions
+- Typo detection: If REQ-o00017 exists, suggest instead of REQ-o00018 missing
 - Build complete requirement dependency graph
 
-**Rationale**: Valid links maintain requirement traceability. Broken references prevent impact analysis. Circular detection prevents infinite loops.
+**Rationale**: Valid links maintain requirement traceability. Broken references prevent impact analysis. Circular detection prevents infinite loops. Helpful error messages with suggestions reduce spec fixing time for small teams.
 
 **Acceptance Criteria**:
 - Parses "Implements" field from requirement metadata
@@ -91,13 +93,15 @@ Link validation SHALL include:
 - Detects circular implement chains
 - Warns when PRD implements PRD (unusual)
 - Reports missing parent with: child REQ, missing parent REQ
+- Missing parent errors include "Did you mean...?" suggestions for similar IDs
+- Typo detection compares missing ID to existing IDs (edit distance < 3)
 - Builds dependency graph for analysis
 
 ---
 
 ### REQ-d00153: Level Consistency Validation
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL validate requirement ID prefix matches stated Level field (p→PRD, o→Ops, d→Dev), ensuring consistency between ID and metadata.
 
@@ -123,7 +127,7 @@ Consistency validation SHALL include:
 
 ### REQ-d00154: Thin Wrapper Architecture
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL implement thin wrapper pattern referencing shared validation script at tools/requirements/validate_requirements.py, enabling both git hooks and CI/CD to use identical validation logic.
 
@@ -149,7 +153,7 @@ Wrapper architecture SHALL include:
 
 ### REQ-d00155: Git Hook Integration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL integrate with git pre-commit hook blocking commits containing invalid requirements, with Claude Code PostToolUse hook providing real-time validation feedback.
 
@@ -171,6 +175,31 @@ Hook integration SHALL include:
 - PostToolUse hook in hooks.json
 - PostToolUse non-blocking (warnings only)
 - README documents hook installation
+
+---
+
+### REQ-d00156: Requirement Coverage Reporting
+
+**Level**: Dev | **Implements**: d00100 | **Status**: Recommended | **Maintenance**: Set-and-Forget
+
+The plugin SHOULD generate coverage report showing requirement distribution, implementation status, and hierarchy completeness, providing small teams with visibility into spec completeness.
+
+Coverage report SHALL show:
+- Total requirements by level (PRD/Ops/Dev)
+- Requirements with implementations vs specification-only
+- Requirements without children (leaf requirements)
+- Requirements without parents (top-level requirements)
+- Report format: Simple text summary, optionally JSON for tooling
+
+**Rationale**: Small team benefits from visibility into requirement coverage. Quick report helps identify gaps. Simple text format enables human review. Optional JSON enables tooling integration.
+
+**Acceptance Criteria**:
+- Report generated via --coverage flag
+- Shows counts: total, implemented, orphaned
+- Warns if > 30% requirements have no implementations
+- Text format: human-readable summary
+- JSON format: machine-parseable (optional)
+- Coverage includes: PRD, Ops, Dev level breakdowns
 
 ---
 

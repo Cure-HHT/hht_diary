@@ -19,7 +19,7 @@ ANSPAR Traceability Matrix auto-regenerates requirement traceability matrices on
 
 ### REQ-d00160: Automatic Matrix Regeneration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL automatically regenerate traceability matrices when spec/ files change, ensuring matrices remain synchronized with requirements without manual intervention.
 
@@ -45,7 +45,7 @@ Auto-regeneration SHALL include:
 
 ### REQ-d00161: Hierarchical Requirement Visualization
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL produce hierarchical tree visualization showing parent-child requirement relationships via "Implements" links, enabling visual requirement dependency analysis.
 
@@ -72,33 +72,33 @@ Hierarchy visualization SHALL include:
 
 ### REQ-d00162: Multi-Format Output
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
-The plugin SHALL generate traceability matrices in multiple formats (markdown, HTML, CSV) optimized for different use cases: documentation, interactive browsing, and data analysis.
+The plugin SHALL generate traceability matrices in markdown (required) and HTML (required) formats optimized for different use cases. CSV format is optional.
 
 Format support SHALL include:
-- Markdown: documentation embedding, git diffs, plain text viewing
-- HTML: interactive browsing with expand/collapse, color coding
-- CSV: spreadsheet import, data analysis, external tool integration
+- Markdown: documentation embedding, git diffs, plain text viewing (required)
+- HTML: interactive browsing with expand/collapse, color coding (required)
+- CSV: spreadsheet import, data analysis, external tool integration (optional)
 - Format selection via --format argument
 - Combined output: --format both (markdown + HTML)
 - Consistent data across all formats
 
-**Rationale**: Multiple formats serve different workflows. Markdown for documentation, HTML for browsing, CSV for analysis. Format consistency ensures data integrity.
+**Rationale**: Markdown for git diffs, HTML for browsing. These two formats cover primary use cases for small teams. CSV rarely used by small teams, adds complexity without significant value.
 
 **Acceptance Criteria**:
-- --format markdown generates traceability_matrix.md
-- --format html generates traceability_matrix.html
-- --format csv generates traceability_matrix.csv
+- --format markdown generates traceability_matrix.md (required)
+- --format html generates traceability_matrix.html (required)
+- --format csv generates traceability_matrix.csv (optional)
 - --format both generates .md and .html
 - All formats contain same requirement data
-- CSV includes: ID, Level, Status, Title, Implements, File
+- CSV (if implemented) includes: ID, Level, Status, Title, Implements, File
 
 ---
 
 ### REQ-d00163: Interactive HTML Features
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL generate interactive HTML with expand/collapse controls, color coding by requirement level, status badges, and summary statistics enabling efficient requirement browsing.
 
@@ -126,33 +126,17 @@ HTML features SHALL include:
 
 ### REQ-d00164: Implementation Tracking
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Future | **Maintenance**: Periodic
 
-The plugin SHALL track requirement implementation by scanning code files for IMPLEMENTS REQUIREMENTS headers, showing which requirements have code implementations and which are specification-only.
+Implementation tracking MAY be added in future version. Currently, requirement-validation plugin (REQ-d00150) provides sufficient coverage via code header validation.
 
-Implementation tracking SHALL include:
-- Scan source code for "IMPLEMENTS REQUIREMENTS" comments
-- Parse REQ IDs from code headers
-- Link requirements to implementing files
-- Show implementation status in matrix
-- Report requirements without implementations (not yet coded)
-- Report implementations without requirements (orphaned code)
-
-**Rationale**: Implementation tracking shows requirement completion. Links from requirements to code enable impact analysis. Orphan detection ensures code traceability.
-
-**Acceptance Criteria**:
-- Scans configured source directories for implementation headers
-- Parses REQ IDs from code comments
-- Matrix shows: requirement implemented in [file:line]
-- Reports requirements with no implementations
-- Reports code referencing nonexistent requirements
-- Implementation tracking included in HTML and CSV
+**Rationale**: Avoid duplicate effort between requirement-validation (REQ-d00150) and traceability-matrix. If implemented, should share logic with requirement-validation. Small teams should not maintain duplicate implementation tracking systems.
 
 ---
 
 ### REQ-d00165: Thin Wrapper Architecture
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL implement thin wrapper pattern referencing shared generation script at tools/requirements/generate_traceability.py, enabling both git hooks and CI/CD to use identical generation logic.
 
@@ -178,7 +162,7 @@ Wrapper architecture SHALL include:
 
 ### REQ-d00166: Git Hook Integration
 
-**Level**: Dev | **Implements**: d00100 | **Status**: Active
+**Level**: Dev | **Implements**: d00100 | **Status**: Required | **Maintenance**: Set-and-Forget
 
 The plugin SHALL integrate with git pre-commit hook regenerating matrices when spec/ files change, auto-staging generated matrices for commit with updated requirements.
 
