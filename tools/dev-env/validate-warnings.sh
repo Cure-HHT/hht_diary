@@ -2,7 +2,7 @@
 # Validate Docker environment warnings against expected baseline
 #
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00032: Development Tool Specifications
+#   REQ-d10010: Development Tool Specifications
 #
 # Usage: ./validate-warnings.sh [--role dev|qa|ops]
 

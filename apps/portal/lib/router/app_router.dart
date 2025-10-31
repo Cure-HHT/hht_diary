@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-p00024: Portal User Roles and Permissions
-//   REQ-d00028: Portal Frontend Framework
+//   REQ-p10004: Portal User Roles and Permissions
+//   REQ-d10003: Portal Frontend Framework
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

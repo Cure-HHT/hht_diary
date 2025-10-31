@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Status**: Active
-**Requirements**: REQ-d00027 through REQ-d00036
+**Requirements**: REQ-d10001 through REQ-d10018
 
 This directory contains the Docker-based development environment for the Clinical Diary project, providing role-separated containerized workspaces that enforce security boundaries and maintain dev/prod parity.
 

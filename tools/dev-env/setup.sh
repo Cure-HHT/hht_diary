@@ -1,7 +1,7 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00029: Cross-Platform Development Support
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10004: Cross-Platform Development Support
 #
 # Clinical Diary Development Environment Setup
 # Cross-platform setup script for Docker-based development environments

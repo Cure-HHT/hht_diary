@@ -1,7 +1,7 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00030: CI/CD Environment Parity
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10006: CI/CD Environment Parity
 #
 # Test Docker registry caching workflow locally
 # Simulates CI build-push-build pattern with local registry

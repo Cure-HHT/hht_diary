@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-p00026: Patient Monitoring Dashboard
+//   REQ-p10008: Patient Monitoring Dashboard
 //   REQ-p00027: Questionnaire Management
 //   REQ-p00028: Token Revocation and Access Control
 

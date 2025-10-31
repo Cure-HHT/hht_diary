@@ -289,9 +289,9 @@ async function main() {
     }
 
     // Skip requirements that already have tickets
-    // REQ-p00001 has CUR-134, REQ-p00015 has CUR-92, REQ-p00011 has CUR-82, REQ-p00020 has CUR-145
+    // REQ-p00001 has CUR-134, REQ-p00015 has CUR-92, REQ-p00011 has CUR-82, REQ-p10000 has CUR-145
     // REQ-o00003 has CUR-188, REQ-o00004 has CUR-127, REQ-o00009 has CUR-189, REQ-o00010 has CUR-84
-    // REQ-d00006 has CUR-186, REQ-d00010 has CUR-109, REQ-d00013 has CUR-83, REQ-d00027 has CUR-80/81/19
+    // REQ-d00006 has CUR-186, REQ-d00010 has CUR-109, REQ-d00013 has CUR-83, REQ-d10000 has CUR-80/81/19
     requirements = requirements.filter(r =>
         r.id !== 'p00001' &&
         r.id !== 'p00015' &&

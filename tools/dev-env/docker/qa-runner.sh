@@ -1,8 +1,8 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00028: Role-Based Environment Separation
-#   REQ-d00031: Automated QA Testing
-#   REQ-d00033: FDA Validation Documentation
+#   REQ-d10002: Role-Based Environment Separation
+#   REQ-d10008: Automated QA Testing
+#   REQ-d10012: FDA Validation Documentation
 #
 # Clinical Diary QA Test Runner
 # Comprehensive test suite runner for local development and CI/CD

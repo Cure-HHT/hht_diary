@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00032: Development Tool Specifications
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10010: Development Tool Specifications
 #
 # Base Docker Image for Clinical Diary Development Environments
 # Provides common tools used across all roles (dev, qa, ops, mgmt)
@@ -224,4 +224,4 @@ CMD ["/bin/bash", "-l"]
 # Labels for container metadata
 LABEL com.clinical-diary.role="base"
 LABEL com.clinical-diary.version="1.0.0"
-LABEL com.clinical-diary.requirement="REQ-d00027,REQ-d00032"
+LABEL com.clinical-diary.requirement="REQ-d10001,REQ-d10010"

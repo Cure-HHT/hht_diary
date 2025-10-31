@@ -5,8 +5,8 @@
 --
 -- IMPLEMENTS REQUIREMENTS:
 --   REQ-p00018: Multi-Site Support Per Sponsor
---   REQ-p00024: Auditor Compliance Access
---   REQ-p00025: Administrator Break-Glass Access
+--   REQ-p10005: Auditor Compliance Access
+--   REQ-p10007: Administrator Break-Glass Access
 --   REQ-d00011: Multi-Site Schema Implementation
 --   REQ-d00024: Auditor Compliance Access RLS Implementation
 --   REQ-d00025: Administrator Break-Glass RLS Implementation

@@ -1,8 +1,8 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00028: Role-Based Environment Separation
-#   REQ-d00030: CI/CD Environment Parity
-#   REQ-d00036: Shared Workspace and File Exchange
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10002: Role-Based Environment Separation
+#   REQ-d10006: CI/CD Environment Parity
+#   REQ-d10018: Shared Workspace and File Exchange
 #
 # Clinical Diary Development Environment
 # Docker Compose configuration for role-based containerized development

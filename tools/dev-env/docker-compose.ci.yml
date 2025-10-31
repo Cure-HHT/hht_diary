@@ -1,6 +1,6 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00030: CI/CD Environment Parity
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10006: CI/CD Environment Parity
 #
 # Docker Compose CI Override
 # Reduces resource limits for GitHub Actions (2 CPU limit)

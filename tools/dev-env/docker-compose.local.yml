@@ -1,6 +1,6 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00030: CI/CD Environment Parity
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10006: CI/CD Environment Parity
 #
 # Docker Compose Local Registry Override
 # Use local registry (localhost:5000) instead of GHCR for testing

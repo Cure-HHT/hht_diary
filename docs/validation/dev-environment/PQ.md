@@ -49,7 +49,7 @@ This validation supports compliance with:
 
 ### 3.1 Complete Development Lifecycle
 
-**Requirement**: REQ-d00027, REQ-d00028, REQ-d00032
+**Requirement**: REQ-d10001, REQ-d10002, REQ-d10010
 
 **Objective**: Simulate a complete feature development lifecycle from requirement to deployment.
 
@@ -232,7 +232,7 @@ echo "test" > /workspace/src/should-fail.txt 2>&1 | grep -i "denied\|permission\
 
 ### 3.2 Concurrent Multi-Role Operations
 
-**Requirement**: REQ-d00028 - Role-Based Environment Separation
+**Requirement**: REQ-d10002 - Role-Based Environment Separation
 
 **Objective**: Verify multiple roles can work simultaneously without interference.
 
@@ -293,7 +293,7 @@ docker compose exec mgmt bash -c "
 
 ### 3.3 Extended Stability Testing
 
-**Requirement**: REQ-d00027 - Containerized Development Environments
+**Requirement**: REQ-d10001 - Containerized Development Environments
 
 **Objective**: Verify system stability over extended period.
 
@@ -370,7 +370,7 @@ docker compose exec dev bash -c "cd /workspace/repos/clinical_diary_test && git 
 
 ### 3.4 CI/CD Integration Performance
 
-**Requirement**: REQ-d00030 - CI/CD Integration
+**Requirement**: REQ-d10006 - CI/CD Integration
 
 **Objective**: Verify CI/CD workflows perform correctly in automated environment.
 
@@ -414,7 +414,7 @@ gh run watch
 
 ### 3.5 Cross-Platform Consistency
 
-**Requirement**: REQ-d00029 - Cross-Platform Development Support
+**Requirement**: REQ-d10004 - Cross-Platform Development Support
 
 **Objective**: Verify environment works consistently across different platforms.
 
@@ -464,7 +464,7 @@ docker compose exec dev flutter doctor -v
 
 ### 3.6 Resource Usage Under Load
 
-**Requirement**: REQ-d00027 - Containerized Development Environments
+**Requirement**: REQ-d10001 - Containerized Development Environments
 
 **Objective**: Verify resource usage remains acceptable under typical load.
 
@@ -533,7 +533,7 @@ cat /tmp/resource-baseline.txt
 
 ### 3.7 Team Collaboration Workflow
 
-**Requirement**: REQ-d00036 - Shared Workspace Configuration
+**Requirement**: REQ-d10018 - Shared Workspace Configuration
 
 **Objective**: Simulate real team collaboration using shared resources.
 

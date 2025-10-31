@@ -1,6 +1,6 @@
 # Doppler Secrets Management Setup
 
-**Implements**: REQ-d00031 (Secrets Management via Doppler)
+**Implements**: REQ-d10008 (Secrets Management via Doppler)
 
 This guide covers setting up Doppler for secure secrets management across development environments.
 
@@ -388,5 +388,5 @@ docker-compose --env-file .env up
 
 **See Also**:
 - Doppler Documentation: https://docs.doppler.com/
-- REQ-d00031: Secrets Management via Doppler
+- REQ-d10008: Secrets Management via Doppler
 - docs/adr/ADR-006-docker-dev-environments.md

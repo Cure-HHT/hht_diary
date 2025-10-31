@@ -1,6 +1,6 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00028: Role-Based Environment Separation
+#   REQ-d10002: Role-Based Environment Separation
 #
 # Health check for ops (DevOps) environment
 # Validates infrastructure and deployment tools

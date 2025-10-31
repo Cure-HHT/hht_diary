@@ -382,7 +382,7 @@ grep -r "IMPLEMENTS REQUIREMENTS" tools/dev-env/docker/
 
 **Acceptance Criteria**:
 - [ ] All Dockerfiles have requirement headers
-- [ ] Requirements reference REQ-d00027 through REQ-d00036
+- [ ] Requirements reference REQ-d10001 through REQ-d10018
 - [ ] Requirements exist in spec/dev-environment.md
 
 ---

@@ -198,7 +198,7 @@ Implementation SHALL include:
 
 ---
 
-### REQ-d00027: Development Environment and Tooling Setup
+### REQ-d10000: Development Environment and Tooling Setup
 
 **Level**: Dev | **Implements**: o00017 | **Status**: Active
 
@@ -244,7 +244,7 @@ python3 tools/requirements/validate_requirements.py
 
 # Example output on error:
 # ❌ ERROR: Duplicate requirement ID
-#   REQ-p00020 found in:
+#   REQ-p10000 found in:
 #     - spec/prd-requirements.md:45
 #     - spec/prd-app.md:123
 ```

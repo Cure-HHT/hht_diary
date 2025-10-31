@@ -112,8 +112,8 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
 
    Requirements:
    - REQ-p00019: Patient Data Isolation
-   - REQ-p00020: Investigator Site-Scoped Access
-   - REQ-p00021: Investigator Annotation Restrictions
+   - REQ-p10000: Investigator Site-Scoped Access
+   - REQ-p10002: Investigator Annotation Restrictions
    ```
 
 2. **Move to "In Progress"**: Extension only shows in-progress tickets

@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00009: Sponsor-Specific Web Portals
-//   REQ-p00024: Portal User Roles and Permissions
-//   REQ-d00028: Portal Frontend Framework
-//   REQ-d00029: Portal UI Design System
+//   REQ-p10004: Portal User Roles and Permissions
+//   REQ-d10003: Portal Frontend Framework
+//   REQ-d10005: Portal UI Design System
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

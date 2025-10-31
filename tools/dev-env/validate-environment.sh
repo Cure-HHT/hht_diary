@@ -1,8 +1,8 @@
 #!/bin/bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00027: Containerized Development Environments
-#   REQ-d00028: Role-Based Environment Separation
-#   REQ-d00033: FDA Validation Documentation
+#   REQ-d10001: Containerized Development Environments
+#   REQ-d10002: Role-Based Environment Separation
+#   REQ-d10012: FDA Validation Documentation
 #
 # Clinical Diary Development Environment Validation
 # Automated validation script combining IQ, OQ, and PQ tests

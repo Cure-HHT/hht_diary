@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00028: Role-Based Environment Separation
-#   REQ-d00032: Development Tool Specifications
-#   REQ-d00034: Automated QA Workflow
+#   REQ-d10002: Role-Based Environment Separation
+#   REQ-d10010: Development Tool Specifications
+#   REQ-d10014: Automated QA Workflow
 #
 # QA Environment Dockerfile
 # Extends dev with: Playwright, testing tools, report generation
@@ -80,4 +80,4 @@ CMD ["/bin/bash", "-l"]
 # Labels
 LABEL com.clinical-diary.role="qa"
 LABEL com.clinical-diary.tools="playwright,flutter,pandoc,testing"
-LABEL com.clinical-diary.requirement="REQ-d00028,REQ-d00032,REQ-d00034"
+LABEL com.clinical-diary.requirement="REQ-d10002,REQ-d10010,REQ-d10014"

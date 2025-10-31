@@ -48,7 +48,7 @@ This validation supports compliance with:
 
 ### 3.1 Role-Based Access Control
 
-**Requirement**: REQ-d00028 - Role-Based Environment Separation
+**Requirement**: REQ-d10002 - Role-Based Environment Separation
 
 #### Test OQ-3.1.1: Dev Role Operations
 
@@ -173,7 +173,7 @@ which view-qa-reports.sh
 
 ### 3.2 Development Workflows
 
-**Requirement**: REQ-d00032 - Development Tool Specifications
+**Requirement**: REQ-d10010 - Development Tool Specifications
 
 #### Test OQ-3.2.1: Flutter Development Workflow
 
@@ -268,7 +268,7 @@ rm -rf test-node-app
 
 ### 3.3 QA Automation Workflows
 
-**Requirement**: REQ-d00031 - Automated QA Testing
+**Requirement**: REQ-d10008 - Automated QA Testing
 
 #### Test OQ-3.3.1: QA Runner Script Execution
 
@@ -344,7 +344,7 @@ rm -rf playwright-test
 
 ### 3.4 CI/CD Integration
 
-**Requirement**: REQ-d00030 - CI/CD Integration
+**Requirement**: REQ-d10006 - CI/CD Integration
 
 #### Test OQ-3.4.1: GitHub Actions Workflow Validation
 
@@ -387,7 +387,7 @@ docker rmi clinical-diary-base:ci-test clinical-diary-dev:ci-test clinical-diary
 
 ### 3.5 Data Persistence and Sharing
 
-**Requirement**: REQ-d00036 - Shared Workspace Configuration
+**Requirement**: REQ-d10018 - Shared Workspace Configuration
 
 #### Test OQ-3.5.1: Named Volume Persistence
 
@@ -476,7 +476,7 @@ rm host-test.txt container-test.txt
 
 ### 3.6 Container Lifecycle Management
 
-**Requirement**: REQ-d00027 - Containerized Development Environments
+**Requirement**: REQ-d10001 - Containerized Development Environments
 
 #### Test OQ-3.6.1: Start/Stop Operations
 
@@ -542,7 +542,7 @@ docker compose down
 
 ### 3.7 Secrets Management Integration
 
-**Requirement**: REQ-d00035 - Security and Compliance
+**Requirement**: REQ-d10016 - Security and Compliance
 
 #### Test OQ-3.7.1: Doppler CLI Availability
 
@@ -590,7 +590,7 @@ doppler run -- printenv | grep DOPPLER
 
 ## 4. VS Code Dev Containers Integration
 
-**Requirement**: REQ-d00029 - Cross-Platform Development Support
+**Requirement**: REQ-d10004 - Cross-Platform Development Support
 
 ### Test OQ-4.1: Dev Container Launch
 

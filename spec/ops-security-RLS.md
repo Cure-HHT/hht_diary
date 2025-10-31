@@ -46,7 +46,7 @@ Policy deployment SHALL include:
 
 ### REQ-o00021: Investigator Site-Scoped Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00020 | **Status**: Active
+**Level**: Ops | **Implements**: p10001 | **Status**: Active
 
 PostgreSQL Row-Level Security policies SHALL be deployed to restrict investigator access to clinical data at their assigned sites only, with site assignments managed in database tables.
 
@@ -58,7 +58,7 @@ Policy deployment SHALL include:
 - Single active site context enforced through application session management
 - Migration scripts creating assignment tables and policies
 
-**Rationale**: Implements site-scoped access (p00020) at the database level. Multi-site clinical trials require investigators to access only their assigned sites to maintain data integrity and regulatory compliance.
+**Rationale**: Implements site-scoped access (p10001) at the database level. Multi-site clinical trials require investigators to access only their assigned sites to maintain data integrity and regulatory compliance.
 
 **Acceptance Criteria**:
 - RLS policies enforce site-level filtering on clinical data tables
@@ -71,7 +71,7 @@ Policy deployment SHALL include:
 
 ### REQ-o00022: Investigator Annotation Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00021 | **Status**: Active
+**Level**: Ops | **Implements**: p10003 | **Status**: Active
 
 PostgreSQL Row-Level Security policies SHALL be deployed to allow investigators to create annotations while preventing modification of patient-entered clinical data.
 
@@ -83,7 +83,7 @@ Policy deployment SHALL include:
 - Annotation schema includes investigator identity and timestamp columns
 - Foreign key constraints linking annotations to clinical records
 
-**Rationale**: Implements annotation restrictions (p00021) ensuring investigators can add clinical notes without altering patient-reported data. Database-level enforcement prevents accidental or intentional data modification.
+**Rationale**: Implements annotation restrictions (p10003) ensuring investigators can add clinical notes without altering patient-reported data. Database-level enforcement prevents accidental or intentional data modification.
 
 **Acceptance Criteria**:
 - Investigators can create annotations at assigned sites
@@ -146,7 +146,7 @@ Policy deployment SHALL include:
 
 ### REQ-o00025: Auditor Compliance Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00024 | **Status**: Active
+**Level**: Ops | **Implements**: p10005 | **Status**: Active
 
 PostgreSQL Row-Level Security policies SHALL be deployed to provide auditors read-only access to all data including audit logs, with data export actions logged and justified.
 
@@ -158,7 +158,7 @@ Policy deployment SHALL include:
 - Policies covering clinical data, audit logs, and system tables
 - Export activity tracked in separate audit table
 
-**Rationale**: Implements auditor compliance access (p00024) required for FDA 21 CFR Part 11. Auditors need global read access for compliance monitoring but must not modify any records.
+**Rationale**: Implements auditor compliance access (p10005) required for FDA 21 CFR Part 11. Auditors need global read access for compliance monitoring but must not modify any records.
 
 **Acceptance Criteria**:
 - Auditors can SELECT from all tables across all sites
@@ -171,7 +171,7 @@ Policy deployment SHALL include:
 
 ### REQ-o00026: Administrator Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00025 | **Status**: Active
+**Level**: Ops | **Implements**: p10007 | **Status**: Active
 
 PostgreSQL Row-Level Security policies SHALL be deployed for administrator access with comprehensive logging and break-glass access controls for protected health information.
 
@@ -183,7 +183,7 @@ Policy deployment SHALL include:
 - Quarterly access review procedures
 - Justification logging for all administrative actions
 
-**Rationale**: Implements administrator access (p00025) with accountability. Break-glass mechanism provides emergency PHI access while maintaining audit trail and time-limited authorization.
+**Rationale**: Implements administrator access (p10007) with accountability. Break-glass mechanism provides emergency PHI access while maintaining audit trail and time-limited authorization.
 
 **Acceptance Criteria**:
 - Administrators can modify configuration and user tables
@@ -196,7 +196,7 @@ Policy deployment SHALL include:
 
 ### REQ-o00027: Event Sourcing State Protection Policy Deployment
 
-**Level**: Ops | **Implements**: p00026 | **Status**: Active
+**Level**: Ops | **Implements**: p10009 | **Status**: Active
 
 PostgreSQL Row-Level Security policies SHALL be deployed to prevent direct modification of the `record_state` table, enforcing event sourcing architecture through missing write policies.
 
@@ -208,7 +208,7 @@ Policy deployment SHALL include:
 - Event log immutability enforced by append-only policies
 - State derivation logic tested for correctness
 
-**Rationale**: Implements event sourcing state protection (p00026) ensuring audit trail is single source of truth. Missing RLS policies make direct state modification impossible, enforcing immutable event log architecture.
+**Rationale**: Implements event sourcing state protection (p10009) ensuring audit trail is single source of truth. Missing RLS policies make direct state modification impossible, enforcing immutable event log architecture.
 
 **Acceptance Criteria**:
 - No RLS policies exist for modifying `record_state`

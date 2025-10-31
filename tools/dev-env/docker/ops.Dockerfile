@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00028: Role-Based Environment Separation
-#   REQ-d00032: Development Tool Specifications
+#   REQ-d10002: Role-Based Environment Separation
+#   REQ-d10010: Development Tool Specifications
 #
 # DevOps Environment Dockerfile
 # Extends base with: Terraform, Supabase CLI, deployment tools
@@ -118,4 +118,4 @@ CMD ["/bin/bash", "-l"]
 # Labels
 LABEL com.clinical-diary.role="ops"
 LABEL com.clinical-diary.tools="terraform,supabase,aws,kubectl,cosign,syft,grype"
-LABEL com.clinical-diary.requirement="REQ-d00028,REQ-d00032"
+LABEL com.clinical-diary.requirement="REQ-d10002,REQ-d10010"

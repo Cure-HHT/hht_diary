@@ -303,16 +303,16 @@ We will use **Docker Compose with multi-service architecture** for development e
 ---
 
 **Related Requirements**:
-- REQ-d00027: Containerized Development Environments
-- REQ-d00028: Role-Based Environment Separation
-- REQ-d00029: Cross-Platform Development Support
-- REQ-d00030: CI/CD Environment Parity
-- REQ-d00031: Secrets Management via Doppler
-- REQ-d00032: Development Tool Specifications
-- REQ-d00033: VS Code Dev Containers Integration
-- REQ-d00034: Automated QA Workflow
-- REQ-d00035: Environment Validation & Change Control
-- REQ-d00036: Shared Workspace and File Exchange
+- REQ-d10001: Containerized Development Environments
+- REQ-d10002: Role-Based Environment Separation
+- REQ-d10004: Cross-Platform Development Support
+- REQ-d10006: CI/CD Environment Parity
+- REQ-d10008: Secrets Management via Doppler
+- REQ-d10010: Development Tool Specifications
+- REQ-d10012: VS Code Dev Containers Integration
+- REQ-d10014: Automated QA Workflow
+- REQ-d10016: Environment Validation & Change Control
+- REQ-d10018: Shared Workspace and File Exchange
 
 **Related Documentation**:
 - spec/dev-environment.md: Development environment requirements

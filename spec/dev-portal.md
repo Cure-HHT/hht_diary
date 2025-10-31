@@ -87,9 +87,9 @@ The portal is a standalone Flutter web application, separate from the patient di
 
 ## Technology Stack Requirements
 
-### REQ-d00028: Portal Frontend Framework
+### REQ-d10003: Portal Frontend Framework
 
-**Level**: Dev | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: Dev | **Implements**: p00009, p10004 | **Status**: Draft
 
 The portal SHALL be implemented using Flutter for web deployment, enabling code reuse with the patient diary mobile app if they are merged in the future.
 
@@ -158,7 +158,7 @@ flutter build web --release --web-renderer html
 
 ---
 
-### REQ-d00029: Portal UI Design System
+### REQ-d10005: Portal UI Design System
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -249,7 +249,7 @@ The portal SHALL display a color-coded banner component at the top of all authen
 
 ---
 
-### REQ-d00030: Portal Routing and Navigation
+### REQ-d10007: Portal Routing and Navigation
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -349,9 +349,9 @@ final router = GoRouter(
 
 ## Authentication & Authorization Requirements
 
-### REQ-d00031: Supabase Authentication Integration
+### REQ-d10009: Supabase Authentication Integration
 
-**Level**: Dev | **Implements**: p00009, p00024, p00028 | **Status**: Draft
+**Level**: Dev | **Implements**: p00009, p10004, p00028 | **Status**: Draft
 
 The portal SHALL use Supabase Authentication for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
 
@@ -465,9 +465,9 @@ class AuthProvider extends ChangeNotifier {
 
 ---
 
-### REQ-d00032: Role-Based Access Control Implementation
+### REQ-d10011: Role-Based Access Control Implementation
 
-**Level**: Dev | **Implements**: p00024, p00028 | **Status**: Draft
+**Level**: Dev | **Implements**: p10004, p00028 | **Status**: Draft
 
 The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and database queries SHALL be filtered by role using Supabase RLS policies.
 
@@ -503,7 +503,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 
 ---
 
-### REQ-d00033: Site-Based Data Isolation
+### REQ-d10013: Site-Based Data Isolation
 
 **Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
 
@@ -566,9 +566,9 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 
 ## Frontend Components Requirements
 
-### REQ-d00034: Login Page Implementation
+### REQ-d10015: Login Page Implementation
 
-**Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft
+**Level**: Dev | **Implements**: p00009, d10009 | **Status**: Draft
 
 The portal SHALL provide a login page with OAuth (Google, Microsoft) and email/password authentication options.
 
@@ -730,7 +730,7 @@ class _LoginPageState extends State<LoginPage> {
 
 ---
 
-### REQ-d00035: Admin Dashboard Implementation
+### REQ-d10017: Admin Dashboard Implementation
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -987,9 +987,9 @@ class _SummaryCard extends StatelessWidget {
 
 ---
 
-### REQ-d00036: Create User Dialog Implementation
+### REQ-d10019: Create User Dialog Implementation
 
-**Level**: Dev | **Implements**: p00024 | **Status**: Draft
+**Level**: Dev | **Implements**: p10004 | **Status**: Draft
 
 The portal SHALL provide a modal dialog for Admins to create new Investigators and Auditors with site assignments (for Investigators only) and generate linking codes for device enrollment (for Investigators only).
 
@@ -1302,7 +1302,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 
 ### REQ-d00037: Investigator Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00026, p00027 | **Status**: Draft
+**Level**: Dev | **Implements**: p10008, p00027 | **Status**: Draft
 
 The portal SHALL provide an Investigator dashboard showing assigned sites, patient monitoring table, questionnaire management, and patient enrollment.
 
@@ -1809,7 +1809,7 @@ class _QuestionnaireActions extends StatelessWidget {
 
 ### REQ-d00038: Enroll Patient Dialog Implementation
 
-**Level**: Dev | **Implements**: p00025 | **Status**: Draft
+**Level**: Dev | **Implements**: p10006 | **Status**: Draft
 
 The portal SHALL provide a modal dialog for Investigators to generate patient linking codes for enrollment, with site selection restricted to investigator's assigned sites.
 
@@ -2526,7 +2526,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 
 ### REQ-d00040: User Site Access Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft
+**Level**: Dev | **Implements**: p00009, d10013 | **Status**: Draft
 
 The portal database SHALL include a `user_site_access` table to store site assignments for Investigators, enabling site-level data isolation.
 
@@ -2931,8 +2931,8 @@ This development specification defines the technical implementation requirements
 1. Review this specification with stakeholders
 2. Create Linear tickets for each REQ-d00xxx requirement
 3. Set up Flutter development environment
-4. Implement authentication and routing (REQ-d00030, d00031)
-5. Build Admin dashboard (REQ-d00035, d00036)
+4. Implement authentication and routing (REQ-d10007, d10009)
+5. Build Admin dashboard (REQ-d10017, d00036)
 6. Build Investigator dashboard (REQ-d00037, d00038)
 7. Deploy to Netlify (REQ-d00043)
 

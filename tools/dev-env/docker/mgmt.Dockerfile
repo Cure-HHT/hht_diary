@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00028: Role-Based Environment Separation
-#   REQ-d00032: Development Tool Specifications
+#   REQ-d10002: Role-Based Environment Separation
+#   REQ-d10010: Development Tool Specifications
 #
 # Management Environment Dockerfile
 # Minimal, read-only environment for management and audit access
@@ -167,4 +167,4 @@ CMD ["/bin/bash", "-l"]
 LABEL com.clinical-diary.role="mgmt"
 LABEL com.clinical-diary.tools="git,gh,jq,read-only-viewers"
 LABEL com.clinical-diary.access="read-only"
-LABEL com.clinical-diary.requirement="REQ-d00028,REQ-d00032"
+LABEL com.clinical-diary.requirement="REQ-d10002,REQ-d10010"

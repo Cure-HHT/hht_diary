@@ -6,7 +6,7 @@
 **Status**: Active
 
 **IMPLEMENTS REQUIREMENTS**:
-- REQ-d00027: Development Environment and Tooling Setup
+- REQ-d10001: Development Environment and Tooling Setup
 - REQ-o00017: Development Workflow Configuration
 
 ---

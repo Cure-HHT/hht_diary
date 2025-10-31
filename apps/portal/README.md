@@ -53,14 +53,14 @@ The Carina Portal is a web-based clinical trial management system for Admins, In
 This portal implements the following requirements from spec/:
 
 - **REQ-p00009**: Sponsor-Specific Web Portals
-- **REQ-p00024**: Portal User Roles and Permissions
-- **REQ-p00025**: Patient Enrollment Workflow
-- **REQ-p00026**: Patient Monitoring Dashboard
+- **REQ-p10004**: Portal User Roles and Permissions
+- **REQ-p10006**: Patient Enrollment Workflow
+- **REQ-p10008**: Patient Monitoring Dashboard
 - **REQ-p00027**: Questionnaire Management
 - **REQ-p00028**: Token Revocation and Access Control
 - **REQ-p00029**: Auditor Dashboard and Data Export
-- **REQ-d00028**: Portal Frontend Framework
-- **REQ-d00029**: Portal UI Design System
+- **REQ-d10003**: Portal Frontend Framework
+- **REQ-d10005**: Portal UI Design System
 
 ---
 

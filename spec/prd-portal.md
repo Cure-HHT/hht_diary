@@ -28,7 +28,7 @@ The Clinical Trial Web Portal is a sponsor-specific web application that enables
 
 ## How It Works
 
-### REQ-p00024: Portal User Roles and Permissions
+### REQ-p10004: Portal User Roles and Permissions
 
 **Level**: PRD | **Implements**: p00009 | **Status**: Draft
 
@@ -63,9 +63,9 @@ Role permissions SHALL ensure:
 
 ---
 
-### REQ-p00025: Patient Enrollment Workflow
+### REQ-p10006: Patient Enrollment Workflow
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: PRD | **Implements**: p00009, p10004 | **Status**: Draft
 
 Investigators SHALL be able to enroll new patients using IRT-provided patient IDs and generate unique linking codes for patients to connect their mobile diary applications.
 
@@ -96,9 +96,9 @@ Patient enrollment SHALL ensure:
 
 ---
 
-### REQ-p00026: Patient Monitoring Dashboard
+### REQ-p10008: Patient Monitoring Dashboard
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: PRD | **Implements**: p00009, p10004 | **Status**: Draft
 
 Investigators SHALL have real-time visibility into patient engagement through a monitoring dashboard showing patient status, days without data entry, last login time, and questionnaire completion status.
 
@@ -139,7 +139,7 @@ Patient monitoring SHALL provide:
 
 ### REQ-p00027: Questionnaire Management
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: PRD | **Implements**: p00009, p10004 | **Status**: Draft
 
 Investigators SHALL be able to send push notifications to patients to complete specific questionnaires (NOSE HHT and Quality of Life) and track questionnaire completion status.
 
@@ -179,7 +179,7 @@ Questionnaire management SHALL provide:
 
 ### REQ-p00028: Token Revocation and Access Control
 
-**Level**: PRD | **Implements**: p00009, p00024, p00014 | **Status**: Draft
+**Level**: PRD | **Implements**: p00009, p10004, p00014 | **Status**: Draft
 
 Admins SHALL be able to revoke access for Investigators and Auditors, and Investigators SHALL be able to revoke patient mobile app access when necessary.
 
@@ -218,7 +218,7 @@ Token revocation SHALL ensure:
 
 ### REQ-p00029: Auditor Dashboard and Data Export
 
-**Level**: PRD | **Implements**: p00009, p00024, p00004 | **Status**: Draft
+**Level**: PRD | **Implements**: p00009, p10004, p00004 | **Status**: Draft
 
 Auditors SHALL have read-only access to all portal data across all sites and the ability to export the complete database for compliance reviews.
 
@@ -257,7 +257,7 @@ Auditor capabilities SHALL ensure:
 
 ### REQ-p00030: Role-Based Visual Indicators
 
-**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Active
+**Level**: PRD | **Implements**: p00005, p10004 | **Status**: Active
 
 The portal SHALL display a color-coded banner at the top of the interface indicating the user's current role to prevent accidental actions in the wrong role context.
 
