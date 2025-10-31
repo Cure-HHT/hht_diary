@@ -27,7 +27,7 @@ Full checklist with all options:
 
 ## Implementation
 ```bash
-node tools/claude-marketplace/anspar-linear-integration/scripts/add-subsystem-checklists.js \
+node ${CLAUDE_PLUGIN_ROOT}/scripts/add-requirement-checklist.js \
   --ticketId="$1" \
   "${@:2}"
 ```
