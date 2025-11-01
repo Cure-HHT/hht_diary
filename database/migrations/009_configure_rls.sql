@@ -1,6 +1,7 @@
 -- =====================================================
 -- Migration: Configure Row-Level Security (RLS)
 -- Number: 009
+-- Date: 2025-10-15
 -- Description: Enable RLS and create policies for all tables
 -- Dependencies: Requires base schema (001)
 -- Reference: database/rls_policies.sql
