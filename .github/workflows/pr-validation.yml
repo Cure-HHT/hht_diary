@@ -230,9 +230,9 @@ jobs:
           for file in database/migrations/*.sql; do
             if [ -f "$file" ]; then
               # Check for required header components
-              if ! grep -q "-- Migration:" "$file" || \
-                 ! grep -q "-- Date:" "$file" || \
-                 ! grep -q "-- Description:" "$file"; then
+              if ! grep -q "^-- Migration:" "$file" || \
+                 ! grep -q "^-- Date:" "$file" || \
+                 ! grep -q "^-- Description:" "$file"; then
                 INVALID_MIGRATIONS+=("$file")
               fi
             fi
