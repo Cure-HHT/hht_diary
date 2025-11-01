@@ -14,14 +14,14 @@
 --   REQ-p00016: Separation of Identity and Clinical Data
 --   REQ-p00017: Data Encryption
 --   REQ-p00018: Multi-Site Support Per Sponsor
---   REQ-p00019: Patient Data Isolation
---   REQ-p00020: Investigator Site-Scoped Access
---   REQ-p00021: Investigator Annotation Restrictions
+--   REQ-p00035: Patient Data Isolation
+--   REQ-p00036: Investigator Site-Scoped Access
+--   REQ-p00037: Investigator Annotation Restrictions
 --   REQ-p00022: Analyst Read-Only Site-Scoped Access
 --   REQ-p00023: Sponsor Global Read Access
---   REQ-p00024: Auditor Compliance Access
---   REQ-p00025: Administrator Break-Glass Access
---   REQ-p00026: Event Sourcing State Protection
+--   REQ-p00038: Auditor Compliance Access
+--   REQ-p00039: Administrator Break-Glass Access
+--   REQ-p00040: Event Sourcing State Protection
 --   REQ-o00004: Database Schema Deployment
 --   REQ-o00011: Multi-Site Data Configuration Per Sponsor
 --   REQ-o00020: Patient Data Isolation Policy Deployment
@@ -382,7 +382,7 @@ CREATE TABLE auditor_export_log (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE auditor_export_log IS 'Audit trail for all data exports performed by auditors (REQ-p00024, REQ-d00024)';
+COMMENT ON TABLE auditor_export_log IS 'Audit trail for all data exports performed by auditors (REQ-p00038, REQ-d00024)';
 COMMENT ON COLUMN auditor_export_log.justification IS 'Business justification for the export (minimum 10 characters)';
 COMMENT ON COLUMN auditor_export_log.case_id IS 'Case or audit reference identifier (minimum 5 characters)';
 
@@ -406,7 +406,7 @@ CREATE TABLE break_glass_authorizations (
     CONSTRAINT max_ttl CHECK (expires_at <= granted_at + INTERVAL '24 hours')
 );
 
-COMMENT ON TABLE break_glass_authorizations IS 'Time-limited emergency access authorizations for administrators (REQ-p00025, REQ-d00025)';
+COMMENT ON TABLE break_glass_authorizations IS 'Time-limited emergency access authorizations for administrators (REQ-p00039, REQ-d00025)';
 COMMENT ON COLUMN break_glass_authorizations.ticket_id IS 'Support ticket or incident ID justifying emergency access';
 COMMENT ON COLUMN break_glass_authorizations.expires_at IS 'Authorization expires after this timestamp (max 24 hours from grant)';
 
@@ -429,7 +429,7 @@ CREATE TABLE break_glass_access_log (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE break_glass_access_log IS 'Detailed logging of all database access during break-glass sessions (REQ-p00025, REQ-d00025)';
+COMMENT ON TABLE break_glass_access_log IS 'Detailed logging of all database access during break-glass sessions (REQ-p00039, REQ-d00025)';
 COMMENT ON COLUMN break_glass_access_log.authorization_id IS 'Links to the break-glass authorization that permitted this access';
 
 -- =====================================================
@@ -554,7 +554,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION export_clinical_data IS 'Export clinical data with mandatory audit logging (REQ-p00024, REQ-d00024)';
+COMMENT ON FUNCTION export_clinical_data IS 'Export clinical data with mandatory audit logging (REQ-p00038, REQ-d00024)';
 
 -- Cleanup expired break-glass authorizations (maintenance function)
 CREATE OR REPLACE FUNCTION cleanup_expired_break_glass()

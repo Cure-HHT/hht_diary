@@ -8,8 +8,8 @@
 --   REQ-p00010: FDA 21 CFR Part 11 Compliance
 --   REQ-p00011: ALCOA+ Data Integrity Principles
 --   REQ-p00013: Complete Change History
---   REQ-p00025: Administrator Break-Glass Access
---   REQ-p00026: Event Sourcing State Protection
+--   REQ-p00039: Administrator Break-Glass Access
+--   REQ-p00040: Event Sourcing State Protection
 --   REQ-d00025: Administrator Break-Glass RLS Implementation
 --   REQ-d00026: Event Sourcing State Protection Implementation
 --
@@ -483,7 +483,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION log_break_glass_access() IS 'Logs all break-glass access to sensitive tables for compliance monitoring (REQ-p00025, REQ-d00025)';
+COMMENT ON FUNCTION log_break_glass_access() IS 'Logs all break-glass access to sensitive tables for compliance monitoring (REQ-p00039, REQ-d00025)';
 
 -- Apply break-glass logging to sensitive tables
 -- Note: These triggers log access when break-glass authorization is active
@@ -544,7 +544,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION complete_export_log() IS 'Validates export completion and logs activity (REQ-p00024, REQ-d00024)';
+COMMENT ON FUNCTION complete_export_log() IS 'Validates export completion and logs activity (REQ-p00038, REQ-d00024)';
 
 CREATE TRIGGER validate_export_completion
     BEFORE UPDATE ON auditor_export_log
