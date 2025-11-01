@@ -99,18 +99,19 @@ jobs:
           for migration in database/migrations/*.sql; do
             if [ -f "$migration" ]; then
               filename=$(basename "$migration")
-              # Check for corresponding rollback
-              rollback_dir="database/migrations/rollback"
-              # Try both naming conventions
-              rollback1="${rollback_dir}/${filename}"
-              rollback2="${rollback_dir}/${filename/.sql/_rollback.sql}"
+              # Extract migration number (e.g., "008" from "008_add_jsonb_validation.sql")
+              migration_num=$(echo "$filename" | grep -oE '^[0-9]+')
 
-              if [ ! -f "$rollback1" ] && [ ! -f "$rollback2" ]; then
+              # Check for corresponding rollback using standard naming convention
+              rollback_dir="database/migrations/rollback"
+              rollback_file="${rollback_dir}/${migration_num}_rollback.sql"
+
+              if [ ! -f "$rollback_file" ]; then
                 echo "❌ Missing rollback for $migration"
-                echo "Expected: $rollback1 or $rollback2"
+                echo "Expected: $rollback_file"
                 exit 1
               else
-                echo "✅ Found rollback for $migration"
+                echo "✅ Found rollback for $migration: $rollback_file"
               fi
             fi
           done
