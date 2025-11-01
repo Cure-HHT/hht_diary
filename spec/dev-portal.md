@@ -89,7 +89,7 @@ The portal is a standalone Flutter web application, separate from the patient di
 
 ### REQ-d00028: Portal Frontend Framework
 
-**Level**: Dev | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: Dev | **Implements**: p00009, p00038 | **Status**: Draft
 
 The portal SHALL be implemented using Flutter for web deployment, enabling code reuse with the patient diary mobile app if they are merged in the future.
 
@@ -351,7 +351,7 @@ final router = GoRouter(
 
 ### REQ-d00031: Supabase Authentication Integration
 
-**Level**: Dev | **Implements**: p00009, p00024, p00028 | **Status**: Draft
+**Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
 
 The portal SHALL use Supabase Authentication for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
 
@@ -467,7 +467,7 @@ class AuthProvider extends ChangeNotifier {
 
 ### REQ-d00032: Role-Based Access Control Implementation
 
-**Level**: Dev | **Implements**: p00024, p00028 | **Status**: Draft
+**Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft
 
 The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and database queries SHALL be filtered by role using Supabase RLS policies.
 
@@ -989,7 +989,7 @@ class _SummaryCard extends StatelessWidget {
 
 ### REQ-d00036: Create User Dialog Implementation
 
-**Level**: Dev | **Implements**: p00024 | **Status**: Draft
+**Level**: Dev | **Implements**: p00038 | **Status**: Draft
 
 The portal SHALL provide a modal dialog for Admins to create new Investigators and Auditors with site assignments (for Investigators only) and generate linking codes for device enrollment (for Investigators only).
 
@@ -1302,7 +1302,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 
 ### REQ-d00037: Investigator Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00026, p00027 | **Status**: Draft
+**Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft
 
 The portal SHALL provide an Investigator dashboard showing assigned sites, patient monitoring table, questionnaire management, and patient enrollment.
 
@@ -1809,7 +1809,7 @@ class _QuestionnaireActions extends StatelessWidget {
 
 ### REQ-d00038: Enroll Patient Dialog Implementation
 
-**Level**: Dev | **Implements**: p00025 | **Status**: Draft
+**Level**: Dev | **Implements**: p00039 | **Status**: Draft
 
 The portal SHALL provide a modal dialog for Investigators to generate patient linking codes for enrollment, with site selection restricted to investigator's assigned sites.
 
