@@ -1,6 +1,7 @@
 -- =====================================================
 -- Migration: Add JSONB Validation Functions
 -- Number: 008
+-- Date: 2025-10-15
 -- Description: Implements comprehensive validation for diary event data
 -- Dependencies: Requires base schema (001)
 -- Reference: spec/JSONB_SCHEMA.md
