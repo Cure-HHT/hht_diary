@@ -575,14 +575,14 @@ Use horizontal rules (`---`) to clearly separate formal requirements from explan
 When implementation sections reference formal requirements (as in prd-security-RLS.md):
 
 ```markdown
-### REQ-p00035: Patient Data Isolation
+### REQ-pXXXXX: Example Requirement
 [formal requirement]
 
 ---
 
 ### Policy Implementation Details
 
-#### Policy 1: Patient Data Isolation (Implements REQ-p00035)
+#### Policy 1: Example Implementation (Implements REQ-pXXXXX)
 [technical implementation details, SQL policies, etc.]
 ```
 
