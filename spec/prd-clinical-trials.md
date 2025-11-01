@@ -64,7 +64,7 @@ Compliance SHALL include:
 
 **Acceptance Criteria**:
 - System validation documentation package complete
-- Formal requirements with traceability maintained (see REQ-p00020 in prd-requirements-management.md)
+- Formal requirements with traceability maintained (see REQ-p00036 in prd-requirements-management.md)
 - All record changes captured in tamper-proof audit trail
 - Electronic signatures meet FDA requirements
 - System access controls prevent unauthorized use

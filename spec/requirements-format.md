@@ -173,10 +173,10 @@ REQ-p00006: System SHALL support offline data entry (PRD)
 **Example**:
 ```
 REQ-p00005: System SHALL protect PHI (broad security requirement)
-  ├─ REQ-p00024: System SHALL enforce row-level security (refinement)
+  ├─ REQ-p00038: System SHALL enforce row-level security (refinement)
   │    ├─ REQ-o00009: Deploy RLS policies (cascade)
   │    └─ REQ-d00008: Implement RLS (cascade)
-  └─ REQ-p00025: System SHALL maintain audit trail (refinement)
+  └─ REQ-p00039: System SHALL maintain audit trail (refinement)
        ├─ REQ-o00010: Configure audit logging (cascade)
        └─ REQ-d00009: Implement audit triggers (cascade)
 ```
@@ -575,14 +575,14 @@ Use horizontal rules (`---`) to clearly separate formal requirements from explan
 When implementation sections reference formal requirements (as in prd-security-RLS.md):
 
 ```markdown
-### REQ-p00019: Patient Data Isolation
+### REQ-pXXXXX: Example Requirement
 [formal requirement]
 
 ---
 
 ### Policy Implementation Details
 
-#### Policy 1: Patient Data Isolation (Implements REQ-p00019)
+#### Policy 1: Example Implementation (Implements REQ-pXXXXX)
 [technical implementation details, SQL policies, etc.]
 ```
 

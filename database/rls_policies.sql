@@ -7,14 +7,14 @@
 --   REQ-p00005: Role-Based Access Control
 --   REQ-p00014: Least Privilege Access
 --   REQ-p00015: Database-Level Access Enforcement
---   REQ-p00019: Patient Data Isolation
---   REQ-p00020: Investigator Site-Scoped Access
---   REQ-p00021: Investigator Annotation Restrictions
+--   REQ-p00035: Patient Data Isolation
+--   REQ-p00036: Investigator Site-Scoped Access
+--   REQ-p00037: Investigator Annotation Restrictions
 --   REQ-p00022: Analyst Read-Only Site-Scoped Access
 --   REQ-p00023: Sponsor Global Read Access
---   REQ-p00024: Auditor Compliance Access
---   REQ-p00025: Administrator Break-Glass Access
---   REQ-p00026: Event Sourcing State Protection
+--   REQ-p00038: Auditor Compliance Access
+--   REQ-p00039: Administrator Break-Glass Access
+--   REQ-p00040: Event Sourcing State Protection
 --   REQ-o00007: Role-Based Permission Configuration
 --   REQ-o00020: Patient Data Isolation Policy Deployment
 --   REQ-o00021: Investigator Site-Scoped Access Policy Deployment
@@ -39,12 +39,12 @@
 --   Each sponsor's database contains only their sites and users.
 --
 -- ROLE-BASED ACCESS:
---   - USER: Access only their own diary entries (REQ-p00019)
---   - INVESTIGATOR: Access data for assigned sites within this sponsor (REQ-p00020)
+--   - USER: Access only their own diary entries (REQ-p00035)
+--   - INVESTIGATOR: Access data for assigned sites within this sponsor (REQ-p00036)
 --   - ANALYST: Read-only access to assigned sites within this sponsor (REQ-p00022)
 --   - SPONSOR: Read access to all data within this sponsor's database (REQ-p00023)
---   - AUDITOR: Read access to all data including audit logs (REQ-p00024)
---   - ADMIN: Full access with break-glass controls for PHI (REQ-p00025)
+--   - AUDITOR: Read access to all data including audit logs (REQ-p00038)
+--   - ADMIN: Full access with break-glass controls for PHI (REQ-p00039)
 --
 -- =====================================================
 

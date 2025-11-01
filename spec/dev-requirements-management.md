@@ -244,7 +244,7 @@ python3 tools/requirements/validate_requirements.py
 
 # Example output on error:
 # ❌ ERROR: Duplicate requirement ID
-#   REQ-p00020 found in:
+#   REQ-p00036 found in:
 #     - spec/prd-requirements.md:45
 #     - spec/prd-app.md:123
 ```
