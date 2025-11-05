@@ -11,6 +11,17 @@ This directory contains **formal requirements documents** organized by audience 
 
 **See**: `docs/README.md` for when to use docs/ vs spec/.
 
+## Requirements Index
+
+The `INDEX.md` file maintains a complete index of all requirements across spec/ files.
+
+**IMPORTANT: When modifying requirements, you MUST update INDEX.md:**
+- **Adding a requirement**: Add a new row with REQ#, filename, and title (sorted by ID)
+- **Moving a requirement**: Update the filename reference for that REQ#
+- **Removing/deprecating a requirement**: Change the file reference to `obsolete` and leave the title blank (do NOT delete the row)
+
+This ensures requirement traceability is maintained even for obsolete requirements.
+
 
 # Hierarchical File Naming Convention
 
