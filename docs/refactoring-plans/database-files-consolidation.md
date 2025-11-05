@@ -1,7 +1,7 @@
 # Database Files Consolidation Analysis
 
 **Date**: 2025-11-05
-**Objective**: Identify repetitive content in dev-database* and ops-database* files and recommend consolidation
+**Objective**: Identify repetitive content in dev-database\* and ops-database\* files and recommend consolidation
 
 ---
 
