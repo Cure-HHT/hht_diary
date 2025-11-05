@@ -1,4 +1,12 @@
-# Quick Reference Guide
+# Database Query Reference Guide
+
+**Version**: 1.0
+**Audience**: Developers
+**Last Updated**: 2025-11-05
+
+> **See**: prd-database.md for architecture overview
+> **See**: ops-database-setup.md for deployment procedures
+> **See**: dev-data-models-jsonb.md for JSONB schema details
 
 Fast reference for common database operations.
 
@@ -216,6 +224,8 @@ const channel = supabase
 
 ## Role-Based Access
 
+> **See**: prd-security-RBAC.md for role definitions and requirements
+
 ### USER (Patient)
 ```javascript
 // Can create entries
@@ -356,6 +366,8 @@ ORDER BY date DESC, count DESC;
 
 ## Conflict Resolution
 
+> **See**: prd-database.md for conflict resolution architecture
+
 ### Detect Conflict
 
 ```sql
@@ -446,6 +458,8 @@ LIMIT 10;
 
 ## Environment Variables
 
+> **See**: ops-database-setup.md for complete configuration guide
+
 ```bash
 # Supabase
 SUPABASE_URL=https://your-project.supabase.co
@@ -482,23 +496,16 @@ JWT_SECRET=your-jwt-secret
 
 ---
 
-## File Locations
+## References
 
-- `schema.sql` - Table definitions
-- `triggers.sql` - Audit automation
-- `roles.sql` - User roles and permissions
-- `rls_policies.sql` - Row-level security
-- `indexes.sql` - Performance optimization
-- `seed_data.sql` - Test data
-- `README.md` - Full documentation
-- `SUPABASE_SETUP.md` - Supabase-specific guide
+- **Architecture**: prd-database.md
+- **Setup Guide**: ops-database-setup.md
+- **JSONB Schemas**: dev-data-models-jsonb.md
+- **Compliance**: dev-compliance-practices.md
+- **Supabase Docs**: https://supabase.com/docs
+- **PostgreSQL Docs**: https://www.postgresql.org/docs/
 
 ---
 
-## Support Resources
-
-- **Main Docs:** README.md
-- **Supabase Guide:** SUPABASE_SETUP.md
-- **Architecture:** db-spec.md
-- **Supabase Docs:** https://supabase.com/docs
-- **PostgreSQL Docs:** https://www.postgresql.org/docs/
+**Source Files**:
+- `database_code_reference.md` (moved 2025-10-17)
