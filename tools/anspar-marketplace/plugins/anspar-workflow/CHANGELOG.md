@@ -1,14 +1,15 @@
 # Changelog
 
-All notable changes to the Workflow Enforcement plugin will be documented in this file.
+All notable changes to the anspar-workflow plugin will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-10-30
+## [2.0.0] - 2025-10-31
 
 ### Added
-- Initial release as independent Claude Code plugin
+- Major version 2.0 release of anspar-workflow - next-generation workflow enforcement
+- Enhanced architecture with improved state management and advanced features
 - Per-worktree state management (.git/WORKFLOW_STATE)
 - Git hooks for workflow enforcement:
   - commit-msg: Validates REQ reference in commit messages

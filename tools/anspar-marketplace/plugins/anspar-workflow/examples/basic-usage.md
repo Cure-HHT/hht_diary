@@ -1,12 +1,12 @@
-# Workflow2 Basic Usage Examples
+# anspar-workflow Basic Usage Examples
 
-This document provides practical examples of using the workflow2 plugin in your daily development workflow.
+This document provides practical examples of using the anspar-workflow plugin in your daily development workflow.
 
 ## Example 1: Simple Feature Development
 
 ```bash
 # Start working on a new feature
-cd tools/anspar-marketplace/plugins/workflow2
+cd tools/anspar-marketplace/plugins/anspar-workflow
 ./scripts/claim-ticket.sh CUR-100
 
 # Make your changes
@@ -23,7 +23,7 @@ Implements: REQ-d00042
 "
 
 # Release ticket when done
-cd tools/anspar-marketplace/plugins/workflow2
+cd tools/anspar-marketplace/plugins/anspar-workflow
 ./scripts/release-ticket.sh "Feature complete"
 ```
 

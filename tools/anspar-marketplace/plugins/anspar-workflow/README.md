@@ -1,13 +1,13 @@
-# Anspar Workflow
+# anspar-workflow v2.0
 
-**Claude Code Plugin for Git Workflow Enforcement**
+**Enhanced Claude Code Plugin for Git Workflow Enforcement**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bash Version](https://img.shields.io/badge/bash-%3E%3D4.0-brightgreen)](https://www.gnu.org/software/bash/)
 
 ## Overview
 
-The Anspar Workflow plugin enforces requirement traceability and ticket lifecycle management through git hooks and per-worktree state tracking. It ensures all commits reference formal requirements and are linked to active tickets.
+anspar-workflow v2.0 is the next-generation workflow enforcement plugin. It enforces requirement traceability and ticket lifecycle management through git hooks and per-worktree state tracking. This enhanced version ensures all commits reference formal requirements and are linked to active tickets with improved features and performance.
 
 **Designed for distributed workflows**: Multiple worktrees can work concurrently on same or different tickets, with each worktree maintaining its own state.
 
@@ -907,8 +907,9 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 - **Workflow State Schema**: [docs/workflow-state-schema.md](docs/workflow-state-schema.md)
 - **Requirement Format**: See spec/requirements-format.md in parent project
-- **Linear Integration**: tools/anspar-marketplace/plugins/anspar-linear-integration
+- **Linear Integration**: tools/claude-marketplace/anspar-linear-integration
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
+- **Original Workflow Plugin**: tools/claude-marketplace/anspar-workflow
 
 ## Support
 

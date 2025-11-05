@@ -20,7 +20,7 @@ set -e
 # =====================================================
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-PLUGIN_DIR="$REPO_ROOT/tools/anspar-marketplace/plugins/anspar-workflow"
+PLUGIN_DIR="$REPO_ROOT/tools/claude-marketplace/anspar-workflow"
 STATE_FILE="$REPO_ROOT/.git/WORKFLOW_STATE"
 
 if [ ! -d "$PLUGIN_DIR" ]; then

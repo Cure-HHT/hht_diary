@@ -1,7 +1,7 @@
 {
   "name": "anspar-workflow",
-  "version": "1.0.0",
-  "description": "Git workflow enforcement for requirement traceability and ticket lifecycle management. Supports distributed worktrees with per-worktree state tracking.",
+  "version": "2.0.0",
+  "description": "Enhanced git workflow enforcement for requirement traceability and ticket lifecycle management. Next-generation workflow plugin with improved state tracking and advanced features.",
   "author": {
     "name": "Anspar Foundation",
     "url": "https://github.com/anspar"
@@ -15,7 +15,8 @@
     "ticket-management",
     "worktree",
     "state-management",
-    "automation"
+    "automation",
+    "enhanced-workflow"
   ],
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/anspar-workflow",

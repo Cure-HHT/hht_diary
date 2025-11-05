@@ -10,7 +10,7 @@
 ### 1. Policy Enforcement (Gates)
 **Block non-compliant actions**
 
-#### `anspar-policy-enforcer` (rename from workflow2)
+#### `anspar-policy-enforcer` (future rename from anspar-workflow)
 - Git commit requirements enforcement
 - Ticket claiming before commits
 - REQ-xxx references in commit messages
@@ -553,7 +553,7 @@ jobs:
 ## Implementation Priority
 
 ### Phase 1: Core + Tracking (Critical)
-1. `anspar-policy-enforcer` (rename workflow2)
+1. `anspar-policy-enforcer` (future rename from anspar-workflow)
 2. `anspar-requirement-validator` + `GetRequirement` skill
 3. `anspar-requirement-change-tracker` (NEW - critical for hash tracking)
 4. `specs/outdated-implementations.json` support
