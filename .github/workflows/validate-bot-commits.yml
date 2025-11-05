@@ -76,7 +76,7 @@ jobs:
             echo "::error::  2. Update this validation workflow to allow the new bot"
             echo "::error::  3. Document the security implications"
             echo "::error::"
-            echo "::error::This prevents accidental or malicious use of BOT_PAT to bypass branch protection."
+            echo "::error::This prevents accidental or malicious use of bypass tokens to circumvent branch protection."
             exit 1
           fi
 

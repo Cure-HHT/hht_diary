@@ -4,13 +4,15 @@
 
 This repository uses automated bots to maintain specific files while enforcing strict security controls. This document outlines the security model and enforcement mechanisms.
 
-## BOT_PAT Token
+## SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION Token
 
-The `BOT_PAT` repository secret contains a Personal Access Token that allows bypassing branch protection rules for automated workflows.
+The `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` repository secret contains a Personal Access Token that allows bypassing branch protection rules for automated workflows.
+
+**⚠️ SECURITY CRITICAL**: This token bypasses all branch protection. The long name is intentional - it makes the security implications explicit.
 
 ### Current Authorized Use
 
-**ONLY** the following workflow is authorized to use `BOT_PAT`:
+**ONLY** the following workflow is authorized to use `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION`:
 - **Workflow**: `.github/workflows/claim-requirement-number.yml`
 - **Purpose**: Claim next available requirement number
 - **Files Modified**: `spec/INDEX.md` ONLY
@@ -42,19 +44,22 @@ A commit is considered a "bot commit" if:
 
 ## Adding a New Bot
 
-If you need to create a new bot that uses `BOT_PAT`:
+If you need to create a new bot that bypasses branch protection:
 
 1. **Document the purpose** - Create an ADR explaining why the bot is needed
 2. **Specify files** - Clearly define which files the bot can modify
-3. **Update validation** - Modify `.github/workflows/validate-bot-commits.yml` to allow the new bot
-4. **Review security** - Get approval from security/compliance team
-5. **Update this document** - Add the new bot to the "Current Authorized Use" section
+3. **Create dedicated token** - Create a new secret with explicit name (e.g., `NEW_BOT_NAME_BYPASS_MAIN_BRANCH_PROTECTION`)
+4. **Update validation** - Modify `.github/workflows/validate-bot-commits.yml` to allow the new bot's file changes
+5. **Review security** - Get approval from security/compliance team
+6. **Update this document** - Add the new bot to the "Current Authorized Use" section
+
+**⚠️ DO NOT reuse `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` for other bots** - each bot should have its own dedicated token with an explicit name.
 
 ## Security Rationale
 
 ### Why This Matters
 
-Branch protection exists to enforce code review, testing, and validation. The `BOT_PAT` token bypasses these protections, which creates security risks:
+Branch protection exists to enforce code review, testing, and validation. The `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` token bypasses these protections, which creates security risks:
 
 - **Risk**: Malicious or buggy bot could commit arbitrary changes
 - **Risk**: Developer could create bot to bypass review process
@@ -86,7 +91,7 @@ If a bot commits unauthorized changes:
 
 1. **Immediate**: Revert the commit
 2. **Investigate**: Review workflow logs to determine root cause
-3. **Rotate**: If compromise suspected, rotate `BOT_PAT` immediately
+3. **Rotate**: If compromise suspected, rotate `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` immediately
 4. **Update**: Fix the bot workflow or validation rules
 5. **Document**: Create incident report in security log
 
