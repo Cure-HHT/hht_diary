@@ -1,20 +1,20 @@
-# Flutter Event Sourcing Module
+# Event Sourcing System
 
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-11-04
 **Status**: Active
 
-> **See**: dev-flutter-event-sourcing.md for implementation details (to be created)
-> **See**: ops-flutter-event-sourcing.md for deployment and operations (to be created)
-> **See**: prd-database-event-sourcing.md for event sourcing architecture overview
+> **See**: dev-event-sourcing-postgres.md for implementation details (to be created)
+> **See**: ops-event-sourcing-deployment.md for deployment and operations (to be created)
+> **See**: prd-database.md for diary-specific implementation
 > **See**: prd-clinical-trials.md for compliance requirements
 
 ---
 
 ## Executive Summary
 
-The Flutter Event Sourcing Module is a reusable Dart/Flutter package that provides a client-side interface to event-sourced PostgreSQL databases. It enables mobile applications to interact with event streams and materialized views while maintaining compliance with FDA 21 CFR Part 11 requirements for electronic records and audit trails.
+The Event Sourcing System is a reusable software module that provides a client-side interface to event-sourced PostgreSQL databases. It enables client applications to interact with event streams and materialized views while maintaining compliance with FDA 21 CFR Part 11 requirements for electronic records and audit trails.
 
 **Key Benefits**:
 - Offline-first architecture with automatic event synchronization
@@ -25,10 +25,10 @@ The Flutter Event Sourcing Module is a reusable Dart/Flutter package that provid
 - Schema version-aware migrations
 
 **Target Use Cases**:
-- Clinical trial patient diary applications
-- Healthcare data collection systems
-- Any regulated industry requiring immutable audit trails
-- Multi-user applications with offline capabilities
+- Data collection applications with offline requirements
+- Multi-user applications requiring audit trails
+- Regulated industries requiring immutable audit trails
+- Any system needing complete change history
 
 ---
 
@@ -114,6 +114,8 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 ## Essential Requirements
 
+---
+
 ### REQ-p01000: Event Sourcing Client Interface
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -130,11 +132,13 @@ The interface SHALL support:
 **Rationale**: Provides developers with a clean, type-safe API for event sourcing operations while abstracting database implementation details. Type safety reduces runtime errors and improves developer productivity.
 
 **Acceptance Criteria**:
-- Events defined as strongly-typed Dart classes
+- Events defined as strongly-typed strongly-typed data structures
 - Automatic JSON serialization/deserialization
 - Compile-time verification of event structure
 - Runtime validation of event data against schema
 - Support for custom event types via extension
+
+---
 
 ---
 
@@ -145,14 +149,14 @@ The interface SHALL support:
 The module SHALL queue events locally when network unavailable and automatically synchronize them to the server when connectivity restored.
 
 Offline queue SHALL ensure:
-- Events stored in local persistent storage (SQLite/Hive)
+- Events stored in local persistent storage (local persistent storage)
 - Guaranteed delivery in FIFO order
 - Retry logic with exponential backoff
 - Duplicate event prevention via idempotency keys
 - Queue persistence across app restarts
 - User visibility into synchronization status
 
-**Rationale**: Mobile applications frequently operate in environments with intermittent connectivity. Offline queuing ensures data is never lost and compliance audit trails remain complete even during network outages.
+**Rationale**: client applications frequently operate in environments with intermittent connectivity. Offline queuing ensures data is never lost and compliance audit trails remain complete even during network outages.
 
 **Acceptance Criteria**:
 - Events saved locally immediately upon creation
@@ -161,6 +165,8 @@ Offline queue SHALL ensure:
 - Sync status indicator (pending/syncing/complete)
 - Failed events logged with detailed error messages
 - No data loss even if app force-closed
+
+---
 
 ---
 
@@ -189,6 +195,8 @@ Conflict resolution SHALL support:
 
 ---
 
+---
+
 ### REQ-p01003: Immutable Event Storage with Audit Trail
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -210,6 +218,8 @@ Event storage SHALL ensure:
 - Tamper detection via cryptographic signatures or hashes
 - Event sequence enforced by database sequence numbers
 - Materialized views always consistent with event log
+
+---
 
 ---
 
@@ -237,6 +247,8 @@ Schema management SHALL provide:
 
 ---
 
+---
+
 ### REQ-p01005: Real-time Event Subscription
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -261,6 +273,8 @@ Real-time subscriptions SHALL provide:
 
 ---
 
+---
+
 ### REQ-p01006: Type-Safe Materialized View Queries
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -268,7 +282,7 @@ Real-time subscriptions SHALL provide:
 The module SHALL provide type-safe query interfaces for materialized views that represent current state derived from events.
 
 Materialized view queries SHALL support:
-- Strongly-typed Dart models for view data
+- Strongly-typed strongly-typed models for view data
 - Automatic JSON deserialization from PostgreSQL JSONB
 - Filtering, sorting, and pagination
 - Efficient incremental queries (fetch only changes)
@@ -277,11 +291,13 @@ Materialized view queries SHALL support:
 **Rationale**: Replaying entire event streams for every query is inefficient. Materialized views provide optimized read access to current state while maintaining the immutable event log.
 
 **Acceptance Criteria**:
-- View models defined as Dart classes with JSON codegen
+- View models defined as strongly-typed data structures with JSON codegen
 - Compile-time type checking of queries
 - Support for complex WHERE clauses and ordering
 - Pagination for large result sets
 - Configurable caching with automatic invalidation
+
+---
 
 ---
 
@@ -311,6 +327,8 @@ Error handling SHALL include:
 
 ## Optional/Advanced Requirements
 
+---
+
 ### REQ-p01008: Event Replay and Time Travel Debugging
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
@@ -331,6 +349,8 @@ Event replay SHALL provide:
 - Efficient replay using snapshots + incremental events
 - UI components for time travel visualization (optional)
 - Event stream export to JSON or CSV
+
+---
 
 ---
 
@@ -357,6 +377,8 @@ Encryption SHALL ensure:
 
 ---
 
+---
+
 ### REQ-p01010: Multi-tenancy Support
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
@@ -377,6 +399,8 @@ Multi-tenancy SHALL provide:
 - Tenant context propagated through all operations
 - No cross-tenant data leakage
 - Offline queues isolated per tenant
+
+---
 
 ---
 
@@ -402,6 +426,8 @@ Event transformation SHALL support:
 
 ---
 
+---
+
 ### REQ-p01012: Batch Event Operations
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
@@ -421,6 +447,8 @@ Batch operations SHALL ensure:
 - Atomic persistence on server
 - Efficient serialization of batches
 - Proper error handling for partial batch failures
+
+---
 
 ---
 
@@ -449,6 +477,8 @@ Transport abstraction SHALL provide:
 
 ## DevOps and Production Requirements
 
+---
+
 ### REQ-p01014: Observability and Monitoring
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -470,6 +500,8 @@ Monitoring SHALL include:
 - Health checks report queue status, connectivity, schema version
 - Performance profiling identifies bottlenecks
 - Logging configurable from SILENT to VERBOSE
+
+---
 
 ---
 
@@ -496,6 +528,8 @@ Testing utilities SHALL provide:
 
 ---
 
+---
+
 ### REQ-p01016: Performance Benchmarking
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -510,13 +544,15 @@ Performance targets:
 - Memory footprint: < 50MB for typical usage
 - Battery impact: < 1% per hour of active sync
 
-**Rationale**: Mobile applications must be responsive and efficient to provide good user experience and avoid user frustration.
+**Rationale**: client applications must be responsive and efficient to provide good user experience and avoid user frustration.
 
 **Acceptance Criteria**:
 - All performance targets met in benchmark tests
 - Performance regression tests in CI/CD
 - Documentation of performance characteristics
 - Profiling guides for optimizing specific scenarios
+
+---
 
 ---
 
@@ -544,6 +580,8 @@ Compatibility SHALL ensure:
 
 ---
 
+---
+
 ### REQ-p01018: Security Audit and Compliance
 
 **Level**: PRD | **Implements**: - | **Status**: Active
@@ -551,7 +589,7 @@ Compatibility SHALL ensure:
 The module SHALL undergo security review and maintain compliance with relevant security standards.
 
 Security SHALL address:
-- OWASP Mobile Top 10 vulnerabilities
+- OWASP client Top 10 vulnerabilities
 - Secure storage of sensitive data
 - Protection against injection attacks
 - Secure communication (TLS 1.3+)
@@ -638,25 +676,25 @@ The module assumes:
 
 ### Existing Solutions Review
 
-Based on research, existing Dart/Flutter event sourcing solutions include:
+Based on research, existing application event sourcing solutions include:
 
 **Harvest** (github.com/ltackmann/harvest):
-- Event store for Dart with multiple backends
+- Event store for programming language with multiple backends
 - Messagebus and CQRS framework
 - Last updated: 2019 (may be stale)
 
-**Jaguar-dart/cqrs** (github.com/Jaguar-dart/cqrs):
+**Jaguar-programming language/cqrs** (github.com/Jaguar-programming language/cqrs):
 - Command Query Responsibility Separation library
 - Lightweight, minimal dependencies
 - Last updated: 2019 (may be stale)
 
-**EventStore Client for Dart** (github.com/DISCOOS):
+**EventStore Client for programming language** (github.com/DISCOOS):
 - Client for EventStoreDB
 - Industry-leading event sourcing database
 - Requires EventStoreDB instead of PostgreSQL
 
 **Messaging** (github.com/mcssym):
-- Flexible Dart/Flutter event sourcing package
+- Flexible application event sourcing package
 - Appears more active (2020+)
 - Focuses on message bus patterns
 
@@ -664,7 +702,7 @@ Based on research, existing Dart/Flutter event sourcing solutions include:
 
 This module differs by:
 - **PostgreSQL-specific**: Optimized for PostgreSQL event store
-- **Offline-first**: Mobile-optimized with offline queue
+- **Offline-first**: client-optimized with offline queue
 - **Compliance-focused**: FDA 21 CFR Part 11 support built-in
 - **Production-ready**: Monitoring, testing, performance guarantees
 - **Actively maintained**: Long-term support commitment
@@ -672,6 +710,8 @@ This module differs by:
 ---
 
 ## Development Approach
+
+---
 
 ### REQ-p01019: Phased Implementation
 
@@ -712,7 +752,7 @@ The module SHALL be developed in phases, with each phase delivering incremental 
 ## Success Metrics
 
 **Developer Experience**:
-- Time to integrate: < 4 hours for experienced Flutter developer
+- Time to integrate: < 4 hours for experienced application developer
 - Lines of boilerplate: < 50 LOC for typical use case
 - Onboarding documentation: Complete tutorial + examples
 
@@ -738,8 +778,8 @@ The module SHALL be developed in phases, with each phase delivering incremental 
 - **Event Sourcing Pattern**: prd-database-event-sourcing.md
 - **Database Architecture**: prd-database.md
 - **Compliance Requirements**: prd-clinical-trials.md
-- **Implementation Details**: dev-flutter-event-sourcing.md (to be created)
-- **Operations Guide**: ops-flutter-event-sourcing.md (to be created)
+- **Implementation Details**: dev-application-event-sourcing.md (to be created)
+- **Operations Guide**: ops-application-event-sourcing.md (to be created)
 
 ---
 
@@ -754,3 +794,12 @@ The module SHALL be developed in phases, with each phase delivering incremental 
 **Idempotency**: Property where operation can be applied multiple times without changing result
 **Optimistic Concurrency**: Conflict detection based on version checking
 **Upcasting**: Transforming old event format to new format
+
+---
+
+## References
+
+- **Diary Implementation**: prd-database.md
+- **Development Guide**: dev-event-sourcing-postgres.md (to be created)
+- **Operations Guide**: ops-event-sourcing-deployment.md (to be created)
+- **Compliance**: prd-clinical-trials.md
