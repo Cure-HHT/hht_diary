@@ -26,12 +26,14 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00012 | prd-clinical-trials.md | Clinical Data Retention Requirements |
 | REQ-p00013 | prd-database.md | Complete Data Change History |
 | REQ-p00014 | prd-security-RBAC.md | Least Privilege Access |
+| REQ-p00015 | prd-security-RLS.md | Database-Level Access Enforcement |
 | REQ-p00016 | prd-security-data-classification.md | Separation of Identity and Clinical Data |
 | REQ-p00017 | prd-security-data-classification.md | Data Encryption |
 | REQ-p00018 | prd-architecture-multi-sponsor.md | Multi-Site Support Per Sponsor |
 | REQ-p00020 | prd-requirements-management.md | System Validation and Traceability |
 | REQ-p00021 | prd-requirements-management.md | Architecture Decision Documentation |
-| REQ-p00022 | ops-requirements-management.md | Multi-Language Support |
+| REQ-p00022 | prd-security-RLS.md | Analyst Read-Only Access |
+| REQ-p00023 | prd-security-RLS.md | Sponsor Global Data Access |
 | REQ-p00024 | prd-portal.md | Portal User Roles and Permissions |
 | REQ-p00025 | prd-portal.md | Patient Enrollment Workflow |
 | REQ-p00026 | prd-portal.md | Patient Monitoring Dashboard |
@@ -43,6 +45,12 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00032 | requirements-format.md | Complete Multi-Sponsor Data Separation |
 | REQ-p00033 | requirements-format.md | Role-Based Access Control |
 | REQ-p00034 | requirements-format.md | Least Privilege Access |
+| REQ-p00035 | prd-security-RLS.md | Patient Data Isolation |
+| REQ-p00036 | prd-security-RLS.md | Investigator Site-Scoped Access |
+| REQ-p00037 | prd-security-RLS.md | Investigator Annotation Restrictions |
+| REQ-p00038 | prd-security-RLS.md | Auditor Compliance Access |
+| REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail |
+| REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection |
 | REQ-o00001 | ops-deployment.md | Separate Supabase Projects Per Sponsor |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management |
 | REQ-o00003 | ops-database-setup.md | Supabase Project Provisioning Per Sponsor |
@@ -59,7 +67,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00015 | ops-requirements-management.md | Documentation Structure Enforcement |
 | REQ-o00016 | ops-requirements-management.md | Architecture Decision Process |
 | REQ-o00017 | ops-requirements-management.md | Version Control Workflow |
-| REQ-o00018 | ops-requirements-management.md | Language Configuration Management |
+| REQ-o00018 | obsolete | |
 | REQ-o00020 | ops-security-RLS.md | Patient Data Isolation Policy Deployment |
 | REQ-o00021 | ops-security-RLS.md | Investigator Site-Scoped Access Policy Deployment |
 | REQ-o00022 | ops-security-RLS.md | Investigator Annotation Access Policy Deployment |
@@ -90,9 +98,11 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00004 | dev-app.md | Local-First Data Entry Implementation |
 | REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation |
 | REQ-d00006 | dev-app.md | Mobile App Build and Release Process |
+| REQ-d00007 | dev-database.md | Database Schema Implementation and Deployment |
 | REQ-d00008 | dev-security.md | MFA Enrollment and Verification Implementation |
 | REQ-d00009 | dev-security.md | Role-Based Permission Enforcement Implementation |
 | REQ-d00010 | dev-security.md | Data Encryption Implementation |
+| REQ-d00011 | dev-database.md | Multi-Site Schema Implementation |
 | REQ-d00012 | requirements-format.md | Environment-Specific Configuration Files |
 | REQ-d00013 | dev-app.md | Application Instance UUID Generation |
 | REQ-d00014 | dev-requirements-management.md | Requirement Validation Tooling |
@@ -140,4 +150,4 @@ This file provides a complete index of all formal requirements across the spec/ 
 
 ---
 
-**Total Requirements:** 124 (34 PRD, 40 Ops, 50 Dev)
+**Total Requirements:** 134 (42 PRD, 39 Ops, 52 Dev, 1 obsolete)
