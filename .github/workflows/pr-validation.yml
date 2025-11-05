@@ -352,7 +352,7 @@ jobs:
           COMPLIANCE_ISSUES=()
 
           # Check that event sourcing requirements exist
-          if ! grep -q "REQ-p00004" spec/prd-database-event-sourcing.md 2>/dev/null; then
+          if ! grep -q "REQ-p00004" spec/prd-database.md 2>/dev/null; then
             COMPLIANCE_ISSUES+=("Event sourcing requirement REQ-p00004 not found")
           fi
 
