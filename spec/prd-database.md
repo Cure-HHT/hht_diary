@@ -191,3 +191,4 @@ Patients may use multiple devices (phone and tablet):
 - **Event Sourcing Pattern**: prd-database-event-sourcing.md
 - **Security**: prd-security.md
 - **Compliance**: prd-clinical-trials.md
+
