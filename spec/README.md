@@ -47,6 +47,8 @@ The `INDEX.md` file maintains a complete index of all requirements across spec/ 
 
 **Validation**: The PR validation workflow automatically checks that INDEX.md matches the actual requirements in spec files.
 
+**Security**: The bot is restricted to modifying only `spec/INDEX.md`. Any attempt to modify other files will fail validation. See `.github/BOT_SECURITY.md` for details.
+
 This ensures requirement traceability is maintained even for obsolete requirements.
 
 
