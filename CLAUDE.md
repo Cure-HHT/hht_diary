@@ -50,10 +50,13 @@ Implements: REQ-p00xxx, REQ-d00yyy
 | Action | Command/Location |
 |--------|-----------------|
 | **Validate requirements** | `python3 tools/requirements/validate_requirements.py` |
+| **Validate INDEX.md** | `python3 tools/requirements/validate_index.py` |
 | Generate traceability | `python3 tools/requirements/generate_traceability.py --format markdown` |
+| **Claim new REQ#** | **Actions** → **Claim Requirement Number** (GitHub UI) |
 | Enable git hooks | `git config core.hooksPath .githooks` |
 | Find requirements | `spec/{prd,ops,dev}-*.md` |
 | Find decisions | `docs/adr/ADR-*.md` |
+| Requirements index | `spec/INDEX.md` |
 
 ## Documentation Guidelines
 

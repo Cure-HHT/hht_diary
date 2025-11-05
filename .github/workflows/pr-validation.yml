@@ -74,6 +74,21 @@ jobs:
           python3 tools/requirements/generate_traceability.py --format html
           echo "::endgroup::"
 
+      - name: Validate INDEX.md accuracy
+        if: success()
+        run: |
+          echo "::group::INDEX.md Validation"
+          python3 tools/requirements/validate_index.py
+          RESULT=$?
+          echo "::endgroup::"
+
+          if [ $RESULT -ne 0 ]; then
+            echo "::error::INDEX.md validation failed. See details above."
+            exit 1
+          fi
+
+          echo "✅ INDEX.md validation passed"
+
       - name: Upload traceability matrix as artifact
         if: always()
         uses: actions/upload-artifact@v4
