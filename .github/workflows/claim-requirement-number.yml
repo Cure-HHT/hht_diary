@@ -1,0 +1,114 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00013: Requirements Format Validation
+#   REQ-o00014: Top-Down Requirement Cascade
+#   REQ-p00020: System Validation and Traceability
+
+name: Claim Requirement Number
+
+on:
+  workflow_dispatch:
+    inputs:
+      prefix:
+        description: 'Requirement prefix (p=product, o=ops, d=dev)'
+        required: true
+        type: choice
+        options:
+          - p
+          - o
+          - d
+      file:
+        description: 'File containing the requirement (e.g., prd-security.md)'
+        required: true
+        type: string
+      title:
+        description: 'Requirement title/description'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  claim-requirement:
+    name: Claim Next Available REQ#
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Use SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION to allow bypassing branch protection
+          # This token is ONLY authorized for modifying spec/INDEX.md
+          token: ${{ secrets.SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION || github.token }}
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for unexpected changes before update
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::ERROR: Repository has uncommitted changes. Bot must start with a clean working tree."
+            echo "::error::Changed files:"
+            git status --short
+            exit 1
+          fi
+          echo "✅ Working tree is clean"
+
+      - name: Update INDEX.md with next REQ#
+        id: update_index
+        run: node .github/scripts/update-index.js
+        env:
+          REQ_PREFIX: ${{ github.event.inputs.prefix }}
+          REQ_FILE: ${{ github.event.inputs.file }}
+          REQ_TITLE: ${{ github.event.inputs.title }}
+
+      - name: Verify only INDEX.md was modified
+        run: |
+          CHANGED_FILES=$(git status --porcelain)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "::error::ERROR: No changes detected. INDEX.md should have been modified."
+            exit 1
+          fi
+
+          # Check that only spec/INDEX.md was modified
+          if [ "$CHANGED_FILES" != " M spec/INDEX.md" ]; then
+            echo "::error::ERROR: Unexpected file changes detected. Only spec/INDEX.md should be modified."
+            echo "::error::Changed files:"
+            git status --short
+            echo ""
+            echo "::error::The bot must only modify spec/INDEX.md. Please investigate why other files were changed."
+            exit 1
+          fi
+
+          echo "✅ Only spec/INDEX.md was modified (as expected)"
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add spec/INDEX.md
+          git commit -m "Bot: Claim ${{ steps.update_index.outputs.new_req_id }} for ${{ github.event.inputs.file }}"
+          git push
+
+      - name: Output new requirement ID
+        run: |
+          echo "## ✅ Requirement Number Claimed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**New REQ#:** \`${{ steps.update_index.outputs.new_req_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** \`${{ github.event.inputs.file }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Title:** ${{ github.event.inputs.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The requirement has been added to \`spec/INDEX.md\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Create the requirement section in \`spec/${{ github.event.inputs.file }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Use the exact format: \`### ${{ steps.update_index.outputs.new_req_id }}: ${{ github.event.inputs.title }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Submit a PR with your changes" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment workflow run link
+        run: |
+          echo "::notice title=Requirement Claimed::${{ steps.update_index.outputs.new_req_id }} has been reserved. View details at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

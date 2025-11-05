@@ -11,6 +11,46 @@ This directory contains **formal requirements documents** organized by audience 
 
 **See**: `docs/README.md` for when to use docs/ vs spec/.
 
+## Requirements Index
+
+The `INDEX.md` file maintains a complete index of all requirements across spec/ files.
+
+### Claiming a New Requirement Number
+
+**Use the GitHub Actions bot to automatically claim the next available REQ#:**
+
+1. Go to **Actions** → **Claim Requirement Number** in GitHub
+2. Click **Run workflow** and provide:
+   - **Prefix**: `p` (product), `o` (ops), or `d` (dev)
+   - **File**: The spec filename (e.g., `prd-security.md`)
+   - **Title**: The requirement title/description
+3. The bot will:
+   - Find the next available REQ# for that prefix
+   - Add it to `INDEX.md` with the file and title
+   - Commit directly to `main` (bypasses branch protection)
+   - Output the new REQ# for you to use
+
+4. **Next steps after claiming:**
+   - Create your requirement section in the spec file using the exact format:
+     ```markdown
+     ### REQ-pNNNNN: Your Title Here
+     ```
+   - Submit a PR with your changes
+   - The PR validation will verify INDEX.md matches your spec file
+
+### Manual INDEX Maintenance
+
+**IMPORTANT: When manually modifying requirements, you MUST update INDEX.md:**
+- **Adding a requirement**: Use the bot (recommended) or manually add a new row with REQ#, filename, and title (sorted by ID)
+- **Moving a requirement**: Update the filename reference for that REQ#
+- **Removing/deprecating a requirement**: Change the file reference to `obsolete` and leave the title blank (do NOT delete the row)
+
+**Validation**: The PR validation workflow automatically checks that INDEX.md matches the actual requirements in spec files.
+
+**Security**: The bot is restricted to modifying only `spec/INDEX.md`. Any attempt to modify other files will fail validation. See `.github/BOT_SECURITY.md` for details.
+
+This ensures requirement traceability is maintained even for obsolete requirements.
+
 
 # Hierarchical File Naming Convention
 

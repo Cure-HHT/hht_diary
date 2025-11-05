@@ -1,0 +1,101 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00013: Requirements Format Validation
+#   REQ-p00020: System Validation and Traceability
+
+name: Validate Bot Commits
+
+# Run on every push to main (including bot commits)
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-bot-commits:
+    name: Ensure Bot Only Modifies INDEX.md
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need at least 2 commits to compare
+
+      - name: Check if commit was made by bot
+        id: check_bot
+        run: |
+          AUTHOR_EMAIL=$(git log -1 --format='%ae')
+          COMMIT_MESSAGE=$(git log -1 --format='%s')
+
+          echo "Author: $AUTHOR_EMAIL"
+          echo "Message: $COMMIT_MESSAGE"
+
+          # Check if this is a bot commit (github-actions bot or starts with "Bot:")
+          if [[ "$AUTHOR_EMAIL" == "github-actions[bot]@users.noreply.github.com" ]] || [[ "$COMMIT_MESSAGE" == Bot:* ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "::notice::This commit was made by a bot - will validate file changes"
+          else
+            echo "is_bot=false" >> $GITHUB_OUTPUT
+            echo "::notice::This commit was not made by a bot - skipping validation"
+          fi
+
+      - name: Validate bot only modified INDEX.md
+        if: steps.check_bot.outputs.is_bot == 'true'
+        run: |
+          echo "::group::Validating Bot Commit"
+
+          # Get list of changed files in the last commit
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+
+          echo "Files changed in this commit:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          # Check if any files other than spec/INDEX.md were changed
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "::error::Bot commit changed no files. This is unexpected."
+            exit 1
+          fi
+
+          # Check if only spec/INDEX.md was changed
+          if [ "$CHANGED_FILES" != "spec/INDEX.md" ]; then
+            echo "::error::❌ SECURITY VIOLATION: Bot commit modified files other than spec/INDEX.md"
+            echo "::error::"
+            echo "::error::Bot commits are only allowed to modify spec/INDEX.md"
+            echo "::error::This commit modified:"
+            echo "$CHANGED_FILES" | while read -r file; do
+              echo "::error::  - $file"
+            done
+            echo "::error::"
+            echo "::error::If you need a bot that modifies other files, you must:"
+            echo "::error::  1. Create a dedicated workflow with specific validation"
+            echo "::error::  2. Update this validation workflow to allow the new bot"
+            echo "::error::  3. Document the security implications"
+            echo "::error::"
+            echo "::error::This prevents accidental or malicious use of bypass tokens to circumvent branch protection."
+            exit 1
+          fi
+
+          echo "✅ Bot commit validation passed - only spec/INDEX.md was modified"
+          echo "::endgroup::"
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.check_bot.outputs.is_bot }}" = "true" ]; then
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "✅ Bot commit validation: PASSED" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Bot correctly modified only \`spec/INDEX.md\`" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ Bot commit validation: FAILED" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**SECURITY VIOLATION**: Bot modified files other than \`spec/INDEX.md\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "ℹ️ Not a bot commit - validation skipped" >> $GITHUB_STEP_SUMMARY
+          fi
