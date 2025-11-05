@@ -38,9 +38,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Use SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION to allow bypassing branch protection
+          # Use BOT_BYPASS_MAIN_PROTECTION to allow bypassing branch protection
           # This token is ONLY authorized for modifying spec/INDEX.md
-          token: ${{ secrets.SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION || github.token }}
+          token: ${{ secrets.BOT_BYPASS_MAIN_PROTECTION || github.token }}
           fetch-depth: 1
 
       - name: Setup Node.js

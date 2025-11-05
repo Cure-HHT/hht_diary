@@ -4,15 +4,15 @@
 
 This repository uses automated bots to maintain specific files while enforcing strict security controls. This document outlines the security model and enforcement mechanisms.
 
-## SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION Token
+## BOT_BYPASS_MAIN_PROTECTION Token
 
-The `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` repository secret contains a Personal Access Token that allows bypassing branch protection rules for automated workflows.
+The `BOT_BYPASS_MAIN_PROTECTION` repository secret contains a Personal Access Token that allows bypassing branch protection rules for automated workflows.
 
-**⚠️ SECURITY CRITICAL**: This token bypasses all branch protection. The long name is intentional - it makes the security implications explicit.
+**⚠️ SECURITY CRITICAL**: This token bypasses all branch protection. It should only be used by authorized bot workflows.
 
 ### Current Authorized Use
 
-**ONLY** the following workflow is authorized to use `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION`:
+**ONLY** the following workflow is authorized to use `BOT_BYPASS_MAIN_PROTECTION`:
 - **Workflow**: `.github/workflows/claim-requirement-number.yml`
 - **Purpose**: Claim next available requirement number
 - **Files Modified**: `spec/INDEX.md` ONLY
@@ -53,13 +53,13 @@ If you need to create a new bot that bypasses branch protection:
 5. **Review security** - Get approval from security/compliance team
 6. **Update this document** - Add the new bot to the "Current Authorized Use" section
 
-**⚠️ DO NOT reuse `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` for other bots** - each bot should have its own dedicated token with an explicit name.
+**⚠️ DO NOT reuse `BOT_BYPASS_MAIN_PROTECTION` for other bots** - each bot should have its own dedicated token with an explicit name.
 
 ## Security Rationale
 
 ### Why This Matters
 
-Branch protection exists to enforce code review, testing, and validation. The `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` token bypasses these protections, which creates security risks:
+Branch protection exists to enforce code review, testing, and validation. The `BOT_BYPASS_MAIN_PROTECTION` token bypasses these protections, which creates security risks:
 
 - **Risk**: Malicious or buggy bot could commit arbitrary changes
 - **Risk**: Developer could create bot to bypass review process
@@ -91,7 +91,7 @@ If a bot commits unauthorized changes:
 
 1. **Immediate**: Revert the commit
 2. **Investigate**: Review workflow logs to determine root cause
-3. **Rotate**: If compromise suspected, rotate `SPEC_INDEX_BOT_BYPASS_MAIN_BRANCH_PROTECTION` immediately
+3. **Rotate**: If compromise suspected, rotate `BOT_BYPASS_MAIN_PROTECTION` immediately
 4. **Update**: Fix the bot workflow or validation rules
 5. **Document**: Create incident report in security log
 
