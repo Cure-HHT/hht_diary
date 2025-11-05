@@ -47,6 +47,16 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Check for unexpected changes before update
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::ERROR: Repository has uncommitted changes. Bot must start with a clean working tree."
+            echo "::error::Changed files:"
+            git status --short
+            exit 1
+          fi
+          echo "✅ Working tree is clean"
+
       - name: Update INDEX.md with next REQ#
         id: update_index
         run: node .github/scripts/update-index.js
@@ -54,6 +64,26 @@ jobs:
           REQ_PREFIX: ${{ github.event.inputs.prefix }}
           REQ_FILE: ${{ github.event.inputs.file }}
           REQ_TITLE: ${{ github.event.inputs.title }}
+
+      - name: Verify only INDEX.md was modified
+        run: |
+          CHANGED_FILES=$(git status --porcelain)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "::error::ERROR: No changes detected. INDEX.md should have been modified."
+            exit 1
+          fi
+
+          # Check that only spec/INDEX.md was modified
+          if [ "$CHANGED_FILES" != " M spec/INDEX.md" ]; then
+            echo "::error::ERROR: Unexpected file changes detected. Only spec/INDEX.md should be modified."
+            echo "::error::Changed files:"
+            git status --short
+            echo ""
+            echo "::error::The bot must only modify spec/INDEX.md. Please investigate why other files were changed."
+            exit 1
+          fi
+
+          echo "✅ Only spec/INDEX.md was modified (as expected)"
 
       - name: Commit and push changes
         run: |
