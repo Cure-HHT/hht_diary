@@ -141,8 +141,15 @@ if (totalMatch) {
   console.warn('Warning: Could not find/update total requirements count');
 }
 
-// Set GitHub Actions output
-console.log(`::set-output name=new_req_id::${newReqId}`);
+// Set GitHub Actions output using environment file (new method)
+const outputFile = process.env.GITHUB_OUTPUT;
+if (outputFile) {
+  fs.appendFileSync(outputFile, `new_req_id=${newReqId}\n`);
+} else {
+  // Fallback for local testing
+  console.log(`::set-output name=new_req_id::${newReqId}`);
+}
+
 console.log(`✅ Successfully claimed ${newReqId}`);
 console.log(`   File: ${file}`);
 console.log(`   Title: ${title}`);
