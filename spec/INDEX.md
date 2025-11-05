@@ -15,7 +15,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor |
-| REQ-p00004 | prd-database-event-sourcing.md | Immutable Audit Trail via Event Sourcing |
+| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing |
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control |
 | REQ-p00006 | prd-app.md | Offline-First Data Entry |
 | REQ-p00007 | prd-app.md | Automatic Sponsor Configuration |
@@ -51,6 +51,26 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00038 | prd-security-RLS.md | Auditor Compliance Access |
 | REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail |
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection |
+| REQ-p01000 | prd-event-sourcing-system.md | Event Sourcing Client Interface |
+| REQ-p01001 | prd-event-sourcing-system.md | Offline Event Queue with Automatic Synchronization |
+| REQ-p01002 | prd-event-sourcing-system.md | Optimistic Concurrency Control |
+| REQ-p01003 | prd-event-sourcing-system.md | Immutable Event Storage with Audit Trail |
+| REQ-p01004 | prd-event-sourcing-system.md | Schema Version Management |
+| REQ-p01005 | prd-event-sourcing-system.md | Real-time Event Subscription |
+| REQ-p01006 | prd-event-sourcing-system.md | Type-Safe Materialized View Queries |
+| REQ-p01007 | prd-event-sourcing-system.md | Error Handling and Diagnostics |
+| REQ-p01008 | prd-event-sourcing-system.md | Event Replay and Time Travel Debugging |
+| REQ-p01009 | prd-event-sourcing-system.md | Encryption at Rest for Offline Queue |
+| REQ-p01010 | prd-event-sourcing-system.md | Multi-tenancy Support |
+| REQ-p01011 | prd-event-sourcing-system.md | Event Transformation and Migration |
+| REQ-p01012 | prd-event-sourcing-system.md | Batch Event Operations |
+| REQ-p01013 | prd-event-sourcing-system.md | GraphQL or gRPC Transport Option |
+| REQ-p01014 | prd-event-sourcing-system.md | Observability and Monitoring |
+| REQ-p01015 | prd-event-sourcing-system.md | Automated Testing Support |
+| REQ-p01016 | prd-event-sourcing-system.md | Performance Benchmarking |
+| REQ-p01017 | prd-event-sourcing-system.md | Backward Compatibility Guarantees |
+| REQ-p01018 | prd-event-sourcing-system.md | Security Audit and Compliance |
+| REQ-p01019 | prd-event-sourcing-system.md | Phased Implementation |
 | REQ-o00001 | ops-deployment.md | Separate Supabase Projects Per Sponsor |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management |
 | REQ-o00003 | ops-database-setup.md | Supabase Project Provisioning Per Sponsor |
@@ -150,4 +170,4 @@ This file provides a complete index of all formal requirements across the spec/ 
 
 ---
 
-**Total Requirements:** 134 (42 PRD, 39 Ops, 52 Dev, 1 obsolete)
+**Total Requirements:** 154 (62 PRD, 39 Ops, 52 Dev, 1 obsolete)
