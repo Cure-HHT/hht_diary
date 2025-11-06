@@ -7,8 +7,8 @@
 # It automatically regenerates traceability matrices when spec/ files change.
 #
 # Plugin: traceability-matrix v1.0.0
-# Location: tools/anspar-marketplace/plugins/anspar-traceability-matrix/
-# Implementation: tools/requirements/generate_traceability.py
+# Location: tools/anspar-marketplace/plugins/traceability-matrix/
+# Implementation: tools/requirements/generate_traceability.py (shared tool)
 #
 # To disable (NOT RECOMMENDED):
 #   git commit --no-verify

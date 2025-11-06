@@ -3,12 +3,12 @@
 # Pre-Commit Hook: Requirement Validation
 # =====================================================
 #
-# This hook is part of the requirement-validation plugin.
+# This hook is part of the simple-requirements plugin.
 # It validates all requirements in spec/ before allowing commits.
 #
-# Plugin: requirement-validation v1.0.0
-# Location: tools/anspar-marketplace/plugins/anspar-requirement-validation/
-# Implementation: tools/requirements/validate_requirements.py
+# Plugin: simple-requirements v1.0.0
+# Location: tools/anspar-marketplace/plugins/simple-requirements/
+# Implementation: tools/requirements/validate_requirements.py (shared tool)
 #
 # To bypass (NOT RECOMMENDED):
 #   git commit --no-verify
