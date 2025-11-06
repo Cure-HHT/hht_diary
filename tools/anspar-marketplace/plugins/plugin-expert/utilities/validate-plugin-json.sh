@@ -171,6 +171,38 @@ validate_plugin_json() {
             comp_path=$(jq -r ".$component" "$file")
             success "Component '$component' points to: $comp_path"
 
+            # Validate file extension requirements (schema validation)
+            case "$component" in
+                agents)
+                    if [[ ! "$comp_path" =~ \.md$ ]]; then
+                        error "agents field must point to a .md file, got: $comp_path"
+                        echo "  Example: \"agents\": \"./agents/my-agent.md\""
+                        has_errors=1
+                    fi
+                    ;;
+                hooks)
+                    if [[ ! "$comp_path" =~ \.json$ ]]; then
+                        error "hooks field must point to a .json file, got: $comp_path"
+                        echo "  Example: \"hooks\": \"./hooks/hooks.json\""
+                        has_errors=1
+                    fi
+                    ;;
+                commands)
+                    if [[ ! "$comp_path" =~ /$ ]]; then
+                        warn "commands field should point to a directory (end with /)"
+                        echo "  Got: $comp_path"
+                        echo "  Recommended: ${comp_path}/"
+                    fi
+                    ;;
+                skills)
+                    if [[ ! "$comp_path" =~ /$ ]]; then
+                        warn "skills field should point to a directory (end with /)"
+                        echo "  Got: $comp_path"
+                        echo "  Recommended: ${comp_path}/"
+                    fi
+                    ;;
+            esac
+
             # Perform path validation if requested
             if [[ "$check_paths" -eq 1 ]]; then
                 # Get plugin directory (parent of .claude-plugin/ or hooks/)

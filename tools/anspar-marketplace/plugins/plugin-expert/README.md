@@ -88,6 +88,11 @@ These recommendations are INFO-level (not errors) and focus on enhancing user ex
 - ✅ Author structure: must have 'name' field
 - ✅ Optional fields: keywords (array), repository, homepage, license
 - ✅ Component paths: commands, agents, skills, hooks
+- ✅ **Schema validation** (file extension requirements):
+  - `agents` field must point to a `.md` file (ERROR if not)
+  - `hooks` field must point to a `.json` file (ERROR if not)
+  - `commands` field should point to a directory ending with `/` (WARNING if not)
+  - `skills` field should point to a directory ending with `/` (WARNING if not)
 
 **hooks.json**:
 - ✅ JSON syntax
@@ -150,6 +155,8 @@ Validating: .claude-plugin/plugin.json
 - ❌ Missing required fields
 - ❌ Invalid version format (must be semver)
 - ❌ Keywords as string instead of array
+- ❌ **agents field pointing to directory instead of .md file** (NEW)
+- ❌ **hooks field pointing to wrong file type (not .json)** (NEW)
 - ❌ Invalid hook structure
 - ❌ Missing 'hooks' array in hook entries
 - ❌ Component paths don't exist (with --check-paths)
