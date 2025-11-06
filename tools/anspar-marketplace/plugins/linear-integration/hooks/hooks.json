@@ -2,8 +2,12 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/test-config.js"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/test-config.js"
+          }
+        ]
       }
     ]
   },
