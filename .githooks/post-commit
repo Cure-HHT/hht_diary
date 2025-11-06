@@ -6,7 +6,7 @@
 # This hook runs after successful commits.
 #
 # Plugins (in tools/claude-marketplace/):
-# 1. anspar-workflow - Records commit in workflow state history
+# 1. workflow - Records commit in workflow state history
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -20,7 +20,7 @@
 # 1. Workflow State Tracking (Plugin)
 # =====================================================
 
-WORKFLOW_POSTCOMMIT_HOOK="tools/claude-marketplace/anspar-workflow/hooks/post-commit"
+WORKFLOW_POSTCOMMIT_HOOK="tools/claude-marketplace/workflow/hooks/post-commit"
 if [ -f "$WORKFLOW_POSTCOMMIT_HOOK" ]; then
     "$WORKFLOW_POSTCOMMIT_HOOK"
 fi

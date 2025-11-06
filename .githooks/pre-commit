@@ -6,11 +6,11 @@
 # This hook orchestrates validation by calling plugin hooks.
 #
 # Plugins (in tools/claude-marketplace/):
-# 1. anspar-workflow - Enforces active ticket requirement
+# 1. workflow - Enforces active ticket requirement
 # 2. Dockerfile linting (hadolint) - built-in
-# 3. anspar-traceability-matrix - Auto-regenerates matrices on spec/ changes
-# 4. anspar-requirement-validation - Validates requirement format and links
-# 5. anspar-spec-compliance - Enforces spec/ directory compliance rules
+# 3. traceability-matrix - Auto-regenerates matrices on spec/ changes
+# 4. simple-requirements - Validates requirement format and links
+# 5. spec-compliance - Enforces spec/ directory compliance rules
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -57,12 +57,12 @@ fi
 # 1. Workflow Enforcement (Plugin)
 # =====================================================
 
-WORKFLOW_PRECOMMIT_HOOK="tools/claude-marketplace/anspar-workflow/hooks/pre-commit"
+WORKFLOW_PRECOMMIT_HOOK="tools/claude-marketplace/workflow/hooks/pre-commit"
 if [ -f "$WORKFLOW_PRECOMMIT_HOOK" ]; then
     "$WORKFLOW_PRECOMMIT_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Workflow enforcement plugin not found: $WORKFLOW_PRECOMMIT_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-workflow/README.md"
+    echo "   Install: See tools/claude-marketplace/workflow/README.md"
     echo ""
 fi
 
@@ -114,12 +114,12 @@ fi
 # 3. Traceability Matrix Regeneration (Plugin)
 # =====================================================
 
-TRACEABILITY_HOOK="tools/claude-marketplace/anspar-traceability-matrix/hooks/pre-commit-traceability-matrix"
+TRACEABILITY_HOOK="tools/claude-marketplace/traceability-matrix/hooks/pre-commit-traceability-matrix"
 if [ -f "$TRACEABILITY_HOOK" ]; then
     "$TRACEABILITY_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Traceability matrix plugin not found: $TRACEABILITY_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-traceability-matrix/README.md"
+    echo "   Install: See tools/claude-marketplace/traceability-matrix/README.md"
     echo ""
 fi
 
@@ -127,12 +127,12 @@ fi
 # 4. Requirement Validation (Plugin)
 # =====================================================
 
-REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/anspar-requirement-validation/hooks/pre-commit-requirement-validation"
+REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/simple-requirements/hooks/pre-commit-requirement-validation"
 if [ -f "$REQUIREMENT_VALIDATION_HOOK" ]; then
     "$REQUIREMENT_VALIDATION_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Requirement validation plugin not found: $REQUIREMENT_VALIDATION_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-requirement-validation/README.md"
+    echo "   Install: See tools/claude-marketplace/simple-requirements/README.md"
     echo ""
 fi
 
@@ -140,12 +140,12 @@ fi
 # 5. Spec Compliance Validation (Plugin)
 # =====================================================
 
-SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/anspar-spec-compliance/hooks/pre-commit-spec-compliance"
+SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/spec-compliance/hooks/pre-commit-spec-compliance"
 if [ -f "$SPEC_COMPLIANCE_HOOK" ]; then
     "$SPEC_COMPLIANCE_HOOK" || exit 1
 else
     echo "⚠️  WARNING: Spec compliance plugin not found: $SPEC_COMPLIANCE_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-spec-compliance/README.md"
+    echo "   Install: See tools/claude-marketplace/spec-compliance/README.md"
     echo ""
 fi
 
