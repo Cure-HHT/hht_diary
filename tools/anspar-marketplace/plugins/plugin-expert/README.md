@@ -166,6 +166,52 @@ Validating: .claude-plugin/plugin.json
 - ✅ Clear error messages with fix suggestions
 - ✅ Automatic validation on save
 
+### 🔐 Plugin-Specific Permission Management (NEW)
+
+**v1.2 Enhancement**: Automated permission management for seamless command execution.
+
+**How it works**:
+- **Installation**: Automatically adds plugin-specific permissions to Claude Code
+- **Uninstallation**: Removes only this plugin's permissions (keeps shared ones)
+- **Registry Tracking**: Tracks which plugin added which permission
+- **Idempotent**: Safe to install/uninstall multiple times
+
+**Plugin-expert permissions**:
+- `Bash(git status:*)` - Check repository state
+- `Bash(git diff:*)` - Review file changes
+- `Bash(git show:*)` - Inspect commits
+- `Bash(git rev-parse:*)` - Get repository info
+- `Bash(git ls-files:*)` - List tracked files
+- `Bash(gh:*)` - GitHub CLI operations
+
+**Manual management**:
+
+```bash
+# Add permissions (run during installation)
+./utilities/manage-permissions.sh add plugin-expert ./.claude-plugin/permissions.json
+
+# Remove permissions (run during uninstallation)
+./utilities/manage-permissions.sh remove plugin-expert
+
+# List all registered permissions
+./utilities/manage-permissions.sh list
+```
+
+**Files**:
+- `.claude-plugin/permissions.json` - Permission definitions
+- `.claude/settings.local.json` - Claude Code permission settings
+- `.claude/permissions-registry.json` - Plugin permission registry (gitignored)
+
+**Shared permissions**:
+If multiple plugins need the same permission (e.g., `git status`), it's only added once and only removed when ALL plugins that need it are uninstalled.
+
+**Benefits**:
+- ✅ No permission prompts for common git operations
+- ✅ Seamless automation for plugin workflows
+- ✅ Plugin-specific (only requests what it needs)
+- ✅ Safe uninstallation (doesn't affect other plugins)
+- ✅ Transparent (see exactly what's allowed in permissions.json)
+
 ## 🏗️ Architecture
 
 Plugin Expert uses a sophisticated four-layer architecture:

@@ -146,3 +146,4 @@ tools/anspar-marketplace/plugins/linear-integration/scripts/config/
 # Plugin-expert documentation cache
 tools/anspar-marketplace/plugins/plugin-expert/cache/docs/
 tools/anspar-marketplace/plugins/plugin-expert/cache/.cache-metadata.json
+.claude/permissions-registry.json

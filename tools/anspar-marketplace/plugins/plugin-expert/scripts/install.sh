@@ -86,6 +86,28 @@ if [ ! -d "$CACHE_DIR" ]; then
     echo "  ✅ Created cache directory: $CACHE_DIR"
 fi
 
+# =====================================================
+# Add Claude Code Permissions
+# =====================================================
+
+echo
+echo "🔐 Configuring Claude Code permissions..."
+
+PERMISSIONS_SCRIPT="$PLUGIN_DIR/utilities/manage-permissions.sh"
+PERMISSIONS_FILE="$PLUGIN_DIR/.claude-plugin/permissions.json"
+
+if [ -f "$PERMISSIONS_SCRIPT" ] && [ -f "$PERMISSIONS_FILE" ]; then
+    cd "$REPO_ROOT"
+    if "$PERMISSIONS_SCRIPT" add "plugin-expert" "$PERMISSIONS_FILE"; then
+        echo "  ✅ Permissions configured"
+    else
+        echo "  ⚠️  Permission configuration failed (non-fatal)"
+    fi
+else
+    echo "  ⚠️  Permission management files not found"
+fi
+
+echo
 echo "✅ Plugin-expert installation complete"
 
 exit 0
