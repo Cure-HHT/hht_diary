@@ -278,6 +278,29 @@ python3 scripts/mark-verified.py d00027
 
 For detailed workflow documentation, see [TRACKING-WORKFLOW.md](./TRACKING-WORKFLOW.md).
 
+## Phase 4: Implementation Verification
+
+**Tools for finding and verifying implementations when requirements change:**
+
+- `scan-implementations.py` - Find all code implementing a requirement
+- `analyze-compliance.py` - AI-powered analysis of implementation compliance
+- `generate-report.py` - Create verification reports (markdown/HTML/JSON)
+
+See [VERIFICATION-GUIDE.md](./VERIFICATION-GUIDE.md) for details.
+
+## Phase 5: CI/CD Integration
+
+**Automated verification in GitHub Actions:**
+
+Workflow `.github/workflows/requirement-verification.yml` runs on spec/ changes:
+- Detects changed requirements automatically
+- Scans for implementations
+- Generates verification reports
+- Posts results as PR comments
+- Uploads artifacts for audit
+
+All verification tools are production-ready with comprehensive test coverage.
+
 ## Usage
 
 ### Automatic Validation (Recommended)

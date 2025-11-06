@@ -1,0 +1,125 @@
+name: Requirement Verification
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'spec/**/*.md'
+  pull_request:
+    paths:
+      - 'spec/**/*.md'
+
+jobs:
+  verify-requirements:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git operations
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Detect changed requirements
+        id: detect
+        run: |
+          python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/detect-changes.py \
+            --format json > changes.json
+
+          CHANGED_COUNT=$(jq '.summary.changed_count' changes.json)
+          NEW_COUNT=$(jq '.summary.new_count' changes.json)
+          TOTAL=$((CHANGED_COUNT + NEW_COUNT))
+
+          echo "changed_count=$CHANGED_COUNT" >> $GITHUB_OUTPUT
+          echo "new_count=$NEW_COUNT" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+      - name: Scan implementations
+        if: steps.detect.outputs.total > 0
+        run: |
+          # Scan for implementations of changed requirements
+          jq -r '.changed_requirements[].req_id' changes.json | while read req_id; do
+            echo "Scanning implementations for REQ-$req_id..."
+            python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/scan-implementations.py \
+              $req_id --format json >> implementations.json
+          done
+
+      - name: Generate report
+        if: steps.detect.outputs.total > 0
+        run: |
+          python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/generate-report.py \
+            --from-tracking --format markdown --output verification-report.md || \
+            echo "No tracking data available yet" > verification-report.md
+
+      - name: Upload verification report
+        if: steps.detect.outputs.total > 0
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-report
+          path: |
+            verification-report.md
+            changes.json
+            implementations.json
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.detect.outputs.total > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report = 'No report generated';
+            try {
+              report = fs.readFileSync('verification-report.md', 'utf8');
+            } catch (e) {
+              report = 'Verification report generation failed or no changes detected.';
+            }
+
+            const changedCount = '${{ steps.detect.outputs.changed_count }}';
+            const newCount = '${{ steps.detect.outputs.new_count }}';
+
+            const body = `## 📋 Requirement Verification
+
+**Changed Requirements**: ${changedCount}
+**New Requirements**: ${newCount}
+
+<details>
+<summary>View Verification Report</summary>
+
+${report}
+
+</details>
+
+**Next Steps:**
+1. Review changed requirements
+2. Update implementations if needed
+3. Run: \`python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/mark-verified.py REQ-{id}\`
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Summary
+        run: |
+          echo "## Requirement Verification Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Changed**: ${{ steps.detect.outputs.changed_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New**: ${{ steps.detect.outputs.new_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total**: ${{ steps.detect.outputs.total }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.detect.outputs.total }}" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Verification completed - see artifacts for details" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ No requirement changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
