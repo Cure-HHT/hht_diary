@@ -260,8 +260,8 @@ This is a test requirement body.
             return
 
         coverage = files_with_hashes / files_with_requirements * 100
-        self.assert_true(coverage > 90,
-                        f"At least 90% of requirement files have Hash fields ({coverage:.1f}%)")
+        self.assert_equal(coverage, 100.0,
+                         f"100% of requirement files must have Hash fields (got {coverage:.1f}%)")
 
     def test_hash_format_documentation(self):
         """Test requirements format documentation includes Hash"""
