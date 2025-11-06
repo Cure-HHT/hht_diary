@@ -158,11 +158,12 @@ The application SHALL implement multi-factor authentication enrollment and verif
 Implementation SHALL include:
 - MFA enrollment UI displaying QR code for TOTP authenticator app registration
 - TOTP verification code input and validation
-- Backup code generation and secure storage
 - MFA status tracking in user profile
 - Grace period handling (max 7 days) for initial MFA enrollment
 - MFA verification required at each login for enrolled users
 - Error handling for invalid codes with rate limiting
+Implementation MAY include:
+- Backup code generation and secure storage (for lost passwords)
 
 **Rationale**: Implements MFA configuration (o00006) at the application code level. Supabase Auth provides TOTP-based MFA capabilities that require application integration for enrollment and verification flows.
 
