@@ -13,10 +13,10 @@ Validates requirement format with hash at end:
 
 import re
 import sys
-import hashlib
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 from dataclasses import dataclass
+from requirement_hash import calculate_requirement_hash, clean_requirement_body
 
 @dataclass
 class Requirement:
@@ -45,9 +45,7 @@ class Requirement:
         return int(match.group(2)) if match else 0
 
 
-def calculate_requirement_hash(body: str) -> str:
-    """Calculate SHA-256 hash of requirement body (first 8 chars)."""
-    return hashlib.sha256(body.encode('utf-8')).hexdigest()[:8]
+# calculate_requirement_hash is now imported from requirement_hash module
 
 
 class RequirementValidator:
@@ -172,8 +170,12 @@ class RequirementValidator:
 
             # Extract body (between status line and end marker)
             body_start = status_match.end()
-            body_end = end_marker_match.start()
-            body = remaining[body_start:body_end]
+            # end_marker_match.start() is relative to remaining[status_match.end():], so add offset
+            body_end = status_match.end() + end_marker_match.start()
+            body_text = remaining[body_start:body_end]
+
+            # Clean body using shared function
+            body = clean_requirement_body(body_text)
 
             # Validate no high-level headings in body
             self._check_body_headings(file_path, line_num, req_id, body, heading_level)

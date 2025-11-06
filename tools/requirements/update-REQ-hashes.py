@@ -18,14 +18,12 @@ Usage:
 import re
 import sys
 import argparse
-import hashlib
 from pathlib import Path
 from typing import Dict, Tuple, Set
+from requirement_hash import calculate_requirement_hash, clean_requirement_body
 
 
-def calculate_hash(body: str) -> str:
-    """Calculate SHA-256 hash (first 8 chars)."""
-    return hashlib.sha256(body.encode('utf-8')).hexdigest()[:8]
+# calculate_requirement_hash and clean_requirement_body are now imported from requirement_hash module
 
 
 def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str = None) -> Dict[str, Tuple[str, str]]:
@@ -94,14 +92,13 @@ def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str =
             continue
 
         # Extract body (between status and end marker)
-        body_lines = lines[status_idx + 1:end_idx]
-        # Remove trailing blank lines
-        while body_lines and not body_lines[-1].strip():
-            body_lines.pop()
-        body = '\n'.join(body_lines)
+        body_text = '\n'.join(lines[status_idx + 1:end_idx])
 
-        # Calculate hash
-        new_hash = calculate_hash(body)
+        # Clean body using shared function
+        body = clean_requirement_body(body_text)
+
+        # Calculate hash using shared function
+        new_hash = calculate_requirement_hash(body)
         old_hash = end_pattern.match(lines[end_idx]).group(2)
 
         if old_hash != new_hash:
