@@ -43,6 +43,11 @@ Each git worktree maintains its own workflow state in `.git/WORKFLOW_STATE`. Thi
         }
       }
     },
+    "sponsor": {
+      "type": ["string", "null"],
+      "description": "Current sponsor context. null = core functionality work (most common). Set to sponsor codename for sponsor-specific work. Valid sponsors are dynamically discovered from sponsor/ subdirectories.",
+      "default": null
+    },
     "activeTicket": {
       "type": "object",
       "description": "Currently claimed ticket (null if no active ticket)",
@@ -124,6 +129,7 @@ Each git worktree maintains its own workflow state in `.git/WORKFLOW_STATE`. Thi
     "path": "/home/user/diary-worktrees/feature-workflow",
     "branch": "feature-workflow"
   },
+  "sponsor": null,
   "activeTicket": {
     "id": "CUR-262",
     "requirements": ["REQ-d00027"],
@@ -164,6 +170,7 @@ Each git worktree maintains its own workflow state in `.git/WORKFLOW_STATE`. Thi
     "path": "/home/user/diary-worktrees/hotfix-123",
     "branch": "hotfix-123"
   },
+  "sponsor": null,
   "activeTicket": null,
   "history": [
     {
@@ -205,6 +212,7 @@ Creates:
     "path": "<current-worktree-path>",
     "branch": "<current-branch>"
   },
+  "sponsor": null,
   "activeTicket": {
     "id": "CUR-262",
     "requirements": ["REQ-d00027"],  // Fetched from Linear

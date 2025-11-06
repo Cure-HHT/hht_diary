@@ -19,8 +19,8 @@ STATUS_MSG=""
 
 # Check for active ticket
 if [ -f "$CHECK_SCRIPT" ]; then
-    if TICKET_ID=$("$CHECK_SCRIPT" 2>/dev/null); then
-        STATUS_MSG="Active ticket: $TICKET_ID"
+    if TICKET_STATUS=$("$CHECK_SCRIPT" 2>/dev/null); then
+        STATUS_MSG="$TICKET_STATUS"
 
         # Show recent commits for this ticket (last 3)
         # Use git-dir to support both regular repos and worktrees

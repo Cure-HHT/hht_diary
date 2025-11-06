@@ -103,11 +103,17 @@ case $FORMAT in
         REQUIREMENTS=$(echo "$ACTIVE_TICKET" | jq -r '.requirements[]' | tr '\n' ' ')
         CLAIMED_AT=$(echo "$ACTIVE_TICKET" | jq -r '.claimedAt')
         CLAIMED_BY=$(echo "$ACTIVE_TICKET" | jq -r '.claimedBy')
+        SPONSOR=$(jq -r '.sponsor // "null"' "$STATE_FILE")
 
         echo "📋 Active Ticket: $TICKET_ID"
         echo "   Requirements: ${REQUIREMENTS:-none}"
         echo "   Claimed: $CLAIMED_AT"
         echo "   Agent: $CLAIMED_BY"
+        if [ "$SPONSOR" != "null" ] && [ -n "$SPONSOR" ]; then
+            echo "   Sponsor: $SPONSOR"
+        else
+            echo "   Sponsor: (core)"
+        fi
         ;;
 esac
 

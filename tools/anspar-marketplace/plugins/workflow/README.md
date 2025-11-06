@@ -16,6 +16,7 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 - ✅ REQ reference validation in commit messages
 - ✅ Active ticket enforcement before commits
 - ✅ Distributed worktree support
+- ✅ Sponsor context tracking (core vs sponsor-specific work)
 - ✅ Tracker-agnostic design (Linear integration via anspar-linear-integration)
 - ✅ Comprehensive audit trail (append-only history)
 
@@ -209,6 +210,40 @@ See [docs/workflow-state-schema.md](docs/workflow-state-schema.md) for complete 
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Sponsor Context
+
+The workflow plugin supports tracking sponsor context to distinguish between core functionality work and sponsor-specific implementations.
+
+**Sponsor Context Types**:
+- **Core functionality** (null): Default - work on shared platform code
+- **Sponsor-specific** (string): Work on sponsor-specific implementations (e.g., "carina", "callisto", "tethys")
+
+**How it works**:
+- Sponsors are automatically discovered from `sponsor/` directory subdirectories
+- Directories starting with `_` or `.` are excluded (e.g., `_template`, `_abstractions`)
+- Sponsor context is optional - omit for core functionality work
+
+**Examples**:
+
+```bash
+# Core functionality work (no sponsor)
+./scripts/claim-ticket.sh CUR-262
+
+# Sponsor-specific work
+./scripts/claim-ticket.sh CUR-262 claude carina
+./scripts/claim-ticket.sh CUR-263 human callisto
+```
+
+**Display**:
+- Session start: "Active ticket: CUR-262 (core)" or "Active ticket: CUR-262 (carina)"
+- Status queries: Sponsor context shown in all output formats
+- Workflow state: Stored in `.git/WORKFLOW_STATE` sponsor field
+
+**Use Cases**:
+- Track which sponsor context a ticket is being worked on
+- Distinguish between platform development and sponsor customization
+- Maintain clear separation of core vs sponsor-specific work
+
 ## Usage
 
 ### Basic Workflow
@@ -223,6 +258,7 @@ cd tools/anspar-marketplace/plugins/workflow
 #    Worktree: /home/user/diary-worktrees/feature-xyz
 #    Branch: feature-xyz
 #    Agent: human
+#    Sponsor: (core functionality)
 # ✅ Ticket claimed successfully!
 
 # 2. Work on your changes
@@ -406,20 +442,27 @@ git commit -m "Add auth tests\n\nImplements: REQ-d00027"
 Claims a ticket for this worktree.
 
 ```bash
-./scripts/claim-ticket.sh <TICKET-ID> [AGENT-TYPE]
+./scripts/claim-ticket.sh <TICKET-ID> [AGENT-TYPE] [SPONSOR]
 
 # Examples:
-./scripts/claim-ticket.sh CUR-262
-./scripts/claim-ticket.sh CUR-262 claude
+./scripts/claim-ticket.sh CUR-262                    # Core functionality work
+./scripts/claim-ticket.sh CUR-262 claude             # Core work, claimed by Claude
+./scripts/claim-ticket.sh CUR-262 human carina       # Carina sponsor-specific work
+./scripts/claim-ticket.sh CUR-262 claude callisto    # Callisto sponsor-specific work
 ```
 
 **Arguments**:
 - `TICKET-ID`: Ticket ID (e.g., CUR-262, PROJ-123)
 - `AGENT-TYPE`: Agent type: `claude` or `human` (default: `human`)
+- `SPONSOR`: Sponsor context (optional) - omit for core functionality work
+  - Valid sponsors are discovered from `sponsor/` directory subdirectories
+  - Directories starting with `_` or `.` are excluded
 
 **What it does**:
 - Creates/updates `.git/WORKFLOW_STATE`
 - Sets `activeTicket` with ticket ID and metadata
+- Sets `sponsor` field (null for core work, string for sponsor-specific work)
+- Validates sponsor against discovered sponsors from `sponsor/` directory
 - Optionally fetches requirements from Linear (if available)
 - Appends claim action to history
 

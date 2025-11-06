@@ -73,7 +73,13 @@ fi
 # =====================================================
 
 if [ "$SILENT" = false ]; then
-    echo "$ACTIVE_TICKET"
+    SPONSOR=$(jq -r '.sponsor // "null"' "$STATE_FILE")
+
+    if [ "$SPONSOR" != "null" ] && [ -n "$SPONSOR" ]; then
+        echo "Active ticket: $ACTIVE_TICKET ($SPONSOR)"
+    else
+        echo "Active ticket: $ACTIVE_TICKET (core)"
+    fi
 fi
 
 exit 0
