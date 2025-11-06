@@ -89,8 +89,7 @@ The portal is a standalone Flutter web application, separate from the patient di
 
 ### REQ-d00028: Portal Frontend Framework
 
-**Level**: Dev | **Implements**: p00009, p00038 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009, p00038 | **Status**: Draft | **Hash**: 0156e239
 The portal SHALL be implemented using Flutter for web deployment, enabling code reuse with the patient diary mobile app if they are merged in the future.
 
 **Technical Details**:
@@ -160,8 +159,7 @@ flutter build web --release --web-renderer html
 
 ### REQ-d00029: Portal UI Design System
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: 9a779c24
 The portal SHALL use Flutter's Material Design 3 widgets with a custom theme matching the portal mockups.
 
 **Technical Details**:
@@ -217,8 +215,7 @@ final portalTheme = ThemeData(
 
 ### REQ-d00052: Role-Based Banner Component
 
-**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active
-
+**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active | **Hash**: fbe3cfdc
 The portal SHALL display a color-coded banner component at the top of all authenticated pages showing the current user's role.
 
 **Technical Details**:
@@ -251,8 +248,7 @@ The portal SHALL display a color-coded banner component at the top of all authen
 
 ### REQ-d00030: Portal Routing and Navigation
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: bdc1a330
 The portal SHALL implement declarative routing with role-based route guards and automatic redirects based on authentication state.
 
 **Technical Details**:
@@ -351,8 +347,7 @@ final router = GoRouter(
 
 ### REQ-d00031: Supabase Authentication Integration
 
-**Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft | **Hash**: 00d11f56
 The portal SHALL use Supabase Authentication for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
 
 **Technical Details**:
@@ -467,8 +462,7 @@ class AuthProvider extends ChangeNotifier {
 
 ### REQ-d00032: Role-Based Access Control Implementation
 
-**Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft | **Hash**: 77826f31
 The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and database queries SHALL be filtered by role using Supabase RLS policies.
 
 **Technical Details**:
@@ -505,8 +499,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 
 ### REQ-d00033: Site-Based Data Isolation
 
-**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft | **Hash**: e0a8af01
 Investigators SHALL only see and manage patients from their assigned sites, enforced by UI filtering and database RLS policies.
 
 **Technical Details**:
@@ -568,8 +561,7 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 
 ### REQ-d00034: Login Page Implementation
 
-**Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft | **Hash**: 741fd685
 The portal SHALL provide a login page with OAuth (Google, Microsoft) and email/password authentication options.
 
 **Technical Details**:
@@ -732,8 +724,7 @@ class _LoginPageState extends State<LoginPage> {
 
 ### REQ-d00035: Admin Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: 49a18ff7
 The portal SHALL provide an Admin dashboard for user management, displaying all portal users and enabling creation of new Investigators with site assignments.
 
 **Technical Details**:
@@ -989,8 +980,7 @@ class _SummaryCard extends StatelessWidget {
 
 ### REQ-d00036: Create User Dialog Implementation
 
-**Level**: Dev | **Implements**: p00038 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00038 | **Status**: Draft | **Hash**: dceecc76
 The portal SHALL provide a modal dialog for Admins to create new Investigators and Auditors with site assignments (for Investigators only) and generate linking codes for device enrollment (for Investigators only).
 
 **Technical Details**:
@@ -1302,8 +1292,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 
 ### REQ-d00037: Investigator Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft | **Hash**: 4739a12f
 The portal SHALL provide an Investigator dashboard showing assigned sites, patient monitoring table, questionnaire management, and patient enrollment.
 
 **Technical Details**:
@@ -1809,8 +1798,7 @@ class _QuestionnaireActions extends StatelessWidget {
 
 ### REQ-d00038: Enroll Patient Dialog Implementation
 
-**Level**: Dev | **Implements**: p00039 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00039 | **Status**: Draft | **Hash**: e8be1c1b
 The portal SHALL provide a modal dialog for Investigators to generate patient linking codes for enrollment, with site selection restricted to investigator's assigned sites.
 
 **Technical Details**:
@@ -2045,8 +2033,7 @@ class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
 
 ### REQ-d00051: Auditor Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00029 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00029 | **Status**: Draft | **Hash**: ff98b05e
 The portal SHALL provide an Auditor dashboard with read-only access to all portal data (users, patients, sites, questionnaires) and a stubbed "Export Database" function for compliance auditing.
 
 **Technical Details**:
@@ -2427,8 +2414,7 @@ class _SummaryCard extends StatelessWidget {
 
 ### REQ-d00039: Portal Users Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft | **Hash**: 1d2b06d4
 The portal database SHALL include a `portal_users` table to store portal user accounts with roles, linking codes, and authentication linkage.
 
 **Technical Details**:
@@ -2526,8 +2512,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 
 ### REQ-d00040: User Site Access Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft | **Hash**: 19187974
 The portal database SHALL include a `user_site_access` table to store site assignments for Investigators, enabling site-level data isolation.
 
 **Technical Details**:
@@ -2603,8 +2588,7 @@ CREATE POLICY "admins_insert_site_access" ON user_site_access
 
 ### REQ-d00041: Patients Table Extensions for Portal
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: 94ed0160
 The portal database SHALL extend the `patients` table with fields for linking codes, enrollment tracking, and status management.
 
 **Technical Details**:
@@ -2730,8 +2714,7 @@ CREATE POLICY "investigators_update_own_sites_patients" ON patients
 
 ### REQ-d00042: Questionnaires Table Schema
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft
-
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: f4671fda
 The portal database SHALL include a `questionnaires` table to track questionnaire status (NOSE HHT, QoL) for each patient with send/complete/acknowledge timestamps.
 
 **Technical Details**:
@@ -2843,8 +2826,7 @@ CREATE TRIGGER questionnaires_updated_at
 
 ### REQ-d00043: Netlify Deployment Configuration
 
-**Level**: Dev | **Implements**: o00009 | **Status**: Draft
-
+**Level**: Dev | **Implements**: o00009 | **Status**: Draft | **Hash**: ac19e32e
 The portal SHALL be deployed to Netlify with sponsor-specific subdomains, automatic builds from Git, and environment variable configuration.
 
 **Technical Details**:

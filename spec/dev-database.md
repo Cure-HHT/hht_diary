@@ -89,8 +89,7 @@ clinical-diary-{sponsor}/            # Private sponsor repository
 
 ### REQ-d00007: Database Schema Implementation and Deployment
 
-**Level**: Dev | **Implements**: o00004 | **Status**: Active
-
+**Level**: Dev | **Implements**: o00004 | **Status**: Active | **Hash**: 7cbe14ae
 Database schema files SHALL be implemented as versioned SQL scripts organized by functional area (schema, triggers, functions, RLS policies, indexes), enabling repeatable deployment to sponsor-specific Supabase instances while maintaining schema consistency across all sponsors.
 
 Implementation SHALL include:
@@ -115,8 +114,7 @@ Implementation SHALL include:
 
 ### REQ-d00011: Multi-Site Schema Implementation
 
-**Level**: Dev | **Implements**: o00011 | **Status**: Active
-
+**Level**: Dev | **Implements**: o00011 | **Status**: Active | **Hash**: 50c3cb5d
 The database schema SHALL implement multi-site support through sites table, site assignment tables, and row-level security policies that enforce site-based data access control within each sponsor's database.
 
 Implementation SHALL include:

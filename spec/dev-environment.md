@@ -29,8 +29,7 @@ The Clinical Diary development environment provides role-based containerized wor
 
 ### REQ-d00027: Containerized Development Environments
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: 8afe0445
 Development environments SHALL be containerized using Docker to ensure reproducible, platform-independent workspaces that maintain parity between local development, continuous integration, and production build environments.
 
 Containerization SHALL provide:
@@ -55,8 +54,7 @@ Containerization SHALL provide:
 
 ### REQ-d00055: Role-Based Environment Separation
 
-**Level**: Dev | **Implements**: p00005, p00014 | **Status**: Active
-
+**Level**: Dev | **Implements**: p00005, p00014 | **Status**: Active | **Hash**: 5aad618b
 Development infrastructure SHALL provide separate containerized environments for each role (Developer, QA, DevOps, Management) to enforce principle of least privilege and enable developers to practice proper separation of concerns.
 
 Role-based environments SHALL include:
@@ -84,8 +82,7 @@ Role-based environments SHALL include:
 
 ### REQ-d00056: Cross-Platform Development Support
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: b9002165
 Development environments SHALL function identically on Windows, Linux, and macOS without platform-specific code paths or manual configuration, enabling team members to use their preferred operating systems while maintaining environment parity.
 
 Cross-platform support SHALL ensure:
@@ -110,8 +107,7 @@ Cross-platform support SHALL ensure:
 
 ### REQ-d00057: CI/CD Environment Parity
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: f4d1f7d0
 Local development environments SHALL use identical Docker images as CI/CD pipelines to eliminate environment drift and ensure that code tested locally behaves identically in automated builds.
 
 CI/CD parity SHALL be achieved through:
@@ -136,8 +132,7 @@ CI/CD parity SHALL be achieved through:
 
 ### REQ-d00058: Secrets Management via Doppler
 
-**Level**: Dev | **Implements**: p00005 | **Status**: Active
-
+**Level**: Dev | **Implements**: p00005 | **Status**: Active | **Hash**: f33a510e
 Development environments SHALL integrate Doppler secrets management to eliminate hardcoded credentials, provide audit trails of secret access, and enable secret rotation without code changes.
 
 Doppler integration SHALL provide:
@@ -163,8 +158,7 @@ Doppler integration SHALL provide:
 
 ### REQ-d00059: Development Tool Specifications
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: c362162a
 Development environments SHALL include specific tool versions selected for stability, long-term support, and compatibility with FDA validation requirements, with each tool version justified and documented.
 
 Tool specifications SHALL include:
@@ -217,8 +211,7 @@ Tool specifications SHALL include:
 
 ### REQ-d00060: VS Code Dev Containers Integration
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: 881f5a00
 Development environments SHALL provide VS Code Dev Containers configuration enabling developers to open projects directly in containerized environments with one click, with role-specific extensions and settings pre-configured.
 
 Dev Containers SHALL provide:
@@ -246,8 +239,7 @@ Dev Containers SHALL provide:
 
 ### REQ-d00061: Automated QA Workflow
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: ada56bbf
 Development environments SHALL include automated quality assurance workflows that execute Flutter and Playwright tests on pull requests, generate PDF reports, integrate with GitHub Checks, and maintain artifact retention policies.
 
 QA automation SHALL provide:
@@ -277,8 +269,7 @@ QA automation SHALL provide:
 
 ### REQ-d00062: Environment Validation & Change Control
 
-**Level**: Dev | **Implements**: p00010 | **Status**: Active
-
+**Level**: Dev | **Implements**: p00010 | **Status**: Active | **Hash**: 09e427c2
 Development environments SHALL undergo formal validation using IQ/OQ/PQ protocols to ensure FDA compliance, with changes managed through documented change control procedures.
 
 Validation SHALL include:
@@ -327,8 +318,7 @@ Validation SHALL include:
 
 ### REQ-d00063: Shared Workspace and File Exchange
 
-**Level**: Dev | **Implements**: - | **Status**: Active
-
+**Level**: Dev | **Implements**: - | **Status**: Active | **Hash**: d7c0156f
 Development environments SHALL provide shared Docker volumes for code repositories and a designated exchange volume for transferring files between roles, without exposing host file system internals or creating platform-specific path issues.
 
 Shared workspace SHALL include:

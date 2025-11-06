@@ -19,8 +19,7 @@ This document defines operational procedures for maintaining formal requirements
 
 ### REQ-o00013: Requirements Format Validation
 
-**Level**: Ops | **Implements**: p00036 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00036 | **Status**: Active | **Hash**: 22af0a13
 Requirements SHALL follow the standardized format defined in spec/requirements-format.md, with automatic validation occurring before commits via pre-commit hooks, and traceability matrices auto-generated whenever spec/ files change.
 
 Format validation SHALL ensure:
@@ -47,8 +46,7 @@ Format validation SHALL ensure:
 
 ### REQ-o00014: Top-Down Requirement Cascade
 
-**Level**: Ops | **Implements**: p00036 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00036 | **Status**: Active | **Hash**: 18aedc4c
 Requirements SHALL be created following top-down cascade from PRD to OPS to DEV levels, never deriving product requirements from existing code, ensuring business needs drive implementation rather than vice versa.
 
 Top-down cascade SHALL ensure:
@@ -75,8 +73,7 @@ Top-down cascade SHALL ensure:
 
 ### REQ-o00015: Documentation Structure Enforcement
 
-**Level**: Ops | **Implements**: p00036 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00036 | **Status**: Active | **Hash**: 1037e0ce
 Documentation SHALL be organized with spec/ containing formal requirements (WHAT/WHY/HOW to build/deploy) and docs/ containing decisions, ADRs, and explanatory documentation, with files using hierarchical naming `{audience}-{topic}(-{subtopic}).md`.
 
 Documentation structure SHALL ensure:
@@ -104,8 +101,7 @@ Documentation structure SHALL ensure:
 
 ### REQ-o00016: Architecture Decision Process
 
-**Level**: Ops | **Implements**: p00037 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00037 | **Status**: Active | **Hash**: 7e9d3a1b
 Significant architectural and design decisions SHALL trigger Architecture Decision Record (ADR) creation, with ADRs following defined lifecycle from Proposed through Accepted to Deprecated/Superseded, and linking to implementing requirements and originating tickets.
 
 ADR process SHALL ensure:
@@ -133,8 +129,7 @@ ADR process SHALL ensure:
 
 ### REQ-o00017: Version Control Workflow
 
-**Level**: Ops | **Implements**: p00036, p00037 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00036, p00037 | **Status**: Active | **Hash**: 5ba1a2d6
 Development SHALL use feature branches created before changes, with commits referencing tickets, requirements, and ADRs, and pre-commit hooks enforcing validation before accepting commits.
 
 Version control workflow SHALL ensure:

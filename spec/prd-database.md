@@ -49,8 +49,7 @@ The database stores patient diary entries with complete history of all changes f
 
 ### REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active
-
+**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active | **Hash**: 2d24be49
 The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
 
 Change history SHALL include:
@@ -84,8 +83,7 @@ Change history SHALL include:
 
 ### REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active
-
+**Level**: PRD | **Implements**: p00001 | **Status**: Active | **Hash**: cfeffc86
 Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
 
 Database isolation SHALL ensure:
@@ -109,8 +107,7 @@ Database isolation SHALL ensure:
 
 ### REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 914a0234
 The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.
 
 Event storage SHALL ensure:

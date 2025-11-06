@@ -83,8 +83,7 @@ Sponsor A Environment           Sponsor B Environment
 
 ### REQ-d00003: Supabase Auth Configuration Per Sponsor
 
-**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
-
+**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active | **Hash**: 9a412da0
 The application SHALL integrate with Supabase Auth for user authentication, with each sponsor using their dedicated Supabase Auth instance configured for their specific requirements.
 
 Authentication integration SHALL include:
@@ -153,8 +152,7 @@ Authentication integration SHALL include:
 
 ### REQ-d00008: MFA Enrollment and Verification Implementation
 
-**Level**: Dev | **Implements**: o00006 | **Status**: Active
-
+**Level**: Dev | **Implements**: o00006 | **Status**: Active | **Hash**: 4ab38fcb
 The application SHALL implement multi-factor authentication enrollment and verification flows using Supabase Auth's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
 
 Implementation SHALL include:
@@ -219,8 +217,7 @@ Implementation SHALL include:
 
 ### REQ-d00009: Role-Based Permission Enforcement Implementation
 
-**Level**: Dev | **Implements**: o00007 | **Status**: Active
-
+**Level**: Dev | **Implements**: o00007 | **Status**: Active | **Hash**: b3cecfbf
 The application SHALL implement role-based permission enforcement by reading user roles from JWT claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
 
 Implementation SHALL include:
@@ -693,8 +690,7 @@ Sponsor A Environment          Sponsor B Environment
 
 ### REQ-d00010: Data Encryption Implementation
 
-**Level**: Dev | **Implements**: p00017 | **Status**: Active
-
+**Level**: Dev | **Implements**: p00017 | **Status**: Active | **Hash**: 72f2b4e1
 The application SHALL implement data encryption at rest and in transit using platform-provided encryption capabilities, ensuring all clinical trial data is protected from unauthorized access during storage and transmission.
 
 Implementation SHALL include:

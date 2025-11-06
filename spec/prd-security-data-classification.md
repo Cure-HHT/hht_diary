@@ -56,8 +56,7 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 ### REQ-p00016: Separation of Identity and Clinical Data
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 05dfac6b
 Patient identity information SHALL be stored separately from clinical trial data, with clinical database containing only de-identified participant records.
 
 Separation SHALL ensure:
@@ -80,8 +79,7 @@ Separation SHALL ensure:
 
 ### REQ-p00017: Data Encryption
 
-**Level**: PRD | **Implements**: p00016 | **Status**: Active
-
+**Level**: PRD | **Implements**: p00016 | **Status**: Active | **Hash**: b44b790d
 Sensitive data SHALL be encrypted both at rest (stored) and in transit (transmitted), with encryption keys managed securely per sponsor.
 
 Encryption SHALL ensure:

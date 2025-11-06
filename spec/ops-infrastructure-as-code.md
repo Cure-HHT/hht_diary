@@ -17,8 +17,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 ### REQ-o00041: Infrastructure as Code for Cloud Resources
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00010 | **Status**: Active | **Hash**: 489de0e9
 **SHALL** use Terraform for all Supabase infrastructure and cloud resources.
 
 **Rationale**: Infrastructure as code provides reproducibility, validation capability, and audit trail required for FDA compliance.
@@ -39,8 +38,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 ### REQ-o00042: Infrastructure Change Control
 
-**Level**: Ops | **Implements**: o00041, p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: o00041, p00010 | **Status**: Active | **Hash**: 28850d4c
 **SHALL** require pull request review for all infrastructure changes.
 
 **Rationale**: Change control is required for FDA compliance and prevents unauthorized infrastructure modifications.

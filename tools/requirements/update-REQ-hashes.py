@@ -39,8 +39,9 @@ def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str =
     updates = {}
 
     # Pattern to find requirements with metadata
+    # Note: There may be blank lines between header and metadata
     req_pattern = re.compile(
-        r'(###\s+REQ-([pod]\d{5}):\s+.+?\n'
+        r'(###\s+REQ-([pod]\d{5}):\s+.+?\n+'
         r'\*\*Level\*\*:.+?\|\s*\*\*Implements\*\*:.+?\|\s*\*\*Status\*\*:.+?\|\s*\*\*Hash\*\*:\s*)([a-f0-9]{8}|TBD)',
         re.MULTILINE
     )

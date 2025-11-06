@@ -319,8 +319,7 @@ jobs:
 
 ### REQ-o00001: Separate Supabase Projects Per Sponsor
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00001 | **Status**: Active | **Hash**: 1aa28891
 Each sponsor SHALL be provisioned with dedicated Supabase projects for staging and production environments, ensuring complete infrastructure isolation.
 
 Each Supabase project SHALL provide:
@@ -343,8 +342,7 @@ Each Supabase project SHALL provide:
 
 ### REQ-o00002: Environment-Specific Configuration Management
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00001 | **Status**: Active | **Hash**: 54c5bd14
 Configuration files containing environment-specific credentials SHALL be stored securely and SHALL NOT be committed to version control.
 
 Each sponsor repository SHALL maintain:
@@ -603,8 +601,7 @@ git push origin --delete release/1.2.3
 
 ### REQ-o00010: Mobile App Release Process
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00008 | **Status**: Active | **Hash**: 48e95308
 The mobile application SHALL be released as a single app package containing all sponsor configurations, with releases coordinated across iOS App Store and Google Play Store.
 
 Mobile app release SHALL include:
@@ -810,8 +807,7 @@ curl -i --location --request POST \
 
 ### REQ-o00009: Portal Deployment Per Sponsor
 
-**Level**: Ops | **Implements**: p00009 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00009 | **Status**: Active | **Hash**: be86e5f1
 Each sponsor SHALL have their web portal deployed to a unique URL with sponsor-specific configuration, ensuring complete portal isolation between sponsors.
 
 Portal deployment SHALL include:

@@ -5,8 +5,7 @@
 
 ### REQ-o00006: MFA Configuration for Staff Accounts
 
-**Level**: Ops | **Implements**: p00002 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00002 | **Status**: Active | **Hash**: 021603f9
 Multi-factor authentication SHALL be configured and enforced for all clinical staff, administrator, and sponsor personnel accounts, ensuring password-based authentication is augmented with additional verification.
 
 MFA configuration SHALL include:

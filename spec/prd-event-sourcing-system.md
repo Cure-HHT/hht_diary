@@ -118,8 +118,7 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 ### REQ-p01000: Event Sourcing Client Interface
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 915d91f4
 The module SHALL provide a type-safe client interface for creating, storing, and querying events in an event-sourced PostgreSQL database.
 
 The interface SHALL support:
@@ -144,8 +143,7 @@ The interface SHALL support:
 
 ### REQ-p01001: Offline Event Queue with Automatic Synchronization
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: f15223c6
 The module SHALL queue events locally when network unavailable and automatically synchronize them to the server when connectivity restored.
 
 Offline queue SHALL ensure:
@@ -172,8 +170,7 @@ Offline queue SHALL ensure:
 
 ### REQ-p01002: Optimistic Concurrency Control
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 574aaa9f
 The module SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
 
 Conflict resolution SHALL support:
@@ -199,8 +196,7 @@ Conflict resolution SHALL support:
 
 ### REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 55e911c7
 The module SHALL store all events as immutable, append-only records that form a complete audit trail of all data changes.
 
 Event storage SHALL ensure:
@@ -225,8 +221,7 @@ Event storage SHALL ensure:
 
 ### REQ-p01004: Schema Version Management
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: c390f7cb
 The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
 
 Schema management SHALL provide:
@@ -251,8 +246,7 @@ Schema management SHALL provide:
 
 ### REQ-p01005: Real-time Event Subscription
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: ec835735
 The module SHALL support real-time subscriptions to event streams, allowing clients to receive notifications when new events occur.
 
 Real-time subscriptions SHALL provide:
@@ -277,8 +271,7 @@ Real-time subscriptions SHALL provide:
 
 ### REQ-p01006: Type-Safe Materialized View Queries
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 21919f36
 The module SHALL provide type-safe query interfaces for materialized views that represent current state derived from events.
 
 Materialized view queries SHALL support:
@@ -303,8 +296,7 @@ Materialized view queries SHALL support:
 
 ### REQ-p01007: Error Handling and Diagnostics
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: b56402ec
 The module SHALL provide comprehensive error handling and diagnostic capabilities to support development, testing, and production troubleshooting.
 
 Error handling SHALL include:
@@ -331,8 +323,7 @@ Error handling SHALL include:
 
 ### REQ-p01008: Event Replay and Time Travel Debugging
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
-
+**Level**: PRD | **Implements**: - | **Status**: Draft | **Hash**: 5b149b28
 The module SHOULD support event replay capabilities, allowing developers to reconstruct application state at any point in time for debugging or auditing.
 
 Event replay SHALL provide:
@@ -356,8 +347,7 @@ Event replay SHALL provide:
 
 ### REQ-p01009: Encryption at Rest for Offline Queue
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
-
+**Level**: PRD | **Implements**: - | **Status**: Draft | **Hash**: 968f36ad
 The module SHOULD encrypt events stored in the offline queue on-device to protect sensitive data if device lost or stolen.
 
 Encryption SHALL ensure:
@@ -381,8 +371,7 @@ Encryption SHALL ensure:
 
 ### REQ-p01010: Multi-tenancy Support
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
-
+**Level**: PRD | **Implements**: - | **Status**: Draft | **Hash**: 3f0687fa
 The module SHOULD support multi-tenant architectures where a single client instance can connect to multiple isolated databases.
 
 Multi-tenancy SHALL provide:
@@ -406,8 +395,7 @@ Multi-tenancy SHALL provide:
 
 ### REQ-p01011: Event Transformation and Migration
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
-
+**Level**: PRD | **Implements**: - | **Status**: Draft | **Hash**: 9792e8f9
 The module SHOULD support event transformation/upcasting, allowing old event formats to be automatically converted to new formats.
 
 Event transformation SHALL support:
@@ -430,8 +418,7 @@ Event transformation SHALL support:
 
 ### REQ-p01012: Batch Event Operations
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
-
+**Level**: PRD | **Implements**: - | **Status**: Draft | **Hash**: e7120ede
 The module SHOULD support atomic batch operations where multiple events are created and persisted as a single transaction.
 
 Batch operations SHALL ensure:
@@ -454,8 +441,7 @@ Batch operations SHALL ensure:
 
 ### REQ-p01013: GraphQL or gRPC Transport Option
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
-
+**Level**: PRD | **Implements**: - | **Status**: Draft | **Hash**: d225a194
 The module SHOULD support pluggable transport protocols, with default REST/JSON and optional GraphQL or gRPC transports.
 
 Transport abstraction SHALL provide:
@@ -481,8 +467,7 @@ Transport abstraction SHALL provide:
 
 ### REQ-p01014: Observability and Monitoring
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 65df2fb2
 The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
 
 Monitoring SHALL include:
@@ -507,8 +492,7 @@ Monitoring SHALL include:
 
 ### REQ-p01015: Automated Testing Support
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: c05e43ff
 The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
 
 Testing utilities SHALL provide:
@@ -532,8 +516,7 @@ Testing utilities SHALL provide:
 
 ### REQ-p01016: Performance Benchmarking
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: d180f21b
 The module SHALL meet performance benchmarks for common operations to ensure acceptable user experience.
 
 Performance targets:
@@ -558,8 +541,7 @@ Performance targets:
 
 ### REQ-p01017: Backward Compatibility Guarantees
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 2076e414
 The module SHALL maintain backward compatibility for public APIs across minor versions, allowing applications to upgrade without code changes.
 
 Compatibility SHALL ensure:
@@ -584,8 +566,7 @@ Compatibility SHALL ensure:
 
 ### REQ-p01018: Security Audit and Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: b2187382
 The module SHALL undergo security review and maintain compliance with relevant security standards.
 
 Security SHALL address:
@@ -715,8 +696,7 @@ This module differs by:
 
 ### REQ-p01019: Phased Implementation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: fa64bac5
 The module SHALL be developed in phases, with each phase delivering incremental value and validating core assumptions.
 
 **Phase 1 - MVP** (Essential Requirements):

@@ -25,8 +25,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ### REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active | **Hash**: 0cad57b7
 **Description**: The system SHALL provide automated CI/CD validation of requirement traceability on every pull request and commit to protected branches.
 
 **Acceptance Criteria**:
@@ -50,8 +49,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ### REQ-o00053: Branch Protection Enforcement
 
-**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active | **Hash**: 96d245eb
 **Description**: The system SHALL enforce branch protection rules on `main` and `develop` branches that require passing CI/CD checks before merge.
 
 **Acceptance Criteria**:
@@ -71,8 +69,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ### REQ-o00054: Audit Trail Generation for CI/CD
 
-**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active | **Hash**: b61b9d6e
 **Description**: The system SHALL generate and archive traceability matrices as build artifacts for every CI/CD run, maintaining audit trail compliance.
 
 **Acceptance Criteria**:
@@ -375,8 +372,7 @@ Expected output:
 
 ### REQ-pXXXXX: Test Invalid Requirement
 
-**Level**: PRD | **Implements**: REQ-p00000 | **Status**: Active
-
+**Level**: PRD | **Implements**: REQ-p00000 | **Status**: Active | **Hash**: TBD
 This is an intentionally invalid requirement for testing CI/CD.
 (Use a real requirement ID format when testing, this example uses XXXXX to avoid validation errors in this doc)
 

@@ -31,8 +31,7 @@ The system protects clinical trial data through multiple layers of security, ens
 
 ### REQ-p00001: Complete Multi-Sponsor Data Separation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: c27350bb
 The system SHALL ensure complete data isolation between pharmaceutical sponsors such that no user, administrator, or automated process can access data belonging to a different sponsor.
 
 Each sponsor SHALL operate in a completely separate environment with:
@@ -56,8 +55,7 @@ Each sponsor SHALL operate in a completely separate environment with:
 
 ### REQ-p00002: Multi-Factor Authentication for Staff
 
-**Level**: PRD | **Implements**: - | **Status**: Active
-
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 91af5dfc
 The system SHALL require multi-factor authentication (MFA) for all clinical staff, administrators, and sponsor personnel accessing the system.
 
 MFA SHALL consist of:

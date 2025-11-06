@@ -10,8 +10,7 @@
 
 ### REQ-o00049: Artifact Retention and Archival
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00010 | **Status**: Active | **Hash**: 864489de
 **Specification**:
 
 The system SHALL implement artifact retention and archival that:
@@ -69,8 +68,7 @@ The system SHALL implement artifact retention and archival that:
 
 ### REQ-o00050: Environment Parity and Separation
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00008 | **Status**: Active | **Hash**: 6b76ea92
 **Specification**:
 
 The system SHALL maintain environment separation with:
@@ -111,8 +109,7 @@ The system SHALL maintain environment separation with:
 
 ### REQ-o00051: Change Control and Audit Trail
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00010 | **Status**: Active | **Hash**: bb726ab2
 **Specification**:
 
 The system SHALL maintain change control audit trail with:

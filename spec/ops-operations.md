@@ -96,8 +96,7 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 
 #### REQ-o00005: Audit Trail Monitoring
 
-**Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Active | **Hash**: 04b77abb
 Operations SHALL continuously monitor audit trail integrity, ensuring all clinical data changes are properly recorded and tamper-proof chain remains intact.
 
 Monitoring SHALL include:
@@ -852,8 +851,7 @@ The issue has been resolved. All services are operating normally.
 
 ### REQ-o00008: Backup and Retention Policy
 
-**Level**: Ops | **Implements**: p00012 | **Status**: Active
-
+**Level**: Ops | **Implements**: p00012 | **Status**: Active | **Hash**: 34334e6b
 Clinical trial data and audit trails SHALL be backed up regularly with retention policies meeting regulatory requirements (minimum 7 years), ensuring data recoverability and compliance.
 
 Backup and retention SHALL include:

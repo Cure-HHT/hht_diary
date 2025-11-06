@@ -27,8 +27,7 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 ### REQ-d00001: Sponsor-Specific Configuration Loading
 
-**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
-
+**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active | **Hash**: 97b389d8
 The application SHALL load sponsor-specific configuration from environment files that specify Supabase connection parameters and sponsor settings.
 
 Configuration files SHALL follow the naming pattern:
@@ -184,8 +183,7 @@ targets:
 
 ### REQ-d00002: Pre-Build Configuration Validation
 
-**Level**: Dev | **Implements**: o00002 | **Status**: Active
-
+**Level**: Dev | **Implements**: o00002 | **Status**: Active | **Hash**: 5b807b30
 The build system SHALL validate sponsor configuration before compilation begins.
 
 Validation checks SHALL include:
