@@ -111,7 +111,9 @@ if (insertIndex === -1) {
 }
 
 // Create the new row
-const newRow = `| ${newReqId} | ${file} | ${title} |`;
+// Hash defaults to TBD; can be calculated later with update-REQ-hashes.py
+const hash = process.env.REQ_HASH || 'TBD';
+const newRow = `| ${newReqId} | ${file} | ${title} | ${hash} |`;
 
 // Insert the new row
 lines.splice(insertIndex, 0, newRow);
