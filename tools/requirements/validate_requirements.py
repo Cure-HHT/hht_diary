@@ -13,6 +13,7 @@ Checks for:
 
 import re
 import sys
+import hashlib
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 from dataclasses import dataclass
@@ -25,6 +26,8 @@ class Requirement:
     level: str
     implements: List[str]
     status: str
+    hash: str  # SHA-256 hash (first 8 chars)
+    body: str  # Full body text for hash calculation
     file_path: Path
     line_number: int
 
@@ -41,13 +44,21 @@ class Requirement:
         return int(match.group(2)) if match else 0
 
 
+def calculate_requirement_hash(body: str) -> str:
+    """Calculate SHA-256 hash of requirement body (first 8 chars)."""
+    return hashlib.sha256(body.encode('utf-8')).hexdigest()[:8]
+
+
 class RequirementValidator:
     """Validates requirements across all spec files"""
 
     # Regex patterns
     REQ_HEADER_PATTERN = re.compile(r'^###\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
     METADATA_PATTERN = re.compile(
-        r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+\*\*Status\*\*:\s+(Active|Draft|Deprecated)',
+        r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
+        r'\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+'
+        r'\*\*Status\*\*:\s+(Active|Draft|Deprecated)\s+\|\s+'
+        r'\*\*Hash\*\*:\s+([a-f0-9]{8}|TBD)',
         re.MULTILINE
     )
 
@@ -88,6 +99,7 @@ class RequirementValidator:
         self._check_implements_links()
         self._check_orphaned_requirements()
         self._check_level_consistency()
+        self._check_hash_accuracy()
 
         # Report results
         self._print_results()
@@ -130,6 +142,13 @@ class RequirementValidator:
             level = metadata_match.group(1)
             implements_str = metadata_match.group(2).strip()
             status = metadata_match.group(3)
+            hash_value = metadata_match.group(4)
+
+            # Extract body text (from after metadata to next REQ or end)
+            body_start = match.end() + metadata_match.end()
+            next_req_match = self.REQ_HEADER_PATTERN.search(content[body_start:])
+            body_end = body_start + next_req_match.start() if next_req_match else len(content)
+            body = content[body_start:body_end].strip()
 
             # Parse implements list
             implements = []
@@ -146,6 +165,8 @@ class RequirementValidator:
                 level=level,
                 implements=implements,
                 status=status,
+                hash=hash_value,
+                body=body,
                 file_path=file_path,
                 line_number=line_num
             )
@@ -267,6 +288,27 @@ class RequirementValidator:
                         f"Same-level refinement (valid pattern). "
                         f"See spec/requirements-format.md 'Requirement Refinement vs. Cascade'"
                     )
+
+    def _check_hash_accuracy(self):
+        """Verify stored hashes match calculated hashes"""
+        for req_id, req in self.requirements.items():
+            if req.hash == 'TBD':
+                self.warnings.append(
+                    f"{req.file_path.name}:{req.line_number} - "
+                    f"REQ-{req_id}: Hash not set (TBD). "
+                    f"Run: python3 tools/requirements/update-REQ-hashes.py"
+                )
+                continue
+
+            calculated = calculate_requirement_hash(req.body)
+            if req.hash != calculated:
+                self.errors.append(
+                    f"{req.file_path.name}:{req.line_number} - "
+                    f"REQ-{req_id}: Hash mismatch! "
+                    f"Stored: {req.hash}, Calculated: {calculated}. "
+                    f"Requirement has been modified. "
+                    f"Run: python3 tools/requirements/update-REQ-hashes.py"
+                )
 
     def _print_results(self):
         """Print validation results"""
