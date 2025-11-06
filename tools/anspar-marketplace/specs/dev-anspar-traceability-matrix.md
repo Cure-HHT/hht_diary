@@ -6,7 +6,7 @@
 **Status**: Active
 
 > **See**: README.md for spec/ directory governance rules
-> **See**: ../plugins/anspar-traceability-matrix/ for implementation
+> **See**: ../plugins/traceability-matrix/ for implementation
 > **Implements**: Main project REQ-d00015 (Traceability Matrix Auto-Generation)
 
 ---
@@ -204,7 +204,7 @@ Hook integration SHALL include:
 
 ## References
 
-- **Implementation**: ../plugins/anspar-traceability-matrix/
+- **Implementation**: ../plugins/traceability-matrix/
 - **Shared Script**: ../../tools/requirements/generate_traceability.py
 - **Main Project Requirement**: ../../spec/dev-requirements-management.md (REQ-d00015)
 - **Marketplace Spec**: dev-marketplace.md

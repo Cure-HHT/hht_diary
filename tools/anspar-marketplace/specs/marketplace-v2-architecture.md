@@ -10,13 +10,13 @@
 ### 1. Policy Enforcement (Gates)
 **Block non-compliant actions**
 
-#### `anspar-policy-enforcer` (future rename from anspar-workflow)
+#### `policy-enforcer` (future rename from workflow)
 - Git commit requirements enforcement
 - Ticket claiming before commits
 - REQ-xxx references in commit messages
 - Per-worktree state management
 
-#### `anspar-scope-guardian` (NEW)
+#### `scope-guardian` (NEW)
 - Validates work against claimed ticket/requirement scope
 - Detects out-of-scope changes (new files, modified functions not in REQ)
 - **Hook**: `pre-commit` - analyze staged changes vs. requirement scope
@@ -27,7 +27,7 @@
 ### 2. Validation (Checkers)
 **Provide feedback, don't block**
 
-#### `anspar-requirement-validator` (enhanced)
+#### `requirement-validator` (enhanced)
 - **Scope validation**: Does requirement define clear boundaries?
 - **Completeness check**: Required sections present (Purpose, Acceptance, Out-of-Scope)?
 - **Cascade validation**: PRD → Ops → Dev hierarchy intact
@@ -46,12 +46,12 @@ Status: ⚠️  OUTDATED IMPLEMENTATIONS
 - Not implemented: 1 acceptance criterion
 ```
 
-#### `anspar-spec-compliance` (keep existing)
+#### `spec-compliance` (keep existing)
 - Validates spec/ directory structure
 - Enforces audience separation (prd/ops/dev)
 - Checks file naming conventions
 
-#### `anspar-traceability-validator` (enhanced)
+#### `traceability-validator` (enhanced)
 - Validates all code has REQ references
 - Checks all REQs have implementation
 - Detects orphaned requirements or code
@@ -62,7 +62,7 @@ Status: ⚠️  OUTDATED IMPLEMENTATIONS
 ### 3. Generation (Creators)
 **Generate artifacts with approval**
 
-#### `anspar-requirement-generator` (NEW)
+#### `requirement-generator` (NEW)
 - Creates new requirement when scope drift detected
 - **Always prompts user** with preview before creating
 - Prompts for: type (prd/ops/dev), cascade parent, scope
@@ -89,7 +89,7 @@ Preview:
 Approve creation? (y/n)
 ```
 
-#### `anspar-adr-generator` (NEW)
+#### `adr-generator` (NEW)
 - Detects decision points during implementation
 - **Always prompts user** before creating ADR
 - **Agent**: `ADRAssistant` - conducts decision interview
@@ -108,7 +108,7 @@ Options detected:
 Create ADR to document decision? (y/n)
 ```
 
-#### `anspar-ticket-generator` (NEW)
+#### `ticket-generator` (NEW)
 - Creates Linear tickets from requirements
 - Creates follow-up tickets from current work
 - Links tickets to requirements (one-way: ticket → REQ)
@@ -129,7 +129,7 @@ Create ADR to document decision? (y/n)
 → Shows preview, creates ticket
 ```
 
-#### `anspar-requirement-change-tracker` (NEW)
+#### `requirement-tracker` (NEW)
 - Monitors requirement scope-hash changes
 - When hash changes:
   1. Scans codebase for `Implements: REQ-xxx` references
@@ -155,7 +155,7 @@ Create ADR to document decision? (y/n)
 }
 ```
 
-#### `anspar-traceability-reporter` (keep, enhance)
+#### `traceability-reporter` (keep, enhance)
 - Generates traceability matrices
 - Multiple formats: markdown, JSON, HTML
 - Visual dependency graphs
@@ -165,7 +165,7 @@ Create ADR to document decision? (y/n)
 
 ### 4. Integration (External Systems)
 
-#### `anspar-linear-integration` (enhanced)
+#### `linear-integration` (enhanced)
 - Fetch ticket details and requirements
 - Create tickets (with approval)
 - Update ticket status
@@ -195,7 +195,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Validate Requirements
         run: |
-          # Run anspar-requirement-validator
+          # Run requirement-validator
           # Check for scope-hash changes
           # Trigger outdated-implementation tracking
 ```
@@ -207,7 +207,7 @@ jobs:
 #### Skill: `GetRequirementDefinition` (NEW)
 **Purpose**: Return clean REQ content without extra spec file details
 
-**Location**: `plugins/validation/anspar-requirement-validator/skills/GetRequirement/`
+**Location**: `plugins/validation/requirement-validator/skills/GetRequirement/`
 
 **Input:**
 ```javascript
@@ -420,7 +420,7 @@ scope-hash: abc123def456
 ### Enhanced Requirement Validation Output
 
 ```bash
-$ anspar-requirement-validator --status
+$ requirement-validator --status
 
 Requirements Status Report
 ==========================
@@ -457,26 +457,26 @@ No Code Required (1):
 tools/anspar-marketplace/
 ├── plugins/
 │   ├── policy-enforcement/
-│   │   ├── anspar-policy-enforcer/
-│   │   └── anspar-scope-guardian/
+│   │   ├── policy-enforcer/
+│   │   └── scope-guardian/
 │   │
 │   ├── validation/
-│   │   ├── anspar-requirement-validator/
+│   │   ├── requirement-validator/
 │   │   │   ├── agents/RequirementValidator.md
 │   │   │   ├── skills/GetRequirement/SKILL.md
 │   │   │   └── scripts/validate-requirements.sh
-│   │   ├── anspar-spec-compliance/
-│   │   └── anspar-traceability-validator/
+│   │   ├── spec-compliance/
+│   │   └── traceability-validator/
 │   │
 │   ├── generation/
-│   │   ├── anspar-requirement-generator/
-│   │   ├── anspar-adr-generator/
-│   │   ├── anspar-ticket-generator/
-│   │   ├── anspar-requirement-change-tracker/
-│   │   └── anspar-traceability-reporter/
+│   │   ├── requirement-generator/
+│   │   ├── adr-generator/
+│   │   ├── ticket-generator/
+│   │   ├── requirement-tracker/
+│   │   └── traceability-reporter/
 │   │
 │   ├── integration/
-│   │   ├── anspar-linear-integration/
+│   │   ├── linear-integration/
 │   │   └── anspar-github-actions-generator/
 │   │
 │   └── meta/
@@ -517,11 +517,11 @@ jobs:
       - name: Check scope-hash changes
         run: |
           # Detect hash changes
-          # Run anspar-requirement-change-tracker
+          # Run requirement-tracker
           # Create tickets if needed
 
       - name: Validate completeness
-        run: anspar-requirement-validator --strict
+        run: requirement-validator --strict
 
       - name: Check outdated implementations
         run: |
@@ -540,7 +540,7 @@ jobs:
   check:
     steps:
       - name: Validate REQ references
-        run: anspar-traceability-validator --pr-mode
+        run: traceability-validator --pr-mode
 
       - name: Ensure no orphaned code
         run: |
@@ -553,20 +553,20 @@ jobs:
 ## Implementation Priority
 
 ### Phase 1: Core + Tracking (Critical)
-1. `anspar-policy-enforcer` (future rename from anspar-workflow)
-2. `anspar-requirement-validator` + `GetRequirement` skill
-3. `anspar-requirement-change-tracker` (NEW - critical for hash tracking)
+1. `policy-enforcer` (future rename from workflow)
+2. `requirement-validator` + `GetRequirement` skill
+3. `requirement-tracker` (NEW - critical for hash tracking)
 4. `specs/outdated-implementations.json` support
 
 ### Phase 2: Generation (User Stories)
-5. `anspar-requirement-generator` (with approval)
-6. `anspar-ticket-generator` (with approval)
-7. `anspar-adr-generator` (with approval)
+5. `requirement-generator` (with approval)
+6. `ticket-generator` (with approval)
+7. `adr-generator` (with approval)
 
 ### Phase 3: Automation
 8. `anspar-github-actions-generator`
-9. Enhanced `anspar-traceability-validator`
-10. `anspar-scope-guardian`
+9. Enhanced `traceability-validator`
+10. `scope-guardian`
 
 ---
 

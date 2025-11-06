@@ -6,7 +6,7 @@
 **Status**: Active
 
 > **See**: README.md for spec/ directory governance rules
-> **See**: ../plugins/anspar-linear-integration/ for implementation
+> **See**: ../plugins/linear-integration/ for implementation
 > **Implements**: Main project REQ-d00027 (Development Environment and Tooling Setup)
 
 ---
@@ -180,7 +180,7 @@ Claude Code integration SHALL include:
 
 ## References
 
-- **Implementation**: ../plugins/anspar-linear-integration/
+- **Implementation**: ../plugins/linear-integration/
 - **Main Project Requirement**: ../../spec/dev-requirements-management.md (REQ-d00027)
 - **Marketplace Spec**: dev-marketplace.md
 - **Linear API**: https://developers.linear.app/docs/graphql/working-with-the-graphql-api

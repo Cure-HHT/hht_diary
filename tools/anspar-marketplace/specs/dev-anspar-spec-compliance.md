@@ -6,7 +6,7 @@
 **Status**: Active
 
 > **See**: README.md for spec/ directory governance rules
-> **See**: ../plugins/anspar-spec-compliance/ for implementation
+> **See**: ../plugins/spec-compliance/ for implementation
 > **Implements**: Main project REQ-o00015 (Documentation Structure Enforcement)
 
 ---
@@ -81,7 +81,7 @@ Format validation SHALL include:
 - Number format: 5 digits (00001-99999)
 - Required fields: Level, Status, optionally Implements
 - Valid status values: Active, Draft, Deprecated
-- ID uniqueness checking deferred to anspar-requirement-validation
+- ID uniqueness checking deferred to simple-requirements
 
 **Rationale**: Consistent format enables automated processing. Unique IDs prevent conflicts. Metadata fields support requirement management.
 
@@ -91,7 +91,7 @@ Format validation SHALL include:
 - Verifies required fields present
 - Validates status values
 - Reports format violations with line numbers
-- Does not duplicate anspar-requirement-validation logic
+- Does not duplicate simple-requirements logic
 
 ---
 
@@ -176,7 +176,7 @@ Pre-commit integration SHALL include:
 
 ## References
 
-- **Implementation**: ../plugins/anspar-spec-compliance/
+- **Implementation**: ../plugins/spec-compliance/
 - **Main Project Requirement**: ../../spec/ops-requirements-management.md (REQ-o00015)
 - **Marketplace Spec**: dev-marketplace.md
 

@@ -6,7 +6,7 @@
 **Status**: Active
 
 > **See**: README.md for spec/ directory governance rules
-> **See**: ../plugins/anspar-workflow/ for implementation
+> **See**: ../plugins/workflow/ for implementation
 > **Implements**: Main project REQ-o00017 (Version Control Workflow)
 
 ---
@@ -170,7 +170,7 @@ Hook integration SHALL include:
 
 ## References
 
-- **Implementation**: ../plugins/anspar-workflow/
+- **Implementation**: ../plugins/workflow/
 - **Main Project Requirement**: ../../spec/ops-requirements-management.md (REQ-o00017)
 - **Marketplace Spec**: dev-marketplace.md
 
