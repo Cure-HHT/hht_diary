@@ -170,7 +170,8 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | e1652867 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | 7f5b28a9 |
 | REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | 7f8a2b1e |
+| REQ-d00065 | dev-marketplace-path-validation.md | Plugin Path Validation | a3f9c7d2 |
 
 ---
 
-**Total Requirements:** 155 (62 PRD, 39 Ops, 53 Dev, 1 obsolete)
+**Total Requirements:** 156 (62 PRD, 39 Ops, 54 Dev, 1 obsolete)

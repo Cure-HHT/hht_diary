@@ -1,0 +1,12 @@
+{
+  "name": "test-plugin",
+  "version": "1.0.0",
+  "description": "Test plugin with invalid paths",
+  "author": {
+    "name": "Test Author"
+  },
+  "commands": "./cmds/",
+  "agents": "./agent/nonexistent.md",
+  "skills": "./skill-dir/",
+  "hooks": "./hooks/missing-hooks.json"
+}

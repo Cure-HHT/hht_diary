@@ -19,7 +19,7 @@ ERRORS=0
 # Usage information
 usage() {
     cat <<EOF
-Usage: $0 <json-file>
+Usage: $0 [OPTIONS] <json-file>
 
 Validates Claude Code plugin JSON files against schemas.
 
@@ -27,8 +27,13 @@ Supported files:
   - plugin.json    (plugin metadata)
   - hooks.json     (hook configuration)
 
+Options:
+  --check-paths    Enable path validation (verify referenced files exist)
+  -h, --help       Show this help message
+
 Examples:
   $0 .claude-plugin/plugin.json
+  $0 --check-paths .claude-plugin/plugin.json
   $0 hooks/hooks.json
 
 Exit codes:
@@ -77,6 +82,7 @@ validate_json_syntax() {
 # Validate plugin.json schema
 validate_plugin_json() {
     local file="$1"
+    local check_paths="$2"
     local has_errors=0
 
     info "Validating plugin.json schema..."
@@ -165,8 +171,57 @@ validate_plugin_json() {
             comp_path=$(jq -r ".$component" "$file")
             success "Component '$component' points to: $comp_path"
 
-            # Note: Path validation will be handled by separate tool (#28)
-            info "Path validation will check if '$comp_path' exists"
+            # Perform path validation if requested
+            if [[ "$check_paths" -eq 1 ]]; then
+                # Get plugin directory (parent of .claude-plugin/ or hooks/)
+                local plugin_dir
+                if [[ "$file" =~ \.claude-plugin/plugin\.json$ ]]; then
+                    plugin_dir=$(dirname "$(dirname "$file")")
+                else
+                    # Assume plugin.json is in plugin root for other cases
+                    plugin_dir=$(dirname "$file")
+                fi
+
+                # Resolve the component path relative to plugin directory
+                local resolved_path="$plugin_dir/$comp_path"
+
+                # Check if path exists
+                if [[ -e "$resolved_path" ]]; then
+                    if [[ -d "$resolved_path" ]]; then
+                        success "Path exists: $comp_path (directory)"
+                    elif [[ -f "$resolved_path" ]]; then
+                        success "Path exists: $comp_path (file)"
+                    fi
+                else
+                    error "Path does not exist: $comp_path"
+                    echo "  Expected: $resolved_path"
+
+                    # Check for common mistakes
+                    local basename_path=$(basename "$comp_path")
+
+                    # Check if there's a similar directory/file
+                    local parent_dir=$(dirname "$resolved_path")
+                    if [[ -d "$parent_dir" ]]; then
+                        local similar_files=$(find "$parent_dir" -maxdepth 1 -iname "$basename_path" 2>/dev/null)
+                        if [[ -n "$similar_files" ]]; then
+                            echo "  💡 Did you mean:"
+                            echo "$similar_files" | while read -r f; do
+                                echo "     $(basename "$f")"
+                            done
+                        fi
+                    fi
+
+                    # Check for old plugin name patterns
+                    if [[ "$comp_path" =~ anspar- ]] || [[ "$comp_path" =~ claude-marketplace ]]; then
+                        warn "Path contains old naming pattern"
+                        echo "  Consider updating to current naming conventions"
+                    fi
+
+                    has_errors=1
+                fi
+            else
+                info "Use --check-paths to verify this path exists"
+            fi
         fi
     done
 
@@ -189,6 +244,7 @@ validate_plugin_json() {
 # Validate hooks.json schema
 validate_hooks_json() {
     local file="$1"
+    local check_paths="$2"
     local has_errors=0
 
     info "Validating hooks.json schema..."
@@ -271,9 +327,56 @@ validate_hooks_json() {
                     # Check for ${CLAUDE_PLUGIN_ROOT} usage
                     if [[ "$cmd_path" =~ \$\{CLAUDE_PLUGIN_ROOT\} ]]; then
                         success "Command uses \${CLAUDE_PLUGIN_ROOT} variable"
+
+                        # Validate path if requested
+                        if [[ "$check_paths" -eq 1 ]]; then
+                            # Get plugin directory
+                            local plugin_dir=$(dirname "$(dirname "$file")")
+
+                            # Resolve the path by replacing ${CLAUDE_PLUGIN_ROOT}
+                            local resolved_cmd_path="${cmd_path//\$\{CLAUDE_PLUGIN_ROOT\}/$plugin_dir}"
+
+                            if [[ -f "$resolved_cmd_path" ]] && [[ -x "$resolved_cmd_path" ]]; then
+                                success "Hook command exists and is executable"
+                            elif [[ -f "$resolved_cmd_path" ]]; then
+                                warn "Hook command exists but is not executable: $resolved_cmd_path"
+                                echo "  Run: chmod +x $resolved_cmd_path"
+                            else
+                                error "Hook command file does not exist: $resolved_cmd_path"
+                                has_errors=1
+                            fi
+                        fi
                     elif [[ "$cmd_path" =~ ^/ ]]; then
                         warn "Command uses absolute path instead of \${CLAUDE_PLUGIN_ROOT}"
                         echo "  Consider: \${CLAUDE_PLUGIN_ROOT}/$(basename "$cmd_path")"
+
+                        # Validate absolute path if requested
+                        if [[ "$check_paths" -eq 1 ]]; then
+                            if [[ -f "$cmd_path" ]] && [[ -x "$cmd_path" ]]; then
+                                success "Absolute path command exists and is executable"
+                            elif [[ -f "$cmd_path" ]]; then
+                                warn "Absolute path command exists but is not executable"
+                                echo "  Run: chmod +x $cmd_path"
+                            else
+                                error "Absolute path command file does not exist: $cmd_path"
+                                has_errors=1
+                            fi
+                        fi
+                    elif [[ "$check_paths" -eq 1 ]]; then
+                        # Relative path without ${CLAUDE_PLUGIN_ROOT}
+                        local plugin_dir=$(dirname "$(dirname "$file")")
+                        local resolved_cmd_path="$plugin_dir/$cmd_path"
+
+                        if [[ -f "$resolved_cmd_path" ]] && [[ -x "$resolved_cmd_path" ]]; then
+                            info "Relative path command exists and is executable"
+                        elif [[ -f "$resolved_cmd_path" ]]; then
+                            warn "Relative path command exists but is not executable: $resolved_cmd_path"
+                            echo "  Run: chmod +x $resolved_cmd_path"
+                        else
+                            error "Relative path command file does not exist: $resolved_cmd_path"
+                            echo "  Consider using: \${CLAUDE_PLUGIN_ROOT}/$cmd_path"
+                            has_errors=1
+                        fi
                     fi
                 fi
 
@@ -297,11 +400,39 @@ validate_hooks_json() {
 
 # Main validation logic
 main() {
-    if [[ $# -ne 1 ]]; then
+    local check_paths=0
+    local file=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --check-paths)
+                check_paths=1
+                shift
+                ;;
+            -h|--help)
+                usage
+                ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                usage
+                ;;
+            *)
+                if [[ -z "$file" ]]; then
+                    file="$1"
+                    shift
+                else
+                    echo "Too many arguments" >&2
+                    usage
+                fi
+                ;;
+        esac
+    done
+
+    if [[ -z "$file" ]]; then
+        echo "Error: Missing required argument <json-file>" >&2
         usage
     fi
-
-    local file="$1"
 
     # Check file exists
     if [[ ! -f "$file" ]]; then
@@ -324,10 +455,10 @@ main() {
 
     case "$basename" in
         plugin.json)
-            validate_plugin_json "$file"
+            validate_plugin_json "$file" "$check_paths"
             ;;
         hooks.json)
-            validate_hooks_json "$file"
+            validate_hooks_json "$file" "$check_paths"
             ;;
         *)
             warn "Unknown JSON file type: $basename"

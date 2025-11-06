@@ -68,14 +68,15 @@ These recommendations are INFO-level (not errors) and focus on enhancing user ex
 - ✅ Promotes proactive patterns across all plugins
 - ✅ Ensures consistent quality and best practices
 
-### 🔍 JSON Validation (NEW)
+### 🔍 JSON Validation & Path Checking (NEW)
 
-**v1.2 Enhancement**: Automatic validation of plugin configuration files (plugin.json and hooks.json).
+**v1.2 Enhancement**: Automatic validation of plugin configuration files (plugin.json and hooks.json) with optional path verification.
 
 **How it works**:
 - **PreToolUse Hook**: Provides validation reminder when editing JSON files
 - **PostToolUse Hook**: Automatically validates JSON after edits
-- **Validation Script**: Standalone utility for manual validation
+- **Validation Script**: Standalone utility with schema and path validation
+- **Path Checking**: Optional flag to verify referenced files actually exist
 
 **Validated schemas**:
 
@@ -100,12 +101,29 @@ These recommendations are INFO-level (not errors) and focus on enhancing user ex
 **Manual validation**:
 
 ```bash
-# Validate plugin.json
+# Validate plugin.json (schema only)
 ${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh .claude-plugin/plugin.json
 
-# Validate hooks.json
-${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh hooks/hooks.json
+# Validate with path checking (recommended)
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh --check-paths .claude-plugin/plugin.json
+
+# Validate hooks.json with path checking
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh --check-paths hooks/hooks.json
 ```
+
+**Path validation checks**:
+
+For **plugin.json**:
+- ✅ Component paths exist (commands, agents, skills, hooks directories/files)
+- ✅ Detects old plugin name patterns (anspar-, claude-marketplace)
+- ✅ Suggests similar files if path not found
+- ✅ Works with both relative and absolute paths
+
+For **hooks.json**:
+- ✅ Hook command scripts exist
+- ✅ Hook command scripts are executable (warns if not)
+- ✅ Validates ${CLAUDE_PLUGIN_ROOT} variable usage
+- ✅ Suggests fixes for common path issues
 
 **Example output**:
 
@@ -134,11 +152,17 @@ Validating: .claude-plugin/plugin.json
 - ❌ Keywords as string instead of array
 - ❌ Invalid hook structure
 - ❌ Missing 'hooks' array in hook entries
+- ❌ Component paths don't exist (with --check-paths)
+- ❌ Hook scripts don't exist or aren't executable (with --check-paths)
+- ❌ Old plugin name patterns in paths (with --check-paths)
 
 **Benefits**:
 - ✅ Catch JSON errors before committing
 - ✅ Ensure plugin.json follows Claude Code schema
 - ✅ Validate hook configuration correctness
+- ✅ Verify all referenced files actually exist (--check-paths)
+- ✅ Detect broken references to renamed/moved files
+- ✅ Check hook script executability
 - ✅ Clear error messages with fix suggestions
 - ✅ Automatic validation on save
 
