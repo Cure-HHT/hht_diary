@@ -62,6 +62,46 @@ if [[ -z "$PLUGIN_DIR" ]]; then
 fi
 
 # =====================================================
+# JSON Validation for Plugin Configuration Files
+# =====================================================
+
+# Check if this is a JSON file edit/write operation
+if [[ "$TOOL_NAME" =~ ^(Edit|Write)$ ]] && [[ "$FILE_PATH" =~ \.(json)$ ]]; then
+    # Check if it's a plugin.json or hooks.json file
+    BASENAME=$(basename "$FILE_PATH")
+
+    if [[ "$BASENAME" == "plugin.json" ]] || [[ "$BASENAME" == "hooks.json" ]]; then
+        # Get the plugin root directory
+        PLUGIN_ROOT="${FILE_PATH%/.claude-plugin/plugin.json}"
+        PLUGIN_ROOT="${PLUGIN_ROOT%/hooks/hooks.json}"
+
+        # Validation will happen after the file is written
+        # For now, just inject a reminder to validate
+
+        cat << 'EOF'
+
+🔍 JSON VALIDATION REMINDER
+
+You're modifying a plugin configuration file. After saving:
+
+1. Validate syntax and schema:
+   ${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh <file-path>
+
+2. Common issues to avoid:
+   ❌ Missing commas between properties
+   ❌ Trailing commas in arrays/objects
+   ❌ Missing required fields (name, version, description, author)
+   ❌ Invalid version format (use semver: 1.0.0)
+   ❌ Keywords as string instead of array
+   ❌ Invalid hook structure (missing 'hooks' array)
+
+3. After editing, I can validate it for you automatically.
+
+EOF
+    fi
+fi
+
+# =====================================================
 # Inject Architectural Guidance
 # =====================================================
 

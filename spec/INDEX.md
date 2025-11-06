@@ -169,7 +169,8 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00061 | dev-environment.md | Automated QA Workflow | 42e506bd |
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | e1652867 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | 7f5b28a9 |
+| REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | 7f8a2b1e |
 
 ---
 
-**Total Requirements:** 154 (62 PRD, 39 Ops, 52 Dev, 1 obsolete)
+**Total Requirements:** 155 (62 PRD, 39 Ops, 53 Dev, 1 obsolete)

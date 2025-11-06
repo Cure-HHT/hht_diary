@@ -10,22 +10,13 @@
         ]
       }
     ],
-    "PreToolUse": [
+    "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/before-tool-use"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/after-tool-use"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit",
+            "timeout": 5000
           }
         ]
       }

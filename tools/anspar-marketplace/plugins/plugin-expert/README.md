@@ -2,7 +2,7 @@
 
 A comprehensive plugin development system for Claude Code that provides expert guidance, automation, and validation for creating high-quality plugins.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 🎯 Overview
@@ -67,6 +67,80 @@ These recommendations are INFO-level (not errors) and focus on enhancing user ex
 - ✅ Prevents architectural violations early
 - ✅ Promotes proactive patterns across all plugins
 - ✅ Ensures consistent quality and best practices
+
+### 🔍 JSON Validation (NEW)
+
+**v1.2 Enhancement**: Automatic validation of plugin configuration files (plugin.json and hooks.json).
+
+**How it works**:
+- **PreToolUse Hook**: Provides validation reminder when editing JSON files
+- **PostToolUse Hook**: Automatically validates JSON after edits
+- **Validation Script**: Standalone utility for manual validation
+
+**Validated schemas**:
+
+**plugin.json**:
+- ✅ JSON syntax (proper commas, quotes, braces)
+- ✅ Required fields: name, version, description, author
+- ✅ Name format: kebab-case (lowercase with hyphens)
+- ✅ Version format: semantic versioning (e.g., 1.0.0)
+- ✅ Author structure: must have 'name' field
+- ✅ Optional fields: keywords (array), repository, homepage, license
+- ✅ Component paths: commands, agents, skills, hooks
+
+**hooks.json**:
+- ✅ JSON syntax
+- ✅ Root 'hooks' object required
+- ✅ Hook types: SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse
+- ✅ Hook structure: proper nesting with 'hooks' arrays
+- ✅ Hook objects: must have 'type' and 'command' fields
+- ✅ Optional timeout field (number in milliseconds)
+- ✅ Command paths: validates ${CLAUDE_PLUGIN_ROOT} usage
+
+**Manual validation**:
+
+```bash
+# Validate plugin.json
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh .claude-plugin/plugin.json
+
+# Validate hooks.json
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh hooks/hooks.json
+```
+
+**Example output**:
+
+```
+Validating: .claude-plugin/plugin.json
+
+✓ JSON syntax is valid
+
+ℹ Validating plugin.json schema...
+✓ Required field 'name' present
+✓ Required field 'version' present
+✓ Required field 'description' present
+✓ Required field 'author' present
+✓ Plugin name 'my-plugin' follows kebab-case convention
+✓ Version '1.0.0' follows semver format
+✓ Author object has required 'name' field
+
+✓ Validation passed: .claude-plugin/plugin.json
+```
+
+**Common errors detected**:
+- ❌ Missing commas between properties
+- ❌ Trailing commas in arrays/objects
+- ❌ Missing required fields
+- ❌ Invalid version format (must be semver)
+- ❌ Keywords as string instead of array
+- ❌ Invalid hook structure
+- ❌ Missing 'hooks' array in hook entries
+
+**Benefits**:
+- ✅ Catch JSON errors before committing
+- ✅ Ensure plugin.json follows Claude Code schema
+- ✅ Validate hook configuration correctness
+- ✅ Clear error messages with fix suggestions
+- ✅ Automatic validation on save
 
 ## 🏗️ Architecture
 
