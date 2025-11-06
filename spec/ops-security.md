@@ -124,7 +124,8 @@ SELECT COUNT(*) FROM record_state; -- Should see all data
 
 ### REQ-o00007: Role-Based Permission Configuration
 
-**Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Active | **Hash**: c11c3254
+**Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Active
+
 User roles and permissions SHALL be configured in the database and authentication system, enforcing role-based access control at both application and database layers.
 
 Permission configuration SHALL include:
@@ -143,6 +144,7 @@ Permission configuration SHALL include:
 - Role assignment changes logged in audit trail
 - Permission matrix matches specification exactly
 
+*End* *Role-Based Permission Configuration* | **Hash**: 211d6d18
 ---
 
 ### Role-Based Access Control (RBAC)

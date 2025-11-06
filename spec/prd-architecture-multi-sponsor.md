@@ -35,7 +35,8 @@ The Clinical Diary system serves multiple pharmaceutical sponsors using a single
 
 ### REQ-p00008: Single Mobile App for All Sponsors
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active | **Hash**: b095a902
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
 One mobile application in app stores SHALL serve all pharmaceutical sponsors, with each sponsor's configuration and branding loaded dynamically based on patient enrollment.
 
 Single app approach SHALL ensure:
@@ -54,11 +55,13 @@ Single app approach SHALL ensure:
 - Updates deployed once for all sponsors
 - No cross-sponsor data or configuration leakage
 
+*End* *Single Mobile App for All Sponsors* | **Hash**: a9a18658
 ---
 
 ### REQ-p00009: Sponsor-Specific Web Portals
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active | **Hash**: 02bb542a
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
 Each sponsor SHALL have a dedicated web portal at a unique URL, accessible only to that sponsor's authorized personnel and displaying only that sponsor's clinical trial data.
 
 Portal isolation SHALL ensure:
@@ -77,6 +80,7 @@ Portal isolation SHALL ensure:
 - Portal customization independent per sponsor
 - Portal cannot query other sponsors' databases
 
+*End* *Sponsor-Specific Web Portals* | **Hash**: 1ca2a9f3
 ---
 
 ## How Patients Enroll
@@ -93,7 +97,8 @@ The patient never needs to know which technical system they're using - it just w
 
 ### REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 382707d6
+**Level**: PRD | **Implements**: - | **Status**: Active
+
 Each sponsor SHALL support multiple clinical trial sites within their isolated environment, with site-level access control ensuring investigators and analysts access only data from their assigned sites.
 
 Multi-site support SHALL include:
@@ -114,6 +119,7 @@ Multi-site support SHALL include:
 - Reports aggregate across sites or filter to specific sites
 - Site information included in data exports for regulatory submission
 
+*End* *Multi-Site Support Per Sponsor* | **Hash**: ff049149
 ---
 
 ## Data Isolation

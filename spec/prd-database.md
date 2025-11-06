@@ -83,7 +83,8 @@ Change history SHALL include:
 
 ### REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active | **Hash**: cfeffc86
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
 Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
 
 Database isolation SHALL ensure:
@@ -101,6 +102,7 @@ Database isolation SHALL ensure:
 - Backup/restore operations scoped to single sponsor
 - Query execution cannot span multiple sponsor databases
 
+*End* *Separate Database Per Sponsor* | **Hash**: 9be1f491
 ---
 
 ## Event Sourcing Architecture

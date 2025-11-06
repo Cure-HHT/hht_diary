@@ -159,7 +159,8 @@ flutter build web --release --web-renderer html
 
 ### REQ-d00029: Portal UI Design System
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: 9a779c24
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+
 The portal SHALL use Flutter's Material Design 3 widgets with a custom theme matching the portal mockups.
 
 **Technical Details**:
@@ -211,11 +212,13 @@ final portalTheme = ThemeData(
 - [ ] Reusable widgets created for common patterns
 - [ ] Accessible contrast ratios (WCAG AA compliant)
 
+*End* *Portal UI Design System* | **Hash**: 59fdab3b
 ---
 
 ### REQ-d00052: Role-Based Banner Component
 
-**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active | **Hash**: fbe3cfdc
+**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active
+
 The portal SHALL display a color-coded banner component at the top of all authenticated pages showing the current user's role.
 
 **Technical Details**:
@@ -244,11 +247,13 @@ The portal SHALL display a color-coded banner component at the top of all authen
 - [ ] Text contrast meets WCAG AA standards (4.5:1 minimum)
 - [ ] Banner included in core platform (all sponsor portals)
 
+*End* *Role-Based Banner Component* | **Hash**: af584eb8
 ---
 
 ### REQ-d00030: Portal Routing and Navigation
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: bdc1a330
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+
 The portal SHALL implement declarative routing with role-based route guards and automatic redirects based on authentication state.
 
 **Technical Details**:
@@ -341,13 +346,15 @@ final router = GoRouter(
 - [ ] Browser back button works correctly
 - [ ] Deep linking preserves intended destination after login
 
+*End* *Portal Routing and Navigation* | **Hash**: d0aee4b0
 ---
 
 ## Authentication & Authorization Requirements
 
 ### REQ-d00031: Supabase Authentication Integration
 
-**Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft | **Hash**: 00d11f56
+**Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
+
 The portal SHALL use Supabase Authentication for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
 
 **Technical Details**:
@@ -458,11 +465,13 @@ class AuthProvider extends ChangeNotifier {
 - [ ] Session persists across browser refresh
 - [ ] Logout clears all auth state
 
+*End* *Supabase Authentication Integration* | **Hash**: aaa8f76a
 ---
 
 ### REQ-d00032: Role-Based Access Control Implementation
 
-**Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft | **Hash**: 77826f31
+**Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft
+
 The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and database queries SHALL be filtered by role using Supabase RLS policies.
 
 **Technical Details**:
@@ -495,11 +504,13 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 - [ ] RLS policies enforce role-based data access
 - [ ] Admin can access all dashboards
 
+*End* *Role-Based Access Control Implementation* | **Hash**: a38f0d12
 ---
 
 ### REQ-d00033: Site-Based Data Isolation
 
-**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft | **Hash**: e0a8af01
+**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
+
 Investigators SHALL only see and manage patients from their assigned sites, enforced by UI filtering and database RLS policies.
 
 **Technical Details**:
@@ -555,13 +566,15 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 - [ ] RLS policy prevents cross-site data access
 - [ ] Admin can see all sites (bypass RLS)
 
+*End* *Site-Based Data Isolation* | **Hash**: e587cff4
 ---
 
 ## Frontend Components Requirements
 
 ### REQ-d00034: Login Page Implementation
 
-**Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft | **Hash**: 741fd685
+**Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft
+
 The portal SHALL provide a login page with OAuth (Google, Microsoft) and email/password authentication options.
 
 **Technical Details**:
@@ -720,11 +733,13 @@ class _LoginPageState extends State<LoginPage> {
 - [ ] Error messages displayed via SnackBar
 - [ ] Successful login redirects to role-specific dashboard
 
+*End* *Login Page Implementation* | **Hash**: 0fde167f
 ---
 
 ### REQ-d00035: Admin Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: 49a18ff7
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+
 The portal SHALL provide an Admin dashboard for user management, displaying all portal users and enabling creation of new Investigators with site assignments.
 
 **Technical Details**:
@@ -976,11 +991,13 @@ class _SummaryCard extends StatelessWidget {
 - [ ] Revoke button deactivates investigator accounts
 - [ ] Table responsive on desktop and tablet
 
+*End* *Admin Dashboard Implementation* | **Hash**: 2cfb4bc8
 ---
 
 ### REQ-d00036: Create User Dialog Implementation
 
-**Level**: Dev | **Implements**: p00038 | **Status**: Draft | **Hash**: dceecc76
+**Level**: Dev | **Implements**: p00038 | **Status**: Draft
+
 The portal SHALL provide a modal dialog for Admins to create new Investigators and Auditors with site assignments (for Investigators only) and generate linking codes for device enrollment (for Investigators only).
 
 **Technical Details**:
@@ -1288,11 +1305,13 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 - [ ] Success message shows linking code
 - [ ] Dialog closes and table refreshes after creation
 
+*End* *Create User Dialog Implementation* | **Hash**: b26e3867
 ---
 
 ### REQ-d00037: Investigator Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft | **Hash**: 4739a12f
+**Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft
+
 The portal SHALL provide an Investigator dashboard showing assigned sites, patient monitoring table, questionnaire management, and patient enrollment.
 
 **Technical Details**:
@@ -1794,11 +1813,13 @@ class _QuestionnaireActions extends StatelessWidget {
 - [ ] "Unenroll" button revokes patient tokens
 - [ ] Table responsive on desktop and tablet
 
+*End* *Investigator Dashboard Implementation* | **Hash**: d2984949
 ---
 
 ### REQ-d00038: Enroll Patient Dialog Implementation
 
-**Level**: Dev | **Implements**: p00039 | **Status**: Draft | **Hash**: e8be1c1b
+**Level**: Dev | **Implements**: p00039 | **Status**: Draft
+
 The portal SHALL provide a modal dialog for Investigators to generate patient linking codes for enrollment, with site selection restricted to investigator's assigned sites.
 
 **Technical Details**:
@@ -2029,11 +2050,13 @@ class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
 - [ ] Success message shows linking code
 - [ ] Dialog closes and table refreshes after enrollment
 
+*End* *Enroll Patient Dialog Implementation* | **Hash**: 45c79415
 ---
 
 ### REQ-d00051: Auditor Dashboard Implementation
 
-**Level**: Dev | **Implements**: p00029 | **Status**: Draft | **Hash**: ff98b05e
+**Level**: Dev | **Implements**: p00029 | **Status**: Draft
+
 The portal SHALL provide an Auditor dashboard with read-only access to all portal data (users, patients, sites, questionnaires) and a stubbed "Export Database" function for compliance auditing.
 
 **Technical Details**:
@@ -2408,13 +2431,15 @@ class _SummaryCard extends StatelessWidget {
 - [ ] Summary cards show accurate counts
 - [ ] RLS policies allow Auditor read access to all data
 
+*End* *Auditor Dashboard Implementation* | **Hash**: e4806c99
 ---
 
 ## Database Schema Requirements
 
 ### REQ-d00039: Portal Users Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft | **Hash**: 1d2b06d4
+**Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
+
 The portal database SHALL include a `portal_users` table to store portal user accounts with roles, linking codes, and authentication linkage.
 
 **Technical Details**:
@@ -2508,11 +2533,13 @@ CREATE POLICY "admins_update_users" ON portal_users
 - [ ] Admins can query all users
 - [ ] Investigators can only query themselves
 
+*End* *Portal Users Table Schema* | **Hash**: fa3c43cd
 ---
 
 ### REQ-d00040: User Site Access Table Schema
 
-**Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft | **Hash**: 19187974
+**Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft
+
 The portal database SHALL include a `user_site_access` table to store site assignments for Investigators, enabling site-level data isolation.
 
 **Technical Details**:
@@ -2584,11 +2611,13 @@ CREATE POLICY "admins_insert_site_access" ON user_site_access
 - [ ] RLS policies enable role-based access
 - [ ] Cascade delete removes assignments when user or site deleted
 
+*End* *User Site Access Table Schema* | **Hash**: f00fc7ba
 ---
 
 ### REQ-d00041: Patients Table Extensions for Portal
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: 94ed0160
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+
 The portal database SHALL extend the `patients` table with fields for linking codes, enrollment tracking, and status management.
 
 **Technical Details**:
@@ -2710,11 +2739,13 @@ CREATE POLICY "investigators_update_own_sites_patients" ON patients
 - [ ] Investigators can only see/enroll patients at their assigned sites
 - [ ] Migration script creates columns with proper types
 
+*End* *Patients Table Extensions for Portal* | **Hash**: 01a2584c
 ---
 
 ### REQ-d00042: Questionnaires Table Schema
 
-**Level**: Dev | **Implements**: p00009 | **Status**: Draft | **Hash**: f4671fda
+**Level**: Dev | **Implements**: p00009 | **Status**: Draft
+
 The portal database SHALL include a `questionnaires` table to track questionnaire status (NOSE HHT, QoL) for each patient with send/complete/acknowledge timestamps.
 
 **Technical Details**:
@@ -2820,13 +2851,15 @@ CREATE TRIGGER questionnaires_updated_at
 - [ ] Trigger updates `updated_at` on every row change
 - [ ] Cascade delete removes questionnaires when patient deleted
 
+*End* *Questionnaires Table Schema* | **Hash**: 41ab859a
 ---
 
 ## Deployment Requirements
 
 ### REQ-d00043: Netlify Deployment Configuration
 
-**Level**: Dev | **Implements**: o00009 | **Status**: Draft | **Hash**: ac19e32e
+**Level**: Dev | **Implements**: o00009 | **Status**: Draft
+
 The portal SHALL be deployed to Netlify with sponsor-specific subdomains, automatic builds from Git, and environment variable configuration.
 
 **Technical Details**:
@@ -2884,6 +2917,7 @@ SUPABASE_ANON_KEY=<anon-key-from-supabase>
 - [ ] Automatic deployments trigger on `main` branch push
 - [ ] Custom domain configured for sponsor
 
+*End* *Netlify Deployment Configuration* | **Hash**: fd52ff8d
 ---
 
 ## Summary

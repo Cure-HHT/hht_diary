@@ -28,7 +28,8 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 
 ### REQ-p00007: Automatic Sponsor Configuration
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active | **Hash**: 3df862a3
+**Level**: PRD | **Implements**: p00001 | **Status**: Active
+
 The app SHALL automatically configure itself for the correct sponsor and study based on the enrollment link provided to the patient, eliminating manual sponsor/study selection.
 
 Automatic configuration SHALL ensure:
@@ -47,6 +48,7 @@ Automatic configuration SHALL ensure:
 - Patient cannot switch to different sponsor after enrollment
 - Invalid or expired enrollment links rejected with clear error message
 
+*End* *Automatic Sponsor Configuration* | **Hash**: 65b8e866
 ---
 
 ### Daily Use
@@ -73,7 +75,8 @@ Automatic configuration SHALL ensure:
 
 ### REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 8143105a
+**Level**: PRD | **Implements**: - | **Status**: Active
+
 Patients SHALL be able to record diary entries without requiring internet connectivity, ensuring clinical trial participation is not dependent on network availability.
 
 Offline capability SHALL ensure:
@@ -91,6 +94,7 @@ Offline capability SHALL ensure:
 - No data loss if app closed before synchronization completes
 - Conflict resolution when same entry modified on multiple devices
 
+*End* *Offline-First Data Entry* | **Hash**: 56ace32a
 ---
 
 ## Multi-Sponsor Support

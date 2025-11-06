@@ -27,7 +27,8 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 ### REQ-d00001: Sponsor-Specific Configuration Loading
 
-**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active | **Hash**: 97b389d8
+**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
+
 The application SHALL load sponsor-specific configuration from environment files that specify Supabase connection parameters and sponsor settings.
 
 Configuration files SHALL follow the naming pattern:
@@ -51,6 +52,7 @@ The application SHALL validate all required fields are present at application st
 - Application throws clear error message if configuration missing
 - Configuration is immutable after loading (final fields)
 
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: df6f2f7e
 ---
 
 ### Implementation Example
@@ -183,7 +185,8 @@ targets:
 
 ### REQ-d00002: Pre-Build Configuration Validation
 
-**Level**: Dev | **Implements**: o00002 | **Status**: Active | **Hash**: 5b807b30
+**Level**: Dev | **Implements**: o00002 | **Status**: Active
+
 The build system SHALL validate sponsor configuration before compilation begins.
 
 Validation checks SHALL include:
@@ -205,6 +208,7 @@ The build SHALL fail immediately if validation fails, with clear error messages 
 - Validation completes in <1 second
 - Non-zero exit code on validation failure
 
+*End* *Pre-Build Configuration Validation* | **Hash**: e2f81aed
 ---
 
 ### Validation Script

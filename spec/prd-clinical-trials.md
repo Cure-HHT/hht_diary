@@ -46,7 +46,8 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 ### REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 5204b6f9
+**Level**: PRD | **Implements**: - | **Status**: Active
+
 The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures used in clinical trials.
 
 Compliance SHALL include:
@@ -69,11 +70,13 @@ Compliance SHALL include:
 - System access controls prevent unauthorized use
 - Records retrievable in human-readable form for FDA inspection
 
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 6d0b1c5b
 ---
 
 ### REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Active | **Hash**: 994bcd05
+**Level**: PRD | **Implements**: p00010 | **Status**: Active
+
 All clinical trial data SHALL adhere to ALCOA+ principles ensuring data quality and integrity throughout the data lifecycle.
 
 ALCOA+ compliance SHALL ensure data is:
@@ -96,11 +99,13 @@ ALCOA+ compliance SHALL ensure data is:
 - Data readable without special tools or decoding
 - Complete audit trail available for entire data lifecycle
 
+*End* *ALCOA+ Data Integrity Principles* | **Hash**: 79a68145
 ---
 
 ### REQ-p00012: Clinical Data Retention Requirements
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Active | **Hash**: 8dc29952
+**Level**: PRD | **Implements**: p00010 | **Status**: Active
+
 Clinical trial data and associated audit trails SHALL be retained for minimum period required by regulations (typically 7+ years after study completion or product approval).
 
 Data retention SHALL ensure:
@@ -119,6 +124,7 @@ Data retention SHALL ensure:
 - Retention period enforcement prevents premature deletion
 - Data integrity maintained throughout retention period
 
+*End* *Clinical Data Retention Requirements* | **Hash**: a46e06aa
 ---
 
 ### System Validation

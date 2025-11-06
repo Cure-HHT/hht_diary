@@ -83,7 +83,8 @@ Sponsor A Environment           Sponsor B Environment
 
 ### REQ-d00003: Supabase Auth Configuration Per Sponsor
 
-**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active | **Hash**: 9a412da0
+**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
+
 The application SHALL integrate with Supabase Auth for user authentication, with each sponsor using their dedicated Supabase Auth instance configured for their specific requirements.
 
 Authentication integration SHALL include:
@@ -103,6 +104,7 @@ Authentication integration SHALL include:
 - Logout clears all authentication state
 - Auth errors handled gracefully with user feedback
 
+*End* *Supabase Auth Configuration Per Sponsor* | **Hash**: 408ef986
 ---
 
 ### Supabase Auth (Per Sponsor)
@@ -152,7 +154,8 @@ Authentication integration SHALL include:
 
 ### REQ-d00008: MFA Enrollment and Verification Implementation
 
-**Level**: Dev | **Implements**: o00006 | **Status**: Active | **Hash**: eee5405e
+**Level**: Dev | **Implements**: o00006 | **Status**: Active
+
 The application SHALL implement multi-factor authentication enrollment and verification flows using Supabase Auth's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
 
 Implementation SHALL include:
@@ -175,6 +178,7 @@ Implementation MAY include:
 - Invalid code attempts rate limited (max 5 per minute)
 - MFA events logged in authentication audit trail
 
+*End* *MFA Enrollment and Verification Implementation* | **Hash**: 63e0a046
 ---
 
 **Required for**:
@@ -218,7 +222,8 @@ Implementation MAY include:
 
 ### REQ-d00009: Role-Based Permission Enforcement Implementation
 
-**Level**: Dev | **Implements**: o00007 | **Status**: Active | **Hash**: b3cecfbf
+**Level**: Dev | **Implements**: o00007 | **Status**: Active
+
 The application SHALL implement role-based permission enforcement by reading user roles from JWT claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
 
 Implementation SHALL include:
@@ -241,6 +246,7 @@ Implementation SHALL include:
 - Role changes reflected immediately in UI
 - Unauthorized navigation routes redirect to role-appropriate screen
 
+*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 1cad1d18
 ---
 
 ### Role Hierarchy
@@ -691,7 +697,8 @@ Sponsor A Environment          Sponsor B Environment
 
 ### REQ-d00010: Data Encryption Implementation
 
-**Level**: Dev | **Implements**: p00017 | **Status**: Active | **Hash**: 72f2b4e1
+**Level**: Dev | **Implements**: p00017 | **Status**: Active
+
 The application SHALL implement data encryption at rest and in transit using platform-provided encryption capabilities, ensuring all clinical trial data is protected from unauthorized access during storage and transmission.
 
 Implementation SHALL include:
@@ -712,6 +719,7 @@ Implementation SHALL include:
 - Local backups encrypted with device encryption key
 - No sensitive data logged in plaintext
 
+*End* *Data Encryption Implementation* | **Hash**: f3e089f1
 ---
 
 ### 1. Encryption at Rest

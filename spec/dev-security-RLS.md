@@ -27,7 +27,8 @@ This document specifies the implementation details for PostgreSQL Row-Level Secu
 
 ### REQ-d00019: Patient Data Isolation RLS Implementation
 
-**Level**: Dev | **Implements**: o00020 | **Status**: Active | **Hash**: e3f0124b
+**Level**: Dev | **Implements**: o00020 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented to enforce patient data isolation by filtering queries based on the authenticated user's patient ID from JWT claims.
 
 Implementation SHALL include:
@@ -98,11 +99,13 @@ CREATE POLICY patient_insert_audit ON record_audit
 - Policies execute without performance degradation (<50ms overhead)
 - Unit tests cover all policy scenarios
 
+*End* *Patient Data Isolation RLS Implementation* | **Hash**: 6421baf6
 ---
 
 ### REQ-d00020: Investigator Site-Scoped RLS Implementation
 
-**Level**: Dev | **Implements**: o00021 | **Status**: Active | **Hash**: 44561f06
+**Level**: Dev | **Implements**: o00021 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented to restrict investigator access to data at their assigned sites through subquery validation against the site assignment table.
 
 Implementation SHALL include:
@@ -168,11 +171,13 @@ CREATE POLICY investigator_site_audit ON record_audit
 - Policy subquery executes in <100ms
 - Migration includes rollback script
 
+*End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 8d6992de
 ---
 
 ### REQ-d00021: Investigator Annotation RLS Implementation
 
-**Level**: Dev | **Implements**: o00022 | **Status**: Active | **Hash**: 1a591b82
+**Level**: Dev | **Implements**: o00022 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented to allow investigators to create annotations while preventing modification of patient clinical data through selective policy application.
 
 Implementation SHALL include:
@@ -255,11 +260,13 @@ CREATE TRIGGER trg_set_annotation_investigator
 - Foreign key constraints prevent orphaned annotations
 - Annotation queries performant with proper indexes
 
+*End* *Investigator Annotation RLS Implementation* | **Hash**: 79c92802
 ---
 
 ### REQ-d00022: Analyst Read-Only RLS Implementation
 
-**Level**: Dev | **Implements**: o00023 | **Status**: Active | **Hash**: cb610863
+**Level**: Dev | **Implements**: o00023 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented to provide analysts read-only access to de-identified clinical data at assigned sites through SELECT-only policies.
 
 Implementation SHALL include:
@@ -330,11 +337,13 @@ ALTER DATABASE clinical_diary SET pgaudit.log = 'read';
 - No patient identity information accessible
 - Policy performance <100ms with proper indexes
 
+*End* *Analyst Read-Only RLS Implementation* | **Hash**: 71119f2b
 ---
 
 ### REQ-d00023: Sponsor Global Access RLS Implementation
 
-**Level**: Dev | **Implements**: o00024 | **Status**: Active | **Hash**: 580c876d
+**Level**: Dev | **Implements**: o00024 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented to provide sponsors read access to all clinical data across all sites within their database instance, with write access limited to administrative tables.
 
 Implementation SHALL include:
@@ -412,11 +421,13 @@ CREATE TRIGGER trg_audit_sponsor_users
 - No access to other sponsors' data (separate databases)
 - De-identified data access only
 
+*End* *Sponsor Global Access RLS Implementation* | **Hash**: 30c879b8
 ---
 
 ### REQ-d00024: Auditor Compliance RLS Implementation
 
-**Level**: Dev | **Implements**: o00025 | **Status**: Active | **Hash**: 66b4879e
+**Level**: Dev | **Implements**: o00025 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented to provide auditors read-only access to all data including audit logs, with export functions capturing justification.
 
 Implementation SHALL include:
@@ -548,11 +559,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 - Quarterly access review reports available
 - Justification validation prevents empty exports
 
+*End* *Auditor Compliance RLS Implementation* | **Hash**: d622043f
 ---
 
 ### REQ-d00025: Administrator Break-Glass RLS Implementation
 
-**Level**: Dev | **Implements**: o00026 | **Status**: Active | **Hash**: 65895cc4
+**Level**: Dev | **Implements**: o00026 | **Status**: Active
+
 PostgreSQL RLS policies SHALL be implemented for administrator access with break-glass authorization for protected health information access, validated by ticket ID and TTL.
 
 Implementation SHALL include:
@@ -662,11 +675,13 @@ $$ LANGUAGE plpgsql;
 - All break-glass access logged
 - Expired sessions cleaned up automatically
 
+*End* *Administrator Break-Glass RLS Implementation* | **Hash**: 8b0f32b4
 ---
 
 ### REQ-d00026: Event Sourcing State Protection RLS Implementation
 
-**Level**: Dev | **Implements**: o00027 | **Status**: Active | **Hash**: e79309b4
+**Level**: Dev | **Implements**: o00027 | **Status**: Active
+
 PostgreSQL RLS policies SHALL prevent direct modification of the `record_state` table by omitting write policies, with state updates handled exclusively through triggers on the event log.
 
 Implementation SHALL include:
@@ -761,6 +776,7 @@ $$ LANGUAGE plpgsql;
 - Version number increments with each event
 - Integrity validation function available
 
+*End* *Event Sourcing State Protection RLS Implementation* | **Hash**: 17e1bdf5
 ---
 
 ## Implementation Guidelines

@@ -10,7 +10,8 @@
 
 ### REQ-o00043: Automated Deployment Pipeline
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Active | **Hash**: 6a8bf2e3
+**Level**: Ops | **Implements**: p00005 | **Status**: Active
+
 **Specification**:
 
 The system SHALL provide automated deployment pipelines that:
@@ -53,11 +54,13 @@ The system SHALL provide automated deployment pipelines that:
 - ✅ Smoke tests execute post-deployment
 - ✅ Deployment windows enforced for production
 
+*End* *Automated Deployment Pipeline* | **Hash**: e8c189f3
 ---
 
 ### REQ-o00044: Database Migration Automation
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Active | **Hash**: 9e7027b6
+**Level**: Ops | **Implements**: p00005 | **Status**: Active
+
 **Specification**:
 
 The system SHALL automate database migrations with the following capabilities:
@@ -99,6 +102,7 @@ The system SHALL automate database migrations with the following capabilities:
 - ✅ Dry-run capability implemented
 - ✅ Alert on migration duration >5 minutes
 
+*End* *Database Migration Automation* | **Hash**: 74a39697
 ---
 
 ## Architecture

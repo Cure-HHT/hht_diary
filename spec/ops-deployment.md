@@ -319,7 +319,8 @@ jobs:
 
 ### REQ-o00001: Separate Supabase Projects Per Sponsor
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active | **Hash**: 1aa28891
+**Level**: Ops | **Implements**: p00001 | **Status**: Active
+
 Each sponsor SHALL be provisioned with dedicated Supabase projects for staging and production environments, ensuring complete infrastructure isolation.
 
 Each Supabase project SHALL provide:
@@ -338,11 +339,13 @@ Each Supabase project SHALL provide:
 - No shared configuration files between sponsors
 - Project provisioning documented in runbook
 
+*End* *Separate Supabase Projects Per Sponsor* | **Hash**: 20a7fa61
 ---
 
 ### REQ-o00002: Environment-Specific Configuration Management
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active | **Hash**: 54c5bd14
+**Level**: Ops | **Implements**: p00001 | **Status**: Active
+
 Configuration files containing environment-specific credentials SHALL be stored securely and SHALL NOT be committed to version control.
 
 Each sponsor repository SHALL maintain:
@@ -359,6 +362,7 @@ Each sponsor repository SHALL maintain:
 - Build scripts validate presence of required environment variables
 - No credentials found in git history
 
+*End* *Environment-Specific Configuration Management* | **Hash**: b58b6034
 ---
 
 ### Environment Types
@@ -601,7 +605,8 @@ git push origin --delete release/1.2.3
 
 ### REQ-o00010: Mobile App Release Process
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Active | **Hash**: 48e95308
+**Level**: Ops | **Implements**: p00008 | **Status**: Active
+
 The mobile application SHALL be released as a single app package containing all sponsor configurations, with releases coordinated across iOS App Store and Google Play Store.
 
 Mobile app release SHALL include:
@@ -620,6 +625,7 @@ Mobile app release SHALL include:
 - App store listings reference single app for all sponsors
 - Update deployment automated via CI/CD
 
+*End* *Mobile App Release Process* | **Hash**: 7cce6d34
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -807,7 +813,8 @@ curl -i --location --request POST \
 
 ### REQ-o00009: Portal Deployment Per Sponsor
 
-**Level**: Ops | **Implements**: p00009 | **Status**: Active | **Hash**: be86e5f1
+**Level**: Ops | **Implements**: p00009 | **Status**: Active
+
 Each sponsor SHALL have their web portal deployed to a unique URL with sponsor-specific configuration, ensuring complete portal isolation between sponsors.
 
 Portal deployment SHALL include:
@@ -826,6 +833,7 @@ Portal deployment SHALL include:
 - Portal cannot access other sponsors' databases
 - Rollback capability per sponsor portal
 
+*End* *Portal Deployment Per Sponsor* | **Hash**: 845789b0
 ---
 
 ### Netlify Static Site Deployment

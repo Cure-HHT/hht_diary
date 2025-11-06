@@ -30,7 +30,8 @@ The Clinical Trial Web Portal is a sponsor-specific web application that enables
 
 ### REQ-p00024: Portal User Roles and Permissions
 
-**Level**: PRD | **Implements**: p00009 | **Status**: Draft | **Hash**: 2f8ca74f
+**Level**: PRD | **Implements**: p00009 | **Status**: Draft
+
 The portal SHALL support three user roles with distinct permissions: Admin (user management), Investigator (patient operations), and Auditor (compliance oversight).
 
 Role permissions SHALL ensure:
@@ -60,11 +61,13 @@ Role permissions SHALL ensure:
 - All user actions captured in audit trail
 - Users cannot switch roles without Admin intervention
 
+*End* *Portal User Roles and Permissions* | **Hash**: 2d494361
 ---
 
 ### REQ-p00025: Patient Enrollment Workflow
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft | **Hash**: 0a834b94
+**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+
 Investigators SHALL be able to enroll new patients using IRT-provided patient IDs and generate unique linking codes for patients to connect their mobile diary applications.
 
 Patient enrollment SHALL ensure:
@@ -92,11 +95,13 @@ Patient enrollment SHALL ensure:
 - Patient can link mobile app using generated code
 - Linking code association permanent (cannot be changed after linking)
 
+*End* *Patient Enrollment Workflow* | **Hash**: 5e6b9507
 ---
 
 ### REQ-p00026: Patient Monitoring Dashboard
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft | **Hash**: faf10c05
+**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+
 Investigators SHALL have real-time visibility into patient engagement through a monitoring dashboard showing patient status, days without data entry, last login time, and questionnaire completion status.
 
 Patient monitoring SHALL provide:
@@ -132,11 +137,13 @@ Patient monitoring SHALL provide:
 - Dashboard refreshes to show newly enrolled patients
 - Visual indicators distinguishable for accessibility (color + text)
 
+*End* *Patient Monitoring Dashboard* | **Hash**: 4d52eaa3
 ---
 
 ### REQ-p00027: Questionnaire Management
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft | **Hash**: 18601191
+**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+
 Investigators SHALL be able to send push notifications to patients to complete specific questionnaires (NOSE HHT and Quality of Life) and track questionnaire completion status.
 
 Questionnaire management SHALL provide:
@@ -171,11 +178,13 @@ Questionnaire management SHALL provide:
 - Investigators can only send to patients at assigned sites
 - Auditors can view questionnaire status but cannot send or acknowledge
 
+*End* *Questionnaire Management* | **Hash**: 61f843ad
 ---
 
 ### REQ-p00028: Token Revocation and Access Control
 
-**Level**: PRD | **Implements**: p00009, p00024, p00014 | **Status**: Draft | **Hash**: 8689afc2
+**Level**: PRD | **Implements**: p00009, p00024, p00014 | **Status**: Draft
+
 Admins SHALL be able to revoke access for Investigators and Auditors, and Investigators SHALL be able to revoke patient mobile app access when necessary.
 
 Token revocation SHALL ensure:
@@ -209,11 +218,13 @@ Token revocation SHALL ensure:
 - Investigator cannot revoke patients at non-assigned sites
 - Auditor cannot revoke any tokens (read-only role)
 
+*End* *Token Revocation and Access Control* | **Hash**: c4be450b
 ---
 
 ### REQ-p00029: Auditor Dashboard and Data Export
 
-**Level**: PRD | **Implements**: p00009, p00024, p00004 | **Status**: Draft | **Hash**: e330f8d1
+**Level**: PRD | **Implements**: p00009, p00024, p00004 | **Status**: Draft
+
 Auditors SHALL have read-only access to all portal data across all sites and the ability to export the complete database for compliance reviews.
 
 Auditor capabilities SHALL ensure:
@@ -247,11 +258,13 @@ Auditor capabilities SHALL ensure:
 - Auditor cannot create users or revoke tokens
 - All auditor actions logged in audit trail
 
+*End* *Auditor Dashboard and Data Export* | **Hash**: 3501dc5d
 ---
 
 ### REQ-p00030: Role-Based Visual Indicators
 
-**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Active | **Hash**: f147ebcd
+**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Active
+
 The portal SHALL display a color-coded banner at the top of the interface indicating the user's current role to prevent accidental actions in the wrong role context.
 
 Role colors SHALL be:
@@ -265,6 +278,7 @@ Role colors SHALL be:
 - Banner visible on all portal pages
 - Colors meet accessibility contrast standards
 
+*End* *Role-Based Visual Indicators* | **Hash**: 3e61467b
 ---
 
 ## Architecture Overview

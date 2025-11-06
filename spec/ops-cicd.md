@@ -25,7 +25,8 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ### REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active | **Hash**: 08da865c
+**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active
+
 **Description**: The system SHALL provide automated CI/CD validation of requirement traceability on every pull request and commit to protected branches.
 
 **Acceptance Criteria**:
@@ -45,11 +46,13 @@ This document specifies the continuous integration and continuous delivery (CI/C
 - `tools/requirements/validate_requirements.py`
 - `tools/requirements/generate_traceability.py`
 
+*End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: eb2455e2
 ---
 
 ### REQ-o00053: Branch Protection Enforcement
 
-**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active | **Hash**: 96d245eb
+**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
+
 **Description**: The system SHALL enforce branch protection rules on `main` and `develop` branches that require passing CI/CD checks before merge.
 
 **Acceptance Criteria**:
@@ -65,11 +68,13 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 **Implementation**: GitHub repository settings (see [Branch Protection Configuration](#branch-protection-configuration))
 
+*End* *Branch Protection Enforcement* | **Hash**: 460bdd7c
 ---
 
 ### REQ-o00054: Audit Trail Generation for CI/CD
 
-**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active | **Hash**: b61b9d6e
+**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
+
 **Description**: The system SHALL generate and archive traceability matrices as build artifacts for every CI/CD run, maintaining audit trail compliance.
 
 **Acceptance Criteria**:
@@ -85,6 +90,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 **Implementation Files**: `.github/workflows/pr-validation.yml` (upload-artifact step)
 
+*End* *Audit Trail Generation for CI/CD* | **Hash**: 44d8603e
 ---
 
 ## CI/CD Pipeline Architecture

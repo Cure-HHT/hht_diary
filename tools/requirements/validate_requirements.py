@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-REQ-d00002: Requirements validation tool
+REQ-d00002: Requirements validation tool (New Format)
 
-Validates requirement format and IDs across all specification files.
-Checks for:
+Validates requirement format with hash at end:
 - Unique requirement IDs
-- Proper format compliance
+- Proper format compliance (status line, end marker)
 - Valid "Implements" links
-- Orphaned requirements
-- Consistent status values
+- Hash validation
+- No high-level headings in body
+- Whitespace-only between title and status
 """
 
 import re
@@ -27,9 +27,10 @@ class Requirement:
     implements: List[str]
     status: str
     hash: str  # SHA-256 hash (first 8 chars)
-    body: str  # Full body text for hash calculation
+    body: str  # Body text for hash calculation (between status and end marker)
     file_path: Path
     line_number: int
+    heading_level: int  # Heading level (1-6)
 
     @property
     def level_prefix(self) -> str:
@@ -52,13 +53,16 @@ def calculate_requirement_hash(body: str) -> str:
 class RequirementValidator:
     """Validates requirements across all spec files"""
 
-    # Regex patterns
-    REQ_HEADER_PATTERN = re.compile(r'^###\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
-    METADATA_PATTERN = re.compile(
-        r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
-        r'\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+'
-        r'\*\*Status\*\*:\s+(Active|Draft|Deprecated)\s+\|\s+'
-        r'\*\*Hash\*\*:\s+([a-f0-9]{8}|TBD)',
+    # Regex patterns for new format
+    REQ_HEADER_PATTERN = re.compile(r'^(#{1,6})\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
+    STATUS_PATTERN = re.compile(
+        r'^\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
+        r'\*\*Implements\*\*:\s+([^\|]+?)\s+\|\s+'
+        r'\*\*Status\*\*:\s+(Active|Draft|Deprecated)\s*$',
+        re.MULTILINE
+    )
+    END_MARKER_PATTERN = re.compile(
+        r'^\*End\*\s+\*(.+?)\*\s+\|\s+\*\*Hash\*\*:\s+([a-f0-9]{8}|TBD)\s*$',
         re.MULTILINE
     )
 
@@ -67,18 +71,17 @@ class RequirementValidator:
 
     def __init__(self, spec_dir: Path):
         self.spec_dir = spec_dir
-        self.repo_root = spec_dir.parent  # Parent of spec/ is repo root
+        self.repo_root = spec_dir.parent
         self.requirements: Dict[str, Requirement] = {}
         self.errors: List[str] = []
         self.warnings: List[str] = []
         self.info: List[str] = []
-        self.implemented_in_code: Set[str] = set()  # REQ IDs found in implementation files
+        self.implemented_in_code: Set[str] = set()
 
     def validate_all(self) -> bool:
         """Run all validation checks. Returns True if valid."""
         print(f"🔍 Scanning {self.spec_dir} for requirements...\n")
 
-        # Find and parse all requirements
         self._parse_requirements()
 
         if not self.requirements:
@@ -87,7 +90,7 @@ class RequirementValidator:
 
         print(f"📋 Found {len(self.requirements)} requirements\n")
 
-        # Scan implementation files for requirement references
+        # Scan implementation files
         print(f"🔎 Scanning implementation files for requirement references...\n")
         self._scan_implementation_files()
         if self.implemented_in_code:
@@ -99,65 +102,86 @@ class RequirementValidator:
         self._check_implements_links()
         self._check_orphaned_requirements()
         self._check_level_consistency()
-        self._check_hash_accuracy()
+        self._check_hash_validity()
 
-        # Report results
+        # Print results
         self._print_results()
 
         return len(self.errors) == 0
 
     def _parse_requirements(self):
         """Parse all requirements from spec files"""
-        for spec_file in self.spec_dir.glob('*.md'):
-            if spec_file.name == 'requirements-format.md':
-                continue  # Skip the format spec itself
+        for file_path in self.spec_dir.glob("*.md"):
+            if file_path.name in ['INDEX.md', 'README.md']:
+                continue
 
-            self._parse_file(spec_file)
-
-    def _parse_file(self, file_path: Path):
-        """Parse requirements from a single file"""
-        try:
             content = file_path.read_text(encoding='utf-8')
-        except UnicodeDecodeError:
-            # Try with error handling for non-UTF8 files
-            content = file_path.read_text(encoding='utf-8', errors='ignore')
-        lines = content.split('\n')
+            self._parse_file(file_path, content)
 
-        # Find all requirement headers
-        for match in self.REQ_HEADER_PATTERN.finditer(content):
-            req_id = match.group(1)
-            title = match.group(2).strip()
-            line_num = content[:match.start()].count('\n') + 1
+    def _parse_file(self, file_path: Path, content: str):
+        """Parse all requirements from a single file"""
 
-            # Extract metadata from following lines
-            remaining_content = content[match.end():]
-            metadata_match = self.METADATA_PATTERN.search(remaining_content[:500])
+        # Find all REQ headers
+        for header_match in self.REQ_HEADER_PATTERN.finditer(content):
+            heading_marks = header_match.group(1)
+            heading_level = len(heading_marks)
+            req_id = header_match.group(2)
+            title = header_match.group(3).strip()
+            line_num = content[:header_match.start()].count('\n') + 1
 
-            if not metadata_match:
+            # Extract content after header until end of file
+            req_start = header_match.end()
+            remaining = content[req_start:]
+
+            # Find status line (should be first after whitespace)
+            status_match = self.STATUS_PATTERN.search(remaining)
+            if not status_match:
                 self.errors.append(
-                    f"{file_path.name}:{line_num} - REQ-{req_id}: Missing or malformed metadata line"
+                    f"{file_path.name}:{line_num} - REQ-{req_id}: Missing or malformed status line"
                 )
                 continue
 
-            level = metadata_match.group(1)
-            implements_str = metadata_match.group(2).strip()
-            status = metadata_match.group(3)
-            hash_value = metadata_match.group(4)
+            # Check whitespace-only between header and status
+            between_header_status = remaining[:status_match.start()]
+            if between_header_status.strip():
+                self.errors.append(
+                    f"{file_path.name}:{line_num} - REQ-{req_id}: Non-whitespace content between header and status line"
+                )
 
-            # Extract body text (from after metadata to next REQ or end)
-            body_start = match.end() + metadata_match.end()
-            next_req_match = self.REQ_HEADER_PATTERN.search(content[body_start:])
-            body_end = body_start + next_req_match.start() if next_req_match else len(content)
-            body = content[body_start:body_end].strip()
+            level = status_match.group(1)
+            implements_str = status_match.group(2).strip()
+            status = status_match.group(3)
+
+            # Find end marker
+            end_marker_match = self.END_MARKER_PATTERN.search(remaining[status_match.end():])
+            if not end_marker_match:
+                self.errors.append(
+                    f"{file_path.name}:{line_num} - REQ-{req_id}: Missing end marker with hash"
+                )
+                continue
+
+            end_title = end_marker_match.group(1).strip()
+            hash_value = end_marker_match.group(2)
+
+            # Validate title matches
+            if end_title != title:
+                self.errors.append(
+                    f"{file_path.name}:{line_num} - REQ-{req_id}: Title mismatch - "
+                    f"header='{title}' vs end='{end_title}'"
+                )
+
+            # Extract body (between status line and end marker)
+            body_start = status_match.end()
+            body_end = end_marker_match.start()
+            body = remaining[body_start:body_end]
+
+            # Validate no high-level headings in body
+            self._check_body_headings(file_path, line_num, req_id, body, heading_level)
 
             # Parse implements list
             implements = []
             if implements_str != '-':
-                implements = [
-                    impl.strip()
-                    for impl in implements_str.split(',')
-                    if impl.strip()
-                ]
+                implements = [impl.strip() for impl in implements_str.split(',') if impl.strip()]
 
             req = Requirement(
                 id=req_id,
@@ -168,10 +192,24 @@ class RequirementValidator:
                 hash=hash_value,
                 body=body,
                 file_path=file_path,
-                line_number=line_num
+                line_number=line_num,
+                heading_level=heading_level
             )
 
             self.requirements[req_id] = req
+
+    def _check_body_headings(self, file_path: Path, line_num: int, req_id: str,
+                            body: str, req_heading_level: int):
+        """Check for headings at same or higher level in requirement body"""
+        for line in body.split('\n'):
+            match = re.match(r'^(#{1,6})\s+', line)
+            if match:
+                heading_level = len(match.group(1))
+                if heading_level <= req_heading_level:
+                    self.errors.append(
+                        f"{file_path.name}:{line_num} - REQ-{req_id}: "
+                        f"Invalid heading level in body: {line.strip()[:50]}..."
+                    )
 
     def _check_unique_ids(self):
         """Check that all requirement IDs are unique"""
@@ -219,11 +257,9 @@ class RequirementValidator:
 
     def _scan_implementation_files(self):
         """Scan implementation files for 'IMPLEMENTS REQUIREMENTS:' declarations"""
-        # Pattern to find "IMPLEMENTS REQUIREMENTS:" followed by REQ-* IDs
         impl_pattern = re.compile(r'IMPLEMENTS\s+REQUIREMENTS?:\s*\n?(.*?)(?=\n\s*\n|\Z)', re.IGNORECASE | re.DOTALL)
         req_pattern = re.compile(r'REQ-([pod]\d{5})', re.IGNORECASE)
 
-        # File patterns to scan
         patterns = [
             '.github/workflows/**/*.yml',
             '.github/workflows/**/*.yaml',
@@ -240,16 +276,12 @@ class RequirementValidator:
                 if file_path.is_file():
                     try:
                         content = file_path.read_text(encoding='utf-8', errors='ignore')
-
-                        # Find all IMPLEMENTS REQUIREMENTS blocks
                         for match in impl_pattern.finditer(content):
                             req_block = match.group(1)
-                            # Extract all REQ-* IDs from the block
                             for req_match in req_pattern.finditer(req_block):
                                 req_id = req_match.group(1).lower()
                                 self.implemented_in_code.add(req_id)
                     except Exception:
-                        # Skip files that can't be read
                         continue
 
     def _check_orphaned_requirements(self):
@@ -259,9 +291,7 @@ class RequirementValidator:
             implemented.update(req.implements)
 
         for req_id, req in self.requirements.items():
-            # PRD and Ops requirements should have children (unless deprecated)
             if req.level in ['PRD', 'Ops'] and req.status == 'Active':
-                # Check if implemented by child requirements OR referenced in code
                 if req_id not in implemented and req_id not in self.implemented_in_code:
                     self.warnings.append(
                         f"{req.file_path.name}:{req.line_number} - "
@@ -275,102 +305,66 @@ class RequirementValidator:
         for req_id, req in self.requirements.items():
             for parent_id in req.implements:
                 if parent_id not in self.requirements:
-                    continue  # Already caught by _check_implements_links
+                    continue
 
                 parent = self.requirements[parent_id]
-
-                # Check hierarchy flows downward
                 if level_hierarchy[req.level] <= level_hierarchy[parent.level]:
-                    self.info.append(
+                    self.errors.append(
                         f"{req.file_path.name}:{req.line_number} - "
-                        f"REQ-{req_id} ({req.level}) implements "
-                        f"REQ-{parent_id} ({parent.level}): "
-                        f"Same-level refinement (valid pattern). "
-                        f"See spec/requirements-format.md 'Requirement Refinement vs. Cascade'"
+                        f"REQ-{req_id}: Invalid hierarchy - {req.level} cannot implement {parent.level}"
                     )
 
-    def _check_hash_accuracy(self):
-        """Verify stored hashes match calculated hashes"""
+    def _check_hash_validity(self):
+        """Validate that stored hashes match calculated hashes"""
         for req_id, req in self.requirements.items():
             if req.hash == 'TBD':
                 self.warnings.append(
                     f"{req.file_path.name}:{req.line_number} - "
-                    f"REQ-{req_id}: Hash not set (TBD). "
-                    f"Run: python3 tools/requirements/update-REQ-hashes.py"
+                    f"REQ-{req_id}: Hash is TBD (needs calculation)"
                 )
                 continue
 
-            calculated = calculate_requirement_hash(req.body)
-            if req.hash != calculated:
+            calculated_hash = calculate_requirement_hash(req.body)
+            if req.hash != calculated_hash:
                 self.errors.append(
                     f"{req.file_path.name}:{req.line_number} - "
-                    f"REQ-{req_id}: Hash mismatch! "
-                    f"Stored: {req.hash}, Calculated: {calculated}. "
-                    f"Requirement has been modified. "
-                    f"Run: python3 tools/requirements/update-REQ-hashes.py"
+                    f"REQ-{req_id}: Hash mismatch! Stored: {req.hash}, Calculated: {calculated_hash}"
                 )
 
     def _print_results(self):
         """Print validation results"""
-        print("\n" + "="*70)
-
-        if self.errors:
-            print(f"\n❌ {len(self.errors)} ERROR(S) FOUND:\n")
-            for error in self.errors:
-                print(f"  • {error}")
+        if self.info:
+            print("\nℹ️  INFO:")
+            for msg in self.info:
+                print(f"  {msg}")
 
         if self.warnings:
-            print(f"\n⚠️  {len(self.warnings)} WARNING(S):\n")
-            for warning in self.warnings:
-                print(f"  • {warning}")
+            print(f"\n⚠️  {len(self.warnings)} WARNING(S):")
+            for msg in self.warnings:
+                print(f"  {msg}")
 
-        if self.info:
-            print(f"\nℹ️  {len(self.info)} INFO:\n")
-            for info in self.info:
-                print(f"  • {info}")
-
-        if not self.errors and not self.warnings:
-            print("\n✅ ALL REQUIREMENTS VALID\n")
-            self._print_summary()
-        elif not self.errors:
-            print("\n✅ No errors (warnings can be addressed)\n")
-            self._print_summary()
+        if self.errors:
+            print(f"\n❌ {len(self.errors)} ERROR(S):")
+            for msg in self.errors:
+                print(f"  {msg}")
+            print("\nValidation FAILED")
         else:
-            print(f"\n❌ Validation failed with {len(self.errors)} error(s)\n")
-
-        print("="*70 + "\n")
-
-    def _print_summary(self):
-        """Print summary statistics"""
-        by_level = {'PRD': 0, 'Ops': 0, 'Dev': 0}
-        by_status = {'Active': 0, 'Draft': 0, 'Deprecated': 0}
-
-        for req in self.requirements.values():
-            by_level[req.level] = by_level.get(req.level, 0) + 1
-            by_status[req.status] = by_status.get(req.status, 0) + 1
-
-        print("📊 SUMMARY:")
-        print(f"  Total requirements: {len(self.requirements)}")
-        print(f"  By level: PRD={by_level['PRD']}, Ops={by_level['Ops']}, Dev={by_level['Dev']}")
-        print(f"  By status: Active={by_status['Active']}, Draft={by_status['Draft']}, Deprecated={by_status['Deprecated']}")
+            print("\n✅ All validations passed!")
 
 
 def main():
-    """Main entry point"""
-    # Find spec directory
     script_dir = Path(__file__).parent
-    repo_root = script_dir.parent.parent
-    spec_dir = repo_root / 'spec'
+    spec_dir = script_dir.parent.parent / "spec"
 
     if not spec_dir.exists():
-        print(f"❌ Spec directory not found: {spec_dir}")
+        print(f"❌ Error: Spec directory not found: {spec_dir}")
         sys.exit(1)
 
     validator = RequirementValidator(spec_dir)
-    is_valid = validator.validate_all()
+    success = validator.validate_all()
 
-    sys.exit(0 if is_valid else 1)
+    sys.exit(0 if success else 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -10,7 +10,8 @@
 
 ### REQ-o00049: Artifact Retention and Archival
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active | **Hash**: 864489de
+**Level**: Ops | **Implements**: p00010 | **Status**: Active
+
 **Specification**:
 
 The system SHALL implement artifact retention and archival that:
@@ -64,11 +65,13 @@ The system SHALL implement artifact retention and archival that:
 - ✅ Retrieval procedures documented
 - ✅ Monthly integrity verification automated
 
+*End* *Artifact Retention and Archival* | **Hash**: 2c4f1cc8
 ---
 
 ### REQ-o00050: Environment Parity and Separation
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Active | **Hash**: 6b76ea92
+**Level**: Ops | **Implements**: p00008 | **Status**: Active
+
 **Specification**:
 
 The system SHALL maintain environment separation with:
@@ -105,11 +108,13 @@ The system SHALL maintain environment separation with:
 - ✅ Terraform workspaces for each environment
 - ✅ No production data in non-production environments
 
+*End* *Environment Parity and Separation* | **Hash**: f0f94c5f
 ---
 
 ### REQ-o00051: Change Control and Audit Trail
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active | **Hash**: bb726ab2
+**Level**: Ops | **Implements**: p00010 | **Status**: Active
+
 **Specification**:
 
 The system SHALL maintain change control audit trail with:
@@ -150,6 +155,7 @@ The system SHALL maintain change control audit trail with:
 - ✅ Doppler audit trail enabled
 - ✅ Deployment logs archived for 7 years
 
+*End* *Change Control and Audit Trail* | **Hash**: 2ea40b98
 ---
 
 ## Architecture

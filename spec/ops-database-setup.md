@@ -56,7 +56,8 @@ Sponsor A                    Sponsor B                    Sponsor C
 
 ### REQ-o00003: Supabase Project Provisioning Per Sponsor
 
-**Level**: Ops | **Implements**: p00003, o00001 | **Status**: Active | **Hash**: b8777482
+**Level**: Ops | **Implements**: p00003, o00001 | **Status**: Active
+
 Each sponsor SHALL be provisioned with dedicated Supabase project(s) for their environments (staging, production), ensuring complete database infrastructure isolation.
 
 Provisioning SHALL include:
@@ -75,6 +76,7 @@ Provisioning SHALL include:
 - Project provisioning documented in runbook
 - Staging and production use separate projects
 
+*End* *Supabase Project Provisioning Per Sponsor* | **Hash**: 727c966c
 ---
 
 ### Per-Sponsor Supabase Projects
@@ -126,7 +128,8 @@ Provisioning SHALL include:
 
 ### REQ-o00004: Database Schema Deployment
 
-**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Active | **Hash**: 900d1c69
+**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Active
+
 Each sponsor's database SHALL be deployed with the core schema supporting event sourcing, audit trails, and complete change history, ensuring consistent implementation across all sponsors.
 
 Schema deployment SHALL include:
@@ -146,11 +149,13 @@ Schema deployment SHALL include:
 - Schema validation checks pass before deployment
 - Rollback capability for failed deployments
 
+*End* *Database Schema Deployment* | **Hash**: 118798b8
 ---
 
 ### REQ-o00011: Multi-Site Data Configuration Per Sponsor
 
-**Level**: Ops | **Implements**: p00018 | **Status**: Active | **Hash**: 8f416201
+**Level**: Ops | **Implements**: p00018 | **Status**: Active
+
 Each sponsor's database SHALL be configured with initial site records and site-based access control, enabling multi-site clinical trial operations within the sponsor's isolated environment.
 
 Site configuration SHALL include:
@@ -171,6 +176,7 @@ Site configuration SHALL include:
 - Site configuration documented for regulatory submission
 - Site management procedures defined for sponsor administrators
 
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 716b0df6
 ---
 
 ### Option A: SQL Editor (Quickest)

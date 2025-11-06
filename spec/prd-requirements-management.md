@@ -33,7 +33,8 @@ Without formal requirements and traceability, a clinical trial system cannot be 
 
 ### REQ-p00020: System Validation and Traceability
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Active | **Hash**: 73d9a7b5
+**Level**: PRD | **Implements**: p00010 | **Status**: Active
+
 The system development process SHALL maintain formal requirements with complete traceability from product requirements through operational procedures to implementation code, ensuring all system capabilities are documented, justified, and verifiable.
 
 Formal requirements SHALL ensure:
@@ -55,11 +56,13 @@ Formal requirements SHALL ensure:
 - Validation tooling prevents commits with invalid/orphaned requirements
 - Top-down cascade enforced (PRD requirements drive OPS/DEV, not vice versa)
 
+*End* *System Validation and Traceability* | **Hash**: 11bee00d
 ---
 
 ### REQ-p00021: Architecture Decision Documentation
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: a11d9fc7
+**Level**: PRD | **Implements**: - | **Status**: Active
+
 Significant architectural and design decisions SHALL be formally documented with context, alternatives considered, and consequences, ensuring decisions are reviewable, reversible, and understood by future maintainers and auditors.
 
 Decision documentation SHALL ensure:
@@ -81,6 +84,7 @@ Decision documentation SHALL ensure:
 - Decision rationale available for audit and review
 - ADR index maintained showing all decisions and their status
 
+*End* *Architecture Decision Documentation* | **Hash**: 4543f153
 ---
 
 ## References

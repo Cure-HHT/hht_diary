@@ -37,7 +37,8 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 ### REQ-d00005: Sponsor Configuration Detection Implementation
 
-**Level**: Dev | **Implements**: p00007, p00008 | **Status**: Active | **Hash**: cf6c43b6
+**Level**: Dev | **Implements**: p00007, p00008 | **Status**: Active
+
 The mobile application SHALL implement automatic sponsor detection and configuration loading based on enrollment tokens, enabling a single app binary to support multiple sponsors without requiring separate app builds per sponsor.
 
 Implementation SHALL include:
@@ -58,6 +59,7 @@ Implementation SHALL include:
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
 
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: 406bc29b
 ---
 
 ### Single App, Multiple Sponsors
@@ -105,7 +107,8 @@ Implementation SHALL include:
 
 ### REQ-d00004: Local-First Data Entry Implementation
 
-**Level**: Dev | **Implements**: p00006 | **Status**: Active | **Hash**: 732efeed
+**Level**: Dev | **Implements**: p00006 | **Status**: Active
+
 The mobile application SHALL implement offline-first data entry using SQLite for local storage, ensuring all user diary entries are captured locally before network synchronization, enabling full functionality without network connectivity.
 
 Implementation SHALL include:
@@ -126,6 +129,7 @@ Implementation SHALL include:
 - No data loss during offline periods
 - Background sync respects battery and data usage constraints
 
+*End* *Local-First Data Entry Implementation* | **Hash**: 0244d680
 ---
 
 ### Core Principle
@@ -160,7 +164,8 @@ Implementation SHALL include:
 
 ### REQ-d00013: Application Instance UUID Generation
 
-**Level**: Dev | **Implements**: p00006 | **Status**: Active | **Hash**: 25708b1c
+**Level**: Dev | **Implements**: p00006 | **Status**: Active
+
 The mobile application SHALL generate and persist a unique instance identifier (UUID v4) on first launch after installation, enabling device-level attribution in audit trails and multi-device conflict resolution.
 
 Implementation SHALL include:
@@ -182,6 +187,7 @@ Implementation SHALL include:
 - UUID included in all `record_audit.device_info` JSONB fields
 - Conflict resolution logic can identify source device for each change
 
+*End* *Application Instance UUID Generation* | **Hash**: 595cdce2
 ---
 
 ### Conflict Resolution
@@ -262,7 +268,8 @@ resolution: Log error. Report to investigator.
 
 ### REQ-d00006: Mobile App Build and Release Process
 
-**Level**: Dev | **Implements**: o00010 | **Status**: Active | **Hash**: bc46e5a8
+**Level**: Dev | **Implements**: o00010 | **Status**: Active
+
 The mobile application SHALL be built and released as a single app package containing configurations for all sponsors, ensuring consistent app distribution across iOS App Store and Google Play Store while maintaining sponsor isolation.
 
 Build process SHALL include:
@@ -283,6 +290,7 @@ Build process SHALL include:
 - No sponsor-specific branding in store listings
 - Build pipeline validates configuration completeness
 
+*End* *Mobile App Build and Release Process* | **Hash**: 95535663
 ---
 
 ### App Store Listing
