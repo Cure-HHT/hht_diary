@@ -34,7 +34,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 2. ✅ Workflow generates traceability matrix automatically
 3. ✅ Pull requests cannot merge without passing validation
 4. ✅ Validation results posted as PR comments
-5. ✅ Artifacts retained for 90 days for audit purposes
+5. ✅ Artifacts retained for 2 years for audit purposes
 6. ✅ Failed validations trigger notifications
 7. ✅ Workflow runs complete within 10 minutes
 
