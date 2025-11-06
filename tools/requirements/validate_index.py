@@ -31,8 +31,8 @@ INDEX_FILE = SPEC_DIR / "INDEX.md"
 REQ_HEADER_PATTERN = re.compile(r'^#{2,4}\s+(REQ-[pod]\d{5}):\s*(.+)$', re.MULTILINE)
 
 # Pattern to match INDEX.md rows
-# Matches: | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation |
-INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|$', re.MULTILINE)
+# Matches: | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | c27350bb |
+INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|\s*([a-f0-9]{8}|TBD)\s*\|$', re.MULTILINE)
 
 
 def scan_spec_files() -> Dict[str, Tuple[str, str]]:
