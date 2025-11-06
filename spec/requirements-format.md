@@ -41,7 +41,7 @@ This document defines the format for traceable requirements across PRD, Operatio
 ```markdown
 ### REQ-{id}: {informal-title}
 
-**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft}
+**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft} | **Hash**: {sha256-prefix}
 
 {requirement-body}
 
@@ -73,6 +73,15 @@ This document defines the format for traceable requirements across PRD, Operatio
 - `Active`: Current, must be implemented
 - `Draft`: Under review, not yet approved
 - `Deprecated`: Replaced or no longer needed (keep for history)
+
+#### Hash
+- SHA-256 hash of requirement body (first 8 characters)
+- Calculated from: requirement body text, rationale, and acceptance criteria
+- Excludes: title, metadata line, file path
+- Format: 8 lowercase hexadecimal characters (e.g., `abc12345`)
+- Purpose: Detect requirement changes for implementation tracking
+- Required: Yes
+- Updated automatically using `python3 tools/requirements/update-REQ-hashes.py`
 
 #### Requirement Body
 - **Authoritative statement** of the requirement
@@ -256,7 +265,7 @@ Code comments explain HOW the code implements requirements, but they don't defin
 ```markdown
 ### REQ-p00031: Multi-Sponsor Data Isolation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: a1b2c3d4
 
 The system SHALL ensure complete data isolation between pharmaceutical sponsors
 such that no user, administrator, or automated process can access data belonging
@@ -283,7 +292,7 @@ cross-sponsor access. Critical for regulatory compliance and sponsor trust.
 ```markdown
 ### REQ-o00056: Separate Supabase Projects Per Sponsor
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active
+**Level**: Ops | **Implements**: p00001 | **Status**: Active | **Hash**: e5f6g7h8
 
 Each sponsor SHALL be provisioned with a dedicated Supabase project containing:
 - Isolated PostgreSQL database
@@ -306,7 +315,7 @@ using Supabase's project isolation guarantees.
 ```markdown
 ### REQ-d00012: Environment-Specific Configuration Files
 
-**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
+**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active | **Hash**: i9j0k1l2
 
 The application SHALL load sponsor-specific configuration from environment files
 that specify Supabase connection parameters.
