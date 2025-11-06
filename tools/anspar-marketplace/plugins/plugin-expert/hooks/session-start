@@ -1,0 +1,67 @@
+#!/bin/bash
+# =====================================================
+# Plugin-Expert: session-start Hook
+# =====================================================
+#
+# Injects plugin architecture best practices at session start.
+#
+# Purpose:
+# - Remind agent of plugin patterns
+# - Establish architectural principles
+# - Provide quick reference for plugin work
+#
+# =====================================================
+
+# Check if we're in a plugin context
+CURRENT_DIR=$(pwd)
+if [[ ! "$CURRENT_DIR" =~ plugins/ ]]; then
+    exit 0
+fi
+
+cat << 'EOF'
+
+🔌 PLUGIN ARCHITECTURE PRINCIPLES (plugin-expert)
+
+When working with plugins, remember:
+
+1. 🎯 Single Responsibility
+   Each plugin has ONE clear purpose. Don't mix concerns.
+
+2. 🏗️ Separation of Concerns
+   - Plugin code stays in plugin directory
+   - Cross-plugin features use orchestrator pattern
+   - Sub-agents for plugin capabilities
+
+3. 🔧 Modularity
+   - Reusable utilities can be extracted
+   - Scripts should be composable
+   - Clear interfaces between components
+
+4. 📦 Plugin Structure
+   plugin-name/
+   ├── .claude-plugin/plugin.json
+   ├── agents/           # Sub-agents
+   ├── commands/         # Slash commands
+   ├── hooks/           # Event hooks
+   ├── scripts/         # Executables
+   ├── skills/          # Agent skills
+   ├── tests/           # Test suite
+   └── README.md        # Documentation
+
+5. 🤝 Integration Patterns
+   - Use existing plugins (e.g., linear-integration for tickets)
+   - Delegate to sub-agents (most reliable)
+   - Orchestrate with scripts (for multi-plugin workflows)
+   - Cache results (avoid repeated API calls)
+
+6. ⚠️ Anti-Patterns to Avoid
+   ❌ Creating one-off tools instead of using plugins
+   ❌ Mixing plugin responsibilities
+   ❌ Duplicating logic across plugins
+   ❌ Tight coupling between plugins
+
+If unsure about architecture, ASK USER before proceeding!
+
+EOF
+
+exit 0

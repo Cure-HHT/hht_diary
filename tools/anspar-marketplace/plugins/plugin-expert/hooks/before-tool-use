@@ -1,0 +1,119 @@
+#!/bin/bash
+# =====================================================
+# Plugin-Expert: before-tool-use Hook
+# =====================================================
+#
+# Detects when work is being done on plugins and injects
+# architectural guidance to maintain separation of concerns.
+#
+# Triggers when:
+# - File operations in plugin directories
+# - Plugin-related code changes
+#
+# Injects guidance to:
+# - Keep plugin work inside plugin directory
+# - Maintain clear separation of concerns
+# - Follow plugin architecture patterns
+#
+# =====================================================
+
+TOOL_NAME="${CLAUDE_TOOL_NAME:-}"
+TOOL_PARAMS="${CLAUDE_TOOL_PARAMS:-}"
+
+# Only process file operation tools
+if [[ ! "$TOOL_NAME" =~ ^(Edit|Write|Read|Glob|Grep)$ ]]; then
+    exit 0
+fi
+
+# Extract file paths from tool parameters
+FILE_PATH=""
+case "$TOOL_NAME" in
+    Edit|Write|Read)
+        FILE_PATH=$(echo "$TOOL_PARAMS" | jq -r '.file_path // empty' 2>/dev/null)
+        ;;
+    Glob)
+        PATTERN=$(echo "$TOOL_PARAMS" | jq -r '.pattern // empty' 2>/dev/null)
+        # Check if pattern targets plugin directories
+        if [[ "$PATTERN" =~ plugins/ ]]; then
+            FILE_PATH="plugins/"
+        fi
+        ;;
+    Grep)
+        SEARCH_PATH=$(echo "$TOOL_PARAMS" | jq -r '.path // empty' 2>/dev/null)
+        if [[ "$SEARCH_PATH" =~ plugins/ ]]; then
+            FILE_PATH="$SEARCH_PATH"
+        fi
+        ;;
+esac
+
+# Check if we're working on a plugin
+if [[ -z "$FILE_PATH" ]]; then
+    exit 0
+fi
+
+# Detect if this is plugin work
+PLUGIN_DIR=""
+if [[ "$FILE_PATH" =~ (tools/anspar-marketplace/plugins/|plugins/)([^/]+) ]]; then
+    PLUGIN_DIR="${BASH_REMATCH[2]}"
+fi
+
+if [[ -z "$PLUGIN_DIR" ]]; then
+    exit 0
+fi
+
+# =====================================================
+# Inject Architectural Guidance
+# =====================================================
+
+cat << EOF
+
+📦 PLUGIN ARCHITECTURE GUIDANCE
+
+You're working on the '$PLUGIN_DIR' plugin. Please follow these principles:
+
+🎯 Keep Plugin Work Inside Plugin Directory:
+   - Plugin-specific code → inside plugin directory
+   - Scripts, utilities, agents → inside plugin
+   - Configuration → inside plugin
+   - Tests → inside plugin/tests/
+
+🔧 Separation of Concerns:
+   - Each plugin = single, clear responsibility
+   - Cross-plugin features → create orchestrator in appropriate plugin
+   - Don't mix plugin concerns
+   - Use sub-agents for plugin capabilities
+
+📋 What Belongs in Plugin:
+   ✅ Scripts specific to plugin's domain
+   ✅ Utilities used only by this plugin
+   ✅ Configuration for this plugin
+   ✅ Tests for this plugin
+   ✅ Documentation for this plugin
+
+📋 What Belongs Outside Plugin:
+   ⛔ Generic utilities used by multiple plugins → shared location
+   ⛔ Project-wide configuration → root config
+   ⛔ Multi-plugin orchestration → workflow plugin or new orchestrator
+   ⛔ Shared data models → shared directory
+
+🏗️ Plugin Integration Pattern:
+   Plugin A ─┐
+             ├─→ Orchestrator (in appropriate plugin)
+   Plugin B ─┘
+
+   Example: workflow/scripts/generate-commit-msg.sh orchestrates:
+   - linear-integration plugin (fetch ticket)
+   - workflow/scripts/parse-req-refs.sh (parse REQs)
+   - WORKFLOW_STATE (cache)
+
+⚠️  If you find yourself:
+   - Putting plugin A's logic in plugin B → STOP, restructure
+   - Creating cross-plugin dependencies → Consider orchestrator pattern
+   - Duplicating logic → Extract to shared utility
+   - Unsure where code belongs → ASK USER for guidance
+
+Remember: Clean separation = maintainable, testable, reusable code!
+
+EOF
+
+exit 0
