@@ -226,6 +226,26 @@ Requirements link to:
 5. **Link commits to requirements** - include REQ references
 6. **Review full requirement text** when implementing, not just title
 
+### INDEX.md Management
+
+**CRITICAL RULES:**
+
+1. **NEVER add new requirements by directly editing INDEX.md**
+   - Direct editing bypasses the main branch which might have assigned higher REQ numbers
+   - Always use the GitHub Actions workflow "Claim Requirement Number" to get new REQ IDs
+   - This ensures sequential numbering across branches and avoids conflicts
+
+2. **INDEX.md can be regenerated from scratch at any time**
+   - INDEX.md is derived from spec/*.md files
+   - Run `python3 tools/requirements/update-REQ-hashes.py` to update hashes
+   - Use validate_index.py to verify consistency
+   - Regeneration is safe and won't lose data (source of truth is in spec/*.md files)
+
+3. **Hash updates are automatic**
+   - Hashes are calculated from requirement content
+   - Use update-REQ-hashes.py to recalculate when requirements change
+   - Post-commit hooks detect changes and update tracking automatically
+
 ## Error Handling
 
 When errors occur:

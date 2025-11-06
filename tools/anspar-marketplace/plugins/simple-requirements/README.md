@@ -415,6 +415,44 @@ To customize hook behavior, edit:
 - **Location**: `hooks/pre-commit-requirement-validation`
 - **Customize**: When to trigger, how to handle failures
 
+## INDEX.md Management
+
+### CRITICAL RULES
+
+**⚠️ NEVER add new requirements by directly editing INDEX.md**
+
+When you need a new requirement ID:
+- Use the GitHub Actions workflow: **"Claim Requirement Number"**
+- This ensures sequential numbering across all branches
+- Direct editing can cause conflicts with the main branch
+
+**Why?** The main branch might have assigned higher REQ numbers while you were working on your branch. Direct editing bypasses the centralized numbering system.
+
+### INDEX.md Regeneration
+
+INDEX.md can be **safely regenerated from scratch** at any time:
+
+```bash
+# Update all hashes in spec files and INDEX.md
+python3 tools/requirements/update-REQ-hashes.py
+
+# Verify consistency
+python3 tools/requirements/validate_index.py
+```
+
+**Why is this safe?**
+- The source of truth is in `spec/*.md` files, not INDEX.md
+- INDEX.md is a derived artifact (like a cache or index)
+- Regeneration recalculates hashes and rebuilds the index from spec files
+- No data loss - all requirement content lives in spec/*.md
+
+### Hash Management
+
+Hashes are calculated automatically:
+- **Manual update**: `python3 tools/requirements/update-REQ-hashes.py`
+- **Automatic**: Post-commit hooks detect changes and update tracking
+- Hash changes trigger implementation verification workflow
+
 ## Troubleshooting
 
 ### Hook Not Running
