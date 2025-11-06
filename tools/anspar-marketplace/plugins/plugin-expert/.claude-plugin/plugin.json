@@ -21,7 +21,7 @@
   "repository": "https://github.com/claude-code/plugin-expert",
   "homepage": "https://docs.claude.com/en/docs/claude-code/plugins",
   "license": "MIT",
-  "agents": "./agents/",
+  "agents": "./agents/PluginExpert.md",
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json"
 }
