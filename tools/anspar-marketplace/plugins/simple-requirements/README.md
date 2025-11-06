@@ -7,16 +7,19 @@
 
 ## Overview
 
-The Anspar Requirement Validation plugin validates requirement format, uniqueness, and links before commits. It ensures all requirements follow the standard format and maintain proper hierarchical relationships.
+The Anspar Simple Requirements plugin provides comprehensive requirement management including validation, change tracking, and implementation verification. It ensures all requirements follow the standard format, maintains proper hierarchical relationships, and helps keep implementations synchronized with requirement changes.
 
-This plugin provides the **git hook integration** for the validation script located at `tools/requirements/validate_requirements.py` (shared with CI/CD).
+This plugin provides **git hook integration** for validation and **automated change tracking** when requirements are modified.
 
 **Key Features**:
-- ✅ Git pre-commit hook integration
-- ✅ Requirement format validation
-- ✅ Uniqueness checking (no duplicate IDs)
-- ✅ Link validation (parent requirements exist)
-- ✅ Automatic validation on spec/ changes
+- ✅ **Validation**: Format, uniqueness, and link validation before commits
+- ✅ **Change Detection**: Automatic detection of modified requirements
+- ✅ **Tracking System**: Persistent tracking of outdated implementations
+- ✅ **Session Notifications**: Alerts about changed requirements when starting work
+- ✅ **Linear Integration**: Optional ticket creation for verification (requires linear-integration plugin)
+- ✅ **Requirements Agent**: Specialized sub-agent for requirement operations
+- ✅ **Get Requirement**: Fetch any requirement by ID with full metadata
+- ✅ **Verification Workflow**: Simple commands to mark requirements as verified
 
 ## Installation
 
@@ -109,6 +112,171 @@ simple-requirements/
 - Parent requirements (in "Implements" field) must exist
 - Hierarchical cascade is valid (PRD → Ops → Dev)
 - No circular dependencies
+
+## Requirement Change Tracking (Phase 3)
+
+### Overview
+
+The tracking system automatically detects when requirements change and helps ensure implementations stay synchronized. When you modify a requirement in `spec/`, the system:
+
+1. **Detects the change** (compares hash against INDEX.md)
+2. **Tracks outdated implementations** (adds to tracking file)
+3. **Notifies you** at session start
+4. **Optionally creates Linear tickets** for verification
+
+### Quick Start
+
+```bash
+# 1. Check for changes:
+python3 scripts/detect-changes.py --format summary
+
+# 2. View a specific requirement:
+python3 scripts/get-requirement.py REQ-d00027
+
+# 3. After updating implementation, mark as verified:
+python3 scripts/mark-verified.py d00027
+```
+
+### Tracking Scripts
+
+#### Get Requirement
+Fetch and display any requirement by ID:
+
+```bash
+# View requirement (markdown):
+python3 scripts/get-requirement.py d00027
+
+# JSON output (for automation):
+python3 scripts/get-requirement.py d00027 --format json
+```
+
+#### Detect Changes
+Find requirements that have been modified:
+
+```bash
+# Human-readable summary:
+python3 scripts/detect-changes.py --format summary
+
+# JSON for automation:
+python3 scripts/detect-changes.py --format json
+```
+
+#### Update Tracking
+Add changed requirements to tracking file:
+
+```bash
+# From detect-changes output:
+python3 scripts/detect-changes.py --format json > /tmp/changes.json
+python3 scripts/update-tracking.py --input /tmp/changes.json
+
+# Single requirement:
+python3 scripts/update-tracking.py --req-id d00027 --old-hash abc --new-hash def
+```
+
+#### Mark Verified
+Remove requirement from tracking after verification:
+
+```bash
+# Mark single requirement:
+python3 scripts/mark-verified.py d00027
+
+# Dry run (preview):
+python3 scripts/mark-verified.py d00027 --dry-run
+```
+
+### Hooks
+
+#### Post-Commit Hook
+Automatically runs after commits that modify `spec/*.md`:
+- Detects changed requirements
+- Updates tracking file
+- Shows summary of changes
+- Optionally creates Linear tickets (if `LINEAR_CREATE_TICKETS=true`)
+
+#### Session-Start Hook
+Runs when Claude Code session starts:
+- Checks for outdated requirements
+- Displays concise notification
+- Suggests next actions
+
+### Tracking File
+
+**Location**: `untracked-notes/outdated-implementations.json`
+
+**Format**:
+```json
+{
+  "version": "1.0",
+  "last_updated": "2025-11-06T12:34:56+00:00",
+  "outdated_requirements": [
+    {
+      "req_id": "d00027",
+      "old_hash": "abc12345",
+      "new_hash": "def67890",
+      "file": "dev-api.md",
+      "title": "API Authentication",
+      "linear_ticket": "CUR-123",
+      "verified_at": null
+    }
+  ]
+}
+```
+
+### Requirements Agent
+
+Claude can use the Requirements sub-agent for requirement operations:
+
+```
+User: "What does REQ-d00027 say?"
+Claude: [Uses Requirements agent to fetch and explain]
+
+User: "Have any requirements changed?"
+Claude: [Uses Requirements agent to detect and report]
+```
+
+### Linear Integration (Optional)
+
+Enable automatic ticket creation for changed requirements:
+
+```bash
+export LINEAR_CREATE_TICKETS=true
+```
+
+When enabled, post-commit hook creates verification tickets with:
+- Full requirement context
+- Verification checklist
+- Commands to run
+- Links to source files
+
+### Complete Workflow Example
+
+```bash
+# 1. Modify a requirement
+vim spec/dev-api.md  # Update REQ-d00027
+
+# 2. Commit the change
+git commit -m "Update REQ-d00027: Improve auth flow"
+# Post-commit hook runs automatically
+
+# 3. Next session, you see notification:
+# 📋 REQUIREMENTS CHANGED
+#    • REQ-d00027: API Authentication
+
+# 4. Review the requirement:
+python3 scripts/get-requirement.py d00027
+
+# 5. Find implementations:
+git grep -n "REQ-d00027"
+
+# 6. Update code to match new requirement
+vim src/api/auth.py
+
+# 7. Mark as verified:
+python3 scripts/mark-verified.py d00027
+# ✅ Marked as verified and removed from tracking
+```
+
+For detailed workflow documentation, see [TRACKING-WORKFLOW.md](./TRACKING-WORKFLOW.md).
 
 ## Usage
 
