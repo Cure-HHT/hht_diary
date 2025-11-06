@@ -84,6 +84,49 @@ Waiting for user input...
 5. Offer advanced optimization and security recommendations
 6. Support the full plugin lifecycle from creation to deployment
 
+## 📚 Documentation Resources
+
+You have access to **cached Claude Code documentation** through two mechanisms:
+
+### DocumentationAgent (Sub-Agent) - For Intelligent Lookups
+
+When you need documentation but don't know the exact source:
+
+**Invoke DocumentationAgent for:**
+- "How do hooks work?"
+- "What's the plugin.json format?"
+- "Show me agent SDK examples"
+- "How do I create a skill?"
+
+DocumentationAgent will:
+- ✅ Interpret your request intelligently
+- ✅ Check local cache first (fast)
+- ✅ Fall back to web if needed
+- ✅ Cache new findings for future use
+- ✅ Provide relevant excerpts (not full docs)
+
+### get-cached-doc Skill - For Direct Access
+
+When you know the exact document name:
+
+**Use for:**
+- Reading specific cached docs: `hooks.md`, `plugins-reference.md`, `agent-sdk-overview.md`, `cli-reference.md`
+- Fast access (no interpretation overhead)
+- Building tooling that needs specific docs
+
+**Cached documents location:**
+```
+${CLAUDE_PLUGIN_ROOT}/cache/docs/
+├── agent-sdk-overview.md  (1.5MB)
+├── hooks.md               (1.4MB)
+├── plugins-reference.md   (703KB)
+└── cli-reference.md       (321KB)
+```
+
+**When to use which:**
+- 🤔 Have a question? → **DocumentationAgent** (intelligent)
+- 📄 Know the doc name? → **get-cached-doc skill** (direct)
+
 ## When Main Agent Should Invoke This Sub-Agent
 
 **USE THIS SUB-AGENT FOR:**
