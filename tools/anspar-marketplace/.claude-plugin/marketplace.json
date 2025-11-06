@@ -13,32 +13,32 @@
       "description": "Expert guidance and automation for creating Claude Code plugins with best practices"
     },
     {
-      "name": "anspar-workflow",
-      "source": "./plugins/anspar-workflow",
+      "name": "workflow",
+      "source": "./plugins/workflow",
       "version": "1.0.0",
       "description": "Git workflow enforcement for requirement traceability and ticket lifecycle management"
     },
     {
-      "name": "anspar-linear-integration",
-      "source": "./plugins/anspar-linear-integration",
+      "name": "linear-integration",
+      "source": "./plugins/linear-integration",
       "version": "1.0.0",
       "description": "Linear API integration tools for requirement-ticket traceability and project management automation"
     },
     {
-      "name": "anspar-spec-compliance",
-      "source": "./plugins/anspar-spec-compliance",
+      "name": "spec-compliance",
+      "source": "./plugins/spec-compliance",
       "version": "1.0.0",
       "description": "Enforces spec/ directory compliance through automated validation and AI-powered analysis"
     },
     {
-      "name": "anspar-requirement-validation",
-      "source": "./plugins/anspar-requirement-validation",
+      "name": "simple-requirements",
+      "source": "./plugins/simple-requirements",
       "version": "1.0.0",
       "description": "Validates requirement format, uniqueness, and links before commits"
     },
     {
-      "name": "anspar-traceability-matrix",
-      "source": "./plugins/anspar-traceability-matrix",
+      "name": "traceability-matrix",
+      "source": "./plugins/traceability-matrix",
       "version": "1.0.0",
       "description": "Auto-regenerates requirement traceability matrices on spec/ changes"
     }
