@@ -5,6 +5,28 @@ All notable changes to the Linear Integration plugin will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-11-06
+
+### Added
+- **Ticket Creation Agent**: Intelligent, context-aware ticket creation assistant
+  - Auto-detects context from git status, branch names, and recent commits
+  - Infers smart defaults for priority, labels, and descriptions
+  - Interactive prompting for missing information
+  - Quality validation before ticket creation
+  - Automatic requirement linking (REQ-* references)
+  - Workflow integration (offers to claim ticket after creation)
+  - Duplicate detection with similarity checking
+
+### Changed
+- Updated `plugin.json` to register agents directory instead of single agent file
+- Enhanced documentation with agent usage examples
+
+### Benefits
+- Reduces manual steps in ticket creation workflow
+- Ensures consistent ticket quality across team
+- Automatically maintains requirement traceability
+- Seamless integration with workflow plugin
+
 ## [1.0.0] - 2025-10-30
 
 ### Added

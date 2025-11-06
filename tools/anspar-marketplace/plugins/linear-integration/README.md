@@ -10,6 +10,7 @@
 The Anspar Linear Integration plugin provides comprehensive CLI tools for integrating Linear project management with requirement traceability systems. It automates ticket creation from requirements, manages requirement-ticket linking, and provides analysis tools for tracking implementation progress.
 
 **Key Features**:
+- ✅ **Intelligent ticket creation agent** - Context-aware, minimal-step ticket creation
 - ✅ Batch ticket creation from requirement specifications
 - ✅ Intelligent caching system with automatic refresh
 - ✅ Environment variable auto-discovery
@@ -146,6 +147,70 @@ Automatic priority assignment based on requirement level:
 | PRD | P1 (Urgent) |
 | Ops | P2 (High) |
 | Dev | P3 (Normal) |
+
+## Claude Code Agents
+
+This plugin provides intelligent agents that integrate with Claude Code's task system.
+
+### Ticket Creation Agent
+
+**Purpose**: Intelligent, context-aware ticket creation with minimal manual steps.
+
+**Auto-invokes when**: User requests to create a new Linear ticket.
+
+**Key features**:
+- **Context awareness**: Reads git status, branch names, and recent commits
+- **Smart defaults**: Infers priority, labels, and descriptions from context
+- **Interactive prompting**: Asks for clarification on ambiguous requests
+- **Quality validation**: Ensures tickets have meaningful titles and descriptions
+- **Requirement linking**: Automatically detects and suggests REQ-* references
+- **Workflow integration**: Offers to claim ticket after creation
+
+**Example interaction**:
+```
+User: "Create a ticket for the login redirect loop"
+
+Agent:
+[Analyzes context]
+- Branch: main
+- Changed files: packages/app/lib/auth/login_handler.dart
+- Recent commits: "WIP: fixing auth flow"
+
+📋 Ready to create Linear ticket:
+
+Title: Fix login redirect loop in authentication handler
+Description:
+Users experiencing redirect loop when attempting to login.
+
+Context:
+- Affects: packages/app/lib/auth/login_handler.dart
+- Recent work: Authentication flow refactoring
+
+Priority: High (login is critical user flow)
+Labels: bug, backend
+
+Does this look good, or would you like to provide more details?
+```
+
+**Benefits**:
+- Reduces manual steps in ticket creation
+- Ensures consistent ticket quality
+- Automatically links to requirements and workflow
+- Provides intelligent suggestions based on context
+
+**Location**: `agents/ticket-creation-agent.md`
+
+### Linear Agent
+
+**Purpose**: General Linear ticket management and operations.
+
+**Provides**:
+- Fetch tickets by status, label, or assignment
+- Update ticket descriptions and checklists
+- Search tickets by requirement or keyword
+- Claim tickets for workflow integration
+
+**Location**: `agents/linear-agent.md`
 
 ## Available Scripts
 
