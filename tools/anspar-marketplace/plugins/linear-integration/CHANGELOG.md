@@ -5,6 +5,33 @@ All notable changes to the Linear Integration plugin will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-11-06
+
+### Added
+- **Slash Commands**: New convenient commands for quick access
+  - `/ticket` (alias `/issue`): Manage tickets with workflow integration
+    - Show current active ticket
+    - Create new tickets (launches ticket-creation-agent)
+    - Switch to tickets (claims + updates Linear status)
+  - `/req` (alias `/requirement`): Query and manage requirements
+    - Show recent requirements
+    - Display specific requirement details
+    - Search requirements by keyword
+    - Guide for creating new requirements
+    - Run requirement validation
+
+### Implementation
+- `commands/ticket.md`, `commands/issue.md` - Ticket command definitions
+- `commands/req.md`, `commands/requirement.md` - Requirement command definitions
+- `scripts/ticket-command.sh` - Ticket command implementation with workflow integration
+- `scripts/req-command.sh` - Requirement command implementation
+
+### Benefits
+- Faster access to common operations
+- Workflow integration (automatic ticket claiming and status updates)
+- Seamless requirement querying
+- Reduced context switching
+
 ## [1.1.0] - 2025-11-06
 
 ### Added

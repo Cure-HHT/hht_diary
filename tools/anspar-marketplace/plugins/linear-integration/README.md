@@ -212,6 +212,90 @@ Does this look good, or would you like to provide more details?
 
 **Location**: `agents/linear-agent.md`
 
+## Slash Commands
+
+This plugin provides convenient slash commands for quick access to common operations.
+
+### /ticket (alias: /issue)
+
+**Quick ticket management with workflow integration.**
+
+```
+/ticket              # Show current active ticket
+/ticket new          # Create a new ticket (launches ticket-creation-agent)
+/ticket CUR-XXX      # Switch to ticket CUR-XXX (claims it + sets Linear status to In Progress)
+```
+
+**Features**:
+- **No arguments**: Displays current active ticket from workflow
+- **`new`**: Guides you to use the intelligent ticket-creation-agent
+- **Ticket ID**: Switches to the specified ticket:
+  - Claims ticket in workflow (creates/updates WORKFLOW_STATE)
+  - Updates Linear status to "In Progress"
+  - Provides confirmation and next steps
+
+**Example workflow**:
+```
+User: /ticket
+Output: Active ticket: CUR-320 (core)
+
+User: /ticket CUR-322
+Output:
+🔄 Switching to ticket: CUR-322
+✅ Successfully switched to CUR-322
+📊 Updating Linear status to 'In Progress'...
+✅ Linear status updated
+🎯 Now working on: CUR-322
+
+User: /ticket new
+Output: [Instructions for using ticket-creation-agent]
+```
+
+### /req (alias: /requirement)
+
+**Query and manage formal requirements.**
+
+```
+/req                    # Show help and recent requirements
+/req REQ-d00027         # Display full requirement details
+/req search <term>      # Search for requirements by keyword
+/req new                # Guide for creating new requirements
+/req validate           # Run requirement validation
+```
+
+**Features**:
+- **No arguments**: Shows usage help and lists the 5 most recent requirements
+- **REQ-xxx**: Displays full requirement content from spec files
+- **`search <term>`**: Searches all spec files for matching requirements
+- **`new`**: Provides step-by-step guide for creating new requirements
+- **`validate`**: Runs the requirement validation tool
+
+**Example workflow**:
+```
+User: /req
+Output:
+📋 REQUIREMENT MANAGEMENT
+[Usage instructions]
+Recent requirements (last 5):
+[List of requirements]
+📁 Total requirements: 160
+
+User: /req REQ-d00067
+Output:
+🔍 Looking up: REQ-d00067
+📌 REQ-d00067
+📄 File: dev-marketplace-streamlined-tickets.md
+📝 Title: Streamlined Ticket Creation Agent
+[Full requirement content...]
+
+User: /req search "ticket"
+Output:
+🔍 Searching requirements for: ticket
+Found in:
+  📄 dev-marketplace-streamlined-tickets.md - REQ-d00067
+  📄 dev-marketplace-workflow-detection.md - REQ-d00068
+```
+
 ## Available Scripts
 
 All scripts are located in the `scripts/` directory.
