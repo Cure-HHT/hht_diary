@@ -48,7 +48,7 @@ Automatic configuration SHALL ensure:
 - Patient cannot switch to different sponsor after enrollment
 - Invalid or expired enrollment links rejected with clear error message
 
-*End* *Automatic Sponsor Configuration* | **Hash**: 65b8e866
+*End* *Automatic Sponsor Configuration* | **Hash**: b90eb7ab
 ---
 
 ### Daily Use
@@ -94,7 +94,7 @@ Offline capability SHALL ensure:
 - No data loss if app closed before synchronization completes
 - Conflict resolution when same entry modified on multiple devices
 
-*End* *Offline-First Data Entry* | **Hash**: 56ace32a
+*End* *Offline-First Data Entry* | **Hash**: c5ff6bf6
 ---
 
 ## Multi-Sponsor Support

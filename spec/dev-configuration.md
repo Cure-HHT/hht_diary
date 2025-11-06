@@ -52,7 +52,7 @@ The application SHALL validate all required fields are present at application st
 - Application throws clear error message if configuration missing
 - Configuration is immutable after loading (final fields)
 
-*End* *Sponsor-Specific Configuration Loading* | **Hash**: df6f2f7e
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: 5fa9f76f
 ---
 
 ### Implementation Example
@@ -208,7 +208,7 @@ The build SHALL fail immediately if validation fails, with clear error messages 
 - Validation completes in <1 second
 - Non-zero exit code on validation failure
 
-*End* *Pre-Build Configuration Validation* | **Hash**: e2f81aed
+*End* *Pre-Build Configuration Validation* | **Hash**: 8c25b197
 ---
 
 ### Validation Script

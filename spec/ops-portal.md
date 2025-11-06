@@ -57,7 +57,7 @@ Before deploying a portal instance, ensure you have:
 **Implementation Files**:
 - Portal UI components (see dev-portal.md)
 
-*End* *Role-Based Visual Indicator Verification* | **Hash**: b8467dc0
+*End* *Role-Based Visual Indicator Verification* | **Hash**: b02eb8c1
 ---
 
 ## Build Portal

@@ -50,7 +50,7 @@ Each sponsor SHALL operate in a completely separate environment with:
 - Administrative access is limited to single sponsor
 - System architecture makes cross-sponsor access technically impossible
 
-*End* *Complete Multi-Sponsor Data Separation* | **Hash**: 38c1df2e
+*End* *Complete Multi-Sponsor Data Separation* | **Hash**: e82cbd48
 ---
 
 ## User Authentication
@@ -76,7 +76,7 @@ The system SHALL NOT allow staff or administrator access without successful MFA 
 - Users can configure TOTP authenticator apps or SMS backup
 - System logs all MFA authentication attempts (success and failure)
 
-*End* *Multi-Factor Authentication for Staff* | **Hash**: d8228946
+*End* *Multi-Factor Authentication for Staff* | **Hash**: 4e8e0638
 ---
 
 ### How Users Log In

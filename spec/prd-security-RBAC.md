@@ -55,7 +55,7 @@ RBAC implementation SHALL ensure:
 - System denies unauthorized access attempts
 - Role permissions cannot be bypassed
 
-*End* *Role-Based Access Control* | **Hash**: f74eed3e
+*End* *Role-Based Access Control* | **Hash**: 692bc7bd
 ---
 
 ### REQ-p00014: Least Privilege Access
@@ -80,7 +80,7 @@ Least privilege SHALL ensure:
 - Unnecessary permissions removed promptly when job function changes
 - Audit log captures all permission grant/revoke events
 
-*End* *Least Privilege Access* | **Hash**: 32ca9b47
+*End* *Least Privilege Access* | **Hash**: 874e9922
 ---
 
 ### RBAC Principles

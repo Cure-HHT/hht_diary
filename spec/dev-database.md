@@ -111,7 +111,7 @@ Implementation SHALL include:
 - Deployment process documented with step-by-step instructions
 - Schema version tracked in database metadata table
 
-*End* *Database Schema Implementation and Deployment* | **Hash**: aff68592
+*End* *Database Schema Implementation and Deployment* | **Hash**: 6bb78566
 ---
 
 ### REQ-d00011: Multi-Site Schema Implementation
@@ -138,7 +138,7 @@ Implementation SHALL include:
 - Site-based queries perform efficiently with proper indexes
 - Site assignments modifiable by administrators only
 
-*End* *Multi-Site Schema Implementation* | **Hash**: 8ffaf0dc
+*End* *Multi-Site Schema Implementation* | **Hash**: bf785d33
 ---
 
 ### Option 1: GitHub Package Registry (Recommended)

@@ -339,7 +339,7 @@ Each Supabase project SHALL provide:
 - No shared configuration files between sponsors
 - Project provisioning documented in runbook
 
-*End* *Separate Supabase Projects Per Sponsor* | **Hash**: 20a7fa61
+*End* *Separate Supabase Projects Per Sponsor* | **Hash**: 970de2df
 ---
 
 ### REQ-o00002: Environment-Specific Configuration Management
@@ -362,7 +362,7 @@ Each sponsor repository SHALL maintain:
 - Build scripts validate presence of required environment variables
 - No credentials found in git history
 
-*End* *Environment-Specific Configuration Management* | **Hash**: b58b6034
+*End* *Environment-Specific Configuration Management* | **Hash**: 8786c322
 ---
 
 ### Environment Types
@@ -625,7 +625,7 @@ Mobile app release SHALL include:
 - App store listings reference single app for all sponsors
 - Update deployment automated via CI/CD
 
-*End* *Mobile App Release Process* | **Hash**: 7cce6d34
+*End* *Mobile App Release Process* | **Hash**: 34b8dd28
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -833,7 +833,7 @@ Portal deployment SHALL include:
 - Portal cannot access other sponsors' databases
 - Rollback capability per sponsor portal
 
-*End* *Portal Deployment Per Sponsor* | **Hash**: 845789b0
+*End* *Portal Deployment Per Sponsor* | **Hash**: 06ad75fd
 ---
 
 ### Netlify Static Site Deployment

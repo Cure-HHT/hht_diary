@@ -99,7 +99,7 @@ CREATE POLICY patient_insert_audit ON record_audit
 - Policies execute without performance degradation (<50ms overhead)
 - Unit tests cover all policy scenarios
 
-*End* *Patient Data Isolation RLS Implementation* | **Hash**: 6421baf6
+*End* *Patient Data Isolation RLS Implementation* | **Hash**: 4d57cdcf
 ---
 
 ### REQ-d00020: Investigator Site-Scoped RLS Implementation
@@ -171,7 +171,7 @@ CREATE POLICY investigator_site_audit ON record_audit
 - Policy subquery executes in <100ms
 - Migration includes rollback script
 
-*End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 8d6992de
+*End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 0b438bc8
 ---
 
 ### REQ-d00021: Investigator Annotation RLS Implementation
@@ -260,7 +260,7 @@ CREATE TRIGGER trg_set_annotation_investigator
 - Foreign key constraints prevent orphaned annotations
 - Annotation queries performant with proper indexes
 
-*End* *Investigator Annotation RLS Implementation* | **Hash**: 79c92802
+*End* *Investigator Annotation RLS Implementation* | **Hash**: 024f5863
 ---
 
 ### REQ-d00022: Analyst Read-Only RLS Implementation
@@ -337,7 +337,7 @@ ALTER DATABASE clinical_diary SET pgaudit.log = 'read';
 - No patient identity information accessible
 - Policy performance <100ms with proper indexes
 
-*End* *Analyst Read-Only RLS Implementation* | **Hash**: 71119f2b
+*End* *Analyst Read-Only RLS Implementation* | **Hash**: ca57ee0e
 ---
 
 ### REQ-d00023: Sponsor Global Access RLS Implementation
@@ -421,7 +421,7 @@ CREATE TRIGGER trg_audit_sponsor_users
 - No access to other sponsors' data (separate databases)
 - De-identified data access only
 
-*End* *Sponsor Global Access RLS Implementation* | **Hash**: 30c879b8
+*End* *Sponsor Global Access RLS Implementation* | **Hash**: 57c79cf5
 ---
 
 ### REQ-d00024: Auditor Compliance RLS Implementation
@@ -559,7 +559,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 - Quarterly access review reports available
 - Justification validation prevents empty exports
 
-*End* *Auditor Compliance RLS Implementation* | **Hash**: d622043f
+*End* *Auditor Compliance RLS Implementation* | **Hash**: 64a2ff2e
 ---
 
 ### REQ-d00025: Administrator Break-Glass RLS Implementation
@@ -675,7 +675,7 @@ $$ LANGUAGE plpgsql;
 - All break-glass access logged
 - Expired sessions cleaned up automatically
 
-*End* *Administrator Break-Glass RLS Implementation* | **Hash**: 8b0f32b4
+*End* *Administrator Break-Glass RLS Implementation* | **Hash**: 4a44951a
 ---
 
 ### REQ-d00026: Event Sourcing State Protection RLS Implementation
@@ -776,7 +776,7 @@ $$ LANGUAGE plpgsql;
 - Version number increments with each event
 - Integrity validation function available
 
-*End* *Event Sourcing State Protection RLS Implementation* | **Hash**: 17e1bdf5
+*End* *Event Sourcing State Protection RLS Implementation* | **Hash**: a665366e
 ---
 
 ## Implementation Guidelines

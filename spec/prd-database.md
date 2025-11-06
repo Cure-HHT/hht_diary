@@ -102,7 +102,7 @@ Database isolation SHALL ensure:
 - Backup/restore operations scoped to single sponsor
 - Query execution cannot span multiple sponsor databases
 
-*End* *Separate Database Per Sponsor* | **Hash**: 9be1f491
+*End* *Separate Database Per Sponsor* | **Hash**: 6a207b1a
 ---
 
 ## Event Sourcing Architecture

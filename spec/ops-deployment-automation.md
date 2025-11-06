@@ -54,7 +54,7 @@ The system SHALL provide automated deployment pipelines that:
 - ✅ Smoke tests execute post-deployment
 - ✅ Deployment windows enforced for production
 
-*End* *Automated Deployment Pipeline* | **Hash**: e8c189f3
+*End* *Automated Deployment Pipeline* | **Hash**: e82a4842
 ---
 
 ### REQ-o00044: Database Migration Automation
@@ -102,7 +102,7 @@ The system SHALL automate database migrations with the following capabilities:
 - ✅ Dry-run capability implemented
 - ✅ Alert on migration duration >5 minutes
 
-*End* *Database Migration Automation* | **Hash**: 74a39697
+*End* *Database Migration Automation* | **Hash**: 10291b2e
 ---
 
 ## Architecture

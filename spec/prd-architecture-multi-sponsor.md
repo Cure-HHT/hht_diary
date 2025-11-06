@@ -55,7 +55,7 @@ Single app approach SHALL ensure:
 - Updates deployed once for all sponsors
 - No cross-sponsor data or configuration leakage
 
-*End* *Single Mobile App for All Sponsors* | **Hash**: a9a18658
+*End* *Single Mobile App for All Sponsors* | **Hash**: f638b9f4
 ---
 
 ### REQ-p00009: Sponsor-Specific Web Portals
@@ -80,7 +80,7 @@ Portal isolation SHALL ensure:
 - Portal customization independent per sponsor
 - Portal cannot query other sponsors' databases
 
-*End* *Sponsor-Specific Web Portals* | **Hash**: 1ca2a9f3
+*End* *Sponsor-Specific Web Portals* | **Hash**: 4ebd0c72
 ---
 
 ## How Patients Enroll
@@ -119,7 +119,7 @@ Multi-site support SHALL include:
 - Reports aggregate across sites or filter to specific sites
 - Site information included in data exports for regulatory submission
 
-*End* *Multi-Site Support Per Sponsor* | **Hash**: ff049149
+*End* *Multi-Site Support Per Sponsor* | **Hash**: b3de8bbb
 ---
 
 ## Data Isolation

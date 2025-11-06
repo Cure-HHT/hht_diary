@@ -212,7 +212,7 @@ final portalTheme = ThemeData(
 - [ ] Reusable widgets created for common patterns
 - [ ] Accessible contrast ratios (WCAG AA compliant)
 
-*End* *Portal UI Design System* | **Hash**: 59fdab3b
+*End* *Portal UI Design System* | **Hash**: 022edb23
 ---
 
 ### REQ-d00052: Role-Based Banner Component
@@ -247,7 +247,7 @@ The portal SHALL display a color-coded banner component at the top of all authen
 - [ ] Text contrast meets WCAG AA standards (4.5:1 minimum)
 - [ ] Banner included in core platform (all sponsor portals)
 
-*End* *Role-Based Banner Component* | **Hash**: af584eb8
+*End* *Role-Based Banner Component* | **Hash**: 40c44430
 ---
 
 ### REQ-d00030: Portal Routing and Navigation
@@ -346,7 +346,7 @@ final router = GoRouter(
 - [ ] Browser back button works correctly
 - [ ] Deep linking preserves intended destination after login
 
-*End* *Portal Routing and Navigation* | **Hash**: d0aee4b0
+*End* *Portal Routing and Navigation* | **Hash**: 7429dd55
 ---
 
 ## Authentication & Authorization Requirements
@@ -465,7 +465,7 @@ class AuthProvider extends ChangeNotifier {
 - [ ] Session persists across browser refresh
 - [ ] Logout clears all auth state
 
-*End* *Supabase Authentication Integration* | **Hash**: aaa8f76a
+*End* *Supabase Authentication Integration* | **Hash**: 8abcbfac
 ---
 
 ### REQ-d00032: Role-Based Access Control Implementation
@@ -504,7 +504,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 - [ ] RLS policies enforce role-based data access
 - [ ] Admin can access all dashboards
 
-*End* *Role-Based Access Control Implementation* | **Hash**: a38f0d12
+*End* *Role-Based Access Control Implementation* | **Hash**: 394dec01
 ---
 
 ### REQ-d00033: Site-Based Data Isolation
@@ -566,7 +566,7 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 - [ ] RLS policy prevents cross-site data access
 - [ ] Admin can see all sites (bypass RLS)
 
-*End* *Site-Based Data Isolation* | **Hash**: e587cff4
+*End* *Site-Based Data Isolation* | **Hash**: c3440de7
 ---
 
 ## Frontend Components Requirements
@@ -733,7 +733,7 @@ class _LoginPageState extends State<LoginPage> {
 - [ ] Error messages displayed via SnackBar
 - [ ] Successful login redirects to role-specific dashboard
 
-*End* *Login Page Implementation* | **Hash**: 0fde167f
+*End* *Login Page Implementation* | **Hash**: 50d0c2b5
 ---
 
 ### REQ-d00035: Admin Dashboard Implementation
@@ -991,7 +991,7 @@ class _SummaryCard extends StatelessWidget {
 - [ ] Revoke button deactivates investigator accounts
 - [ ] Table responsive on desktop and tablet
 
-*End* *Admin Dashboard Implementation* | **Hash**: 2cfb4bc8
+*End* *Admin Dashboard Implementation* | **Hash**: 7b82ec93
 ---
 
 ### REQ-d00036: Create User Dialog Implementation
@@ -1305,7 +1305,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 - [ ] Success message shows linking code
 - [ ] Dialog closes and table refreshes after creation
 
-*End* *Create User Dialog Implementation* | **Hash**: b26e3867
+*End* *Create User Dialog Implementation* | **Hash**: 42a93086
 ---
 
 ### REQ-d00037: Investigator Dashboard Implementation
@@ -1813,7 +1813,7 @@ class _QuestionnaireActions extends StatelessWidget {
 - [ ] "Unenroll" button revokes patient tokens
 - [ ] Table responsive on desktop and tablet
 
-*End* *Investigator Dashboard Implementation* | **Hash**: d2984949
+*End* *Investigator Dashboard Implementation* | **Hash**: 9f7a8612
 ---
 
 ### REQ-d00038: Enroll Patient Dialog Implementation
@@ -2050,7 +2050,7 @@ class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
 - [ ] Success message shows linking code
 - [ ] Dialog closes and table refreshes after enrollment
 
-*End* *Enroll Patient Dialog Implementation* | **Hash**: 45c79415
+*End* *Enroll Patient Dialog Implementation* | **Hash**: c553d403
 ---
 
 ### REQ-d00051: Auditor Dashboard Implementation
@@ -2431,7 +2431,7 @@ class _SummaryCard extends StatelessWidget {
 - [ ] Summary cards show accurate counts
 - [ ] RLS policies allow Auditor read access to all data
 
-*End* *Auditor Dashboard Implementation* | **Hash**: e4806c99
+*End* *Auditor Dashboard Implementation* | **Hash**: 86038561
 ---
 
 ## Database Schema Requirements
@@ -2533,7 +2533,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 - [ ] Admins can query all users
 - [ ] Investigators can only query themselves
 
-*End* *Portal Users Table Schema* | **Hash**: fa3c43cd
+*End* *Portal Users Table Schema* | **Hash**: 848297db
 ---
 
 ### REQ-d00040: User Site Access Table Schema
@@ -2611,7 +2611,7 @@ CREATE POLICY "admins_insert_site_access" ON user_site_access
 - [ ] RLS policies enable role-based access
 - [ ] Cascade delete removes assignments when user or site deleted
 
-*End* *User Site Access Table Schema* | **Hash**: f00fc7ba
+*End* *User Site Access Table Schema* | **Hash**: 2e3c150c
 ---
 
 ### REQ-d00041: Patients Table Extensions for Portal
@@ -2739,7 +2739,7 @@ CREATE POLICY "investigators_update_own_sites_patients" ON patients
 - [ ] Investigators can only see/enroll patients at their assigned sites
 - [ ] Migration script creates columns with proper types
 
-*End* *Patients Table Extensions for Portal* | **Hash**: 01a2584c
+*End* *Patients Table Extensions for Portal* | **Hash**: e4b8c181
 ---
 
 ### REQ-d00042: Questionnaires Table Schema
@@ -2851,7 +2851,7 @@ CREATE TRIGGER questionnaires_updated_at
 - [ ] Trigger updates `updated_at` on every row change
 - [ ] Cascade delete removes questionnaires when patient deleted
 
-*End* *Questionnaires Table Schema* | **Hash**: 41ab859a
+*End* *Questionnaires Table Schema* | **Hash**: 166c9e74
 ---
 
 ## Deployment Requirements
@@ -2917,7 +2917,7 @@ SUPABASE_ANON_KEY=<anon-key-from-supabase>
 - [ ] Automatic deployments trigger on `main` branch push
 - [ ] Custom domain configured for sponsor
 
-*End* *Netlify Deployment Configuration* | **Hash**: fd52ff8d
+*End* *Netlify Deployment Configuration* | **Hash**: d7c11f03
 ---
 
 ## Summary

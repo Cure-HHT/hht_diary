@@ -116,7 +116,7 @@ Monitoring SHALL include:
 - Event chain links validated (parent_audit_id relationships)
 - Monitoring dashboards show audit trail health status
 
-*End* *Audit Trail Monitoring* | **Hash**: ce6850ec
+*End* *Audit Trail Monitoring* | **Hash**: f48b8b6b
 ---
 
 #### 4. Audit Trail Integrity
@@ -873,7 +873,7 @@ Backup and retention SHALL include:
 - Quarterly disaster recovery drills documented
 - Backup integrity verification automated
 
-*End* *Backup and Retention Policy* | **Hash**: e67b7899
+*End* *Backup and Retention Policy* | **Hash**: 6268dd48
 ---
 
 ### Automated Backups

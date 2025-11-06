@@ -76,7 +76,7 @@ Provisioning SHALL include:
 - Project provisioning documented in runbook
 - Staging and production use separate projects
 
-*End* *Supabase Project Provisioning Per Sponsor* | **Hash**: 727c966c
+*End* *Supabase Project Provisioning Per Sponsor* | **Hash**: 10544ffd
 ---
 
 ### Per-Sponsor Supabase Projects
@@ -149,7 +149,7 @@ Schema deployment SHALL include:
 - Schema validation checks pass before deployment
 - Rollback capability for failed deployments
 
-*End* *Database Schema Deployment* | **Hash**: 118798b8
+*End* *Database Schema Deployment* | **Hash**: b9f6a0b5
 ---
 
 ### REQ-o00011: Multi-Site Data Configuration Per Sponsor
@@ -176,7 +176,7 @@ Site configuration SHALL include:
 - Site configuration documented for regulatory submission
 - Site management procedures defined for sponsor administrators
 
-*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 716b0df6
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 9981604d
 ---
 
 ### Option A: SQL Editor (Quickest)

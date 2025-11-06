@@ -56,7 +56,7 @@ Formal requirements SHALL ensure:
 - Validation tooling prevents commits with invalid/orphaned requirements
 - Top-down cascade enforced (PRD requirements drive OPS/DEV, not vice versa)
 
-*End* *System Validation and Traceability* | **Hash**: 11bee00d
+*End* *System Validation and Traceability* | **Hash**: 1d358edd
 ---
 
 ### REQ-p00021: Architecture Decision Documentation
@@ -84,7 +84,7 @@ Decision documentation SHALL ensure:
 - Decision rationale available for audit and review
 - ADR index maintained showing all decisions and their status
 
-*End* *Architecture Decision Documentation* | **Hash**: 4543f153
+*End* *Architecture Decision Documentation* | **Hash**: 4cc93241
 ---
 
 ## References

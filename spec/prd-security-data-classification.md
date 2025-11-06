@@ -76,7 +76,7 @@ Separation SHALL ensure:
 - Clinical data exports contain participant IDs only, not real identities
 - Data breach of clinical database does not expose patient identities
 
-*End* *Separation of Identity and Clinical Data* | **Hash**: 2ef944f3
+*End* *Separation of Identity and Clinical Data* | **Hash**: d1d5e6d7
 ---
 
 ### REQ-p00017: Data Encryption
@@ -101,7 +101,7 @@ Encryption SHALL ensure:
 - Keys rotated according to security policy
 - Encryption cannot be disabled
 
-*End* *Data Encryption* | **Hash**: 7ab46ab0
+*End* *Data Encryption* | **Hash**: 0b519855
 ---
 
 ### Separation of Identity and Data

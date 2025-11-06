@@ -51,7 +51,7 @@ Containerization SHALL provide:
 - Container health checks verify tool availability
 - Volume mounts preserve file permissions and ownership
 
-*End* *Containerized Development Environments* | **Hash**: c825be5c
+*End* *Containerized Development Environments* | **Hash**: 13d56217
 ---
 
 ### REQ-d00055: Role-Based Environment Separation
@@ -81,7 +81,7 @@ Role-based environments SHALL include:
 - File permissions enforce role boundaries
 - Documentation explains what each role can and cannot do
 
-*End* *Role-Based Environment Separation* | **Hash**: 9b60d2ed
+*End* *Role-Based Environment Separation* | **Hash**: d3bc3ad6
 ---
 
 ### REQ-d00056: Cross-Platform Development Support
@@ -108,7 +108,7 @@ Cross-platform support SHALL ensure:
 - File mounts work correctly on all platforms
 - Setup documentation includes platform-specific prerequisites only
 
-*End* *Cross-Platform Development Support* | **Hash**: 4c479e07
+*End* *Cross-Platform Development Support* | **Hash**: 223d3f08
 ---
 
 ### REQ-d00057: CI/CD Environment Parity
@@ -135,7 +135,7 @@ CI/CD parity SHALL be achieved through:
 - CI logs include tool version verification
 - Local development README includes "verify parity" commands
 
-*End* *CI/CD Environment Parity* | **Hash**: 0a8f4cce
+*End* *CI/CD Environment Parity* | **Hash**: e58f7423
 ---
 
 ### REQ-d00058: Secrets Management via Doppler
@@ -163,7 +163,7 @@ Doppler integration SHALL provide:
 - Documentation covers Doppler setup per role
 - Secret rotation procedures documented
 
-*End* *Secrets Management via Doppler* | **Hash**: ddcc7f11
+*End* *Secrets Management via Doppler* | **Hash**: 6119c7b8
 ---
 
 ### REQ-d00059: Development Tool Specifications
@@ -218,7 +218,7 @@ Tool specifications SHALL include:
 - Tool version verification script runs on container startup
 - Documentation includes tool update policy and testing procedures
 
-*End* *Development Tool Specifications* | **Hash**: bc384e02
+*End* *Development Tool Specifications* | **Hash**: fd2e04d2
 ---
 
 ### REQ-d00060: VS Code Dev Containers Integration
@@ -248,7 +248,7 @@ Dev Containers SHALL provide:
 - README includes "Reopen in Container" instructions
 - First-time setup takes < 5 minutes after Docker installation
 
-*End* *VS Code Dev Containers Integration* | **Hash**: 47b72611
+*End* *VS Code Dev Containers Integration* | **Hash**: 07abf106
 ---
 
 ### REQ-d00061: Automated QA Workflow
@@ -280,7 +280,7 @@ QA automation SHALL provide:
 - Artifacts uploaded to GitHub Actions (not external storage)
 - Permanent archive for commits tagged as releases
 
-*End* *Automated QA Workflow* | **Hash**: 42e506bd
+*End* *Automated QA Workflow* | **Hash**: fc47d463
 ---
 
 ### REQ-d00062: Environment Validation & Change Control
@@ -331,7 +331,7 @@ Validation SHALL include:
 - SBOM generated and stored with each image version
 - Deprecation notices provided 90 days before environment version retirement
 
-*End* *Environment Validation & Change Control* | **Hash**: e1652867
+*End* *Environment Validation & Change Control* | **Hash**: 7b290df6
 ---
 
 ### REQ-d00063: Shared Workspace and File Exchange
@@ -359,7 +359,7 @@ Shared workspace SHALL include:
 - Documentation explains volume purpose and usage patterns
 - No symlinks or hard links that break cross-platform
 
-*End* *Shared Workspace and File Exchange* | **Hash**: 7f5b28a9
+*End* *Shared Workspace and File Exchange* | **Hash**: b407570f
 ---
 
 ## Tool Version Rationale

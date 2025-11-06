@@ -61,7 +61,7 @@ Role permissions SHALL ensure:
 - All user actions captured in audit trail
 - Users cannot switch roles without Admin intervention
 
-*End* *Portal User Roles and Permissions* | **Hash**: 2d494361
+*End* *Portal User Roles and Permissions* | **Hash**: cf1917cb
 ---
 
 ### REQ-p00025: Patient Enrollment Workflow
@@ -95,7 +95,7 @@ Patient enrollment SHALL ensure:
 - Patient can link mobile app using generated code
 - Linking code association permanent (cannot be changed after linking)
 
-*End* *Patient Enrollment Workflow* | **Hash**: 5e6b9507
+*End* *Patient Enrollment Workflow* | **Hash**: 46eedac4
 ---
 
 ### REQ-p00026: Patient Monitoring Dashboard
@@ -137,7 +137,7 @@ Patient monitoring SHALL provide:
 - Dashboard refreshes to show newly enrolled patients
 - Visual indicators distinguishable for accessibility (color + text)
 
-*End* *Patient Monitoring Dashboard* | **Hash**: 4d52eaa3
+*End* *Patient Monitoring Dashboard* | **Hash**: 256f8363
 ---
 
 ### REQ-p00027: Questionnaire Management
@@ -178,7 +178,7 @@ Questionnaire management SHALL provide:
 - Investigators can only send to patients at assigned sites
 - Auditors can view questionnaire status but cannot send or acknowledge
 
-*End* *Questionnaire Management* | **Hash**: 61f843ad
+*End* *Questionnaire Management* | **Hash**: 72da93bc
 ---
 
 ### REQ-p00028: Token Revocation and Access Control
@@ -218,7 +218,7 @@ Token revocation SHALL ensure:
 - Investigator cannot revoke patients at non-assigned sites
 - Auditor cannot revoke any tokens (read-only role)
 
-*End* *Token Revocation and Access Control* | **Hash**: c4be450b
+*End* *Token Revocation and Access Control* | **Hash**: 2edf0218
 ---
 
 ### REQ-p00029: Auditor Dashboard and Data Export
@@ -258,7 +258,7 @@ Auditor capabilities SHALL ensure:
 - Auditor cannot create users or revoke tokens
 - All auditor actions logged in audit trail
 
-*End* *Auditor Dashboard and Data Export* | **Hash**: 3501dc5d
+*End* *Auditor Dashboard and Data Export* | **Hash**: 5a77e3bb
 ---
 
 ### REQ-p00030: Role-Based Visual Indicators
@@ -278,7 +278,7 @@ Role colors SHALL be:
 - Banner visible on all portal pages
 - Colors meet accessibility contrast standards
 
-*End* *Role-Based Visual Indicators* | **Hash**: 3e61467b
+*End* *Role-Based Visual Indicators* | **Hash**: 59059266
 ---
 
 ## Architecture Overview

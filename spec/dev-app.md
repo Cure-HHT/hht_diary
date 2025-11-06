@@ -59,7 +59,7 @@ Implementation SHALL include:
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
 
-*End* *Sponsor Configuration Detection Implementation* | **Hash**: 406bc29b
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: d43b407d
 ---
 
 ### Single App, Multiple Sponsors
@@ -129,7 +129,7 @@ Implementation SHALL include:
 - No data loss during offline periods
 - Background sync respects battery and data usage constraints
 
-*End* *Local-First Data Entry Implementation* | **Hash**: 0244d680
+*End* *Local-First Data Entry Implementation* | **Hash**: 843d0664
 ---
 
 ### Core Principle
@@ -187,7 +187,7 @@ Implementation SHALL include:
 - UUID included in all `record_audit.device_info` JSONB fields
 - Conflict resolution logic can identify source device for each change
 
-*End* *Application Instance UUID Generation* | **Hash**: 595cdce2
+*End* *Application Instance UUID Generation* | **Hash**: 447e987e
 ---
 
 ### Conflict Resolution
@@ -290,7 +290,7 @@ Build process SHALL include:
 - No sponsor-specific branding in store listings
 - Build pipeline validates configuration completeness
 
-*End* *Mobile App Build and Release Process* | **Hash**: 95535663
+*End* *Mobile App Build and Release Process* | **Hash**: 6dfe9c2d
 ---
 
 ### App Store Listing

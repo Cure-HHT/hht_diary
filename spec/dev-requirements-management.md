@@ -58,7 +58,7 @@ Implementation SHALL include:
 - Error messages include file path, line number, and specific issue
 - Runnable manually: `python3 tools/requirements/validate_requirements.py`
 
-*End* *Requirement Validation Tooling* | **Hash**: 1a0c1a8c
+*End* *Requirement Validation Tooling* | **Hash**: 2263dc21
 ---
 
 ### REQ-d00015: Traceability Matrix Auto-Generation
@@ -97,7 +97,7 @@ Implementation SHALL include:
 - Output filename: traceability_matrix.{md,html,csv}
 - Runnable manually: `python3 tools/requirements/generate_traceability.py --format both`
 
-*End* *Traceability Matrix Auto-Generation* | **Hash**: b6cdf365
+*End* *Traceability Matrix Auto-Generation* | **Hash**: 240a754c
 ---
 
 ### REQ-d00016: Code-to-Requirement Linking
@@ -129,7 +129,7 @@ Implementation SHALL include:
 - Examples include database/*.sql, mobile app code, test files
 - CLAUDE.md documents requirement for header comments
 
-*End* *Code-to-Requirement Linking* | **Hash**: ee8c3a1d
+*End* *Code-to-Requirement Linking* | **Hash**: c857235a
 ---
 
 ### REQ-d00017: ADR Template and Lifecycle Tooling
@@ -162,7 +162,7 @@ Implementation SHALL include:
 - Instructions for updating index when adding new ADRs
 - Examples of supersession: how to link old ADR to replacement
 
-*End* *ADR Template and Lifecycle Tooling* | **Hash**: 876811a4
+*End* *ADR Template and Lifecycle Tooling* | **Hash**: 36997d8f
 ---
 
 ### REQ-d00018: Git Hook Implementation
@@ -200,7 +200,7 @@ Implementation SHALL include:
 - Hook works correctly on Linux, macOS, Windows Git Bash
 - CLAUDE.md documents hook setup requirement
 
-*End* *Git Hook Implementation* | **Hash**: 3025b8a0
+*End* *Git Hook Implementation* | **Hash**: 85098bca
 ---
 
 ### REQ-d00053: Development Environment and Tooling Setup
@@ -228,7 +228,7 @@ Development environment setup SHALL include:
 - Setup documentation kept up-to-date with tool changes
 - Integration tools facilitate requirement traceability workflow
 
-*End* *Development Environment and Tooling Setup* | **Hash**: 0be0970a
+*End* *Development Environment and Tooling Setup* | **Hash**: 404b139b
 ---
 
 ## Tool Usage Examples
