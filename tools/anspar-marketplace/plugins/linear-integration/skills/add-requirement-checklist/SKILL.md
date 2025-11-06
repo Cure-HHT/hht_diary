@@ -236,7 +236,7 @@ Recognizes keywords to identify subsystems:
 
 ## Notes
 - Non-destructive: Appends to description, preserves existing content
-- Works with anspar-workflow for comprehensive ticket management
+- Works with workflow for comprehensive ticket management
 - Combines well with requirements agent for validation
 - Helps ensure nothing is missed during implementation
 - Makes tickets self-documenting with clear success criteria

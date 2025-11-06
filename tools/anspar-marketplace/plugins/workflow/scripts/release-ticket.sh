@@ -110,7 +110,7 @@ jq '.' "$STATE_FILE"
 # Optional: Add Linear Comment
 # =====================================================
 
-# This would require anspar-linear-integration
+# This would require linear-integration
 # For now, just note that this integration point exists
 
 echo ""

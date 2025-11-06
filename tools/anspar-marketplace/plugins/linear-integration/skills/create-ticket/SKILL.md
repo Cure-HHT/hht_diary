@@ -43,4 +43,4 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/create-single-ticket.js \
 ## Notes
 - Returns the created ticket ID and URL
 - Automatically links requirements mentioned in description
-- Can be claimed with anspar-workflow after creation
+- Can be claimed with workflow after creation

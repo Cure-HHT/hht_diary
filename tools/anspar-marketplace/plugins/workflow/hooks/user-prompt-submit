@@ -123,15 +123,32 @@ Or if just exploring/reading:
   Continue without claiming - git hooks will enforce at commit time."
     fi
 
-# New feature work without ticket
-elif [ $NEW_FEATURE_SCORE -ge 6 ] && [ -z "$ACTIVE_TICKET" ]; then
+# New feature work detected
+elif [ $NEW_FEATURE_SCORE -ge 6 ]; then
     SHOULD_WARN=true
-    WARNING_MSG="📋 NEW FEATURE WORK DETECTED
+    if [ -n "$ACTIVE_TICKET" ]; then
+        WARNING_MSG="✨ NEW FEATURE WORK DETECTED
 
-You're starting new feature work. Consider claiming a ticket:
+Your prompt suggests starting new feature development.
+
+Current active ticket: $ACTIVE_TICKET
+
+Consider:
+1. Is this new feature part of $ACTIVE_TICKET's scope? → Continue
+2. Should this be a separate ticket? → Create new ticket:
+   tools/anspar-marketplace/plugins/workflow/scripts/switch-ticket.sh NEW-TICKET \"New feature work\"
+
+Reminder: Keep ticket scope focused for better traceability."
+    else
+        WARNING_MSG="📋 NEW FEATURE WORK DETECTED
+
+You're starting new feature work without an active ticket.
+
+Consider claiming a ticket:
   tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh TICKET-ID
 
 If just exploring ideas, no action needed - workflow enforced at commit."
+    fi
 fi
 
 # ===================================================

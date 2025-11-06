@@ -327,7 +327,7 @@ Operations are designed to be **idempotent** or **append-only**:
 
 ## Integration with Ticket Trackers
 
-### Linear Integration (anspar-linear-integration)
+### Linear Integration (linear-integration)
 
 When claiming a ticket, the workflow plugin can optionally:
 

@@ -47,7 +47,7 @@ Parameters:
 ```
 
 ### claim-ticket
-Claim a Linear ticket for the current worktree (integrates with anspar-workflow).
+Claim a Linear ticket for the current worktree (integrates with workflow).
 
 **Usage:**
 ```

@@ -83,4 +83,4 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/update-ticket.js \
 - Replaces entire description only with `--description`
 - Returns updated ticket URL
 - Maintains traceability between tickets and requirements
-- Works with anspar-workflow for commit message generation
+- Works with workflow for commit message generation

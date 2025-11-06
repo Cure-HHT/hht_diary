@@ -18,7 +18,7 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 - ✅ Active ticket enforcement before commits
 - ✅ Distributed worktree support
 - ✅ Sponsor context tracking (core vs sponsor-specific work)
-- ✅ Tracker-agnostic design (Linear integration via anspar-linear-integration)
+- ✅ Tracker-agnostic design (Linear integration via linear-integration)
 - ✅ Comprehensive audit trail (append-only history)
 
 ### 🎯 Proactive Workflow Enforcement (NEW)
@@ -73,7 +73,7 @@ Consider:
   sudo apt-get install jq  # Ubuntu/Debian
   brew install jq          # macOS
   ```
-- **Optional**: anspar-linear-integration plugin for Linear API integration
+- **Optional**: linear-integration plugin for Linear API integration
 
 ## Setup
 
@@ -798,7 +798,7 @@ See [docs/workflow-state-schema.md](docs/workflow-state-schema.md) for:
 
 ### Tracker Integration
 
-This plugin is designed to be tracker-agnostic. Linear integration is provided through the anspar-linear-integration plugin.
+This plugin is designed to be tracker-agnostic. Linear integration is provided through the linear-integration plugin.
 
 **Integration points**:
 - `claim-ticket.sh`: Optionally fetch requirements from ticket tracker
@@ -806,7 +806,7 @@ This plugin is designed to be tracker-agnostic. Linear integration is provided t
 - `trackerMetadata` field in state: Extensible for different trackers
 
 **Supported trackers** (future):
-- Linear (via anspar-linear-integration)
+- Linear (via linear-integration)
 - Notion (planned)
 - Jira (planned)
 - GitHub Issues (planned)
@@ -886,10 +886,10 @@ brew install jq
 ### With Other Plugins
 
 This plugin works alongside:
-- **anspar-linear-integration**: Provides Linear API integration
-- **anspar-requirement-validation**: Validates requirement format
-- **anspar-traceability-matrix**: Generates traceability matrices
-- **anspar-spec-compliance**: Enforces spec/ directory compliance
+- **linear-integration**: Provides Linear API integration
+- **simple-requirements**: Validates requirement format
+- **traceability-matrix**: Generates traceability matrices
+- **spec-compliance**: Enforces spec/ directory compliance
 
 ### With CI/CD
 
@@ -962,7 +962,7 @@ fi
 - **Bash**: >=4.0
 - **Git**: For hooks and worktree support
 - **jq**: For JSON parsing (required)
-- **Optional**: anspar-linear-integration for Linear API features
+- **Optional**: linear-integration for Linear API features
 
 ## License
 
@@ -985,9 +985,9 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 - **Workflow State Schema**: [docs/workflow-state-schema.md](docs/workflow-state-schema.md)
 - **Requirement Format**: See spec/requirements-format.md in parent project
-- **Linear Integration**: tools/claude-marketplace/anspar-linear-integration
+- **Linear Integration**: tools/anspar-marketplace/plugins/linear-integration
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
-- **Original Workflow Plugin**: tools/claude-marketplace/workflow
+- **Original Workflow Plugin**: tools/anspar-marketplace/plugins/workflow
 
 ## Support
 

@@ -28,7 +28,7 @@ PLUGIN_WORK_SCORE=0
 # ===================================================
 
 # Plugin-specific paths in prompt
-if echo "$PROMPT" | grep -qE "tools/anspar-marketplace/plugins/|tools/claude-marketplace/"; then
+if echo "$PROMPT" | grep -qE "tools/anspar-marketplace/plugins/"; then
     PLUGIN_WORK_SCORE=$((PLUGIN_WORK_SCORE + 15))
 fi
 

@@ -207,7 +207,7 @@ if [ -d "$LINEAR_INTEGRATION_PATH" ] && [ -n "$LINEAR_API_TOKEN" ]; then
     if command -v node &> /dev/null; then
         # Use Linear API to fetch ticket description
         # Extract REQ-xxx references from description
-        # This requires a helper script in anspar-linear-integration
+        # This requires a helper script in linear-integration
 
         # For now, we'll just note that this integration point exists
         echo "   ⚠️  Linear integration available but requires fetch-ticket-details.js"
@@ -401,7 +401,7 @@ jq '.' "$STATE_FILE"
 # Optional: Update Linear Ticket Status
 # =====================================================
 
-# This would require anspar-linear-integration
+# This would require linear-integration
 # For now, just note that this integration point exists
 
 echo ""

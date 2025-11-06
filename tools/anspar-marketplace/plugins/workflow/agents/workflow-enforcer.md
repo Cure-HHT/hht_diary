@@ -105,13 +105,13 @@ You are the workflow enforcer for this worktree. Your job is to ensure proper ti
      Before starting implementation work, please claim a ticket:
 
      Option 1: Claim a specific ticket
-       tools/claude-marketplace/workflow/scripts/claim-ticket.sh CUR-XXX
+       tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
 
      Option 2: Resume a previously paused ticket
-       tools/claude-marketplace/workflow/scripts/resume-ticket.sh
+       tools/anspar-marketplace/plugins/workflow/scripts/resume-ticket.sh
 
      Option 3: View recently released tickets
-       tools/claude-marketplace/workflow/scripts/list-history.sh --action=release
+       tools/anspar-marketplace/plugins/workflow/scripts/list-history.sh --action=release
 
      Which ticket should we work on?
      ```
@@ -172,7 +172,7 @@ Once user claims a ticket:
 ## Plugin Integration
 
 This agent is part of the **workflow** plugin:
-- **Location**: `tools/claude-marketplace/workflow/`
+- **Location**: `tools/anspar-marketplace/plugins/workflow/`
 - **Related Hooks**: `pre-commit`, `commit-msg`, `post-commit`, `session-start`
 - **Related Scripts**: `claim-ticket.sh`, `resume-ticket.sh`, `check-active-ticket.sh`
 

@@ -10,17 +10,6 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
