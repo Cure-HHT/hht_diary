@@ -5,6 +5,27 @@ All notable changes to the workflow plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-11-06
+
+### Added
+- **Enhanced ticket creation integration**: UserPromptSubmit hook now suggests using ticket-creation-agent
+- **Additional detection patterns**:
+  - Bug fix detection: "fix bug", "fix issue", "fix problem"
+  - Documentation work: "update docs", "write README", "add documentation"
+- **Actionable guidance**: Messages now include specific commands and agent invocations
+- **Seamless workflow**: Direct integration with intelligent ticket-creation-agent
+
+### Changed
+- **Improved messaging**: Warnings now point to ticket-creation-agent instead of manual scripts
+- **Clearer options**: When no ticket exists, provide 3 clear options (create, claim, explore)
+- **Better user experience**: Reduced friction in ticket creation workflow
+
+### Benefits
+- Easier ticket creation (just say "create a ticket for...")
+- Smart context-aware suggestions from ticket-creation-agent
+- Reduced manual steps in workflow
+- Maintains workflow discipline without being intrusive
+
 ## [2.0.0] - 2025-10-31
 
 ### Added

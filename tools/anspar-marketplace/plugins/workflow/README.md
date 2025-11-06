@@ -23,15 +23,20 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 
 ### 🎯 Proactive Workflow Enforcement (NEW)
 
-**v2.1 Enhancement**: The workflow plugin now proactively detects when you're switching tasks or starting new work, providing guidance **before** you begin implementation instead of waiting for commit time.
+**v2.2 Enhancement**: The workflow plugin now proactively detects when you're switching tasks or starting new work, providing guidance **before** you begin implementation instead of waiting for commit time. Now integrates with the intelligent ticket-creation-agent for seamless ticket creation!
 
 **How it works**:
 - **UserPromptSubmit Hook**: Analyzes your prompts for task-switching language
-- **Pattern Detection**: Recognizes phrases like "let's rename", "switch to", "create new", etc.
-- **Context-Aware**: Checks your active ticket and suggests ticket management actions
+- **Pattern Detection**: Recognizes phrases like:
+  - Task switches: "let's rename", "switch to", "move on to", "instead let's"
+  - New features: "let's create", "implement", "add new", "build"
+  - Bug fixes: "fix the bug", "fix issue", "fix problem"
+  - Documentation: "update docs", "write README", "add documentation"
+- **Context-Aware**: Checks your active ticket and suggests appropriate actions
 - **Non-Intrusive**: Gentle reminders, not blocking - you maintain control
+- **Ticket Creation Integration**: Suggests using ticket-creation-agent for easy ticket creation
 
-**Example Interaction**:
+**Example Interaction 1 - Task Switch**:
 
 ```
 You: "Actually, let's rename sponsor/carina to callisto"
@@ -49,11 +54,37 @@ Consider:
 3. Quick fix/investigation? → Maybe continue, be mindful of scope
 ```
 
+**Example Interaction 2 - New Work Without Ticket**:
+
+```
+You: "Let's implement a user authentication system"
+
+Workflow Plugin:
+📋 NEW FEATURE WORK DETECTED
+
+You're starting new feature work without an active ticket.
+
+🎯 Quick action: Let me help you create a ticket!
+
+Just say: "Create a ticket for [your feature description]"
+
+The intelligent ticket-creation-agent will:
+- Infer details from your git context
+- Suggest appropriate labels and priority
+- Guide you through ticket creation
+- Offer to claim it for you
+
+Or explore first: Workflow is enforced at commit time, so you can start
+investigating and create a ticket when ready.
+```
+
 **Benefits**:
 - ✅ Catch scope creep early
 - ✅ Maintain clear ticket boundaries
 - ✅ Reduce "oops, wrong ticket" moments
 - ✅ Better audit trails and traceability
+- ✅ Seamless ticket creation workflow
+- ✅ Smart context-aware ticket suggestions
 
 ## Installation
 
