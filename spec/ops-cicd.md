@@ -25,7 +25,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ### REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active | **Hash**: 0cad57b7
+**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active | **Hash**: 08da865c
 **Description**: The system SHALL provide automated CI/CD validation of requirement traceability on every pull request and commit to protected branches.
 
 **Acceptance Criteria**:

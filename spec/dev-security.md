@@ -152,7 +152,7 @@ Authentication integration SHALL include:
 
 ### REQ-d00008: MFA Enrollment and Verification Implementation
 
-**Level**: Dev | **Implements**: o00006 | **Status**: Active | **Hash**: 4ab38fcb
+**Level**: Dev | **Implements**: o00006 | **Status**: Active | **Hash**: eee5405e
 The application SHALL implement multi-factor authentication enrollment and verification flows using Supabase Auth's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
 
 Implementation SHALL include:
