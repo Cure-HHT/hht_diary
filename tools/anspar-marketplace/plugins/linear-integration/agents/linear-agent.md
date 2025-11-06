@@ -1,5 +1,21 @@
 # Linear Integration Agent
 
+**⚠️ IMPORTANT FOR AI AGENTS: This is the CANONICAL and ONLY way to interact with Linear tickets.**
+
+## For the Main Agent
+
+**ALWAYS delegate Linear operations to this sub-agent. NEVER create one-off ticket tools.**
+
+This sub-agent provides:
+- ✅ Reliable, tested Linear API integration
+- ✅ Consistent authentication and error handling
+- ✅ Centralized ticket operations
+- ✅ Skills and tools for all ticket workflows
+
+**If a capability is missing**: Report to the user and ask whether to extend this plugin or create a one-off solution. See [AI-INTEGRATION-GUIDE.md](../AI-INTEGRATION-GUIDE.md) for details.
+
+## Purpose
+
 This agent provides Linear ticket management capabilities through the linear-operations skill.
 
 ## Available Skills
@@ -91,3 +107,70 @@ Use LinearSearchTickets tool with query="REQ-d00027" to find all tickets referen
 ```
 Use LinearUpdateTicket with ticketId="CUR-312" and addChecklist with markdown checklist items.
 ```
+
+## Integration Principles
+
+### When the Main Agent Should Use This Sub-Agent
+
+✅ **ALWAYS** for:
+- Fetching ticket data
+- Creating tickets
+- Updating ticket status
+- Searching for tickets
+- Claiming tickets for workflows
+- Any Linear API operation
+
+### When to Report Missing Capabilities
+
+If you need a Linear operation that isn't listed above:
+
+1. **Report to user**: "I need to [operation] but the Linear agent doesn't currently support this."
+2. **Present options**:
+   - Extend this sub-agent with the new capability (recommended)
+   - Create a one-off solution (creates technical debt)
+3. **Wait for user decision** before proceeding
+
+See [AI-INTEGRATION-GUIDE.md](../AI-INTEGRATION-GUIDE.md) for detailed integration patterns.
+
+## Architecture
+
+```
+Main Agent
+    │
+    ├─→ Linear Agent (this sub-agent) ─→ Linear API
+    │       │
+    │       ├─→ Skills (fetch, create, update, search)
+    │       └─→ Scripts (in ../scripts/)
+    │
+    └─→ Other components use Linear Agent output
+            │
+            ├─→ parse-req-refs.sh (parses ticket descriptions)
+            ├─→ WORKFLOW_STATE (caches results)
+            └─→ commit message helpers (use cached data)
+```
+
+### Why Sub-Agent Delegation Works Best
+
+1. **Reliability**: Tested, consistent behavior
+2. **Maintainability**: One place to update Linear logic
+3. **Discoverability**: Main agent can see capabilities via tool definitions
+4. **Error Handling**: Centralized retry, rate limiting, auth
+5. **Reusability**: All workflows benefit from improvements
+
+## Troubleshooting
+
+### Main Agent Not Using This Sub-Agent?
+
+Check that:
+1. Plugin is properly installed
+2. Agent is registered in plugin.json
+3. Skills are properly defined in ./skills/
+4. Main agent has access to Task tool with linear-agent subagent_type
+
+### Need a New Capability?
+
+Don't create a one-off tool! Instead:
+1. Check [AI-INTEGRATION-GUIDE.md](../AI-INTEGRATION-GUIDE.md)
+2. Propose the feature to the user
+3. Get approval before implementation
+4. Add to this sub-agent as a new skill/tool
