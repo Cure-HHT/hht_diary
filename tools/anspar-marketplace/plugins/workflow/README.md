@@ -14,6 +14,7 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 **Key Features**:
 - ✅ Per-worktree state management (.git/WORKFLOW_STATE)
 - ✅ **Proactive task-switch detection** (NEW: UserPromptSubmit hook)
+- ✅ **Dev container detection** (NEW: SessionStart warning)
 - ✅ REQ reference validation in commit messages
 - ✅ Active ticket enforcement before commits
 - ✅ Distributed worktree support
@@ -21,7 +22,52 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 - ✅ Tracker-agnostic design (Linear integration via linear-integration)
 - ✅ Comprehensive audit trail (append-only history)
 
-### 🎯 Proactive Workflow Enforcement (NEW)
+### 🐳 Dev Container Detection (NEW)
+
+**v2.3 Enhancement**: The workflow plugin now detects when you're working outside the pre-configured dev container and provides helpful guidance about the benefits of using it.
+
+**How it works**:
+- **SessionStart Hook**: Checks environment at session startup
+- **Container Detection**: Looks for dev container indicators:
+  - Environment variables (`REMOTE_CONTAINERS`, `VSCODE_REMOTE_CONTAINERS_SESSION`)
+  - Container marker files (`/.dockerenv`, `/run/.containerenv`)
+- **Repository Check**: Verifies if `.devcontainer` directory exists
+- **Non-Blocking**: Informational warning only, doesn't prevent work
+- **Configurable**: Can be suppressed for CI/CD environments
+
+**Example Warning**:
+
+```
+⚠️  DEVELOPMENT ENVIRONMENT NOTICE
+
+You're working outside the pre-configured dev container.
+
+The dev container ensures:
+  • Consistent tool versions (Node.js, Python, jq, etc.)
+  • Pre-installed dependencies
+  • Standardized configuration
+  • Team environment parity
+
+To use the dev container:
+  1. Ensure Docker is running
+  2. Install "Dev Containers" extension (VS Code)
+  3. Cmd/Ctrl+Shift+P → "Reopen in Container"
+
+Continuing without dev container may lead to:
+  • Missing tools or dependencies
+  • Version mismatches
+  • Configuration drift
+  • "Works on my machine" issues
+```
+
+**Benefits**:
+- ✅ Reduces environment inconsistency issues
+- ✅ Guides new developers to standard setup
+- ✅ Prevents "works on my machine" problems
+- ✅ Maintains team environment parity
+- ✅ Optional - doesn't force dev container use
+
+### 🎯 Proactive Workflow Enforcement
 
 **v2.2 Enhancement**: The workflow plugin now proactively detects when you're switching tasks or starting new work, providing guidance **before** you begin implementation instead of waiting for commit time. Now integrates with the intelligent ticket-creation-agent for seamless ticket creation!
 

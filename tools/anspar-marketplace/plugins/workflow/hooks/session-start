@@ -48,16 +48,73 @@ else
     STATUS_MSG="Workflow plugin installed but check script not found"
 fi
 
+# =====================================================
+# Dev Container Detection
+# =====================================================
+
+DEV_CONTAINER_WARNING=""
+
+# Check if we're in a dev container
+IN_DEV_CONTAINER=false
+
+# Check for dev container environment variables
+if [ -n "$REMOTE_CONTAINERS" ] || [ -n "$REMOTE_CONTAINERS_IPC" ] || [ -n "$VSCODE_REMOTE_CONTAINERS_SESSION" ]; then
+    IN_DEV_CONTAINER=true
+fi
+
+# Check for container marker files
+if [ -f "/.dockerenv" ] || [ -f "/run/.containerenv" ]; then
+    IN_DEV_CONTAINER=true
+fi
+
+# Check if .devcontainer exists in repo (indicates dev container is available)
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+HAS_DEVCONTAINER=false
+if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT/.devcontainer" ]; then
+    HAS_DEVCONTAINER=true
+fi
+
+# Generate warning if not in dev container but one is available
+if [ "$IN_DEV_CONTAINER" = false ] && [ "$HAS_DEVCONTAINER" = true ]; then
+    DEV_CONTAINER_WARNING="
+─────────────────────────────────────────────────────
+
+⚠️  DEVELOPMENT ENVIRONMENT NOTICE
+
+You're working outside the pre-configured dev container.
+
+The dev container ensures:
+  • Consistent tool versions (Node.js, Python, jq, etc.)
+  • Pre-installed dependencies
+  • Standardized configuration
+  • Team environment parity
+
+To use the dev container:
+  1. Ensure Docker is running
+  2. Install \"Dev Containers\" extension (VS Code)
+  3. Cmd/Ctrl+Shift+P → \"Reopen in Container\"
+
+Continuing without dev container may lead to:
+  • Missing tools or dependencies
+  • Version mismatches
+  • Configuration drift
+  • \"Works on my machine\" issues
+
+─────────────────────────────────────────────────────"
+fi
+
 # Output as JSON with both systemMessage (for user) and additionalContext (for Claude)
 # Use jq to properly escape the status message for JSON
 CONTEXT="WORKFLOW STATUS:
 $STATUS_MSG
+$DEV_CONTAINER_WARNING
 
 IMPORTANT: Announce this workflow status to the user at the start of the session."
 
 # Create user-friendly message
 USER_MSG="🔄 WORKFLOW STATUS:
-$STATUS_MSG"
+$STATUS_MSG
+$DEV_CONTAINER_WARNING"
 
 jq -n --arg ctx "$CONTEXT" --arg msg "$USER_MSG" '{
   "systemMessage": $msg,

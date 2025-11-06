@@ -174,7 +174,8 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00066 | dev-marketplace-permissions.md | Plugin-Specific Permission Management | b4c8e9a1 |
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | a377daf9 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | 6f24ed4a |
+| REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | d284283a |
 
 ---
 
-**Total Requirements:** 159 (62 PRD, 39 Ops, 57 Dev, 1 obsolete)
+**Total Requirements:** 160 (62 PRD, 39 Ops, 58 Dev, 1 obsolete)

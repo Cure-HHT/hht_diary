@@ -5,6 +5,27 @@ All notable changes to the workflow plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-11-06
+
+### Added
+- **Dev Container Detection**: SessionStart hook now detects if working outside dev container
+  - Checks for container environment variables
+  - Checks for container marker files (/.dockerenv, /run/.containerenv)
+  - Verifies if .devcontainer directory exists in repository
+  - Provides informational warning with setup instructions
+- **Environment consistency guidance**: Helps maintain team environment parity
+- **Non-blocking warning**: Informational only, doesn't prevent work outside container
+
+### Changed
+- **SessionStart hook enhanced**: Now includes both workflow status and environment checks
+- **Comprehensive session context**: Users get full picture of workflow and environment state
+
+### Benefits
+- Reduces "works on my machine" issues
+- Guides new developers to standardized environment
+- Maintains consistent tool versions across team
+- Optional - respects user choice to work outside container
+
 ## [2.2.0] - 2025-11-06
 
 ### Added
