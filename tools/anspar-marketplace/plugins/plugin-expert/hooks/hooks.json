@@ -1,16 +1,35 @@
 {
   "hooks": {
-    "before-tool-use": {
-      "command": "bash hooks/before-tool-use",
-      "description": "Detects plugin work and injects architectural guidance"
-    },
-    "session-start": {
-      "command": "bash hooks/session-start",
-      "description": "Injects plugin architecture best practices"
-    },
-    "pre-commit": {
-      "command": "bash hooks/pre-commit-plugin-validation",
-      "description": "Validates plugin changes follow separation of concerns"
-    }
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/before-tool-use"
+          }
+        ]
+      }
+    ]
   }
 }

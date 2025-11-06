@@ -13,12 +13,47 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 
 **Key Features**:
 - ✅ Per-worktree state management (.git/WORKFLOW_STATE)
+- ✅ **Proactive task-switch detection** (NEW: UserPromptSubmit hook)
 - ✅ REQ reference validation in commit messages
 - ✅ Active ticket enforcement before commits
 - ✅ Distributed worktree support
 - ✅ Sponsor context tracking (core vs sponsor-specific work)
 - ✅ Tracker-agnostic design (Linear integration via anspar-linear-integration)
 - ✅ Comprehensive audit trail (append-only history)
+
+### 🎯 Proactive Workflow Enforcement (NEW)
+
+**v2.1 Enhancement**: The workflow plugin now proactively detects when you're switching tasks or starting new work, providing guidance **before** you begin implementation instead of waiting for commit time.
+
+**How it works**:
+- **UserPromptSubmit Hook**: Analyzes your prompts for task-switching language
+- **Pattern Detection**: Recognizes phrases like "let's rename", "switch to", "create new", etc.
+- **Context-Aware**: Checks your active ticket and suggests ticket management actions
+- **Non-Intrusive**: Gentle reminders, not blocking - you maintain control
+
+**Example Interaction**:
+
+```
+You: "Actually, let's rename sponsor/carina to callisto"
+
+Workflow Plugin:
+🔄 TASK CONTEXT SHIFT DETECTED
+
+Your prompt suggests starting work that may be unrelated to the current ticket.
+
+Current active ticket: CUR-240
+
+Consider:
+1. Is this work part of CUR-240? → Continue as-is
+2. Different ticket entirely? → Switch tickets
+3. Quick fix/investigation? → Maybe continue, be mindful of scope
+```
+
+**Benefits**:
+- ✅ Catch scope creep early
+- ✅ Maintain clear ticket boundaries
+- ✅ Reduce "oops, wrong ticket" moments
+- ✅ Better audit trails and traceability
 
 ## Installation
 

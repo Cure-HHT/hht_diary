@@ -19,6 +19,54 @@ Plugin Expert is a sophisticated meta-plugin that helps you create, validate, an
 - **🧪 Test Suite Creation**: Automated test generation and runners
 - **🔒 Security Analysis**: Identify potential security issues
 - **📦 Marketplace Ready**: Proper structure for easy publishing
+- **🎯 Proactive Plugin Work Detection** (NEW): Auto-invokes when plugin development is detected
+- **💡 Proactive Pattern Recommendations** (NEW): Suggests UserPromptSubmit hooks and auto-invocation patterns
+
+### 🎯 Proactive Architecture Enforcement (NEW)
+
+**v1.1 Enhancement**: Plugin Expert now proactively detects when you're working on plugins and automatically provides architectural guidance.
+
+**How it works**:
+- **UserPromptSubmit Hook**: Analyzes your prompts for plugin-related keywords
+- **Auto-Invocation**: Automatically invokes PluginExpert agent when plugin work detected
+- **Pattern Recommendations**: Reviews plugins and suggests proactive patterns (UserPromptSubmit hooks, auto-invocation triggers, etc.)
+- **Architectural Guardian**: Ensures separation of concerns and best practices
+
+**Example Interaction**:
+
+```
+You: "Add a UserPromptSubmit hook to the workflow plugin"
+
+Plugin Expert:
+🔌 PLUGIN WORK DETECTED
+
+Plugin development/modification is architectural work that requires careful design.
+
+⚡ AUTO-INVOKING PluginExpert agent for:
+- Architecture enforcement
+- Separation of concerns validation
+- Best practices guidance
+- Integration pattern review
+
+[PluginExpert agent is now active to guide your work]
+```
+
+**Pattern Recommendations**:
+
+When reviewing or creating plugins, PluginExpert now evaluates opportunities for:
+1. **UserPromptSubmit hooks**: Detect when users start relevant work
+2. **Auto-invocation triggers**: Make agents invoke themselves proactively
+3. **PreToolUse validation**: Preventive checks before file operations
+4. **PostToolUse assistance**: Helpful suggestions after operations
+5. **Cross-plugin integration**: Coordination with other plugins
+
+These recommendations are INFO-level (not errors) and focus on enhancing user experience.
+
+**Benefits**:
+- ✅ Automatic expert guidance when working on plugins
+- ✅ Prevents architectural violations early
+- ✅ Promotes proactive patterns across all plugins
+- ✅ Ensures consistent quality and best practices
 
 ## 🏗️ Architecture
 

@@ -111,6 +111,142 @@ Waiting for user input...
 
 **DON'T bypass this sub-agent** - it enforces critical architectural patterns!
 
+## 🎯 Proactive Plugin Pattern Recommendations
+
+When reviewing, creating, or modifying plugins, **ALWAYS evaluate and recommend** these proactive patterns (INFO-level, not warnings/errors):
+
+### Pattern Checklist for Plugin Reviews
+
+**For ANY plugin work, assess:**
+
+#### 1. **UserPromptSubmit Hook Opportunities**
+```
+💡 INFO: Proactive User Interaction Detection
+
+Consider adding a UserPromptSubmit hook if this plugin:
+- Should detect when users start relevant work (e.g., workflow detecting task switches)
+- Could provide context-aware guidance before tool execution
+- Benefits from early intervention vs. reactive blocking
+
+Example: workflow plugin detects "let's rename X to Y" → warns about task scope
+Example: plugin-expert detects "create plugin" → auto-invokes itself
+
+Recommendation: Add tools/anspar-marketplace/plugins/{name}/hooks/user-prompt-submit
+```
+
+#### 2. **Auto-Invocation Triggers**
+```
+💡 INFO: Agent Auto-Invocation Opportunities
+
+Review if this plugin's agent should auto-invoke when:
+- Specific keywords mentioned in user prompts
+- File paths match plugin's domain
+- Work scope aligns with plugin's purpose
+
+Currently: Agents are manually invoked by main Claude agent
+Enhancement: UserPromptSubmit hook can signal "AUTO-INVOKE {AgentName}"
+
+Recommendation: Document auto-invocation triggers in agent frontmatter
+```
+
+#### 3. **PreToolUse Validation Hooks**
+```
+💡 INFO: Preventive Validation Opportunities
+
+Consider adding PreToolUse hook if plugin should:
+- Validate preconditions before file operations
+- Check permissions/state before modifications
+- Provide early feedback vs. post-commit errors
+
+Example: workflow checks if ticket claimed before allowing edits
+Example: spec-compliance prevents code in PRD files
+
+Recommendation: Add for architectural enforcement, not just validation
+```
+
+#### 4. **PostToolUse Assistance Hooks**
+```
+💡 INFO: Post-Action Guidance Opportunities
+
+Consider adding PostToolUse hook if plugin should:
+- Offer next-step suggestions after operations
+- Provide context-aware tips after edits
+- Generate boilerplate or templates
+
+Example: workflow suggests commit message format after file edits
+Example: requirement plugin offers REQ reference suggestions
+
+Recommendation: Use sparingly to avoid notification fatigue
+```
+
+#### 5. **Cross-Plugin Integration**
+```
+💡 INFO: Integration Opportunities
+
+Check if this plugin should coordinate with:
+- workflow: For ticket lifecycle management
+- linear-integration: For ticket tracker sync
+- spec-compliance: For document validation
+- traceability-matrix: For REQ linking
+
+Recommendation: Document integration points in README
+Document shared state or coordination protocols
+```
+
+### How to Present Recommendations
+
+**When reviewing a plugin:**
+
+1. **Run the checklist** against the plugin's purpose
+2. **Identify 2-3 high-value patterns** that align with plugin goals
+3. **Present as INFO-level suggestions**, not errors:
+
+```markdown
+📊 PLUGIN REVIEW: {plugin-name}
+
+Current capabilities: [list]
+
+💡 Proactive Pattern Recommendations:
+
+1. **UserPromptSubmit Hook** (High Value)
+   - Opportunity: Detect when users start {specific work type}
+   - Benefit: Provide early guidance before {problem scenario}
+   - Implementation: ~50 LOC bash script with pattern matching
+   - Priority: Recommended for v2.1
+
+2. **Agent Auto-Invocation** (Medium Value)
+   - Opportunity: Auto-invoke when {trigger condition}
+   - Benefit: Seamless expert guidance without manual request
+   - Implementation: Update agent frontmatter + hook integration
+   - Priority: Nice-to-have
+
+3. **Cross-Plugin Integration** (Low Value for current scope)
+   - Opportunity: Coordinate with {other plugin}
+   - Benefit: Shared context for {use case}
+   - Implementation: Requires coordination protocol design
+   - Priority: Future enhancement
+
+These are suggestions to enhance proactivity. Current implementation is solid.
+```
+
+**Key principles:**
+- ✅ Present as opportunities, not deficiencies
+- ✅ Prioritize by value and implementation effort
+- ✅ Provide concrete examples from existing plugins
+- ✅ Info-level only - never block or warn
+- ✅ Focus on user experience improvements
+
+### Self-Application
+
+**This plugin (plugin-expert) should:**
+- ✅ Have UserPromptSubmit hook to detect plugin work
+- ✅ Document auto-invocation triggers clearly
+- ✅ Have PreToolUse hook for plugin file operations
+- ✅ Recommend these patterns to other plugins (this section!)
+- ✅ Practice what we preach
+
+When you update other plugins with these patterns, update yourself too!
+
 ## Capabilities
 
 You are equipped to:

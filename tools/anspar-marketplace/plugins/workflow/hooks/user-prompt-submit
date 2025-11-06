@@ -1,0 +1,160 @@
+#!/bin/bash
+# =====================================================
+# UserPromptSubmit Hook - Workflow Plugin
+# =====================================================
+#
+# Detects task-switching language and recommends
+# ticket management before work starts.
+#
+# This hook provides proactive workflow guidance by
+# analyzing user prompts for patterns that indicate:
+# - Starting new implementation work
+# - Switching to different task scope
+# - Creating new features/components
+#
+# =====================================================
+
+set -e
+
+# Read prompt from stdin
+PROMPT=$(cat)
+
+# Find plugin directory
+PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Get current active ticket
+ACTIVE_TICKET=$("$PLUGIN_DIR/scripts/get-active-ticket.sh" --format=id 2>/dev/null || echo "")
+
+# Pattern matching scores
+TASK_SWITCH_SCORE=0
+NEW_FEATURE_SCORE=0
+
+# ===================================================
+# HIGH-PRIORITY PATTERNS (Strong task switch indicators)
+# ===================================================
+
+# Explicit scope change language
+if echo "$PROMPT" | grep -qiE "(completely (different|unrelated|separate))|(instead,? let'?s)"; then
+    TASK_SWITCH_SCORE=$((TASK_SWITCH_SCORE + 10))
+fi
+
+# Direct pivot language
+if echo "$PROMPT" | grep -qiE "(switch to|move on to|pivot to|change direction)"; then
+    TASK_SWITCH_SCORE=$((TASK_SWITCH_SCORE + 10))
+fi
+
+# Structural change patterns (high confidence of new work)
+if echo "$PROMPT" | grep -qiE "rename .* to|move .* to"; then
+    TASK_SWITCH_SCORE=$((TASK_SWITCH_SCORE + 8))
+fi
+
+# ===================================================
+# MEDIUM-PRIORITY PATTERNS (New feature indicators)
+# ===================================================
+
+# Starting new implementation work
+if echo "$PROMPT" | grep -qiE "let'?s (now |also |)(create|build|implement|add|design|make)"; then
+    NEW_FEATURE_SCORE=$((NEW_FEATURE_SCORE + 6))
+    TASK_SWITCH_SCORE=$((TASK_SWITCH_SCORE + 4))
+fi
+
+# Can you / I want to (implementation request)
+if echo "$PROMPT" | grep -qiE "(can you|i want to|we should) (create|build|implement|add|make)"; then
+    NEW_FEATURE_SCORE=$((NEW_FEATURE_SCORE + 5))
+fi
+
+# New component creation
+if echo "$PROMPT" | grep -qiE "new (file|directory|component|module|plugin|feature|script|function|class)"; then
+    NEW_FEATURE_SCORE=$((NEW_FEATURE_SCORE + 6))
+fi
+
+# Refactoring work
+if echo "$PROMPT" | grep -qiE "(refactor|restructure|redesign|rewrite)"; then
+    TASK_SWITCH_SCORE=$((TASK_SWITCH_SCORE + 5))
+fi
+
+# ===================================================
+# LOW-PRIORITY PATTERNS (Planning/design indicators)
+# ===================================================
+
+# Planning work (might be new scope)
+if echo "$PROMPT" | grep -qiE "(plan (a |the |)|design (a |the |)|architecture for)"; then
+    NEW_FEATURE_SCORE=$((NEW_FEATURE_SCORE + 3))
+fi
+
+# Next steps language
+if echo "$PROMPT" | grep -qiE "next,? (let'?s|we need to|i want to)"; then
+    TASK_SWITCH_SCORE=$((TASK_SWITCH_SCORE + 3))
+fi
+
+# ===================================================
+# DECISION LOGIC
+# ===================================================
+
+SHOULD_WARN=false
+WARNING_MSG=""
+
+# High-confidence task switch detected
+if [ $TASK_SWITCH_SCORE -ge 8 ]; then
+    SHOULD_WARN=true
+    if [ -n "$ACTIVE_TICKET" ]; then
+        WARNING_MSG="🔄 TASK CONTEXT SHIFT DETECTED
+
+Your prompt suggests starting work that may be unrelated to the current ticket.
+
+Current active ticket: $ACTIVE_TICKET
+
+Consider:
+1. Is this work part of $ACTIVE_TICKET? → Continue as-is
+2. Different ticket entirely? → Switch tickets:
+   tools/anspar-marketplace/plugins/workflow/scripts/switch-ticket.sh NEW-TICKET \"reason\"
+3. Quick fix/investigation? → Maybe continue, be mindful of scope
+
+This is a gentle reminder - you decide the scope."
+    else
+        WARNING_MSG="⚠️  NO ACTIVE TICKET
+
+You're about to start implementation work without claiming a ticket.
+
+Before proceeding, claim a ticket:
+  tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh TICKET-ID
+
+Or if just exploring/reading:
+  Continue without claiming - git hooks will enforce at commit time."
+    fi
+
+# New feature work without ticket
+elif [ $NEW_FEATURE_SCORE -ge 6 ] && [ -z "$ACTIVE_TICKET" ]; then
+    SHOULD_WARN=true
+    WARNING_MSG="📋 NEW FEATURE WORK DETECTED
+
+You're starting new feature work. Consider claiming a ticket:
+  tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh TICKET-ID
+
+If just exploring ideas, no action needed - workflow enforced at commit."
+fi
+
+# ===================================================
+# OUTPUT JSON RESPONSE
+# ===================================================
+
+if [ "$SHOULD_WARN" = true ]; then
+    # Generate warning with context for main Claude agent
+    ADDITIONAL_CONTEXT="Workflow analysis: Task switch score=$TASK_SWITCH_SCORE, New feature score=$NEW_FEATURE_SCORE. Active ticket: ${ACTIVE_TICKET:-none}. User prompt suggests potential scope change or new work."
+
+    jq -n \
+        --arg msg "$WARNING_MSG" \
+        --arg ctx "$ADDITIONAL_CONTEXT" \
+        '{
+          "systemMessage": $msg,
+          "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": $ctx
+          }
+        }'
+else
+    # No warning needed - pass through silently
+    echo '{"continue": true}'
+fi
+
+exit 0
