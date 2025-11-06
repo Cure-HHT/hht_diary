@@ -24,10 +24,10 @@ set -e
 # =====================================================
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-PLUGIN_DIR="$REPO_ROOT/tools/claude-marketplace/anspar-workflow"
+PLUGIN_DIR="$REPO_ROOT/tools/anspar-marketplace/plugins/workflow"
 
 if [ ! -d "$PLUGIN_DIR" ]; then
-    echo "⚠️  WARNING: anspar-workflow plugin not found: $PLUGIN_DIR" >&2
+    echo "⚠️  WARNING: workflow plugin not found: $PLUGIN_DIR" >&2
     echo "   Skipping active ticket validation" >&2
     exit 0
 fi
