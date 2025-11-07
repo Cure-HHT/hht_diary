@@ -28,7 +28,7 @@ Scans ticket descriptions for `REQ-xxxxx` references and enhances them with:
 
 **After:**
 ```markdown
-**Requirement**: REQ-d00014 - spec/dev-requirements-management.md ([GitHub](https://github.com/Cure-HHT/hht_diary/blob/main/spec/dev-requirements-management.md#L29))
+**Requirement**: REQ-d00014 - [spec/dev-requirements-management.md](https://github.com/Cure-HHT/hht_diary/blob/main/spec/dev-requirements-management.md#L29)
 ```
 
 ## Features

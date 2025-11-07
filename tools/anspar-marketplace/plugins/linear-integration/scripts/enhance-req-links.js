@@ -62,9 +62,9 @@ function sleep(ms) {
  * @returns {boolean} True if link already exists
  */
 function hasExistingLink(text, reqRef) {
-    // Pattern: REQ-d00014 - spec/file.md ([GitHub](url))
-    // or: REQ-d00014 - path/to/file.md ([GitHub]
-    const pattern = new RegExp(`${reqRef}\\s*-\\s*.+?\\(\\[GitHub\\]`, 'i');
+    // Pattern: REQ-d00014 - [spec/file.md](url)
+    // Matches: REQ-xxx - [anything](anything)
+    const pattern = new RegExp(`${reqRef}\\s*-\\s*\\[.+?\\]\\(`, 'i');
     return pattern.test(text);
 }
 

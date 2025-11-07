@@ -162,14 +162,14 @@ class ReqLocator {
      * @returns {string} Formatted markdown link
      *
      * Example output:
-     *   REQ-d00014 - spec/dev-requirements-management.md ([GitHub](https://github.com/.../spec/dev-requirements-management.md#L29))
+     *   REQ-d00014 - [spec/dev-requirements-management.md](https://github.com/.../spec/dev-requirements-management.md#L29)
      */
     formatReqLink(reqId, file, lineNumber) {
         const normalizedId = this.normalizeReqId(reqId);
         const url = this.buildGitHubUrl(file, lineNumber);
 
-        // Format: REQ-d00014 - spec/file.md ([GitHub](url))
-        return `REQ-${normalizedId} - ${file} ([GitHub](${url}))`;
+        // Format: REQ-d00014 - [spec/file.md](url)
+        return `REQ-${normalizedId} - [${file}](${url})`;
     }
 
     /**
