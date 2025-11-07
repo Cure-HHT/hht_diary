@@ -364,8 +364,8 @@ async function main() {
         // Build ticket description with GitHub link to requirement
         const reqLocation = await reqLocator.findReqLocation(req.id);
         const ticketDescription = reqLocation
-            ? `**Requirement**: ${reqLocator.formatReqLink(req.id, reqLocation.file, reqLocation.anchor)}`
-            : `**Requirement**: REQ-${req.id} (location not found in spec/)`;
+            ? reqLocator.formatReqLink(req.id, reqLocation.file, reqLocation.anchor, reqLocation.title)
+            : `Requirement: REQ-${req.id} (location not found in spec/)`;
 
         // Set priority based on level
         // PRD = P1 (Urgent), Ops = P2 (High), Dev = P3 (Normal)

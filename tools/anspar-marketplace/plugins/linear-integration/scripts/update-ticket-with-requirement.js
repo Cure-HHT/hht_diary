@@ -7,6 +7,7 @@
  */
 
 const LINEAR_API_ENDPOINT = 'https://api.linear.app/graphql';
+const reqLocator = require('./lib/req-locator');
 
 // Parse command line arguments
 function parseArgs() {
@@ -136,8 +137,13 @@ async function main() {
         console.log('---');
         console.log('');
 
-        // Update description to prepend requirement reference
-        const reqReference = `**Requirement**: REQ-${args.reqId}`;
+        // Find requirement location and build formatted link
+        console.log(`Looking up REQ-${args.reqId} in spec/...`);
+        const reqLocation = await reqLocator.findReqLocation(args.reqId);
+
+        const reqReference = reqLocation
+            ? reqLocator.formatReqLink(args.reqId, reqLocation.file, reqLocation.anchor, reqLocation.title)
+            : `Requirement: REQ-${args.reqId} (location not found in spec/)`;
 
         let newDescription;
         if (issue.description) {
