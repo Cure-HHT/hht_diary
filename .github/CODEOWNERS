@@ -1,0 +1,10 @@
+# CODEOWNERS - Require reviews for sensitive files
+
+# Workflows that use bypass tokens require review
+/.github/workflows/ @Cure-HHT/admins
+
+# Security policy requires review
+/.github/BOT_SECURITY.md @Cure-HHT/admins
+
+# Branch protection and repository rules
+/.github/rulesets/ @Cure-HHT/admins
