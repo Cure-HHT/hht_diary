@@ -23,7 +23,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ## Requirements
 
-### REQ-o00052: CI/CD Pipeline for Requirement Traceability
+# REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
 **Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active
 
@@ -49,7 +49,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 *End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 150d2b29
 ---
 
-### REQ-o00053: Branch Protection Enforcement
+# REQ-o00053: Branch Protection Enforcement
 
 **Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
 
@@ -71,7 +71,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 *End* *Branch Protection Enforcement* | **Hash**: d0584e9a
 ---
 
-### REQ-o00054: Audit Trail Generation for CI/CD
+# REQ-o00054: Audit Trail Generation for CI/CD
 
 **Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
 

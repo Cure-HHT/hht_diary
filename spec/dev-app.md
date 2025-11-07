@@ -35,7 +35,7 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 ## Multi-Sponsor Architecture
 
-### REQ-d00005: Sponsor Configuration Detection Implementation
+# REQ-d00005: Sponsor Configuration Detection Implementation
 
 **Level**: Dev | **Implements**: p00007, p00008 | **Status**: Active
 
@@ -105,7 +105,7 @@ Implementation SHALL include:
 
 ## Offline-First Architecture
 
-### REQ-d00004: Local-First Data Entry Implementation
+# REQ-d00004: Local-First Data Entry Implementation
 
 **Level**: Dev | **Implements**: p00006 | **Status**: Active
 
@@ -162,7 +162,7 @@ Implementation SHALL include:
 
 ---
 
-### REQ-d00013: Application Instance UUID Generation
+# REQ-d00013: Application Instance UUID Generation
 
 **Level**: Dev | **Implements**: p00006 | **Status**: Active
 
@@ -266,7 +266,7 @@ resolution: Log error. Report to investigator.
 
 ## Deployment & Distribution
 
-### REQ-d00006: Mobile App Build and Release Process
+# REQ-d00006: Mobile App Build and Release Process
 
 **Level**: Dev | **Implements**: o00010 | **Status**: Active
 

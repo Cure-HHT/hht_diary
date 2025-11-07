@@ -33,7 +33,7 @@ The Clinical Diary system serves multiple pharmaceutical sponsors using a single
 
 ## System Components
 
-### REQ-p00008: Single Mobile App for All Sponsors
+# REQ-p00008: Single Mobile App for All Sponsors
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -58,7 +58,7 @@ Single app approach SHALL ensure:
 *End* *Single Mobile App for All Sponsors* | **Hash**: f638b9f4
 ---
 
-### REQ-p00009: Sponsor-Specific Web Portals
+# REQ-p00009: Sponsor-Specific Web Portals
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -95,7 +95,7 @@ The patient never needs to know which technical system they're using - it just w
 
 ---
 
-### REQ-p00018: Multi-Site Support Per Sponsor
+# REQ-p00018: Multi-Site Support Per Sponsor
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 

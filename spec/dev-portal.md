@@ -87,7 +87,7 @@ The portal is a standalone Flutter web application, separate from the patient di
 
 ## Technology Stack Requirements
 
-### REQ-d00028: Portal Frontend Framework
+# REQ-d00028: Portal Frontend Framework
 
 **Level**: Dev | **Implements**: p00009, p00038 | **Status**: Draft | **Hash**: 0156e239
 The portal SHALL be implemented using Flutter for web deployment, enabling code reuse with the patient diary mobile app if they are merged in the future.
@@ -157,7 +157,7 @@ flutter build web --release --web-renderer html
 
 ---
 
-### REQ-d00029: Portal UI Design System
+# REQ-d00029: Portal UI Design System
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -215,7 +215,7 @@ final portalTheme = ThemeData(
 *End* *Portal UI Design System* | **Hash**: 022edb23
 ---
 
-### REQ-d00052: Role-Based Banner Component
+# REQ-d00052: Role-Based Banner Component
 
 **Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active
 
@@ -250,7 +250,7 @@ The portal SHALL display a color-coded banner component at the top of all authen
 *End* *Role-Based Banner Component* | **Hash**: 40c44430
 ---
 
-### REQ-d00030: Portal Routing and Navigation
+# REQ-d00030: Portal Routing and Navigation
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -351,7 +351,7 @@ final router = GoRouter(
 
 ## Authentication & Authorization Requirements
 
-### REQ-d00031: Supabase Authentication Integration
+# REQ-d00031: Supabase Authentication Integration
 
 **Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
 
@@ -468,7 +468,7 @@ class AuthProvider extends ChangeNotifier {
 *End* *Supabase Authentication Integration* | **Hash**: 8abcbfac
 ---
 
-### REQ-d00032: Role-Based Access Control Implementation
+# REQ-d00032: Role-Based Access Control Implementation
 
 **Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft
 
@@ -507,7 +507,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 *End* *Role-Based Access Control Implementation* | **Hash**: 394dec01
 ---
 
-### REQ-d00033: Site-Based Data Isolation
+# REQ-d00033: Site-Based Data Isolation
 
 **Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
 
@@ -571,7 +571,7 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 
 ## Frontend Components Requirements
 
-### REQ-d00034: Login Page Implementation
+# REQ-d00034: Login Page Implementation
 
 **Level**: Dev | **Implements**: p00009, d00031 | **Status**: Draft
 
@@ -736,7 +736,7 @@ class _LoginPageState extends State<LoginPage> {
 *End* *Login Page Implementation* | **Hash**: 50d0c2b5
 ---
 
-### REQ-d00035: Admin Dashboard Implementation
+# REQ-d00035: Admin Dashboard Implementation
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -994,7 +994,7 @@ class _SummaryCard extends StatelessWidget {
 *End* *Admin Dashboard Implementation* | **Hash**: 7b82ec93
 ---
 
-### REQ-d00036: Create User Dialog Implementation
+# REQ-d00036: Create User Dialog Implementation
 
 **Level**: Dev | **Implements**: p00038 | **Status**: Draft
 
@@ -1308,7 +1308,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 *End* *Create User Dialog Implementation* | **Hash**: 42a93086
 ---
 
-### REQ-d00037: Investigator Dashboard Implementation
+# REQ-d00037: Investigator Dashboard Implementation
 
 **Level**: Dev | **Implements**: p00040, p00027 | **Status**: Draft
 
@@ -1816,7 +1816,7 @@ class _QuestionnaireActions extends StatelessWidget {
 *End* *Investigator Dashboard Implementation* | **Hash**: 9f7a8612
 ---
 
-### REQ-d00038: Enroll Patient Dialog Implementation
+# REQ-d00038: Enroll Patient Dialog Implementation
 
 **Level**: Dev | **Implements**: p00039 | **Status**: Draft
 
@@ -2053,7 +2053,7 @@ class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
 *End* *Enroll Patient Dialog Implementation* | **Hash**: c553d403
 ---
 
-### REQ-d00051: Auditor Dashboard Implementation
+# REQ-d00051: Auditor Dashboard Implementation
 
 **Level**: Dev | **Implements**: p00029 | **Status**: Draft
 
@@ -2436,7 +2436,7 @@ class _SummaryCard extends StatelessWidget {
 
 ## Database Schema Requirements
 
-### REQ-d00039: Portal Users Table Schema
+# REQ-d00039: Portal Users Table Schema
 
 **Level**: Dev | **Implements**: p00009, d00016 | **Status**: Draft
 
@@ -2536,7 +2536,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 *End* *Portal Users Table Schema* | **Hash**: 848297db
 ---
 
-### REQ-d00040: User Site Access Table Schema
+# REQ-d00040: User Site Access Table Schema
 
 **Level**: Dev | **Implements**: p00009, d00033 | **Status**: Draft
 
@@ -2614,7 +2614,7 @@ CREATE POLICY "admins_insert_site_access" ON user_site_access
 *End* *User Site Access Table Schema* | **Hash**: 2e3c150c
 ---
 
-### REQ-d00041: Patients Table Extensions for Portal
+# REQ-d00041: Patients Table Extensions for Portal
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -2742,7 +2742,7 @@ CREATE POLICY "investigators_update_own_sites_patients" ON patients
 *End* *Patients Table Extensions for Portal* | **Hash**: e4b8c181
 ---
 
-### REQ-d00042: Questionnaires Table Schema
+# REQ-d00042: Questionnaires Table Schema
 
 **Level**: Dev | **Implements**: p00009 | **Status**: Draft
 
@@ -2856,7 +2856,7 @@ CREATE TRIGGER questionnaires_updated_at
 
 ## Deployment Requirements
 
-### REQ-d00043: Netlify Deployment Configuration
+# REQ-d00043: Netlify Deployment Configuration
 
 **Level**: Dev | **Implements**: o00009 | **Status**: Draft
 

@@ -8,7 +8,7 @@
 
 ## Requirements
 
-### REQ-o00043: Automated Deployment Pipeline
+# REQ-o00043: Automated Deployment Pipeline
 
 **Level**: Ops | **Implements**: p00005 | **Status**: Active
 
@@ -57,7 +57,7 @@ The system SHALL provide automated deployment pipelines that:
 *End* *Automated Deployment Pipeline* | **Hash**: e82a4842
 ---
 
-### REQ-o00044: Database Migration Automation
+# REQ-o00044: Database Migration Automation
 
 **Level**: Ops | **Implements**: p00005 | **Status**: Active
 

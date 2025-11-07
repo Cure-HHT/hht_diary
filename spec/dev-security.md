@@ -81,7 +81,7 @@ Sponsor A Environment           Sponsor B Environment
 
 ## Authentication Layer
 
-### REQ-d00003: Supabase Auth Configuration Per Sponsor
+# REQ-d00003: Supabase Auth Configuration Per Sponsor
 
 **Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
 
@@ -152,7 +152,7 @@ Authentication integration SHALL include:
 
 ### Multi-Factor Authentication (2FA)
 
-### REQ-d00008: MFA Enrollment and Verification Implementation
+# REQ-d00008: MFA Enrollment and Verification Implementation
 
 **Level**: Dev | **Implements**: o00006 | **Status**: Active
 
@@ -220,7 +220,7 @@ Implementation MAY include:
 
 ## Authorization Layer 1: Role-Based Access Control (RBAC)
 
-### REQ-d00009: Role-Based Permission Enforcement Implementation
+# REQ-d00009: Role-Based Permission Enforcement Implementation
 
 **Level**: Dev | **Implements**: o00007 | **Status**: Active
 
@@ -695,7 +695,7 @@ Sponsor A Environment          Sponsor B Environment
 
 ## Encryption Strategy
 
-### REQ-d00010: Data Encryption Implementation
+# REQ-d00010: Data Encryption Implementation
 
 **Level**: Dev | **Implements**: p00017 | **Status**: Active
 

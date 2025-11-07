@@ -1,4 +1,4 @@
-### REQ-d00067: Streamlined Ticket Creation Agent
+# REQ-d00067: Streamlined Ticket Creation Agent
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 

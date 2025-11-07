@@ -3,7 +3,7 @@
 
 # Authentication Audit Logging
 
-### REQ-o00006: MFA Configuration for Staff Accounts
+# REQ-o00006: MFA Configuration for Staff Accounts
 
 **Level**: Ops | **Implements**: p00002 | **Status**: Active
 

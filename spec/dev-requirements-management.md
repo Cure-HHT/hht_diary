@@ -26,7 +26,7 @@ This document defines the implementation requirements for requirements managemen
 
 ---
 
-### REQ-d00014: Requirement Validation Tooling
+# REQ-d00014: Requirement Validation Tooling
 
 **Level**: Dev | **Implements**: o00013 | **Status**: Active
 
@@ -61,7 +61,7 @@ Implementation SHALL include:
 *End* *Requirement Validation Tooling* | **Hash**: 2263dc21
 ---
 
-### REQ-d00015: Traceability Matrix Auto-Generation
+# REQ-d00015: Traceability Matrix Auto-Generation
 
 **Level**: Dev | **Implements**: o00013 | **Status**: Active
 
@@ -100,7 +100,7 @@ Implementation SHALL include:
 *End* *Traceability Matrix Auto-Generation* | **Hash**: 240a754c
 ---
 
-### REQ-d00016: Code-to-Requirement Linking
+# REQ-d00016: Code-to-Requirement Linking
 
 **Level**: Dev | **Implements**: o00014 | **Status**: Active
 
@@ -132,7 +132,7 @@ Implementation SHALL include:
 *End* *Code-to-Requirement Linking* | **Hash**: c857235a
 ---
 
-### REQ-d00017: ADR Template and Lifecycle Tooling
+# REQ-d00017: ADR Template and Lifecycle Tooling
 
 **Level**: Dev | **Implements**: o00016 | **Status**: Active
 
@@ -165,7 +165,7 @@ Implementation SHALL include:
 *End* *ADR Template and Lifecycle Tooling* | **Hash**: 36997d8f
 ---
 
-### REQ-d00018: Git Hook Implementation
+# REQ-d00018: Git Hook Implementation
 
 **Level**: Dev | **Implements**: o00017 | **Status**: Active
 
@@ -203,7 +203,7 @@ Implementation SHALL include:
 *End* *Git Hook Implementation* | **Hash**: 85098bca
 ---
 
-### REQ-d00053: Development Environment and Tooling Setup
+# REQ-d00053: Development Environment and Tooling Setup
 
 **Level**: Dev | **Implements**: o00017 | **Status**: Active
 

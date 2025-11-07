@@ -1,4 +1,4 @@
-### REQ-d00064: Plugin JSON Validation Tooling
+# REQ-d00064: Plugin JSON Validation Tooling
 
 **Level**: Dev | **Implements**: - | **Status**: Active
 

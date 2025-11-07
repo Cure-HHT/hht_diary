@@ -44,7 +44,7 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 ## Key Requirements
 
-### REQ-p00010: FDA 21 CFR Part 11 Compliance
+# REQ-p00010: FDA 21 CFR Part 11 Compliance
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -73,7 +73,7 @@ Compliance SHALL include:
 *End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 62500780
 ---
 
-### REQ-p00011: ALCOA+ Data Integrity Principles
+# REQ-p00011: ALCOA+ Data Integrity Principles
 
 **Level**: PRD | **Implements**: p00010 | **Status**: Active
 
@@ -102,7 +102,7 @@ ALCOA+ compliance SHALL ensure data is:
 *End* *ALCOA+ Data Integrity Principles* | **Hash**: 05c9dc79
 ---
 
-### REQ-p00012: Clinical Data Retention Requirements
+# REQ-p00012: Clinical Data Retention Requirements
 
 **Level**: PRD | **Implements**: p00010 | **Status**: Active
 

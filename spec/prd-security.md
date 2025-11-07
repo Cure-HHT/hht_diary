@@ -29,7 +29,7 @@ The system protects clinical trial data through multiple layers of security, ens
 
 ## Multi-Sponsor Data Isolation
 
-### REQ-p00001: Complete Multi-Sponsor Data Separation
+# REQ-p00001: Complete Multi-Sponsor Data Separation
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -55,7 +55,7 @@ Each sponsor SHALL operate in a completely separate environment with:
 
 ## User Authentication
 
-### REQ-p00002: Multi-Factor Authentication for Staff
+# REQ-p00002: Multi-Factor Authentication for Staff
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 

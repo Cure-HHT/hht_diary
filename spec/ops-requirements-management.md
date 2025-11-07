@@ -17,7 +17,7 @@ This document defines operational procedures for maintaining formal requirements
 
 ---
 
-### REQ-o00013: Requirements Format Validation
+# REQ-o00013: Requirements Format Validation
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -46,7 +46,7 @@ Format validation SHALL ensure:
 *End* *Requirements Format Validation* | **Hash**: 2743e711
 ---
 
-### REQ-o00014: Top-Down Requirement Cascade
+# REQ-o00014: Top-Down Requirement Cascade
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -75,7 +75,7 @@ Top-down cascade SHALL ensure:
 *End* *Top-Down Requirement Cascade* | **Hash**: d36fc1fb
 ---
 
-### REQ-o00015: Documentation Structure Enforcement
+# REQ-o00015: Documentation Structure Enforcement
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -105,7 +105,7 @@ Documentation structure SHALL ensure:
 *End* *Documentation Structure Enforcement* | **Hash**: 426b1961
 ---
 
-### REQ-o00016: Architecture Decision Process
+# REQ-o00016: Architecture Decision Process
 
 **Level**: Ops | **Implements**: p00037 | **Status**: Active
 
@@ -135,7 +135,7 @@ ADR process SHALL ensure:
 *End* *Architecture Decision Process* | **Hash**: 5efd9802
 ---
 
-### REQ-o00017: Version Control Workflow
+# REQ-o00017: Version Control Workflow
 
 **Level**: Ops | **Implements**: p00036, p00037 | **Status**: Active
 

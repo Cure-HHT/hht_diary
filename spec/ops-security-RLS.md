@@ -19,7 +19,7 @@ This document defines operational procedures for deploying, configuring, and mon
 
 ## RLS Policy Deployment Requirements
 
-### REQ-o00020: Patient Data Isolation Policy Deployment
+# REQ-o00020: Patient Data Isolation Policy Deployment
 
 **Level**: Ops | **Implements**: p00035 | **Status**: Active
 
@@ -45,7 +45,7 @@ Policy deployment SHALL include:
 *End* *Patient Data Isolation Policy Deployment* | **Hash**: 055dc1e6
 ---
 
-### REQ-o00021: Investigator Site-Scoped Access Policy Deployment
+# REQ-o00021: Investigator Site-Scoped Access Policy Deployment
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -71,7 +71,7 @@ Policy deployment SHALL include:
 *End* *Investigator Site-Scoped Access Policy Deployment* | **Hash**: 38196c93
 ---
 
-### REQ-o00022: Investigator Annotation Access Policy Deployment
+# REQ-o00022: Investigator Annotation Access Policy Deployment
 
 **Level**: Ops | **Implements**: p00037 | **Status**: Active
 
@@ -97,7 +97,7 @@ Policy deployment SHALL include:
 *End* *Investigator Annotation Access Policy Deployment* | **Hash**: d428ead1
 ---
 
-### REQ-o00023: Analyst Read-Only Access Policy Deployment
+# REQ-o00023: Analyst Read-Only Access Policy Deployment
 
 **Level**: Ops | **Implements**: p00022 | **Status**: Active
 
@@ -123,7 +123,7 @@ Policy deployment SHALL include:
 *End* *Analyst Read-Only Access Policy Deployment* | **Hash**: 346c5484
 ---
 
-### REQ-o00024: Sponsor Global Access Policy Deployment
+# REQ-o00024: Sponsor Global Access Policy Deployment
 
 **Level**: Ops | **Implements**: p00023 | **Status**: Active
 
@@ -149,7 +149,7 @@ Policy deployment SHALL include:
 *End* *Sponsor Global Access Policy Deployment* | **Hash**: f13778ad
 ---
 
-### REQ-o00025: Auditor Compliance Access Policy Deployment
+# REQ-o00025: Auditor Compliance Access Policy Deployment
 
 **Level**: Ops | **Implements**: p00038 | **Status**: Active
 
@@ -175,7 +175,7 @@ Policy deployment SHALL include:
 *End* *Auditor Compliance Access Policy Deployment* | **Hash**: 7778ee1d
 ---
 
-### REQ-o00026: Administrator Access Policy Deployment
+# REQ-o00026: Administrator Access Policy Deployment
 
 **Level**: Ops | **Implements**: p00039 | **Status**: Active
 
@@ -201,7 +201,7 @@ Policy deployment SHALL include:
 *End* *Administrator Access Policy Deployment* | **Hash**: bd1671e2
 ---
 
-### REQ-o00027: Event Sourcing State Protection Policy Deployment
+# REQ-o00027: Event Sourcing State Protection Policy Deployment
 
 **Level**: Ops | **Implements**: p00040 | **Status**: Active
 

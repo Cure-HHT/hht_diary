@@ -87,7 +87,7 @@ clinical-diary-{sponsor}/            # Private sponsor repository
 
 ## Core Schema Deployment
 
-### REQ-d00007: Database Schema Implementation and Deployment
+# REQ-d00007: Database Schema Implementation and Deployment
 
 **Level**: Dev | **Implements**: o00004 | **Status**: Active
 
@@ -114,7 +114,7 @@ Implementation SHALL include:
 *End* *Database Schema Implementation and Deployment* | **Hash**: 6bb78566
 ---
 
-### REQ-d00011: Multi-Site Schema Implementation
+# REQ-d00011: Multi-Site Schema Implementation
 
 **Level**: Dev | **Implements**: o00011 | **Status**: Active
 

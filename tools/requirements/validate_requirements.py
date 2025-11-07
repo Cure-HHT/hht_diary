@@ -52,6 +52,7 @@ class RequirementValidator:
     """Validates requirements across all spec files"""
 
     # Regex patterns for new format
+    # Convention (not enforced): REQ headers typically use level 1 (#), freeing up levels 2-6 for body structure
     REQ_HEADER_PATTERN = re.compile(r'^(#{1,6})\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
     STATUS_PATTERN = re.compile(
         r'^\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
@@ -165,7 +166,7 @@ class RequirementValidator:
             if end_title != title:
                 self.errors.append(
                     f"{file_path.name}:{line_num} - REQ-{req_id}: Title mismatch - "
-                    f"header='{title}' vs end='{end_title}'"
+                    f"header='{title}' vs end='{end_title}' (MANUAL FIX REQUIRED: likely parsing error from before end markers existed)"
                 )
 
             # Extract body (between status line and end marker)
@@ -202,7 +203,12 @@ class RequirementValidator:
 
     def _check_body_headings(self, file_path: Path, line_num: int, req_id: str,
                             body: str, req_heading_level: int):
-        """Check for headings at same or higher level in requirement body"""
+        """Check for headings at same or higher level in requirement body
+
+        Requirement bodies should only contain headings at a LOWER level than
+        the requirement heading itself. For example, if requirement is level 1 (#),
+        body can use ##, ###, etc., but not #.
+        """
         for line in body.split('\n'):
             match = re.match(r'^(#{1,6})\s+', line)
             if match:
@@ -301,7 +307,11 @@ class RequirementValidator:
                     )
 
     def _check_level_consistency(self):
-        """Check that requirement hierarchy makes sense (PRD -> Ops -> Dev)"""
+        """Check that requirement hierarchy makes sense (PRD -> Ops -> Dev)
+
+        Same-level implementations (PRD -> PRD, Ops -> Ops, Dev -> Dev) are allowed
+        and reported as INFO. Only invalid hierarchies (child higher than parent) are errors.
+        """
         level_hierarchy = {'PRD': 0, 'Ops': 1, 'Dev': 2}
 
         for req_id, req in self.requirements.items():
@@ -310,7 +320,17 @@ class RequirementValidator:
                     continue
 
                 parent = self.requirements[parent_id]
-                if level_hierarchy[req.level] <= level_hierarchy[parent.level]:
+                child_level = level_hierarchy[req.level]
+                parent_level = level_hierarchy[parent.level]
+
+                if child_level == parent_level:
+                    # Same-level implementation is allowed (e.g., PRD refining another PRD)
+                    self.info.append(
+                        f"{req.file_path.name}:{req.line_number} - "
+                        f"REQ-{req_id}: Same-level implementation: {req.level} implements {parent.level} ({parent_id})"
+                    )
+                elif child_level < parent_level:
+                    # Invalid: child is higher level than parent (e.g., PRD implementing Dev)
                     self.errors.append(
                         f"{req.file_path.name}:{req.line_number} - "
                         f"REQ-{req_id}: Invalid hierarchy - {req.level} cannot implement {parent.level}"

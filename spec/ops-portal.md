@@ -39,7 +39,7 @@ Before deploying a portal instance, ensure you have:
 
 ---
 
-### REQ-o00055: Role-Based Visual Indicator Verification
+# REQ-o00055: Role-Based Visual Indicator Verification
 
 **Level**: Ops | **Implements**: p00030 | **Status**: Active
 

@@ -25,7 +25,7 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 ## Configuration Architecture
 
-### REQ-d00001: Sponsor-Specific Configuration Loading
+# REQ-d00001: Sponsor-Specific Configuration Loading
 
 **Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
 
@@ -183,7 +183,7 @@ targets:
 
 ## Build Script Validation
 
-### REQ-d00002: Pre-Build Configuration Validation
+# REQ-d00002: Pre-Build Configuration Validation
 
 **Level**: Dev | **Implements**: o00002 | **Status**: Active
 

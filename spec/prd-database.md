@@ -47,7 +47,7 @@ The database stores patient diary entries with complete history of all changes f
 
 **Why This Matters**: This data forms the evidence base for clinical trial results. Accurate capture and preservation is critical for drug approval.
 
-### REQ-p00013: Complete Data Change History
+# REQ-p00013: Complete Data Change History
 
 **Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active | **Hash**: 2d24be49
 The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
@@ -81,7 +81,7 @@ Change history SHALL include:
 
 ## Data Isolation Between Sponsors
 
-### REQ-p00003: Separate Database Per Sponsor
+# REQ-p00003: Separate Database Per Sponsor
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -107,7 +107,7 @@ Database isolation SHALL ensure:
 
 ## Event Sourcing Architecture
 
-### REQ-p00004: Immutable Audit Trail via Event Sourcing
+# REQ-p00004: Immutable Audit Trail via Event Sourcing
 
 **Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 914a0234
 The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.

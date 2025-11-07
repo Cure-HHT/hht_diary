@@ -26,7 +26,7 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 
 ## How It Works
 
-### REQ-p00007: Automatic Sponsor Configuration
+# REQ-p00007: Automatic Sponsor Configuration
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -73,7 +73,7 @@ Automatic configuration SHALL ensure:
 
 ## Offline Capability
 
-### REQ-p00006: Offline-First Data Entry
+# REQ-p00006: Offline-First Data Entry
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 

@@ -1,4 +1,4 @@
-### REQ-d00065: Plugin Path Validation
+# REQ-d00065: Plugin Path Validation
 
 **Level**: Dev | **Implements**: d00064 | **Status**: Active
 
@@ -88,16 +88,16 @@ Path validation tooling for Claude Code plugin configuration files to verify tha
 ## Usage Examples
 
 ```bash
-# Schema validation only
+##  Schema validation only
 ./validate-plugin-json.sh .claude-plugin/plugin.json
 
-# Schema + path validation (recommended for existing plugins)
+## Schema + path validation (recommended for existing plugins)
 ./validate-plugin-json.sh --check-paths .claude-plugin/plugin.json
 
-# Validate hooks with path checking
+## Validate hooks with path checking
 ./validate-plugin-json.sh --check-paths hooks/hooks.json
 ```
 
 
-*End* *Plugin Path Validation* | **Hash**: c6f494bd
+*End* *Plugin Path Validation* | **Hash**: 1284707f
 ---
