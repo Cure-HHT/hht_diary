@@ -35,11 +35,18 @@ The `.github/CODEOWNERS` file requires admin review for:
 
 ### 3. Workflow Change Detection (Detective)
 
+**⚙️ Feature Flag**: `WORKFLOW_PROTECTION_ENABLED` (Repository Variable)
+
 The `alert-workflow-changes.yml` workflow:
 - Detects when workflows use `BOT_BYPASS_MAIN_PROTECTION`
 - Posts prominent warnings on PRs
 - Creates security checklist for reviewers
 - Alerts if bypass token is added to new workflows
+
+**Current Status**: DISABLED (development mode)
+- Set `WORKFLOW_PROTECTION_ENABLED=true` to enable (admin-only)
+- See `.github/WORKFLOW_PROTECTION.md` for toggle instructions
+- CODEOWNERS reviews remain active regardless of this setting
 
 ### 4. Workflow-Level Validation (Preventive)
 

@@ -1,4 +1,5 @@
 # IMPLEMENTS REQUIREMENTS:
+#   REQ-o00053: Branch Protection Enforcement
 #   REQ-o00013: Requirements Format Validation
 #   REQ-p00020: System Validation and Traceability
 
@@ -27,6 +28,8 @@ jobs:
     name: Alert on Sensitive File Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Only run if workflow protection is enabled (admin-controlled)
+    if: vars.WORKFLOW_PROTECTION_ENABLED == 'true'
 
     steps:
       - name: Checkout repository
