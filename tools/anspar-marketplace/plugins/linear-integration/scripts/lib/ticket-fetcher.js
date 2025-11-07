@@ -435,19 +435,24 @@ class TicketFetcher {
 
     /**
      * Get tickets with flexible filtering (not limited to assigned tickets)
+     * Supports pagination to retrieve all matching tickets
      * @param {Object} options
-     * @param {number} options.limit - Maximum number of tickets to return (default: 100)
+     * @param {number} options.limit - Maximum number of tickets to return per page (default: 100, max: 100)
+     * @param {number} options.maxTotal - Maximum total tickets to retrieve across all pages (default: unlimited)
      * @param {string} options.project - Project name or ID to filter by
      * @param {Array<string>} options.status - Status types to include (e.g., ['backlog', 'unstarted', 'started'])
      * @param {boolean} options.includeCompleted - Include completed/canceled tickets (default: false)
+     * @param {boolean} options.noPagination - Only fetch first page (default: false)
      * @returns {Promise<Array>} Array of ticket objects
      */
     async getTickets(options = {}) {
         const {
             limit = 100,
+            maxTotal = Infinity,
             project = null,
             status = null,
-            includeCompleted = false
+            includeCompleted = false,
+            noPagination = false
         } = options;
 
         const teamId = await teamResolver.getTeamId();
@@ -486,9 +491,13 @@ class TicketFetcher {
         }
 
         const query = `
-            query GetTickets($teamId: String!, $filter: IssueFilter!, $first: Int!) {
+            query GetTickets($teamId: String!, $filter: IssueFilter!, $first: Int!, $after: String) {
                 team(id: $teamId) {
-                    issues(filter: $filter, first: $first, orderBy: updatedAt) {
+                    issues(filter: $filter, first: $first, after: $after, orderBy: updatedAt) {
+                        pageInfo {
+                            hasNextPage
+                            endCursor
+                        }
                         nodes {
                             id
                             identifier
@@ -524,13 +533,36 @@ class TicketFetcher {
             }
         `;
 
-        const data = await graphql.execute(query, {
-            teamId,
-            filter,
-            first: limit
-        });
+        // Pagination loop
+        let allTickets = [];
+        let hasNextPage = true;
+        let cursor = null;
+        let pageCount = 0;
 
-        return data.team?.issues?.nodes || [];
+        while (hasNextPage && allTickets.length < maxTotal) {
+            const data = await graphql.execute(query, {
+                teamId,
+                filter,
+                first: Math.min(limit, maxTotal - allTickets.length),
+                after: cursor
+            });
+
+            const issues = data.team?.issues;
+            if (!issues) break;
+
+            allTickets.push(...issues.nodes);
+            pageCount++;
+
+            hasNextPage = issues.pageInfo.hasNextPage && !noPagination;
+            cursor = issues.pageInfo.endCursor;
+
+            // Rate limiting between pages
+            if (hasNextPage) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        return allTickets;
     }
 
     /**
