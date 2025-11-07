@@ -54,32 +54,74 @@ When enabled, workflow protection monitors and alerts on changes to:
 4. Value: `true`
 5. Click "Add variable"
 
-### Step 2: Verify Protection is Active
+### Step 2: Activate CODEOWNERS
+
+```bash
+# Create a branch
+git checkout -b activate-workflow-protection
+
+# Rename CODEOWNERS file to activate it
+git mv .github/CODEOWNERS-PRE-RELEASE .github/CODEOWNERS
+
+# Commit and push
+git add .github/
+git commit -m "[OPS] Activate workflow protection CODEOWNERS"
+git push origin activate-workflow-protection
+
+# Create PR and merge
+gh pr create --title "Activate workflow protection" --body "Enables CODEOWNERS enforcement"
+```
+
+**Note**: CODEOWNERS only takes effect once the file is named exactly `CODEOWNERS` and merged to the default branch.
+
+### Step 3: Verify Protection is Active
 
 1. Make a test change to any `.github/workflows/*.yml` file
 2. Create a PR
-3. Verify that the "Alert on Workflow Changes" workflow runs
+3. Verify that:
+   - PR requires `@Cure-HHT/admins` approval (CODEOWNERS)
+   - "Alert on Workflow Changes" workflow runs (if bypass token used)
 4. If bypass token is used, verify security alert appears on PR
 
 ## Disabling Workflow Protection
 
 **⚠️ Requires: Repository Admin Access**
 
-### Option 1: Set to False
+### Step 1: Disable Automated Alerts
 
+**Option A**: Set variable to false
 1. Go to repository Settings → Secrets and variables → Actions → Variables
 2. Find `WORKFLOW_PROTECTION_ENABLED`
 3. Click "Update"
 4. Change value to `false`
 5. Save
 
-### Option 2: Delete Variable
-
+**Option B**: Delete variable (same effect as false)
 1. Go to repository Settings → Secrets and variables → Actions → Variables
 2. Find `WORKFLOW_PROTECTION_ENABLED`
 3. Click "Delete"
 
-**Note**: Unset (deleted) variable behaves the same as `false`
+### Step 2: Deactivate CODEOWNERS (Optional)
+
+To also remove review requirements:
+
+```bash
+# Create a branch
+git checkout -b deactivate-workflow-protection
+
+# Rename CODEOWNERS file to deactivate it
+git mv .github/CODEOWNERS .github/CODEOWNERS-PRE-RELEASE
+
+# Commit and push
+git add .github/
+git commit -m "[OPS] Deactivate workflow protection CODEOWNERS"
+git push origin deactivate-workflow-protection
+
+# Create PR and merge
+gh pr create --title "Deactivate workflow protection" --body "Disables CODEOWNERS enforcement"
+```
+
+**Note**: CODEOWNERS stops being enforced once renamed away from the exact filename `CODEOWNERS`
 
 ## Access Control
 
@@ -91,8 +133,12 @@ Recommended: Limit to repository admins only via GitHub role settings.
 
 ### Who Can Modify Protected Files?
 
-Even with protection disabled:
-- **CODEOWNERS** rules still apply (GitHub-enforced)
+**Current State**: CODEOWNERS inactive (renamed to CODEOWNERS-PRE-RELEASE)
+- No review requirements currently enforced
+- Anyone with write access can modify `.github/workflows/`
+- Anyone with write access can modify security files
+
+**When Activated**: CODEOWNERS rules apply
 - Changes to `.github/workflows/` require `@Cure-HHT/admins` approval
 - Changes to `.github/BOT_SECURITY.md` require `@Cure-HHT/admins` approval
 
@@ -102,9 +148,9 @@ Even with protection disabled:
 
 Workflow protection is one layer in a multi-layer security model:
 
-1. **CODEOWNERS** (Always active)
-   - GitHub-enforced reviews
-   - Cannot be bypassed by variable setting
+1. **CODEOWNERS** (When activated by renaming file)
+   - GitHub-enforced reviews when file named exactly "CODEOWNERS"
+   - Currently inactive (file named CODEOWNERS-PRE-RELEASE)
 
 2. **Workflow Protection** (When enabled)
    - Automated detection and alerting
@@ -180,8 +226,9 @@ This condition:
 ### Files Modified
 
 - `.github/workflows/alert-workflow-changes.yml`: Added feature flag condition
-- `.github/CODEOWNERS`: Always active (not conditional)
+- `.github/CODEOWNERS-PRE-RELEASE`: Inactive (requires rename to activate)
 - `.github/BOT_SECURITY.md`: Updated with protection toggle documentation
+- `.github/WORKFLOW_PROTECTION.md`: Complete documentation on activation
 
 ## References
 
