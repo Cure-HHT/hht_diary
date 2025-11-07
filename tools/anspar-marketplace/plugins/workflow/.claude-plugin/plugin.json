@@ -20,6 +20,7 @@
   ],
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/workflow",
+  "commands": "./commands",
   "hooks": "./hooks/hooks.json",
   "agents": "./agents/workflow-enforcer.md"
 }
