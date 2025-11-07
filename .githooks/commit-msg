@@ -1,34 +1,53 @@
 #!/bin/bash
 # =====================================================
-# Git Hook: commit-msg
+# Commit-Msg Hook: Plugin Orchestrator
 # =====================================================
 #
-# This hook validates commit messages.
+# Auto-discovers and executes commit-msg hooks from all
+# installed Claude Code plugins in anspar-marketplace.
 #
-# Plugins (in tools/claude-marketplace/):
-# 1. anspar-workflow - Validates REQ reference in commit message
+# Plugin Discovery:
+#   Scans: tools/anspar-marketplace/plugins/*/hooks/commit-msg
+#   Executes: All found hooks in alphabetical order
+#   Passes: commit message file path as $1 to each hook
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
 #
-# To bypass this hook (NOT RECOMMENDED):
+# To bypass (NOT RECOMMENDED):
 #   git commit --no-verify
 #
 # =====================================================
 
 set -e
 
+COMMIT_MSG_FILE="$1"
+
 # =====================================================
-# 1. Workflow Enforcement (Plugin)
+# Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-WORKFLOW_COMMITMSG_HOOK="tools/claude-marketplace/anspar-workflow/hooks/commit-msg"
-if [ -f "$WORKFLOW_COMMITMSG_HOOK" ]; then
-    "$WORKFLOW_COMMITMSG_HOOK" "$1" || exit 1
-else
-    echo "⚠️  WARNING: Workflow enforcement plugin not found: $WORKFLOW_COMMITMSG_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-workflow/README.md"
-    echo ""
+PLUGIN_DIR="tools/anspar-marketplace/plugins"
+
+if [ -d "$PLUGIN_DIR" ]; then
+    # Find all plugin commit-msg hooks
+    PLUGIN_HOOKS=$(find "$PLUGIN_DIR" -type f -path "*/hooks/commit-msg" 2>/dev/null | sort)
+
+    if [ -n "$PLUGIN_HOOKS" ]; then
+        while IFS= read -r hook; do
+            PLUGIN_NAME=$(echo "$hook" | sed 's|.*/plugins/\([^/]*\)/.*|\1|')
+
+            # Execute the hook if it's executable
+            if [ -x "$hook" ]; then
+                if ! "$hook" "$COMMIT_MSG_FILE"; then
+                    echo ""
+                    echo "❌ Plugin hook failed: $PLUGIN_NAME"
+                    echo "   Hook: $hook"
+                    exit 1
+                fi
+            fi
+        done <<< "$PLUGIN_HOOKS"
+    fi
 fi
 
 # =====================================================

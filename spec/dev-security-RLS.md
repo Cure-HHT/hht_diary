@@ -25,7 +25,7 @@ This document specifies the implementation details for PostgreSQL Row-Level Secu
 
 ## RLS Policy Implementation Requirements
 
-### REQ-d00019: Patient Data Isolation RLS Implementation
+# REQ-d00019: Patient Data Isolation RLS Implementation
 
 **Level**: Dev | **Implements**: o00020 | **Status**: Active
 
@@ -99,9 +99,10 @@ CREATE POLICY patient_insert_audit ON record_audit
 - Policies execute without performance degradation (<50ms overhead)
 - Unit tests cover all policy scenarios
 
+*End* *Patient Data Isolation RLS Implementation* | **Hash**: 4d57cdcf
 ---
 
-### REQ-d00020: Investigator Site-Scoped RLS Implementation
+# REQ-d00020: Investigator Site-Scoped RLS Implementation
 
 **Level**: Dev | **Implements**: o00021 | **Status**: Active
 
@@ -170,9 +171,10 @@ CREATE POLICY investigator_site_audit ON record_audit
 - Policy subquery executes in <100ms
 - Migration includes rollback script
 
+*End* *Investigator Site-Scoped RLS Implementation* | **Hash**: 0b438bc8
 ---
 
-### REQ-d00021: Investigator Annotation RLS Implementation
+# REQ-d00021: Investigator Annotation RLS Implementation
 
 **Level**: Dev | **Implements**: o00022 | **Status**: Active
 
@@ -258,9 +260,10 @@ CREATE TRIGGER trg_set_annotation_investigator
 - Foreign key constraints prevent orphaned annotations
 - Annotation queries performant with proper indexes
 
+*End* *Investigator Annotation RLS Implementation* | **Hash**: 024f5863
 ---
 
-### REQ-d00022: Analyst Read-Only RLS Implementation
+# REQ-d00022: Analyst Read-Only RLS Implementation
 
 **Level**: Dev | **Implements**: o00023 | **Status**: Active
 
@@ -334,9 +337,10 @@ ALTER DATABASE clinical_diary SET pgaudit.log = 'read';
 - No patient identity information accessible
 - Policy performance <100ms with proper indexes
 
+*End* *Analyst Read-Only RLS Implementation* | **Hash**: ca57ee0e
 ---
 
-### REQ-d00023: Sponsor Global Access RLS Implementation
+# REQ-d00023: Sponsor Global Access RLS Implementation
 
 **Level**: Dev | **Implements**: o00024 | **Status**: Active
 
@@ -417,9 +421,10 @@ CREATE TRIGGER trg_audit_sponsor_users
 - No access to other sponsors' data (separate databases)
 - De-identified data access only
 
+*End* *Sponsor Global Access RLS Implementation* | **Hash**: 57c79cf5
 ---
 
-### REQ-d00024: Auditor Compliance RLS Implementation
+# REQ-d00024: Auditor Compliance RLS Implementation
 
 **Level**: Dev | **Implements**: o00025 | **Status**: Active
 
@@ -554,9 +559,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 - Quarterly access review reports available
 - Justification validation prevents empty exports
 
+*End* *Auditor Compliance RLS Implementation* | **Hash**: 64a2ff2e
 ---
 
-### REQ-d00025: Administrator Break-Glass RLS Implementation
+# REQ-d00025: Administrator Break-Glass RLS Implementation
 
 **Level**: Dev | **Implements**: o00026 | **Status**: Active
 
@@ -669,9 +675,10 @@ $$ LANGUAGE plpgsql;
 - All break-glass access logged
 - Expired sessions cleaned up automatically
 
+*End* *Administrator Break-Glass RLS Implementation* | **Hash**: 4a44951a
 ---
 
-### REQ-d00026: Event Sourcing State Protection RLS Implementation
+# REQ-d00026: Event Sourcing State Protection RLS Implementation
 
 **Level**: Dev | **Implements**: o00027 | **Status**: Active
 
@@ -769,6 +776,7 @@ $$ LANGUAGE plpgsql;
 - Version number increments with each event
 - Integrity validation function available
 
+*End* *Event Sourcing State Protection RLS Implementation* | **Hash**: a665366e
 ---
 
 ## Implementation Guidelines

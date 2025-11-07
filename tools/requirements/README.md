@@ -3,7 +3,7 @@
 Tools for validating and tracking requirements across PRD, Operations, and Development specifications.
 
 > **Git Hook Integration**: These tools are automatically run via git hooks through the
-> requirement-validation and traceability-matrix plugins in `tools/claude-marketplace/`.
+> simple-requirements and traceability-matrix plugins in `tools/anspar-marketplace/plugins/`.
 > See `.githooks/README.md` for hook configuration.
 
 ## Overview

@@ -2,7 +2,7 @@
 
 A comprehensive plugin development system for Claude Code that provides expert guidance, automation, and validation for creating high-quality plugins.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 🎯 Overview
@@ -19,6 +19,205 @@ Plugin Expert is a sophisticated meta-plugin that helps you create, validate, an
 - **🧪 Test Suite Creation**: Automated test generation and runners
 - **🔒 Security Analysis**: Identify potential security issues
 - **📦 Marketplace Ready**: Proper structure for easy publishing
+- **🎯 Proactive Plugin Work Detection** (NEW): Auto-invokes when plugin development is detected
+- **💡 Proactive Pattern Recommendations** (NEW): Suggests UserPromptSubmit hooks and auto-invocation patterns
+
+### 🎯 Proactive Architecture Enforcement (NEW)
+
+**v1.1 Enhancement**: Plugin Expert now proactively detects when you're working on plugins and automatically provides architectural guidance.
+
+**How it works**:
+- **UserPromptSubmit Hook**: Analyzes your prompts for plugin-related keywords
+- **Auto-Invocation**: Automatically invokes PluginExpert agent when plugin work detected
+- **Pattern Recommendations**: Reviews plugins and suggests proactive patterns (UserPromptSubmit hooks, auto-invocation triggers, etc.)
+- **Architectural Guardian**: Ensures separation of concerns and best practices
+
+**Example Interaction**:
+
+```
+You: "Add a UserPromptSubmit hook to the workflow plugin"
+
+Plugin Expert:
+🔌 PLUGIN WORK DETECTED
+
+Plugin development/modification is architectural work that requires careful design.
+
+⚡ AUTO-INVOKING PluginExpert agent for:
+- Architecture enforcement
+- Separation of concerns validation
+- Best practices guidance
+- Integration pattern review
+
+[PluginExpert agent is now active to guide your work]
+```
+
+**Pattern Recommendations**:
+
+When reviewing or creating plugins, PluginExpert now evaluates opportunities for:
+1. **UserPromptSubmit hooks**: Detect when users start relevant work
+2. **Auto-invocation triggers**: Make agents invoke themselves proactively
+3. **PreToolUse validation**: Preventive checks before file operations
+4. **PostToolUse assistance**: Helpful suggestions after operations
+5. **Cross-plugin integration**: Coordination with other plugins
+
+These recommendations are INFO-level (not errors) and focus on enhancing user experience.
+
+**Benefits**:
+- ✅ Automatic expert guidance when working on plugins
+- ✅ Prevents architectural violations early
+- ✅ Promotes proactive patterns across all plugins
+- ✅ Ensures consistent quality and best practices
+
+### 🔍 JSON Validation & Path Checking (NEW)
+
+**v1.2 Enhancement**: Automatic validation of plugin configuration files (plugin.json and hooks.json) with optional path verification.
+
+**How it works**:
+- **PreToolUse Hook**: Provides validation reminder when editing JSON files
+- **PostToolUse Hook**: Automatically validates JSON after edits
+- **Validation Script**: Standalone utility with schema and path validation
+- **Path Checking**: Optional flag to verify referenced files actually exist
+
+**Validated schemas**:
+
+**plugin.json**:
+- ✅ JSON syntax (proper commas, quotes, braces)
+- ✅ Required fields: name, version, description, author
+- ✅ Name format: kebab-case (lowercase with hyphens)
+- ✅ Version format: semantic versioning (e.g., 1.0.0)
+- ✅ Author structure: must have 'name' field
+- ✅ Optional fields: keywords (array), repository, homepage, license
+- ✅ Component paths: commands, agents, skills, hooks
+- ✅ **Schema validation** (file extension requirements):
+  - `agents` field must point to a `.md` file (ERROR if not)
+  - `hooks` field must point to a `.json` file (ERROR if not)
+  - `commands` field should point to a directory ending with `/` (WARNING if not)
+  - `skills` field should point to a directory ending with `/` (WARNING if not)
+
+**hooks.json**:
+- ✅ JSON syntax
+- ✅ Root 'hooks' object required
+- ✅ Hook types: SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse
+- ✅ Hook structure: proper nesting with 'hooks' arrays
+- ✅ Hook objects: must have 'type' and 'command' fields
+- ✅ Optional timeout field (number in milliseconds)
+- ✅ Command paths: validates ${CLAUDE_PLUGIN_ROOT} usage
+
+**Manual validation**:
+
+```bash
+# Validate plugin.json (schema only)
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh .claude-plugin/plugin.json
+
+# Validate with path checking (recommended)
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh --check-paths .claude-plugin/plugin.json
+
+# Validate hooks.json with path checking
+${CLAUDE_PLUGIN_ROOT}/utilities/validate-plugin-json.sh --check-paths hooks/hooks.json
+```
+
+**Path validation checks**:
+
+For **plugin.json**:
+- ✅ Component paths exist (commands, agents, skills, hooks directories/files)
+- ✅ Detects old plugin name patterns (anspar-, claude-marketplace)
+- ✅ Suggests similar files if path not found
+- ✅ Works with both relative and absolute paths
+
+For **hooks.json**:
+- ✅ Hook command scripts exist
+- ✅ Hook command scripts are executable (warns if not)
+- ✅ Validates ${CLAUDE_PLUGIN_ROOT} variable usage
+- ✅ Suggests fixes for common path issues
+
+**Example output**:
+
+```
+Validating: .claude-plugin/plugin.json
+
+✓ JSON syntax is valid
+
+ℹ Validating plugin.json schema...
+✓ Required field 'name' present
+✓ Required field 'version' present
+✓ Required field 'description' present
+✓ Required field 'author' present
+✓ Plugin name 'my-plugin' follows kebab-case convention
+✓ Version '1.0.0' follows semver format
+✓ Author object has required 'name' field
+
+✓ Validation passed: .claude-plugin/plugin.json
+```
+
+**Common errors detected**:
+- ❌ Missing commas between properties
+- ❌ Trailing commas in arrays/objects
+- ❌ Missing required fields
+- ❌ Invalid version format (must be semver)
+- ❌ Keywords as string instead of array
+- ❌ **agents field pointing to directory instead of .md file** (NEW)
+- ❌ **hooks field pointing to wrong file type (not .json)** (NEW)
+- ❌ Invalid hook structure
+- ❌ Missing 'hooks' array in hook entries
+- ❌ Component paths don't exist (with --check-paths)
+- ❌ Hook scripts don't exist or aren't executable (with --check-paths)
+- ❌ Old plugin name patterns in paths (with --check-paths)
+
+**Benefits**:
+- ✅ Catch JSON errors before committing
+- ✅ Ensure plugin.json follows Claude Code schema
+- ✅ Validate hook configuration correctness
+- ✅ Verify all referenced files actually exist (--check-paths)
+- ✅ Detect broken references to renamed/moved files
+- ✅ Check hook script executability
+- ✅ Clear error messages with fix suggestions
+- ✅ Automatic validation on save
+
+### 🔐 Plugin-Specific Permission Management (NEW)
+
+**v1.2 Enhancement**: Automated permission management for seamless command execution.
+
+**How it works**:
+- **Installation**: Automatically adds plugin-specific permissions to Claude Code
+- **Uninstallation**: Removes only this plugin's permissions (keeps shared ones)
+- **Registry Tracking**: Tracks which plugin added which permission
+- **Idempotent**: Safe to install/uninstall multiple times
+
+**Plugin-expert permissions**:
+- `Bash(git status:*)` - Check repository state
+- `Bash(git diff:*)` - Review file changes
+- `Bash(git show:*)` - Inspect commits
+- `Bash(git rev-parse:*)` - Get repository info
+- `Bash(git ls-files:*)` - List tracked files
+- `Bash(gh:*)` - GitHub CLI operations
+
+**Manual management**:
+
+```bash
+# Add permissions (run during installation)
+./utilities/manage-permissions.sh add plugin-expert ./.claude-plugin/permissions.json
+
+# Remove permissions (run during uninstallation)
+./utilities/manage-permissions.sh remove plugin-expert
+
+# List all registered permissions
+./utilities/manage-permissions.sh list
+```
+
+**Files**:
+- `.claude-plugin/permissions.json` - Permission definitions
+- `.claude/settings.local.json` - Claude Code permission settings
+- `.claude/permissions-registry.json` - Plugin permission registry (gitignored)
+
+**Shared permissions**:
+If multiple plugins need the same permission (e.g., `git status`), it's only added once and only removed when ALL plugins that need it are uninstalled.
+
+**Benefits**:
+- ✅ No permission prompts for common git operations
+- ✅ Seamless automation for plugin workflows
+- ✅ Plugin-specific (only requests what it needs)
+- ✅ Safe uninstallation (doesn't affect other plugins)
+- ✅ Transparent (see exactly what's allowed in permissions.json)
 
 ## 🏗️ Architecture
 

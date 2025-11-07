@@ -1,0 +1,17 @@
+{
+  "name": "test-plugin",
+  "version": "1.0.0",
+  "description": "A test plugin for validation",
+  "author": {
+    "name": "Test Author",
+    "url": "https://example.com"
+  },
+  "license": "MIT",
+  "keywords": ["test", "validation", "example"],
+  "repository": "https://github.com/test/test-plugin",
+  "homepage": "https://example.com/test-plugin",
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

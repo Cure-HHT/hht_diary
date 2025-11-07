@@ -317,7 +317,7 @@ jobs:
 
 ## Environment Configuration
 
-### REQ-o00001: Separate Supabase Projects Per Sponsor
+# REQ-o00001: Separate Supabase Projects Per Sponsor
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
@@ -339,9 +339,10 @@ Each Supabase project SHALL provide:
 - No shared configuration files between sponsors
 - Project provisioning documented in runbook
 
+*End* *Separate Supabase Projects Per Sponsor* | **Hash**: 970de2df
 ---
 
-### REQ-o00002: Environment-Specific Configuration Management
+# REQ-o00002: Environment-Specific Configuration Management
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
@@ -361,6 +362,7 @@ Each sponsor repository SHALL maintain:
 - Build scripts validate presence of required environment variables
 - No credentials found in git history
 
+*End* *Environment-Specific Configuration Management* | **Hash**: 8786c322
 ---
 
 ### Environment Types
@@ -601,7 +603,7 @@ git branch -d release/1.2.3
 git push origin --delete release/1.2.3
 ```
 
-### REQ-o00010: Mobile App Release Process
+# REQ-o00010: Mobile App Release Process
 
 **Level**: Ops | **Implements**: p00008 | **Status**: Active
 
@@ -623,6 +625,7 @@ Mobile app release SHALL include:
 - App store listings reference single app for all sponsors
 - Update deployment automated via CI/CD
 
+*End* *Mobile App Release Process* | **Hash**: 34b8dd28
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -808,7 +811,7 @@ curl -i --location --request POST \
 
 ## Portal Deployment
 
-### REQ-o00009: Portal Deployment Per Sponsor
+# REQ-o00009: Portal Deployment Per Sponsor
 
 **Level**: Ops | **Implements**: p00009 | **Status**: Active
 
@@ -830,6 +833,7 @@ Portal deployment SHALL include:
 - Portal cannot access other sponsors' databases
 - Rollback capability per sponsor portal
 
+*End* *Portal Deployment Per Sponsor* | **Hash**: 06ad75fd
 ---
 
 ### Netlify Static Site Deployment

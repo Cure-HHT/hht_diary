@@ -33,7 +33,7 @@ The Clinical Diary system serves multiple pharmaceutical sponsors using a single
 
 ## System Components
 
-### REQ-p00008: Single Mobile App for All Sponsors
+# REQ-p00008: Single Mobile App for All Sponsors
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -55,9 +55,10 @@ Single app approach SHALL ensure:
 - Updates deployed once for all sponsors
 - No cross-sponsor data or configuration leakage
 
+*End* *Single Mobile App for All Sponsors* | **Hash**: f638b9f4
 ---
 
-### REQ-p00009: Sponsor-Specific Web Portals
+# REQ-p00009: Sponsor-Specific Web Portals
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -79,6 +80,7 @@ Portal isolation SHALL ensure:
 - Portal customization independent per sponsor
 - Portal cannot query other sponsors' databases
 
+*End* *Sponsor-Specific Web Portals* | **Hash**: 4ebd0c72
 ---
 
 ## How Patients Enroll
@@ -93,7 +95,7 @@ The patient never needs to know which technical system they're using - it just w
 
 ---
 
-### REQ-p00018: Multi-Site Support Per Sponsor
+# REQ-p00018: Multi-Site Support Per Sponsor
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -117,6 +119,7 @@ Multi-site support SHALL include:
 - Reports aggregate across sites or filter to specific sites
 - Site information included in data exports for regulatory submission
 
+*End* *Multi-Site Support Per Sponsor* | **Hash**: b3de8bbb
 ---
 
 ## Data Isolation

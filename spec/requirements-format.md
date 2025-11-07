@@ -41,7 +41,7 @@ This document defines the format for traceable requirements across PRD, Operatio
 ```markdown
 ### REQ-{id}: {informal-title}
 
-**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft}
+**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft} | **Hash**: {sha256-prefix}
 
 {requirement-body}
 
@@ -50,6 +50,8 @@ This document defines the format for traceable requirements across PRD, Operatio
 **Acceptance Criteria**:
 - {criterion-1}
 - {criterion-2}
+
+*end* *optionallly repeat informal-title* **hash:00000000**
 ```
 
 ### Field Definitions
@@ -73,6 +75,15 @@ This document defines the format for traceable requirements across PRD, Operatio
 - `Active`: Current, must be implemented
 - `Draft`: Under review, not yet approved
 - `Deprecated`: Replaced or no longer needed (keep for history)
+
+#### Hash
+- SHA-256 hash of requirement body (first 8 characters)
+- Calculated from: requirement body text, rationale, and acceptance criteria
+- Excludes: title, metadata line, file path
+- Format: 8 lowercase hexadecimal characters (e.g., `abc12345`)
+- Purpose: Detect requirement changes for implementation tracking
+- Required: Yes
+- Updated automatically using `python3 tools/requirements/update-REQ-hashes.py`
 
 #### Requirement Body
 - **Authoritative statement** of the requirement
@@ -254,7 +265,7 @@ Code comments explain HOW the code implements requirements, but they don't defin
 ### Top-Level PRD Requirement
 
 ```markdown
-### REQ-p00031: Multi-Sponsor Data Isolation
+# REQ-p00031: Multi-Sponsor Data Isolation
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -276,12 +287,14 @@ cross-sponsor access. Critical for regulatory compliance and sponsor trust.
 - Authentication tokens are scoped to a single sponsor
 - Encryption keys are never shared between sponsors
 - Administrative access is limited to single sponsor
+
+*End* *Multi-Sponsor Data Isolation* | **Hash**: a1b2c3d4
 ```
 
 ### Ops Requirement Implementing PRD
 
 ```markdown
-### REQ-o00056: Separate Supabase Projects Per Sponsor
+# REQ-o00056: Separate Supabase Projects Per Sponsor
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
@@ -299,14 +312,17 @@ using Supabase's project isolation guarantees.
 - Database connections do not span projects
 - API keys are project-specific
 - No shared configuration files
+
+*End* *Separate Supabase Projects Per Sponsor* | **Hash**: TBD
 ```
 
 ### Dev Requirement Implementing Ops
 
 ```markdown
-### REQ-d00012: Environment-Specific Configuration Files
+# REQ-d00012: Environment-Specific Configuration Files
 
 **Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
+
 
 The application SHALL load sponsor-specific configuration from environment files
 that specify Supabase connection parameters.
@@ -326,8 +342,9 @@ Each file MUST contain:
 - Build process validates all required fields present
 - No hardcoded credentials in source code
 - URL patterns match expected Supabase format
-```
 
+*End* *Environment-Specific Configuration Files* | **Hash**: 22cd37a6
+```
 ---
 
 ## Usage in Code and Commits
@@ -356,6 +373,7 @@ Related: o00001, o00002
 ## Issue: Implement Database Isolation
 
 **Requirements**: p00001, o00001, o00002, d00045
+CLAUDE_TODO: insert file links here (relative to git root)
 
 Implement complete database isolation per the requirements above...
 ```

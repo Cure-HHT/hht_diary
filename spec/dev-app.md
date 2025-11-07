@@ -35,7 +35,7 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 ## Multi-Sponsor Architecture
 
-### REQ-d00005: Sponsor Configuration Detection Implementation
+# REQ-d00005: Sponsor Configuration Detection Implementation
 
 **Level**: Dev | **Implements**: p00007, p00008 | **Status**: Active
 
@@ -59,6 +59,7 @@ Implementation SHALL include:
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
 
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: d43b407d
 ---
 
 ### Single App, Multiple Sponsors
@@ -104,7 +105,7 @@ Implementation SHALL include:
 
 ## Offline-First Architecture
 
-### REQ-d00004: Local-First Data Entry Implementation
+# REQ-d00004: Local-First Data Entry Implementation
 
 **Level**: Dev | **Implements**: p00006 | **Status**: Active
 
@@ -128,6 +129,7 @@ Implementation SHALL include:
 - No data loss during offline periods
 - Background sync respects battery and data usage constraints
 
+*End* *Local-First Data Entry Implementation* | **Hash**: 843d0664
 ---
 
 ### Core Principle
@@ -160,7 +162,7 @@ Implementation SHALL include:
 
 ---
 
-### REQ-d00013: Application Instance UUID Generation
+# REQ-d00013: Application Instance UUID Generation
 
 **Level**: Dev | **Implements**: p00006 | **Status**: Active
 
@@ -185,6 +187,7 @@ Implementation SHALL include:
 - UUID included in all `record_audit.device_info` JSONB fields
 - Conflict resolution logic can identify source device for each change
 
+*End* *Application Instance UUID Generation* | **Hash**: 447e987e
 ---
 
 ### Conflict Resolution
@@ -263,7 +266,7 @@ resolution: Log error. Report to investigator.
 
 ## Deployment & Distribution
 
-### REQ-d00006: Mobile App Build and Release Process
+# REQ-d00006: Mobile App Build and Release Process
 
 **Level**: Dev | **Implements**: o00010 | **Status**: Active
 
@@ -287,6 +290,7 @@ Build process SHALL include:
 - No sponsor-specific branding in store listings
 - Build pipeline validates configuration completeness
 
+*End* *Mobile App Build and Release Process* | **Hash**: 6dfe9c2d
 ---
 
 ### App Store Listing

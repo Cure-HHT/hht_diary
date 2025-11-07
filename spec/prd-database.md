@@ -16,38 +16,22 @@
 
 This document describes the diary-specific implementation and refinement of the event-sourcing system.
 
-The requirements in this document refine the generic event-sourcing patterns for clinical diary applications:
-- **REQ-p00003** refines REQ-p01010 (multi-tenancy) for sponsor isolation
-- **REQ-p00004** refines REQ-p01003 (immutable events) with FDA 21 CFR Part 11 compliance
-- **REQ-p00013** refines REQ-p01003 (immutable events) for clinical data change history
-
 ---
 
 ## Executive Summary
 
-The database stores patient diary entries with complete history of all changes for regulatory compliance. Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
-
-**Key Features**:
-- Complete audit trail of every change
-- Multiple clinical sites supported
-- Works with offline mobile app
-- Automatic conflict resolution
-- FDA compliant record keeping
+The database stores patient diary entries with complete history of all changes for regulatory compliance. 
+Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
+FDA compliant record keeping.
 
 ---
 
 ## What Data Is Stored
 
-### Patient Diary Entries
-
-**Clinical Observations**:
-- Daily symptom reports
-- Activity logs
+- Daily nosebleed reports
 - Questionnaire responses
 
-**Why This Matters**: This data forms the evidence base for clinical trial results. Accurate capture and preservation is critical for drug approval.
-
-### REQ-p00013: Complete Data Change History
+# REQ-p00013: Complete Data Change History
 
 **Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active
 
@@ -78,11 +62,13 @@ Change history SHALL include:
 
 **Study Configuration**: Trial-specific settings and questionnaires
 
+*End* *Complete Data Change History* | **Hash**: ab598860
+
 ---
 
 ## Data Isolation Between Sponsors
 
-### REQ-p00003: Separate Database Per Sponsor
+# REQ-p00003: Separate Database Per Sponsor
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -103,11 +89,12 @@ Database isolation SHALL ensure:
 - Backup/restore operations scoped to single sponsor
 - Query execution cannot span multiple sponsor databases
 
+*End* *Separate Database Per Sponsor* | **Hash**: 6a207b1a
 ---
 
 ## Event Sourcing Architecture
 
-### REQ-p00004: Immutable Audit Trail via Event Sourcing
+# REQ-p00004: Immutable Audit Trail via Event Sourcing
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -235,6 +222,8 @@ Event Sourcing is the architectural approach used to store clinical trial data. 
 1. Query the current view (fast)
 2. See latest values
 3. Can click to see full history if needed
+
+*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 0c0b0807
 
 ---
 

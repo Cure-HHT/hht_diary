@@ -1,26 +1,23 @@
 #!/bin/bash
 # =====================================================
-# Pre-Commit Hook: Orchestrator
+# Pre-Commit Hook: Plugin Orchestrator
 # =====================================================
 #
-# This hook orchestrates validation by calling plugin hooks.
+# Auto-discovers and executes pre-commit hooks from all
+# installed Claude Code plugins in anspar-marketplace.
 #
-# Plugins (in tools/claude-marketplace/):
-# 1. anspar-workflow - Enforces active ticket requirement
-# 2. Dockerfile linting (hadolint) - built-in
-# 3. anspar-traceability-matrix - Auto-regenerates matrices on spec/ changes
-# 4. anspar-requirement-validation - Validates requirement format and links
-# 5. anspar-spec-compliance - Enforces spec/ directory compliance rules
+# Plugin Discovery:
+#   Scans: tools/anspar-marketplace/plugins/*/hooks/pre-commit
+#   Executes: All found hooks in alphabetical order
+#
+# Built-in Checks:
+#   - Branch protection (blocks commits to main/master)
+#   - Dockerfile linting (if hadolint available)
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
 #
-# To install hadolint (recommended):
-#   Ubuntu/Debian: sudo apt-get install hadolint
-#   macOS: brew install hadolint
-#   Manual: wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 && chmod +x /usr/local/bin/hadolint
-#
-# To bypass this hook (NOT RECOMMENDED):
+# To bypass (NOT RECOMMENDED):
 #   git commit --no-verify
 #
 # =====================================================
@@ -54,20 +51,34 @@ if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
 fi
 
 # =====================================================
-# 1. Workflow Enforcement (Plugin)
+# 1. Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-WORKFLOW_PRECOMMIT_HOOK="tools/claude-marketplace/anspar-workflow/hooks/pre-commit"
-if [ -f "$WORKFLOW_PRECOMMIT_HOOK" ]; then
-    "$WORKFLOW_PRECOMMIT_HOOK" || exit 1
-else
-    echo "⚠️  WARNING: Workflow enforcement plugin not found: $WORKFLOW_PRECOMMIT_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-workflow/README.md"
-    echo ""
+PLUGIN_DIR="tools/anspar-marketplace/plugins"
+
+if [ -d "$PLUGIN_DIR" ]; then
+    # Find all plugin pre-commit hooks
+    PLUGIN_HOOKS=$(find "$PLUGIN_DIR" -type f -path "*/hooks/pre-commit" 2>/dev/null | sort)
+
+    if [ -n "$PLUGIN_HOOKS" ]; then
+        while IFS= read -r hook; do
+            PLUGIN_NAME=$(echo "$hook" | sed 's|.*/plugins/\([^/]*\)/.*|\1|')
+
+            # Execute the hook if it's executable
+            if [ -x "$hook" ]; then
+                if ! "$hook"; then
+                    echo ""
+                    echo "❌ Plugin hook failed: $PLUGIN_NAME"
+                    echo "   Hook: $hook"
+                    exit 1
+                fi
+            fi
+        done <<< "$PLUGIN_HOOKS"
+    fi
 fi
 
 # =====================================================
-# 2. Dockerfile Linting
+# 2. Dockerfile Linting (Built-in)
 # =====================================================
 
 # Check if any Dockerfiles are being committed
@@ -108,45 +119,6 @@ if [ -n "$DOCKERFILES_CHANGED" ]; then
         echo "   Install: https://github.com/hadolint/hadolint#install"
         echo ""
     fi
-fi
-
-# =====================================================
-# 3. Traceability Matrix Regeneration (Plugin)
-# =====================================================
-
-TRACEABILITY_HOOK="tools/claude-marketplace/anspar-traceability-matrix/hooks/pre-commit-traceability-matrix"
-if [ -f "$TRACEABILITY_HOOK" ]; then
-    "$TRACEABILITY_HOOK" || exit 1
-else
-    echo "⚠️  WARNING: Traceability matrix plugin not found: $TRACEABILITY_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-traceability-matrix/README.md"
-    echo ""
-fi
-
-# =====================================================
-# 4. Requirement Validation (Plugin)
-# =====================================================
-
-REQUIREMENT_VALIDATION_HOOK="tools/claude-marketplace/anspar-requirement-validation/hooks/pre-commit-requirement-validation"
-if [ -f "$REQUIREMENT_VALIDATION_HOOK" ]; then
-    "$REQUIREMENT_VALIDATION_HOOK" || exit 1
-else
-    echo "⚠️  WARNING: Requirement validation plugin not found: $REQUIREMENT_VALIDATION_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-requirement-validation/README.md"
-    echo ""
-fi
-
-# =====================================================
-# 5. Spec Compliance Validation (Plugin)
-# =====================================================
-
-SPEC_COMPLIANCE_HOOK="tools/claude-marketplace/anspar-spec-compliance/hooks/pre-commit-spec-compliance"
-if [ -f "$SPEC_COMPLIANCE_HOOK" ]; then
-    "$SPEC_COMPLIANCE_HOOK" || exit 1
-else
-    echo "⚠️  WARNING: Spec compliance plugin not found: $SPEC_COMPLIANCE_HOOK"
-    echo "   Install: See tools/claude-marketplace/anspar-spec-compliance/README.md"
-    echo ""
 fi
 
 # =====================================================

@@ -6,7 +6,7 @@
 **Status**: Active
 
 > **See**: README.md for spec/ directory governance rules
-> **See**: ../plugins/anspar-requirement-validation/ for implementation
+> **See**: ../plugins/simple-requirements/ for implementation
 > **Implements**: Main project REQ-d00014 (Requirement Validation Tooling)
 
 ---
@@ -176,7 +176,7 @@ Hook integration SHALL include:
 
 ## References
 
-- **Implementation**: ../plugins/anspar-requirement-validation/
+- **Implementation**: ../plugins/simple-requirements/
 - **Shared Script**: ../../tools/requirements/validate_requirements.py
 - **Main Project Requirement**: ../../spec/dev-requirements-management.md (REQ-d00014)
 - **Marketplace Spec**: dev-marketplace.md

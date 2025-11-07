@@ -54,7 +54,7 @@ Sponsor A                    Sponsor B                    Sponsor C
 
 ## Multi-Sponsor Setup Context
 
-### REQ-o00003: Supabase Project Provisioning Per Sponsor
+# REQ-o00003: Supabase Project Provisioning Per Sponsor
 
 **Level**: Ops | **Implements**: p00003, o00001 | **Status**: Active
 
@@ -76,6 +76,7 @@ Provisioning SHALL include:
 - Project provisioning documented in runbook
 - Staging and production use separate projects
 
+*End* *Supabase Project Provisioning Per Sponsor* | **Hash**: 10544ffd
 ---
 
 ### Per-Sponsor Supabase Projects
@@ -125,7 +126,7 @@ Provisioning SHALL include:
 
 ## Step 1: Database Deployment
 
-### REQ-o00004: Database Schema Deployment
+# REQ-o00004: Database Schema Deployment
 
 **Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Active
 
@@ -148,9 +149,10 @@ Schema deployment SHALL include:
 - Schema validation checks pass before deployment
 - Rollback capability for failed deployments
 
+*End* *Database Schema Deployment* | **Hash**: b9f6a0b5
 ---
 
-### REQ-o00011: Multi-Site Data Configuration Per Sponsor
+# REQ-o00011: Multi-Site Data Configuration Per Sponsor
 
 **Level**: Ops | **Implements**: p00018 | **Status**: Active
 
@@ -174,6 +176,7 @@ Site configuration SHALL include:
 - Site configuration documented for regulatory submission
 - Site management procedures defined for sponsor administrators
 
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 9981604d
 ---
 
 ### Option A: SQL Editor (Quickest)

@@ -81,7 +81,7 @@ Sponsor A Environment           Sponsor B Environment
 
 ## Authentication Layer
 
-### REQ-d00003: Supabase Auth Configuration Per Sponsor
+# REQ-d00003: Supabase Auth Configuration Per Sponsor
 
 **Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
 
@@ -104,6 +104,7 @@ Authentication integration SHALL include:
 - Logout clears all authentication state
 - Auth errors handled gracefully with user feedback
 
+*End* *Supabase Auth Configuration Per Sponsor* | **Hash**: 67ec9c94
 ---
 
 ### Supabase Auth (Per Sponsor)
@@ -151,7 +152,7 @@ Authentication integration SHALL include:
 
 ### Multi-Factor Authentication (2FA)
 
-### REQ-d00008: MFA Enrollment and Verification Implementation
+# REQ-d00008: MFA Enrollment and Verification Implementation
 
 **Level**: Dev | **Implements**: o00006 | **Status**: Active
 
@@ -160,11 +161,12 @@ The application SHALL implement multi-factor authentication enrollment and verif
 Implementation SHALL include:
 - MFA enrollment UI displaying QR code for TOTP authenticator app registration
 - TOTP verification code input and validation
-- Backup code generation and secure storage
 - MFA status tracking in user profile
 - Grace period handling (max 7 days) for initial MFA enrollment
 - MFA verification required at each login for enrolled users
 - Error handling for invalid codes with rate limiting
+Implementation MAY include:
+- Backup code generation and secure storage (for lost passwords)
 
 **Rationale**: Implements MFA configuration (o00006) at the application code level. Supabase Auth provides TOTP-based MFA capabilities that require application integration for enrollment and verification flows.
 
@@ -176,6 +178,7 @@ Implementation SHALL include:
 - Invalid code attempts rate limited (max 5 per minute)
 - MFA events logged in authentication audit trail
 
+*End* *MFA Enrollment and Verification Implementation* | **Hash**: 7bfb1abf
 ---
 
 **Required for**:
@@ -217,7 +220,7 @@ Implementation SHALL include:
 
 ## Authorization Layer 1: Role-Based Access Control (RBAC)
 
-### REQ-d00009: Role-Based Permission Enforcement Implementation
+# REQ-d00009: Role-Based Permission Enforcement Implementation
 
 **Level**: Dev | **Implements**: o00007 | **Status**: Active
 
@@ -243,6 +246,7 @@ Implementation SHALL include:
 - Role changes reflected immediately in UI
 - Unauthorized navigation routes redirect to role-appropriate screen
 
+*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 17e50d39
 ---
 
 ### Role Hierarchy
@@ -691,7 +695,7 @@ Sponsor A Environment          Sponsor B Environment
 
 ## Encryption Strategy
 
-### REQ-d00010: Data Encryption Implementation
+# REQ-d00010: Data Encryption Implementation
 
 **Level**: Dev | **Implements**: p00017 | **Status**: Active
 
@@ -715,6 +719,7 @@ Implementation SHALL include:
 - Local backups encrypted with device encryption key
 - No sensitive data logged in plaintext
 
+*End* *Data Encryption Implementation* | **Hash**: d5034b3a
 ---
 
 ### 1. Encryption at Rest

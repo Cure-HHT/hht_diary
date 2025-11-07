@@ -54,7 +54,7 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 ## Privacy by Design
 
-### REQ-p00016: Separation of Identity and Clinical Data
+# REQ-p00016: Separation of Identity and Clinical Data
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -76,9 +76,10 @@ Separation SHALL ensure:
 - Clinical data exports contain participant IDs only, not real identities
 - Data breach of clinical database does not expose patient identities
 
+*End* *Separation of Identity and Clinical Data* | **Hash**: d1d5e6d7
 ---
 
-### REQ-p00017: Data Encryption
+# REQ-p00017: Data Encryption
 
 **Level**: PRD | **Implements**: p00016 | **Status**: Active
 
@@ -100,6 +101,7 @@ Encryption SHALL ensure:
 - Keys rotated according to security policy
 - Encryption cannot be disabled
 
+*End* *Data Encryption* | **Hash**: 0b519855
 ---
 
 ### Separation of Identity and Data

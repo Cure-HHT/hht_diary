@@ -94,7 +94,7 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 - If `active_users` drops >20% from previous day → investigate
 - If `avg_sync_delay_seconds` >10 → check database performance
 
-#### REQ-o00005: Audit Trail Monitoring
+# REQ-o00005: Audit Trail Monitoring
 
 **Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Active
 
@@ -116,6 +116,7 @@ Monitoring SHALL include:
 - Event chain links validated (parent_audit_id relationships)
 - Monitoring dashboards show audit trail health status
 
+*End* *Audit Trail Monitoring* | **Hash**: f48b8b6b
 ---
 
 #### 4. Audit Trail Integrity
@@ -850,7 +851,7 @@ The issue has been resolved. All services are operating normally.
 
 ## Backup Verification Procedures
 
-### REQ-o00008: Backup and Retention Policy
+# REQ-o00008: Backup and Retention Policy
 
 **Level**: Ops | **Implements**: p00012 | **Status**: Active
 
@@ -872,6 +873,7 @@ Backup and retention SHALL include:
 - Quarterly disaster recovery drills documented
 - Backup integrity verification automated
 
+*End* *Backup and Retention Policy* | **Hash**: 6268dd48
 ---
 
 ### Automated Backups

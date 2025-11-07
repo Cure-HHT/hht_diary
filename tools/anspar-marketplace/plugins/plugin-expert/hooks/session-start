@@ -1,0 +1,106 @@
+#!/bin/bash
+# =====================================================
+# Plugin-Expert: session-start Hook
+# =====================================================
+#
+# Injects plugin architecture best practices at session start
+# and checks/refreshes documentation cache.
+#
+# Purpose:
+# - Remind agent of plugin patterns
+# - Check doc cache freshness
+# - Provide cache status and refresh instructions
+#
+# =====================================================
+
+# Find plugin directory
+PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Check documentation cache status
+CACHE_STATUS=$("$PLUGIN_DIR/scripts/check-doc-cache.sh" 2>/dev/null || echo '{"cacheStatus":"unknown"}')
+
+# Parse cache status
+NEEDS_REFRESH=$(echo "$CACHE_STATUS" | jq -r '.needsRefresh // false')
+CACHE_DIR=$(echo "$CACHE_STATUS" | jq -r '.cacheDir // ""')
+
+# Build context message
+CONTEXT="🔌 PLUGIN ARCHITECTURE PRINCIPLES (plugin-expert)
+
+When working with plugins, remember:
+
+1. 🎯 Single Responsibility
+   Each plugin has ONE clear purpose. Don't mix concerns.
+
+2. 🏗️ Separation of Concerns
+   - Plugin code stays in plugin directory
+   - Cross-plugin features use orchestrator pattern
+   - Sub-agents for plugin capabilities
+
+3. 🔧 Modularity
+   - Reusable utilities can be extracted
+   - Scripts should be composable
+   - Clear interfaces between components
+
+4. 📦 Plugin Structure
+   plugin-name/
+   ├── plugin.json
+   ├── agents/           # Sub-agents
+   ├── commands/         # Slash commands
+   ├── hooks/           # Event hooks
+   ├── scripts/         # Executables
+   ├── skills/          # Agent skills
+   ├── tests/           # Test suite
+   ├── cache/           # Cached resources (docs, etc.)
+   └── README.md        # Documentation
+
+5. 🤝 Integration Patterns
+   - Use existing plugins (e.g., linear-integration for tickets)
+   - Delegate to sub-agents (most reliable)
+   - Orchestrate with scripts (for multi-plugin workflows)
+   - Cache results (avoid repeated API calls)
+
+6. ⚠️ Anti-Patterns to Avoid
+   ❌ Creating one-off tools instead of using plugins
+   ❌ Mixing plugin responsibilities
+   ❌ Duplicating logic across plugins
+   ❌ Tight coupling between plugins
+
+If unsure about architecture, ASK USER before proceeding!"
+
+# Add cache refresh instructions if needed
+if [ "$NEEDS_REFRESH" = "true" ] && [ -n "$CACHE_DIR" ]; then
+    DOCS_TO_FETCH=$(echo "$CACHE_STATUS" | jq -c '.documentsToFetch // []')
+
+    CONTEXT="$CONTEXT
+
+📚 DOCUMENTATION CACHE REFRESH NEEDED
+
+The plugin-expert documentation cache is stale (>24 hours old).
+Cached docs help provide up-to-date guidance on Claude Code plugins.
+
+IMPORTANT: Refresh cache in background (non-blocking):
+$CACHE_STATUS
+
+To refresh: Use WebFetch tool to fetch docs and save to cache directory.
+Cache dir: $CACHE_DIR
+
+Documents to refresh:
+$(echo "$DOCS_TO_FETCH" | jq -r '.[] | "  - \(.name): \(.url)"')
+
+Note: This should happen in background. Session can continue if fetch fails."
+fi
+
+# Output as JSON
+jq -n \
+    --arg ctx "$CONTEXT" \
+    --argjson cacheStatus "$CACHE_STATUS" \
+    '{
+      "systemMessage": $ctx,
+      "hookSpecificOutput": {
+        "hookEventName": "SessionStart",
+        "additionalContext": $ctx,
+        "cacheStatus": $cacheStatus
+      }
+    }'
+
+exit 0

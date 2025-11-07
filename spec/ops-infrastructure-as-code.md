@@ -15,7 +15,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 ## Requirements
 
-### REQ-o00041: Infrastructure as Code for Cloud Resources
+# REQ-o00041: Infrastructure as Code for Cloud Resources
 
 **Level**: Ops | **Implements**: p00010 | **Status**: Active
 
@@ -35,9 +35,10 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 - OQ: Verify `terraform plan` and `terraform apply` work correctly
 - PQ: Verify infrastructure provisions in < 1 hour
 
+*End* *Infrastructure as Code for Cloud Resources* | **Hash**: fa6aaa33
 ---
 
-### REQ-o00042: Infrastructure Change Control
+# REQ-o00042: Infrastructure Change Control
 
 **Level**: Ops | **Implements**: o00041, p00010 | **Status**: Active
 
@@ -57,6 +58,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 - OQ: Verify PR workflow prevents direct commits
 - PQ: Verify 100% of infrastructure changes go through PR
 
+*End* *Infrastructure Change Control* | **Hash**: 8b9ee3b1
 ---
 
 ## Architecture

@@ -17,7 +17,7 @@ This document defines operational procedures for maintaining formal requirements
 
 ---
 
-### REQ-o00013: Requirements Format Validation
+# REQ-o00013: Requirements Format Validation
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -43,9 +43,10 @@ Format validation SHALL ensure:
 - Manual validation available: `python3 tools/requirements/validate_requirements.py`
 - Matrices viewable in markdown (documentation) and HTML (interactive browsing)
 
+*End* *Requirements Format Validation* | **Hash**: 2743e711
 ---
 
-### REQ-o00014: Top-Down Requirement Cascade
+# REQ-o00014: Top-Down Requirement Cascade
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -71,9 +72,10 @@ Top-down cascade SHALL ensure:
 - New features begin with ticket → PRD requirement → OPS → DEV → code flow
 - Code header comments reference requirements, not vice versa
 
+*End* *Top-Down Requirement Cascade* | **Hash**: d36fc1fb
 ---
 
-### REQ-o00015: Documentation Structure Enforcement
+# REQ-o00015: Documentation Structure Enforcement
 
 **Level**: Ops | **Implements**: p00036 | **Status**: Active
 
@@ -100,9 +102,10 @@ Documentation structure SHALL ensure:
 - spec/README.md documents topic scopes to prevent content duplication
 - Files cross-reference each other instead of duplicating content
 
+*End* *Documentation Structure Enforcement* | **Hash**: 426b1961
 ---
 
-### REQ-o00016: Architecture Decision Process
+# REQ-o00016: Architecture Decision Process
 
 **Level**: Ops | **Implements**: p00037 | **Status**: Active
 
@@ -129,9 +132,10 @@ ADR process SHALL ensure:
 - Superseded ADRs reference replacement ADR number
 - ADRs not created for: routine implementation choices, trivial decisions, easily reversible choices
 
+*End* *Architecture Decision Process* | **Hash**: 5efd9802
 ---
 
-### REQ-o00017: Version Control Workflow
+# REQ-o00017: Version Control Workflow
 
 **Level**: Ops | **Implements**: p00036, p00037 | **Status**: Active
 
@@ -158,6 +162,7 @@ Version control workflow SHALL ensure:
 - Hook configuration documented in .githooks/README.md
 - Developers run `git config core.hooksPath .githooks` during onboarding
 
+*End* *Version Control Workflow* | **Hash**: c8076d8e
 ---
 
 ## Workflow Examples
@@ -169,13 +174,13 @@ Version control workflow SHALL ensure:
 git checkout -b feature/multi-language-support
 
 # 2. Create PRD requirement in spec/prd-app.md
-# REQ-p00022: Multi-Language Support
+# Example: REQ-p00022: Multi-Language Support
 
 # 3. Create OPS requirement in spec/ops-deployment.md
-# REQ-o00018: Language Configuration Management
+# Example: REQ-o00018: Language Configuration Management
 
 # 4. Create DEV requirement in spec/dev-app.md
-# REQ-d00019: i18n Implementation
+# Example: REQ-d00019: i18n Implementation
 
 # 5. Validate requirements
 python3 tools/requirements/validate_requirements.py

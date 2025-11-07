@@ -1,0 +1,166 @@
+#!/bin/bash
+# =====================================================
+# Plugin-Expert: pre-commit Hook
+# =====================================================
+#
+# Validates plugin changes follow separation of concerns
+# and architectural best practices.
+#
+# Checks:
+# - Plugin files only in plugin directory
+# - No cross-plugin contamination
+# - Proper separation of concerns
+#
+# Actions:
+# - Warn about violations
+# - Suggest cleanup if needed
+# - Ask user to confirm or restructure
+#
+# =====================================================
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null)
+
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+# Check for plugin-related changes
+PLUGIN_CHANGES=$(echo "$STAGED_FILES" | grep "tools/anspar-marketplace/plugins/" || true)
+
+if [ -z "$PLUGIN_CHANGES" ]; then
+    exit 0
+fi
+
+# =====================================================
+# Analyze Plugin Changes
+# =====================================================
+
+VIOLATIONS=()
+PLUGIN_DIRS=()
+
+# Extract unique plugin directories being modified
+while IFS= read -r file; do
+    if [[ "$file" =~ tools/anspar-marketplace/plugins/([^/]+) ]]; then
+        PLUGIN_NAME="${BASH_REMATCH[1]}"
+        if [[ ! " ${PLUGIN_DIRS[@]} " =~ " ${PLUGIN_NAME} " ]]; then
+            PLUGIN_DIRS+=("$PLUGIN_NAME")
+        fi
+    fi
+done <<< "$PLUGIN_CHANGES"
+
+# Check for cross-plugin contamination
+for file in $PLUGIN_CHANGES; do
+    # Extract plugin name from file path
+    if [[ "$file" =~ tools/anspar-marketplace/plugins/([^/]+)/(.+) ]]; then
+        PLUGIN_NAME="${BASH_REMATCH[1]}"
+        FILE_IN_PLUGIN="${BASH_REMATCH[2]}"
+
+        # Check if file references other plugins
+        if git diff --cached "$file" 2>/dev/null | grep -qE "plugins/[^/]+" ; then
+            # File contains references to other plugins - check if it's orchestration
+            if [[ ! "$FILE_IN_PLUGIN" =~ ^(scripts/|README) ]]; then
+                VIOLATIONS+=("$file: Contains cross-plugin logic outside orchestration scripts")
+            fi
+        fi
+
+        # Check if plugin-specific code is outside plugin directory
+        # (This would require analyzing content more deeply)
+    fi
+done
+
+# Check for duplicated logic
+for plugin in "${PLUGIN_DIRS[@]}"; do
+    # Look for similar scripts across plugins
+    PLUGIN_SCRIPTS=$(echo "$PLUGIN_CHANGES" | grep "tools/anspar-marketplace/plugins/$plugin/scripts/" || true)
+
+    for script in $PLUGIN_SCRIPTS; do
+        SCRIPT_NAME=$(basename "$script")
+        # Check if similar scripts exist in other plugins
+        OTHER_SIMILAR=$(find tools/anspar-marketplace/plugins/*/scripts/ -name "$SCRIPT_NAME" 2>/dev/null | grep -v "$plugin" || true)
+
+        if [ -n "$OTHER_SIMILAR" ]; then
+            VIOLATIONS+=("$script: Similar script exists in other plugins - consider extracting shared utility")
+        fi
+    done
+done
+
+# =====================================================
+# Report Violations
+# =====================================================
+
+if [ ${#VIOLATIONS[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠️  PLUGIN ARCHITECTURE VIOLATIONS DETECTED"
+    echo "==========================================="
+    echo ""
+    echo "The following issues were found in your plugin changes:"
+    echo ""
+
+    for violation in "${VIOLATIONS[@]}"; do
+        echo "  ⚠️  $violation"
+    done
+
+    echo ""
+    echo "📋 RECOMMENDATIONS:"
+    echo ""
+    echo "1. Review the violations above"
+    echo "2. Consider if a cleanup/refactoring pass is needed"
+    echo "3. Options:"
+    echo "   a) Restructure now (recommended)"
+    echo "   b) Commit as-is and schedule cleanup"
+    echo "   c) Abort commit and ask for guidance"
+    echo ""
+    echo "💡 Best Practices:"
+    echo "   - Keep plugin logic inside plugin directory"
+    echo "   - Use orchestrator pattern for cross-plugin workflows"
+    echo "   - Extract shared utilities to common location"
+    echo "   - Maintain clear separation of concerns"
+    echo ""
+    echo "To proceed with this commit despite violations, run:"
+    echo "  git commit --no-verify"
+    echo ""
+    echo "To abort and restructure:"
+    echo "  git reset HEAD"
+    echo ""
+
+    # Ask user decision
+    read -p "Continue with commit? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "❌ Commit aborted. Please review and restructure."
+        exit 1
+    fi
+
+    echo "⚠️  Proceeding with violations. Consider scheduling a cleanup pass."
+    echo ""
+fi
+
+# =====================================================
+# Report Summary
+# =====================================================
+
+if [ ${#PLUGIN_DIRS[@]} -gt 1 ]; then
+    echo ""
+    echo "📦 PLUGIN CHANGES SUMMARY"
+    echo "========================"
+    echo ""
+    echo "Modified plugins:"
+    for plugin in "${PLUGIN_DIRS[@]}"; do
+        FILE_COUNT=$(echo "$PLUGIN_CHANGES" | grep -c "plugins/$plugin/" || echo "0")
+        echo "  - $plugin ($FILE_COUNT files)"
+    done
+    echo ""
+    echo "✅ Changes span ${#PLUGIN_DIRS[@]} plugins"
+    echo ""
+
+    if [ ${#PLUGIN_DIRS[@]} -gt 2 ]; then
+        echo "💡 TIP: Changes across many plugins may indicate:"
+        echo "   - Need for shared utility extraction"
+        echo "   - Cross-cutting concern that needs orchestration"
+        echo "   - Opportunity to improve plugin modularity"
+        echo ""
+    fi
+fi
+
+exit 0

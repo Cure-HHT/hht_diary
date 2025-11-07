@@ -23,9 +23,9 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 ## Requirements
 
-### REQ-o00052: CI/CD Pipeline for Requirement Traceability
+# REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Implements**: d00002, p00010 | **Status**: Active
+**Level**: Ops | **Implements**: p00010 | **Status**: Active
 
 **Description**: The system SHALL provide automated CI/CD validation of requirement traceability on every pull request and commit to protected branches.
 
@@ -35,7 +35,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 2. ✅ Workflow generates traceability matrix automatically
 3. ✅ Pull requests cannot merge without passing validation
 4. ✅ Validation results posted as PR comments
-5. ✅ Artifacts retained for 90 days for audit purposes
+5. ✅ Artifacts retained for 2 years for audit purposes
 6. ✅ Failed validations trigger notifications
 7. ✅ Workflow runs complete within 10 minutes
 
@@ -46,9 +46,10 @@ This document specifies the continuous integration and continuous delivery (CI/C
 - `tools/requirements/validate_requirements.py`
 - `tools/requirements/generate_traceability.py`
 
+*End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 150d2b29
 ---
 
-### REQ-o00053: Branch Protection Enforcement
+# REQ-o00053: Branch Protection Enforcement
 
 **Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
 
@@ -67,9 +68,10 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 **Implementation**: GitHub repository settings (see [Branch Protection Configuration](#branch-protection-configuration))
 
+*End* *Branch Protection Enforcement* | **Hash**: d0584e9a
 ---
 
-### REQ-o00054: Audit Trail Generation for CI/CD
+# REQ-o00054: Audit Trail Generation for CI/CD
 
 **Level**: Ops | **Implements**: o00052, p00010 | **Status**: Active
 
@@ -88,6 +90,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 **Implementation Files**: `.github/workflows/pr-validation.yml` (upload-artifact step)
 
+*End* *Audit Trail Generation for CI/CD* | **Hash**: 7da5e2e7
 ---
 
 ## CI/CD Pipeline Architecture
@@ -375,8 +378,7 @@ Expected output:
 
 ### REQ-pXXXXX: Test Invalid Requirement
 
-**Level**: PRD | **Implements**: REQ-p00000 | **Status**: Active
-
+**Level**: PRD | **Implements**: REQ-p00000 | **Status**: Active | **Hash**: TBD
 This is an intentionally invalid requirement for testing CI/CD.
 (Use a real requirement ID format when testing, this example uses XXXXX to avoid validation errors in this doc)
 

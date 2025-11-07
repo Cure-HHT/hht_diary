@@ -39,7 +39,7 @@ Before deploying a portal instance, ensure you have:
 
 ---
 
-### REQ-o00055: Role-Based Visual Indicator Verification
+# REQ-o00055: Role-Based Visual Indicator Verification
 
 **Level**: Ops | **Implements**: p00030 | **Status**: Active
 
@@ -57,6 +57,7 @@ Before deploying a portal instance, ensure you have:
 **Implementation Files**:
 - Portal UI components (see dev-portal.md)
 
+*End* *Role-Based Visual Indicator Verification* | **Hash**: b02eb8c1
 ---
 
 ## Build Portal

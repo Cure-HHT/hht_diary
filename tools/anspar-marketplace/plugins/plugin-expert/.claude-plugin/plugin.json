@@ -1,7 +1,7 @@
 {
   "name": "plugin-expert",
-  "version": "1.0.0",
-  "description": "Expert guidance and automation for creating Claude Code plugins with best practices",
+  "version": "1.2.0",
+  "description": "Expert guidance and automation for creating Claude Code plugins with best practices, proactive architectural enforcement, and intelligent documentation lookups",
   "author": {
     "name": "Claude Code Plugin Expert Team"
   },
@@ -12,9 +12,16 @@
     "validation",
     "best-practices",
     "code-generation",
+    "architecture",
+    "separation-of-concerns",
+    "documentation",
+    "cache",
     "claude-code"
   ],
   "repository": "https://github.com/claude-code/plugin-expert",
   "homepage": "https://docs.claude.com/en/docs/claude-code/plugins",
-  "license": "MIT"
+  "license": "MIT",
+  "agents": "./agents/PluginExpert.md",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }

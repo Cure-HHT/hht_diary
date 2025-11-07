@@ -116,7 +116,7 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 ---
 
-### REQ-p01000: Event Sourcing Client Interface
+# REQ-p01000: Event Sourcing Client Interface
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -138,11 +138,12 @@ The interface SHALL support:
 - Runtime validation of event data against schema
 - Support for custom event types via extension
 
+*End* *Event Sourcing Client Interface* | **Hash**: c3f9c7d2
 ---
 
 ---
 
-### REQ-p01001: Offline Event Queue with Automatic Synchronization
+# REQ-p01001: Offline Event Queue with Automatic Synchronization
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -166,11 +167,12 @@ Offline queue SHALL ensure:
 - Failed events logged with detailed error messages
 - No data loss even if app force-closed
 
+*End* *Offline Event Queue with Automatic Synchronization* | **Hash**: 9a8601c2
 ---
 
 ---
 
-### REQ-p01002: Optimistic Concurrency Control
+# REQ-p01002: Optimistic Concurrency Control
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -193,11 +195,12 @@ Conflict resolution SHALL support:
 - All conflicting events preserved in event log
 - Audit trail shows conflict resolution actions
 
+*End* *Optimistic Concurrency Control* | **Hash**: 21a2772e
 ---
 
 ---
 
-### REQ-p01003: Immutable Event Storage with Audit Trail
+# REQ-p01003: Immutable Event Storage with Audit Trail
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -219,11 +222,12 @@ Event storage SHALL ensure:
 - Event sequence enforced by database sequence numbers
 - Materialized views always consistent with event log
 
+*End* *Immutable Event Storage with Audit Trail* | **Hash**: 11944e76
 ---
 
 ---
 
-### REQ-p01004: Schema Version Management
+# REQ-p01004: Schema Version Management
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -245,11 +249,12 @@ Schema management SHALL provide:
 - Migration scripts applied automatically when compatible
 - Incompatible versions display clear upgrade instructions
 
+*End* *Schema Version Management* | **Hash**: 569e1667
 ---
 
 ---
 
-### REQ-p01005: Real-time Event Subscription
+# REQ-p01005: Real-time Event Subscription
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -271,11 +276,12 @@ Real-time subscriptions SHALL provide:
 - No events missed during brief disconnections
 - Subscriptions properly disposed to prevent memory leaks
 
+*End* *Real-time Event Subscription* | **Hash**: 8a3eb6c8
 ---
 
 ---
 
-### REQ-p01006: Type-Safe Materialized View Queries
+# REQ-p01006: Type-Safe Materialized View Queries
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -297,11 +303,12 @@ Materialized view queries SHALL support:
 - Pagination for large result sets
 - Configurable caching with automatic invalidation
 
+*End* *Type-Safe Materialized View Queries* | **Hash**: 4a0e2442
 ---
 
 ---
 
-### REQ-p01007: Error Handling and Diagnostics
+# REQ-p01007: Error Handling and Diagnostics
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -323,13 +330,14 @@ Error handling SHALL include:
 - Integration with Firebase Crashlytics, Sentry, or similar
 - Debug mode logs all events and state transitions
 
+*End* *Error Handling and Diagnostics* | **Hash**: fb15ef77
 ---
 
 ## Optional/Advanced Requirements
 
 ---
 
-### REQ-p01008: Event Replay and Time Travel Debugging
+# REQ-p01008: Event Replay and Time Travel Debugging
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
 
@@ -350,11 +358,12 @@ Event replay SHALL provide:
 - UI components for time travel visualization (optional)
 - Event stream export to JSON or CSV
 
+*End* *Event Replay and Time Travel Debugging* | **Hash**: b18fe45c
 ---
 
 ---
 
-### REQ-p01009: Encryption at Rest for Offline Queue
+# REQ-p01009: Encryption at Rest for Offline Queue
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
 
@@ -375,11 +384,12 @@ Encryption SHALL ensure:
 - Minimal performance impact (< 50ms overhead per event)
 - Support for automatic key rotation
 
+*End* *Encryption at Rest for Offline Queue* | **Hash**: b0d10dbb
 ---
 
 ---
 
-### REQ-p01010: Multi-tenancy Support
+# REQ-p01010: Multi-tenancy Support
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
 
@@ -400,11 +410,12 @@ Multi-tenancy SHALL provide:
 - No cross-tenant data leakage
 - Offline queues isolated per tenant
 
+*End* *Multi-tenancy Support* | **Hash**: 08077819
 ---
 
 ---
 
-### REQ-p01011: Event Transformation and Migration
+# REQ-p01011: Event Transformation and Migration
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
 
@@ -424,11 +435,12 @@ Event transformation SHALL support:
 - Old events automatically transformed on read
 - Test framework validates migrations don't lose data
 
+*End* *Event Transformation and Migration* | **Hash**: b1e42685
 ---
 
 ---
 
-### REQ-p01012: Batch Event Operations
+# REQ-p01012: Batch Event Operations
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
 
@@ -448,11 +460,12 @@ Batch operations SHALL ensure:
 - Efficient serialization of batches
 - Proper error handling for partial batch failures
 
+*End* *Batch Event Operations* | **Hash**: ab8bead4
 ---
 
 ---
 
-### REQ-p01013: GraphQL or gRPC Transport Option
+# REQ-p01013: GraphQL or gRPC Transport Option
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
 
@@ -473,13 +486,14 @@ Transport abstraction SHALL provide:
 - GraphQL and gRPC as optional dependencies
 - Auto-negotiation of transport with server
 
+*End* *GraphQL or gRPC Transport Option* | **Hash**: 2aedb731
 ---
 
 ## DevOps and Production Requirements
 
 ---
 
-### REQ-p01014: Observability and Monitoring
+# REQ-p01014: Observability and Monitoring
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -501,11 +515,12 @@ Monitoring SHALL include:
 - Performance profiling identifies bottlenecks
 - Logging configurable from SILENT to VERBOSE
 
+*End* *Observability and Monitoring* | **Hash**: 884b4ace
 ---
 
 ---
 
-### REQ-p01015: Automated Testing Support
+# REQ-p01015: Automated Testing Support
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -526,11 +541,12 @@ Testing utilities SHALL provide:
 - Documentation of testing best practices
 - Example test suites demonstrating usage
 
+*End* *Automated Testing Support* | **Hash**: ca52af16
 ---
 
 ---
 
-### REQ-p01016: Performance Benchmarking
+# REQ-p01016: Performance Benchmarking
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -552,11 +568,12 @@ Performance targets:
 - Documentation of performance characteristics
 - Profiling guides for optimizing specific scenarios
 
+*End* *Performance Benchmarking* | **Hash**: 1b14b575
 ---
 
 ---
 
-### REQ-p01017: Backward Compatibility Guarantees
+# REQ-p01017: Backward Compatibility Guarantees
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -578,11 +595,12 @@ Compatibility SHALL ensure:
 - Comprehensive migration guides for major upgrades
 - Automated compatibility tests
 
+*End* *Backward Compatibility Guarantees* | **Hash**: 0af743bf
 ---
 
 ---
 
-### REQ-p01018: Security Audit and Compliance
+# REQ-p01018: Security Audit and Compliance
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -605,6 +623,7 @@ Security SHALL address:
 - Documentation of security architecture
 - Compliance validation against FDA 21 CFR Part 11
 
+*End* *Security Audit and Compliance* | **Hash**: 6a021418
 ---
 
 ## FDA 21 CFR Part 11 Compliance Considerations
@@ -713,7 +732,7 @@ This module differs by:
 
 ---
 
-### REQ-p01019: Phased Implementation
+# REQ-p01019: Phased Implementation
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -747,6 +766,7 @@ The module SHALL be developed in phases, with each phase delivering incremental 
 - Phase 2 ready for production use
 - Phase 3 adds enterprise features
 
+*End* *Phased Implementation* | **Hash**: d60453bf
 ---
 
 ## Success Metrics

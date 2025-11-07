@@ -25,7 +25,7 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 ## Configuration Architecture
 
-### REQ-d00001: Sponsor-Specific Configuration Loading
+# REQ-d00001: Sponsor-Specific Configuration Loading
 
 **Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
 
@@ -52,6 +52,7 @@ The application SHALL validate all required fields are present at application st
 - Application throws clear error message if configuration missing
 - Configuration is immutable after loading (final fields)
 
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: 5fa9f76f
 ---
 
 ### Implementation Example
@@ -182,7 +183,7 @@ targets:
 
 ## Build Script Validation
 
-### REQ-d00002: Pre-Build Configuration Validation
+# REQ-d00002: Pre-Build Configuration Validation
 
 **Level**: Dev | **Implements**: o00002 | **Status**: Active
 
@@ -207,6 +208,7 @@ The build SHALL fail immediately if validation fails, with clear error messages 
 - Validation completes in <1 second
 - Non-zero exit code on validation failure
 
+*End* *Pre-Build Configuration Validation* | **Hash**: 8c25b197
 ---
 
 ### Validation Script

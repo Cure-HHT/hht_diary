@@ -3,7 +3,7 @@
 
 # Authentication Audit Logging
 
-### REQ-o00006: MFA Configuration for Staff Accounts
+# REQ-o00006: MFA Configuration for Staff Accounts
 
 **Level**: Ops | **Implements**: p00002 | **Status**: Active
 
@@ -26,6 +26,7 @@ MFA configuration SHALL include:
 - MFA bypass not possible through configuration
 - MFA events logged in audit trail
 
+*End* *MFA Configuration for Staff Accounts* | **Hash**: 16f074eb
 ---
 
 ## Why It's Necessary for Compliance

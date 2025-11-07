@@ -27,12 +27,12 @@ SPEC_DIR = REPO_ROOT / "spec"
 INDEX_FILE = SPEC_DIR / "INDEX.md"
 
 # Pattern to match requirement headers in spec files
-# Matches: ### REQ-p00001: Title or #### REQ-o00005: Title
-REQ_HEADER_PATTERN = re.compile(r'^#{2,4}\s+(REQ-[pod]\d{5}):\s*(.+)$', re.MULTILINE)
+# Matches: # REQ-p00001: Title (levels 1-6)
+REQ_HEADER_PATTERN = re.compile(r'^#{1,6}\s+(REQ-[pod]\d{5}):\s*(.+)$', re.MULTILINE)
 
 # Pattern to match INDEX.md rows
-# Matches: | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation |
-INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|$', re.MULTILINE)
+# Matches: | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | c27350bb |
+INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|\s*([a-f0-9]{8}|TBD)\s*\|$', re.MULTILINE)
 
 
 def scan_spec_files() -> Dict[str, Tuple[str, str]]:
@@ -45,7 +45,7 @@ def scan_spec_files() -> Dict[str, Tuple[str, str]]:
     requirements = {}
 
     for spec_file in SPEC_DIR.glob("*.md"):
-        if spec_file.name == "INDEX.md":
+        if spec_file.name in ["INDEX.md", "README.md", "requirements-format.md"]:
             continue
 
         content = spec_file.read_text(encoding='utf-8')

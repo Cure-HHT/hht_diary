@@ -10,11 +10,11 @@ anspar-marketplace/
 │   └── marketplace.json                  # Marketplace configuration
 ├── plugins/
 │   ├── plugin-expert/                    # Plugin development expert
-│   ├── anspar-workflow/                  # Git workflow enforcement
-│   ├── anspar-linear-integration/        # Linear API integration
-│   ├── anspar-spec-compliance/           # Spec directory compliance
-│   ├── anspar-requirement-validation/    # Requirement format validation
-│   └── anspar-traceability-matrix/       # Traceability matrix generation
+│   ├── workflow/                         # Git workflow enforcement
+│   ├── linear-integration/               # Linear API integration
+│   ├── spec-compliance/                  # Spec directory compliance
+│   ├── simple-requirements/              # Requirement format validation
+│   └── traceability-matrix/              # Traceability matrix generation
 └── README.md
 ```
 
@@ -37,7 +37,7 @@ Expert guidance and automation for creating Claude Code plugins with best practi
 
 ---
 
-### anspar-workflow (v1.0.0)
+### workflow (v2.0.0)
 Git workflow enforcement for requirement traceability and ticket lifecycle management.
 
 **Implements**: REQ-o00017 (Version Control Workflow)
@@ -56,7 +56,7 @@ Git workflow enforcement for requirement traceability and ticket lifecycle manag
 
 ---
 
-### anspar-linear-integration (v1.0.0)
+### linear-integration (v1.0.0)
 Linear API integration tools for requirement-ticket traceability and project management automation.
 
 **Implements**: REQ-d00027 (Development Environment and Tooling Setup)
@@ -75,7 +75,7 @@ Linear API integration tools for requirement-ticket traceability and project man
 
 ---
 
-### anspar-spec-compliance (v1.0.0)
+### spec-compliance (v1.0.0)
 Enforces spec/ directory compliance through automated validation and AI-powered analysis.
 
 **Implements**: REQ-o00015 (Documentation Structure Enforcement)
@@ -93,7 +93,7 @@ Enforces spec/ directory compliance through automated validation and AI-powered 
 
 ---
 
-### anspar-requirement-validation (v1.0.0)
+### simple-requirements (v2.0.0)
 Validates requirement format, uniqueness, and links before commits.
 
 **Implements**: REQ-d00014 (Requirement Validation Tooling)
@@ -111,7 +111,7 @@ Validates requirement format, uniqueness, and links before commits.
 
 ---
 
-### anspar-traceability-matrix (v1.0.0)
+### traceability-matrix (v1.0.0)
 Auto-regenerates requirement traceability matrices on spec/ changes.
 
 **Implements**: REQ-d00015 (Traceability Matrix Auto-Generation)

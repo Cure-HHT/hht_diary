@@ -1,28 +1,45 @@
 #!/bin/bash
 # =====================================================
-# Git Hook: post-commit
+# Post-Commit Hook: Plugin Orchestrator
 # =====================================================
 #
-# This hook runs after successful commits.
+# Auto-discovers and executes post-commit hooks from all
+# installed Claude Code plugins in anspar-marketplace.
 #
-# Plugins (in tools/claude-marketplace/):
-# 1. anspar-workflow - Records commit in workflow state history
+# Plugin Discovery:
+#   Scans: tools/anspar-marketplace/plugins/*/hooks/post-commit
+#   Executes: All found hooks in alphabetical order
+#
+# Note: This hook does not use set -e because we don't want
+# failures to break the commit (which is already complete)
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
 #
 # =====================================================
 
-# Note: This hook does not use set -e because we don't want
-# failures to break the commit (which is already complete)
+# Note: No set -e - post-commit hooks should not block
 
 # =====================================================
-# 1. Workflow State Tracking (Plugin)
+# Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-WORKFLOW_POSTCOMMIT_HOOK="tools/claude-marketplace/anspar-workflow/hooks/post-commit"
-if [ -f "$WORKFLOW_POSTCOMMIT_HOOK" ]; then
-    "$WORKFLOW_POSTCOMMIT_HOOK"
+PLUGIN_DIR="tools/anspar-marketplace/plugins"
+
+if [ -d "$PLUGIN_DIR" ]; then
+    # Find all plugin post-commit hooks
+    PLUGIN_HOOKS=$(find "$PLUGIN_DIR" -type f -path "*/hooks/post-commit" 2>/dev/null | sort)
+
+    if [ -n "$PLUGIN_HOOKS" ]; then
+        while IFS= read -r hook; do
+            PLUGIN_NAME=$(echo "$hook" | sed 's|.*/plugins/\([^/]*\)/.*|\1|')
+
+            # Execute the hook if it's executable (but don't fail if it errors)
+            if [ -x "$hook" ]; then
+                "$hook" || true
+            fi
+        done <<< "$PLUGIN_HOOKS"
+    fi
 fi
 
 # =====================================================

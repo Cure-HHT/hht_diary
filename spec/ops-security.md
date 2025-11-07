@@ -122,7 +122,7 @@ SET request.jwt.claims = '{"sub": "admin_1", "role": "ADMIN"}';
 SELECT COUNT(*) FROM record_state; -- Should see all data
 ```
 
-### REQ-o00007: Role-Based Permission Configuration
+# REQ-o00007: Role-Based Permission Configuration
 
 **Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Active
 
@@ -144,6 +144,7 @@ Permission configuration SHALL include:
 - Role assignment changes logged in audit trail
 - Permission matrix matches specification exactly
 
+*End* *Role-Based Permission Configuration* | **Hash**: 9921779b
 ---
 
 ### Role-Based Access Control (RBAC)

@@ -28,7 +28,7 @@ The Clinical Trial Web Portal is a sponsor-specific web application that enables
 
 ## How It Works
 
-### REQ-p00024: Portal User Roles and Permissions
+# REQ-p00024: Portal User Roles and Permissions
 
 **Level**: PRD | **Implements**: p00009 | **Status**: Draft
 
@@ -61,9 +61,10 @@ Role permissions SHALL ensure:
 - All user actions captured in audit trail
 - Users cannot switch roles without Admin intervention
 
+*End* *Portal User Roles and Permissions* | **Hash**: cf1917cb
 ---
 
-### REQ-p00025: Patient Enrollment Workflow
+# REQ-p00025: Patient Enrollment Workflow
 
 **Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
 
@@ -94,9 +95,10 @@ Patient enrollment SHALL ensure:
 - Patient can link mobile app using generated code
 - Linking code association permanent (cannot be changed after linking)
 
+*End* *Patient Enrollment Workflow* | **Hash**: 46eedac4
 ---
 
-### REQ-p00026: Patient Monitoring Dashboard
+# REQ-p00026: Patient Monitoring Dashboard
 
 **Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
 
@@ -135,9 +137,10 @@ Patient monitoring SHALL provide:
 - Dashboard refreshes to show newly enrolled patients
 - Visual indicators distinguishable for accessibility (color + text)
 
+*End* *Patient Monitoring Dashboard* | **Hash**: 256f8363
 ---
 
-### REQ-p00027: Questionnaire Management
+# REQ-p00027: Questionnaire Management
 
 **Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
 
@@ -175,9 +178,10 @@ Questionnaire management SHALL provide:
 - Investigators can only send to patients at assigned sites
 - Auditors can view questionnaire status but cannot send or acknowledge
 
+*End* *Questionnaire Management* | **Hash**: 72da93bc
 ---
 
-### REQ-p00028: Token Revocation and Access Control
+# REQ-p00028: Token Revocation and Access Control
 
 **Level**: PRD | **Implements**: p00009, p00024, p00014 | **Status**: Draft
 
@@ -214,9 +218,10 @@ Token revocation SHALL ensure:
 - Investigator cannot revoke patients at non-assigned sites
 - Auditor cannot revoke any tokens (read-only role)
 
+*End* *Token Revocation and Access Control* | **Hash**: 2edf0218
 ---
 
-### REQ-p00029: Auditor Dashboard and Data Export
+# REQ-p00029: Auditor Dashboard and Data Export
 
 **Level**: PRD | **Implements**: p00009, p00024, p00004 | **Status**: Draft
 
@@ -253,9 +258,10 @@ Auditor capabilities SHALL ensure:
 - Auditor cannot create users or revoke tokens
 - All auditor actions logged in audit trail
 
+*End* *Auditor Dashboard and Data Export* | **Hash**: 5a77e3bb
 ---
 
-### REQ-p00030: Role-Based Visual Indicators
+# REQ-p00030: Role-Based Visual Indicators
 
 **Level**: PRD | **Implements**: p00005, p00024 | **Status**: Active
 
@@ -272,6 +278,7 @@ Role colors SHALL be:
 - Banner visible on all portal pages
 - Colors meet accessibility contrast standards
 
+*End* *Role-Based Visual Indicators* | **Hash**: 59059266
 ---
 
 ## Architecture Overview

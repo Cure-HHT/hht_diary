@@ -1,0 +1,60 @@
+#!/bin/bash
+# =====================================================
+# Pre-Commit Hook: Traceability Matrix Regeneration
+# =====================================================
+#
+# This hook is part of the traceability-matrix plugin.
+# It automatically regenerates traceability matrices when spec/ files change.
+#
+# Plugin: traceability-matrix v1.0.0
+# Location: tools/anspar-marketplace/plugins/traceability-matrix/
+# Implementation: tools/requirements/generate_traceability.py (shared tool)
+#
+# To disable (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Check if any spec/ files are being committed
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
+
+if [ -z "$SPEC_FILES_CHANGED" ]; then
+    # No spec/ files changed, skip regeneration
+    exit 0
+fi
+
+echo -e "${BLUE}📊 Regenerating traceability matrices (spec files changed)...${NC}"
+echo ""
+
+# Check if generation script exists
+GENERATION_SCRIPT="tools/requirements/generate_traceability.py"
+
+if [ ! -f "$GENERATION_SCRIPT" ]; then
+    echo -e "${RED}❌ ERROR: Generation script not found: $GENERATION_SCRIPT${NC}"
+    echo ""
+    echo "The traceability-matrix plugin requires the generation script."
+    echo "See tools/requirements/README.md for setup."
+    exit 1
+fi
+
+# Regenerate both markdown and HTML matrices
+python3 "$GENERATION_SCRIPT" --format markdown
+python3 "$GENERATION_SCRIPT" --format html
+
+# Stage the updated matrices (ignore errors if they're gitignored)
+git add traceability_matrix.md traceability_matrix.html 2>/dev/null || true
+
+echo ""
+echo -e "${GREEN}✅ Traceability matrices regenerated${NC}"
+echo ""
+
+exit 0
