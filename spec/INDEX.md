@@ -26,7 +26,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00010 | prd-clinical-trials.md | FDA 21 CFR Part 11 Compliance | 62500780 |
 | REQ-p00011 | prd-clinical-trials.md | ALCOA+ Data Integrity Principles | 05c9dc79 |
 | REQ-p00012 | prd-clinical-trials.md | Clinical Data Retention Requirements | b3332065 |
-| REQ-p00013 | prd-database.md | Complete Data Change History | 2d24be49 |
+| REQ-p00013 | prd-database.md | Complete Data Change History | ab598860 |
 | REQ-p00014 | prd-security-RBAC.md | Least Privilege Access | 874e9922 |
 | REQ-p00015 | prd-security-RLS.md | Database-Level Access Enforcement | 442efc99 |
 | REQ-p00016 | prd-security-data-classification.md | Separation of Identity and Clinical Data | d1d5e6d7 |
@@ -141,7 +141,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00025 | dev-security-RLS.md | Administrator Break-Glass RLS Implementation | 4a44951a |
 | REQ-d00026 | dev-security-RLS.md | Event Sourcing State Protection RLS Implementation | a665366e |
 | REQ-d00027 | dev-environment.md | Containerized Development Environments | 13d56217 |
-| REQ-d00028 | dev-portal.md | Portal Frontend Framework | 0156e239 |
+| REQ-d00028 | dev-portal.md | Portal Frontend Framework | 38268b2d |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
 | REQ-d00031 | dev-portal.md | Supabase Authentication Integration | 8abcbfac |

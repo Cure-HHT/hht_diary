@@ -33,7 +33,8 @@ FDA compliant record keeping.
 
 # REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active 
+**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active
+
 The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
 
 Change history SHALL include:
@@ -61,7 +62,7 @@ Change history SHALL include:
 
 **Study Configuration**: Trial-specific settings and questionnaires
 
-*end*  *Complete Data Change History*
+*End* *Complete Data Change History* | **Hash**: ab598860
 
 ---
 

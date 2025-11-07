@@ -90,6 +90,7 @@ The portal is a standalone Flutter web application, separate from the patient di
 # REQ-d00028: Portal Frontend Framework
 
 **Level**: Dev | **Implements**: p00009, p00038 | **Status**: Draft
+
 The portal SHALL be implemented using Flutter for web deployment, enabling code reuse with the patient diary mobile app if they are merged in the future.
 
 **Technical Details**:
@@ -138,13 +139,13 @@ dependencies:
 
 **Build Commands**:
 ```bash
-# Development
+## Development
 flutter run -d chrome
 
-# Production build
+## Production build
 flutter build web --release --web-renderer html
 
-# Build output: build/web/
+## Build output: build/web/
 ```
 
 **Acceptance Criteria**:
@@ -155,7 +156,7 @@ flutter build web --release --web-renderer html
 - [ ] URL strategy removes `#` from routes
 - [ ] Works on Chrome, Firefox, Safari, Edge (latest versions)
 
-*end* *Portal Frontend Framework* 
+*End* *Portal Frontend Framework* | **Hash**: 38268b2d
 
 ---
 
