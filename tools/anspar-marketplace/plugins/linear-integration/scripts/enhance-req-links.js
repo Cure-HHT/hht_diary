@@ -221,12 +221,13 @@ async function enhanceAllTickets(options = {}) {
 
     console.log(`\n${'='.repeat(80)}`);
     console.log(`Fetching all tickets with REQ references...`);
+    console.log(`(This may take a few minutes for large teams)`);
     console.log(`${'='.repeat(80)}\n`);
 
     // Fetch all tickets (both active and completed)
-    // Note: Linear API has a max limit of ~50-100 per request
+    // Uses pagination to retrieve all tickets across multiple API calls
     const tickets = await ticketFetcher.getTickets({
-        limit: 100,
+        limit: 100,  // Per page
         includeCompleted: true
     });
 
