@@ -61,7 +61,7 @@ When enabled, workflow protection monitors and alerts on changes to:
 git checkout -b activate-workflow-protection
 
 # Rename CODEOWNERS file to activate it
-git mv .github/CODEOWNERS-PRE-RELEASE .github/CODEOWNERS
+git mv .github/CODEOWNERS-PRE-PRODUCTION .github/CODEOWNERS
 
 # Commit and push
 git add .github/
@@ -110,7 +110,7 @@ To also remove review requirements:
 git checkout -b deactivate-workflow-protection
 
 # Rename CODEOWNERS file to deactivate it
-git mv .github/CODEOWNERS .github/CODEOWNERS-PRE-RELEASE
+git mv .github/CODEOWNERS .github/CODEOWNERS-PRE-PRODUCTION
 
 # Commit and push
 git add .github/
@@ -133,7 +133,7 @@ Recommended: Limit to repository admins only via GitHub role settings.
 
 ### Who Can Modify Protected Files?
 
-**Current State**: CODEOWNERS inactive (renamed to CODEOWNERS-PRE-RELEASE)
+**Current State**: CODEOWNERS inactive (renamed to CODEOWNERS-PRE-PRODUCTION)
 - No review requirements currently enforced
 - Anyone with write access can modify `.github/workflows/`
 - Anyone with write access can modify security files
@@ -150,7 +150,7 @@ Workflow protection is one layer in a multi-layer security model:
 
 1. **CODEOWNERS** (When activated by renaming file)
    - GitHub-enforced reviews when file named exactly "CODEOWNERS"
-   - Currently inactive (file named CODEOWNERS-PRE-RELEASE)
+   - Currently inactive (file named CODEOWNERS-PRE-PRODUCTION)
 
 2. **Workflow Protection** (When enabled)
    - Automated detection and alerting
@@ -226,7 +226,7 @@ This condition:
 ### Files Modified
 
 - `.github/workflows/alert-workflow-changes.yml`: Added feature flag condition
-- `.github/CODEOWNERS-PRE-RELEASE`: Inactive (requires rename to activate)
+- `.github/CODEOWNERS-PRE-PRODUCTION`: Inactive (requires rename to activate)
 - `.github/BOT_SECURITY.md`: Updated with protection toggle documentation
 - `.github/WORKFLOW_PROTECTION.md`: Complete documentation on activation
 
