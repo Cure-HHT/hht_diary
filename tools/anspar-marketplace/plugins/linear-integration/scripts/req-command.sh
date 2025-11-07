@@ -24,7 +24,7 @@ if [ -z "$REPO_ROOT" ]; then
     REPO_ROOT="$(cd "$PLUGIN_DIR/../../../.." && pwd)"
 fi
 SPEC_DIR="$REPO_ROOT/spec"
-TOOLS_DIR="$REPO_ROOT/tools/requirements"
+REQ_TOOLS_DIR="$REPO_ROOT/tools/requirements"
 
 # =====================================================
 # Parse Arguments
@@ -206,10 +206,10 @@ if [ "$COMMAND" = "validate" ]; then
     echo "🔍 Validating requirements..."
     echo
 
-    if [ -f "$TOOLS_DIR/validate_requirements.py" ]; then
-        python3 "$TOOLS_DIR/validate_requirements.py"
+    if [ -f "$REQ_TOOLS_DIR/validate_requirements.py" ]; then
+        python3 "$REQ_TOOLS_DIR/validate_requirements.py"
     else
-        echo "❌ Validation script not found: $TOOLS_DIR/validate_requirements.py"
+        echo "❌ Validation script not found: $REQ_TOOLS_DIR/validate_requirements.py"
         exit 1
     fi
 
