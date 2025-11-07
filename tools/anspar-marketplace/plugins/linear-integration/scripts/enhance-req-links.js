@@ -224,8 +224,9 @@ async function enhanceAllTickets(options = {}) {
     console.log(`${'='.repeat(80)}\n`);
 
     // Fetch all tickets (both active and completed)
-    const tickets = await ticketFetcher.getAssignedTickets({
-        limit: 1000,
+    // Note: Linear API has a max limit of ~50-100 per request
+    const tickets = await ticketFetcher.getTickets({
+        limit: 100,
         includeCompleted: true
     });
 
