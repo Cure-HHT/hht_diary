@@ -16,40 +16,24 @@
 
 This document describes the diary-specific implementation and refinement of the event-sourcing system.
 
-The requirements in this document refine the generic event-sourcing patterns for clinical diary applications:
-- **REQ-p00003** refines REQ-p01010 (multi-tenancy) for sponsor isolation
-- **REQ-p00004** refines REQ-p01003 (immutable events) with FDA 21 CFR Part 11 compliance
-- **REQ-p00013** refines REQ-p01003 (immutable events) for clinical data change history
-
 ---
 
 ## Executive Summary
 
-The database stores patient diary entries with complete history of all changes for regulatory compliance. Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
-
-**Key Features**:
-- Complete audit trail of every change
-- Multiple clinical sites supported
-- Works with offline mobile app
-- Automatic conflict resolution
-- FDA compliant record keeping
+The database stores patient diary entries with complete history of all changes for regulatory compliance. 
+Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
+FDA compliant record keeping.
 
 ---
 
 ## What Data Is Stored
 
-### Patient Diary Entries
-
-**Clinical Observations**:
-- Daily symptom reports
-- Activity logs
+- Daily nosebleed reports
 - Questionnaire responses
-
-**Why This Matters**: This data forms the evidence base for clinical trial results. Accurate capture and preservation is critical for drug approval.
 
 # REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active | **Hash**: 2d24be49
+**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active 
 The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
 
 Change history SHALL include:
@@ -76,6 +60,8 @@ Change history SHALL include:
 **User Roles**: Which staff members can access which patient data
 
 **Study Configuration**: Trial-specific settings and questionnaires
+
+*end*  *Complete Data Change History*
 
 ---
 

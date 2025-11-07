@@ -111,7 +111,7 @@ class RequirementValidator:
     def _parse_requirements(self):
         """Parse all requirements from spec files"""
         for file_path in self.spec_dir.glob("*.md"):
-            if file_path.name in ['INDEX.md', 'README.md']:
+            if file_path.name in ['INDEX.md', 'README.md', 'requirements-format.md']:
                 continue
 
             content = file_path.read_text(encoding='utf-8')
