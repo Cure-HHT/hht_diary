@@ -127,6 +127,9 @@ class ReqLocator {
             // Generate GitHub anchor from heading
             const anchor = this.generateGitHubAnchor(headingText);
 
+            // Extract title from heading
+            const title = this.extractTitle(headingText);
+
             if (lines.length > 1) {
                 console.warn(`⚠️  Multiple matches for REQ-${normalizedId}, using first: ${normalizedPath}:${lineNumber}`);
             }
@@ -135,6 +138,7 @@ class ReqLocator {
                 file: normalizedPath,
                 lineNumber: lineNumber,
                 heading: headingText,
+                title: title,
                 anchor: anchor
             };
 
@@ -182,21 +186,41 @@ class ReqLocator {
     }
 
     /**
+     * Extract title from requirement heading
+     * @param {string} heading - e.g., "# REQ-o00009: Portal Deployment Per-Sponsor"
+     * @returns {string} Title - e.g., "Portal Deployment Per-Sponsor"
+     */
+    extractTitle(heading) {
+        // Extract everything after the colon and space
+        const match = heading.match(/:\s*(.+)$/);
+        return match ? match[1].trim() : '';
+    }
+
+    /**
      * Format REQ link for Linear ticket (markdown)
      * @param {string} reqId - e.g., "d00014" or "REQ-d00014"
      * @param {string} file - e.g., "spec/dev-foo.md"
      * @param {string} anchor - GitHub heading anchor
+     * @param {string} title - Requirement title (optional)
      * @returns {string} Formatted markdown link
      *
      * Example output:
-     *   REQ-o00009 - [spec/ops-deployment.md](https://github.com/.../spec/ops-deployment.md#req-o00009-portal-deployment-per-sponsor)
+     *   Requirement: REQ-d00027 | Containerized Development Environments | [dev-environment.md](https://github.com/.../spec/dev-environment.md#req-d00027-containerized-development-environments)
      */
-    formatReqLink(reqId, file, anchor) {
+    formatReqLink(reqId, file, anchor, title = '') {
         const normalizedId = this.normalizeReqId(reqId);
         const url = this.buildGitHubUrl(file, anchor);
 
-        // Format: REQ-d00014 - [spec/file.md](url)
-        return `REQ-${normalizedId} - [${file}](${url})`;
+        // Extract just the filename from the path (e.g., "dev-environment.md" from "spec/dev-environment.md")
+        const basename = file.split('/').pop();
+
+        // Format: Requirement: REQ-d00027 | Title | [filename](url)
+        if (title) {
+            return `Requirement: REQ-${normalizedId} | ${title} | [${basename}](${url})`;
+        } else {
+            // Fallback if no title provided
+            return `Requirement: REQ-${normalizedId} | [${basename}](${url})`;
+        }
     }
 
     /**
