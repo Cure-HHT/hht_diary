@@ -398,21 +398,80 @@ cd scripts
 
 ### Ticket Management
 
+#### update-ticket.js
+
+General-purpose ticket updater for descriptions, checklists, and requirements.
+
+```bash
+# Update ticket description
+node scripts/update-ticket.js \
+  --ticketId=CUR-123 \
+  --description="New description text"
+
+# Add checklist items
+node scripts/update-ticket.js \
+  --ticketId=CUR-123 \
+  --addChecklist="- [ ] Task 1\n- [ ] Task 2"
+
+# Add requirement reference
+node scripts/update-ticket.js \
+  --ticketId=CUR-123 \
+  --addRequirement=REQ-d00042
+```
+
+**What it does**:
+- Updates any ticket field (description, checklist, requirements)
+- Can combine multiple updates in one call
+- Preserves existing content when adding new items
+- Uses LINEAR_API_TOKEN environment variable
+
 #### update-ticket-with-requirement.js
 
-Link an existing Linear ticket to a requirement.
+Link an existing Linear ticket to a requirement with formatted GitHub link.
 
 ```bash
 node scripts/update-ticket-with-requirement.js \
   --token=$LINEAR_API_TOKEN \
-  --ticket-id=TICKET_UUID \
-  --req-id=p00042
+  --ticket-id=CUR-123 \
+  --req-id=d00042
 ```
 
 **What it does**:
-- Updates ticket description to reference requirement
-- Prepends `**Requirement**: REQ-<id>` to description
+- Looks up requirement in spec/ files
+- Updates ticket description with formatted requirement link
+- Format: `Requirement: REQ-xxx | Title | [filename](github-url)`
 - Preserves existing ticket content
+
+#### enhance-req-links.js
+
+Bulk update REQ references in Linear tickets to properly formatted GitHub links.
+
+```bash
+# Update a specific ticket
+node scripts/enhance-req-links.js --ticket-id=CUR-123
+
+# Update all tickets with REQ references
+node scripts/enhance-req-links.js --all
+
+# Dry run to preview changes
+node scripts/enhance-req-links.js --all --dry-run
+
+# Force update even if links already exist
+node scripts/enhance-req-links.js --ticket-id=CUR-123 --force
+```
+
+**What it does**:
+- Finds all plain REQ-xxx references in ticket descriptions
+- Looks up requirements in spec/ files to get title and location
+- Replaces with formatted links: `Requirement: REQ-xxx | Title | [filename](github-url)`
+- Handles multiple REQs per ticket (creates separate lines for each)
+- Skips tickets that already have properly formatted links (unless --force)
+- Uses LINEAR_API_TOKEN environment variable
+
+**Use cases**:
+- Fix malformed REQ links after format changes
+- Bulk update after requirement reorganization
+- Add titles and GitHub links to existing plain REQ references
 
 #### add-subsystem-checklists.js
 
