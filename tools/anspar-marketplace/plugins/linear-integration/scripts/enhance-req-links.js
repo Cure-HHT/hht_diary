@@ -158,9 +158,10 @@ async function enhanceTicket(ticketId, options = {}) {
         }
 
         console.log(`    ✓ Found at ${location.file}:${location.lineNumber}`);
+        console.log(`    📌 Anchor: #${location.anchor}`);
 
         // Build enhanced link
-        const enhancedLink = reqLocator.formatReqLink(reqId, location.file, location.lineNumber);
+        const enhancedLink = reqLocator.formatReqLink(reqId, location.file, location.anchor);
 
         // Replace in description (case-insensitive, whole word match)
         const pattern = new RegExp(`\\b${reqRef}\\b`, 'gi');

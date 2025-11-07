@@ -56,7 +56,7 @@ class ReqLocator {
     /**
      * Find where a requirement is defined in spec/ files
      * @param {string} reqId - e.g., "d00014" or "REQ-d00014"
-     * @returns {Promise<{file: string, lineNumber: number} | null>}
+     * @returns {Promise<{file: string, lineNumber: number, heading: string, anchor: string} | null>}
      */
     async findReqLocation(reqId) {
         const normalizedId = this.normalizeReqId(reqId);
@@ -78,7 +78,7 @@ class ReqLocator {
     /**
      * Search for REQ using grep
      * @param {string} normalizedId - e.g., "d00014"
-     * @returns {Promise<{file: string, lineNumber: number} | null>}
+     * @returns {Promise<{file: string, lineNumber: number, heading: string, anchor: string} | null>}
      * @private
      */
     async searchWithGrep(normalizedId) {
@@ -108,7 +108,7 @@ class ReqLocator {
 
             // Use first match (if multiple)
             const firstMatch = lines[0];
-            const match = firstMatch.match(/^(.+?):(\d+):/);
+            const match = firstMatch.match(/^(.+?):(\d+):(.+)$/);
 
             if (!match) {
                 return null;
@@ -116,6 +116,7 @@ class ReqLocator {
 
             const absolutePath = match[1];
             const lineNumber = parseInt(match[2], 10);
+            const headingText = match[3].trim();
 
             // Convert absolute path to repo-relative path
             const relativePath = path.relative(this.repoRoot, absolutePath);
@@ -123,13 +124,18 @@ class ReqLocator {
             // Normalize path separators to forward slashes (for URLs)
             const normalizedPath = relativePath.replace(/\\/g, '/');
 
+            // Generate GitHub anchor from heading
+            const anchor = this.generateGitHubAnchor(headingText);
+
             if (lines.length > 1) {
                 console.warn(`⚠️  Multiple matches for REQ-${normalizedId}, using first: ${normalizedPath}:${lineNumber}`);
             }
 
             return {
                 file: normalizedPath,
-                lineNumber: lineNumber
+                lineNumber: lineNumber,
+                heading: headingText,
+                anchor: anchor
             };
 
         } catch (error) {
@@ -144,29 +150,50 @@ class ReqLocator {
     }
 
     /**
-     * Build GitHub URL for a spec file location
+     * Generate GitHub anchor from markdown heading
+     * GitHub converts headings to anchors by:
+     * - Removing the leading # and whitespace
+     * - Converting to lowercase
+     * - Replacing spaces with hyphens
+     * - Removing special characters (except hyphens)
+     * @param {string} heading - e.g., "# REQ-o00009: Portal Deployment Per-Sponsor"
+     * @returns {string} Anchor - e.g., "req-o00009-portal-deployment-per-sponsor"
+     */
+    generateGitHubAnchor(heading) {
+        return heading
+            .replace(/^#+\s*/, '')           // Remove leading # and spaces
+            .toLowerCase()                    // Convert to lowercase
+            .replace(/[:\(\)\[\]\{\}]/g, '') // Remove special chars: : ( ) [ ] { }
+            .replace(/\s+/g, '-')            // Replace spaces with hyphens
+            .replace(/[^a-z0-9\-]/g, '')     // Remove anything not alphanumeric or hyphen
+            .replace(/-+/g, '-')             // Collapse multiple hyphens
+            .replace(/^-|-$/g, '');          // Trim leading/trailing hyphens
+    }
+
+    /**
+     * Build GitHub URL for a spec file location using anchor
      * @param {string} file - Relative path from repo root (e.g., "spec/dev-foo.md")
-     * @param {number} lineNumber - Line number
+     * @param {string} anchor - GitHub heading anchor (e.g., "req-o00009-portal-deployment-per-sponsor")
      * @returns {string} Full GitHub URL
      */
-    buildGitHubUrl(file, lineNumber) {
+    buildGitHubUrl(file, anchor) {
         const baseUrl = `https://github.com/${this.githubOwner}/${this.githubRepo}/blob/${this.githubBranch}`;
-        return `${baseUrl}/${file}#L${lineNumber}`;
+        return `${baseUrl}/${file}#${anchor}`;
     }
 
     /**
      * Format REQ link for Linear ticket (markdown)
      * @param {string} reqId - e.g., "d00014" or "REQ-d00014"
      * @param {string} file - e.g., "spec/dev-foo.md"
-     * @param {number} lineNumber - Line number
+     * @param {string} anchor - GitHub heading anchor
      * @returns {string} Formatted markdown link
      *
      * Example output:
-     *   REQ-d00014 - [spec/dev-requirements-management.md](https://github.com/.../spec/dev-requirements-management.md#L29)
+     *   REQ-o00009 - [spec/ops-deployment.md](https://github.com/.../spec/ops-deployment.md#req-o00009-portal-deployment-per-sponsor)
      */
-    formatReqLink(reqId, file, lineNumber) {
+    formatReqLink(reqId, file, anchor) {
         const normalizedId = this.normalizeReqId(reqId);
-        const url = this.buildGitHubUrl(file, lineNumber);
+        const url = this.buildGitHubUrl(file, anchor);
 
         // Format: REQ-d00014 - [spec/file.md](url)
         return `REQ-${normalizedId} - [${file}](${url})`;

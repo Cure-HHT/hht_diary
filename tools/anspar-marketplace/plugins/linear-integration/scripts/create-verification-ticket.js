@@ -144,7 +144,7 @@ async function buildTicketDescription(reqData) {
     // Find requirement location and build GitHub link
     const reqLocation = await reqLocator.findReqLocation(reqData.req_id);
     const reqLink = reqLocation
-        ? reqLocator.formatReqLink(reqData.req_id, reqLocation.file, reqLocation.lineNumber)
+        ? reqLocator.formatReqLink(reqData.req_id, reqLocation.file, reqLocation.anchor)
         : `REQ-${reqData.req_id}`;
 
     lines.push('### Changed Requirement');
