@@ -56,16 +56,47 @@ function sleep(ms) {
 }
 
 /**
- * Check if a REQ reference already has a link in the text
+ * Check if a REQ reference already has a properly formatted link in the text
  * @param {string} text - Text to check
  * @param {string} reqRef - REQ reference (e.g., "REQ-d00014")
- * @returns {boolean} True if link already exists
+ * @returns {boolean} True if properly formatted link already exists
  */
 function hasExistingLink(text, reqRef) {
-    // Pattern: REQ-d00014 - [spec/file.md](url)
-    // Matches: REQ-xxx - [anything](anything)
-    const pattern = new RegExp(`${reqRef}\\s*-\\s*\\[.+?\\]\\(`, 'i');
+    // New format: Requirement: REQ-xxx | Title | [file](url)
+    // Only skip if it matches the new format exactly
+    const pattern = new RegExp(`Requirement:\\s*${reqRef}\\s*\\|.+?\\|\\s*\\[.+?\\]\\(`, 'i');
     return pattern.test(text);
+}
+
+/**
+ * Find and extract the old requirement section to replace
+ * @param {string} text - Text to search in
+ * @param {string} reqRef - REQ reference (e.g., "REQ-d00014")
+ * @returns {string|null} The old requirement section to replace, or null if not found
+ */
+function findOldRequirementSection(text, reqRef) {
+    // Look for lines containing "Requirement" and the specific REQ reference
+    // Split into lines and find the line containing both
+    const lines = text.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Check if this line contains both "Requirement" and the REQ reference
+        if (line.match(/\*?\*?Requirement\*?\*?:/i) && line.match(new RegExp(reqRef, 'i'))) {
+            // Return the entire line (this will be the old requirement section)
+            return line;
+        }
+    }
+
+    // If not found in a Requirement line, look for old format: REQ-xxx - [file](url)
+    const oldFormatPattern = new RegExp(`${reqRef}\\s*-\\s*\\[[^\\]]+\\]\\([^)]+\\)`, 'i');
+    const match = text.match(oldFormatPattern);
+    if (match) {
+        return match[0];
+    }
+
+    return null;
 }
 
 /**
@@ -125,21 +156,21 @@ async function enhanceTicket(ticketId, options = {}) {
     const uniqueReqs = [...new Set(reqRefs.map(r => r.toUpperCase()))];
     console.log(`Found ${uniqueReqs.length} unique REQ reference(s): ${uniqueReqs.join(', ')}\n`);
 
-    // 3. Process each REQ
-    let newDescription = ticket.description;
+    // 3. Process each REQ and build new requirement lines
+    const enhancedRequirements = [];
     let enhancedCount = 0;
     const results = [];
 
     for (const reqRef of uniqueReqs) {
         console.log(`  ${reqRef}:`);
 
-        // Check if already has link
-        if (!force && hasExistingLink(newDescription, reqRef)) {
-            console.log(`    ✓ Already has link, skipping`);
+        // Check if already has properly formatted link
+        if (!force && hasExistingLink(ticket.description, reqRef)) {
+            console.log(`    ✓ Already has proper format, skipping`);
             results.push({
                 reqRef,
                 status: 'skipped',
-                reason: 'Already has link'
+                reason: 'Already properly formatted'
             });
             continue;
         }
@@ -158,14 +189,12 @@ async function enhanceTicket(ticketId, options = {}) {
         }
 
         console.log(`    ✓ Found at ${location.file}:${location.lineNumber}`);
+        console.log(`    📌 Title: ${location.title}`);
         console.log(`    📌 Anchor: #${location.anchor}`);
 
         // Build enhanced link
-        const enhancedLink = reqLocator.formatReqLink(reqId, location.file, location.anchor);
-
-        // Replace in description (case-insensitive, whole word match)
-        const pattern = new RegExp(`\\b${reqRef}\\b`, 'gi');
-        newDescription = newDescription.replace(pattern, enhancedLink);
+        const enhancedLink = reqLocator.formatReqLink(reqId, location.file, location.anchor, location.title);
+        enhancedRequirements.push(enhancedLink);
 
         enhancedCount++;
         results.push({
@@ -173,6 +202,32 @@ async function enhanceTicket(ticketId, options = {}) {
             status: 'enhanced',
             location: location
         });
+    }
+
+    // 4. Build new description
+    let newDescription = ticket.description;
+
+    if (enhancedCount > 0) {
+        // Remove all old Requirement lines (both properly formatted and malformed)
+        const lines = newDescription.split('\n');
+        const cleanedLines = [];
+
+        for (const line of lines) {
+            // Skip lines that contain "Requirement:" or "**Requirement**:"
+            if (line.match(/\*?\*?Requirement\*?\*?:/i)) {
+                console.log(`    🗑️  Removing old requirement line`);
+                continue;
+            }
+            cleanedLines.push(line);
+        }
+
+        // Trim leading empty lines
+        while (cleanedLines.length > 0 && cleanedLines[0].trim() === '') {
+            cleanedLines.shift();
+        }
+
+        // Prepend new requirement lines
+        newDescription = enhancedRequirements.join('\n\n') + '\n\n' + cleanedLines.join('\n');
     }
 
     // 4. Update ticket if changed
