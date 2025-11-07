@@ -17,7 +17,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |
-| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | 914a0234 |
+| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | 0c0b0807 |
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control | 692bc7bd |
 | REQ-p00006 | prd-app.md | Offline-First Data Entry | c5ff6bf6 |
 | REQ-p00007 | prd-app.md | Automatic Sponsor Configuration | b90eb7ab |

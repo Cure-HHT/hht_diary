@@ -174,13 +174,13 @@ Version control workflow SHALL ensure:
 git checkout -b feature/multi-language-support
 
 # 2. Create PRD requirement in spec/prd-app.md
-# REQ-p00022: Multi-Language Support
+# Example: REQ-p00022: Multi-Language Support
 
 # 3. Create OPS requirement in spec/ops-deployment.md
-# REQ-o00018: Language Configuration Management
+# Example: REQ-o00018: Language Configuration Management
 
 # 4. Create DEV requirement in spec/dev-app.md
-# REQ-d00019: i18n Implementation
+# Example: REQ-d00019: i18n Implementation
 
 # 5. Validate requirements
 python3 tools/requirements/validate_requirements.py

@@ -95,7 +95,8 @@ Database isolation SHALL ensure:
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: 914a0234
+**Level**: PRD | **Implements**: - | **Status**: Active
+
 The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.
 
 Event storage SHALL ensure:
@@ -220,6 +221,8 @@ Event Sourcing is the architectural approach used to store clinical trial data. 
 1. Query the current view (fast)
 2. See latest values
 3. Can click to see full history if needed
+
+*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 0c0b0807
 
 ---
 
