@@ -434,6 +434,106 @@ class TicketFetcher {
     }
 
     /**
+     * Get tickets with flexible filtering (not limited to assigned tickets)
+     * @param {Object} options
+     * @param {number} options.limit - Maximum number of tickets to return (default: 100)
+     * @param {string} options.project - Project name or ID to filter by
+     * @param {Array<string>} options.status - Status types to include (e.g., ['backlog', 'unstarted', 'started'])
+     * @param {boolean} options.includeCompleted - Include completed/canceled tickets (default: false)
+     * @returns {Promise<Array>} Array of ticket objects
+     */
+    async getTickets(options = {}) {
+        const {
+            limit = 100,
+            project = null,
+            status = null,
+            includeCompleted = false
+        } = options;
+
+        const teamId = await teamResolver.getTeamId();
+
+        // Build filter object
+        const filter = {};
+
+        // Status filter
+        if (status && status.length > 0) {
+            // Map friendly names to Linear state types
+            const stateTypeMap = {
+                'backlog': 'backlog',
+                'todo': 'unstarted',
+                'unstarted': 'unstarted',
+                'in-progress': 'started',
+                'in progress': 'started',
+                'started': 'started',
+                'done': 'completed',
+                'completed': 'completed',
+                'canceled': 'canceled',
+                'cancelled': 'canceled'
+            };
+
+            const stateTypes = status.map(s => stateTypeMap[s.toLowerCase()] || s);
+            filter.state = { type: { in: stateTypes } };
+        } else if (!includeCompleted) {
+            // Default: exclude completed/canceled
+            filter.state = { type: { nin: ['completed', 'canceled'] } };
+        }
+
+        // Project filter
+        if (project) {
+            // Try to use project as ID first, or name
+            // Linear accepts both in the filter
+            filter.project = { name: { eq: project } };
+        }
+
+        const query = `
+            query GetTickets($teamId: String!, $filter: IssueFilter!, $first: Int!) {
+                team(id: $teamId) {
+                    issues(filter: $filter, first: $first, orderBy: updatedAt) {
+                        nodes {
+                            id
+                            identifier
+                            title
+                            description
+                            url
+                            state {
+                                name
+                                type
+                            }
+                            priority
+                            priorityLabel
+                            labels {
+                                nodes {
+                                    id
+                                    name
+                                }
+                            }
+                            assignee {
+                                name
+                                email
+                            }
+                            project {
+                                id
+                                name
+                            }
+                            createdAt
+                            updatedAt
+                            completedAt
+                        }
+                    }
+                }
+            }
+        `;
+
+        const data = await graphql.execute(query, {
+            teamId,
+            filter,
+            first: limit
+        });
+
+        return data.team?.issues?.nodes || [];
+    }
+
+    /**
      * Get ticket statistics for the current team
      * @returns {Promise<Object>} Statistics object
      */

@@ -22,6 +22,7 @@
 
 const fs = require('fs');
 const ticketCreator = require('./lib/ticket-creator');
+const reqLocator = require('./lib/req-locator');
 
 /**
  * Parse command line arguments
@@ -132,7 +133,7 @@ function buildTicketTitle(reqData) {
 /**
  * Build ticket description from requirement data
  */
-function buildTicketDescription(reqData) {
+async function buildTicketDescription(reqData) {
     const lines = [];
 
     lines.push('## Requirement Change Detected');
@@ -140,8 +141,14 @@ function buildTicketDescription(reqData) {
     lines.push('A requirement has been modified and needs verification that implementations still satisfy it.');
     lines.push('');
 
+    // Find requirement location and build GitHub link
+    const reqLocation = await reqLocator.findReqLocation(reqData.req_id);
+    const reqLink = reqLocation
+        ? reqLocator.formatReqLink(reqData.req_id, reqLocation.file, reqLocation.anchor)
+        : `REQ-${reqData.req_id}`;
+
     lines.push('### Changed Requirement');
-    lines.push(`- **ID**: REQ-${reqData.req_id}`);
+    lines.push(`- **ID**: ${reqLink}`);
     lines.push(`- **Title**: ${reqData.title}`);
     lines.push(`- **File**: \`spec/${reqData.file}\``);
     lines.push(`- **Hash Change**: \`${reqData.old_hash}\` → \`${reqData.new_hash}\``);
@@ -249,7 +256,7 @@ async function main() {
 
         // Build ticket data
         const title = buildTicketTitle(reqData);
-        const description = buildTicketDescription(reqData);
+        const description = await buildTicketDescription(reqData);
 
         // Create the ticket
         const ticket = await ticketCreator.createTicket({
