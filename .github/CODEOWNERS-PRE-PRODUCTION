@@ -1,0 +1,27 @@
+# CODEOWNERS (PRE-PRODUCTION) - Require reviews for sensitive files
+#
+# ⚠️ THIS FILE IS CURRENTLY INACTIVE (renamed to CODEOWNERS-PRE-PRODUCTION)
+#
+# To activate workflow protection:
+# 1. Set repository variable: WORKFLOW_PROTECTION_ENABLED=true
+# 2. Rename this file: git mv .github/CODEOWNERS-PRE-PRODUCTION .github/CODEOWNERS
+# 3. Commit and merge to main
+#
+# When active (renamed to CODEOWNERS):
+# - GitHub enforces these review requirements automatically
+# - Works in conjunction with WORKFLOW_PROTECTION_ENABLED variable
+# - Automated alerts (workflow) controlled by variable
+# - Code review requirements (CODEOWNERS) controlled by filename
+
+# Workflows that use bypass tokens require review
+/.github/workflows/ @Cure-HHT/admins
+
+# Security policy requires review
+/.github/BOT_SECURITY.md @Cure-HHT/admins
+
+# Branch protection and repository rules
+/.github/rulesets/ @Cure-HHT/admins
+
+# Workflow protection configuration (admin-only)
+/.github/WORKFLOW_PROTECTION.md @Cure-HHT/admins
+/.github/CODEOWNERS-PRE-PRODUCTION @Cure-HHT/admins

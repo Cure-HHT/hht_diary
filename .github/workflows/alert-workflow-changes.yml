@@ -1,0 +1,128 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00053: Branch Protection Enforcement
+#   REQ-o00013: Requirements Format Validation
+#   REQ-p00020: System Validation and Traceability
+
+name: Alert on Workflow Changes
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/scripts/**'
+      - '.github/CODEOWNERS'
+      - '.github/BOT_SECURITY.md'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - '.github/scripts/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  alert-workflow-changes:
+    name: Alert on Sensitive File Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only run if workflow protection is enabled (admin-controlled)
+    if: vars.WORKFLOW_PROTECTION_ENABLED == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for bypass token usage in workflows
+        id: check_bypass
+        run: |
+          echo "::group::Checking for BOT_BYPASS_MAIN_PROTECTION usage"
+
+          # Get list of changed workflow files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^\.github/workflows/.*\.yml$' || true)
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^\.github/workflows/.*\.yml$' || true)
+          fi
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No workflow files changed"
+            echo "bypass_used=false" >> $GITHUB_OUTPUT
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          echo "Changed workflow files:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          # Check if any changed workflows use the bypass token
+          BYPASS_USAGE=""
+          for file in $CHANGED_FILES; do
+            if grep -q "BOT_BYPASS_MAIN_PROTECTION" "$file"; then
+              BYPASS_USAGE="$BYPASS_USAGE\n- $file"
+            fi
+          done
+
+          if [ -n "$BYPASS_USAGE" ]; then
+            echo "bypass_used=true" >> $GITHUB_OUTPUT
+            echo "bypass_files<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$BYPASS_USAGE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+
+            echo "::warning::⚠️ BOT_BYPASS_MAIN_PROTECTION token used in changed workflows"
+            echo -e "Files using bypass token:$BYPASS_USAGE"
+          else
+            echo "bypass_used=false" >> $GITHUB_OUTPUT
+            echo "✅ No usage of BOT_BYPASS_MAIN_PROTECTION in changed workflows"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Comment on PR if bypass token used
+        if: github.event_name == 'pull_request' && steps.check_bypass.outputs.bypass_used == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## ⚠️ Security Alert: Bypass Token Usage Detected
+
+            This PR modifies workflows that use \`BOT_BYPASS_MAIN_PROTECTION\`, which allows bypassing branch protection.
+
+            **Files using bypass token:**
+            ${{ steps.check_bypass.outputs.bypass_files }}
+
+            **Security Checklist:**
+            - [ ] Workflow only modifies authorized files
+            - [ ] Workflow includes pre/post validation checks
+            - [ ] \`.github/workflows/validate-bot-commits.yml\` updated if needed
+            - [ ] \`.github/BOT_SECURITY.md\` updated to document the new usage
+            - [ ] Security team has reviewed and approved
+
+            **⚠️ Unauthorized use of this token will be detected and blocked by the \`validate-bot-commits\` workflow.**
+
+            See \`.github/BOT_SECURITY.md\` for security policy.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Summary
+        run: |
+          echo "## Workflow Security Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check_bypass.outputs.bypass_used }}" = "true" ]; then
+            echo "⚠️ **WARNING**: Bypass token usage detected in changed workflows" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Requires security review before merge**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No bypass token usage in changed workflows" >> $GITHUB_STEP_SUMMARY
+          fi

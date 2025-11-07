@@ -1071,3 +1071,82 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 For issues, questions, or contributions:
 - **Repository**: https://github.com/anspar/diary
 - **Plugin Path**: `tools/anspar-marketplace/plugins/workflow`
+
+## Commands
+
+### `/start_phase <phase>`
+
+**Description**: Activate project phase protections with interactive confirmation.
+
+**Usage**:
+```
+/start_phase production
+```
+
+**Arguments**:
+- `<phase>`: Project phase to activate (currently supported: `production`)
+
+**What it does**:
+
+1. **Displays prominent warning** about what will change
+2. **Asks for confirmation** using interactive prompt
+3. **If confirmed**, executes phase activation:
+   - Sets `WORKFLOW_PROTECTION_ENABLED=true` (repository variable)
+   - Renames `CODEOWNERS-PRE-PRODUCTION` → `CODEOWNERS` (via PR)
+   - Creates pull request for review
+
+**Production Phase Effects**:
+- Enables automated workflow change detection
+- Requires admin approval for `.github/workflows/` changes
+- Posts security checklists on PRs modifying workflows
+- Enforces CODEOWNERS review requirements
+
+**Safety Features**:
+- ⚠️ Prominent warnings before execution
+- 🛑 Explicit user confirmation required
+- 📋 Creates PR for review (not direct merge)
+- 📖 Provides rollback documentation
+
+**Example Interaction**:
+```
+You: /start_phase production
+
+
+## Commands
+
+### `/start_phase <phase>`
+
+**Description**: Activate project phase protections with interactive confirmation.
+
+**Usage**:
+```
+/start_phase production
+```
+
+**Arguments**:
+- `<phase>`: Project phase to activate (currently supported: `production`)
+
+**What it does**:
+
+1. **Displays prominent warning** about what will change
+2. **Asks for confirmation** using interactive prompt
+3. **If confirmed**, executes phase activation:
+   - Sets `WORKFLOW_PROTECTION_ENABLED=true` (repository variable)
+   - Renames `CODEOWNERS-PRE-PRODUCTION` → `CODEOWNERS` (via PR)
+   - Creates pull request for review
+
+**Production Phase Effects**:
+- Enables automated workflow change detection
+- Requires admin approval for `.github/workflows/` changes
+- Posts security checklists on PRs modifying workflows
+- Enforces CODEOWNERS review requirements
+
+**Safety Features**:
+- ⚠️ Prominent warnings before execution
+- 🛑 Explicit user confirmation required
+- 📋 Creates PR for review (not direct merge)
+- 📖 Provides rollback documentation
+
+**See Also**:
+- `.github/WORKFLOW_PROTECTION.md` - Complete protection documentation
+- `scripts/start-phase.sh` - Automation script
