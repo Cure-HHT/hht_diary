@@ -134,6 +134,17 @@ RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com
     rm -rf /var/lib/apt/lists/*
 
 # ============================================================
+# Gitleaks v8.18.0 (secret scanning)
+# Version pinned: 2024-11-08
+# Prevents accidental commit of secrets (API keys, tokens, passwords)
+# ============================================================
+ENV GITLEAKS_VERSION=v8.18.0
+RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
+    tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz -C /usr/local/bin && \
+    rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
+    gitleaks version
+
+# ============================================================
 # Anthropic Python SDK & Claude Code CLI
 # Safe: --root-user-action=ignore suppresses pip's root warning (expected behavior in Docker build context)
 # ============================================================

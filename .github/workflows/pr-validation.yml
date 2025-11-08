@@ -281,59 +281,48 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for gitleaks
 
-      - name: Check for accidentally committed secrets
+      - name: Install gitleaks
         run: |
-          echo "::group::Checking for Secrets"
+          echo "::group::Installing gitleaks"
+          wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
+          tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+          rm gitleaks_8.18.0_linux_x64.tar.gz
+          gitleaks version
+          echo "::endgroup::"
 
-          VIOLATIONS=()
+      - name: Scan for secrets with gitleaks
+        run: |
+          echo "::group::Scanning for secrets with gitleaks"
 
-          # Check for common secret patterns (excluding docs, examples, and placeholders)
-          if git grep -i "api[_-]key\s*[:=]" 2>/dev/null | \
-             grep -v ".github/workflows" | \
-             grep -v "spec/" | \
-             grep -v "docs/" | \
-             grep -v "tools/" | \
-             grep -v "infrastructure/" | \
-             grep -v "\.example" | \
-             grep -v "\.md:" | \
-             grep -v "# api" | \
-             grep -v "xxxx" | \
-             grep -v "placeholder" | \
-             grep -v "<.*>" | \
-             grep -v "\.\.\." ; then
-            VIOLATIONS+=("API keys found in code")
-          fi
-
-          if git grep -i "password\s*[:=]\s*['\"][^'\"]*['\"]" 2>/dev/null | \
-             grep -v "spec/" | \
-             grep -v "docs/" | \
-             grep -v "tools/" | \
-             grep -v "infrastructure/" | \
-             grep -v "\.example" | \
-             grep -v "\.md:" | \
-             grep -v "# password" | \
-             grep -v "change-me" | \
-             grep -v "placeholder" | \
-             grep -v "\.\.\." ; then
-            VIOLATIONS+=("Hardcoded passwords found")
-          fi
-
-          # Check for .env files in git (excluding examples)
-          if git ls-files | grep "\.env$" | grep -v "\.env.example" 2>/dev/null; then
-            VIOLATIONS+=(".env files committed to git")
+          # Run gitleaks detect on the entire repository
+          # Uses .gitleaks.toml configuration
+          if gitleaks detect --verbose --no-banner --redact --log-level info; then
+            echo "✅ No secrets detected by gitleaks"
+            GITLEAKS_PASSED=true
+          else
+            echo "::error::Gitleaks detected secrets in the repository"
+            GITLEAKS_PASSED=false
           fi
 
           echo "::endgroup::"
 
-          if [ ${#VIOLATIONS[@]} -gt 0 ]; then
-            echo "::error::Security violations detected:"
-            for violation in "${VIOLATIONS[@]}"; do
-              echo "::error::$violation"
-            done
+          # Store result for later
+          echo "GITLEAKS_PASSED=$GITLEAKS_PASSED" >> $GITHUB_ENV
+
+      - name: Check gitleaks results
+        run: |
+          if [ "$GITLEAKS_PASSED" = "false" ]; then
+            echo "::error::Gitleaks detected secrets in the repository"
+            echo "::error::Review the gitleaks output above for details"
+            echo "::error::Remove all secrets from the codebase before merging"
+            echo "::error::Use environment variables or Doppler for secret management"
             exit 1
           else
-            echo "✅ No secrets detected"
+            echo "✅ No secrets detected by gitleaks"
           fi
 
   fda-compliance-check:

@@ -49,6 +49,37 @@ else
 fi
 
 # =====================================================
+# Git Hooks Configuration Check
+# =====================================================
+
+GIT_HOOKS_WARNING=""
+
+# Check if git hooks are configured
+HOOKS_PATH=$(git config core.hooksPath 2>/dev/null || echo "")
+if [ "$HOOKS_PATH" != ".githooks" ]; then
+    GIT_HOOKS_WARNING="
+─────────────────────────────────────────────────────
+
+⚠️  GIT HOOKS NOT ENABLED
+
+Git hooks exist in .githooks/ but are not active.
+
+Hooks provide critical protections:
+  • Block commits without active ticket
+  • Validate requirement references
+  • Prevent commits to main branch
+  • Record commit history for workflow
+
+To enable git hooks:
+  git config core.hooksPath .githooks
+
+This should be automatic in dev containers.
+If you're seeing this, the postCreateCommand may have failed.
+
+─────────────────────────────────────────────────────"
+fi
+
+# =====================================================
 # Dev Container Detection
 # =====================================================
 
@@ -107,6 +138,7 @@ fi
 # Use jq to properly escape the status message for JSON
 CONTEXT="WORKFLOW STATUS:
 $STATUS_MSG
+$GIT_HOOKS_WARNING
 $DEV_CONTAINER_WARNING
 
 IMPORTANT: Announce this workflow status to the user at the start of the session."
@@ -114,6 +146,7 @@ IMPORTANT: Announce this workflow status to the user at the start of the session
 # Create user-friendly message
 USER_MSG="🔄 WORKFLOW STATUS:
 $STATUS_MSG
+$GIT_HOOKS_WARNING
 $DEV_CONTAINER_WARNING"
 
 jq -n --arg ctx "$CONTEXT" --arg msg "$USER_MSG" '{

@@ -1,0 +1,71 @@
+# Gitleaks Configuration for Clinical Diary Project
+# Version: 2.0.0 - Simplified to use built-in rules
+# Last Updated: 2025-11-08
+#
+# This configuration relies on gitleaks' built-in generic secret detection.
+# We do not define custom rules as they are too specific and don't catch
+# variations of secrets. The built-in rules are comprehensive and battle-tested.
+#
+# Documentation: https://github.com/gitleaks/gitleaks
+
+title = "Clinical Diary Gitleaks Configuration"
+
+# =====================================================
+# Global Allowlist
+# =====================================================
+
+[allowlist]
+description = "Global allowlist for false positives"
+
+# Paths to ignore completely
+paths = [
+    # Test fixtures and mock data
+    '''test/fixtures/.*''',
+    '''test/mocks/.*''',
+
+    # Build artifacts (excluded by .gitignore anyway)
+    '''node_modules/.*''',
+    '''.dart_tool/.*''',
+    '''build/.*''',
+    '''dist/.*''',
+
+    # Lock files (contain hashes, not secrets)
+    '''package-lock\.json$''',
+    '''yarn\.lock$''',
+    '''Podfile\.lock$''',
+    '''Gemfile\.lock$''',
+
+    # Git metadata
+    '''\.git/.*''',
+]
+
+# Commits to ignore (already in history, secrets revoked)
+commits = [
+    # The original exposed Linear API key (revoked)
+    "ae20725b0f4e19ac82b742b45805ee722c23172b",
+
+    # Old anspar-linear-integration plugin with exposed tokens (revoked)
+    "20396066d2639e7324033fec8fdafd000a74628e",
+    "af3869e27a9febf2fa12ffbdc9ff64f55c38d690",
+]
+
+# Regex patterns for approved documentation placeholders
+# IMPORTANT: These are exact string matches. Add sparingly.
+regexes = [
+    # Version numbers
+    '''v?[0-9]+\.[0-9]+\.[0-9]+''',
+
+    # UUIDs
+    '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
+
+    # Git SHAs
+    '''[0-9a-f]{40}''',
+
+    # Environment variable syntax
+    '''\$\{[A-Z_]+\}''',
+
+    # Approved documentation placeholder values (exact matches)
+    '''^EXAMPLE_API_KEY_VALUE$''',
+    '''^EXAMPLE_SECRET_VALUE$''',
+    '''^example@fake\.email$''',
+]

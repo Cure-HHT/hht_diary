@@ -93,7 +93,7 @@
     }
   },
 
-  "postCreateCommand": "cat /etc/motd && echo '' && echo '✅ Developer environment ready! Run: flutter --version'",
+  "postCreateCommand": "git config core.hooksPath .githooks && echo '✅ Git hooks enabled' && cat /etc/motd && echo '' && echo '✅ Developer environment ready! Run: flutter --version' || echo '⚠️ Failed to enable git hooks'",
 
   "remoteUser": "ubuntu",
 

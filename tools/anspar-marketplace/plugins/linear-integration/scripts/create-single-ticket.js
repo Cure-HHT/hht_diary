@@ -144,7 +144,7 @@ async function main() {
         // Provide helpful error messages
         if (error.message.includes('token')) {
             console.error('\nMake sure your LINEAR_API_TOKEN is set:');
-            console.error('  export LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"');
+            console.error('  export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"');
         }
 
         if (error.message.includes('team')) {

@@ -56,7 +56,7 @@
 
   "forwardPorts": [8080, 9323],
 
-  "postCreateCommand": "echo '✅ QA environment ready! Run tests with: qa-runner.sh'",
+  "postCreateCommand": "git config core.hooksPath .githooks && echo '✅ Git hooks enabled' && echo '✅ QA environment ready! Run tests with: qa-runner.sh' || echo '⚠️ Failed to enable git hooks'",
 
   "remoteUser": "ubuntu"
 }
