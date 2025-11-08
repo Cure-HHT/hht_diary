@@ -20,8 +20,8 @@ const PROJECT_ROOT = path.resolve(PLUGIN_ROOT, '..', '..', '..');
 /**
  * Configuration sources in priority order:
  * 1. Command line arguments (--token=xxx)
- * 2. Environment variables (LINEAR_API_TOKEN)
- * 3. Local .env file (tools/anspar-marketplace/plugins/linear-integration/.env.local)
+ * 2. Environment variables (LINEAR_API_TOKEN) - RECOMMENDED via Doppler
+ * 3. Local .env file (deprecated - use Doppler instead)
  * 4. User config file (~/.config/linear/config)
  * 5. Legacy token file (~/.config/linear-api-token)
  */
@@ -55,7 +55,7 @@ class LinearConfig {
         // 2. Check environment variables
         this.loadFromEnvironment();
 
-        // 3. Check local .env file (gitignored)
+        // 3. Check local .env file (deprecated - prefer Doppler)
         this.loadFromLocalEnv();
 
         // 4. Check saved config from auto-discovery
@@ -169,22 +169,21 @@ class LinearConfig {
         if (!this.config.token && required) {
             console.error('❌ Linear API token not found!');
             console.error('');
-            console.error('Please provide your Linear API token using one of these methods:');
+            console.error('Please provide your Linear API token using environment variables:');
             console.error('');
-            console.error('1. Command line argument:');
-            console.error('   --token=lin_api_YOUR_TOKEN_HERE');
+            console.error('1. RECOMMENDED - Use Doppler for secret management:');
+            console.error('   doppler run -- claude');
+            console.error('   (Automatically injects LINEAR_API_TOKEN from Doppler)');
             console.error('');
-            console.error('2. Environment variable:');
+            console.error('2. Set environment variable directly:');
             console.error('   export LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"');
             console.error('');
-            console.error('3. Create a local .env file:');
-            console.error(`   echo 'LINEAR_API_TOKEN=lin_api_YOUR_TOKEN_HERE' > ${path.join(PLUGIN_ROOT, '.env.local')}`);
-            console.error('');
-            console.error('4. Save to user config (recommended for permanent use):');
-            console.error('   mkdir -p ~/.config/linear');
-            console.error('   echo \'{"token":"lin_api_YOUR_TOKEN_HERE"}\' > ~/.config/linear/config');
+            console.error('3. Command line argument (for testing only):');
+            console.error('   --token=lin_api_YOUR_TOKEN_HERE');
             console.error('');
             console.error('Get your token from: https://linear.app/settings/api');
+            console.error('');
+            console.error('⚠️  Do not use .env files or commit secrets to git!');
             process.exit(1);
         }
         return this.config.token;

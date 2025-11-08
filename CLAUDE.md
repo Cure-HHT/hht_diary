@@ -324,8 +324,10 @@ python3 tools/requirements/generate_traceability.py --format markdown
 ## Security Considerations
 
 - **NEVER commit secrets** (API keys, tokens, passwords)
-- Use `.env` files (gitignored) or environment variables
-- Linear tokens stored in `LINEAR_API_TOKEN` environment variable
+- Use environment variables for all secrets
+- Do not use .env files for secrets
+- Linear API token is stored in `LINEAR_API_TOKEN` environment variable
+- All secrets managed via Doppler (run with `doppler run -- claude`)
 - Supabase credentials managed via Doppler (see `spec/ops-security.md`)
 - All audit events are tamper-evident (cryptographic hashing)
 

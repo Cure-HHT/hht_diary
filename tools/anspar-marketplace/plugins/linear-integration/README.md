@@ -580,25 +580,27 @@ node scripts/create-requirement-tickets.js --dry-run
 
 ### Token Storage
 
-**Never commit tokens to git!**
+**Never commit secrets to git!**
 
-✅ **Safe**:
-- Environment variables (`export LINEAR_API_TOKEN=...`)
-- Shell config files (`~/.bashrc`, `~/.zshrc`)
-- Pass inline: `--token=$LINEAR_API_TOKEN`
+✅ **Recommended**:
+- Use environment variables for all secrets
+- Manage secrets via Doppler or similar secret management systems
+- Run with: `doppler run -- claude` to inject environment variables
+- Linear API token is stored in `LINEAR_API_TOKEN` environment variable
 
 ❌ **Unsafe**:
-- Hardcoded in scripts
-- `.env` files committed to git
-- Shared in plain text
+- Hardcoded tokens in scripts
+- Committing secrets to git (including `.env` files)
+- Storing secrets in plain text files
+- Sharing secrets via chat or email
 
 ### Token Permissions
 
 Linear Personal API tokens have full account access. Store them securely and rotate regularly.
 
-### Future: Doppler Integration
+### Doppler Integration
 
-This plugin is prepared for future integration with Doppler or similar secret management systems. All environment variable handling includes comments for future Doppler implementation.
+This project uses Doppler for secret management. All environment variables (including `LINEAR_API_TOKEN`) are automatically injected when running `doppler run -- claude`. The plugin's config system prioritizes environment variables over file-based configuration.
 
 ## npm Scripts
 
