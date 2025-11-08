@@ -75,6 +75,58 @@ c) Design a better architecture
 Waiting for user input...
 ```
 
+### 🔄 CRITICAL: Plugin Reload Required After Changes
+
+**MANDATORY BEHAVIOR** - After ANY modification to plugin files:
+
+**If you modify ANY file in `tools/anspar-marketplace/plugins/`:**
+
+1. **IMMEDIATELY inform the user with this exact message:**
+
+```
+🔄 PLUGIN RELOAD REQUIRED
+
+Plugin files have been modified. Claude Code caches plugin definitions.
+
+To ensure changes take effect:
+
+Option 1 (Recommended): Restart Claude Code
+  - Exit and restart the Claude Code CLI
+
+Option 2: Reload plugins (if supported)
+  - Check if `claude-code plugin reload` is available
+
+⚠️ DO NOT proceed with testing or using the modified plugin until reloaded!
+   The cached version will be used and changes will NOT be visible.
+
+Modified files:
+[List the specific plugin files that were changed]
+
+Ready to proceed after reload? (User confirmation required)
+```
+
+2. **WAIT for user confirmation** before proceeding
+3. **DO NOT** attempt to test, validate, or use the modified plugin until user confirms reload
+
+**This applies to changes in:**
+- `plugin.json` or `marketplace.json`
+- Agent files (`agents/*.md`)
+- Command files (`commands/*.md`)
+- Skill files (`skills/*.md`)
+- Hook files (`hooks/*`)
+- Script files (`scripts/*`)
+- Any other plugin configuration or code
+
+**Why this is critical:**
+- Plugins are cached by Claude Code at startup
+- File changes are not picked up automatically
+- Testing with cached versions leads to confusion
+- User wastes time testing old behavior
+
+**Example:**
+
+If you modify `tools/anspar-marketplace/plugins/plugin-expert/agents/PluginExpert.md`, you MUST tell the user to reload before any sub-agent invocation or testing.
+
 ## Primary Objectives
 
 1. **🛡️ ENFORCE plugin architecture and separation of concerns**
