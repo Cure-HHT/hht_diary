@@ -1,0 +1,73 @@
+#!/bin/bash
+# =====================================================
+# Git Hook: pre-commit (secret scanning)
+# =====================================================
+#
+# Scans staged files for secrets using gitleaks before
+# allowing commits. Prevents accidental exposure of
+# API keys, tokens, passwords, and other credentials.
+#
+# Called by: git commit (before commit-msg hook)
+#
+# Exit codes:
+#   0  Valid (no secrets detected)
+#   1  Invalid (secrets detected, blocks commit)
+#
+# To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+# =====================================================
+# Check if gitleaks is installed
+# =====================================================
+
+if ! command -v gitleaks &> /dev/null; then
+    echo "⚠️  WARNING: gitleaks not installed - skipping secret scan" >&2
+    echo "   Install gitleaks for secret detection: https://github.com/gitleaks/gitleaks" >&2
+    echo "   Or rebuild dev container with updated base image" >&2
+    echo "" >&2
+    exit 0
+fi
+
+# =====================================================
+# Run gitleaks on staged files
+# =====================================================
+
+echo "🔍 Scanning staged files for secrets..." >&2
+
+# Use gitleaks protect to scan only staged changes
+# --staged: Only scan staged files
+# --verbose: Show what's being scanned
+# --no-banner: Suppress ASCII art banner
+# --redact: Hide actual secret values in output (for security)
+
+if gitleaks protect --staged --verbose --no-banner --redact 2>&1; then
+    echo "✅ No secrets detected in staged files" >&2
+    exit 0
+else
+    GITLEAKS_EXIT_CODE=$?
+
+    echo "" >&2
+    echo "❌ SECRETS DETECTED IN STAGED FILES!" >&2
+    echo "" >&2
+    echo "Gitleaks found potential secrets in your staged changes." >&2
+    echo "" >&2
+    echo "To fix this:" >&2
+    echo "  1. Remove the secrets from the staged files" >&2
+    echo "  2. Use environment variables or Doppler for secrets" >&2
+    echo "  3. Unstage files: git restore --staged <file>" >&2
+    echo "  4. Try committing again" >&2
+    echo "" >&2
+    echo "If this is a false positive:" >&2
+    echo "  1. Add the pattern to .gitleaks.toml [allowlist]" >&2
+    echo "  2. Document why it's a false positive" >&2
+    echo "" >&2
+    echo "To bypass this check (NOT RECOMMENDED):" >&2
+    echo "  git commit --no-verify" >&2
+    echo "" >&2
+
+    exit $GITLEAKS_EXIT_CODE
+fi

@@ -281,41 +281,85 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for gitleaks
 
-      - name: Check for accidentally committed secrets
+      - name: Install gitleaks
         run: |
-          echo "::group::Checking for Secrets"
+          echo "::group::Installing gitleaks"
+          wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
+          tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+          rm gitleaks_8.18.0_linux_x64.tar.gz
+          gitleaks version
+          echo "::endgroup::"
+
+      - name: Scan for secrets with gitleaks
+        run: |
+          echo "::group::Scanning for secrets with gitleaks"
+
+          # Run gitleaks detect on the entire repository
+          # Uses .gitleaks.toml configuration
+          if gitleaks detect --verbose --no-banner --redact --log-level info; then
+            echo "✅ No secrets detected by gitleaks"
+            GITLEAKS_PASSED=true
+          else
+            echo "::error::Gitleaks detected secrets in the repository"
+            GITLEAKS_PASSED=false
+          fi
+
+          echo "::endgroup::"
+
+          # Store result for later
+          echo "GITLEAKS_PASSED=$GITLEAKS_PASSED" >> $GITHUB_ENV
+
+      - name: Additional checks for known patterns
+        run: |
+          echo "::group::Additional Secret Pattern Checks"
 
           VIOLATIONS=()
 
-          # Check for common secret patterns (excluding docs, examples, and placeholders)
+          # Check for Linear API tokens (should be caught by gitleaks but double-check)
+          if git grep -E "lin_api_[A-Za-z0-9]{40,}" 2>/dev/null | \
+             grep -v ".github/workflows" | \
+             grep -v "spec/.*\.md" | \
+             grep -v "docs/" | \
+             grep -v "\.example" | \
+             grep -v "\.gitleaks\.toml" | \
+             grep -v "example\|placeholder\|xxx\|test" ; then
+            VIOLATIONS+=("Linear API tokens found in code")
+          fi
+
+          # Check for API keys in CLI arguments (e.g., --token=lin_api_...)
+          if git grep -E "\-\-[a-z-]*token[=\s]+[A-Za-z0-9_-]{20,}" 2>/dev/null | \
+             grep -v ".github/workflows" | \
+             grep -v "spec/.*\.md" | \
+             grep -v "docs/" | \
+             grep -v "\.example" | \
+             grep -v "example\|placeholder\|xxx" ; then
+            VIOLATIONS+=("API tokens in CLI arguments found")
+          fi
+
+          # Check for API keys (broader pattern, no tools/ exclusion!)
           if git grep -i "api[_-]key\s*[:=]" 2>/dev/null | \
              grep -v ".github/workflows" | \
-             grep -v "spec/" | \
+             grep -v "spec/.*\.md" | \
              grep -v "docs/" | \
-             grep -v "tools/" | \
-             grep -v "infrastructure/" | \
              grep -v "\.example" | \
-             grep -v "\.md:" | \
+             grep -v "\.gitleaks\.toml" | \
+             grep -v "CLAUDE\.md" | \
              grep -v "# api" | \
-             grep -v "xxxx" | \
-             grep -v "placeholder" | \
-             grep -v "<.*>" | \
-             grep -v "\.\.\." ; then
+             grep -v "xxxx\|placeholder\|<.*>\|\.\.\." ; then
             VIOLATIONS+=("API keys found in code")
           fi
 
+          # Check for hardcoded passwords
           if git grep -i "password\s*[:=]\s*['\"][^'\"]*['\"]" 2>/dev/null | \
-             grep -v "spec/" | \
+             grep -v "spec/.*\.md" | \
              grep -v "docs/" | \
-             grep -v "tools/" | \
-             grep -v "infrastructure/" | \
              grep -v "\.example" | \
-             grep -v "\.md:" | \
              grep -v "# password" | \
-             grep -v "change-me" | \
-             grep -v "placeholder" | \
-             grep -v "\.\.\." ; then
+             grep -v "change-me\|placeholder\|\.\.\." ; then
             VIOLATIONS+=("Hardcoded passwords found")
           fi
 
@@ -326,14 +370,24 @@ jobs:
 
           echo "::endgroup::"
 
-          if [ ${#VIOLATIONS[@]} -gt 0 ]; then
+          # Combine results
+          if [ "$GITLEAKS_PASSED" = "false" ] || [ ${#VIOLATIONS[@]} -gt 0 ]; then
             echo "::error::Security violations detected:"
+
+            if [ "$GITLEAKS_PASSED" = "false" ]; then
+              echo "::error::Gitleaks detected secrets (see above)"
+            fi
+
             for violation in "${VIOLATIONS[@]}"; do
               echo "::error::$violation"
             done
+
+            echo ""
+            echo "::error::Remove all secrets from the codebase before merging"
+            echo "::error::Use environment variables or Doppler for secret management"
             exit 1
           else
-            echo "✅ No secrets detected"
+            echo "✅ All secret detection checks passed"
           fi
 
   fda-compliance-check:
