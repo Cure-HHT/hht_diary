@@ -20,6 +20,5 @@
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/linear-integration",
   "commands": "./commands/",
   "agents": "./agents/linear-agent.md",
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./skills/"
 }

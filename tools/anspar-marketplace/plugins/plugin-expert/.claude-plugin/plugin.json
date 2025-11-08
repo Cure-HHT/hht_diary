@@ -22,6 +22,5 @@
   "homepage": "https://docs.claude.com/en/docs/claude-code/plugins",
   "license": "MIT",
   "agents": "./agents/PluginExpert.md",
-  "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./skills/"
 }

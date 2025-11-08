@@ -15,6 +15,5 @@
     "git-hook"
   ],
   "repository": "https://github.com/anspar/diary",
-  "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/traceability-matrix",
-  "hooks": "./hooks/hooks.json"
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/traceability-matrix"
 }
