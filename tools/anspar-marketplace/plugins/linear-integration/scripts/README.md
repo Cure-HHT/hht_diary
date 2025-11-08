@@ -22,12 +22,12 @@ Command-line tool for fetching and analyzing Linear tickets. Designed to help Cl
 ### 2. Set Environment Variable (Recommended)
 
 ```bash
-export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
+export LINEAR_API_TOKEN="EXAMPLE_API_KEY_VALUE"
 ```
 
 Or add to your `~/.bashrc` or `~/.zshrc`:
 ```bash
-echo 'export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"' >> ~/.bashrc
+echo 'export LINEAR_API_TOKEN="EXAMPLE_API_KEY_VALUE"' >> ~/.bashrc
 source ~/.bashrc
 ```
 

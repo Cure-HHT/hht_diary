@@ -52,7 +52,7 @@ Get your Personal API token:
 
 ```bash
 # Set your API token
-export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
+export LINEAR_API_TOKEN="EXAMPLE_API_KEY_VALUE"
 
 # Discover and export team ID automatically
 source scripts/setup-env.sh
@@ -66,7 +66,7 @@ The `setup-env.sh` script will automatically:
 **Persistent Setup**: Add to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
+export LINEAR_API_TOKEN="EXAMPLE_API_KEY_VALUE"
 export LINEAR_TEAM_ID="your-team-id"  # Optional - auto-discovered if omitted
 ```
 
