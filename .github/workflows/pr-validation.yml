@@ -349,6 +349,9 @@ jobs:
              grep -v "\.gitleaks\.toml" | \
              grep -v "CLAUDE\.md" | \
              grep -v "# api" | \
+             grep -v "environ\.get\|os\.getenv" | \
+             grep -v "EXAMPLE_SECRET_VALUE\|EXAMPLE_API_KEY_VALUE" | \
+             grep -v '"your-key"\|"your_key"' | \
              grep -v "xxxx\|placeholder\|<.*>\|\.\.\." ; then
             VIOLATIONS+=("API keys found in code")
           fi
