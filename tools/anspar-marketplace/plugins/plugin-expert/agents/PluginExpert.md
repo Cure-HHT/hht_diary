@@ -496,6 +496,165 @@ Always:
 - Prevent path traversal attacks
 - Warn about dangerous patterns
 
+## Environment Variable and Secrets Management
+
+**CRITICAL ARCHITECTURAL REQUIREMENT** for all anspar-marketplace plugins:
+
+### Mandatory Rules
+
+1. **ONLY use environment variables for secrets and API keys**
+   - ✅ Read from `process.env.API_KEY_NAME` or `$ENV_VAR`
+   - ❌ NO command-line arguments for secrets (e.g., `--token=...`)
+   - ❌ NO .env files, config files, or fallback mechanisms
+   - ❌ NO reading from user directories (`~/.config/`, etc.)
+
+2. **Exit immediately if required environment variables are missing**
+   - Check at script startup
+   - Provide clear error message with variable name
+   - Exit with code 1
+   - NO graceful degradation or fallback attempts
+
+3. **Never accept or work around missing environment variables**
+   - NO "trying other methods" if env var not set
+   - NO helpful shortcuts that bypass env var requirement
+   - NO caching of secrets in files
+
+### Example: Correct Pattern (Bash)
+
+```bash
+#!/bin/bash
+
+# Check required environment variables immediately
+if [ -z "$LINEAR_API_TOKEN" ]; then
+    echo "❌ ERROR: LINEAR_API_TOKEN environment variable is required"
+    echo ""
+    echo "Set it with:"
+    echo "  export LINEAR_API_TOKEN=\"your_token_here\""
+    echo ""
+    echo "Or use secret management:"
+    echo "  doppler run -- ./script.sh"
+    exit 1
+fi
+
+# Use the token
+TOKEN="$LINEAR_API_TOKEN"
+# ... rest of script
+```
+
+### Example: Correct Pattern (Node.js)
+
+```javascript
+#!/usr/bin/env node
+
+// Check required environment variables immediately
+if (!process.env.LINEAR_API_TOKEN) {
+    console.error('❌ LINEAR_API_TOKEN environment variable is required');
+    console.error('');
+    console.error('Set it with:');
+    console.error('  export LINEAR_API_TOKEN="your_token_here"');
+    console.error('');
+    console.error('Or use secret management:');
+    console.error('  doppler run -- node script.js');
+    process.exit(1);
+}
+
+const token = process.env.LINEAR_API_TOKEN;
+// ... rest of script
+```
+
+### Example: Violations to Prevent
+
+```javascript
+// ❌ WRONG - Command line argument
+const token = args.token || process.env.LINEAR_API_TOKEN;
+
+// ❌ WRONG - .env file fallback
+const token = loadFromEnvFile() || process.env.LINEAR_API_TOKEN;
+
+// ❌ WRONG - User config fallback
+const token = readUserConfig() || process.env.LINEAR_API_TOKEN;
+
+// ❌ WRONG - Graceful degradation
+if (!process.env.API_TOKEN) {
+    console.warn('⚠️ API_TOKEN not set, using limited mode');
+}
+```
+
+### Rationale
+
+1. **Security**: Secrets in command args appear in process lists
+2. **Traceability**: Environment is controlled by orchestration (Doppler, Docker, etc.)
+3. **Simplicity**: One source of truth, no fallback complexity
+4. **Auditability**: Clear security boundary - env vars only
+5. **Production-ready**: Matches deployment best practices
+
+### Documentation Placeholder Values
+
+When writing documentation that shows example secret usage, use ONLY approved placeholder values from `.gitleaks.toml`:
+
+**How to find approved placeholders:**
+
+1. Check if `.gitleaks.toml` exists in repository root
+2. Look for `[allowlist]` → `regexes` section
+3. Use exact string matches listed there (e.g., `EXAMPLE_API_KEY_VALUE`)
+
+**Common approved placeholders:**
+- `EXAMPLE_API_KEY_VALUE` - For API keys
+- `EXAMPLE_SECRET_VALUE` - For generic secrets
+- `example@fake.email` - For email addresses
+
+**DO NOT use these in documentation** (not approved, will trigger secret detection):
+- ❌ `your_token_here`
+- ❌ `YOUR_LINEAR_TOKEN`
+- ❌ `sk_live_123456789`
+- ❌ Any realistic-looking secret patterns
+
+**Example documentation:**
+
+```bash
+# ✅ CORRECT - Uses approved placeholder
+export LINEAR_API_TOKEN="EXAMPLE_API_KEY_VALUE"
+
+# ❌ WRONG - Looks like real secret
+export LINEAR_API_TOKEN="lin_api_ARNlHwxFV8D5C3zVKQeTByar..."
+```
+
+### Plugin Review Checklist
+
+When reviewing or creating plugins that use secrets:
+
+- [ ] All secrets come from environment variables only
+- [ ] Script exits immediately if required env var missing
+- [ ] Error messages specify exact env var name
+- [ ] No `--token`, `--api-key`, or similar CLI arguments
+- [ ] No `.env`, `.env.local`, or config file loading
+- [ ] No user directory (`~/.config/`) lookups
+- [ ] Documentation uses approved placeholder values from `.gitleaks.toml`
+- [ ] Examples show env var setup only
+
+### Migration from Non-Compliant Code
+
+If a plugin violates these rules:
+
+1. **Remove** all non-env-var configuration sources
+2. **Remove** CLI argument parsing for secrets
+3. **Remove** fallback mechanisms
+4. **Simplify** to single env var check at startup
+5. **Update** documentation to use approved placeholders
+6. **Update** documentation to show env var usage only
+7. **Add** validation in pre-commit hook if possible
+
+### Auto-Detection Feature
+
+The PluginExpert agent will automatically:
+
+1. **Scan `.gitleaks.toml`** (if exists) for approved placeholder values
+2. **Suggest these values** when reviewing plugin documentation
+3. **Flag non-approved placeholders** in documentation examples
+4. **Provide corrections** using approved values
+
+This ensures all plugin documentation uses consistent, security-scan-safe placeholder values.
+
 ## Notes
 
 - This agent has full access to the plugin-expert system
