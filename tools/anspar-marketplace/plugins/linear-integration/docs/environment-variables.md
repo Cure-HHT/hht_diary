@@ -24,16 +24,16 @@ The Anspar Linear Integration plugin implements environment variable validation 
 **Setup**:
 ```bash
 # Temporary (current session)
-export LINEAR_API_TOKEN="lin_api_your_token_here"
+export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
 
 # Persistent (add to ~/.bashrc or ~/.zshrc)
-echo 'export LINEAR_API_TOKEN="lin_api_your_token_here"' >> ~/.bashrc
+echo 'export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 **Command-line override**:
 ```bash
-node scripts/fetch-tickets.js --token=lin_api_your_token_here
+node scripts/fetch-tickets.js --token=YOUR_LINEAR_TOKEN
 ```
 
 ## Optional Variables
@@ -102,9 +102,9 @@ All scripts validate environment variables at startup using `scripts/lib/env-val
   To fix this:
   1. Get your Linear API token from: https://linear.app/settings/api
   2. Set it as an environment variable:
-     export LINEAR_API_TOKEN="lin_api_your_token_here"
+     export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
   3. Or pass it via command line:
-     node script.js --token=lin_api_your_token_here
+     node script.js --token=YOUR_LINEAR_TOKEN
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -256,7 +256,7 @@ When Doppler is integrated:
 echo $LINEAR_API_TOKEN
 
 # 2. If empty, set it
-export LINEAR_API_TOKEN="lin_api_your_token_here"
+export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
 
 # 3. Verify it's set
 echo $LINEAR_API_TOKEN  # Should show lin_api_...
@@ -305,7 +305,7 @@ node script.js --team-id=ce8e0f87-a7d0-4c8b-9fce-86a63363d8fe
 **Solution**:
 ```bash
 # Add to shell config file
-echo 'export LINEAR_API_TOKEN="lin_api_your_token_here"' >> ~/.bashrc
+echo 'export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"' >> ~/.bashrc
 echo 'export LINEAR_TEAM_ID="your-team-id"' >> ~/.bashrc
 
 # Reload config

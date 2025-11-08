@@ -242,7 +242,8 @@ commits = [
     "ae20725b0f4e19ac82b742b45805ee722c23172b",
 ]
 
-# Regex patterns for non-secrets
+# Exact string matches for non-secrets (documentation examples only)
+# IMPORTANT: These are exact matches, not patterns. Add new values sparingly.
 regexes = [
     # Version numbers that look like secrets
     '''v?[0-9]+\.[0-9]+\.[0-9]+''',
@@ -253,13 +254,15 @@ regexes = [
     # Git SHAs
     '''[0-9a-f]{40}''',
 
-    # Common false positives
-    '''example''',
-    '''placeholder''',
-    '''your[_-]?(api[_-]?key|token|secret)''',
-    '''<.*>''',
-    '''\$\{.*\}''',
-    '''\.\.\.$''',
+    # Environment variable syntax (not the values)
+    '''\$\{[A-Z_]+\}''',
+
+    # Documentation placeholder strings (exact matches only)
+    '''^EXAMPLE_API_KEY_VALUE$''',
+    '''^EXAMPLE_SECRET_VALUE$''',
+    '''^YOUR_LINEAR_TOKEN$''',
+    '''^YOUR_ACTUAL_SECRET_HERE$''',
+    '''^example@fake\.email$''',
 ]
 
 # =====================================================
@@ -286,7 +289,7 @@ regexes = [
 # - Test fixtures: API_KEY=test_key_123
 
 # Examples that SHOULD trigger:
-# - Real tokens: lin_api_ARNlHwxFV8D5C3zVKQeTByar3B2CK5aNZaegu6CB
-# - Real keys: AKIAIOSFODNN7EXAMPLE (unless AWS docs example)
-# - Hardcoded passwords: PASSWORD="actual_password_123"
-# - URLs with credentials: postgres://user:secret123@host/db
+# - Real Linear tokens matching pattern: lin_api_ + 40+ alphanumeric chars
+# - Real AWS keys matching pattern: AKIA + alphanumeric chars
+# - Hardcoded passwords matching pattern: PASSWORD="..." with actual values
+# - URLs with embedded credentials: postgres://user:password@host/db

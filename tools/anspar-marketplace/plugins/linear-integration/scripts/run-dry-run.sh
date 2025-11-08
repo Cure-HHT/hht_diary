@@ -7,9 +7,28 @@ export NVM_DIR="$HOME/.nvm"
 # Change to the script directory
 cd "$(dirname "$0")"
 
+# Check for required environment variables
+if [ -z "$LINEAR_API_TOKEN" ]; then
+    echo "❌ ERROR: LINEAR_API_TOKEN environment variable is required"
+    echo ""
+    echo "Set it with:"
+    echo "  export LINEAR_API_TOKEN=\"your_token_here\""
+    echo ""
+    echo "Or use secret management:"
+    echo "  doppler run -- ./run-dry-run.sh"
+    exit 1
+fi
+
+if [ -z "$LINEAR_TEAM_ID" ]; then
+    echo "❌ ERROR: LINEAR_TEAM_ID environment variable is required"
+    echo ""
+    echo "Set it with:"
+    echo "  export LINEAR_TEAM_ID=\"your_team_id_here\""
+    exit 1
+fi
+
 # Run the create tickets script in dry-run mode
+# Note: create-requirement-tickets.js reads from environment variables
 node create-requirement-tickets.js \
-  --token=lin_api_ARNlHwxFV8D5C3zVKQeTByar3B2CK5aNZaegu6CB \
-  --team-id=ce8e0f87-a7d0-4c8b-9fce-86a63363d8fe \
   --dry-run \
   --level=PRD

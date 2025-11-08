@@ -32,7 +32,7 @@ function parseArgs() {
         console.error('');
         console.error('Usage: node update-ticket-with-requirement.js --token=<token> --ticket-id=<ticket-id> --req-id=<req-id>');
         console.error('');
-        console.error('Example: node update-ticket-with-requirement.js --token=lin_api_xxx --ticket-id=CUR-92 --req-id=p00015');
+        console.error('Example: node update-ticket-with-requirement.js --token=YOUR_LINEAR_TOKEN --ticket-id=CUR-92 --req-id=p00015');
         process.exit(1);
     }
 

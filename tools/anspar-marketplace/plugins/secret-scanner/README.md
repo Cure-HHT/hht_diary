@@ -71,8 +71,8 @@ git config core.hooksPath .githooks
 ### Normal Workflow
 
 ```bash
-# Make changes
-echo "API_KEY=sk_live_123456789" > config.sh
+# Make changes (example shows WRONG approach - hardcoding a secret)
+echo "API_KEY=EXAMPLE_SECRET_VALUE" > config.sh
 
 # Stage files
 git add config.sh
@@ -98,7 +98,7 @@ git commit -m "Add config (using env var)"
 **Option 2: Use Doppler**
 ```bash
 # Store in Doppler instead of code
-doppler secrets set API_KEY sk_live_123456789
+doppler secrets set API_KEY YOUR_ACTUAL_SECRET_HERE
 rm config.sh
 git add config.sh
 git commit -m "Remove hardcoded secret"

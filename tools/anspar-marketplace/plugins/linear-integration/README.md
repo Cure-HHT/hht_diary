@@ -52,7 +52,7 @@ Get your Personal API token:
 
 ```bash
 # Set your API token
-export LINEAR_API_TOKEN="lin_api_your_token_here"
+export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
 
 # Discover and export team ID automatically
 source scripts/setup-env.sh
@@ -66,7 +66,7 @@ The `setup-env.sh` script will automatically:
 **Persistent Setup**: Add to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-export LINEAR_API_TOKEN="lin_api_your_token_here"
+export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
 export LINEAR_TEAM_ID="your-team-id"  # Optional - auto-discovered if omitted
 ```
 
@@ -74,7 +74,7 @@ Then reload: `source ~/.bashrc`
 
 **Alternative**: Pass credentials directly to scripts:
 ```bash
-node script.js --token=lin_api_your_token_here --team-id=your-team-id
+node script.js --token=YOUR_LINEAR_TOKEN --team-id=your-team-id
 ```
 
 ### 3. Node.js Version
@@ -596,7 +596,7 @@ echo $LINEAR_API_TOKEN
 # Check token hasn't expired at https://linear.app/settings/api
 
 # Try passing token inline
-node script.js --token=lin_api_YOUR_TOKEN
+node script.js --token=YOUR_LINEAR_TOKEN
 ```
 
 ### No Tickets Created

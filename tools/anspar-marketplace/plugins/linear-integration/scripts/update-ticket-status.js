@@ -36,7 +36,7 @@ function parseArgs() {
         console.error('');
         console.error('Status options: todo, in-progress, done, backlog, canceled');
         console.error('');
-        console.error('Example: node update-ticket-status.js --token=lin_api_xxx --ticket-id=CUR-127 --status=done');
+        console.error('Example: node update-ticket-status.js --token=YOUR_LINEAR_TOKEN --ticket-id=CUR-127 --status=done');
         process.exit(1);
     }
 

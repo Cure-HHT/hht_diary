@@ -176,10 +176,10 @@ class LinearConfig {
             console.error('   (Automatically injects LINEAR_API_TOKEN from Doppler)');
             console.error('');
             console.error('2. Set environment variable directly:');
-            console.error('   export LINEAR_API_TOKEN="lin_api_YOUR_TOKEN_HERE"');
+            console.error('   export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"');
             console.error('');
             console.error('3. Command line argument (for testing only):');
-            console.error('   --token=lin_api_YOUR_TOKEN_HERE');
+            console.error('   --token=YOUR_LINEAR_TOKEN');
             console.error('');
             console.error('Get your token from: https://linear.app/settings/api');
             console.error('');

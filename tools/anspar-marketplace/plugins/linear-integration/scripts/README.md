@@ -22,12 +22,12 @@ Command-line tool for fetching and analyzing Linear tickets. Designed to help Cl
 ### 2. Set Environment Variable (Recommended)
 
 ```bash
-export LINEAR_API_TOKEN="lin_api_your_token_here"
+export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"
 ```
 
 Or add to your `~/.bashrc` or `~/.zshrc`:
 ```bash
-echo 'export LINEAR_API_TOKEN="lin_api_your_token_here"' >> ~/.bashrc
+echo 'export LINEAR_API_TOKEN="YOUR_LINEAR_TOKEN"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -42,7 +42,7 @@ node fetch-tickets.js
 ### Specify Token Directly
 
 ```bash
-node fetch-tickets.js --token=lin_api_your_token_here
+node fetch-tickets.js --token=YOUR_LINEAR_TOKEN
 ```
 
 ### JSON Output
