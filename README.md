@@ -1,6 +1,24 @@
 # Clinical Trial Diary System
 
+[![Pre-release](https://img.shields.io/badge/status-PRE--RELEASE-orange?style=for-the-badge)](https://github.com/Cure-HHT/hht_diary#-pre-release-notice)
 [![PR Validation](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/YOUR_ORG/YOUR_REPO/actions/workflows/pr-validation.yml)
+
+---
+
+## ⚠️ PRE-RELEASE NOTICE
+
+**This project is in active development and is not yet functional or ready for production use.**
+
+- ⚠️ **Not Production Ready**: Core features are still being implemented
+- 🚧 **Active Development**: APIs, data models, and interfaces are subject to change
+- 🔬 **Testing Phase**: This software has not undergone clinical validation
+- 📋 **FDA Compliance**: Validation protocols are in development but not yet complete
+
+**Do not use this software for actual clinical trial data collection at this time.**
+
+For information about the project roadmap and planned features, see the documentation in the `spec/` directory.
+
+---
 
 ## Documentation Structure
 
