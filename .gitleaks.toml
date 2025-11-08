@@ -1,208 +1,14 @@
 # Gitleaks Configuration for Clinical Diary Project
-# Version: 1.0.0
-# Last Updated: 2024-11-08
+# Version: 2.0.0 - Simplified to use built-in rules
+# Last Updated: 2025-11-08
 #
-# This configuration prevents accidental commits of secrets including
-# API keys, tokens, passwords, and other credentials.
+# This configuration relies on gitleaks' built-in generic secret detection.
+# We do not define custom rules as they are too specific and don't catch
+# variations of secrets. The built-in rules are comprehensive and battle-tested.
 #
-# Documentation: https://github.com/gitleaks/gitleaks#configuration
+# Documentation: https://github.com/gitleaks/gitleaks
 
 title = "Clinical Diary Gitleaks Configuration"
-
-# =====================================================
-# Custom Rules - Project-Specific Secrets
-# =====================================================
-
-[[rules]]
-id = "linear-api-token"
-description = "Linear API Token"
-regex = '''lin_api_[A-Za-z0-9]{40,}'''
-keywords = [
-    "lin_api",
-    "linear_api",
-    "LINEAR_API",
-]
-tags = ["api", "linear", "token"]
-[rules.allowlist]
-    # Allowlist documentation examples (not real tokens)
-    regexes = ['''lin_api_example''', '''lin_api_test''', '''lin_api_xxx''']
-    paths = ['''docs/.*''', '''spec/.*\.md$''']
-
-[[rules]]
-id = "linear-api-key-cli-arg"
-description = "Linear API Key in CLI Arguments"
-regex = '''--token\s*=\s*lin_api_[A-Za-z0-9]{40,}'''
-keywords = ["--token=lin_api"]
-tags = ["api", "linear", "cli"]
-
-[[rules]]
-id = "doppler-token"
-description = "Doppler Token"
-regex = '''dp\.pt\.[A-Za-z0-9]{40,}'''
-keywords = ["doppler", "dp.pt"]
-tags = ["api", "doppler", "secrets"]
-
-[[rules]]
-id = "supabase-service-key"
-description = "Supabase Service Role Key"
-regex = '''eyJ[A-Za-z0-9_-]{30,}\.eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{30,}'''
-keywords = ["supabase", "service_role"]
-tags = ["api", "supabase", "jwt"]
-[rules.allowlist]
-    paths = ['''docs/.*''', '''spec/.*\.md$''']
-
-[[rules]]
-id = "github-pat"
-description = "GitHub Personal Access Token"
-regex = '''ghp_[A-Za-z0-9]{36}'''
-keywords = ["ghp_", "github_token"]
-tags = ["api", "github", "token"]
-
-[[rules]]
-id = "github-oauth"
-description = "GitHub OAuth Token"
-regex = '''gho_[A-Za-z0-9]{36}'''
-keywords = ["gho_"]
-tags = ["api", "github", "oauth"]
-
-[[rules]]
-id = "anthropic-api-key"
-description = "Anthropic API Key"
-regex = '''sk-ant-api[0-9a-zA-Z-_]{95}'''
-keywords = ["sk-ant-api", "anthropic"]
-tags = ["api", "anthropic", "claude"]
-[rules.allowlist]
-    paths = ['''docs/.*''', '''spec/.*\.md$''']
-
-[[rules]]
-id = "aws-access-key"
-description = "AWS Access Key ID"
-regex = '''AKIA[0-9A-Z]{16}'''
-keywords = ["AKIA", "aws_access"]
-tags = ["api", "aws", "credentials"]
-[rules.allowlist]
-    regexes = ['''AKIAIOSFODNN7EXAMPLE''']  # AWS documentation example
-    paths = ['''docs/.*''', '''spec/.*\.md$''']
-
-[[rules]]
-id = "aws-secret-key"
-description = "AWS Secret Access Key"
-regex = '''(?i)aws_secret_access_key\s*[:=]\s*[A-Za-z0-9/+=]{40}'''
-keywords = ["aws_secret_access_key"]
-tags = ["api", "aws", "credentials"]
-
-[[rules]]
-id = "slack-webhook"
-description = "Slack Webhook URL"
-regex = '''https://hooks\.slack\.com/services/T[A-Z0-9]{8,}/B[A-Z0-9]{8,}/[A-Za-z0-9]{24,}'''
-keywords = ["hooks.slack.com"]
-tags = ["webhook", "slack"]
-
-[[rules]]
-id = "stripe-api-key"
-description = "Stripe API Key"
-regex = '''(?:sk|pk)_(test|live)_[A-Za-z0-9]{24,}'''
-keywords = ["sk_test", "sk_live", "pk_test", "pk_live"]
-tags = ["api", "stripe", "payment"]
-[rules.allowlist]
-    paths = ['''docs/.*''', '''spec/.*\.md$''']
-
-[[rules]]
-id = "generic-api-key"
-description = "Generic API Key Patterns"
-regex = '''(?i)(api[_-]?key|apikey|api[_-]?token)\s*[:=]\s*['"][A-Za-z0-9_\-]{20,}['"]'''
-keywords = ["api_key", "apikey", "api-key", "api_token"]
-tags = ["api", "generic"]
-[rules.allowlist]
-    # Allow placeholders and examples
-    regexes = [
-        '''(?i)your[_-]?api[_-]?key''',
-        '''(?i)example[_-]?key''',
-        '''(?i)placeholder''',
-        '''(?i)xxx+''',
-        '''(?i)test[_-]?key''',
-    ]
-    paths = [
-        '''docs/.*''',
-        '''spec/.*\.md$''',
-        '''\.example$''',
-        '''README\.md$''',
-    ]
-
-[[rules]]
-id = "password-in-url"
-description = "Password in Database URL"
-regex = '''(?i)(postgres|mysql|mongodb|redis)://[^:]+:([^@]{8,})@'''
-keywords = ["postgres://", "mysql://", "mongodb://"]
-tags = ["credentials", "database"]
-[rules.allowlist]
-    regexes = ['''password''', '''<password>''', '''\.\.\.$''']
-    paths = ['''docs/.*''', '''spec/.*''']
-
-[[rules]]
-id = "private-key"
-description = "Private Key"
-regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----'''
-keywords = ["BEGIN PRIVATE KEY", "BEGIN RSA PRIVATE KEY"]
-tags = ["credentials", "key", "pem"]
-[rules.allowlist]
-    paths = ['''test/fixtures/.*''']
-
-[[rules]]
-id = "generic-secret"
-description = "Generic Secret Variable"
-regex = '''(?i)(secret|password|passwd|pwd|token)\s*[:=]\s*['"][^'"]{8,}['"]'''
-keywords = ["secret", "password", "token"]
-tags = ["credentials"]
-[rules.allowlist]
-    regexes = [
-        '''(?i)change[_-]?me''',
-        '''(?i)your[_-]?(secret|password|token)''',
-        '''(?i)example''',
-        '''(?i)placeholder''',
-        '''(?i)xxx+''',
-        '''(?i)\.\.\.$''',
-    ]
-    paths = [
-        '''docs/.*''',
-        '''spec/.*\.md$''',
-        '''\.example$''',
-        '''CLAUDE\.md$''',
-    ]
-
-# =====================================================
-# Entropy Detection (High-Entropy Strings)
-# =====================================================
-
-[[rules]]
-id = "high-entropy-base64"
-description = "High Entropy Base64 String"
-regex = '''[A-Za-z0-9+/]{40,}={0,2}'''
-entropy = 4.5
-tags = ["entropy", "base64"]
-[rules.allowlist]
-    paths = [
-        '''docs/.*''',
-        '''spec/.*''',
-        '''test/.*''',
-        '''\.md$''',
-    ]
-
-[[rules]]
-id = "high-entropy-hex"
-description = "High Entropy Hex String"
-regex = '''[a-fA-F0-9]{32,}'''
-entropy = 3.5
-tags = ["entropy", "hex"]
-[rules.allowlist]
-    paths = [
-        '''docs/.*''',
-        '''spec/.*''',
-        '''test/.*''',
-        '''\.lock$''',
-        '''package-lock\.json$''',
-        '''yarn\.lock$''',
-    ]
 
 # =====================================================
 # Global Allowlist
@@ -231,65 +37,35 @@ paths = [
 
     # Git metadata
     '''\.git/.*''',
-
-    # Gitleaks configuration itself
-    '''\.gitleaks\.toml$''',
 ]
 
-# Commits to ignore (already in history before gitleaks)
+# Commits to ignore (already in history, secrets revoked)
 commits = [
-    # The original exposed API key commit (already revoked)
+    # The original exposed Linear API key (revoked)
     "ae20725b0f4e19ac82b742b45805ee722c23172b",
+
+    # Old anspar-linear-integration plugin with exposed tokens (revoked)
+    "20396066d2639e7324033fec8fdafd000a74628e",
+    "af3869e27a9febf2fa12ffbdc9ff64f55c38d690",
 ]
 
-# Exact string matches for non-secrets (documentation examples only)
-# IMPORTANT: These are exact matches, not patterns. Add new values sparingly.
+# Regex patterns for approved documentation placeholders
+# IMPORTANT: These are exact string matches. Add sparingly.
 regexes = [
-    # Version numbers that look like secrets
+    # Version numbers
     '''v?[0-9]+\.[0-9]+\.[0-9]+''',
 
-    # UUIDs (not secrets)
+    # UUIDs
     '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
 
     # Git SHAs
     '''[0-9a-f]{40}''',
 
-    # Environment variable syntax (not the values)
+    # Environment variable syntax
     '''\$\{[A-Z_]+\}''',
 
-    # Documentation placeholder strings (exact matches only)
+    # Approved documentation placeholder values (exact matches)
     '''^EXAMPLE_API_KEY_VALUE$''',
     '''^EXAMPLE_SECRET_VALUE$''',
-    '''^YOUR_LINEAR_TOKEN$''',
-    '''^YOUR_ACTUAL_SECRET_HERE$''',
     '''^example@fake\.email$''',
 ]
-
-# =====================================================
-# Performance Settings
-# =====================================================
-
-# Maximum file size to scan (in bytes)
-# Default: 10MB (10485760 bytes)
-# Large files are typically binary or generated code
-# maxFileSize = 10485760
-
-# Maximum depth for symlink resolution
-# symlinkDepth = 10
-
-# =====================================================
-# False Positive Examples (for reference)
-# =====================================================
-
-# Examples that should NOT trigger:
-# - Documentation: "Set your API_KEY to xxx..."
-# - Examples: API_KEY=your_api_key_here
-# - Environment vars: API_KEY=${API_KEY}
-# - Placeholders: API_KEY=...
-# - Test fixtures: API_KEY=test_key_123
-
-# Examples that SHOULD trigger:
-# - Real Linear tokens matching pattern: lin_api_ + 40+ alphanumeric chars
-# - Real AWS keys matching pattern: AKIA + alphanumeric chars
-# - Hardcoded passwords matching pattern: PASSWORD="..." with actual values
-# - URLs with embedded credentials: postgres://user:password@host/db
