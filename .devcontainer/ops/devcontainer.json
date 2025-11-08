@@ -63,7 +63,7 @@
 
   "forwardPorts": [],
 
-  "postCreateCommand": "echo '✅ DevOps environment ready! Tools: terraform, supabase, kubectl, cosign, syft'",
+  "postCreateCommand": "git config core.hooksPath .githooks && echo '✅ Git hooks enabled' && echo '✅ DevOps environment ready! Tools: terraform, supabase, kubectl, cosign, syft' || echo '⚠️ Failed to enable git hooks'",
 
   "remoteUser": "ubuntu"
 }

@@ -78,7 +78,7 @@
 
   "forwardPorts": [3000, 5000, 8080],
 
-  "postCreateCommand": "echo '✅ Developer environment ready! Run: doppler login && doppler setup'",
+  "postCreateCommand": "git config core.hooksPath .githooks && echo '✅ Git hooks enabled' && echo '✅ Developer environment ready! Run: doppler login && doppler setup' || echo '⚠️ Failed to enable git hooks'",
 
   "remoteUser": "ubuntu"
 }
