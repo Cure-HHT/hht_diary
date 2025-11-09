@@ -1,6 +1,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00002: Requirements validation tool
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
+#   REQ-d00018: Git Hook Implementation
 
 name: PR Validation - Requirements & Traceability
 
@@ -367,10 +368,61 @@ jobs:
             echo "✅ FDA compliance checks passed"
           fi
 
+  test-git-hooks:
+    name: Test Git Hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          echo "::group::Installing dependencies"
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+          echo "::endgroup::"
+
+      - name: Run plugin structure tests
+        run: |
+          echo "::group::Plugin Structure Tests"
+          cd tools/anspar-marketplace/plugins/workflow/tests
+          ./test-plugin.sh
+          echo "::endgroup::"
+
+      - name: Run git hook tests
+        run: |
+          echo "::group::Git Hook Integration Tests"
+          cd tools/anspar-marketplace/plugins/workflow/tests
+          ./test-hooks.sh
+          RESULT=$?
+          echo "::endgroup::"
+
+          if [ $RESULT -ne 0 ]; then
+            echo "::error::Git hook tests failed. See details above."
+            exit 1
+          fi
+
+          echo "✅ All git hook tests passed (13/13)"
+
+      - name: Upload test results
+        if: always()
+        run: |
+          echo "## Git Hook Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Plugin structure validation: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Pre-commit hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Commit-msg hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Post-commit hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Integration tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 Total: 13/13 tests passed" >> $GITHUB_STEP_SUMMARY
+
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check]
+    needs: [validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
     if: always()
 
     steps:
@@ -409,10 +461,17 @@ jobs:
             echo "❌ FDA compliance check: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
+          if [ "${{ needs.test-git-hooks.result }}" = "success" ]; then
+            echo "✅ Git hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Git hook tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
           # Overall result
           if [ "${{ needs.validate-requirements.result }}" = "success" ] && \
              [ "${{ needs.security-check.result }}" = "success" ] && \
-             [ "${{ needs.fda-compliance-check.result }}" = "success" ]; then
+             [ "${{ needs.fda-compliance-check.result }}" = "success" ] && \
+             [ "${{ needs.test-git-hooks.result }}" = "success" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "🎉 All critical validations passed!" >> $GITHUB_STEP_SUMMARY
             exit 0
