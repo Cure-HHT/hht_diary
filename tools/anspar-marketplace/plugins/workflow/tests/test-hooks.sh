@@ -339,6 +339,14 @@ main() {
     echo "Git Hooks Test Suite"
     echo "=========================================="
     echo ""
+
+    # Detect CI environment
+    if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+        echo "🔍 Running in CI/CD environment"
+    else
+        echo "🔍 Running locally"
+    fi
+
     echo "Testing git hooks in isolated repositories"
     echo ""
 
@@ -366,6 +374,8 @@ main() {
     test_bypass_with_no_verify
 
     # Print summary
+    echo ""
+    echo "=========================================="
     print_test_summary
 }
 
@@ -374,5 +384,9 @@ main
 exit_code=$?
 
 echo ""
-echo "Test execution complete"
+if [ $exit_code -eq 0 ]; then
+    echo "✅ Test execution complete - all tests passed"
+else
+    echo "❌ Test execution complete - some tests failed"
+fi
 exit $exit_code
