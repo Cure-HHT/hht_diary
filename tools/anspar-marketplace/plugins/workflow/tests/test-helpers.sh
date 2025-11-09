@@ -49,7 +49,7 @@ setup_test_repo() {
 
     # Initialize git repo
     cd "$TEST_REPO_DIR" || exit 1
-    git init -q
+    git init -q --initial-branch=main
     git config user.email "test@example.com"
     git config user.name "Test User"
 
