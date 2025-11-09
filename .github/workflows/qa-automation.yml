@@ -44,7 +44,93 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better git context
 
+      - name: Check if QA tests should run
+        id: check-qa-needed
+        run: |
+          echo "::group::Checking if QA tests are needed for this PR"
+
+          # Check for skip label
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            LABELS="${{ join(github.event.pull_request.labels.*.name, ' ') }}"
+            if echo "$LABELS" | grep -q "skip-qa"; then
+              echo "qa_needed=false" >> $GITHUB_OUTPUT
+              echo "⏭️  PR has 'skip-qa' label - skipping QA tests"
+              echo "::endgroup::"
+              exit 0
+            fi
+          fi
+
+          # Get list of changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            # For workflow_dispatch, always run
+            echo "qa_needed=true" >> $GITHUB_OUTPUT
+            echo "✅ Manual trigger - will run QA tests"
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          # Patterns that require QA tests
+          QA_PATTERNS=(
+            '^packages/'           # Flutter package code
+            '^apps/'              # Flutter app code
+            '^lib/'               # Dart library code (if exists)
+            '^test/'              # Test files
+            '^tests/'             # Test files (alternate location)
+            '^e2e/'               # E2E tests
+            '^database/'          # Database changes might affect tests
+            '^tools/dev-env/'     # Dev environment changes
+            '\.dart$'             # Any Dart file
+            '\.yaml$'             # pubspec.yaml or other config
+            'docker-compose'      # Docker compose changes
+            'Dockerfile'          # Dockerfile changes
+            '^\.github/workflows/qa-automation\.yml$'  # This workflow itself
+          )
+
+          # Check if any changed file matches QA patterns
+          QA_NEEDED=false
+          for pattern in "${QA_PATTERNS[@]}"; do
+            if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
+              QA_NEEDED=true
+              echo "✅ Found changes matching: $pattern"
+              break
+            fi
+          done
+
+          if [ "$QA_NEEDED" = "true" ]; then
+            echo "qa_needed=true" >> $GITHUB_OUTPUT
+            echo "✅ QA tests are needed for this PR"
+          else
+            echo "qa_needed=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No QA-relevant changes detected - skipping tests"
+            echo ""
+            echo "Changed files:"
+            echo "$CHANGED_FILES" | sed 's/^/  - /'
+            echo ""
+            echo "💡 To force QA tests, add the 'run-qa' label to this PR"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Skip QA tests (no relevant changes)
+        if: steps.check-qa-needed.outputs.qa_needed == 'false'
+        run: |
+          echo "::notice::Skipping QA tests - no app/test code changes detected"
+          echo "## ⏭️ QA Tests Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No QA-relevant changes detected in this PR." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**QA tests run when changes affect:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Flutter/Dart code (packages/, apps/, lib/)" >> $GITHUB_STEP_SUMMARY
+          echo "- Test files (test/, tests/, e2e/)" >> $GITHUB_STEP_SUMMARY
+          echo "- Database schema (database/)" >> $GITHUB_STEP_SUMMARY
+          echo "- Dev environment (tools/dev-env/, Docker files)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 To force QA tests, add the 'run-qa' label to this PR" >> $GITHUB_STEP_SUMMARY
+
       - name: Detect Docker file changes
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: docker-changes
         run: |
           # Check if any Docker-related files changed in THIS PUSH (not entire PR vs main)
@@ -58,7 +144,7 @@ jobs:
           fi
 
       - name: Free up disk space
-        if: steps.docker-changes.outputs.changed == 'true'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'true'
         run: |
           echo "Disk space before cleanup:"
           df -h
@@ -73,6 +159,7 @@ jobs:
           df -h
 
       - name: Log in to GitHub Container Registry
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -80,7 +167,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull pre-built images from GHCR
-        if: steps.docker-changes.outputs.changed == 'false'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false'
         id: pull-images
         continue-on-error: true
         run: |
@@ -102,7 +189,7 @@ jobs:
           echo "Images pulled and tagged successfully"
 
       - name: Free up disk space for build (if pulling failed)
-        if: steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
         run: |
           echo "Pull failed, need to build images. Freeing up disk space..."
           docker image prune -af
@@ -113,11 +200,11 @@ jobs:
           sudo rm -rf /usr/local/share/boost
 
       - name: Set up Docker Buildx
-        if: steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker images to GHCR
-        if: steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
         working-directory: tools/dev-env
         run: |
           echo "Docker files changed - building from source with registry caching"
@@ -157,17 +244,20 @@ jobs:
           echo "All images built and pushed to GHCR successfully"
 
       - name: Start QA environment
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up --no-build -d qa
           docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
       - name: Wait for QA container to be healthy
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
           timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa /usr/local/bin/health-check.sh; do sleep 2; done'
 
       - name: Prepare repository in QA container
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
@@ -183,6 +273,7 @@ jobs:
           "
 
       - name: Authenticate with Doppler (if configured)
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         working-directory: tools/dev-env
         run: |
           if [ -n "${{ secrets.DOPPLER_TOKEN_QA }}" ]; then
@@ -193,6 +284,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Flutter unit tests
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: flutter-tests
         working-directory: tools/dev-env
         run: |
@@ -207,6 +299,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Playwright E2E tests
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: playwright-tests
         working-directory: tools/dev-env
         run: |
@@ -220,6 +313,7 @@ jobs:
         continue-on-error: true
 
       - name: Run comprehensive QA suite
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: qa-suite
         working-directory: tools/dev-env
         env:
