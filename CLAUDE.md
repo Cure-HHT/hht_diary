@@ -28,7 +28,7 @@ This is a multi-sponsor Clinical Trial Diary Platform with strict FDA 21 CFR Par
 ### 2. Workflow Enforcement
 - **Before making any commits**, you MUST claim a ticket using the workflow plugin:
   ```bash
-  tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
+  tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
   ```
 - The workflow plugin enforces ticket claiming via git hooks
 - Use `/workflow:claim CUR-XXX` slash command for quick ticket claiming
@@ -111,32 +111,32 @@ python3 tools/requirements/generate_traceability.py --format html
 
 ```bash
 # Claim a ticket (core functionality)
-tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
+tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
 
 # Claim a ticket (sponsor-specific)
-tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX human carina
+tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-XXX human carina
 
 # Release ticket when done
-tools/anspar-marketplace/plugins/workflow/scripts/release-ticket.sh "Work complete"
+tools/anspar-cc-plugins/plugins/workflow/scripts/release-ticket.sh "Work complete"
 
 # Switch to different ticket
-tools/anspar-marketplace/plugins/workflow/scripts/switch-ticket.sh CUR-YYY "Reason"
+tools/anspar-cc-plugins/plugins/workflow/scripts/switch-ticket.sh CUR-YYY "Reason"
 
 # Resume a previously paused ticket
-tools/anspar-marketplace/plugins/workflow/scripts/resume-ticket.sh
+tools/anspar-cc-plugins/plugins/workflow/scripts/resume-ticket.sh
 
 # View workflow history
-tools/anspar-marketplace/plugins/workflow/scripts/list-history.sh
+tools/anspar-cc-plugins/plugins/workflow/scripts/list-history.sh
 ```
 
 ### Linear API & Requirement Traceability
 
 ```bash
 # Fetch tickets
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240
 
 # Create tickets from requirements (dry run)
-node tools/anspar-marketplace/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
+node tools/anspar-cc-plugins/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
 
 # Use slash commands
 /req REQ-p00042      # Show requirement details and associated tickets
@@ -190,7 +190,7 @@ cd tools/dev-env
 - See `database/rls_policies.sql` and `spec/prd-security.md`
 
 ### Plugin Architecture
-- Claude Code plugins in `tools/anspar-marketplace/plugins/`
+- Claude Code plugins in `tools/anspar-cc-plugins/plugins/`
 - Each plugin has single responsibility
 - Plugins communicate via orchestrator pattern
 - See individual plugin READMEs for details
@@ -201,7 +201,7 @@ cd tools/dev-env
 
 1. **Claim a ticket** (required before commits):
    ```bash
-   tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
+   tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
    ```
 
 2. **Check if requirements exist** or create new ones:
@@ -232,7 +232,7 @@ cd tools/dev-env
 
 6. **Release ticket** when done:
    ```bash
-   tools/anspar-marketplace/plugins/workflow/scripts/release-ticket.sh "Work complete"
+   tools/anspar-cc-plugins/plugins/workflow/scripts/release-ticket.sh "Work complete"
    ```
 
 ### Commit Message Format
@@ -268,7 +268,7 @@ Format: `ADR-{number}-{kebab-case-title}.md`
 | Requirements index | `spec/INDEX.md` |
 | Requirements validation | `tools/requirements/validate_requirements.py` |
 | Traceability matrix | `tools/requirements/generate_traceability.py` |
-| Workflow scripts | `tools/anspar-marketplace/plugins/workflow/scripts/` |
+| Workflow scripts | `tools/anspar-cc-plugins/plugins/workflow/scripts/` |
 | Git hooks | `.githooks/` |
 | Database schema | `database/schema.sql` |
 | Event store triggers | `database/triggers.sql` |
@@ -283,32 +283,32 @@ Format: `ADR-{number}-{kebab-case-title}.md`
 - Validates REQ references in commit messages
 - Tracks per-worktree state in `.git/WORKFLOW_STATE`
 - Supports paused/resumed tickets
-- Location: `tools/anspar-marketplace/plugins/workflow/`
+- Location: `tools/anspar-cc-plugins/plugins/workflow/`
 
 ### linear-api Plugin
 - Generic Linear API client
 - Fetch/create/update Linear tickets
 - Reusable across projects
-- Location: `tools/anspar-marketplace/plugins/linear-api/`
+- Location: `tools/anspar-cc-plugins/plugins/linear-api/`
 
 ### requirement-traceability Plugin
 - Requirement-to-ticket traceability
 - Creates tickets for requirements
 - Maintains bidirectional mappings
 - Slash command: `/req`
-- Location: `tools/anspar-marketplace/plugins/requirement-traceability/`
+- Location: `tools/anspar-cc-plugins/plugins/requirement-traceability/`
 
 ### simple-requirements Plugin
 - Requirement format validation
 - Change detection and tracking
 - REQ reference parsing
-- Location: `tools/anspar-marketplace/plugins/simple-requirements/`
+- Location: `tools/anspar-cc-plugins/plugins/simple-requirements/`
 
 ### spec-compliance Plugin
 - Enforces spec/ directory guidelines
 - Validates audience scope rules (prd/ops/dev)
 - Prevents code examples in PRD files
-- Location: `tools/anspar-marketplace/plugins/spec-compliance/`
+- Location: `tools/anspar-cc-plugins/plugins/spec-compliance/`
 
 ## Testing & Validation
 
@@ -361,7 +361,7 @@ See `spec/ops-database-setup.md` for complete deployment guide.
 ### Error: No active ticket claimed
 **Solution**: Claim a ticket before committing:
 ```bash
-tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
+tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
 ```
 
 ### Error: Commit message must contain REQ reference
