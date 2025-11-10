@@ -26,6 +26,12 @@
       "source": "./plugins/workflow",
       "description": "Enhanced git workflow enforcement for requirement traceability and ticket lifecycle management",
       "version": "3.0.0"
+    },
+    {
+      "name": "simple-requirements",
+      "source": "./plugins/simple-requirements",
+      "description": "Comprehensive requirement management: validation, change tracking, and implementation verification",
+      "version": "2.0.0"
     }
   ],
   "hooks": "./hooks/hooks.json",
