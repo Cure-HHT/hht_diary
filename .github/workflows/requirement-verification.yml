@@ -65,11 +65,8 @@ jobs:
         if: steps.detect.outputs.total > 0
         run: |
           set -e
-          if ! python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/generate-report.py \
-            --from-tracking --format markdown --output verification-report.md; then
-            echo "⚠️ Warning: generate-report.py failed, creating placeholder" >&2
-            echo "No tracking data available yet" > verification-report.md
-          fi
+          python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/generate-report.py \
+            --from-tracking --format markdown --output verification-report.md
 
       - name: Upload verification report
         if: steps.detect.outputs.total > 0
