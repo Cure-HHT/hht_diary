@@ -975,6 +975,70 @@ This plugin is designed to be tracker-agnostic. Linear integration is provided t
 - Jira (planned)
 - GitHub Issues (planned)
 
+## Testing
+
+The workflow plugin includes a comprehensive automated test suite for git hooks.
+
+### Running Tests
+
+**Run all hook tests**:
+```bash
+cd tools/anspar-marketplace/plugins/workflow/tests
+./test-hooks.sh
+```
+
+**Run plugin structure tests**:
+```bash
+./test-plugin.sh
+```
+
+**Run all tests**:
+```bash
+./test-plugin.sh && ./test-hooks.sh
+```
+
+### Test Coverage
+
+The test suite validates:
+- ✅ Pre-commit hook blocks commits without active ticket
+- ✅ Pre-commit hook enforces branch protection (main/master)
+- ✅ Commit-msg hook validates REQ reference format
+- ✅ Commit-msg hook blocks commits without Implements:/Fixes:
+- ✅ Post-commit hook records workflow history
+- ✅ Complete workflow integration (ticket claim → commit)
+- ✅ Bypass mechanism (--no-verify flag)
+- ✅ Spec file changes trigger matrix regeneration
+
+### Test Architecture
+
+Each test runs in an **isolated temporary git repository**:
+- Fresh git initialization with copied hooks
+- Independent workflow state per test
+- Automatic cleanup after test completion
+- No interference with actual repository
+
+See [tests/README.md](tests/README.md) for complete testing documentation.
+
+### CI/CD Integration
+
+Add to your CI pipeline:
+```yaml
+# .github/workflows/pr-validation.yml
+- name: Test git hooks
+  run: |
+    cd tools/anspar-marketplace/plugins/workflow/tests
+    ./test-hooks.sh
+```
+
+### Requirements Coverage
+
+The test suite validates **REQ-d00018** (Git Hook Implementation):
+- Pre-commit validation
+- Traceability matrix regeneration
+- Error blocking and messaging
+- Bypass mechanism
+- Workflow history recording
+
 ## Troubleshooting
 
 ### Error: No active ticket
