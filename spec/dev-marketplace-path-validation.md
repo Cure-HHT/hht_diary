@@ -57,9 +57,9 @@ Path validation tooling for Claude Code plugin configuration files to verify tha
 
 ## Implementation
 
-- **Location**: Extends `tools/anspar-marketplace/plugins/plugin-expert/utilities/validate-plugin-json.sh`
+- **Location**: Extends `tools/anspar-cc-plugins/plugins/plugin-wizard/scripts/utils/validate-plugin-json.sh`
 - **Files Modified**:
-  - `utilities/validate-plugin-json.sh` - Added path validation logic
+  - `scripts/utils/validate-plugin-json.sh` - Added path validation logic
   - `README.md` - Documented path validation feature
 - **New Test Fixtures**:
   - `tests/fixtures/invalid/bad-paths/plugin.json` - Invalid path test case

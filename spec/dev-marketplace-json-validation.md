@@ -74,9 +74,9 @@ Automated validation tooling for Claude Code plugin configuration files (plugin.
 
 ## Implementation
 
-- **Location**: `tools/anspar-marketplace/plugins/plugin-expert/`
+- **Location**: `tools/anspar-cc-plugins/plugins/plugin-wizard/`
 - **Files**:
-  - `utilities/validate-plugin-json.sh` - Validation script
+  - `scripts/utils/validate-plugin-json.sh` - Validation script
   - `hooks/before-tool-use` - PreToolUse hook (updated)
   - `hooks/after-tool-use` - PostToolUse hook (new)
   - `hooks/hooks.json` - Hook registration (updated)
