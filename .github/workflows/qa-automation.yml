@@ -407,10 +407,12 @@ jobs:
             let conclusion = 'success';
             let summary = 'All QA tests passed';
 
-            // Check for test failures
-            if ('${{ steps.qa-suite.outcome }}' !== 'success') {
+            // Check for test failures (skipped is OK, only failure is bad)
+            if ('${{ steps.qa-suite.outcome }}' === 'failure') {
               conclusion = 'failure';
               summary = 'Some QA tests failed';
+            } else if ('${{ steps.qa-suite.outcome }}' === 'skipped') {
+              summary = 'QA tests skipped (no relevant changes)';
             }
 
             // Read detailed output if available
