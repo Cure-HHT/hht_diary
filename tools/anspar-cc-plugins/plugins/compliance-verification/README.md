@@ -169,7 +169,7 @@ Each subsystem has associated keywords that trigger inclusion:
 # Output: changed-requirement.json
 
 # 2. Create verification ticket
-node tools/anspar-marketplace/plugins/compliance-verification/scripts/create-verification.js \
+node tools/anspar-cc-plugins/plugins/compliance-verification/scripts/create-verification.js \
   '{"req_id":"d00027","old_hash":"a1b2c3","new_hash":"d4e5f6","title":"Event sourcing with audit trail","file":"dev-database.md"}'
 
 # Output:
@@ -187,15 +187,15 @@ node tools/anspar-marketplace/plugins/compliance-verification/scripts/create-ver
 # }
 
 # 3. Fetch tickets needing subsystem checklists
-bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
   --query="label:ai:new" > /tmp/ai_new_tickets.json
 
 # 4. Add subsystem checklists (dry run first)
-node tools/anspar-marketplace/plugins/compliance-verification/scripts/add-subsystem-checklist.js \
+node tools/anspar-cc-plugins/plugins/compliance-verification/scripts/add-subsystem-checklist.js \
   --token=$LINEAR_API_TOKEN --dry-run
 
 # 5. Execute for real
-node tools/anspar-marketplace/plugins/compliance-verification/scripts/add-subsystem-checklist.js \
+node tools/anspar-cc-plugins/plugins/compliance-verification/scripts/add-subsystem-checklist.js \
   --token=$LINEAR_API_TOKEN
 
 # Output:
@@ -320,12 +320,12 @@ Claim verification tickets before starting work:
 
 ```bash
 # Claim verification ticket
-tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-123
+tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-123
 
 # Do verification work...
 
 # Release ticket when complete
-tools/anspar-marketplace/plugins/workflow/scripts/release-ticket.sh "Verification complete"
+tools/anspar-cc-plugins/plugins/workflow/scripts/release-ticket.sh "Verification complete"
 ```
 
 ### linear-api Plugin
@@ -414,7 +414,7 @@ Possible causes:
 ```
 Error: Linear API error: 401 Unauthorized
 Solution: Verify LINEAR_API_TOKEN is valid
-         Run: node tools/anspar-marketplace/plugins/linear-integration/scripts/test-config.js
+         Run: node tools/anspar-cc-plugins/plugins/linear-integration/scripts/test-config.js
 ```
 
 ### Rate Limiting
@@ -453,7 +453,7 @@ Keep `untracked-notes/outdated-implementations.json` in sync:
 
 ```bash
 # After verification complete
-python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/mark-verified.py d00027
+python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/mark-verified.py d00027
 ```
 
 ### 5. Document Verification Decisions

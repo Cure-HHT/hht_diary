@@ -159,7 +159,7 @@ async function buildTicketDescription(reqData) {
     lines.push('1. **Review Requirement**');
     lines.push(`   \`\`\`bash`);
     lines.push(`   # View full requirement text:`);
-    lines.push(`   python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/get-requirement.py ${reqData.req_id}`);
+    lines.push(`   python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/get-requirement.py ${reqData.req_id}`);
     lines.push(`   \`\`\``);
     lines.push('');
 
@@ -180,7 +180,7 @@ async function buildTicketDescription(reqData) {
     lines.push('4. **Mark as Verified**');
     lines.push(`   \`\`\`bash`);
     lines.push(`   # After verification, remove from tracking:`);
-    lines.push(`   python3 tools/anspar-marketplace/plugins/simple-requirements/scripts/mark-verified.py ${reqData.req_id}`);
+    lines.push(`   python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/mark-verified.py ${reqData.req_id}`);
     lines.push(`   \`\`\``);
     lines.push('');
 
@@ -297,7 +297,7 @@ async function main() {
 
         if (error.message.includes('team')) {
             console.error('\nRun the initialization to discover your team:');
-            console.error('  node tools/anspar-marketplace/plugins/linear-api/scripts/test-config.js');
+            console.error('  node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js');
         }
 
         process.exit(1);

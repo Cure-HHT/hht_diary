@@ -74,7 +74,7 @@ Transition to phase: **{{phase}}**
 Run the activation script:
 
 ```bash
-tools/anspar-marketplace/plugins/workflow/scripts/start-phase.sh production
+tools/anspar-cc-plugins/plugins/workflow/scripts/start-phase.sh production
 ```
 
 This script will:

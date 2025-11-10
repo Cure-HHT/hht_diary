@@ -28,7 +28,7 @@ set -e
 # We need to find the actual plugin directory
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-PLUGIN_DIR="$REPO_ROOT/tools/anspar-marketplace/plugins/workflow"
+PLUGIN_DIR="$REPO_ROOT/tools/anspar-cc-plugins/plugins/workflow"
 
 if [ ! -d "$PLUGIN_DIR" ]; then
     echo "⚠️  WARNING: workflow plugin not found: $PLUGIN_DIR" >&2

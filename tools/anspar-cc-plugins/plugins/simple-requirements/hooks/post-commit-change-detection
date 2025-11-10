@@ -8,7 +8,7 @@
 # the tracking file for outdated implementations.
 #
 # Plugin: simple-requirements v1.0.0
-# Location: tools/anspar-marketplace/plugins/simple-requirements/
+# Location: tools/anspar-cc-plugins/plugins/simple-requirements/
 # Implementation:
 #   - scripts/detect-changes.py (detect requirement changes)
 #   - scripts/update-tracking.py (maintain tracking file)
@@ -108,7 +108,7 @@ if python3 "$UPDATE_SCRIPT" --input "$TEMP_CHANGES"; then
         echo -e "${BLUE}🎫 Creating Linear verification tickets...${NC}"
 
         # Check if linear-integration plugin is available
-        LINEAR_SCRIPT="tools/anspar-marketplace/plugins/linear-integration/scripts/create-verification-ticket.js"
+        LINEAR_SCRIPT="tools/anspar-cc-plugins/plugins/linear-integration/scripts/create-verification-ticket.js"
 
         if [ -f "$LINEAR_SCRIPT" ]; then
             # Create ticket for each changed requirement

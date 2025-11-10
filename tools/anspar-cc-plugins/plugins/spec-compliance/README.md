@@ -30,7 +30,7 @@ The Anspar Spec Compliance plugin enforces strict adherence to specification gui
 ```bash
 # Clone the repository
 git clone https://github.com/anspar/diary.git
-cd diary/tools/anspar-marketplace/plugins/spec-compliance
+cd diary/tools/anspar-cc-plugins/plugins/spec-compliance
 
 # Make scripts executable
 chmod +x hooks/pre-commit-spec-compliance
@@ -61,7 +61,7 @@ Add the spec-compliance hook to your main pre-commit hook at `.githooks/pre-comm
 
 ```bash
 # Spec Compliance Validation (Plugin)
-SPEC_COMPLIANCE_HOOK="tools/anspar-marketplace/plugins/spec-compliance/hooks/pre-commit-spec-compliance"
+SPEC_COMPLIANCE_HOOK="tools/anspar-cc-plugins/plugins/spec-compliance/hooks/pre-commit-spec-compliance"
 if [ -f "$SPEC_COMPLIANCE_HOOK" ]; then
     "$SPEC_COMPLIANCE_HOOK" || exit 1
 fi
@@ -71,7 +71,7 @@ fi
 
 ```bash
 # Test the validation script
-./tools/anspar-marketplace/plugins/spec-compliance/scripts/validate-spec-compliance.sh
+./tools/anspar-cc-plugins/plugins/spec-compliance/scripts/validate-spec-compliance.sh
 
 # Test with a spec file
 git add spec/prd-app.md
@@ -384,7 +384,7 @@ git config core.hooksPath
 git config core.hooksPath .githooks
 
 # Make hook executable
-chmod +x tools/anspar-marketplace/plugins/spec-compliance/hooks/pre-commit-spec-compliance
+chmod +x tools/anspar-cc-plugins/plugins/spec-compliance/hooks/pre-commit-spec-compliance
 ```
 
 ### Agent Not Found in Claude Code
@@ -450,8 +450,8 @@ Add to your CI pipeline:
 # .github/workflows/validate.yml
 - name: Validate Spec Compliance
   run: |
-    chmod +x tools/anspar-marketplace/plugins/spec-compliance/scripts/validate-spec-compliance.sh
-    ./tools/anspar-marketplace/plugins/spec-compliance/scripts/validate-spec-compliance.sh
+    chmod +x tools/anspar-cc-plugins/plugins/spec-compliance/scripts/validate-spec-compliance.sh
+    ./tools/anspar-cc-plugins/plugins/spec-compliance/scripts/validate-spec-compliance.sh
 ```
 
 ## License
@@ -481,4 +481,4 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 For issues, questions, or contributions:
 - **Repository**: https://github.com/anspar/diary
-- **Plugin Path**: `tools/anspar-marketplace/plugins/spec-compliance`
+- **Plugin Path**: `tools/anspar-cc-plugins/plugins/spec-compliance`

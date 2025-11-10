@@ -117,7 +117,7 @@ Current active ticket: $ACTIVE_TICKET
 Consider:
 1. Is this work part of $ACTIVE_TICKET? → Continue as-is
 2. Different ticket entirely? → Switch tickets:
-   tools/anspar-marketplace/plugins/workflow/scripts/switch-ticket.sh NEW-TICKET \"reason\"
+   tools/anspar-cc-plugins/plugins/workflow/scripts/switch-ticket.sh NEW-TICKET \"reason\"
 3. Quick fix/investigation? → Maybe continue, be mindful of scope
 
 This is a gentle reminder - you decide the scope."
@@ -135,7 +135,7 @@ You're about to start implementation work without claiming a ticket.
    with smart defaults from your git context, then offer to claim it.
 
 2. **Claim an existing ticket**:
-   tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh TICKET-ID
+   tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh TICKET-ID
 
 3. **Explore first**:
    Continue without claiming - git hooks will enforce at commit time."

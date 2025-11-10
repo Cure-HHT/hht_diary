@@ -116,10 +116,10 @@ Add a convenient git alias for easy access:
 
 ```bash
 # Add to your git config
-git config alias.cm '!bash tools/anspar-marketplace/plugins/workflow/scripts/generate-commit-msg.sh'
+git config alias.cm '!bash tools/anspar-cc-plugins/plugins/workflow/scripts/generate-commit-msg.sh'
 
 # Or add with options
-git config alias.cmf '!bash tools/anspar-marketplace/plugins/workflow/scripts/generate-commit-msg.sh --fetch'
+git config alias.cmf '!bash tools/anspar-cc-plugins/plugins/workflow/scripts/generate-commit-msg.sh --fetch'
 ```
 
 Then use:
@@ -244,14 +244,14 @@ Examples:
 
 ```bash
 # Generate and commit in one line
-git commit -m "$(tools/anspar-marketplace/plugins/workflow/scripts/generate-commit-msg.sh --summary 'Fix bug in parser')"
+git commit -m "$(tools/anspar-cc-plugins/plugins/workflow/scripts/generate-commit-msg.sh --summary 'Fix bug in parser')"
 ```
 
 ### Example 2: Interactive Editing
 
 ```bash
 # Generate template and edit before committing
-tools/anspar-marketplace/plugins/workflow/scripts/generate-commit-msg.sh --editor
+tools/anspar-cc-plugins/plugins/workflow/scripts/generate-commit-msg.sh --editor
 # Edit the message, save and close
 git commit -F /tmp/commit-msg.XXXXXX
 ```
@@ -260,10 +260,10 @@ git commit -F /tmp/commit-msg.XXXXXX
 
 ```bash
 # Fetch latest requirements from Linear
-tools/anspar-marketplace/plugins/workflow/scripts/fetch-ticket-reqs.sh
+tools/anspar-cc-plugins/plugins/workflow/scripts/fetch-ticket-reqs.sh
 
 # Then generate commit message
-tools/anspar-marketplace/plugins/workflow/scripts/generate-commit-msg.sh
+tools/anspar-cc-plugins/plugins/workflow/scripts/generate-commit-msg.sh
 ```
 
 ## Troubleshooting

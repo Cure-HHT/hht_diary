@@ -240,6 +240,10 @@ Options:
 Choose an option and retry.
 ```
 
+### Known Issue: Stale plugin references (Claude Code #9537)
+If you see plugin loading errors for removed marketplaces, manually edit `~/.claude/settings.json`
+to remove stale `enabledPlugins` entries. The `/plugin` uninstall command doesn't clean these up.
+
 ## The 2-Phase Workflow
 
 ### Phase 1 (User Does This):

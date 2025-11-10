@@ -117,7 +117,7 @@ Template Format:
 
 Git Alias:
   # Add to your git config for easy access
-  git config alias.cm '!f() { bash tools/anspar-marketplace/plugins/workflow/scripts/generate-commit-msg.sh "$@"; }; f'
+  git config alias.cm '!f() { bash tools/anspar-cc-plugins/plugins/workflow/scripts/generate-commit-msg.sh "$@"; }; f'
 
   # Then use:
   git cm

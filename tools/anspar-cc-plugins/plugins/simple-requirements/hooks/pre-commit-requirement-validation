@@ -7,7 +7,7 @@
 # It validates all requirements in spec/ before allowing commits.
 #
 # Plugin: simple-requirements v1.0.0
-# Location: tools/anspar-marketplace/plugins/simple-requirements/
+# Location: tools/anspar-cc-plugins/plugins/simple-requirements/
 # Implementation: tools/requirements/validate_requirements.py (shared tool)
 #
 # To bypass (NOT RECOMMENDED):

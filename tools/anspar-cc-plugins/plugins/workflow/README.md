@@ -219,8 +219,8 @@ investigating and create a ticket when ready.
 
 ```bash
 # From repository root
-chmod +x tools/anspar-marketplace/plugins/workflow/scripts/*.sh
-chmod +x tools/anspar-marketplace/plugins/workflow/hooks/*
+chmod +x tools/anspar-cc-plugins/plugins/workflow/scripts/*.sh
+chmod +x tools/anspar-cc-plugins/plugins/workflow/hooks/*
 ```
 
 ### 2. Configure Git Hooks
@@ -238,7 +238,7 @@ Add the workflow hooks to your main pre-commit hook at `.githooks/pre-commit`:
 
 ```bash
 # Workflow Enforcement (Plugin)
-WORKFLOW_PRECOMMIT_HOOK="tools/anspar-marketplace/plugins/workflow/hooks/pre-commit"
+WORKFLOW_PRECOMMIT_HOOK="tools/anspar-cc-plugins/plugins/workflow/hooks/pre-commit"
 if [ -f "$WORKFLOW_PRECOMMIT_HOOK" ]; then
     "$WORKFLOW_PRECOMMIT_HOOK" || exit 1
 fi
@@ -253,7 +253,7 @@ Add the workflow hook to `.githooks/commit-msg`:
 # Git Hook: commit-msg
 
 # Workflow Enforcement (Plugin)
-WORKFLOW_COMMITMSG_HOOK="tools/anspar-marketplace/plugins/workflow/hooks/commit-msg"
+WORKFLOW_COMMITMSG_HOOK="tools/anspar-cc-plugins/plugins/workflow/hooks/commit-msg"
 if [ -f "$WORKFLOW_COMMITMSG_HOOK" ]; then
     "$WORKFLOW_COMMITMSG_HOOK" "$1" || exit 1
 fi
@@ -275,7 +275,7 @@ Create `.githooks/post-commit`:
 # Git Hook: post-commit
 
 # Workflow State Tracking (Plugin)
-WORKFLOW_POSTCOMMIT_HOOK="tools/anspar-marketplace/plugins/workflow/hooks/post-commit"
+WORKFLOW_POSTCOMMIT_HOOK="tools/anspar-cc-plugins/plugins/workflow/hooks/post-commit"
 if [ -f "$WORKFLOW_POSTCOMMIT_HOOK" ]; then
     "$WORKFLOW_POSTCOMMIT_HOOK"
 fi
@@ -423,7 +423,7 @@ The workflow plugin supports tracking sponsor context to distinguish between cor
 
 ```bash
 # 1. Claim a ticket
-cd tools/anspar-marketplace/plugins/workflow
+cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh CUR-262
 
 # Output:
@@ -454,7 +454,7 @@ Implements: REQ-d00027
 # [feature-xyz abc123] Implement workflow plugin
 
 # 4. When done with ticket
-cd tools/anspar-marketplace/plugins/workflow
+cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/release-ticket.sh "Work complete"
 
 # Output:
@@ -821,17 +821,17 @@ Legend:
 ```bash
 # Worktree 1: Feature A
 cd ~/diary-worktrees/feature-a
-./tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-262
+./tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-262
 # Work on feature A...
 
 # Worktree 2: Feature B (different ticket)
 cd ~/diary-worktrees/feature-b
-./tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-263
+./tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-263
 # Work on feature B...
 
 # Worktree 3: Also feature A (same ticket as worktree 1)
 cd ~/diary-worktrees/feature-a-fix
-./tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-262
+./tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-262
 # Work on second PR for feature A...
 
 # Each worktree has independent state!
@@ -865,7 +865,7 @@ cd ~/diary-worktrees/feature-a-fix
 ❌ ERROR: No active ticket claimed for this worktree
 
 Before committing, claim a ticket:
-  cd tools/anspar-marketplace/plugins/workflow
+  cd tools/anspar-cc-plugins/plugins/workflow
   ./scripts/claim-ticket.sh <TICKET-ID>
 ```
 
@@ -983,7 +983,7 @@ This plugin is designed to be tracker-agnostic. Linear integration is provided t
 
 **Solution**:
 ```bash
-cd tools/anspar-marketplace/plugins/workflow
+cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh <TICKET-ID>
 ```
 
@@ -1149,15 +1149,15 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 - **Workflow State Schema**: [docs/workflow-state-schema.md](docs/workflow-state-schema.md)
 - **Requirement Format**: See spec/requirements-format.md in parent project
-- **Linear Integration**: tools/anspar-marketplace/plugins/linear-integration
+- **Linear Integration**: tools/anspar-cc-plugins/plugins/linear-integration
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
-- **Original Workflow Plugin**: tools/anspar-marketplace/plugins/workflow
+- **Original Workflow Plugin**: tools/anspar-cc-plugins/plugins/workflow
 
 ## Support
 
 For issues, questions, or contributions:
 - **Repository**: https://github.com/anspar/diary
-- **Plugin Path**: `tools/anspar-marketplace/plugins/workflow`
+- **Plugin Path**: `tools/anspar-cc-plugins/plugins/workflow`
 
 ## Commands
 

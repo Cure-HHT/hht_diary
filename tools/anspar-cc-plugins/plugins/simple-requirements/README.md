@@ -53,7 +53,7 @@ Add the requirement-validation hook to your main pre-commit hook at `.githooks/p
 
 ```bash
 # Requirement Validation (Plugin)
-REQUIREMENT_VALIDATION_HOOK="tools/anspar-marketplace/plugins/simple-requirements/hooks/pre-commit-requirement-validation"
+REQUIREMENT_VALIDATION_HOOK="tools/anspar-cc-plugins/plugins/simple-requirements/hooks/pre-commit-requirement-validation"
 if [ -f "$REQUIREMENT_VALIDATION_HOOK" ]; then
     "$REQUIREMENT_VALIDATION_HOOK" || exit 1
 fi
@@ -470,7 +470,7 @@ git config core.hooksPath
 git config core.hooksPath .githooks
 
 # Make hook executable
-chmod +x tools/anspar-marketplace/plugins/simple-requirements/hooks/pre-commit-requirement-validation
+chmod +x tools/anspar-cc-plugins/plugins/simple-requirements/hooks/pre-commit-requirement-validation
 ```
 
 ### Python Script Not Found
@@ -552,11 +552,11 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 - **Requirement Format**: See spec/requirements-format.md in parent project
 - **Validation Script**: `tools/requirements/validate_requirements.py`
-- **Traceability Matrix**: `tools/anspar-marketplace/plugins/traceability-matrix`
+- **Traceability Matrix**: `tools/anspar-cc-plugins/plugins/traceability-matrix`
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
 
 ## Support
 
 For issues, questions, or contributions:
 - **Repository**: https://github.com/anspar/diary
-- **Plugin Path**: `tools/anspar-marketplace/plugins/simple-requirements`
+- **Plugin Path**: `tools/anspar-cc-plugins/plugins/simple-requirements`

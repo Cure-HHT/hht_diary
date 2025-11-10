@@ -256,7 +256,7 @@ When errors occur:
 
 ## Notes
 
-- All scripts are located in: `tools/anspar-marketplace/plugins/simple-requirements/scripts/`
+- All scripts are located in: `tools/anspar-cc-plugins/plugins/simple-requirements/scripts/`
 - Tracking file location: `untracked-notes/outdated-implementations.json`
 - INDEX.md location: `spec/INDEX.md`
 - Scripts work from any directory (use repo_root path resolution)
@@ -264,7 +264,7 @@ When errors occur:
 
 ## References
 
-- Plugin location: `tools/anspar-marketplace/plugins/simple-requirements/`
+- Plugin location: `tools/anspar-cc-plugins/plugins/simple-requirements/`
 - Requirement format: `spec/README.md`
 - Validation system: `tools/requirements/validate_requirements.py`
 - Traceability: `tools/requirements/generate_traceability.py`

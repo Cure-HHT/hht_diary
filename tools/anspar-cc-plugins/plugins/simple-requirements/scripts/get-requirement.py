@@ -21,7 +21,7 @@ import argparse
 from pathlib import Path
 
 # Add tools/requirements to Python path for imports
-# __file__ is in: tools/anspar-marketplace/plugins/simple-requirements/scripts/get-requirement.py
+# __file__ is in: tools/anspar-cc-plugins/plugins/simple-requirements/scripts/get-requirement.py
 # repo_root is 5 levels up
 repo_root = Path(__file__).resolve().parents[5]
 sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))

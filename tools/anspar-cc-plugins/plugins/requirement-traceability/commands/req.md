@@ -243,7 +243,7 @@ The cache (`.requirement-cache.json`) stores requirement-to-ticket mappings.
 
 **How to refresh**:
 ```bash
-node tools/anspar-marketplace/plugins/requirement-traceability/scripts/create-req-tickets.js --refresh-cache --dry-run
+node tools/anspar-cc-plugins/plugins/requirement-traceability/scripts/create-req-tickets.js --refresh-cache --dry-run
 ```
 
 ## Best Practices

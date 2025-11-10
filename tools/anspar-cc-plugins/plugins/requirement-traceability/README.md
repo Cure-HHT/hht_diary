@@ -119,7 +119,7 @@ This plugin depends on the `linear-api` plugin for:
 **Installation Check**:
 Before using this plugin, verify `linear-api` is installed:
 ```bash
-ls tools/anspar-marketplace/plugins/linear-api/
+ls tools/anspar-cc-plugins/plugins/linear-api/
 ```
 
 ## Usage
@@ -340,7 +340,7 @@ Shows usage summary and recent requirements.
 
 1. **linear-api plugin installed**:
    ```bash
-   ls tools/anspar-marketplace/plugins/linear-api/
+   ls tools/anspar-cc-plugins/plugins/linear-api/
    ```
 
 2. **LINEAR_API_TOKEN environment variable**:
@@ -352,7 +352,7 @@ Shows usage summary and recent requirements.
 
 3. **Node.js dependencies** (if not already installed):
    ```bash
-   cd tools/anspar-marketplace/plugins/linear-api
+   cd tools/anspar-cc-plugins/plugins/linear-api
    npm install
    ```
 
@@ -362,8 +362,8 @@ Add to `.claude-plugins.json` (or let Claude Code auto-discover):
 ```json
 {
   "plugins": [
-    "tools/anspar-marketplace/plugins/linear-api",
-    "tools/anspar-marketplace/plugins/requirement-traceability"
+    "tools/anspar-cc-plugins/plugins/linear-api",
+    "tools/anspar-cc-plugins/plugins/requirement-traceability"
   ]
 }
 ```
@@ -372,7 +372,7 @@ Add to `.claude-plugins.json` (or let Claude Code auto-discover):
 
 ```bash
 # Test cache creation
-node tools/anspar-marketplace/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
+node tools/anspar-cc-plugins/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
 
 # Expected output: Cache creation and requirement parsing
 ```
@@ -494,10 +494,10 @@ ls -la /.requirement-cache.json
 **Fix**:
 ```bash
 # Remove old cache (if in wrong location)
-rm tools/anspar-marketplace/plugins/requirement-traceability/config/requirement-ticket-cache.json
+rm tools/anspar-cc-plugins/plugins/requirement-traceability/config/requirement-ticket-cache.json
 
 # Run script to create new cache in correct location
-node tools/anspar-marketplace/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
+node tools/anspar-cc-plugins/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
 ```
 
 ### Linear API Token Not Found
@@ -615,7 +615,7 @@ Workflow:
 ### Cache File Location
 
 **Correct**: `/.requirement-cache.json` (project root)
-**Incorrect**: `tools/anspar-marketplace/plugins/requirement-traceability/config/requirement-ticket-cache.json`
+**Incorrect**: `tools/anspar-cc-plugins/plugins/requirement-traceability/config/requirement-ticket-cache.json`
 
 ### Cache Lifecycle
 
@@ -715,7 +715,7 @@ This plugin is part of the diary clinical trial platform monorepo.
 
 **Development**:
 1. Clone repo: `git clone https://github.com/anspar/diary.git`
-2. Install dependencies: `cd tools/anspar-marketplace/plugins/linear-api && npm install`
+2. Install dependencies: `cd tools/anspar-cc-plugins/plugins/linear-api && npm install`
 3. Create feature branch: `git checkout -b feature/req-traceability-xyz`
 4. Make changes
 5. Test: `node scripts/create-req-tickets.js --dry-run`

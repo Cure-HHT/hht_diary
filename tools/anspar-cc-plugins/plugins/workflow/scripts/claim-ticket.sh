@@ -197,7 +197,7 @@ echo ""
 REQUIREMENTS="[]"
 
 # Check if linear-integration is available
-LINEAR_INTEGRATION_PATH="$WORKTREE_PATH/tools/anspar-marketplace/plugins/linear-integration"
+LINEAR_INTEGRATION_PATH="$WORKTREE_PATH/tools/anspar-cc-plugins/plugins/linear-integration"
 
 if [ -d "$LINEAR_INTEGRATION_PATH" ] && [ -n "$LINEAR_API_TOKEN" ]; then
     echo "🔍 Fetching requirements from Linear..."

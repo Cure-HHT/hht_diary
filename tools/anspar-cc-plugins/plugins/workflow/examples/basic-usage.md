@@ -6,7 +6,7 @@ This document provides practical examples of using the workflow plugin in your d
 
 ```bash
 # Start working on a new feature
-cd tools/anspar-marketplace/plugins/workflow
+cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/claim-ticket.sh CUR-100
 
 # Make your changes
@@ -23,7 +23,7 @@ Implements: REQ-d00042
 "
 
 # Release ticket when done
-cd tools/anspar-marketplace/plugins/workflow
+cd tools/anspar-cc-plugins/plugins/workflow
 ./scripts/release-ticket.sh "Feature complete"
 ```
 

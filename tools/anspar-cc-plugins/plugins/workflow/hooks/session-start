@@ -39,10 +39,10 @@ $RECENT_COMMITS"
         STATUS_MSG="⚠️ No active ticket claimed
 
 Before starting work, claim a ticket:
-  tools/anspar-marketplace/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
+  tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh CUR-XXX
 
 Or resume a previously paused ticket:
-  tools/anspar-marketplace/plugins/workflow/scripts/resume-ticket.sh"
+  tools/anspar-cc-plugins/plugins/workflow/scripts/resume-ticket.sh"
     fi
 else
     STATUS_MSG="Workflow plugin installed but check script not found"
