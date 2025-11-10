@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SKILL: create-req-tickets
+# Create Linear tickets for spec/ requirements that don't have tickets yet
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Pass all arguments to the script
+exec node "$PLUGIN_DIR/scripts/create-req-tickets.js" "$@"
