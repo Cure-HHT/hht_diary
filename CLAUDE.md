@@ -94,10 +94,14 @@ You may use multiple instances of a sub-agent in parallel when appropriate.
 
 The following **priortiy plugins** are located in `tools/anspar-cc-plugins/plugins/workflow/`
 
-## use workflow sub-agent for 
+## use workflow sub-agent for
 - changes in top-level tasks, as indicated by the current ticket or REQuirement
 - changes in tasks phase: new/resume, validation, debug, completion, sharing (e.g. git push)
 - work on sponsor-specific tasks is in the appropriate directory
+
+### Git Workflow Best Practices
+- **ALWAYS** `git pull` before creating PRs to ensure branch is up-to-date with main
+- This prevents merge conflicts and ensures CI runs against latest code
 
 ## use linear-api sub-agent for
 - anything related to using the Linear API

@@ -7,12 +7,13 @@
 # Called by post-tool-use hook after PR merge.
 #
 # Usage:
-#   ./release-with-pr.sh TICKET_ID PR_NUMBER PR_URL
+#   ./release-with-pr.sh TICKET_ID PR_NUMBER PR_URL [BRANCH_TO_DELETE]
 #
 # Arguments:
-#   TICKET_ID    Linear ticket identifier (e.g., CUR-123)
-#   PR_NUMBER    GitHub PR number
-#   PR_URL       GitHub PR URL
+#   TICKET_ID         Linear ticket identifier (e.g., CUR-123)
+#   PR_NUMBER         GitHub PR number
+#   PR_URL            GitHub PR URL
+#   BRANCH_TO_DELETE  Optional: local branch to delete (if safe)
 #
 # =====================================================
 
@@ -21,6 +22,7 @@ set -e
 TICKET_ID="$1"
 PR_NUMBER="$2"
 PR_URL="$3"
+BRANCH_TO_DELETE="$4"
 
 if [ -z "$TICKET_ID" ]; then
     echo "❌ ERROR: TICKET_ID required" >&2
@@ -72,5 +74,24 @@ fi
 
 echo ""
 echo "✅ Ticket released with PR reference!"
+
+# Delete branch if requested and safe
+if [ -n "$BRANCH_TO_DELETE" ]; then
+    echo ""
+    echo "🗑️  Deleting local branch: $BRANCH_TO_DELETE"
+
+    # Switch to main first
+    git checkout main >/dev/null 2>&1 || {
+        echo "⚠️  Failed to switch to main - branch not deleted" >&2
+        exit 0
+    }
+
+    # Delete the branch
+    if git branch -d "$BRANCH_TO_DELETE" 2>&1; then
+        echo "✅ Branch deleted successfully"
+    else
+        echo "⚠️  Failed to delete branch (it may have unmerged changes)" >&2
+    fi
+fi
 
 exit 0

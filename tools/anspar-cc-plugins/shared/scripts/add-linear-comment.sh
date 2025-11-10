@@ -65,11 +65,10 @@ fi
 # =====================================================
 
 node -e "
-const ticketUpdater = require('$LINEAR_API_LIB/ticket-updater.js');
+const updater = require('$LINEAR_API_LIB/ticket-updater.js');
 
 (async () => {
     try {
-        const updater = new ticketUpdater.TicketUpdater();
         await updater.addComment('$TICKET_ID', \`$COMMENT\`, { silent: false });
         process.exit(0);
     } catch (error) {
