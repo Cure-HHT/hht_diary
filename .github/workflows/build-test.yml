@@ -20,7 +20,12 @@ jobs:
       - name: Install dependencies
         run: |
           cd tools/requirements
-          pip install -r requirements.txt || echo "No requirements.txt found"
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            echo "Error: requirements.txt not found"
+            exit 1
+          fi
 
       - name: Test requirement validation
         run: |
@@ -86,7 +91,7 @@ jobs:
           # Simple check for file references
           find . -name "*.md" -type f | while read file; do
             # Extract markdown links [text](path)
-            grep -oP '\]\(\K[^)]+' "$file" 2>/dev/null | while read link; do
+            grep -oP '\]\(\K[^)]+' "$file" | while read link; do
               # Skip external links
               if [[ ! "$link" =~ ^http ]]; then
                 # Check if referenced file exists (relative to the markdown file's location)
