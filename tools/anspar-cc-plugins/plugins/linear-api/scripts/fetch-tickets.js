@@ -13,8 +13,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const ticketFetcher = require('./lib/ticket-fetcher');
-const { validateEnvironment } = require('./lib/env-validation');
+const ticketFetcher = require('../lib/ticket-fetcher');
+const { validateEnvironment } = require('../lib/env-validation');
 
 /**
  * Get the current active ticket ID from workflow state

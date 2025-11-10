@@ -5,7 +5,7 @@
  * This is a thin wrapper around the label-manager module
  */
 
-const labelManager = require('./lib/label-manager');
+const labelManager = require('../lib/label-manager');
 
 // Parse command line arguments
 function parseArgs() {

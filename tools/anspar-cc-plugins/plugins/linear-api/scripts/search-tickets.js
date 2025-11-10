@@ -3,7 +3,7 @@
  * Search Linear tickets by requirement ID or keyword
  */
 
-const config = require('./lib/config');
+const config = require('../lib/config');
 
 async function searchTickets() {
     // Parse command line arguments

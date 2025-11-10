@@ -4,7 +4,7 @@
  * This demonstrates the improved config handling
  */
 
-const config = require('./lib/config');
+const config = require('../lib/config');
 
 async function testConfig() {
     console.log('🔍 Testing Linear Plugin Configuration');
