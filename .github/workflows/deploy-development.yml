@@ -40,7 +40,8 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
-          brew install supabase/tap/supabase
+          wget -qO- https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar xzf -
+          sudo mv supabase /usr/local/bin/
 
       - name: Install dependencies
         run: npm install
