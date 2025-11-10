@@ -4,52 +4,13 @@
   "description": "Builds complete plugins around user-defined agents using 2-phase workflow",
   "author": {
     "name": "Anspar Foundation",
-    "email": "plugins@anspar.org"
+    "url": "https://github.com/anspar"
   },
-  "agents": [
-    {
-      "type": "file",
-      "path": "agents/plugin-wizard.md",
-      "model": "haiku"
-    }
-  ],
-  "commands": [
-    {
-      "name": "create-plugin",
-      "path": "commands/create-plugin.md"
-    }
-  ],
-  "skills": [
-    {
-      "name": "locate-marketplace",
-      "path": "skills/locate-marketplace.skill"
-    },
-    {
-      "name": "analyze-agent",
-      "path": "skills/analyze-agent.skill"
-    },
-    {
-      "name": "create-scaffold",
-      "path": "skills/create-scaffold.skill"
-    },
-    {
-      "name": "generate-skills",
-      "path": "skills/generate-skills.skill"
-    },
-    {
-      "name": "generate-hooks",
-      "path": "skills/generate-hooks.skill"
-    },
-    {
-      "name": "update-marketplace",
-      "path": "skills/update-marketplace.skill"
-    }
-  ],
-  "hooks": {},
-  "metadata": {
-    "keywords": ["agent", "plugin", "wizard", "creation", "scaffold"],
-    "documentation": "README.md",
-    "repository": "https://github.com/anspar-foundation/diary",
-    "license": "MIT"
-  }
+  "keywords": ["agent", "plugin", "wizard", "creation", "scaffold"],
+  "repository": "https://github.com/anspar-foundation/diary",
+  "homepage": "https://github.com/anspar-foundation/diary/tree/main/tools/anspar-cc-plugins/plugins/plugin-wizard",
+  "license": "MIT",
+  "agents": "./agents/plugin-wizard.md",
+  "commands": "./commands",
+  "skills": "./skills/"
 }
