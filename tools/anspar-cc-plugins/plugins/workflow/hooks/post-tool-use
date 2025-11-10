@@ -58,12 +58,23 @@ if [ "$ACTIVE_TICKET" = "none" ] || [ "$ACTIVE_TICKET" = "null" ]; then
     exit 0
 fi
 
-# Build PR URL
+# Build PR URL and get current branch
 REPO_URL=$(git remote get-url origin 2>/dev/null | sed 's/\.git$//' | sed 's|git@github.com:|https://github.com/|')
 if [ -n "$PR_NUMBER" ] && [ -n "$REPO_URL" ]; then
     PR_URL="${REPO_URL}/pull/${PR_NUMBER}"
 else
     PR_URL=""
+fi
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+# Check if current branch is safe to delete (merged into main)
+BRANCH_SAFE_DELETE=""
+if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    # Check if branch is fully merged
+    if git branch --merged main | grep -q "^[* ]*${CURRENT_BRANCH}$"; then
+        BRANCH_SAFE_DELETE="$CURRENT_BRANCH"
+    fi
 fi
 
 # Prompt user
@@ -73,9 +84,22 @@ if [ -n "$PR_NUMBER" ]; then
 fi
 PROMPT_MSG="$PROMPT_MSG merged!
 
-Active ticket: $ACTIVE_TICKET
+Active ticket: $ACTIVE_TICKET"
 
-Would you like to release this ticket and add a completion comment to Linear?"
+if [ -n "$BRANCH_SAFE_DELETE" ]; then
+    PROMPT_MSG="$PROMPT_MSG
+Current branch: $BRANCH_SAFE_DELETE (safe to delete)"
+fi
+
+PROMPT_MSG="$PROMPT_MSG
+
+Would you like to:
+- Release ticket $ACTIVE_TICKET and add completion comment to Linear?"
+
+if [ -n "$BRANCH_SAFE_DELETE" ]; then
+    PROMPT_MSG="$PROMPT_MSG
+- Delete local branch $BRANCH_SAFE_DELETE (merged into main)?"
+fi
 
 # Output JSON response with prompt
 cat <<EOF
@@ -86,7 +110,7 @@ cat <<EOF
         "type": "confirm",
         "callback": {
             "command": "\${CLAUDE_PLUGIN_ROOT}/scripts/release-with-pr.sh",
-            "args": ["$ACTIVE_TICKET", "$PR_NUMBER", "$PR_URL"]
+            "args": ["$ACTIVE_TICKET", "$PR_NUMBER", "$PR_URL", "$BRANCH_SAFE_DELETE"]
         }
     }
 }
