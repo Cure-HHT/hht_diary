@@ -15,6 +15,7 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 - ✅ Per-worktree state management (.git/WORKFLOW_STATE)
 - ✅ **Proactive task-switch detection** (NEW: UserPromptSubmit hook)
 - ✅ **Dev container detection** (NEW: SessionStart warning)
+- ✅ **Secret detection** (NEW: gitleaks integration in pre-commit)
 - ✅ REQ reference validation in commit messages
 - ✅ Active ticket enforcement before commits
 - ✅ Distributed worktree support
@@ -66,6 +67,60 @@ Continuing without dev container may lead to:
 - ✅ Prevents "works on my machine" problems
 - ✅ Maintains team environment parity
 - ✅ Optional - doesn't force dev container use
+
+### 🔒 Secret Detection (NEW)
+
+**v2.4 Enhancement**: The workflow plugin now includes integrated secret scanning using gitleaks to prevent accidental commits of API keys, tokens, passwords, and other credentials.
+
+**How it works**:
+- **Pre-commit Hook**: Scans staged files before allowing commits
+- **Gitleaks Integration**: Uses gitleaks v8.18.0+ for detection
+- **Configurable**: Rules defined in `.gitleaks.toml`
+- **Graceful Degradation**: If gitleaks not installed, shows warning but doesn't block
+- **Redacted Output**: Hides actual secret values in error messages
+
+**What it detects**:
+- ✅ API keys (AWS, Stripe, Linear, GitHub, etc.)
+- ✅ Database credentials (PostgreSQL, MySQL, MongoDB)
+- ✅ Private keys (SSH, TLS, JWT signing keys)
+- ✅ OAuth tokens and client secrets
+- ✅ Generic secrets (high-entropy strings)
+- ✅ Passwords in configuration files
+
+**Example workflow**:
+
+```bash
+# Accidentally add a secret
+echo "API_KEY=sk_live_abcd1234" > config.sh
+git add config.sh
+
+# Attempt to commit - will be BLOCKED
+git commit -m "Add config"
+
+# Output:
+🔍 Scanning staged files for secrets...
+❌ SECRETS DETECTED IN STAGED FILES!
+
+# Fix by using environment variables
+echo "API_KEY=\${API_KEY}" > config.sh
+git add config.sh
+git commit -m "Add config (using env var)"
+✅ No secrets detected in staged files
+```
+
+**Configuration**:
+- Detection rules: `.gitleaks.toml` in repository root
+- Allowlisting false positives: Add patterns to `.gitleaks.toml` [allowlist]
+- Installation: Auto-installed in dev containers, manual install elsewhere
+
+**Benefits**:
+- ✅ Prevents credential leaks before they enter git history
+- ✅ Catches secrets that could compromise security
+- ✅ Configurable for project-specific needs
+- ✅ Part of defense-in-depth strategy (with PR validation and GitHub secret scanning)
+- ✅ Graceful degradation if tool not available
+
+**Root Cause**: This feature was added after commit `ae20725b` where a Linear API key was accidentally committed because there was no secret scanning at commit time.
 
 ### 🎯 Proactive Workflow Enforcement
 
@@ -149,6 +204,12 @@ investigating and create a ticket when ready.
   # Install jq
   sudo apt-get install jq  # Ubuntu/Debian
   brew install jq          # macOS
+  ```
+- **gitleaks**: v8.18.0+ for secret scanning (auto-installed in dev containers)
+  ```bash
+  # Install gitleaks
+  brew install gitleaks              # macOS
+  # Linux: see https://github.com/gitleaks/gitleaks#installation
   ```
 - **Optional**: linear-integration plugin for Linear API integration
 
@@ -789,14 +850,17 @@ cd ~/diary-worktrees/feature-a-fix
 
 ### pre-commit
 
-**Enforces**: Active ticket must be claimed before commit
+**Enforces**:
+1. Active ticket must be claimed before commit
+2. No secrets detected in staged files (using gitleaks)
 
 ```bash
-# Hook checks .git/WORKFLOW_STATE for activeTicket
-# Blocks commit if activeTicket = null
+# Hook performs two checks:
+# 1. Checks .git/WORKFLOW_STATE for activeTicket (blocks if null)
+# 2. Scans staged files for secrets using gitleaks (blocks if secrets found)
 ```
 
-**Error message**:
+**Workflow validation error**:
 ```
 ❌ ERROR: No active ticket claimed for this worktree
 
@@ -805,10 +869,33 @@ Before committing, claim a ticket:
   ./scripts/claim-ticket.sh <TICKET-ID>
 ```
 
+**Secret detection error**:
+```
+❌ SECRETS DETECTED IN STAGED FILES!
+
+Gitleaks found potential secrets in your staged changes.
+
+To fix this:
+  1. Remove the secrets from the staged files
+  2. Use environment variables or Doppler for secrets
+  3. Unstage files: git restore --staged <file>
+  4. Try committing again
+
+If this is a false positive:
+  1. Add the pattern to .gitleaks.toml [allowlist]
+  2. Document why it's a false positive
+```
+
 **Bypass** (not recommended):
 ```bash
 git commit --no-verify
 ```
+
+**Prerequisites for secret scanning**:
+- `gitleaks` v8.18.0+ installed
+- `.gitleaks.toml` configuration file in repository root
+- Auto-installed in dev containers via `tools/dev-env/docker/base.Dockerfile`
+- If gitleaks not installed, secret scanning is skipped with a warning
 
 ### commit-msg
 
