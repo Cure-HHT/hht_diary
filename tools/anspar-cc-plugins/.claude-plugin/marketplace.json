@@ -14,6 +14,12 @@
       "source": "./plugins/plugin-wizard",
       "description": "Builds complete plugins around user-defined agents using 2-phase workflow",
       "version": "1.0.0"
+    },
+    {
+      "name": "linear-api",
+      "source": "./plugins/linear-api",
+      "description": "Generic Linear API client for ticket operations - reusable across projects",
+      "version": "2.0.0"
     }
   ],
   "hooks": "./hooks/hooks.json",

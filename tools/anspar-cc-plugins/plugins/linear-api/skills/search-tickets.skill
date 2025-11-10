@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Search Linear tickets by keyword
+#
+# Usage:
+#   search-tickets.skill --query="search term" [--format=FORMAT]
+#
+# Options:
+#   --query=TEXT     Search query (required)
+#   --format=FORMAT  Output format: summary (default) or json
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
+node "$SCRIPT_DIR/search-tickets.js" "$@"
