@@ -1,8 +1,0 @@
-{
-  "name": "test-plugin",
-  "version": "1.0",
-  "description": "Invalid version format (should be semver)",
-  "author": {
-    "name": "Test Author"
-  }
-}
