@@ -50,6 +50,12 @@
       "source": "./plugins/compliance-verification",
       "description": "FDA 21 CFR Part 11 compliance verification workflows for diary project",
       "version": "1.0.0"
+    },
+    {
+      "name": "traceability-matrix",
+      "source": "./plugins/traceability-matrix",
+      "description": "Auto-regenerates requirement traceability matrices on spec/ changes",
+      "version": "1.0.0"
     }
   ],
   "hooks": "./hooks/hooks.json",
