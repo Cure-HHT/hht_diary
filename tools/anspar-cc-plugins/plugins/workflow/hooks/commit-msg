@@ -1,0 +1,58 @@
+#!/bin/bash
+# =====================================================
+# Git Hook: commit-msg
+# =====================================================
+#
+# Validates that commit messages contain at least one
+# REQ-xxx reference for requirement traceability.
+#
+# Called by: git commit
+# Arguments: $1 = path to commit message file
+#
+# Exit codes:
+#   0  Valid commit message
+#   1  Invalid commit message (blocks commit)
+#
+# To bypass (NOT RECOMMENDED):
+#   git commit --no-verify
+#
+# =====================================================
+
+set -e
+
+# =====================================================
+# Find Plugin Directory
+# =====================================================
+
+# This hook is symlinked from .githooks/ to work with git config core.hooksPath
+# We need to find the actual plugin directory
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PLUGIN_DIR="$REPO_ROOT/tools/anspar-marketplace/plugins/workflow"
+
+if [ ! -d "$PLUGIN_DIR" ]; then
+    echo "⚠️  WARNING: workflow plugin not found: $PLUGIN_DIR" >&2
+    echo "   Skipping commit message validation" >&2
+    exit 0
+fi
+
+# =====================================================
+# Run Validation
+# =====================================================
+
+VALIDATE_SCRIPT="$PLUGIN_DIR/scripts/validate-commit-msg.sh"
+
+if [ ! -f "$VALIDATE_SCRIPT" ]; then
+    echo "⚠️  WARNING: Validation script not found: $VALIDATE_SCRIPT" >&2
+    echo "   Skipping commit message validation" >&2
+    exit 0
+fi
+
+# Make sure script is executable
+chmod +x "$VALIDATE_SCRIPT" 2>/dev/null || true
+
+# Run validation
+"$VALIDATE_SCRIPT" "$1"
+
+# Exit code from validate-commit-msg.sh determines whether commit proceeds
+exit $?
