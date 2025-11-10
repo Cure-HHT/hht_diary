@@ -6,14 +6,14 @@
 
 const path = require('path');
 const fs = require('fs');
-const testBuilder = require('../builders/test-builder');
+const testBuilder = require('../generators/test-builder');
 
 // Get plugin path from command line argument
 const pluginPath = process.argv[2];
 
 if (!pluginPath) {
   console.error('Usage: node generate-plugin-tests.js <plugin-path>');
-  console.error('Example: node generate-plugin-tests.js ../../linear-integration');
+  console.error('Example: node generate-plugin-tests.js ../../linear-api');
   process.exit(1);
 }
 

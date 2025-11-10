@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# SKILL: create-verification
+# Create a Linear verification ticket for a changed requirement
+#
+# This skill wraps create-verification.js to create compliance verification
+# tickets when requirements are modified.
+#
+# Usage:
+#   From JSON string: create-verification.skill '{"req_id":"d00027",...}'
+#   From file: create-verification.skill --input changed-req.json
+#   Interactive: create-verification.skill --req-id d00027 --old-hash abc123 --new-hash def456
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
+
+exec node "$PLUGIN_DIR/scripts/create-verification.js" "$@"

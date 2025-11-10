@@ -19,12 +19,6 @@
       "description": "Git workflow enforcement for requirement traceability and ticket lifecycle management"
     },
     {
-      "name": "linear-integration",
-      "source": "./plugins/linear-integration",
-      "version": "1.0.0",
-      "description": "Linear API integration tools for requirement-ticket traceability and project management automation"
-    },
-    {
       "name": "spec-compliance",
       "source": "./plugins/spec-compliance",
       "version": "1.0.0",
@@ -41,6 +35,24 @@
       "source": "./plugins/traceability-matrix",
       "version": "1.0.0",
       "description": "Auto-regenerates requirement traceability matrices on spec/ changes"
+    },
+    {
+      "name": "linear-api",
+      "source": "./plugins/linear-api",
+      "version": "2.0.0",
+      "description": "Generic Linear API client for ticket operations - reusable across projects"
+    },
+    {
+      "name": "requirement-traceability",
+      "source": "./plugins/requirement-traceability",
+      "version": "1.0.0",
+      "description": "Requirement-to-ticket traceability for spec/ requirements in diary project"
+    },
+    {
+      "name": "compliance-verification",
+      "source": "./plugins/compliance-verification",
+      "version": "1.0.0",
+      "description": "FDA 21 CFR Part 11 compliance verification workflows for diary project"
     }
   ]
 }

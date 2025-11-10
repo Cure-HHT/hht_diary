@@ -6,7 +6,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const testBuilder = require('../builders/test-builder');
+const testBuilder = require('../generators/test-builder');
 
 // Define the plugin-expert specification
 const pluginExpertSpec = {

@@ -141,8 +141,10 @@ env/
 coverage/
 test_results/
 *.lcov
-# Linear integration cache
-tools/anspar-marketplace/plugins/linear-integration/scripts/config/
+# Linear API cache
+tools/anspar-marketplace/plugins/linear-api/.cache/
+# Requirement-ticket mapping cache (requirement-traceability plugin)
+.requirement-cache.json
 # Plugin-expert documentation cache
 tools/anspar-marketplace/plugins/plugin-expert/cache/docs/
 tools/anspar-marketplace/plugins/plugin-expert/cache/.cache-metadata.json

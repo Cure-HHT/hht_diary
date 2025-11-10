@@ -1,0 +1,15 @@
+{
+  "name": "linear-api",
+  "version": "2.0.0",
+  "description": "Generic Linear API client for ticket operations - reusable across projects",
+  "author": {
+    "name": "Anspar Foundation",
+    "url": "https://github.com/anspar"
+  },
+  "keywords": ["linear", "api", "tickets", "generic", "reusable"],
+  "repository": "https://github.com/anspar/diary",
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/linear-api",
+  "license": "MIT",
+  "agents": "./agents/linear-api-agent.md",
+  "skills": "./skills/"
+}

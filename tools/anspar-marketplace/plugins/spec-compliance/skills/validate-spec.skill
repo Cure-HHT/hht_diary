@@ -1,0 +1,13 @@
+#!/bin/bash
+# Validate spec/ directory compliance
+# Usage: validate-spec.skill [FILE_PATH]
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [ -n "$1" ]; then
+  "$SCRIPT_DIR/scripts/validate-spec-compliance.sh" "$1"
+else
+  "$SCRIPT_DIR/scripts/validate-spec-compliance.sh"
+fi

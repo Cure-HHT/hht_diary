@@ -1,0 +1,11 @@
+#!/bin/bash
+# Release active ticket (non-interactive)
+# Usage: release-ticket.skill "COMPLETION_MESSAGE"
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+MESSAGE="${1:-Work complete}"
+
+"$SCRIPT_DIR/scripts/release-ticket.sh" "$MESSAGE"

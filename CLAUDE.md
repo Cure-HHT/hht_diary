@@ -77,10 +77,11 @@ This is a multi-sponsor Clinical Trial Diary Platform with strict FDA 21 CFR Par
 │   ├── dev-env/              # Docker dev containers (role-based)
 │   └── anspar-marketplace/   # Claude Code plugins
 │       └── plugins/
-│           ├── workflow/              # Git workflow enforcement
-│           ├── linear-integration/    # Linear ticket management
-│           ├── simple-requirements/   # Requirement validation
-│           └── spec-compliance/       # spec/ directory compliance
+│           ├── workflow/                   # Git workflow enforcement
+│           ├── linear-api/                 # Generic Linear API client
+│           ├── requirement-traceability/   # REQ-to-ticket mapping
+│           ├── simple-requirements/        # Requirement validation
+│           └── spec-compliance/            # spec/ directory compliance
 ├── .githooks/                 # Git hooks for enforcement
 └── .devcontainer/             # Dev container config (recommended)
 ```
@@ -128,19 +129,18 @@ tools/anspar-marketplace/plugins/workflow/scripts/resume-ticket.sh
 tools/anspar-marketplace/plugins/workflow/scripts/list-history.sh
 ```
 
-### Linear Integration
+### Linear API & Requirement Traceability
 
 ```bash
-# Fetch assigned tickets
-node tools/anspar-marketplace/plugins/linear-integration/scripts/fetch-tickets.js
+# Fetch tickets
+bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240
 
 # Create tickets from requirements (dry run)
-node tools/anspar-marketplace/plugins/linear-integration/scripts/create-requirement-tickets.js --dry-run
+node tools/anspar-marketplace/plugins/requirement-traceability/scripts/create-req-tickets.js --dry-run
 
 # Use slash commands
-/ticket              # Show current active ticket
-/ticket CUR-XXX      # Switch to ticket (claims + sets Linear status)
-/ticket new          # Create a new ticket (launches agent)
+/req REQ-p00042      # Show requirement details and associated tickets
+/req search auth     # Search requirements by keyword
 ```
 
 ### Git Hooks
@@ -285,12 +285,18 @@ Format: `ADR-{number}-{kebab-case-title}.md`
 - Supports paused/resumed tickets
 - Location: `tools/anspar-marketplace/plugins/workflow/`
 
-### linear-integration Plugin
-- Intelligent ticket creation agent
+### linear-api Plugin
+- Generic Linear API client
 - Fetch/create/update Linear tickets
-- Sync requirement-ticket mappings
-- Slash commands: `/ticket`, `/req`
-- Location: `tools/anspar-marketplace/plugins/linear-integration/`
+- Reusable across projects
+- Location: `tools/anspar-marketplace/plugins/linear-api/`
+
+### requirement-traceability Plugin
+- Requirement-to-ticket traceability
+- Creates tickets for requirements
+- Maintains bidirectional mappings
+- Slash command: `/req`
+- Location: `tools/anspar-marketplace/plugins/requirement-traceability/`
 
 ### simple-requirements Plugin
 - Requirement format validation
