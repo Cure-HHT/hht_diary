@@ -8,7 +8,14 @@
     "url": "https://github.com/anspar-foundation"
   },
   "pluginRoot": "./plugins",
-  "plugins": [],
+  "plugins": [
+    {
+      "name": "plugin-wizard",
+      "source": "./plugins/plugin-wizard",
+      "description": "Builds complete plugins around user-defined agents using 2-phase workflow",
+      "version": "1.0.0"
+    }
+  ],
   "hooks": "./hooks/hooks.json",
   "metadata": {
     "created": "2025-11-09",

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Update marketplace.json to register the new plugin
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+node "$SCRIPT_DIR/scripts/update-marketplace.js" "$@"
