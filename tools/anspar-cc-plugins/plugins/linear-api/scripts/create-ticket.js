@@ -18,7 +18,7 @@
  */
 
 const fs = require('fs');
-const ticketCreator = require('./lib/ticket-creator');
+const ticketCreator = require('../lib/ticket-creator');
 
 // Parse command line arguments
 function parseArgs() {

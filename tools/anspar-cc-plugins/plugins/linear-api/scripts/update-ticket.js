@@ -19,7 +19,7 @@
  *   --add-requirement=REQ-ID Add requirement reference
  */
 
-const config = require('./lib/config');
+const config = require('../lib/config');
 
 /**
  * Parse command line arguments
