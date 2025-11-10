@@ -13,6 +13,13 @@ jobs:
   validate-migrations:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Database connection for all steps
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: test_db
     services:
       postgres:
         image: postgres:15
@@ -37,60 +44,30 @@ jobs:
           which psql || (echo "ERROR: postgresql-client installation failed" && exit 1)
 
       - name: Test schema deployment
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: test_db
         run: |
           echo "Testing schema deployment..."
           psql --set ON_ERROR_STOP=1 -f database/schema.sql
           echo "Schema deployed successfully"
 
       - name: Test triggers
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: test_db
         run: |
           echo "Testing triggers..."
           psql --set ON_ERROR_STOP=1 -f database/triggers.sql
           echo "Triggers deployed successfully"
 
       - name: Test RLS policies
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: test_db
         run: |
           echo "Testing RLS policies..."
           psql --set ON_ERROR_STOP=1 -f database/rls_policies.sql
           echo "RLS policies deployed successfully"
 
       - name: Test indexes
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: test_db
         run: |
           echo "Testing indexes..."
           psql --set ON_ERROR_STOP=1 -f database/indexes.sql
           echo "Indexes deployed successfully"
 
       - name: Run database tests
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-          PGDATABASE: test_db
         run: |
           echo "Running database tests..."
           psql --set ON_ERROR_STOP=1 -f database/tests/test_audit_trail.sql

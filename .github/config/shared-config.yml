@@ -4,12 +4,15 @@
 
 # AWS Configuration
 aws:
-  region: us-west-2
+  region: eu-west-1
   account_id: "123456789012"  # Replace with actual account ID
-  ecr_registry: "123456789012.dkr.ecr.us-west-2.amazonaws.com"
-  s3_bucket: "clinical-trial-diary-ci"
-  backup_bucket: "clinical-trial-diary-backups"
-  retention_bucket: "clinical-trial-diary-retention"  # FDA 21 CFR Part 11 compliance
+  ecr_registry: "123456789012.dkr.ecr.eu-west-1.amazonaws.com"
+  # S3 buckets follow pattern: hht-diary-{environment}-{sponsor}-{region}
+  # These are templates - actual values determined at runtime
+  s3_bucket_pattern: "hht-diary-{environment}-{sponsor}-{region}"
+  artifact_bucket: "hht-diary-artifacts-{region}"  # Shared artifacts
+  backup_bucket_pattern: "hht-diary-backups-{sponsor}-{region}"
+  retention_bucket_pattern: "hht-diary-retention-{sponsor}-{region}"  # FDA 21 CFR Part 11 compliance
 
 # Version Configuration
 versions:
