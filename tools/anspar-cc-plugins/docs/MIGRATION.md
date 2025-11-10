@@ -1,8 +1,8 @@
 # Migration from tools/anspar-marketplace/
 
 **Version**: 1.0.0
-**Status**: Active (Phase 1: Scaffold Complete)
-**Last Updated**: 2025-11-09
+**Status**: Active (Phase 3 Complete - All Plugins Migrated)
+**Last Updated**: 2025-11-10
 
 ## Overview
 
@@ -92,31 +92,33 @@ This document guides migration from `tools/anspar-marketplace/` to `tools/anspar
 - [x] Write comprehensive documentation
 - [x] Test CLAUDE.md hook idempotency
 
-#### Phase 2: Core Plugin Migration (Next)
+#### Phase 2: Core Plugin Migration ✅ COMPLETE
 
-**Priority plugins** (migrate first):
-1. **plugin-wizard** - Create new from scratch (see below)
-2. **linear-api** - Generic, reusable, well-defined scope
-3. **workflow** - Core git workflow enforcement
-4. **simple-requirements** - REQ validation (MUST preserve format)
+**Migrated plugins**:
+1. ✅ **plugin-wizard** - Created new with proper 2-phase workflow
+2. ✅ **linear-api** - Added YAML frontmatter, updated references
+3. ✅ **workflow** - Added YAML frontmatter, bumped to v3.0.0
+4. ✅ **simple-requirements** - Already had frontmatter, preserved REQ format
 
-**For each plugin**:
-1. Audit existing agent definition
-2. Add/fix YAML frontmatter
-3. Verify skills match agent description
-4. Update hooks if needed
-5. Test orchestration works
-6. Move to new marketplace
-7. Update marketplace.json
-8. Test in isolation and with other plugins
+**Migration steps completed**:
+- [x] Audited existing agent definitions
+- [x] Added/fixed YAML frontmatter
+- [x] Verified skills match agent descriptions
+- [x] Updated plugin.json homepage URLs
+- [x] Registered in marketplace.json
+- [x] Committed each plugin separately
 
-#### Phase 3: Project-Specific Plugin Migration
+#### Phase 3: Project-Specific Plugin Migration ✅ COMPLETE
 
-**Diary-specific plugins**:
-- requirement-traceability
-- spec-compliance
-- compliance-verification
-- traceability-matrix (may merge into simple-requirements)
+**Migrated plugins**:
+1. ✅ **requirement-traceability** - Added YAML frontmatter, updated linear-integration→linear-api
+2. ✅ **spec-compliance** - Simplified YAML frontmatter from complex multiline
+3. ✅ **compliance-verification** - Added YAML frontmatter, already referenced linear-api
+4. ✅ **traceability-matrix** - Kept as separate hook-only plugin (no agent needed)
+
+**Total plugin count**: 8 plugins migrated
+- 4 core plugins (Phase 2)
+- 4 project-specific plugins (Phase 3)
 
 #### Phase 4: Deprecation and Cleanup
 
