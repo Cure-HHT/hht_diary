@@ -1,0 +1,10 @@
+{
+  "SessionStart": [
+    {
+      "name": "orchestration-setup",
+      "description": "Configure CLAUDE.md with agent orchestration guidance (idempotent)",
+      "script": "./session-start",
+      "blocking": false
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+#!/bin/bash
+set -euo pipefail
+
+# session-start: Idempotently configure CLAUDE.md with agent orchestration guidance
+#
+# This hook runs at the start of every Claude Code session and ensures that
+# the project's CLAUDE.md file contains orchestration guidance for the main agent.
+#
+# Key features:
+# - Idempotent: Safe to run multiple times
+# - Version-aware: Uses markers to detect existing/outdated content
+# - Non-destructive: Never removes user content
+# - Transparent: Logs all actions
+
+# Configuration
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "${PWD}")"
+CLAUDE_MD="${PROJECT_ROOT}/CLAUDE.md"
+VERSION_MARKER="<!-- ORCHESTRATION_V1 -->"
+SECTION_TITLE="## Agent Orchestration Pattern"
+
+# Logging function
+log() {
+    echo "[orchestration-setup] $*" >&2
+}
+
+# Check if CLAUDE.md exists
+if [[ ! -f "${CLAUDE_MD}" ]]; then
+    log "CLAUDE.md not found at ${CLAUDE_MD}, skipping orchestration setup"
+    exit 0
+fi
+
+# Check if section already exists with correct version
+if grep -q "${VERSION_MARKER}" "${CLAUDE_MD}"; then
+    log "Orchestration section already configured (version 1)"
+    exit 0
+fi
+
+# Check if section title exists but without version marker
+# This means user has old version or custom content - warn but don't modify
+if grep -q "^${SECTION_TITLE}" "${CLAUDE_MD}"; then
+    log "WARNING: Found existing '${SECTION_TITLE}' section without version marker"
+    log "Please manually review and add '${VERSION_MARKER}' after updating to latest content"
+    exit 0
+fi
+
+# Section doesn't exist - add it
+log "Adding agent orchestration guidance to CLAUDE.md"
+
+cat >> "${CLAUDE_MD}" << 'EOF'
+
+## Agent Orchestration Pattern
+<!-- ORCHESTRATION_V1 -->
+
+When working with plugins that provide specialized agents:
+
+- **ALWAYS check for available sub-agents** before implementing complex tasks
+  - Use `/agents` command to see available specialized agents
+  - Check plugin documentation for agent capabilities
+
+- **Delegate to sub-agents** when their expertise matches the task
+  - Sub-agents have deep domain knowledge and specialized tools
+  - They follow architectural patterns and best practices
+  - They provide faster, more accurate results than general implementation
+
+- **Act as orchestrator, not implementer** when agents are available
+  - Your role: Understand requirements, select appropriate agent, validate results
+  - Agent's role: Execute specialized tasks using domain-specific knowledge
+  - Avoid reimplementing functionality that agents provide
+
+- **Trust agent expertise** but validate results
+  - Agents are designed to handle specific domains correctly
+  - Review their outputs for correctness and completeness
+  - Escalate to user when agent results are unclear or incorrect
+
+**Example**: When working with plugins, prefer `/plugin-expert` over manually creating plugin files.
+
+EOF
+
+log "Successfully added orchestration guidance to CLAUDE.md"
+exit 0

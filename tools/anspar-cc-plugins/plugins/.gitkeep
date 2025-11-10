@@ -1,0 +1,15 @@
+# This directory will contain plugins after migration from tools/anspar-marketplace/
+#
+# Structure per plugin:
+# plugins/
+# ├── plugin-name/
+# │   ├── .claude-plugin/
+# │   │   └── plugin.json
+# │   ├── agents/
+# │   │   └── AgentName.md (with proper YAML frontmatter)
+# │   ├── commands/
+# │   ├── scripts/
+# │   ├── hooks/
+# │   └── README.md
+#
+# This file (.gitkeep) ensures the empty directory is tracked by git.

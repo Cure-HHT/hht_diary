@@ -401,3 +401,30 @@ python3 tools/requirements/validate_index.py
 - FDA 21 CFR Part 11: https://www.fda.gov/regulatory-information
 - Linear API: https://developers.linear.app/
 - Flutter Docs: https://docs.flutter.dev/
+
+## Agent Orchestration Pattern
+<!-- ORCHESTRATION_V1 -->
+
+When working with plugins that provide specialized agents:
+
+- **ALWAYS check for available sub-agents** before implementing complex tasks
+  - Use `/agents` command to see available specialized agents
+  - Check plugin documentation for agent capabilities
+
+- **Delegate to sub-agents** when their expertise matches the task
+  - Sub-agents have deep domain knowledge and specialized tools
+  - They follow architectural patterns and best practices
+  - They provide faster, more accurate results than general implementation
+
+- **Act as orchestrator, not implementer** when agents are available
+  - Your role: Understand requirements, select appropriate agent, validate results
+  - Agent's role: Execute specialized tasks using domain-specific knowledge
+  - Avoid reimplementing functionality that agents provide
+
+- **Trust agent expertise** but validate results
+  - Agents are designed to handle specific domains correctly
+  - Review their outputs for correctness and completeness
+  - Escalate to user when agent results are unclear or incorrect
+
+**Example**: When working with plugins, prefer `/plugin-expert` over manually creating plugin files.
+

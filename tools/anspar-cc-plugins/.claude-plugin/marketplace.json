@@ -1,0 +1,19 @@
+{
+  "name": "anspar-cc-plugins",
+  "version": "1.0.0",
+  "description": "Anspar Foundation plugin marketplace with enhanced agent orchestration and proper sub-agent integration",
+  "owner": {
+    "name": "Anspar Foundation",
+    "email": "plugins@anspar.org",
+    "url": "https://github.com/anspar-foundation"
+  },
+  "pluginRoot": "./plugins",
+  "plugins": [],
+  "hooks": "./hooks/hooks.json",
+  "metadata": {
+    "created": "2025-11-09",
+    "purpose": "Refactored marketplace with proper agent orchestration patterns",
+    "replaces": "tools/anspar-marketplace/",
+    "repository": "https://github.com/anspar-foundation/diary"
+  }
+}
