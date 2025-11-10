@@ -44,9 +44,6 @@ desktop.ini
 # Untracked notes and scratch files
 /untracked-notes/
 
-# Agent Ops - Local session files (archived to agent branches)
-agent-ops/sessions/
-
 # Auto-generated build artifacts (regenerate via tools/requirements/)
 traceability_matrix.md
 traceability_matrix.html
@@ -141,9 +138,8 @@ env/
 coverage/
 test_results/
 *.lcov
-# Linear integration cache
-tools/anspar-marketplace/plugins/linear-integration/scripts/config/
-# Plugin-expert documentation cache
-tools/anspar-marketplace/plugins/plugin-expert/cache/docs/
-tools/anspar-marketplace/plugins/plugin-expert/cache/.cache-metadata.json
+# Linear API cache
+tools/anspar-cc-plugins/plugins/linear-api/.cache/
+# Requirement-ticket mapping cache (requirement-traceability plugin)
+.requirement-cache.json
 .claude/permissions-registry.json

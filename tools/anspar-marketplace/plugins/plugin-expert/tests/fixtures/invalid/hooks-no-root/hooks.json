@@ -1,8 +1,0 @@
-{
-  "SessionStart": [
-    {
-      "type": "command",
-      "command": "some-command"
-    }
-  ]
-}

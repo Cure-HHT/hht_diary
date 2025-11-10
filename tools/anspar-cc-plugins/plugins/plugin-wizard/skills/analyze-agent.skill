@@ -1,0 +1,5 @@
+#!/bin/bash
+# Parse agent markdown file and extract metadata, skills, hooks, commands
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+node "$SCRIPT_DIR/scripts/analyze-agent.js" "$@"

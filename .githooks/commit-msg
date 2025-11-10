@@ -4,10 +4,10 @@
 # =====================================================
 #
 # Auto-discovers and executes commit-msg hooks from all
-# installed Claude Code plugins in anspar-marketplace.
+# installed Claude Code plugins in anspar-cc-plugins.
 #
 # Plugin Discovery:
-#   Scans: tools/anspar-marketplace/plugins/*/hooks/commit-msg
+#   Scans: tools/anspar-cc-plugins/plugins/*/hooks/commit-msg
 #   Executes: All found hooks in alphabetical order
 #   Passes: commit message file path as $1 to each hook
 #
@@ -27,7 +27,7 @@ COMMIT_MSG_FILE="$1"
 # Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-PLUGIN_DIR="tools/anspar-marketplace/plugins"
+PLUGIN_DIR="tools/anspar-cc-plugins/plugins"
 
 if [ -d "$PLUGIN_DIR" ]; then
     # Find all plugin commit-msg hooks

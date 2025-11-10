@@ -53,17 +53,17 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Validate Linear CLI scripts
+      - name: Validate Linear API scripts
         run: |
-          echo "🔍 Validating Linear CLI scripts syntax..."
-          cd tools/anspar-marketplace/plugins/linear-integration/scripts
+          echo "🔍 Validating Linear API scripts syntax..."
+          cd tools/anspar-cc-plugins/plugins/linear-api/scripts
           # Check all JavaScript files for syntax errors
           for file in *.js; do
             if [ -f "$file" ]; then
               node --check "$file" && echo "✅ $file syntax valid" || exit 1
             fi
           done
-          echo "✅ All Linear CLI scripts validated"
+          echo "✅ All Linear API scripts validated"
 
   validate-documentation:
     runs-on: ubuntu-latest
