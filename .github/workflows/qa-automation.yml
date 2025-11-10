@@ -440,7 +440,7 @@ jobs:
           docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml down -v
 
       - name: Fail workflow if tests failed
-        if: steps.qa-suite.outcome == 'failure'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.qa-suite.outcome == 'failure'
         run: exit 1
 
   security-scan:

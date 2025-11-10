@@ -427,6 +427,7 @@ Claude (Orchestrator):
 ### When Orchestration Overhead is Worthwhile
 
 **Use orchestration when**:
+
 | Scenario | Overhead | Benefit | Verdict |
 |----------|----------|---------|---------|
 | Complex API operations | +2-5 sec | Reliability, consistency | ✅ Worth it |

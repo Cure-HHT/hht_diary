@@ -85,8 +85,8 @@ jobs:
 
             const body = `## 📋 Requirement Verification
 
-**Changed Requirements**: ${changedCount}
-**New Requirements**: ${newCount}
+Changed Requirements: ${changedCount}
+New Requirements: ${newCount}
 
 <details>
 <summary>View Verification Report</summary>

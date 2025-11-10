@@ -190,7 +190,7 @@ These tests can be integrated into CI/CD pipelines:
 # .github/workflows/pr-validation.yml
 - name: Run git hook tests
   run: |
-    cd tools/anspar-marketplace/plugins/workflow/tests
+    cd tools/anspar-cc-plugins/plugins/workflow/tests
     ./test-hooks.sh
 ```
 

@@ -387,14 +387,14 @@ jobs:
       - name: Run plugin structure tests
         run: |
           echo "::group::Plugin Structure Tests"
-          cd tools/anspar-marketplace/plugins/workflow/tests
+          cd tools/anspar-cc-plugins/plugins/workflow/tests
           ./test-plugin.sh
           echo "::endgroup::"
 
       - name: Run git hook tests
         run: |
           echo "::group::Git Hook Integration Tests"
-          cd tools/anspar-marketplace/plugins/workflow/tests
+          cd tools/anspar-cc-plugins/plugins/workflow/tests
           ./test-hooks.sh
           RESULT=$?
           echo "::endgroup::"

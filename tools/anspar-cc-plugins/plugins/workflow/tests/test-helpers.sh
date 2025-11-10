@@ -58,8 +58,8 @@ setup_test_repo() {
     cp -r "$PROJECT_ROOT/.githooks/"* .githooks/ 2>/dev/null || true
 
     # Copy plugin directories needed by hooks
-    mkdir -p tools/anspar-marketplace/plugins
-    cp -r "$PROJECT_ROOT/tools/anspar-marketplace/plugins/"* tools/anspar-marketplace/plugins/ 2>/dev/null || true
+    mkdir -p tools/anspar-cc-plugins/plugins
+    cp -r "$PROJECT_ROOT/tools/anspar-cc-plugins/plugins/"* tools/anspar-cc-plugins/plugins/ 2>/dev/null || true
 
     # Copy tools/requirements for validation scripts
     mkdir -p tools/requirements

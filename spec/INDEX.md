@@ -68,8 +68,8 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00061 | dev-environment.md | Automated QA Workflow | fc47d463 |
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 7b290df6 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | b407570f |
-| REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | bc0b4c89 |
-| REQ-d00065 | dev-marketplace-path-validation.md | Plugin Path Validation | 1284707f |
+| REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | e325d07b |
+| REQ-d00065 | dev-marketplace-path-validation.md | Plugin Path Validation | 770482b7 |
 | REQ-d00066 | dev-marketplace-permissions.md | Plugin-Specific Permission Management | 0dd52eec |
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
