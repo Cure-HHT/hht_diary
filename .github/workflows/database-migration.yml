@@ -12,6 +12,7 @@ on:
 jobs:
   validate-migrations:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:15
@@ -30,7 +31,10 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          which psql || (echo "ERROR: postgresql-client installation failed" && exit 1)
 
       - name: Test schema deployment
         env:
@@ -40,9 +44,9 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: test_db
         run: |
-          echo "🔍 Testing schema deployment..."
-          psql -f database/schema.sql
-          echo "✅ Schema deployed successfully"
+          echo "Testing schema deployment..."
+          psql --set ON_ERROR_STOP=1 -f database/schema.sql
+          echo "Schema deployed successfully"
 
       - name: Test triggers
         env:
@@ -52,9 +56,9 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: test_db
         run: |
-          echo "🔍 Testing triggers..."
-          psql -f database/triggers.sql
-          echo "✅ Triggers deployed successfully"
+          echo "Testing triggers..."
+          psql --set ON_ERROR_STOP=1 -f database/triggers.sql
+          echo "Triggers deployed successfully"
 
       - name: Test RLS policies
         env:
@@ -64,9 +68,9 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: test_db
         run: |
-          echo "🔍 Testing RLS policies..."
-          psql -f database/rls_policies.sql
-          echo "✅ RLS policies deployed successfully"
+          echo "Testing RLS policies..."
+          psql --set ON_ERROR_STOP=1 -f database/rls_policies.sql
+          echo "RLS policies deployed successfully"
 
       - name: Test indexes
         env:
@@ -76,9 +80,9 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: test_db
         run: |
-          echo "🔍 Testing indexes..."
-          psql -f database/indexes.sql
-          echo "✅ Indexes deployed successfully"
+          echo "Testing indexes..."
+          psql --set ON_ERROR_STOP=1 -f database/indexes.sql
+          echo "Indexes deployed successfully"
 
       - name: Run database tests
         env:
@@ -88,14 +92,20 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: test_db
         run: |
-          echo "🔍 Running database tests..."
-          psql -f database/tests/test_audit_trail.sql
-          psql -f database/tests/test_compliance_functions.sql
-          echo "✅ Database tests passed"
+          echo "Running database tests..."
+          psql --set ON_ERROR_STOP=1 -f database/tests/test_audit_trail.sql
+          psql --set ON_ERROR_STOP=1 -f database/tests/test_compliance_functions.sql
+          echo "Database tests passed"
 
       - name: Validate migration scripts
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
         run: |
-          echo "🔍 Validating migration scripts have rollbacks..."
+          echo "Validating migration scripts have rollbacks..."
           for migration in database/migrations/*.sql; do
             if [ -f "$migration" ]; then
               filename=$(basename "$migration")
@@ -107,12 +117,32 @@ jobs:
               rollback_file="${rollback_dir}/${migration_num}_rollback.sql"
 
               if [ ! -f "$rollback_file" ]; then
-                echo "❌ Missing rollback for $migration"
+                echo "ERROR: Missing rollback for $migration"
                 echo "Expected: $rollback_file"
                 exit 1
-              else
-                echo "✅ Found rollback for $migration: $rollback_file"
               fi
+
+              echo "Testing rollback for $migration: $rollback_file"
+
+              # Apply migration to test database
+              if ! psql --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
+                echo "ERROR: Failed to apply migration $migration"
+                exit 1
+              fi
+
+              # Apply rollback to test database
+              if ! psql --set ON_ERROR_STOP=1 -f "$rollback_file" > /dev/null 2>&1; then
+                echo "ERROR: Rollback failed for $rollback_file"
+                exit 1
+              fi
+
+              # Re-apply migration to verify it can be applied again
+              if ! psql --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
+                echo "ERROR: Failed to re-apply migration $migration after rollback"
+                exit 1
+              fi
+
+              echo "Rollback verified for $migration"
             fi
           done
-          echo "✅ All migrations have corresponding rollbacks"
+          echo "All migrations have corresponding rollbacks and rollbacks are functional"
