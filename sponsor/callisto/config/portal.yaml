@@ -2,19 +2,19 @@
 #   REQ-p00009: Sponsor-Specific Web Portals
 #   REQ-d00028: Portal Frontend Framework
 
-# Carina Portal Configuration
+# Callisto Portal Configuration
 sponsor:
-  id: carina
-  name: Carina Clinical Trials
-  display_name: Carina Portal
+  id: callisto
+  name: Callisto Clinical Trials
+  display_name: Callisto Portal
 
 # Branding
 branding:
   primary_color: "#0175C2"
   secondary_color: "#4CAF50"
-  logo: sponsor/assets/carina/logo.png
-  icon: sponsor/assets/carina/icon.png
-  favicon: sponsor/assets/carina/favicon.png
+  logo: sponsor/assets/callisto/logo.png
+  icon: sponsor/assets/callisto/icon.png
+  favicon: sponsor/assets/callisto/favicon.png
 
 # Features
 features:
@@ -27,10 +27,10 @@ features:
 # Portal URLs (per environment)
 urls:
   development: http://localhost:8080
-  staging: https://carina-portal-staging.example.com
-  production: https://carina-portal.example.com
+  staging: https://callisto-portal-staging.example.com
+  production: https://callisto-portal.example.com
 
 # Contact
 support:
-  email: support@carina-trials.example.com
-  phone: "+1-555-CARINA"
+  email: support@callisto-trials.example.com
+  phone: "+1-555-CALLISTO"

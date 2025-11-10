@@ -2,18 +2,18 @@
 #   REQ-p00008: Single Mobile App for All Sponsors
 #   REQ-p00007: Automatic Sponsor Configuration
 
-# Carina Mobile App Configuration
+# Callisto Mobile App Configuration
 sponsor:
-  id: carina
-  name: Carina Clinical Trials
+  id: callisto
+  name: Callisto Clinical Trials
 
 # App branding
 branding:
   primary_color: "#0175C2"
   secondary_color: "#4CAF50"
-  app_name: "Carina Diary"
-  logo: sponsor/assets/carina/logo.png
-  splash_icon: sponsor/assets/carina/icon.png
+  app_name: "Callisto Diary"
+  logo: sponsor/assets/callisto/logo.png
+  splash_icon: sponsor/assets/callisto/icon.png
 
 # Features
 features:

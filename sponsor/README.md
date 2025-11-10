@@ -8,7 +8,7 @@ This directory contains all sponsor-specific implementations for the multi-spons
 
 ```
 sponsor/
-├── carina/                      # Carina sponsor (self-contained)
+├── callisto/                    # Callisto sponsor (self-contained)
 │   ├── lib/                     # Dart code (config, portal, mobile extensions)
 │   ├── config/                  # Configuration files (GITIGNORED secrets!)
 │   ├── assets/                  # Branding (logos, icons, fonts)
@@ -27,11 +27,11 @@ Each sponsor subdirectory is **self-contained** and can be moved/archived indepe
 
 ## Current Sponsors
 
-### Carina
+### Callisto
 **Status**: Development / Scaffold
-**Directory**: `sponsor/carina/`
+**Directory**: `sponsor/callisto/`
 **Mode**: Endpoint (no EDC sync)
-**Codename**: Carina (constellation)
+**Codename**: Callisto (Jupiter's moon)
 
 **Implemented**:
 - ✅ Flutter Web portal (Admin, Investigator, Auditor dashboards)
@@ -39,7 +39,7 @@ Each sponsor subdirectory is **self-contained** and can be moved/archived indepe
 - ✅ Placeholder branding assets
 - ✅ Full requirement traceability
 
-**Documentation**: See `sponsor/carina/README.md`
+**Documentation**: See `sponsor/callisto/README.md`
 
 ---
 
@@ -52,7 +52,7 @@ mkdir -p sponsor/{name}/{lib,config,assets,edge_functions,spec}
 
 ### 2. Choose Codename
 Select an astronomical phenomenon (constellation, star, nebula, etc.):
-- Examples: Orion, Andromeda, Vega, Polaris, Nebula, Carina
+- Examples: Orion, Andromeda, Vega, Polaris, Nebula, Callisto
 
 ### 3. Implement Configuration
 Create in `sponsor/{name}/config/`:
@@ -85,7 +85,7 @@ Each sponsor operates **completely independently**:
 | Aspect | Isolation Method |
 |--------|------------------|
 | **Database** | Separate Supabase project per sponsor |
-| **Portal** | Unique URL per sponsor (e.g., `carina-portal.example.com`) |
+| **Portal** | Unique URL per sponsor (e.g., `callisto-portal.example.com`) |
 | **Users** | Independent user accounts per sponsor |
 | **Audit Trail** | Separate event logs per sponsor |
 | **Configuration** | Isolated config files with gitignored secrets |
@@ -98,9 +98,9 @@ The **mobile app** contains all sponsor configurations bundled, with dynamic sel
 ## Directory Benefits
 
 ### Self-Contained Units
-✅ **Move**: `mv sponsor/carina /archive/`
-✅ **Archive**: `tar -czf carina-2025-10-27.tar.gz sponsor/carina/`
-✅ **Share**: `zip -r carina-portal.zip sponsor/carina/` (exclude secrets)
+✅ **Move**: `mv sponsor/callisto /archive/`
+✅ **Archive**: `tar -czf callisto-2025-10-27.tar.gz sponsor/callisto/`
+✅ **Share**: `zip -r callisto-portal.zip sponsor/callisto/` (exclude secrets)
 ✅ **Independent Versioning**: Can be separate git repo if needed
 
 ### Clean Separation
@@ -167,13 +167,13 @@ The build system will compose core platform code with sponsor-specific code:
 
 ```bash
 # Validate sponsor implementation
-dart tools/build_system/validate_sponsor.dart --sponsor carina
+dart tools/build_system/validate_sponsor.dart --sponsor callisto
 
 # Build portal
-dart tools/build_system/build_portal.dart --sponsor carina --env production
+dart tools/build_system/build_portal.dart --sponsor callisto --env production
 
 # Deploy
-dart tools/build_system/deploy.dart --sponsor carina --env production
+dart tools/build_system/deploy.dart --sponsor callisto --env production
 ```
 
 **Note**: Build tools planned for future implementation. Currently using manual build process.
@@ -219,10 +219,10 @@ python3 tools/requirements/validate_requirements.py
 ### Sponsor Validation
 ```bash
 # Validate sponsor configuration
-dart tools/build_system/validate_sponsor.dart --sponsor carina
+dart tools/build_system/validate_sponsor.dart --sponsor callisto
 
 # Run tests
-cd sponsor-carina/lib/portal
+cd sponsor-callisto/lib/portal
 flutter test
 ```
 
