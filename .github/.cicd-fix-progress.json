@@ -1,0 +1,102 @@
+{
+  "metadata": {
+    "total_issues": 120,
+    "created": "2025-11-10",
+    "last_updated": "2025-11-10",
+    "branch": "feature/cicd-analysis-documentation"
+  },
+  "phases": {
+    "phase_0": {
+      "name": "Infrastructure Setup",
+      "status": "completed",
+      "tasks": [
+        {
+          "task": "Create shared configuration file",
+          "status": "completed",
+          "file": ".github/config/shared-config.yml"
+        },
+        {
+          "task": "Create progress tracking file",
+          "status": "completed",
+          "file": ".github/.cicd-fix-progress.json"
+        }
+      ]
+    },
+    "phase_1": {
+      "name": "Critical Safety Fixes",
+      "status": "completed",
+      "issues": [23, 24, 25, 28, 29, 92, 100],
+      "issues_fixed": {
+        "23": "Removed || true from Flutter tests in qa-automation.yml",
+        "24": "Removed || true from Playwright tests in qa-automation.yml",
+        "25": "Removed continue-on-error from test steps in qa-automation.yml",
+        "28": "Fixed error suppression in build-test.yml",
+        "29": "Removed 2>/dev/null from grep in build-test.yml",
+        "92": "Fixed Doppler auth error handling in qa-automation.yml",
+        "100": "Fixed brew on Linux platform issue in all deploy workflows"
+      },
+      "files": [
+        "qa-automation.yml",
+        "build-test.yml",
+        "deploy-development.yml",
+        "deploy-staging.yml",
+        "deploy-production.yml",
+        "rollback.yml"
+      ]
+    },
+    "phase_2": {
+      "name": "FDA Compliance",
+      "status": "skipped",
+      "reason": "Deferred to later implementation",
+      "issues": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    },
+    "phase_3": {
+      "name": "Configuration Cleanup",
+      "status": "skipped",
+      "reason": "Deferred to later implementation",
+      "issues": [56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 100]
+    },
+    "phase_4": {
+      "name": "Logic Simplification",
+      "status": "skipped",
+      "reason": "Deferred to later implementation",
+      "issues": [41, 42, 43, 44, 45, 46, 47, 50, 51, 52, 70, 71, 72, 73, 83, 84, 85]
+    },
+    "phase_5": {
+      "name": "Test Improvements",
+      "status": "completed",
+      "issues": [15, 84, 102, 108],
+      "issues_fixed": {
+        "15": "Added ON_ERROR_STOP to all psql commands in database-migration.yml",
+        "84": "Added postgresql-client installation verification in database-migration.yml",
+        "102": "Added timeout protection and rollback testing in database-migration.yml",
+        "108": "Enabled security scanning with Trivy in qa-automation.yml"
+      },
+      "files": [
+        "database-migration.yml",
+        "qa-automation.yml"
+      ]
+    },
+    "phase_6": {
+      "name": "Final Validation",
+      "status": "in_progress",
+      "tasks": [
+        {
+          "task": "Run all workflows with fixes",
+          "status": "pending"
+        },
+        {
+          "task": "Verify no error suppression remains",
+          "status": "pending"
+        },
+        {
+          "task": "Update documentation",
+          "status": "pending"
+        }
+      ]
+    }
+  },
+  "issues_fixed": [15, 23, 24, 25, 28, 29, 84, 92, 100, 102, 108],
+  "issues_pending": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86, 87, 88, 89, 90, 91, 93, 94, 95, 96, 97, 98, 99, 101, 103, 104, 105, 106, 107, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120],
+  "issues_skipped": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86, 87, 88, 89, 90, 91, 93, 94, 95, 96, 97, 98, 99, 101, 103, 104, 105, 106, 107, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120]
+}
