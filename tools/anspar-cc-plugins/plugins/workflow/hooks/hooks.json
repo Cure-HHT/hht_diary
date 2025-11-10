@@ -20,6 +20,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use",
+            "timeout": 1000
+          }
+        ]
+      }
     ]
   }
 }
