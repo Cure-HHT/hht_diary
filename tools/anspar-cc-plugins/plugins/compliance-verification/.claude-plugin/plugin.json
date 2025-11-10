@@ -1,0 +1,15 @@
+{
+  "name": "compliance-verification",
+  "version": "1.0.0",
+  "description": "FDA 21 CFR Part 11 compliance verification workflows for diary project",
+  "author": {
+    "name": "Anspar Foundation",
+    "url": "https://github.com/anspar"
+  },
+  "keywords": ["compliance", "fda", "verification", "21-cfr-part-11", "diary-specific"],
+  "repository": "https://github.com/anspar/diary",
+  "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/compliance-verification",
+  "license": "MIT",
+  "agents": "./agents/compliance-agent.md",
+  "skills": "./skills/"
+}

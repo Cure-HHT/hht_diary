@@ -44,6 +44,12 @@
       "source": "./plugins/spec-compliance",
       "description": "Enforces spec/ directory compliance through automated validation and AI-powered analysis",
       "version": "1.0.0"
+    },
+    {
+      "name": "compliance-verification",
+      "source": "./plugins/compliance-verification",
+      "description": "FDA 21 CFR Part 11 compliance verification workflows for diary project",
+      "version": "1.0.0"
     }
   ],
   "hooks": "./hooks/hooks.json",
