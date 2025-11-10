@@ -50,7 +50,7 @@ Add the traceability-matrix hook to your main pre-commit hook at `.githooks/pre-
 
 ```bash
 # Traceability Matrix Regeneration (Plugin)
-TRACEABILITY_HOOK="tools/anspar-marketplace/plugins/traceability-matrix/hooks/pre-commit-traceability-matrix"
+TRACEABILITY_HOOK="tools/anspar-cc-plugins/plugins/traceability-matrix/hooks/pre-commit-traceability-matrix"
 if [ -f "$TRACEABILITY_HOOK" ]; then
     "$TRACEABILITY_HOOK" || exit 1
 fi
@@ -252,7 +252,7 @@ git config core.hooksPath
 git config core.hooksPath .githooks
 
 # Make hook executable
-chmod +x tools/anspar-marketplace/plugins/traceability-matrix/hooks/pre-commit-traceability-matrix
+chmod +x tools/anspar-cc-plugins/plugins/traceability-matrix/hooks/pre-commit-traceability-matrix
 ```
 
 ### Python Script Not Found
@@ -385,11 +385,11 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 - **Requirement Format**: See spec/requirements-format.md in parent project
 - **Generation Script**: `tools/requirements/generate_traceability.py`
-- **Requirement Validation**: `tools/anspar-marketplace/plugins/simple-requirements`
+- **Requirement Validation**: `tools/anspar-cc-plugins/plugins/simple-requirements`
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
 
 ## Support
 
 For issues, questions, or contributions:
 - **Repository**: https://github.com/anspar/diary
-- **Plugin Path**: `tools/anspar-marketplace/plugins/traceability-matrix`
+- **Plugin Path**: `tools/anspar-cc-plugins/plugins/traceability-matrix`

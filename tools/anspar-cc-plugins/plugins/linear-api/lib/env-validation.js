@@ -99,7 +99,7 @@ async function validateEnvironment(options = {}) {
     } else if (requireTeamId) {
         console.error('✗ LINEAR_TEAM_ID is not set and auto-discovery is disabled');
         console.error('');
-        console.error('Please run: source tools/anspar-marketplace/plugins/linear-api/scripts/setup-env.sh');
+        console.error('Please run: source tools/anspar-cc-plugins/plugins/linear-api/scripts/setup-env.sh');
         console.error('Or set manually: export LINEAR_TEAM_ID="your-team-id"');
         process.exit(1);
     }

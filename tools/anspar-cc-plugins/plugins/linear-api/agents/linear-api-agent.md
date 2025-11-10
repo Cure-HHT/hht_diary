@@ -49,11 +49,11 @@ Get your Linear API token from: https://linear.app/settings/api
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| **fetch-tickets** | `bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill [TICKET-IDS...]` | Fetch ticket details by ID or current active ticket |
-| **create-ticket** | `bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill --title="Title" [options]` | Create a new ticket |
-| **update-ticket** | `bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill --ticketId=ID [options]` | Update ticket status, description, checklist, or add requirement reference |
-| **search-tickets** | `bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill --query="text" [--format=json]` | Search tickets by keyword |
-| **list-labels** | `bash tools/anspar-marketplace/plugins/linear-api/skills/list-labels.skill [--filter=PREFIX]` | List available labels |
+| **fetch-tickets** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill [TICKET-IDS...]` | Fetch ticket details by ID or current active ticket |
+| **create-ticket** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill --title="Title" [options]` | Create a new ticket |
+| **update-ticket** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill --ticketId=ID [options]` | Update ticket status, description, checklist, or add requirement reference |
+| **search-tickets** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill --query="text" [--format=json]` | Search tickets by keyword |
+| **list-labels** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill [--filter=PREFIX]` | List available labels |
 
 ## Skill Details
 
@@ -63,13 +63,13 @@ Fetch one or more tickets by identifier.
 
 ```bash
 # Fetch current active ticket (from workflow state)
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill
 
 # Fetch specific ticket
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240
 
 # Fetch multiple tickets
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240 CUR-241 CUR-242
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240 CUR-241 CUR-242
 ```
 
 **Output**: Detailed ticket information including title, status, description, labels, assignee, etc.
@@ -80,19 +80,19 @@ Create a new Linear ticket.
 
 ```bash
 # Simple ticket
-bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill \
   --title="Fix login bug" \
   --priority=high
 
 # With description
-bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill \
   --title="Implement new feature" \
   --description="Detailed description here" \
   --labels="enhancement,frontend" \
   --priority=P2
 
 # From description file
-bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill \
   --title="Update documentation" \
   --description-file=/path/to/spec.md \
   --priority=normal
@@ -115,24 +115,24 @@ Update an existing ticket's status, description, checklist, or add requirement r
 
 ```bash
 # Update status
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --status=in-progress
 
 # Add checklist
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --checklist='- [ ] Task 1
 - [ ] Task 2
 - [ ] Task 3'
 
 # Add requirement reference
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --add-requirement=REQ-p00001
 
 # Multiple updates
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --status=done \
   --add-requirement=REQ-p00001
@@ -155,11 +155,11 @@ Search for tickets by keyword in title or description.
 
 ```bash
 # Search by keyword
-bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
   --query="authentication"
 
 # JSON output
-bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
   --query="login bug" \
   --format=json
 ```
@@ -176,14 +176,14 @@ List all available labels in the Linear workspace.
 
 ```bash
 # List all labels
-bash tools/anspar-marketplace/plugins/linear-api/skills/list-labels.skill
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill
 
 # Filter by prefix
-bash tools/anspar-marketplace/plugins/linear-api/skills/list-labels.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill \
   --filter="ai:"
 
 # JSON output
-bash tools/anspar-marketplace/plugins/linear-api/skills/list-labels.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill \
   --format=json
 ```
 
@@ -199,11 +199,11 @@ You can also invoke scripts directly (skills are wrappers):
 
 ```bash
 # From scripts/ directory
-node tools/anspar-marketplace/plugins/linear-api/scripts/fetch-tickets.js CUR-240
-node tools/anspar-marketplace/plugins/linear-api/scripts/create-ticket.js --title="Title"
-node tools/anspar-marketplace/plugins/linear-api/scripts/update-ticket.js --ticketId=CUR-240 --status=done
-node tools/anspar-marketplace/plugins/linear-api/scripts/search-tickets.js --query="keyword"
-node tools/anspar-marketplace/plugins/linear-api/scripts/list-labels.js
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/fetch-tickets.js CUR-240
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/create-ticket.js --title="Title"
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/update-ticket.js --ticketId=CUR-240 --status=done
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/search-tickets.js --query="keyword"
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/list-labels.js
 ```
 
 ## Error Handling
@@ -226,7 +226,7 @@ The plugin auto-discovers configuration:
 Test your configuration:
 
 ```bash
-node tools/anspar-marketplace/plugins/linear-api/scripts/test-config.js
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js
 ```
 
 ## Usage Examples
@@ -235,7 +235,7 @@ node tools/anspar-marketplace/plugins/linear-api/scripts/test-config.js
 
 ```bash
 # Create bug ticket
-bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill \
   --title="Login page throws 500 error" \
   --description="Steps to reproduce:
 1. Navigate to /login
@@ -246,12 +246,12 @@ bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
   --priority=urgent
 
 # Update to in-progress
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --status=in-progress
 
 # Mark as done
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --status=done
 ```
@@ -260,22 +260,22 @@ bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
 
 ```bash
 # Search for tickets about authentication
-bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
   --query="authentication"
 
 # Fetch specific ticket for details
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240
 ```
 
 ### Example 3: Bulk Operations
 
 ```bash
 # Fetch multiple tickets
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill \
   CUR-240 CUR-241 CUR-242
 
 # Search and filter with jq
-bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
   --query="bug" \
   --format=json | jq '.[] | select(.state.type == "started")'
 ```
@@ -299,7 +299,7 @@ This plugin is designed to be a low-level building block. Higher-level plugins (
 ## Support
 
 For issues or questions:
-- Plugin repository: https://github.com/anspar/diary/tree/main/tools/anspar-marketplace/plugins/linear-api
+- Plugin repository: https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/linear-api
 - Linear API documentation: https://developers.linear.app/docs
 
 ## License

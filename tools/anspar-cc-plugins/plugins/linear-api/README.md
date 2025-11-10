@@ -43,7 +43,7 @@ export LINEAR_API_TOKEN="lin_api_..."
 This plugin is designed to be installed in the Claude Code marketplace directory:
 
 ```
-tools/anspar-marketplace/plugins/linear-api/
+tools/anspar-cc-plugins/plugins/linear-api/
 ```
 
 No additional installation steps required. The plugin auto-discovers your Linear team on first use.
@@ -53,7 +53,7 @@ No additional installation steps required. The plugin auto-discovers your Linear
 Verify your setup:
 
 ```bash
-node tools/anspar-marketplace/plugins/linear-api/scripts/test-config.js
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js
 ```
 
 This will:
@@ -68,19 +68,19 @@ This will:
 
 ```bash
 # Fetch specific ticket
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240
 
 # Fetch current active ticket (from workflow state)
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill
 
 # Fetch multiple tickets
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240 CUR-241
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240 CUR-241
 ```
 
 ### 2. Create a Ticket
 
 ```bash
-bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill \
   --title="Fix authentication bug" \
   --description="Users cannot log in after password reset" \
   --labels="bug,backend" \
@@ -91,19 +91,19 @@ bash tools/anspar-marketplace/plugins/linear-api/skills/create-ticket.skill \
 
 ```bash
 # Update status
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --status=in-progress
 
 # Add checklist
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --checklist='- [ ] Fix login endpoint
 - [ ] Add tests
 - [ ] Update docs'
 
 # Add requirement reference
-bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill \
   --ticketId=CUR-240 \
   --add-requirement=REQ-p00001
 ```
@@ -111,7 +111,7 @@ bash tools/anspar-marketplace/plugins/linear-api/skills/update-ticket.skill \
 ### 4. Search Tickets
 
 ```bash
-bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
   --query="authentication"
 ```
 
@@ -119,10 +119,10 @@ bash tools/anspar-marketplace/plugins/linear-api/skills/search-tickets.skill \
 
 ```bash
 # All labels
-bash tools/anspar-marketplace/plugins/linear-api/skills/list-labels.skill
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill
 
 # Filter by prefix
-bash tools/anspar-marketplace/plugins/linear-api/skills/list-labels.skill --filter="ai:"
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill --filter="ai:"
 ```
 
 ## Skills Reference
@@ -141,10 +141,10 @@ All skills are located in `skills/` and are executable bash wrappers around the 
 
 ```bash
 # From skills directory
-bash tools/anspar-marketplace/plugins/linear-api/skills/fetch-tickets.skill CUR-240
+bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill CUR-240
 
 # Or directly from scripts
-node tools/anspar-marketplace/plugins/linear-api/scripts/fetch-tickets.js CUR-240
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/fetch-tickets.js CUR-240
 ```
 
 ## Scripts Reference
@@ -430,7 +430,7 @@ On first use, the plugin will:
 
 Cache files are stored in:
 ```
-tools/anspar-marketplace/plugins/linear-api/.cache/
+tools/anspar-cc-plugins/plugins/linear-api/.cache/
 ```
 
 Cache includes:
@@ -606,7 +606,7 @@ export LINEAR_TEAM_ID="team-id-here"
 **Solution**:
 ```bash
 # Ensure you're running from the correct directory
-cd tools/anspar-marketplace/plugins/linear-api
+cd tools/anspar-cc-plugins/plugins/linear-api
 
 # Or use absolute paths
 node /full/path/to/scripts/fetch-tickets.js
@@ -641,7 +641,7 @@ MIT License
 ## Support
 
 - **Repository**: https://github.com/anspar/diary
-- **Plugin Location**: `tools/anspar-marketplace/plugins/linear-api/`
+- **Plugin Location**: `tools/anspar-cc-plugins/plugins/linear-api/`
 - **Linear API Docs**: https://developers.linear.app/docs
 - **Issues**: Submit via GitHub Issues
 

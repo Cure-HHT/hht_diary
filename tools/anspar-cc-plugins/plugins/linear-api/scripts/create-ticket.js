@@ -136,7 +136,7 @@ async function main() {
         // Show next steps
         console.log(`\n📋 Next steps:`);
         console.log(`   1. View ticket: ${ticket.url}`);
-        console.log(`   2. Claim for work: tools/anspar-marketplace/plugins/anspar-workflow/scripts/claim-ticket.sh ${ticket.identifier}`);
+        console.log(`   2. Claim for work: tools/anspar-cc-plugins/plugins/workflow/scripts/claim-ticket.sh ${ticket.identifier}`);
 
     } catch (error) {
         console.error(`\n❌ Error: ${error.message}`);
@@ -149,7 +149,7 @@ async function main() {
 
         if (error.message.includes('team')) {
             console.error('\nRun the initialization to discover your team:');
-            console.error('  node tools/anspar-marketplace/plugins/linear-api/scripts/test-config.js');
+            console.error('  node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js');
         }
 
         process.exit(1);

@@ -6,10 +6,10 @@
 # commands to export it for use with other linear-integration scripts.
 #
 # Usage:
-#   source tools/anspar-marketplace/plugins/linear-integration/scripts/setup-env.sh
+#   source tools/anspar-cc-plugins/plugins/linear-api/scripts/setup-env.sh
 #
 # Or to just get the team ID:
-#   bash tools/anspar-marketplace/plugins/linear-integration/scripts/setup-env.sh
+#   bash tools/anspar-cc-plugins/plugins/linear-api/scripts/setup-env.sh
 #
 
 set -eo pipefail
