@@ -6,9 +6,12 @@ tools: Bash, Read, AskUserQuestion
 
 # Workflow Enforcer Agent
 
-**Purpose**: Ensure active ticket is claimed before starting implementation work.
+**Purpose**: Ensure active ticket is claimed before starting implementation work, and handle PR merge cleanup.
 
-**Auto-invoke when**: User requests tasks that will require commits (writing code, editing specs/docs, creating files).
+**Auto-invoke when**:
+- User requests tasks that will require commits (writing code, editing specs/docs, creating files)
+- User mentions PR is merged (e.g., "PR #49 is merged", "the PR merged", "merge successful")
+- User asks about releasing tickets or cleaning up branches
 
 **Do NOT invoke for**: Reading files, searching, answering questions, explaining concepts.
 
@@ -153,6 +156,45 @@ Once user claims a ticket:
   ```
 - Confirm: "✅ Now working on CUR-XXX"
 - **Proceed with original user request**
+
+### PR Merge and Cleanup Workflow
+
+**Expected Flow**: User merges PRs via GitHub web UI, then reports the merge.
+
+**When user reports PR merged** (e.g., "PR #49 is merged"):
+1. **Verify merge status**:
+   ```bash
+   gh pr view <NUMBER> --json state,mergedAt
+   ```
+2. **Check if active ticket should be released**:
+   - Get active ticket: `check-active-ticket.sh`
+   - Ask user: "Would you like to release ticket {ID} and add completion comment to Linear?"
+
+3. **If user confirms**:
+   ```bash
+   ${CLAUDE_PLUGIN_ROOT}/scripts/release-with-pr.sh <TICKET_ID> <PR_NUMBER> <PR_URL> [BRANCH]
+   ```
+   - This releases the ticket
+   - Adds Linear comment with PR link
+   - Optionally deletes local branch (if merged and safe)
+
+4. **Branch cleanup**:
+   - Only offer to delete branch if:
+     - Branch is fully merged into main
+     - Not currently on main/master
+   - Use safe delete (`git branch -d`, not `-D`)
+   - Automatic check: `git branch --merged main | grep <BRANCH>`
+
+**PostToolUse Hook Integration**:
+- Hook auto-detects `gh pr merge` commands
+- Also works if user manually merges via CLI
+- **Does NOT trigger on web UI merges** (requires manual reporting)
+
+**Key Points**:
+- User has full control via web UI merge workflow
+- Manual reporting gives context for cleanup
+- All delete operations are safe (refuse unmerged branches)
+- Linear comment format: `Work complete - [PR #XX](url)`
 
 ### Session State Awareness
 

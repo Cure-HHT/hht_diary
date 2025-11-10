@@ -28,6 +28,16 @@ ACTIVE_TICKET=$("$PLUGIN_DIR/scripts/get-active-ticket.sh" --format=id 2>/dev/nu
 # Pattern matching scores
 TASK_SWITCH_SCORE=0
 NEW_FEATURE_SCORE=0
+PR_MERGE_DETECTED=false
+
+# ===================================================
+# PR MERGE DETECTION (Highest priority)
+# ===================================================
+
+# Check for PR merge mentions
+if echo "$PROMPT" | grep -qiE "(PR|pull request) ?(#[0-9]+)? ?(is|was|has been)? ?(merged|merge successful|merge complete)|(merged? (the )?PR)|(merge successful)"; then
+    PR_MERGE_DETECTED=true
+fi
 
 # ===================================================
 # HIGH-PRIORITY PATTERNS (Strong task switch indicators)
@@ -104,8 +114,32 @@ fi
 SHOULD_WARN=false
 WARNING_MSG=""
 
+# PR merge detected (highest priority)
+if [ "$PR_MERGE_DETECTED" = true ]; then
+    SHOULD_WARN=true
+    if [ -n "$ACTIVE_TICKET" ]; then
+        WARNING_MSG="🎉 PR MERGE DETECTED
+
+Active ticket: $ACTIVE_TICKET
+
+The workflow-enforcer agent will help you:
+1. Verify the PR merge status
+2. Release the ticket with PR reference
+3. Add completion comment to Linear
+4. Clean up merged branches (if safe)
+
+Proceeding with automatic workflow cleanup..."
+    else
+        WARNING_MSG="🎉 PR MERGE DETECTED
+
+No active ticket found.
+
+The workflow-enforcer agent will help verify the merge status and determine
+if any cleanup is needed."
+    fi
+
 # High-confidence task switch detected
-if [ $TASK_SWITCH_SCORE -ge 8 ]; then
+elif [ $TASK_SWITCH_SCORE -ge 8 ]; then
     SHOULD_WARN=true
     if [ -n "$ACTIVE_TICKET" ]; then
         WARNING_MSG="🔄 TASK CONTEXT SHIFT DETECTED
