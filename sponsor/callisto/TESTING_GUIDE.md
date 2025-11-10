@@ -1,6 +1,6 @@
-# Carina Portal Testing Guide
+# Callisto Portal Testing Guide
 
-**Goal**: Get the Carina portal running locally and test all features.
+**Goal**: Get the Callisto portal running locally and test all features.
 
 **Time Required**: ~30-45 minutes (first time)
 
@@ -44,7 +44,7 @@ sudo apt-get install -y unzip
 
 ### 1.2 Create Project
 - **Organization**: Create new or select existing
-- **Name**: `carina-portal-dev` (or similar)
+- **Name**: `callisto-portal-dev` (or similar)
 - **Database Password**: Generate strong password (SAVE THIS!)
 - **Region**: Choose closest to you (e.g., `us-west-1`)
 - **Pricing Plan**: Free tier is fine for testing
@@ -195,7 +195,7 @@ VALUES (
 
 ### 5.1 Create Credentials File
 ```bash
-cd /home/mclew/dev24/diary/sponsor/carina/config
+cd /home/mclew/dev24/diary/sponsor/callisto/config
 cp supabase.env.example supabase.env
 ```
 
@@ -219,7 +219,7 @@ Save and exit (Ctrl+X, Y, Enter for nano).
 ### 5.3 Update Portal Code
 Open the Supabase config file:
 ```bash
-nano /home/mclew/dev24/diary/sponsor/carina/lib/portal/lib/config/supabase_config.dart
+nano /home/mclew/dev24/diary/sponsor/callisto/lib/portal/lib/config/supabase_config.dart
 ```
 
 Replace the placeholder values:
@@ -238,7 +238,7 @@ class SupabaseConfig {
 ## Step 6: Install Flutter Dependencies (2 minutes)
 
 ```bash
-cd /home/mclew/dev24/diary/sponsor/carina/lib/portal
+cd /home/mclew/dev24/diary/sponsor/callisto/lib/portal
 flutter pub get
 ```
 
@@ -256,14 +256,14 @@ flutter pub get
 
 ### 7.1 Start Development Server
 ```bash
-cd /home/mclew/dev24/diary/sponsor/carina/lib/portal
+cd /home/mclew/dev24/diary/sponsor/callisto/lib/portal
 flutter run -d chrome
 ```
 
 **Expected**:
 - Chrome browser opens automatically
 - Portal loads at `http://localhost:xxxxx`
-- You see the login page with "Carina Clinical Trial Portal" title
+- You see the login page with "Callisto Clinical Trial Portal" title
 
 **If Chrome doesn't open automatically**:
 ```bash
@@ -522,7 +522,7 @@ DELETE FROM sites;
 
 **Issues with Supabase**: https://supabase.com/docs
 **Flutter Web Issues**: https://docs.flutter.dev/platform-integration/web
-**Portal Documentation**: `sponsor/carina/lib/portal/README.md`
+**Portal Documentation**: `sponsor/callisto/lib/portal/README.md`
 
 ---
 

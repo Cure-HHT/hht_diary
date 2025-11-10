@@ -1,6 +1,6 @@
-# Carina Branding Assets
+# Callisto Branding Assets
 
-This directory contains branding assets for the Carina sponsor.
+This directory contains branding assets for the Callisto sponsor.
 
 ## Required Assets
 
@@ -15,7 +15,7 @@ This directory contains branding assets for the Carina sponsor.
 
 ## Placeholder Assets
 
-Currently using placeholder assets. Replace with actual Carina branding assets before production deployment.
+Currently using placeholder assets. Replace with actual Callisto branding assets before production deployment.
 
 ## Asset Guidelines
 
@@ -27,6 +27,6 @@ Currently using placeholder assets. Replace with actual Carina branding assets b
 ## Implementation Notes
 
 Assets are referenced in:
-- `sponsor/config/carina/portal.yaml`
-- `sponsor/config/carina/mobile.yaml`
+- `sponsor/config/callisto/portal.yaml`
+- `sponsor/config/callisto/mobile.yaml`
 - `apps/portal/pubspec.yaml`

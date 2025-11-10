@@ -1,6 +1,6 @@
-# Carina Clinical Trial Portal
+# Callisto Clinical Trial Portal
 
-**Sponsor**: Carina Clinical Trials
+**Sponsor**: Callisto Clinical Trials
 **Type**: Flutter Web Application
 **Status**: Development / Scaffold
 **Version**: 1.0.0
@@ -9,7 +9,7 @@
 
 ## Overview
 
-The Carina Portal is a web-based clinical trial management system for Admins, Investigators, and Auditors. It enables user management, patient enrollment, patient monitoring, and questionnaire management.
+The Callisto Portal is a web-based clinical trial management system for Admins, Investigators, and Auditors. It enables user management, patient enrollment, patient monitoring, and questionnaire management.
 
 ### Key Features
 
@@ -156,7 +156,7 @@ Benefits:
 4. **Configure Supabase**
    - Create a Supabase project at https://supabase.com
    - Deploy database schema from `database/schema.sql`
-   - Copy credentials to `sponsor/config/carina/supabase.env`
+   - Copy credentials to `sponsor/config/callisto/supabase.env`
    - Update `lib/config/supabase_config.dart` with actual credentials
 
 5. **Run development server**
@@ -241,10 +241,10 @@ Users should **never manually enter credentials** - the deployment environment d
 
 ### Legacy Configuration (Deprecated)
 
-Previously used `sponsor/config/carina/supabase.env` file - this approach is deprecated in favor of build-time environment variables.
+Previously used `sponsor/config/callisto/supabase.env` file - this approach is deprecated in favor of build-time environment variables.
 
 ### Branding
-Replace placeholder assets in `sponsor/assets/carina/`:
+Replace placeholder assets in `sponsor/assets/callisto/`:
 - `logo.png` (200x60px)
 - `icon.png` (512x512px)
 - `favicon.png` (32x32px)
@@ -503,10 +503,10 @@ See `spec/prd-clinical-trials.md` for complete compliance requirements.
 **Deployment Issues**: See `spec/ops-portal.md`
 **Compliance Questions**: See `spec/prd-clinical-trials.md`
 
-**Contact**: support@carina-trials.example.com
+**Contact**: support@callisto-trials.example.com
 
 ---
 
 ## License
 
-Proprietary - Carina Clinical Trials
+Proprietary - Callisto Clinical Trials

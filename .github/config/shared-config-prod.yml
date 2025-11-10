@@ -1,0 +1,95 @@
+# Production Environment Configuration
+# This file contains production-specific values
+# Loaded when WORKFLOW_PROTECTION_ENABLED == 'true'
+
+# AWS Configuration - Production
+aws:
+  region: eu-west-1  # GDPR compliant region
+  account_id: "${AWS_PROD_ACCOUNT_ID}"  # Set via environment variable
+  ecr_registry: "${AWS_PROD_ACCOUNT_ID}.dkr.ecr.eu-west-1.amazonaws.com"
+  environment: prod
+
+# S3 Buckets - Production
+s3:
+  artifacts: "hht-diary-prod-artifacts-eu-west-1"
+  # Per-sponsor buckets (runtime substitution)
+  sponsor_bucket: "hht-diary-prod-${SPONSOR}-eu-west-1"
+  backup_bucket: "hht-diary-prod-backups-${SPONSOR}-eu-west-1"
+  retention_bucket: "hht-diary-prod-retention-${SPONSOR}-eu-west-1"
+
+# Version Configuration - Fixed versions for production
+versions:
+  node: "20.11.0"  # LTS version
+  python: "3.11.8"
+  flutter: "3.19.6"
+  supabase_cli: "1.142.2"
+  postgres: "15.5"
+  docker: "24.0.7"
+
+# Path Configuration
+paths:
+  artifacts: ".artifacts"
+  coverage: "coverage"
+  test_results: "test-results"
+  audit_logs: "audit-logs"
+  migrations: "database/migrations"
+  rollbacks: "database/rollbacks"
+
+# Timeout Configuration (in minutes)
+timeouts:
+  build: 45
+  test: 60
+  deploy: 60
+  migration: 15
+  rollback: 10
+  default: 30
+
+# Retention Configuration (in days) - FDA 21 CFR Part 11 compliance
+retention:
+  artifacts: 90       # 3 months
+  test_results: 365   # 1 year
+  audit_logs: 2555    # 7 years for FDA compliance
+  build_logs: 365     # 1 year
+  deployment_logs: 2555  # 7 years for FDA compliance
+
+# Test Configuration
+testing:
+  coverage_threshold: 80  # Higher threshold for production
+  parallelism: 4
+  retry_count: 1  # Less retries in production
+  fail_fast: true  # Fail fast in production
+
+# Security Configuration
+security:
+  enable_scanning: true
+  vulnerability_severity: "CRITICAL,HIGH"  # Only critical and high in prod
+  secret_scanning: true
+  dependency_check: true
+  require_signed_commits: true
+  enforce_2fa: true
+
+# Notification Configuration
+notifications:
+  slack_webhook: "${SLACK_PROD_WEBHOOK}"
+  email_on_failure: "devops+prod@hht-diary.com"
+  pagerduty_integration_key: "${PAGERDUTY_KEY}"
+
+# Sponsors
+sponsors:
+  - callisto
+
+# Compliance
+compliance:
+  fda_21_cfr_part_11: true
+  gdpr: true
+  hipaa: true
+  audit_trail_required: true
+  data_retention_years: 7
+  backup_retention_years: 7
+
+# Production Gates
+gates:
+  require_approval: true
+  minimum_approvers: 2
+  require_security_review: true
+  require_compliance_check: true

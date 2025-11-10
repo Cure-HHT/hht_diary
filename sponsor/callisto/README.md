@@ -1,7 +1,7 @@
-# Carina Sponsor Implementation
+# Callisto Sponsor Implementation
 
-**Sponsor**: Carina Clinical Trials
-**Codename**: Carina (constellation)
+**Sponsor**: Callisto Clinical Trials
+**Codename**: Callisto (Jupiter's moon)
 **Status**: Development / Scaffold
 **Type**: Multi-sponsor clinical diary portal and mobile app
 
@@ -12,9 +12,9 @@
 This sponsor directory is **self-contained** and can be moved/archived as a single unit:
 
 ```
-sponsor-carina/
+sponsor-callisto/
 ├── lib/                      # Dart implementations
-│   ├── carina_config.dart            # Sponsor configuration
+│   ├── callisto_config.dart          # Sponsor configuration
 │   └── portal/                       # Flutter Web portal application
 │       ├── lib/                      # Portal source code
 │       │   ├── config/               # Supabase configuration
@@ -100,7 +100,7 @@ sponsor-carina/
 
 1. **Navigate to portal directory**
    ```bash
-   cd sponsor-carina/lib/portal
+   cd sponsor-callisto/lib/portal
    ```
 
 2. **Install dependencies**
@@ -111,7 +111,7 @@ sponsor-carina/
 3. **Configure Supabase**
    - Create Supabase project at https://supabase.com
    - Deploy database schema from `../../database/schema.sql`
-   - Copy `sponsor-carina/config/supabase.env.example` to `supabase.env`
+   - Copy `sponsor-callisto/config/supabase.env.example` to `supabase.env`
    - Update `lib/portal/lib/config/supabase_config.dart` with credentials
 
 4. **Run development server**
@@ -129,7 +129,7 @@ sponsor-carina/
 ## Configuration
 
 ### Environment Variables
-Create `sponsor-carina/config/supabase.env`:
+Create `sponsor-callisto/config/supabase.env`:
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key-here
@@ -139,7 +139,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 **NEVER commit this file to git!** (Protected by `.gitignore`)
 
 ### Branding
-Replace placeholder assets in `sponsor-carina/assets/`:
+Replace placeholder assets in `sponsor-callisto/assets/`:
 - `logo.png` (200x60px, transparent)
 - `icon.png` (512x512px)
 - `favicon.png` (32x32px)
@@ -177,7 +177,7 @@ See `spec/prd-portal.md` and `spec/dev-portal.md` for complete requirements.
 1. Build: `flutter build web --release --web-renderer html`
 2. Deploy `build/web/` to Netlify/Vercel/Cloudflare Pages
 3. Configure environment variables
-4. Custom domain: `carina-portal.example.com`
+4. Custom domain: `callisto-portal.example.com`
 
 ### Database Setup
 1. Create Supabase project
@@ -237,7 +237,7 @@ This sponsor follows the **multi-sponsor architecture** defined in:
 
 ## License
 
-Proprietary - Carina Clinical Trials
+Proprietary - Callisto Clinical Trials
 
 ---
 
@@ -245,8 +245,8 @@ Proprietary - Carina Clinical Trials
 
 This entire directory is **self-contained** and can be:
 - **Moved**: `mv sponsor-carina /path/to/archive/`
-- **Archived**: `tar -czf carina-2025-10-27.tar.gz sponsor-carina/`
-- **Shared**: `zip -r carina-portal.zip sponsor-carina/` (exclude `config/supabase.env`)
+- **Archived**: `tar -czf callisto-2025-10-27.tar.gz sponsor-callisto/`
+- **Shared**: `zip -r callisto-portal.zip sponsor-callisto/` (exclude `config/supabase.env`)
 - **Version Controlled**: Separate git repo if needed
 
 No dependencies on parent directory structure (except core platform database schema).
