@@ -61,8 +61,7 @@
   "hooks": "./hooks/hooks.json",
   "metadata": {
     "created": "2025-11-09",
-    "purpose": "Refactored marketplace with proper agent orchestration patterns",
-    "replaces": "tools/anspar-marketplace/",
+    "purpose": "Plugin marketplace with proper agent orchestration patterns",
     "repository": "https://github.com/anspar-foundation/diary"
   }
 }
