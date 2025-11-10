@@ -586,5 +586,4 @@ Before implementing any task, ask yourself:
 
 - [Architecture Documentation](./ARCHITECTURE.md)
 - [Plugin Development Guide](./PLUGIN_DEVELOPMENT.md)
-- [Plugin Migration Guide](./MIGRATION.md)
 - [Claude Code Sub-Agents](https://code.claude.com/docs/en/sub-agents)

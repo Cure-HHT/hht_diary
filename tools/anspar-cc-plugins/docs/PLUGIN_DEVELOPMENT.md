@@ -784,5 +784,4 @@ Update these files when versioning:
 
 - [Architecture Documentation](./ARCHITECTURE.md)
 - [Orchestration Patterns](./ORCHESTRATION.md)
-- [Plugin Migration Guide](./MIGRATION.md)
 - [Claude Code Plugin Reference](https://code.claude.com/docs/en/plugins-reference)

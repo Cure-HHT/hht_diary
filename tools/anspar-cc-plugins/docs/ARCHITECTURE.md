@@ -354,61 +354,6 @@ plugin/tests/
 └── integration/          # End-to-end tests
 ```
 
-## Comparison with Previous Marketplace
-
-### Key Improvements
-
-| Aspect | Old Marketplace | New Marketplace |
-|--------|----------------|-----------------|
-| **Agent Definitions** | Inconsistent YAML frontmatter | Required YAML with name/description/tools |
-| **Orchestration** | Main agent bypasses sub-agents | Main agent reliably delegates |
-| **Discoverability** | Hard to find plugin capabilities | Clear agent descriptions in `/agents` |
-| **Structure** | Flat plugin organization | Organized with shared/ utilities |
-| **Documentation** | Mixed quality across plugins | Standardized patterns and templates |
-| **CLAUDE.md Setup** | Manual configuration | Automatic via SessionStart hook |
-
-### Migration Path
-
-1. **Audit Phase**: Identify plugins without proper agents
-2. **Agent Creation**: Add YAML frontmatter to existing agents
-3. **Testing**: Verify orchestrator uses sub-agents correctly
-4. **Documentation**: Update READMEs with new patterns
-5. **Deprecation**: Mark old marketplace as deprecated
-
-### Deprecated Patterns
-
-❌ **Agents without YAML frontmatter**
-```markdown
-# Old Style
-# My Agent
-
-You are an agent for doing X.
-```
-
-✅ **Agents with proper YAML**
-```markdown
----
-name: my-agent
-description: Agent for doing X with specific capabilities
-tools: Bash, Read, Write
----
-
-# My Agent
-
-You are an agent for doing X.
-```
-
-❌ **Direct cross-plugin imports**
-```bash
-source ../other-plugin/script.sh
-```
-
-✅ **Shared utilities or public APIs**
-```bash
-source tools/anspar-cc-plugins/shared/scripts/helper.sh
-bash tools/anspar-cc-plugins/plugins/other/scripts/public-api.sh
-```
-
 ## Design Principles Summary
 
 1. **Orchestration First**: Main agent coordinates, sub-agents execute
