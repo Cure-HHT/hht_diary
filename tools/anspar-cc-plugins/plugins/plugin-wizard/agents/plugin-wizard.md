@@ -401,6 +401,7 @@ Before reporting plugin creation complete, verify:
 - [ ] README documents all skills, hooks, commands
 - [ ] Tests directory exists with test.sh
 - [ ] marketplace.json updated with new plugin
+- [ ] Plugin registered in `.claude/settings.json` enabledPlugins (check both project and global settings)
 - [ ] All file paths use `${CLAUDE_PLUGIN_ROOT}` or relative paths
 - [ ] No hardcoded secrets (API keys must be env vars)
 

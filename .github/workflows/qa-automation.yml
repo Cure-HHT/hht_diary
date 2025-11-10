@@ -398,41 +398,6 @@ jobs:
               body: comment
             });
 
-      - name: Create check run with results
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let conclusion = 'success';
-            let summary = 'All QA tests passed';
-
-            // Check for test failures
-            if ('${{ steps.qa-suite.outcome }}' !== 'success') {
-              conclusion = 'failure';
-              summary = 'Some QA tests failed';
-            }
-
-            // Read detailed output if available
-            let output = 'See artifacts for detailed test reports.';
-            if (fs.existsSync('qa-reports/test-summary.md')) {
-              output = fs.readFileSync('qa-reports/test-summary.md', 'utf8');
-            }
-
-            await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'QA Test Suite',
-              head_sha: context.sha,
-              status: 'completed',
-              conclusion: conclusion,
-              output: {
-                title: 'QA Automation Results',
-                summary: summary,
-                text: output
-              }
-            });
-
       - name: Cleanup containers
         if: always()
         working-directory: tools/dev-env

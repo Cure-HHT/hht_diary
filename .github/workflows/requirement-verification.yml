@@ -2,7 +2,6 @@ name: Requirement Verification
 
 on:
   push:
-    branches: ['**']
     paths:
       - 'spec/**/*.md'
   pull_request:
@@ -28,10 +27,19 @@ jobs:
       - name: Detect changed requirements
         id: detect
         run: |
-          python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/detect-changes.py \
-            --format json > changes.json
+          set -e
+          if ! python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/detect-changes.py \
+            --format json > changes.json; then
+            echo "❌ ERROR: detect-changes.py failed" >&2
+            exit 1
+          fi
 
-          CHANGED_COUNT=$(jq '.summary.changed_count' changes.json)
+          if ! CHANGED_COUNT=$(jq '.summary.changed_count' changes.json 2>&1); then
+            echo "❌ ERROR: Failed to parse changes.json" >&2
+            cat changes.json
+            exit 1
+          fi
+
           NEW_COUNT=$(jq '.summary.new_count' changes.json)
           TOTAL=$((CHANGED_COUNT + NEW_COUNT))
 
@@ -42,19 +50,23 @@ jobs:
       - name: Scan implementations
         if: steps.detect.outputs.total > 0
         run: |
+          set -e
           # Scan for implementations of changed requirements
           jq -r '.changed_requirements[].req_id' changes.json | while read req_id; do
             echo "Scanning implementations for REQ-$req_id..."
-            python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/scan-implementations.py \
-              $req_id --format json >> implementations.json
+            if ! python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/scan-implementations.py \
+              $req_id --format json >> implementations.json; then
+              echo "❌ ERROR: scan-implementations.py failed for $req_id" >&2
+              exit 1
+            fi
           done
 
       - name: Generate report
         if: steps.detect.outputs.total > 0
         run: |
+          set -e
           python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/generate-report.py \
-            --from-tracking --format markdown --output verification-report.md || \
-            echo "No tracking data available yet" > verification-report.md
+            --from-tracking --format markdown --output verification-report.md
 
       - name: Upload verification report
         if: steps.detect.outputs.total > 0
@@ -109,9 +121,19 @@ ${report}
             });
 
       - name: Summary
+        if: always()
         run: |
+          set -e
           echo "## Requirement Verification Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.detect.conclusion }}" == "failure" ]; then
+            echo "❌ **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Detection script failed. Check logs above for details." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
           echo "- **Changed**: ${{ steps.detect.outputs.changed_count }}" >> $GITHUB_STEP_SUMMARY
           echo "- **New**: ${{ steps.detect.outputs.new_count }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Total**: ${{ steps.detect.outputs.total }}" >> $GITHUB_STEP_SUMMARY

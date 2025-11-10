@@ -167,4 +167,4 @@ When working with plugins that provide specialized agents:
   - Escalate to user when agent results are unclear or incorrect
 
 **Example**: When working with plugins, prefer `/plugin-wizard` over manually creating plugin files.
-
+- always try to use a specific plugin sub-agent
