@@ -1,4 +1,4 @@
-# This directory will contain plugins after migration from tools/anspar-cc-plugins/
+# This directory contains Claude Code plugins for the anspar-cc-plugins marketplace.
 #
 # Structure per plugin:
 # plugins/
