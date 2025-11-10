@@ -1,0 +1,81 @@
+# Shared Configuration for GitHub Actions Workflows
+# This file centralizes common values to reduce duplication and improve maintainability
+# Reference in workflows: ${{ fromJSON(github.event.inputs.shared-config || '{}').aws.region || 'us-west-2' }}
+
+# AWS Configuration
+aws:
+  region: us-west-2
+  account_id: "123456789012"  # Replace with actual account ID
+  ecr_registry: "123456789012.dkr.ecr.us-west-2.amazonaws.com"
+  s3_bucket: "clinical-trial-diary-ci"
+  backup_bucket: "clinical-trial-diary-backups"
+  retention_bucket: "clinical-trial-diary-retention"  # FDA 21 CFR Part 11 compliance
+
+# Version Configuration
+versions:
+  node: "20"
+  python: "3.11"
+  flutter: "3.19.6"
+  supabase_cli: "1.142.2"
+  postgres: "15"
+  docker: "24"
+
+# Path Configuration
+paths:
+  artifacts: ".artifacts"
+  coverage: "coverage"
+  test_results: "test-results"
+  audit_logs: "audit-logs"
+  migrations: "database/migrations"
+  rollbacks: "database/rollbacks"
+
+# Timeout Configuration (in minutes)
+timeouts:
+  build: 30
+  test: 45
+  deploy: 60
+  migration: 10
+  rollback: 5
+  default: 20
+
+# Retention Configuration (in days)
+retention:
+  artifacts: 30
+  test_results: 90
+  audit_logs: 2555  # 7 years for FDA compliance
+  build_logs: 365
+  deployment_logs: 2555  # 7 years for FDA compliance
+
+# Test Configuration
+testing:
+  coverage_threshold: 80
+  parallelism: 4
+  retry_count: 2
+  fail_fast: false
+
+# Security Configuration
+security:
+  enable_scanning: true
+  vulnerability_severity: "CRITICAL,HIGH"
+  secret_scanning: true
+  dependency_check: true
+
+# Notification Configuration
+notifications:
+  slack_webhook: "${{ secrets.SLACK_WEBHOOK }}"
+  email_on_failure: "devops@clinical-trial-diary.com"
+
+# Matrix Strategy Templates
+matrix_templates:
+  sponsors:
+    - acme
+    - betacorp
+    - gammainc
+  environments:
+    - development
+    - staging
+    - production
+  platforms:
+    - linux
+    - macos
+    - windows

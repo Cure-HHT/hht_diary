@@ -2,9 +2,10 @@
 #   REQ-d00028: Role-Based Environment Separation
 #   REQ-d00031: Automated QA Testing
 #   REQ-d00033: FDA Validation Documentation
+#   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
 #
 # Clinical Diary QA Automation Workflow
-# Triggers on pull requests to run automated tests in the qa container
+# Triggers on pull requests to run automated tests and security scans in the qa container
 
 name: QA Automation
 
@@ -281,7 +282,6 @@ jobs:
           else
             echo "No Doppler token configured, skipping authentication"
           fi
-        continue-on-error: true
 
       - name: Run Flutter unit tests
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
@@ -292,11 +292,10 @@ jobs:
             cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
             if [ -f pubspec.yaml ]; then
               flutter pub get
-              flutter test --coverage --reporter json > /workspace/reports/flutter-test-results.json || true
+              flutter test --coverage --reporter json > /workspace/reports/flutter-test-results.json
               flutter test --coverage
             fi
           "
-        continue-on-error: true
 
       - name: Run Playwright E2E tests
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
@@ -306,11 +305,10 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
             cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Playwright tests found, skipping'
             if [ -d tests ] || [ -d e2e ]; then
-              npx playwright test --reporter=json > /workspace/reports/playwright-results.json || true
+              npx playwright test --reporter=json > /workspace/reports/playwright-results.json
               npx playwright test --reporter=html
             fi
           "
-        continue-on-error: true
 
       - name: Run comprehensive QA suite
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
@@ -327,7 +325,6 @@ jobs:
             export COMMIT_SHA='$COMMIT_SHA'
             /usr/local/bin/qa-runner.sh
           "
-        continue-on-error: true
 
       - name: Copy test reports from container
         if: always()
@@ -405,14 +402,15 @@ jobs:
           docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml down -v
 
       - name: Fail workflow if tests failed
-        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.qa-suite.outcome == 'failure'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.flutter-tests.outcome == 'failure' || steps.playwright-tests.outcome == 'failure' || steps.qa-suite.outcome == 'failure')
         run: exit 1
 
   security-scan:
     name: Security & Compliance Scan
     runs-on: ubuntu-latest
-    # Disabled: GitHub Code Scanning not available for private repos without GitHub Advanced Security
-    if: false
+    # IMPLEMENTS REQUIREMENTS:
+    #   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
+    # Enabled: Using Trivy which works with private repos without paid GitHub license
 
     permissions:
       contents: read
@@ -423,19 +421,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner (filesystem)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
       - name: Upload Trivy results to GitHub Security
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy-scan'
 
-      - name: Run SAST scan
-        uses: github/codeql-action/analyze@v3
-        continue-on-error: true
+      - name: Generate vulnerability report
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-results.sarif ]; then
+            echo "### Trivy Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Trivy scan completed. Results uploaded to GitHub Security tab." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Action**: Review security findings in the Security tab of this repository." >> $GITHUB_STEP_SUMMARY
+          fi

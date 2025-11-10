@@ -63,7 +63,8 @@ jobs:
           sudo apt-get install -y nodejs
 
           # Install Supabase CLI
-          brew install supabase/tap/supabase
+          wget -qO- https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar xzf -
+          sudo mv supabase /usr/local/bin/
 
           npm install
 

@@ -1,0 +1,12 @@
+# No external dependencies required
+#
+# The Python validation and traceability tools in this directory use only
+# Python standard library modules (3.11+):
+#   - argparse, csv, dataclasses, datetime, hashlib, json, pathlib, re,
+#   - shutil, sys, tempfile, typing, collections
+#
+# Installation: No packages needed beyond Python standard library
+# Usage: python3 <script_name>.py
+#
+# For CI/CD configuration, see: .github/workflows/pr-validation.yml
+# For documentation, see: tools/requirements/README.md
