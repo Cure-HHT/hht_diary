@@ -27,9 +27,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  prebuild-dev:
-    name: Prebuild Dev Container
+  prebuild:
+    name: Prebuild ${{ matrix.container }} Container
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        container: [dev, qa, ops]
 
     permissions:
       contents: read
@@ -49,78 +54,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prebuild dev container
+      - name: Prebuild ${{ matrix.container }} container
         uses: devcontainers/ci@v0.3
         with:
-          configFile: .devcontainer/dev/devcontainer.json
+          configFile: .devcontainer/${{ matrix.container }}/devcontainer.json
           push: always
-          imageTag: latest,dev
-          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer-dev
-
-  prebuild-qa:
-    name: Prebuild QA Container
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Prebuild QA container
-        uses: devcontainers/ci@v0.3
-        with:
-          configFile: .devcontainer/qa/devcontainer.json
-          push: always
-          imageTag: latest,qa
-          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer-qa
-
-  prebuild-ops:
-    name: Prebuild Ops Container
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Prebuild ops container
-        uses: devcontainers/ci@v0.3
-        with:
-          configFile: .devcontainer/ops/devcontainer.json
-          push: always
-          imageTag: latest,ops
-          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer-ops
+          imageTag: latest,${{ matrix.container }}
+          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer-${{ matrix.container }}
 
   summary:
     name: Prebuild Summary
     runs-on: ubuntu-latest
-    needs: [prebuild-dev, prebuild-qa, prebuild-ops]
+    needs: [prebuild]
     if: always()
 
     steps:

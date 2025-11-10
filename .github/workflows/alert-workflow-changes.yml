@@ -44,10 +44,16 @@ jobs:
 
           # Get list of changed workflow files
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^\.github/workflows/.*\.yml$' || true)
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.sha }}"
           else
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^\.github/workflows/.*\.yml$' || true)
+            # For push events, ensure we have enough history
+            git fetch --depth=2 origin 2>/dev/null || true
+            BASE="HEAD~1"
+            HEAD="HEAD"
           fi
+
+          CHANGED_FILES=$(git diff --name-only "$BASE".."$HEAD" | grep '^\.github/workflows/.*\.yml$' || echo "")
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "No workflow files changed"

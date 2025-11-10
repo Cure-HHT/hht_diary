@@ -44,12 +44,13 @@ jobs:
 
       - name: Verify target version exists
         run: |
-          git ls-remote --tags origin | grep ${{ github.event.inputs.target_version }}
-          if [ $? -ne 0 ]; then
-            echo "❌ Target version not found: ${{ github.event.inputs.target_version }}"
+          # Use exact version matching to avoid partial matches
+          TARGET_VERSION="${{ github.event.inputs.target_version }}"
+          if ! git ls-remote --tags origin | grep -E "refs/tags/${TARGET_VERSION}$"; then
+            echo "❌ Target version not found: ${TARGET_VERSION}"
             exit 1
           fi
-          echo "✅ Target version verified"
+          echo "✅ Target version verified: ${TARGET_VERSION}"
 
       - name: Checkout target version
         uses: actions/checkout@v4

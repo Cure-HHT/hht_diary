@@ -66,28 +66,36 @@ jobs:
           ACTOR=$(jq -r '.actor.login' workflow-details.json)
 
           # Determine environment from workflow name
-          ENVIRONMENT="unknown"
           case "$WORKFLOW_NAME" in
-            *Development*) ENVIRONMENT="development" ;;
-            *Staging*) ENVIRONMENT="staging" ;;
-            *Production*) ENVIRONMENT="production" ;;
-            *Rollback*) ENVIRONMENT="rollback" ;;
+            "Deploy to Development") ENVIRONMENT="development" ;;
+            "Deploy to Staging") ENVIRONMENT="staging" ;;
+            "Deploy to Production") ENVIRONMENT="production" ;;
+            "Rollback Production") ENVIRONMENT="rollback" ;;
+            *) ENVIRONMENT="${{ github.event.inputs.environment || 'unknown' }}" ;;
           esac
 
-          cat > deployment-record.json <<EOF
-          {
-            "artifact_type": "deployment_log",
-            "workflow_id": "${{ steps.workflow.outputs.run_id }}",
-            "workflow_name": "$WORKFLOW_NAME",
-            "commit_sha": "$COMMIT_SHA",
-            "timestamp_start": "$CREATED_AT",
-            "timestamp_end": "$UPDATED_AT",
-            "outcome": "$CONCLUSION",
-            "deployer": "$ACTOR",
-            "environment": "$ENVIRONMENT",
-            "retention_years": 7
-          }
-          EOF
+          # Create JSON using jq (handles special characters properly)
+          jq -n \
+            --arg workflow_id "${{ steps.workflow.outputs.run_id }}" \
+            --arg workflow_name "$WORKFLOW_NAME" \
+            --arg commit_sha "$COMMIT_SHA" \
+            --arg timestamp_start "$CREATED_AT" \
+            --arg timestamp_end "$UPDATED_AT" \
+            --arg outcome "$CONCLUSION" \
+            --arg deployer "$ACTOR" \
+            --arg environment "$ENVIRONMENT" \
+            '{
+              artifact_type: "deployment_log",
+              workflow_id: $workflow_id,
+              workflow_name: $workflow_name,
+              commit_sha: $commit_sha,
+              timestamp_start: $timestamp_start,
+              timestamp_end: $timestamp_end,
+              outcome: $outcome,
+              deployer: $deployer,
+              environment: $environment,
+              retention_years: 7
+            }' > deployment-record.json
 
       - name: Package deployment record
         run: |

@@ -136,12 +136,21 @@ jobs:
         run: |
           # Check if any Docker-related files changed in THIS PUSH (not entire PR vs main)
           # This allows subsequent commits without Docker changes to use fast pull path
-          if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+
+          # Handle first push or force push where before ref is empty or all zeros
+          if [ -z "${{ github.event.before }}" ] ||
+             [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "First push or force push detected - will rebuild images"
             echo "changed=true" >> $GITHUB_OUTPUT
-            echo "Docker files changed in this push - will rebuild images"
           else
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "No Docker changes in this push - will pull pre-built images from GHCR"
+            # Normal change detection
+            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "Docker files changed in this push - will rebuild images"
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "No Docker changes in this push - will pull pre-built images from GHCR"
+            fi
           fi
 
       - name: Free up disk space
