@@ -99,5 +99,5 @@ Path validation tooling for Claude Code plugin configuration files to verify tha
 ```
 
 
-*End* *Plugin Path Validation* | **Hash**: 1284707f
+*End* *Plugin Path Validation* | **Hash**: 770482b7
 ---

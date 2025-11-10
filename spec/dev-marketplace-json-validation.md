@@ -104,5 +104,5 @@ Automated validation tooling for Claude Code plugin configuration files (plugin.
 - Leverages ${CLAUDE_PLUGIN_ROOT} for portable script paths
 - Part of broader marketplace reliability improvements (CUR-240)
 
-*End* *Plugin JSON Validation Tooling* | **Hash**: bc0b4c89
+*End* *Plugin JSON Validation Tooling* | **Hash**: e325d07b
 ---
