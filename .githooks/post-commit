@@ -4,10 +4,10 @@
 # =====================================================
 #
 # Auto-discovers and executes post-commit hooks from all
-# installed Claude Code plugins in anspar-marketplace.
+# installed Claude Code plugins in anspar-cc-plugins.
 #
 # Plugin Discovery:
-#   Scans: tools/anspar-marketplace/plugins/*/hooks/post-commit
+#   Scans: tools/anspar-cc-plugins/plugins/*/hooks/post-commit
 #   Executes: All found hooks in alphabetical order
 #
 # Note: This hook does not use set -e because we don't want
@@ -24,7 +24,7 @@
 # Auto-Discover and Execute Plugin Hooks
 # =====================================================
 
-PLUGIN_DIR="tools/anspar-marketplace/plugins"
+PLUGIN_DIR="tools/anspar-cc-plugins/plugins"
 
 if [ -d "$PLUGIN_DIR" ]; then
     # Find all plugin post-commit hooks
