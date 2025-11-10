@@ -38,6 +38,12 @@
       "source": "./plugins/requirement-traceability",
       "description": "Requirement-to-ticket traceability for spec/ requirements in diary project",
       "version": "1.0.0"
+    },
+    {
+      "name": "spec-compliance",
+      "source": "./plugins/spec-compliance",
+      "description": "Enforces spec/ directory compliance through automated validation and AI-powered analysis",
+      "version": "1.0.0"
     }
   ],
   "hooks": "./hooks/hooks.json",
