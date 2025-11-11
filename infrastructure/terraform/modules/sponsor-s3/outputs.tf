@@ -59,3 +59,24 @@ output "cicd_user_arn" {
   description = "ARN of the CI/CD IAM user (if created)"
   value       = var.create_cicd_user ? aws_iam_user.cicd[0].arn : null
 }
+
+# Test Buckets Outputs
+output "staging_bucket_id" {
+  description = "ID of the staging test bucket (if created)"
+  value       = var.create_test_buckets ? aws_s3_bucket.artifacts_staging[0].id : null
+}
+
+output "staging_bucket_arn" {
+  description = "ARN of the staging test bucket (if created)"
+  value       = var.create_test_buckets ? aws_s3_bucket.artifacts_staging[0].arn : null
+}
+
+output "dev_bucket_id" {
+  description = "ID of the development test bucket (if created)"
+  value       = var.create_test_buckets ? aws_s3_bucket.artifacts_dev[0].id : null
+}
+
+output "dev_bucket_arn" {
+  description = "ARN of the development test bucket (if created)"
+  value       = var.create_test_buckets ? aws_s3_bucket.artifacts_dev[0].arn : null
+}

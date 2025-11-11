@@ -151,6 +151,20 @@ jobs:
         sponsor: ${{ fromJson(needs.integrate-sponsors.outputs.sponsors) }}
 
     steps:
+      - name: Validate Environment Input
+        run: |
+          ENV="${{ inputs.environment }}"
+          if [[ ! "$ENV" =~ ^(development|staging|production)$ ]]; then
+            echo "❌ ERROR: Invalid environment value: '$ENV'"
+            echo ""
+            echo "Valid options:"
+            echo "  - development (7-day retention)"
+            echo "  - staging (30-day retention)"
+            echo "  - production (7-year retention)"
+            exit 1
+          fi
+          echo "✅ Environment validated: $ENV"
+
       - name: Display Archival Configuration
         run: |
           echo "════════════════════════════════════════════════════════"
@@ -283,10 +297,12 @@ jobs:
           echo "ARCHIVE_FILE=${ARCHIVE_DIR}.tar.gz" >> $GITHUB_ENV
           echo "ARCHIVE_DIR=$ARCHIVE_DIR" >> $GITHUB_ENV
 
-      - name: Upload to S3
+      - name: Determine S3 Paths
+        id: s3_paths
         run: |
           BUCKET="${{ steps.config.outputs.artifacts_bucket }}"
           ENV="${{ inputs.environment }}"
+          ARCHIVE_FILE="${ARCHIVE_DIR}.tar.gz"
 
           # Include environment in path for non-production builds
           if [ "$ENV" == "production" ]; then
@@ -297,31 +313,31 @@ jobs:
             LATEST_PATH="s3://${BUCKET}/${ENV}/builds/latest.tar.gz"
           fi
 
-          # Upload with environment tag
+          echo "S3_PATH=$S3_PATH" >> $GITHUB_ENV
+          echo "LATEST_PATH=$LATEST_PATH" >> $GITHUB_ENV
+          echo "S3 archive path: $S3_PATH"
+          echo "Latest symlink: $LATEST_PATH"
+
+      - name: Upload to S3
+        run: |
+          # Upload with environment tags (for lifecycle policies and cost allocation)
+          ENV="${{ inputs.environment }}"
+          GIT_SHA=$(jq -r '.git_sha' build/sponsor-build-manifest.json)
+
           aws s3 cp "${ARCHIVE_FILE}" "$S3_PATH" \
-            --metadata "environment=$ENV,sponsor=${{ matrix.sponsor }},git-sha=${GIT_SHA:0:8}"
+            --tagging "environment=$ENV&sponsor=${{ matrix.sponsor }}&git-sha=${GIT_SHA:0:8}&is-production=${{ inputs.environment == 'production' }}"
 
           echo "✅ Archived to: $S3_PATH"
 
           # Create latest symlink
           aws s3 cp "${ARCHIVE_FILE}" "$LATEST_PATH" \
-            --metadata "environment=$ENV,sponsor=${{ matrix.sponsor }},git-sha=${GIT_SHA:0:8}"
+            --tagging "environment=$ENV&sponsor=${{ matrix.sponsor }}&git-sha=${GIT_SHA:0:8}&is-production=${{ inputs.environment == 'production' }}"
 
           echo "✅ Updated latest: $LATEST_PATH"
 
       - name: Verify Archive Integrity
         run: |
-          # Download and verify
-          BUCKET="${{ steps.config.outputs.artifacts_bucket }}"
-          ENV="${{ inputs.environment }}"
-
-          # Use same path logic as upload
-          if [ "$ENV" == "production" ]; then
-            S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
-          else
-            S3_PATH="s3://${BUCKET}/${ENV}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
-          fi
-
+          # Download and verify using paths from previous step
           aws s3 cp "$S3_PATH" /tmp/verify.tar.gz
           tar -tzf /tmp/verify.tar.gz > /tmp/archive-contents.txt
 

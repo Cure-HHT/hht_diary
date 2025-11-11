@@ -17,11 +17,12 @@
 The system SHALL implement artifact retention and archival that:
 
 1. **Retention Period**:
-   - All production artifacts retained for 7 years minimum (FDA requirement)
-   - Development/staging artifacts retained for 1 year
-   - Audit trail records retained for 7 years
-   - Deployment logs retained for 7 years
-   - Incident records retained for 7 years
+   - **Production artifacts**: 7 years minimum (FDA requirement)
+   - **Staging artifacts**: 30 days (pre-production testing)
+   - **Development artifacts**: 7 days (workflow testing)
+   - **Audit trail records**: 7 years
+   - **Deployment logs**: 7 years
+   - **Incident records**: 7 years
 
 2. **Artifact Types**:
    - **Source Code**: Git repository with all commits
@@ -33,20 +34,39 @@ The system SHALL implement artifact retention and archival that:
    - **Database Backups**: Full backups, migration scripts
 
 3. **Storage Tiers**:
-   - **Hot Storage** (frequent access): Last 90 days
+   - **Production Storage** (7-year retention):
+     - **Hot Storage** (frequent access): Last 90 days
+       - S3 Standard
+       - Immediate retrieval
+       - Higher cost (~$0.023/GB/month)
+     - **Cold Storage** (infrequent access): 91 days to 7 years
+       - S3 Glacier Deep Archive
+       - 12-hour retrieval time
+       - Lower cost (~$0.00099/GB/month)
+   - **Staging Storage** (30-day retention):
+     - S3 Standard-IA (after 7 days)
+     - Automatic deletion after 30 days
+     - For pre-production validation
+   - **Development Storage** (7-day retention):
      - S3 Standard
-     - Immediate retrieval
-     - Higher cost (~$0.023/GB/month)
-   - **Cold Storage** (infrequent access): 91 days to 7 years
-     - S3 Glacier Deep Archive
-     - 12-hour retrieval time
-     - Lower cost (~$0.00099/GB/month)
+     - Automatic deletion after 7 days
+     - For workflow testing only
 
 4. **Lifecycle Management**:
-   - Automatic transition from hot to cold storage after 90 days
-   - Automatic deletion after 7 years
-   - Manual retention extension for regulatory holds
-   - Verification of archival integrity (monthly checksums)
+   - **Production**:
+     - Automatic transition from hot to cold storage after 90 days
+     - Automatic deletion after 7 years
+     - Manual retention extension for regulatory holds
+     - Object Lock enabled (immutable)
+   - **Staging**:
+     - Transition to Standard-IA after 7 days
+     - Automatic deletion after 30 days
+     - No Object Lock (testing only)
+   - **Development**:
+     - Automatic deletion after 7 days
+     - No lifecycle transitions
+     - No Object Lock (testing only)
+   - **All tiers**: Verification of archival integrity (monthly checksums)
 
 5. **Retrieval Procedures**:
    - Standard retrieval: 12 hours (Glacier Deep Archive)
@@ -65,7 +85,7 @@ The system SHALL implement artifact retention and archival that:
 - ✅ Retrieval procedures documented
 - ✅ Monthly integrity verification automated
 
-*End* *Artifact Retention and Archival* | **Hash**: 159267f6
+*End* *Artifact Retention and Archival* | **Hash**: 83f459da
 ---
 
 # REQ-o00050: Environment Parity and Separation

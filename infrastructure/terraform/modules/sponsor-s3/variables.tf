@@ -72,3 +72,21 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "create_test_buckets" {
+  description = "Create staging and development test buckets for archival testing"
+  type        = bool
+  default     = false
+}
+
+variable "staging_bucket_name" {
+  description = "Name for staging test bucket (optional, for 30-day archival testing)"
+  type        = string
+  default     = ""
+}
+
+variable "dev_bucket_name" {
+  description = "Name for development test bucket (optional, for 7-day archival testing)"
+  type        = string
+  default     = ""
+}
