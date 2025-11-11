@@ -134,22 +134,36 @@ jobs:
         if: steps.check-qa-needed.outputs.qa_needed == 'true'
         id: docker-changes
         run: |
-          # Check if any Docker-related files changed in THIS PUSH (not entire PR vs main)
-          # This allows subsequent commits without Docker changes to use fast pull path
+          # Hybrid Docker change detection:
+          # - First push: Check if PR changes Docker files vs base branch
+          # - Subsequent pushes: Check if this push changes Docker files
+          # This avoids unnecessary rebuilds for docs-only PRs while maintaining safety
 
           # Handle first push or force push where before ref is empty or all zeros
           if [ -z "${{ github.event.before }}" ] ||
              [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
-            echo "First push or force push detected - will rebuild images"
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            # Normal change detection
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+            echo "First push to branch detected - checking if PR changes Docker files"
+
+            # For first push, compare PR changes against base branch
+            BASE_REF="${{ github.event.pull_request.base.ref || github.base_ref || 'main' }}"
+            echo "Comparing against base branch: $BASE_REF"
+
+            if git diff --name-only origin/${BASE_REF}...${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
               echo "changed=true" >> $GITHUB_OUTPUT
-              echo "Docker files changed in this push - will rebuild images"
+              echo "✅ Docker files changed in this PR - will rebuild images"
             else
               echo "changed=false" >> $GITHUB_OUTPUT
-              echo "No Docker changes in this push - will pull pre-built images from GHCR"
+              echo "⏭️  No Docker changes in this PR - will pull pre-built images from GHCR"
+            fi
+          else
+            # Subsequent push: check only changes in this push
+            echo "Subsequent push detected - checking changes since last push"
+            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "✅ Docker files changed in this push - will rebuild images"
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "⏭️  No Docker changes in this push - will pull pre-built images from GHCR"
             fi
           fi
 
