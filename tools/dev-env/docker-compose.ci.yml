@@ -22,6 +22,16 @@ services:
           cpus: '1'      # Reduced from 2
           memory: 2G     # Reduced from 4G
 
+    # CI: Override volumes to exclude host-specific mounts
+    # GitHub runners don't have meaningful .gitconfig or .ssh
+    # Mounting non-existent files causes Docker to create directories, breaking checkout cleanup
+    volumes:
+      - clinical-diary-repos:/workspace/repos
+      - clinical-diary-exchange:/workspace/exchange
+      - ../../:/workspace/src:cached
+      # Excluded: ${HOME}/.ssh (not needed in CI, causes directory creation)
+      # Excluded: ${HOME}/.gitconfig (not needed in CI, git config set in Dockerfile)
+
   # ============================================================
   # QA Environment - CI Limits
   # ============================================================
@@ -34,6 +44,15 @@ services:
         reservations:
           cpus: '1'      # Reduced from 2
           memory: 2G     # Reduced from 4G
+
+    # CI: Override volumes to exclude host-specific mounts
+    volumes:
+      - clinical-diary-repos:/workspace/repos
+      - clinical-diary-exchange:/workspace/exchange
+      - ../../:/workspace/src:cached
+      - qa-reports:/workspace/reports
+      # Excluded: ${HOME}/.ssh (not needed in CI)
+      # Excluded: ${HOME}/.gitconfig (not needed in CI)
 
   # ============================================================
   # DevOps Environment - CI Limits
@@ -49,6 +68,14 @@ services:
           cpus: '1'
           memory: 1G     # Reduced from 2G
 
+    # CI: Override volumes to exclude host-specific mounts
+    volumes:
+      - clinical-diary-repos:/workspace/repos
+      - clinical-diary-exchange:/workspace/exchange
+      - ../../:/workspace/src:cached
+      # Excluded: ${HOME}/.ssh (not needed in CI)
+      # Excluded: ${HOME}/.gitconfig (not needed in CI)
+
   # ============================================================
   # Management Environment - CI Limits
   # Already at 2 CPUs, keep as-is
@@ -62,3 +89,12 @@ services:
         reservations:
           cpus: '1'
           memory: 1G
+
+    # CI: Override volumes to exclude host-specific mounts
+    volumes:
+      - clinical-diary-repos:/workspace/repos:ro
+      - clinical-diary-exchange:/workspace/exchange:ro
+      - ../../:/workspace/src:ro
+      - qa-reports:/workspace/reports:ro
+      # Excluded: ${HOME}/.ssh (not needed in CI)
+      # Excluded: ${HOME}/.gitconfig (not needed in CI)
