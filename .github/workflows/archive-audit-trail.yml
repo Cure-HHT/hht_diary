@@ -21,7 +21,9 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          # Pinned to PostgreSQL 15 (matches production database version)
+          # Last updated: 2025-11-11
+          sudo apt-get install -y postgresql-client-15
 
       - name: Load secrets from Doppler
         uses: dopplerhq/cli-action@v3

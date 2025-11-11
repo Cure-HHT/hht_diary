@@ -106,7 +106,9 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
-          wget -qO- https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar xzf -
+          # Pinned to v2.54.10 (matches Dockerfile version for consistency)
+          # Last updated: 2025-11-11
+          wget -qO- https://github.com/supabase/cli/releases/download/v2.54.10/supabase_linux_amd64.tar.gz | tar xzf -
           sudo mv supabase /usr/local/bin/
 
       - name: Install dependencies
