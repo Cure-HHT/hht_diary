@@ -148,7 +148,7 @@ jobs:
             BASE_REF="${{ github.event.pull_request.base.ref || github.base_ref || 'main' }}"
             echo "Comparing against base branch: $BASE_REF"
 
-            if git diff --name-only origin/${BASE_REF}...${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+            if git diff --name-only origin/${BASE_REF}...${{ github.sha }} | grep -E '^tools/dev-env/(docker/|docker-compose)'; then
               echo "changed=true" >> $GITHUB_OUTPUT
               echo "✅ Docker files changed in this PR - will rebuild images"
             else
@@ -158,7 +158,7 @@ jobs:
           else
             # Subsequent push: check only changes in this push
             echo "Subsequent push detected - checking changes since last push"
-            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/docker/'; then
+            if git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '^tools/dev-env/(docker/|docker-compose)'; then
               echo "changed=true" >> $GITHUB_OUTPUT
               echo "✅ Docker files changed in this push - will rebuild images"
             else
