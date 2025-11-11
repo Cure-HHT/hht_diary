@@ -1,0 +1,346 @@
+# Tag Production Candidate
+#
+# Tags a specific build as a production candidate, locking all sponsor repos
+# to specific commits for hotfix and release management.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00072: Production candidate tagging
+#   REQ-o00018: Release management
+
+name: Tag Production Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.2.3)'
+        required: true
+        type: string
+      github_run_id:
+        description: 'GitHub run ID of build to tag (from build-integrated workflow)'
+        required: true
+        type: string
+      description:
+        description: 'Release description'
+        required: false
+        type: string
+        default: 'Production candidate release'
+
+jobs:
+  validate-build:
+    name: Validate Build
+    runs-on: ubuntu-latest
+    outputs:
+      build_manifest: ${{ steps.download.outputs.build_manifest }}
+      core_sha: ${{ steps.parse.outputs.core_sha }}
+      sponsors_json: ${{ steps.parse.outputs.sponsors_json }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Download Build Manifest
+        id: download
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Download build manifest from specified run
+          gh run download ${{ inputs.github_run_id }} \
+            -n sponsor-build-manifest \
+            -D /tmp/build-manifest
+
+          # Verify manifest exists
+          if [ ! -f /tmp/build-manifest/sponsor-build-manifest.json ]; then
+            echo "ERROR: Build manifest not found in run ${{ inputs.github_run_id }}"
+            exit 1
+          fi
+
+          # Output manifest
+          BUILD_MANIFEST=$(cat /tmp/build-manifest/sponsor-build-manifest.json)
+          echo "build_manifest<<EOF" >> $GITHUB_OUTPUT
+          echo "$BUILD_MANIFEST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "Build manifest downloaded successfully"
+
+      - name: Parse Build Manifest
+        id: parse
+        run: |
+          BUILD_MANIFEST='${{ steps.download.outputs.build_manifest }}'
+
+          # Extract core git SHA
+          CORE_SHA=$(echo "$BUILD_MANIFEST" | jq -r '.git_sha')
+          echo "core_sha=$CORE_SHA" >> $GITHUB_OUTPUT
+          echo "Core SHA: $CORE_SHA"
+
+          # Extract sponsors as JSON array
+          SPONSORS_JSON=$(echo "$BUILD_MANIFEST" | jq -c '.sponsors')
+          echo "sponsors_json=$SPONSORS_JSON" >> $GITHUB_OUTPUT
+
+          # Display sponsors
+          echo "Sponsors in build:"
+          echo "$BUILD_MANIFEST" | jq -r '.sponsors[] | "  - \(.name) (\(.code)) @ \(.git_sha[0:8])"'
+
+      - name: Validate Version Format
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          # Check format: vX.Y.Z
+          if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERROR: Version must be in format vX.Y.Z (e.g., v1.2.3)"
+            echo "Got: $VERSION"
+            exit 1
+          fi
+
+          echo "Version format valid: $VERSION"
+
+      - name: Check Version Uniqueness
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          # Check if version tag already exists
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "ERROR: Version tag $VERSION already exists"
+            echo "Use a different version or delete the existing tag first"
+            exit 1
+          fi
+
+          echo "Version tag $VERSION is unique"
+
+  tag-core-repo:
+    name: Tag Core Repository
+    needs: validate-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for tagging
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create Tag
+        run: |
+          VERSION="${{ inputs.version }}"
+          CORE_SHA="${{ needs.validate-build.outputs.core_sha }}"
+          DESCRIPTION="${{ inputs.description }}"
+          RUN_ID="${{ inputs.github_run_id }}"
+
+          # Create annotated tag
+          git tag -a "$VERSION" "$CORE_SHA" -m "$(cat <<EOF
+Production Candidate: $VERSION
+
+$DESCRIPTION
+
+Build Information:
+- GitHub Run ID: $RUN_ID
+- Core SHA: $CORE_SHA
+- Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+- Tagged by: ${{ github.actor }}
+
+Sponsors:
+$(echo '${{ needs.validate-build.outputs.sponsors_json }}' | jq -r '.[] | "  - \(.name) (\(.code)) @ \(.git_sha)"')
+
+Build Manifest:
+https://github.com/${{ github.repository }}/actions/runs/$RUN_ID
+
+Artifacts:
+- APK: app-release-apk
+- AAB: app-release-aab
+- Manifest: sponsor-build-manifest
+EOF
+)"
+
+          echo "Created tag: $VERSION @ $CORE_SHA"
+
+      - name: Push Tag
+        run: |
+          VERSION="${{ inputs.version }}"
+          git push origin "$VERSION"
+          echo "Pushed tag: $VERSION"
+
+  create-release:
+    name: Create GitHub Release
+    needs: [validate-build, tag-core-repo]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - name: Download Build Artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID="${{ inputs.github_run_id }}"
+
+          # Download all artifacts
+          gh run download "$RUN_ID" -D /tmp/artifacts
+
+          # List downloaded artifacts
+          echo "Downloaded artifacts:"
+          ls -lah /tmp/artifacts
+
+      - name: Create Release Notes
+        id: notes
+        run: |
+          VERSION="${{ inputs.version }}"
+          DESCRIPTION="${{ inputs.description }}"
+          CORE_SHA="${{ needs.validate-build.outputs.core_sha }}"
+          RUN_ID="${{ inputs.github_run_id }}"
+          BUILD_MANIFEST='${{ needs.validate-build.outputs.build_manifest }}'
+
+          # Generate release notes
+          cat > /tmp/release-notes.md <<EOF
+# $VERSION
+
+$DESCRIPTION
+
+## Build Information
+
+- **Core SHA**: \`$CORE_SHA\`
+- **Build Run**: [#$RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$RUN_ID)
+- **Build Timestamp**: $(echo "$BUILD_MANIFEST" | jq -r '.timestamp')
+- **Tagged By**: @${{ github.actor }}
+- **Tag Date**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+## Integrated Sponsors
+
+| Sponsor | Code | Repository | Tag | Git SHA |
+|---------|------|------------|-----|---------|
+$(echo "$BUILD_MANIFEST" | jq -r '.sponsors[] | "| \(.name) | \(.code) | \(.repo) | \(.tag) | \`\(.git_sha[0:8])\` |"')
+
+## Artifacts
+
+- **APK**: \`app-release.apk\` (Android Package)
+- **AAB**: \`app-release.aab\` (Android App Bundle)
+- **Build Manifest**: \`sponsor-build-manifest.json\` (Traceability)
+
+## Installation
+
+### Android APK
+\`\`\`bash
+# Download
+gh release download $VERSION -p "app-release.apk"
+
+# Install
+adb install app-release.apk
+\`\`\`
+
+### Google Play (AAB)
+\`\`\`bash
+# Download
+gh release download $VERSION -p "app-release.aab"
+
+# Upload to Google Play Console
+\`\`\`
+
+## Verification
+
+### Build Manifest
+\`\`\`bash
+# Download and inspect
+gh release download $VERSION -p "sponsor-build-manifest.json"
+cat sponsor-build-manifest.json | jq '.'
+\`\`\`
+
+### Git SHA Verification
+\`\`\`bash
+# Verify core repository
+git checkout $CORE_SHA
+git describe --tags --exact-match  # Should show $VERSION
+
+# Verify each sponsor (if multi-repo)
+# cd sponsor/<name> && git checkout <sponsor_sha>
+\`\`\`
+
+## Hotfix Process
+
+To create a hotfix for this release:
+
+1. **Create hotfix branch** from this tag:
+   \`\`\`bash
+   git checkout -b hotfix/$VERSION-patch1 $VERSION
+   \`\`\`
+
+2. **Make changes** and commit
+
+3. **Tag hotfix** version:
+   \`\`\`bash
+   git tag -a $VERSION-patch1 -m "Hotfix for $VERSION"
+   \`\`\`
+
+4. **Rebuild** with same sponsor commits (if applicable)
+
+5. **Merge back** to main
+
+## FDA Compliance
+
+This release is archived to per-sponsor S3 buckets:
+- **Bucket**: \`hht-diary-artifacts-{sponsor}-{region}\`
+- **Path**: \`builds/YYYY/MM/DD/hht-diary-{CODE}-{SHA}.tar.gz\`
+- **Retention**: 7 years (FDA 21 CFR Part 11)
+
+## Support
+
+For questions or issues, contact the development team.
+EOF
+
+          cat /tmp/release-notes.md
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          gh release create "$VERSION" \
+            --title "Production Candidate: $VERSION" \
+            --notes-file /tmp/release-notes.md \
+            --draft=false \
+            --prerelease=false \
+            /tmp/artifacts/app-release-apk/app-release.apk \
+            /tmp/artifacts/app-release-aab/app-release.aab \
+            /tmp/artifacts/sponsor-build-manifest/sponsor-build-manifest.json
+
+          echo "Created release: $VERSION"
+
+  notify-summary:
+    name: Notification Summary
+    needs: [validate-build, tag-core-repo, create-release]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## Production Candidate Tagged" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Core SHA**: ${{ needs.validate-build.outputs.core_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Run**: https://github.com/${{ github.repository }}/actions/runs/${{ inputs.github_run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Release**: https://github.com/${{ github.repository }}/releases/tag/${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Sponsors" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Sponsor | Code | Repo | Tag | SHA |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|------|-----|-----|" >> $GITHUB_STEP_SUMMARY
+
+          echo '${{ needs.validate-build.outputs.build_manifest }}' | \
+            jq -r '.sponsors[] | "| \(.name) | \(.code) | \(.repo) | \(.tag) | \(.git_sha[0:8]) |"' >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Validate: ${{ needs.validate-build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag Core: ${{ needs.tag-core-repo.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Create Release: ${{ needs.create-release.result }}" >> $GITHUB_STEP_SUMMARY
