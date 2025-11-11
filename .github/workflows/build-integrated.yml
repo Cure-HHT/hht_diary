@@ -13,8 +13,17 @@ name: Build Integrated App
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Target environment (production enables S3 archival)'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - 'development'
+          - 'staging'
+          - 'production'
       archive_artifacts:
-        description: 'Archive build artifacts to S3 (per-sponsor)'
+        description: 'Archive build artifacts to S3 (uses environment-specific buckets and retention)'
         required: false
         default: 'false'
         type: choice
@@ -132,7 +141,7 @@ jobs:
           retention-days: 90
 
   archive-per-sponsor:
-    name: Archive for ${{ matrix.sponsor }}
+    name: Archive for ${{ matrix.sponsor }} (${{ inputs.environment }})
     needs: [integrate-sponsors, build-mobile-app]
     if: inputs.archive_artifacts == 'true'
     runs-on: ubuntu-latest
@@ -142,6 +151,44 @@ jobs:
         sponsor: ${{ fromJson(needs.integrate-sponsors.outputs.sponsors) }}
 
     steps:
+      - name: Display Archival Configuration
+        run: |
+          echo "════════════════════════════════════════════════════════"
+          echo "  S3 ARCHIVAL CONFIGURATION"
+          echo "════════════════════════════════════════════════════════"
+          echo ""
+          echo "Environment:  ${{ inputs.environment }}"
+          echo "Sponsor:      ${{ matrix.sponsor }}"
+          echo ""
+
+          # Show environment-specific details
+          if [ "${{ inputs.environment }}" == "production" ]; then
+            echo "⚠️  PRODUCTION ARCHIVAL"
+            echo "Bucket Type:  Production (per-sponsor)"
+            echo "Retention:    7 years (FDA compliance)"
+            echo "Lifecycle:    90d → Glacier → 7y Deep Archive → Delete"
+            echo "Object Lock:  Enabled (immutable)"
+            echo ""
+            echo "⚠️  This creates a permanent, immutable archive record."
+          elif [ "${{ inputs.environment }}" == "staging" ]; then
+            echo "🧪 STAGING ARCHIVAL (TEST)"
+            echo "Bucket Type:  Staging test bucket"
+            echo "Retention:    30 days (auto-delete)"
+            echo "Lifecycle:    7d → Standard-IA → 30d Delete"
+            echo "Object Lock:  Disabled"
+            echo ""
+            echo "ℹ️  This is for testing the archival process."
+          else
+            echo "🔧 DEVELOPMENT ARCHIVAL (TEST)"
+            echo "Bucket Type:  Development test bucket"
+            echo "Retention:    7 days (auto-delete)"
+            echo "Lifecycle:    Immediate deletion after 7 days"
+            echo "Object Lock:  Disabled"
+            echo ""
+            echo "ℹ️  This is for testing the archival process."
+          fi
+          echo "════════════════════════════════════════════════════════"
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -171,12 +218,25 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets[format('DOPPLER_TOKEN_{0}', matrix.sponsor)] }}
         run: |
-          # Get sponsor-specific AWS credentials and bucket info
+          # Get sponsor-specific AWS credentials and region
           AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain)
-          ARTIFACTS_BUCKET=$(doppler secrets get SPONSOR_ARTIFACTS_BUCKET --plain)
+
+          # Get environment-specific bucket
+          # Production: SPONSOR_ARTIFACTS_BUCKET (7-year retention, immutable)
+          # Staging:    SPONSOR_ARTIFACTS_BUCKET_STAGING (30-day retention, mutable)
+          # Dev:        SPONSOR_ARTIFACTS_BUCKET_DEV (7-day retention, mutable)
+          if [ "${{ inputs.environment }}" == "production" ]; then
+            ARTIFACTS_BUCKET=$(doppler secrets get SPONSOR_ARTIFACTS_BUCKET --plain)
+          elif [ "${{ inputs.environment }}" == "staging" ]; then
+            ARTIFACTS_BUCKET=$(doppler secrets get SPONSOR_ARTIFACTS_BUCKET_STAGING --plain --fallback "hht-diary-artifacts-${{ matrix.sponsor }}-staging")
+          else
+            ARTIFACTS_BUCKET=$(doppler secrets get SPONSOR_ARTIFACTS_BUCKET_DEV --plain --fallback "hht-diary-artifacts-${{ matrix.sponsor }}-dev")
+          fi
 
           echo "aws_region=$AWS_REGION" >> $GITHUB_OUTPUT
           echo "artifacts_bucket=$ARTIFACTS_BUCKET" >> $GITHUB_OUTPUT
+
+          echo "Using bucket: $ARTIFACTS_BUCKET"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -206,12 +266,14 @@ jobs:
           {
             "sponsor": "${{ matrix.sponsor }}",
             "sponsor_code": "$SPONSOR_CODE",
+            "environment": "${{ inputs.environment }}",
             "git_sha": "$GIT_SHA",
             "timestamp": "$TIMESTAMP",
             "github_run_id": "${{ github.run_id }}",
             "github_run_number": "${{ github.run_number }}",
             "github_actor": "${{ github.actor }}",
-            "workflow": "build-integrated"
+            "workflow": "build-integrated",
+            "is_production": ${{ inputs.environment == 'production' }}
           }
           EOF
 
@@ -224,20 +286,41 @@ jobs:
       - name: Upload to S3
         run: |
           BUCKET="${{ steps.config.outputs.artifacts_bucket }}"
-          S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+          ENV="${{ inputs.environment }}"
 
-          aws s3 cp "${ARCHIVE_FILE}" "$S3_PATH"
+          # Include environment in path for non-production builds
+          if [ "$ENV" == "production" ]; then
+            S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+            LATEST_PATH="s3://${BUCKET}/builds/latest.tar.gz"
+          else
+            S3_PATH="s3://${BUCKET}/${ENV}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+            LATEST_PATH="s3://${BUCKET}/${ENV}/builds/latest.tar.gz"
+          fi
 
-          echo "Archived to: $S3_PATH"
+          # Upload with environment tag
+          aws s3 cp "${ARCHIVE_FILE}" "$S3_PATH" \
+            --metadata "environment=$ENV,sponsor=${{ matrix.sponsor }},git-sha=${GIT_SHA:0:8}"
 
-          # Create latest symlink (if applicable)
-          aws s3 cp "${ARCHIVE_FILE}" "s3://${BUCKET}/builds/latest.tar.gz"
+          echo "✅ Archived to: $S3_PATH"
+
+          # Create latest symlink
+          aws s3 cp "${ARCHIVE_FILE}" "$LATEST_PATH" \
+            --metadata "environment=$ENV,sponsor=${{ matrix.sponsor }},git-sha=${GIT_SHA:0:8}"
+
+          echo "✅ Updated latest: $LATEST_PATH"
 
       - name: Verify Archive Integrity
         run: |
           # Download and verify
           BUCKET="${{ steps.config.outputs.artifacts_bucket }}"
-          S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+          ENV="${{ inputs.environment }}"
+
+          # Use same path logic as upload
+          if [ "$ENV" == "production" ]; then
+            S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+          else
+            S3_PATH="s3://${BUCKET}/${ENV}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+          fi
 
           aws s3 cp "$S3_PATH" /tmp/verify.tar.gz
           tar -tzf /tmp/verify.tar.gz > /tmp/archive-contents.txt
@@ -282,6 +365,7 @@ jobs:
 
           BUILD_MANIFEST=$(cat build/sponsor-build-manifest.json)
 
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(echo "$BUILD_MANIFEST" | jq -r '.timestamp')" >> $GITHUB_STEP_SUMMARY
           echo "**Git SHA:** $(echo "$BUILD_MANIFEST" | jq -r '.git_sha')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -299,7 +383,13 @@ jobs:
           echo "- Mobile App: ${{ needs.build-mobile-app.result }}" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ inputs.archive_artifacts }}" == "true" ]; then
-            echo "- Archival: Completed" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ inputs.environment }}" == "production" ]; then
+              echo "- S3 Archival: ✅ Completed (Production - 7 year retention)" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ inputs.environment }}" == "staging" ]; then
+              echo "- S3 Archival: ✅ Completed (Staging - 30 day retention)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- S3 Archival: ✅ Completed (Development - 7 day retention)" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "- Archival: Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "- S3 Archival: ⏭️  Skipped (not requested)" >> $GITHUB_STEP_SUMMARY
           fi
