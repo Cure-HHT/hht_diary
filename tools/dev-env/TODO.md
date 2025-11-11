@@ -30,18 +30,6 @@
   - `DOPPLER_TOKEN_DEV` - Doppler service token
 - [ ] Test CI/CD with a demo PR
 
-### Set Up Supabase
-- [ ] Create Supabase project (or use existing)
-- [ ] Note project reference ID (16 characters)
-- [ ] Get service role key from Dashboard → Settings → API
-- [ ] Add to Doppler: `SUPABASE_PROJECT_REF` and `SUPABASE_SERVICE_TOKEN`
-- [ ] Test connection from ops container: `doppler run -- supabase link`
-
-### Platform Testing
-- [ ] Test on your primary platform (Linux/Mac/Windows WSL2)
-- [ ] Document platform-specific issues
-- [ ] If team uses multiple platforms, test on each
-
 ### Optional: VS Code Setup
 - [ ] Install VS Code
 - [ ] Install extension: Dev Containers (ms-vscode-remote.remote-containers)
@@ -67,6 +55,18 @@ From: Supabase Dashboard → Settings
 - `ANTHROPIC_API_KEY` - For Claude Code integration: https://console.anthropic.com/
 
 ## Not Yet Working / Requires Manual Setup
+
+### Set Up Supabase
+- [ ] Create Supabase project (or use existing)
+- [ ] Note project reference ID (16 characters)
+- [ ] Get service role key from Dashboard → Settings → API
+- [ ] Add to Doppler: `SUPABASE_PROJECT_REF` and `SUPABASE_SERVICE_TOKEN`
+- [ ] Test connection from ops container: `doppler run -- supabase link`
+
+### Platform Testing
+- [ ] Test on your primary platform (Linux/Mac/Windows WSL2)
+- [ ] Document platform-specific issues
+- [ ] If team uses multiple platforms, test on each
 
 ### Doppler Integration
 **Status**: Framework in place, requires account configuration
