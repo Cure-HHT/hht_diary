@@ -1,0 +1,49 @@
+# Sponsor Manifest Schema
+#
+# This file documents the schema for the sponsor manifest stored in Doppler.
+# The actual manifest is stored in: Doppler → hht-diary-core → SPONSOR_MANIFEST
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00069: Doppler manifest system
+
+# Schema Definition
+sponsors:
+  - name: string              # Sponsor identifier (lowercase, e.g., "callisto")
+    code: string              # 3-letter sponsor code (uppercase, e.g., "CAL")
+    enabled: boolean          # Include in builds (true/false)
+    repo: string              # GitHub repo path or "local" for mono-repo
+    tag: string               # Git tag to clone (for multi-repo) or "main" for mono-repo
+    mobile_module: boolean    # Has mobile module integration code
+    portal: boolean           # Has portal application
+    region: string            # AWS region (e.g., "eu-west-1")
+
+# Example Manifest (Current Mono-Repo):
+# sponsors:
+#   - name: callisto
+#     code: CAL
+#     enabled: true
+#     repo: local  # Points to sponsor/callisto/ directory
+#     tag: main    # Not used in mono-repo mode
+#     mobile_module: true
+#     portal: true
+#     region: eu-west-1
+
+# Example Manifest (Future Multi-Repo):
+# sponsors:
+#   - name: callisto
+#     code: CAL
+#     enabled: true
+#     repo: cure-hht/sponsor-callisto  # Separate repository
+#     tag: v1.2.3                       # Locked to specific version
+#     mobile_module: true
+#     portal: true
+#     region: eu-west-1
+#
+#   - name: titan
+#     code: TIT
+#     enabled: true
+#     repo: cure-hht/sponsor-titan
+#     tag: v2.0.1
+#     mobile_module: true
+#     portal: false  # Direct EDC integration, no portal
+#     region: us-west-2
