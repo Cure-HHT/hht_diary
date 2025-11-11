@@ -78,6 +78,8 @@ sponsor/*/.flutter-plugins-dependencies
 # =====================================
 # Flutter/Dart
 build/
+# Exception: Allow build tools directory
+!tools/build/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
