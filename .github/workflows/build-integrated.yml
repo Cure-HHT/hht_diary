@@ -1,0 +1,305 @@
+# Build Integrated Multi-Sponsor App
+#
+# Integrates all enabled sponsors and builds the complete mobile application.
+# Supports both mono-repo (local) and multi-repo modes.
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00071: Integrated build workflow
+#   REQ-d00070: Sponsor integration automation
+#   REQ-o00016: FDA compliance archival
+
+name: Build Integrated App
+
+on:
+  workflow_dispatch:
+    inputs:
+      archive_artifacts:
+        description: 'Archive build artifacts to S3 (per-sponsor)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  integrate-sponsors:
+    name: Integrate Sponsors
+    runs-on: ubuntu-latest
+    outputs:
+      sponsors: ${{ steps.integration.outputs.sponsors }}
+      build_manifest: ${{ steps.integration.outputs.build_manifest }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          sudo snap install yq
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Integrate Sponsors
+        id: integration
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_CORE }}
+          SPONSOR_REPO_TOKEN: ${{ secrets.SPONSOR_REPO_TOKEN }}
+        run: |
+          # Run integration script
+          doppler run -- ./tools/build/integrate-sponsors.sh
+
+          # Output build manifest for downstream jobs
+          BUILD_MANIFEST=$(cat build/sponsor-build-manifest.json)
+          echo "build_manifest=$BUILD_MANIFEST" >> $GITHUB_OUTPUT
+
+          # Extract sponsor list for matrix
+          SPONSORS=$(echo "$BUILD_MANIFEST" | jq -c '[.sponsors[].name]')
+          echo "sponsors=$SPONSORS" >> $GITHUB_OUTPUT
+
+          echo "Integrated sponsors: $SPONSORS"
+
+      - name: Verify Sponsor Structures
+        run: |
+          # Verify each sponsor
+          for sponsor in $(echo '${{ steps.integration.outputs.sponsors }}' | jq -r '.[]'); do
+            echo "Verifying $sponsor..."
+            ./tools/build/verify-sponsor-structure.sh "$sponsor"
+          done
+
+      - name: Upload Build Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: sponsor-build-manifest
+          path: build/sponsor-build-manifest.json
+          retention-days: 90
+
+      - name: Upload Integrated Sponsors
+        uses: actions/upload-artifact@v4
+        with:
+          name: integrated-sponsors
+          path: sponsor/
+          retention-days: 7
+
+  build-mobile-app:
+    name: Build Mobile App
+    needs: integrate-sponsors
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Integrated Sponsors
+        uses: actions/download-artifact@v4
+        with:
+          name: integrated-sponsors
+          path: sponsor/
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
+
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 90
+
+  archive-per-sponsor:
+    name: Archive for ${{ matrix.sponsor }}
+    needs: [integrate-sponsors, build-mobile-app]
+    if: inputs.archive_artifacts == 'true'
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        sponsor: ${{ fromJson(needs.integrate-sponsors.outputs.sponsors) }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: sponsor-build-manifest
+          path: build/
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/
+
+      - name: Download App Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/
+
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Get Sponsor Config
+        id: config
+        env:
+          DOPPLER_TOKEN: ${{ secrets[format('DOPPLER_TOKEN_{0}', matrix.sponsor)] }}
+        run: |
+          # Get sponsor-specific AWS credentials and bucket info
+          AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain)
+          ARTIFACTS_BUCKET=$(doppler secrets get SPONSOR_ARTIFACTS_BUCKET --plain)
+
+          echo "aws_region=$AWS_REGION" >> $GITHUB_OUTPUT
+          echo "artifacts_bucket=$ARTIFACTS_BUCKET" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets[format('AWS_ACCESS_KEY_ID_{0}', matrix.sponsor)] }}
+          aws-secret-access-key: ${{ secrets[format('AWS_SECRET_ACCESS_KEY_{0}', matrix.sponsor)] }}
+          aws-region: ${{ steps.config.outputs.aws_region }}
+
+      - name: Create Archive
+        run: |
+          # Get sponsor details from build manifest
+          SPONSOR_CODE=$(jq -r ".sponsors[] | select(.name==\"${{ matrix.sponsor }}\") | .code" build/sponsor-build-manifest.json)
+          GIT_SHA=$(jq -r '.git_sha' build/sponsor-build-manifest.json)
+          TIMESTAMP=$(jq -r '.timestamp' build/sponsor-build-manifest.json)
+
+          # Create archive directory
+          ARCHIVE_DIR="hht-diary-${SPONSOR_CODE}-${GIT_SHA:0:8}"
+          mkdir -p "$ARCHIVE_DIR"
+
+          # Copy artifacts
+          cp build/app/outputs/flutter-apk/app-release.apk "$ARCHIVE_DIR/"
+          cp build/app/outputs/bundle/release/app-release.aab "$ARCHIVE_DIR/"
+          cp build/sponsor-build-manifest.json "$ARCHIVE_DIR/"
+
+          # Create metadata file
+          cat > "$ARCHIVE_DIR/metadata.json" <<EOF
+          {
+            "sponsor": "${{ matrix.sponsor }}",
+            "sponsor_code": "$SPONSOR_CODE",
+            "git_sha": "$GIT_SHA",
+            "timestamp": "$TIMESTAMP",
+            "github_run_id": "${{ github.run_id }}",
+            "github_run_number": "${{ github.run_number }}",
+            "github_actor": "${{ github.actor }}",
+            "workflow": "build-integrated"
+          }
+          EOF
+
+          # Create tarball
+          tar -czf "${ARCHIVE_DIR}.tar.gz" "$ARCHIVE_DIR"
+
+          echo "ARCHIVE_FILE=${ARCHIVE_DIR}.tar.gz" >> $GITHUB_ENV
+          echo "ARCHIVE_DIR=$ARCHIVE_DIR" >> $GITHUB_ENV
+
+      - name: Upload to S3
+        run: |
+          BUCKET="${{ steps.config.outputs.artifacts_bucket }}"
+          S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+
+          aws s3 cp "${ARCHIVE_FILE}" "$S3_PATH"
+
+          echo "Archived to: $S3_PATH"
+
+          # Create latest symlink (if applicable)
+          aws s3 cp "${ARCHIVE_FILE}" "s3://${BUCKET}/builds/latest.tar.gz"
+
+      - name: Verify Archive Integrity
+        run: |
+          # Download and verify
+          BUCKET="${{ steps.config.outputs.artifacts_bucket }}"
+          S3_PATH="s3://${BUCKET}/builds/$(date +%Y/%m/%d)/${ARCHIVE_FILE}"
+
+          aws s3 cp "$S3_PATH" /tmp/verify.tar.gz
+          tar -tzf /tmp/verify.tar.gz > /tmp/archive-contents.txt
+
+          echo "Archive contents:"
+          cat /tmp/archive-contents.txt
+
+          # Verify required files
+          REQUIRED_FILES=(
+            "${ARCHIVE_DIR}/app-release.apk"
+            "${ARCHIVE_DIR}/app-release.aab"
+            "${ARCHIVE_DIR}/sponsor-build-manifest.json"
+            "${ARCHIVE_DIR}/metadata.json"
+          )
+
+          for file in "${REQUIRED_FILES[@]}"; do
+            if ! grep -q "$file" /tmp/archive-contents.txt; then
+              echo "ERROR: Missing required file: $file"
+              exit 1
+            fi
+          done
+
+          echo "✅ Archive integrity verified"
+
+  summary:
+    name: Build Summary
+    needs: [integrate-sponsors, build-mobile-app]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Build Manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: sponsor-build-manifest
+          path: build/
+
+      - name: Generate Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          BUILD_MANIFEST=$(cat build/sponsor-build-manifest.json)
+
+          echo "**Timestamp:** $(echo "$BUILD_MANIFEST" | jq -r '.timestamp')" >> $GITHUB_STEP_SUMMARY
+          echo "**Git SHA:** $(echo "$BUILD_MANIFEST" | jq -r '.git_sha')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Integrated Sponsors" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Sponsor | Code | Repo | Tag | Git SHA | Mobile | Portal |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|------|-----|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          echo "$BUILD_MANIFEST" | jq -r '.sponsors[] | "| \(.name) | \(.code) | \(.repo) | \(.tag) | \(.git_sha[0:8]) | \(.mobile_module) | \(.portal) |"' >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration: ${{ needs.integrate-sponsors.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Mobile App: ${{ needs.build-mobile-app.result }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.archive_artifacts }}" == "true" ]; then
+            echo "- Archival: Completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Archival: Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
