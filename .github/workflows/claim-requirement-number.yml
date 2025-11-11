@@ -75,12 +75,19 @@ jobs:
           fi
 
           # Check that only spec/INDEX.md was modified
-          if [ "$CHANGED_FILES" != " M spec/INDEX.md" ]; then
-            echo "::error::ERROR: Unexpected file changes detected. Only spec/INDEX.md should be modified."
+          CHANGED_COUNT=$(git diff --name-only | wc -l)
+          if [ "$CHANGED_COUNT" -ne 1 ]; then
+            echo "::error::ERROR: Expected only INDEX.md to change, but $CHANGED_COUNT files changed"
             echo "::error::Changed files:"
             git status --short
             echo ""
             echo "::error::The bot must only modify spec/INDEX.md. Please investigate why other files were changed."
+            exit 1
+          fi
+
+          CHANGED_FILE=$(git diff --name-only)
+          if [ "$CHANGED_FILE" != "spec/INDEX.md" ]; then
+            echo "::error::ERROR: Expected spec/INDEX.md to change, but got: $CHANGED_FILE"
             exit 1
           fi
 
