@@ -151,21 +151,21 @@ Replace placeholder assets in `sponsor-callisto/assets/`:
 This sponsor implementation covers:
 
 **PRD Requirements**:
-- REQ-p00003: Separate Database Per Sponsor
-- REQ-p00007: Automatic Sponsor Configuration
-- REQ-p00008: Single Mobile App for All Sponsors
-- REQ-p00009: Sponsor-Specific Web Portals
-- REQ-p00014: Authentication and Authorization
-- REQ-p00024: Portal User Roles and Permissions
-- REQ-p00025: Patient Enrollment Workflow
-- REQ-p00026: Patient Monitoring Dashboard
-- REQ-p00027: Questionnaire Management
-- REQ-p00028: Token Revocation and Access Control
-- REQ-p00029: Auditor Dashboard and Data Export
+- REQ-CAL-p00003: Separate Database Per Sponsor
+- REQ-CAL-p00007: Automatic Sponsor Configuration
+- REQ-CAL-p00008: Single Mobile App for All Sponsors
+- REQ-CAL-p00009: Sponsor-Specific Web Portals
+- REQ-CAL-p00014: Authentication and Authorization
+- REQ-CAL-p00024: Portal User Roles and Permissions
+- REQ-CAL-p00025: Patient Enrollment Workflow
+- REQ-CAL-p00026: Patient Monitoring Dashboard
+- REQ-CAL-p00027: Questionnaire Management
+- REQ-CAL-p00028: Token Revocation and Access Control
+- REQ-CAL-p00029: Auditor Dashboard and Data Export
 
 **Dev Requirements**:
-- REQ-d00028: Portal Frontend Framework
-- REQ-d00029: Portal UI Design System
+- REQ-CAL-d00028: Portal Frontend Framework
+- REQ-CAL-d00029: Portal UI Design System
 
 See `spec/prd-portal.md` and `spec/dev-portal.md` for complete requirements.
 
@@ -199,7 +199,7 @@ See `spec/prd-portal.md` and `spec/dev-portal.md` for complete requirements.
 - [ ] Set up custom domain and SSL
 
 ### Future Enhancements
-- [ ] Database export functionality (REQ-p00029)
+- [ ] Database export functionality (REQ-CAL-p00029)
 - [ ] Advanced reporting and analytics
 - [ ] Mobile app integration (push notifications)
 - [ ] EDC synchronization (proxy mode)
