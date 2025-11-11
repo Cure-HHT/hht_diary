@@ -1,6 +1,6 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-p00008: Single Mobile App for All Sponsors
-#   REQ-p00007: Automatic Sponsor Configuration
+#   REQ-CAL-p00008: Single Mobile App for All Sponsors
+#   REQ-CAL-p00007: Automatic Sponsor Configuration
 
 # Callisto Mobile App Configuration
 sponsor:

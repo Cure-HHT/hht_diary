@@ -1,0 +1,34 @@
+sponsor:
+  name: "callisto"
+  code: "CAL"
+  display_name: "Callisto Clinical Trial"
+
+mobile_module:
+  enabled: true
+  features:
+    - custom_forms
+    - medication_tracking
+    - symptom_diary
+
+portal:
+  enabled: true
+  database:
+    # Standalone schema (not inherited)
+    # Initially copied from packages/database/schema.sql
+    # Maintained independently thereafter
+    schema_file: "portal/database/schema.sql"
+
+  deployment:
+    supabase_project_id: "callisto-portal-prod"
+    region: "eu-west-1"
+
+infrastructure:
+  aws:
+    region: "eu-west-1"
+    s3_buckets:
+      artifacts: "hht-diary-artifacts-callisto-eu-west-1"
+      backups: "hht-diary-backups-callisto-eu-west-1"
+      logs: "hht-diary-logs-callisto-eu-west-1"
+
+requirements:
+  namespace: "CAL"  # REQ-CAL-d00001
