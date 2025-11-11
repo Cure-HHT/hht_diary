@@ -1,6 +1,6 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-CAL-p00009: Sponsor-Specific Web Portals
-#   REQ-CAL-d00028: Portal Frontend Framework
+#   REQ-p00009: Sponsor-Specific Web Portals
+#   REQ-d00028: Portal Frontend Framework
 
 # Callisto Portal Configuration
 sponsor:
