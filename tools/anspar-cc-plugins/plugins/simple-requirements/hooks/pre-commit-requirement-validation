@@ -42,8 +42,6 @@ fi
 if python3 "$VALIDATION_SCRIPT"; then
     echo ""
     echo -e "${GREEN}✅ Requirement validation passed!${NC}"
-    echo ""
-    exit 0
 else
     echo ""
     echo -e "${RED}❌ Requirement validation failed!${NC}"
@@ -56,3 +54,78 @@ else
     echo ""
     exit 1
 fi
+
+# Additional validation: Check that spec files only reference REQ#s in INDEX.md
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' | grep -v '^spec/INDEX\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    echo ""
+    echo -e "${BLUE}🔍 Checking REQ# references against INDEX.md...${NC}"
+    echo ""
+
+    # Check if INDEX.md exists
+    if [ ! -f "spec/INDEX.md" ]; then
+        echo -e "${RED}❌ ERROR: spec/INDEX.md not found${NC}"
+        echo ""
+        echo "INDEX.md is required to validate REQ# references."
+        echo "Please ensure spec/INDEX.md exists before committing spec files."
+        exit 1
+    fi
+
+    # Read all valid REQ#s from INDEX.md (format: | REQ-p00001 | ...)
+    INDEX_REQS=$(grep -oP '^\|\s*(REQ-[pod]\d{5})' spec/INDEX.md | awk '{print $2}' || true)
+
+    if [ -z "$INDEX_REQS" ]; then
+        echo -e "${YELLOW}⚠️  WARNING: No REQ#s found in INDEX.md${NC}"
+        echo "If this is a new repository, this is expected."
+        echo ""
+    fi
+
+    # Track missing REQ#s
+    MISSING_REQS=()
+
+    # Check each staged spec file for REQ# headers
+    for file in $SPEC_FILES_CHANGED; do
+        # Extract REQ#s from requirement headers (format: # REQ-p00001: Title or ## REQ-p00001: Title)
+        FILE_REQS=$(git diff --cached "$file" | grep -oP '^\+##?\s*(REQ-[pod]\d{5})' | awk '{print $2}' | sort -u || true)
+
+        if [ -n "$FILE_REQS" ]; then
+            for req in $FILE_REQS; do
+                # Check if this REQ# exists in INDEX.md
+                if ! echo "$INDEX_REQS" | grep -q "^$req$"; then
+                    MISSING_REQS+=("$req (in $file)")
+                fi
+            done
+        fi
+    done
+
+    # Report results
+    if [ ${#MISSING_REQS[@]} -gt 0 ]; then
+        echo -e "${RED}❌ ERROR: Spec files reference REQ#s not found in INDEX.md${NC}"
+        echo ""
+        echo "The following REQ#s are referenced but not in spec/INDEX.md:"
+        for item in "${MISSING_REQS[@]}"; do
+            echo "  - $item"
+        done
+        echo ""
+        echo -e "${YELLOW}Required actions:${NC}"
+        echo "  1. Claim these REQ#s using GitHub Actions:"
+        echo "     → Go to Actions → Claim Requirement Number"
+        echo "     → Or run: gh workflow run claim-requirement-number.yml"
+        echo ""
+        echo "  2. OR if INDEX.md is staged in this commit, this check may be premature."
+        echo "     Ensure INDEX.md is committed first or in the same commit."
+        echo ""
+        echo "  3. To bypass this check (NOT RECOMMENDED):"
+        echo "     git commit --no-verify"
+        echo ""
+        exit 1
+    fi
+
+    echo -e "${GREEN}✅ All REQ#s exist in INDEX.md${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ All validation checks passed!${NC}"
+echo ""
+exit 0
