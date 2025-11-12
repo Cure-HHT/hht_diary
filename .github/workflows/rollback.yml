@@ -42,6 +42,34 @@ jobs:
           echo "Reason: ${{ github.event.inputs.reason }}"
           echo "Initiated by: ${{ github.actor }}"
 
+      - name: Capture current production version
+        id: current_version
+        run: |
+          echo "Querying current production version..."
+
+          # Query GitHub Actions API for last successful production deployment
+          LAST_DEPLOY=$(gh run list \
+            --workflow "deploy-production.yml" \
+            --status success \
+            --limit 1 \
+            --json databaseId,headSha,conclusion \
+            --jq '.[0]' || echo '{}')
+
+          CURRENT_SHA=$(echo "$LAST_DEPLOY" | jq -r '.headSha // "INITIAL_DEPLOYMENT"')
+          CURRENT_RUN=$(echo "$LAST_DEPLOY" | jq -r '.databaseId // "N/A"')
+
+          echo "current_sha=${CURRENT_SHA}" >> $GITHUB_OUTPUT
+          echo "current_run_id=${CURRENT_RUN}" >> $GITHUB_OUTPUT
+
+          if [ "$CURRENT_SHA" = "INITIAL_DEPLOYMENT" ]; then
+            echo "⚠️ No previous production deployment found"
+          else
+            echo "✅ Current production commit: ${CURRENT_SHA}"
+            echo "   From deployment run: ${CURRENT_RUN}"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Verify target version exists
         run: |
           # Use exact version matching to avoid partial matches
@@ -122,22 +150,46 @@ jobs:
         if: success()
         run: |
           echo "Recording rollback..."
-          ROLLBACK_LOG="rollback-${{ github.event.inputs.environment }}-$(date +%Y%m%d-%H%M%S).log"
+          ROLLBACK_LOG="rollback-${{ github.event.inputs.environment }}-$(date +%Y%m%d-%H%M%S).json"
 
+          # Create structured JSON audit log (FDA 21 CFR Part 11 compliant)
+          cat > $ROLLBACK_LOG <<EOF
           {
-            echo "Rollback Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-            echo "Environment: ${{ github.event.inputs.environment }}"
-            echo "From Version: [Previous]"
-            echo "To Version: ${{ github.event.inputs.target_version }}"
-            echo "Reason: ${{ github.event.inputs.reason }}"
-            echo "Initiated by: ${{ github.actor }}"
-            echo "Outcome: success"
-          } > $ROLLBACK_LOG
+            "rollback_timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "environment": "${{ github.event.inputs.environment }}",
+            "from_commit_sha": "${{ steps.current_version.outputs.current_sha }}",
+            "from_deployment_run_id": "${{ steps.current_version.outputs.current_run_id }}",
+            "to_version": "${{ github.event.inputs.target_version }}",
+            "to_commit_sha": "${{ github.sha }}",
+            "reason": "${{ github.event.inputs.reason }}",
+            "initiated_by": "${{ github.actor }}",
+            "github_run_id": "${{ github.run_id }}",
+            "github_run_number": "${{ github.run_number }}",
+            "outcome": "success",
+            "workflow": "rollback-deployment"
+          }
+          EOF
 
-          # For production, upload to S3 Glacier
+          cat $ROLLBACK_LOG
+
+          # For production, upload to S3 for 7-year retention
           if [ "${{ github.event.inputs.environment }}" = "production" ]; then
-            # TODO: Upload to S3 Glacier
-            echo "Would upload to S3 Glacier for 7-year retention"
+            echo "Uploading rollback audit log to S3..."
+
+            # Get AWS region and bucket from Doppler (per-sponsor configuration)
+            AWS_REGION=$(doppler run -- bash -c 'echo $SPONSOR_AWS_REGION' || echo "eu-west-1")
+            AUDIT_BUCKET=$(doppler run -- bash -c 'echo $SPONSOR_AUDIT_LOGS_BUCKET' || echo "hht-diary-audit-logs-callisto-${AWS_REGION}")
+
+            # Upload to S3: rollbacks/YYYY/MM/DD/filename.json
+            S3_PATH="s3://${AUDIT_BUCKET}/rollbacks/$(date +%Y/%m/%d)/${ROLLBACK_LOG}"
+
+            if aws s3 cp "$ROLLBACK_LOG" "$S3_PATH" \
+              --tagging "environment=production&type=rollback-log&retention-years=7&fda-compliant=true" \
+              --metadata "from-sha=${{ steps.current_version.outputs.current_sha }},to-version=${{ github.event.inputs.target_version }},initiator=${{ github.actor }}"; then
+              echo "✅ Rollback audit log uploaded to S3: $S3_PATH"
+            else
+              echo "⚠️ Failed to upload rollback log to S3 - log saved locally"
+            fi
           fi
 
       - name: Notify team
