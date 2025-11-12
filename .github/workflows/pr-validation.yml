@@ -392,32 +392,52 @@ jobs:
           echo "::endgroup::"
 
       - name: Run git hook tests
+        id: hook-tests
         run: |
           echo "::group::Git Hook Integration Tests"
           cd tools/anspar-cc-plugins/plugins/workflow/tests
-          ./test-hooks.sh
+
+          # Capture test output to parse counts
+          TEST_OUTPUT=$(./test-hooks.sh 2>&1)
           RESULT=$?
+
+          # Display output
+          echo "$TEST_OUTPUT"
           echo "::endgroup::"
+
+          # Parse test counts from output
+          TESTS_PASSED=$(echo "$TEST_OUTPUT" | grep -oP 'Passed: \K\d+' || echo "0")
+          TESTS_FAILED=$(echo "$TEST_OUTPUT" | grep -oP 'Failed: \K\d+' || echo "0")
+          TESTS_TOTAL=$((TESTS_PASSED + TESTS_FAILED))
+
+          # Export for summary step
+          echo "passed=$TESTS_PASSED" >> $GITHUB_OUTPUT
+          echo "failed=$TESTS_FAILED" >> $GITHUB_OUTPUT
+          echo "total=$TESTS_TOTAL" >> $GITHUB_OUTPUT
 
           if [ $RESULT -ne 0 ]; then
             echo "::error::Git hook tests failed. See details above."
             exit 1
           fi
 
-          echo "✅ All git hook tests passed (13/13)"
+          echo "✅ All git hook tests passed ($TESTS_PASSED/$TESTS_TOTAL)"
 
       - name: Upload test results
         if: always()
         run: |
+          # Get test counts from previous step
+          PASSED="${{ steps.hook-tests.outputs.passed }}"
+          FAILED="${{ steps.hook-tests.outputs.failed }}"
+          TOTAL="${{ steps.hook-tests.outputs.total }}"
+
           echo "## Git Hook Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Plugin structure validation: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Pre-commit hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Commit-msg hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Post-commit hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Integration tests: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 Total: 13/13 tests passed" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.hook-tests.outcome }}" = "success" ]; then
+            echo "✅ All tests passed ($PASSED/$TOTAL)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Tests failed: $PASSED passed, $FAILED failed (Total: $TOTAL)" >> $GITHUB_STEP_SUMMARY
+          fi
 
   summary:
     name: Validation Summary
