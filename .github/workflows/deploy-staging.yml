@@ -18,13 +18,25 @@ on:
 env:
   ENVIRONMENT: staging
   SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_STAGING }}
+  # Load versions from central file
+  NODE_VERSION: '20'
+  FLUTTER_VERSION: '3.24.0'
+  SUPABASE_CLI_VERSION: '2.54.10'
 
 jobs:
   deploy:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # Prevent hung deployments
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false  # Don't cancel, queue instead
     environment:
-      name: staging  # Not active until GitHub environment configured with approval
+      name: staging
+      url: https://staging.your-app.com  # TODO: Update with actual staging URL
+    outputs:
+      deployment_url: ${{ steps.set-outputs.outputs.url }}
+      deployment_version: ${{ github.sha }}
 
     steps:
       - name: Log deployment initiation
@@ -39,48 +51,99 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Setup Dart/Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
 
       - name: Install Supabase CLI
         run: |
-          # Pinned to v2.54.10 (matches Dockerfile version for consistency)
-          # Last updated: 2025-11-11
-          wget -qO- https://github.com/supabase/cli/releases/download/v2.54.10/supabase_linux_amd64.tar.gz | tar xzf -
+          set -euo pipefail
+          # Version pinned in .github/versions.env (matches Dockerfile)
+          wget -qO- https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_CLI_VERSION }}/supabase_linux_amd64.tar.gz | tar xzf -
           sudo mv supabase /usr/local/bin/
+          supabase --version
 
       - name: Install dependencies
         run: npm install
+
+      - name: Security scan
+        run: |
+          set -euo pipefail
+
+          echo "Running dependency vulnerability scan..."
+          npm audit --audit-level=high
+
+          echo "✅ Security scan passed"
 
       - name: Load secrets from Doppler
         uses: dopplerhq/cli-action@v3
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_STAGING }}
 
+      - name: Pre-deployment health check
+        run: |
+          set -euo pipefail
+
+          echo "Checking staging environment health before deployment..."
+
+          # Verify Supabase project is accessible
+          if ! doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID; then
+            echo "::error::Cannot access Supabase project"
+            exit 1
+          fi
+
+          echo "✅ Pre-deployment health check passed"
+
       - name: Run full test suite
         run: |
+          set -euo pipefail
+
+          echo "Running linter..."
           npm run lint
+
+          echo "Running type checks..."
           npm run check-types
+
+          echo "Running unit tests..."
           npm test
+
+          echo "Running integration tests..."
           npm run test:integration
 
+          echo "✅ All pre-deployment tests passed"
+
       - name: Create database backup
+        id: backup
         run: |
+          set -euo pipefail
           echo "Creating database backup before migration..."
+
+          BACKUP_FILE="backup-staging-${{ github.run_id }}.sql"
           doppler run -- supabase db dump \
             --project-ref $SUPABASE_PROJECT_ID \
             --data-only \
-            -f backup-staging-$(date +%Y%m%d-%H%M%S).sql
+            -f "$BACKUP_FILE"
+
+          # Verify backup was created
+          if [ ! -f "$BACKUP_FILE" ]; then
+            echo "❌ Backup file not created"
+            exit 1
+          fi
+
+          echo "✅ Backup created: $BACKUP_FILE"
+          echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
 
       - name: Database migration (with rollback on failure)
         id: migrate
+        env:
+          BACKUP_FILE: ${{ steps.backup.outputs.backup_file }}
         run: |
+          set -euo pipefail
           echo "Starting database migration..."
 
           # Link to Supabase project
@@ -88,12 +151,19 @@ jobs:
 
           # Execute migrations
           if ! doppler run -- supabase db push; then
-            echo "Migration failed, attempting rollback..."
-            doppler run -- supabase db reset --db-url $DATABASE_URL
+            echo "❌ Migration failed, restoring from backup..."
+
+            # Restore from backup using psql
+            if ! doppler run -- psql -f "$BACKUP_FILE"; then
+              echo "❌ CRITICAL: Migration failed AND backup restore failed!"
+              exit 2
+            fi
+
+            echo "✅ Database restored from backup"
             exit 1
           fi
 
-          echo "Migration completed successfully"
+          echo "✅ Migration completed successfully"
 
       - name: Deploy application
         run: |
@@ -102,47 +172,173 @@ jobs:
           echo "Deployment complete"
 
       - name: Run smoke tests
+        timeout-minutes: 10
         run: |
-          echo "Running smoke tests..."
-          cd tools/testing/smoke-tests
-          doppler run -- ./run-smoke-tests.sh staging
+          set -euo pipefail
 
-      - name: Run integration tests
-        run: |
-          echo "Running integration tests..."
-          cd tools/testing
-          doppler run -- npm run test:integration
+          # Verify smoke test script exists
+          if [ ! -x "tools/testing/smoke-tests/run-smoke-tests.sh" ]; then
+            echo "::error::Smoke test script not found or not executable"
+            exit 1
+          fi
+
+          echo "Running smoke tests against deployed staging environment..."
+          cd tools/testing/smoke-tests
+          doppler run -- ./run-smoke-tests.sh staging | tee smoke-tests.log
+
+          echo "✅ Smoke tests passed"
+
+      # TODO: Replace with proper post-deployment integration tests
+      # These should test the DEPLOYED staging environment, not local code
+      # Current smoke tests above serve this purpose
+      # Future: Add comprehensive end-to-end tests against staging URL
 
       - name: Record deployment
-        if: success()
+        if: always()
         run: |
-          echo "Recording deployment..."
-          echo "$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> deployment-log.txt
-          echo "Environment: staging" >> deployment-log.txt
-          echo "Commit: ${{ github.sha }}" >> deployment-log.txt
-          echo "Deployer: ${{ github.actor }}" >> deployment-log.txt
-          echo "Reason: ${{ github.event.inputs.reason }}" >> deployment-log.txt
-          echo "Outcome: success" >> deployment-log.txt
-          echo "---" >> deployment-log.txt
+          set -euo pipefail
+
+          OUTCOME="${{ job.status }}"
+          TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          LOG_FILE="deployment-audit-${{ github.run_id }}.json"
+
+          # Create structured audit log
+          cat > "$LOG_FILE" <<EOF
+{
+  "timestamp": "$TIMESTAMP",
+  "environment": "staging",
+  "commit_sha": "${{ github.sha }}",
+  "commit_message": "$(git log -1 --pretty=%B | head -1)",
+  "deployer": "${{ github.actor }}",
+  "reason": "${{ github.event.inputs.reason }}",
+          "outcome": "$OUTCOME",
+  "workflow_run_id": "${{ github.run_id }}",
+  "workflow_run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+}
+EOF
+
+          echo "✅ Deployment audit logged: $LOG_FILE"
+
+      - name: Upload deployment audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-audit-${{ github.run_id }}
+          path: deployment-audit-${{ github.run_id }}.json
+          retention-days: 2555  # 7 years for FDA 21 CFR Part 11 compliance
 
       - name: Notify QA team
         if: success()
-        run: |
-          echo "✅ Staging deployment successful"
-          echo "Environment ready for QA testing"
-          echo "Commit: ${{ github.sha }}"
-          echo "Deployer: ${{ github.actor }}"
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.NOTIFICATION_EMAIL_USER }}
+          password: ${{ secrets.NOTIFICATION_EMAIL_PASSWORD }}
+          subject: "✅ Staging Deployment Successful - ${{ github.sha }}"
+          to: ${{ secrets.QA_TEAM_EMAIL }}
+          from: GitHub Actions
+          body: |
+            Staging deployment completed successfully!
+
+            Environment: staging
+            Commit: ${{ github.sha }}
+            Deployer: ${{ github.actor }}
+            Reason: ${{ github.event.inputs.reason }}
+
+            View workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            The staging environment is ready for QA testing.
 
       - name: Rollback on failure
         if: failure()
         run: |
+          set -euo pipefail
+
           echo "❌ Deployment failed, initiating rollback..."
+
+          # Verify rollback script exists
+          if [ ! -x "tools/testing/smoke-tests/rollback.sh" ]; then
+            echo "::error::Rollback script not found or not executable: tools/testing/smoke-tests/rollback.sh"
+            exit 1
+          fi
+
           cd tools/testing/smoke-tests
-          ./rollback.sh staging
+          if ! ./rollback.sh staging 2>&1 | tee rollback.log; then
+            echo "❌ CRITICAL: Rollback failed!"
+            cat rollback.log
+            exit 2
+          fi
+
+          echo "✅ Rollback completed successfully"
 
       - name: Notify failure
         if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.NOTIFICATION_EMAIL_USER }}
+          password: ${{ secrets.NOTIFICATION_EMAIL_PASSWORD }}
+          subject: "❌ Staging Deployment Failed - ${{ github.sha }}"
+          to: ${{ secrets.QA_TEAM_EMAIL }}
+          from: GitHub Actions
+          body: |
+            ❌ Staging deployment failed and was rolled back.
+
+            Commit: ${{ github.sha }}
+            Deployer: ${{ github.actor }}
+            Reason: ${{ github.event.inputs.reason }}
+
+            View workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            QA Lead: Please investigate the failure.
+
+      - name: Record deployment metadata
+        if: always()
         run: |
-          echo "❌ Staging deployment failed and rolled back"
-          echo "Commit: ${{ github.sha }}"
-          echo "QA Lead: Please investigate"
+          set -euo pipefail
+
+          DURATION=$SECONDS
+          METADATA_FILE="deployment-metadata-${{ github.run_id }}.json"
+
+          cat > "$METADATA_FILE" <<EOF
+{
+  "deployment_id": "${{ github.run_id }}",
+  "started_at": "${{ github.event.workflow_run.created_at }}",
+  "completed_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+          "duration_seconds": $DURATION,
+  "commit_sha": "${{ github.sha }}",
+  "deployer": "${{ github.actor }}",
+  "node_version": "$(node --version)",
+  "flutter_version": "$(flutter --version | head -n1 | awk '{print $2}')",
+  "supabase_cli_version": "$(supabase --version)"
+}
+EOF
+
+          echo "✅ Deployment metadata recorded"
+
+      - name: Upload deployment metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-metadata-${{ github.run_id }}
+          path: deployment-metadata-${{ github.run_id }}.json
+          retention-days: 90
+
+      - name: Set deployment outputs
+        id: set-outputs
+        if: success()
+        run: |
+          # TODO: Update with actual staging URL
+          STAGING_URL="https://staging.your-app.com"
+          echo "url=$STAGING_URL" >> $GITHUB_OUTPUT
+          echo "Staging environment: $STAGING_URL"
+
+      - name: Cleanup artifacts
+        if: always()
+        run: |
+          rm -f backup-staging-*.sql
+          rm -f *.log
+          rm -f deployment-*.json
+          echo "✅ Temporary files cleaned up"
