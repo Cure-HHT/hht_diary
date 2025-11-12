@@ -162,21 +162,57 @@ doppler configs tokens create github-actions \
 1. Navigate to your GitHub repository
 2. Go to **Settings** → **Secrets and variables** → **Actions**
 3. Add new repository secrets:
-   - Name: `DOPPLER_TOKEN_<SPONSOR_UPPER>` (e.g., `DOPPLER_TOKEN_TITAN`)
-   - Value: Production token from step 6
+   - `DOPPLER_TOKEN_<sponsor>` (e.g., `DOPPLER_TOKEN_titan`)
+   - `AWS_ACCESS_KEY_ID_<sponsor>` (e.g., `AWS_ACCESS_KEY_ID_titan`)
+   - `AWS_SECRET_ACCESS_KEY_<sponsor>` (e.g., `AWS_SECRET_ACCESS_KEY_titan`)
 
-**Naming convention**: Use UPPERCASE sponsor name for the GitHub secret suffix.
+**Naming convention**: Use **lowercase** sponsor name for the GitHub secret suffix to match the workflow configuration in Step 8.
 
-### 8. Update CI/CD Workflows (if needed)
+**Values**:
+- `DOPPLER_TOKEN_<sponsor>`: Production token from step 6
+- `AWS_ACCESS_KEY_ID_<sponsor>`: From step 4 (production AWS credentials)
+- `AWS_SECRET_ACCESS_KEY_<sponsor>`: From step 4 (production AWS credentials)
 
-If your GitHub Actions workflows explicitly reference sponsor tokens, update them to include the new sponsor:
+### 8. Update CI/CD Workflows (REQUIRED)
+
+**IMPORTANT**: You must update GitHub Actions workflows to include the new sponsor.
+
+#### Update build-integrated.yml
+
+Edit `.github/workflows/build-integrated.yml` and add the new sponsor to the matrix includes section (around line 156-165):
 
 ```yaml
-- name: Load Titan Secrets
-  run: |
-    doppler secrets download --no-file --format env \
-      --token ${{ secrets.DOPPLER_TOKEN_TITAN }} > titan.env
+strategy:
+  matrix:
+    include:
+      - sponsor: callisto
+        doppler_secret: DOPPLER_TOKEN_callisto
+        aws_key_secret: AWS_ACCESS_KEY_ID_callisto
+        aws_secret_secret: AWS_SECRET_ACCESS_KEY_callisto
+
+      # Add new sponsor here:
+      - sponsor: titan  # Replace with your sponsor name (lowercase)
+        doppler_secret: DOPPLER_TOKEN_titan
+        aws_key_secret: AWS_ACCESS_KEY_ID_titan
+        aws_secret_secret: AWS_SECRET_ACCESS_KEY_titan
 ```
+
+**Naming conventions:**
+- `sponsor`: Lowercase sponsor name (must match directory name in `sponsor/`)
+- `doppler_secret`: `DOPPLER_TOKEN_<sponsor>` (lowercase)
+- `aws_key_secret`: `AWS_ACCESS_KEY_ID_<sponsor>` (lowercase)
+- `aws_secret_secret`: `AWS_SECRET_ACCESS_KEY_<sponsor>` (lowercase)
+
+**Important**: The GitHub secret names you created in Step 7 must match these references exactly.
+
+#### GitHub Secrets Naming
+
+Ensure you've created these GitHub secrets (Step 7):
+- `DOPPLER_TOKEN_titan` (or your sponsor name in lowercase)
+- `AWS_ACCESS_KEY_ID_titan`
+- `AWS_SECRET_ACCESS_KEY_titan`
+
+**Security Note**: This explicit configuration is required for compliance with CodeQL security scanning and maintains sponsor isolation during CI/CD builds.
 
 ### 9. Verify Setup
 
@@ -218,6 +254,8 @@ Before completing sponsor onboarding, verify:
 - [ ] Staging and production secrets are different
 - [ ] Service tokens have minimal required permissions
 - [ ] GitHub Actions secrets are added correctly
+- [ ] GitHub Actions workflow matrix updated in `build-integrated.yml` (Step 8)
+- [ ] Secret naming conventions match between GitHub and workflow configuration
 - [ ] Sponsor manifest updated in all environments (dev, staging, production)
 - [ ] No secrets committed to git repository
 - [ ] Sponsor isolation verified (no cross-sponsor data access possible)

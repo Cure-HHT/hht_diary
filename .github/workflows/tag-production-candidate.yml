@@ -30,6 +30,8 @@ jobs:
   validate-build:
     name: Validate Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       build_manifest: ${{ steps.download.outputs.build_manifest }}
       core_sha: ${{ steps.parse.outputs.core_sha }}
@@ -114,6 +116,8 @@ jobs:
     name: Tag Core Repository
     needs: validate-build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code

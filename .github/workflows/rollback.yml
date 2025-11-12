@@ -31,6 +31,8 @@ jobs:
   rollback:
     name: Rollback ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: ${{ github.event.inputs.environment }}
 
     steps:
@@ -102,14 +104,14 @@ jobs:
       - name: Load secrets
         uses: dopplerhq/cli-action@v3
         env:
-          DOPPLER_TOKEN: ${{ secrets[format('DOPPLER_TOKEN_{0}', github.event.inputs.environment)] }}
+          DOPPLER_TOKEN: ${{ github.event.inputs.environment == 'production' && secrets.DOPPLER_TOKEN_PROD || github.event.inputs.environment == 'staging' && secrets.DOPPLER_TOKEN_STAGING || github.event.inputs.environment == 'development' && secrets.DOPPLER_TOKEN_DEV || '' }}
 
       - name: Database rollback
         run: |
           echo "Rolling back database..."
 
           # Get project ID for environment
-          PROJECT_ID=${{ secrets[format('SUPABASE_PROJECT_ID_{0}', github.event.inputs.environment)] }}
+          PROJECT_ID="${{ github.event.inputs.environment == 'production' && secrets.SUPABASE_PROJECT_ID_PROD || github.event.inputs.environment == 'staging' && secrets.SUPABASE_PROJECT_ID_STAGING || github.event.inputs.environment == 'development' && secrets.SUPABASE_PROJECT_ID_DEV || '' }}"
 
           # Link to project
           doppler run -- supabase link --project-ref $PROJECT_ID
@@ -134,7 +136,7 @@ jobs:
         run: |
           echo "Deploying previous application version..."
 
-          PROJECT_ID=${{ secrets[format('SUPABASE_PROJECT_ID_{0}', github.event.inputs.environment)] }}
+          PROJECT_ID="${{ github.event.inputs.environment == 'production' && secrets.SUPABASE_PROJECT_ID_PROD || github.event.inputs.environment == 'staging' && secrets.SUPABASE_PROJECT_ID_STAGING || github.event.inputs.environment == 'development' && secrets.SUPABASE_PROJECT_ID_DEV || '' }}"
           doppler run -- supabase functions deploy --project-ref $PROJECT_ID
 
           echo "✅ Application rollback complete"

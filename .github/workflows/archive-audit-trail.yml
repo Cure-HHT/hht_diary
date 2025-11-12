@@ -16,6 +16,8 @@ on:
 jobs:
   archive-audit-trail:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Install PostgreSQL client

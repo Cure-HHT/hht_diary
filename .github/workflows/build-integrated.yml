@@ -35,6 +35,8 @@ jobs:
   integrate-sponsors:
     name: Integrate Sponsors
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       sponsors: ${{ steps.integration.outputs.sponsors }}
       build_manifest: ${{ steps.integration.outputs.build_manifest }}
@@ -97,6 +99,8 @@ jobs:
     name: Build Mobile App
     needs: integrate-sponsors
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code
@@ -145,10 +149,20 @@ jobs:
     needs: [integrate-sponsors, build-mobile-app]
     if: inputs.archive_artifacts == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     strategy:
       matrix:
-        sponsor: ${{ fromJson(needs.integrate-sponsors.outputs.sponsors) }}
+        include:
+          # Explicit sponsor list with mapped secret names
+          # Required by CodeQL to avoid dynamic secret access patterns
+          # When adding new sponsors, add a new entry here with their secret names
+          - sponsor: callisto
+            doppler_secret: DOPPLER_TOKEN_callisto
+            aws_key_secret: AWS_ACCESS_KEY_ID_callisto
+            aws_secret_secret: AWS_SECRET_ACCESS_KEY_callisto
 
     steps:
       - name: Validate Environment Input
@@ -227,10 +241,11 @@ jobs:
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
-      - name: Get Sponsor Config
+      - name: Get Sponsor Config (callisto)
+        if: matrix.sponsor == 'callisto'
         id: config
         env:
-          DOPPLER_TOKEN: ${{ secrets[format('DOPPLER_TOKEN_{0}', matrix.sponsor)] }}
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_callisto }}
         run: |
           # Get sponsor-specific AWS credentials and region
           AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain)
@@ -252,11 +267,12 @@ jobs:
 
           echo "Using bucket: $ARTIFACTS_BUCKET"
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (callisto)
+        if: matrix.sponsor == 'callisto'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets[format('AWS_ACCESS_KEY_ID_{0}', matrix.sponsor)] }}
-          aws-secret-access-key: ${{ secrets[format('AWS_SECRET_ACCESS_KEY_{0}', matrix.sponsor)] }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_callisto }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_callisto }}
           aws-region: ${{ steps.config.outputs.aws_region }}
 
       - name: Create Archive
@@ -366,6 +382,8 @@ jobs:
     needs: [integrate-sponsors, build-mobile-app]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Download Build Manifest
