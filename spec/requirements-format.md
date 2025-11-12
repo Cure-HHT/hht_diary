@@ -39,7 +39,7 @@ This document defines the format for traceable requirements across PRD, Operatio
 ### Structure
 
 ```markdown
-### REQ-{id}: {informal-title}
+# REQ-{id}: {informal-title}
 
 **Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft} | **Hash**: {sha256-prefix}
 
@@ -53,6 +53,8 @@ This document defines the format for traceable requirements across PRD, Operatio
 
 *end* *optionallly repeat informal-title* **hash:00000000**
 ```
+
+**Note on Header Levels**: Requirements can use any markdown header level (`#`, `##`, `###`, etc.). The traceability tooling matches the `REQ-{id}:` pattern regardless of header level. In practice, most spec files use `#` (H1) headers for individual requirements, while the "Document Structure Standards" section below shows an alternative organization using `###` (H3) headers within a hierarchical document structure. Choose the approach that best fits your document's organization.
 
 ### Field Definitions
 
