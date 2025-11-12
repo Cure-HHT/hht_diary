@@ -39,7 +39,7 @@ This document defines the format for traceable requirements across PRD, Operatio
 ### Structure
 
 ```markdown
-### REQ-{id}: {informal-title}
+# REQ-{id}: {informal-title}
 
 **Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft} | **Hash**: {sha256-prefix}
 
@@ -53,6 +53,8 @@ This document defines the format for traceable requirements across PRD, Operatio
 
 *end* *optionallly repeat informal-title* **hash:00000000**
 ```
+
+**Note on Header Levels**: Requirements can use any markdown header level (`#`, `##`, `###`, etc.). The traceability tooling matches the `REQ-{id}:` pattern regardless of header level. In practice, most spec files use `#` (H1) headers for individual requirements, while the "Document Structure Standards" section below shows an alternative organization using `###` (H3) headers within a hierarchical document structure. Choose the approach that best fits your document's organization.
 
 ### Field Definitions
 
@@ -499,17 +501,17 @@ Sections need formal REQ-IDs when they define **mandatory system capabilities** 
 
 ## Document Structure Standards
 
-### Heading Hierarchy in PRD Files
+### Heading Hierarchy in Spec Files
 
-PRD files SHALL follow this standardized heading structure:
+Spec files follow this standardized flat heading structure:
 
 ```markdown
 # Document Title
 
 ## {Major Topic Section}
-High-level section divider (no REQs expected at this level)
+High-level section divider (organizational/navigational)
 
-### REQ-pXXXXX: {Requirement Title}
+# REQ-pXXXXX: {Requirement Title}
 Formal product requirement with complete metadata
 
 **Level**: PRD | **Implements**: {parent-ids} | **Status**: Active
@@ -517,59 +519,57 @@ Formal product requirement with complete metadata
 **Rationale**: [why it exists]
 **Acceptance Criteria**: [testable conditions]
 
----
+## {Next Major Topic Section}
+
+# REQ-pXXXXY: {Next Requirement Title}
+[next formal requirement...]
 
 ### {Explanatory Heading}
 Contextual explanation for stakeholders (no REQ-ID needed)
 - Describes how features work
 - Lists benefits
 - Provides examples
-
-#### {Sub-detail Heading}
-Implementation notes or additional context
-- Lower-level details
-- "How it works" mechanics
-- User-facing explanations
-
----
-
-### REQ-pXXXXY: {Next Requirement}
-[next formal requirement...]
 ```
 
 ### Heading Level Guidelines
 
 | Level | Purpose | REQ-ID Required? | Example |
 |-------|---------|------------------|---------|
-| `#` | Document title | Never | `# Security Architecture` |
-| `##` | Major topic section | Never | `## User Authentication` |
-| `###` | Formal requirement OR explanatory section | Only if prescriptive | `### REQ-p00002: MFA for Staff`<br>or<br>`### How Users Log In` |
+| `#` | Document title OR formal requirement | Only requirements | `# Security Architecture`<br>or<br>`# REQ-p00002: MFA for Staff` |
+| `##` | Major topic section (organizational) | Never | `## User Authentication` |
+| `###` | Explanatory subsections | Never | `### How Users Log In` |
 | `####` | Sub-details, implementation notes | Never | `#### Password Requirements` |
+
+**Key Pattern**: Requirements use `#` (H1) headers at the same level as the document title. Topic sections (`##`) provide organization and navigation between requirements. Explanatory content (`###` and below) provides context without being formal requirements.
 
 ### Section Ordering Convention
 
-Within each major topic (`##`), organize as:
+Organize spec files as:
 
-1. **Formal requirements first** (### REQ-pXXXXX)
-2. **Explanatory sections second** (### heading without REQ)
-3. **Implementation details last** (#### subheadings)
+1. **Document title** (# heading, no REQ-ID)
+2. **Major topic sections** (## headings) to organize related requirements
+3. **Formal requirements** (# REQ-XXXXX headings) under each topic
+4. **Explanatory subsections** (### headings) as needed for context
 
 **Example**:
 
 ```markdown
+# Security Architecture
+
 ## Access Control
 
-### REQ-p00033: Role-Based Access Control
+# REQ-p00033: Role-Based Access Control
 [formal requirement with SHALL/MUST]
+**Rationale**: [...]
+**Acceptance Criteria**: [...]
 
-### REQ-p00034: Least Privilege Access
+# REQ-p00034: Least Privilege Access
 [formal requirement with SHALL/MUST]
+**Rationale**: [...]
+**Acceptance Criteria**: [...]
 
 ### How Access Control Works
 [explanatory section describing the implementation]
-
-#### Example Scenarios
-[implementation examples]
 ```
 
 ### Separating Requirements from Explanations
@@ -577,7 +577,7 @@ Within each major topic (`##`), organize as:
 Use horizontal rules (`---`) to clearly separate formal requirements from explanatory content:
 
 ```markdown
-### REQ-p00032: Complete Multi-Sponsor Data Separation
+# REQ-p00032: Complete Multi-Sponsor Data Separation
 [requirement body]
 **Rationale**: [...]
 **Acceptance Criteria**: [...]
@@ -593,7 +593,7 @@ Use horizontal rules (`---`) to clearly separate formal requirements from explan
 When implementation sections reference formal requirements (as in prd-security-RLS.md):
 
 ```markdown
-### REQ-pXXXXX: Example Requirement
+# REQ-pXXXXX: Example Requirement
 [formal requirement]
 
 ---
