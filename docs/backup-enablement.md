@@ -37,7 +37,7 @@ To enable this feature, complete the following setup:
      doppler secrets set ENABLE_S3_BACKUP_ARCHIVAL=true \
        --project hht-diary-callisto --config production
 
-See: docs/WIP/phase5-pr1-multi-sponsor-infrastructure-setup.md
+See: docs/database-backup-setup.md
 ════════════════════════════════════════════════════════
 ```
 
@@ -220,7 +220,7 @@ When implementing multi-sponsor database backups:
    - Verify working correctly
    - Enable for additional sponsors one at a time
 
-See: `docs/WIP/phase5-pr1-multi-sponsor-infrastructure-setup.md` for complete multi-sponsor plan
+See: `docs/database-backup-setup.md` for complete multi-sponsor infrastructure setup
 
 ---
 
@@ -285,7 +285,7 @@ See: `docs/WIP/phase5-pr1-multi-sponsor-infrastructure-setup.md` for complete mu
 
 ## References
 
-- **Infrastructure Setup**: `docs/WIP/phase5-pr1-multi-sponsor-infrastructure-setup.md`
+- **Infrastructure Setup**: `docs/database-backup-setup.md`
 - **Multi-Sponsor Plan**: Agent plan output from ultra-thinking session
 - **Terraform Module**: `infrastructure/terraform/modules/sponsor-s3/`
 - **Workflow**: `.github/workflows/deploy-production.yml`
