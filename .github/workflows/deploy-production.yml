@@ -138,6 +138,43 @@ jobs:
       - name: Create pre-migration database backup (7-year retention)
         id: backup
         run: |
+          # Feature flag: Enable S3 backup archival
+          # Set ENABLE_S3_BACKUP_ARCHIVAL=true in Doppler when infrastructure is ready
+          ENABLE_BACKUP=$(doppler secrets get ENABLE_S3_BACKUP_ARCHIVAL --plain --fallback "false" || echo "false")
+
+          if [ "$ENABLE_BACKUP" != "true" ]; then
+            echo "════════════════════════════════════════════════════════"
+            echo "  ℹ️  S3 BACKUP ARCHIVAL NOT YET ENABLED"
+            echo "════════════════════════════════════════════════════════"
+            echo ""
+            echo "Database backup archival to S3 is currently disabled."
+            echo ""
+            echo "To enable this feature, complete the following setup:"
+            echo "  1. Apply Terraform configuration (create S3 buckets)"
+            echo "     - hht-diary-backups-{sponsor}-{region}"
+            echo "     - hht-diary-audit-logs-{sponsor}-{region}"
+            echo ""
+            echo "  2. Configure Doppler secrets:"
+            echo "     - SPONSOR_BACKUPS_BUCKET"
+            echo "     - SPONSOR_AUDIT_LOGS_BUCKET"
+            echo "     - SPONSOR_AWS_REGION"
+            echo ""
+            echo "  3. Verify AWS credentials are configured"
+            echo ""
+            echo "  4. Enable the feature flag in Doppler:"
+            echo "     doppler secrets set ENABLE_S3_BACKUP_ARCHIVAL=true \\"
+            echo "       --project hht-diary-callisto --config production"
+            echo ""
+            echo "See: docs/WIP/phase5-pr1-multi-sponsor-infrastructure-setup.md"
+            echo "════════════════════════════════════════════════════════"
+
+            # Set empty outputs for downstream steps
+            echo "backup_location=not-configured" >> $GITHUB_OUTPUT
+            echo "backup_size=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ S3 backup archival is ENABLED"
           echo "Creating production database backup before migration..."
           BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
 
@@ -159,7 +196,7 @@ jobs:
           echo "Compressed size: $(du -h "$BACKUP_FILE_GZ" | cut -f1)"
 
           # Get AWS region and bucket from Doppler
-          AWS_REGION=$(doppler secrets get AWS_REGION --plain || echo "eu-west-1")
+          AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain || echo "eu-west-1")
           BACKUP_BUCKET=$(doppler secrets get SPONSOR_BACKUPS_BUCKET --plain || echo "hht-diary-backups-callisto-${AWS_REGION}")
 
           # Upload to S3 (lifecycle policy transitions to Deep Archive for 7-year retention)
@@ -226,6 +263,9 @@ jobs:
       - name: Record deployment (7-year retention)
         if: success()
         run: |
+          # Feature flag: Enable S3 audit log archival
+          ENABLE_BACKUP=$(doppler secrets get ENABLE_S3_BACKUP_ARCHIVAL --plain --fallback "false" || echo "false")
+
           echo "Recording production deployment..."
           DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).json"
 
@@ -243,12 +283,22 @@ jobs:
             "outcome": "success",
             "backup_location": "${{ steps.backup.outputs.backup_location }}",
             "backup_size_bytes": "${{ steps.backup.outputs.backup_size }}",
-            "workflow": "deploy-production"
+            "workflow": "deploy-production",
+            "s3_archival_enabled": $ENABLE_BACKUP
           }
           EOF
 
+          cat $DEPLOYMENT_LOG
+
+          if [ "$ENABLE_BACKUP" != "true" ]; then
+            echo ""
+            echo "ℹ️  S3 audit log archival not yet enabled - log saved locally only"
+            echo "   Enable with: ENABLE_S3_BACKUP_ARCHIVAL=true in Doppler"
+            exit 0
+          fi
+
           # Get AWS region and bucket from Doppler
-          AWS_REGION=$(doppler secrets get AWS_REGION --plain || echo "eu-west-1")
+          AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain || echo "eu-west-1")
           AUDIT_BUCKET=$(doppler secrets get SPONSOR_AUDIT_LOGS_BUCKET --plain || echo "hht-diary-audit-logs-callisto-${AWS_REGION}")
 
           # Upload to S3 with Deep Archive storage class (7-year retention via lifecycle policy)
