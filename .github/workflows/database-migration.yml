@@ -12,6 +12,8 @@ on:
 jobs:
   validate-migrations:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 10
     env:
       # Database connection for all steps

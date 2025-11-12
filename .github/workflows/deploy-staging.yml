@@ -27,6 +27,8 @@ jobs:
   deploy:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 30  # Prevent hung deployments
     concurrency:
       group: deploy-staging

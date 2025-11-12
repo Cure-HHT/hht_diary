@@ -36,6 +36,8 @@ jobs:
   pre-deployment-checks:
     name: Pre-deployment Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Check deployment window
@@ -82,6 +84,8 @@ jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: pre-deployment-checks
     environment:
       name: production  # Not active until GitHub environment configured with 2 approvals

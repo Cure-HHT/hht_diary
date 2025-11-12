@@ -35,6 +35,8 @@ jobs:
   integrate-sponsors:
     name: Integrate Sponsors
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       sponsors: ${{ steps.integration.outputs.sponsors }}
       build_manifest: ${{ steps.integration.outputs.build_manifest }}
@@ -97,6 +99,8 @@ jobs:
     name: Build Mobile App
     needs: integrate-sponsors
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code
@@ -145,6 +149,9 @@ jobs:
     needs: [integrate-sponsors, build-mobile-app]
     if: inputs.archive_artifacts == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     strategy:
       matrix:
@@ -366,6 +373,8 @@ jobs:
     needs: [integrate-sponsors, build-mobile-app]
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Download Build Manifest

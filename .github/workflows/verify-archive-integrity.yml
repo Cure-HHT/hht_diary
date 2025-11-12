@@ -14,6 +14,8 @@ on:
 jobs:
   verify-integrity:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: List hot storage artifacts

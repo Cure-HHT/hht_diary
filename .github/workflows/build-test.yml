@@ -9,6 +9,8 @@ on:
 jobs:
   test-requirements-tools:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -50,6 +52,8 @@ jobs:
 
   test-linear-cli-tools:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -72,6 +76,8 @@ jobs:
 
   validate-documentation:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

@@ -20,6 +20,8 @@ jobs:
   deploy:
     name: Deploy to Development
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: development  # Not active until GitHub environment configured
 
     steps:

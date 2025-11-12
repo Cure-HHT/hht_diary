@@ -21,6 +21,9 @@ on:
 jobs:
   archive-logs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
 
     steps:
       - name: Determine workflow run ID

@@ -31,6 +31,8 @@ jobs:
   rollback:
     name: Rollback ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment: ${{ github.event.inputs.environment }}
 
     steps:
