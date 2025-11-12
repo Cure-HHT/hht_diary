@@ -28,10 +28,7 @@ This guide provides comprehensive setup instructions for the Clinical Trial Diar
 - **Node.js**: Version 18+ via nvm (`node --version`)
 - **Python**: Version 3.10+ (`python3 --version`)
 - **PostgreSQL Client**: psql 15+ (for local database testing)
-<<<<<<< HEAD
 - **unzip**: Required for Flutter SDK updates (`unzip --version`)
-=======
->>>>>>> feature/CUR-81-claude-code-monitor
 
 **IDE/Editor**:
 - **Visual Studio Code**: Latest version (recommended)
@@ -39,15 +36,11 @@ This guide provides comprehensive setup instructions for the Clinical Trial Diar
 
 **Platform-Specific**:
 - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
-<<<<<<< HEAD
 - **Linux**: build-essential, libpq-dev, unzip
   ```bash
   sudo apt-get update
   sudo apt-get install -y build-essential libpq-dev unzip
   ```
-=======
-- **Linux**: build-essential, libpq-dev
->>>>>>> feature/CUR-81-claude-code-monitor
 - **Windows**: WSL2 with Ubuntu 22.04+
 
 ### 1.2 Required Accounts
