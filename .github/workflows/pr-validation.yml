@@ -91,7 +91,7 @@ jobs:
           echo "✅ INDEX.md validation passed"
 
       - name: Upload traceability matrix as artifact
-        if: always()
+        if: success()  # Only upload if generation succeeded
         uses: actions/upload-artifact@v4
         with:
           name: traceability-matrix-${{ github.sha }}
@@ -99,7 +99,7 @@ jobs:
             traceability_matrix.md
             traceability_matrix.html
           retention-days: 90
-          if-no-files-found: warn
+          if-no-files-found: error  # Fail if files missing (they're required)
 
       - name: Check for changed spec files
         id: check-changes
@@ -124,7 +124,7 @@ jobs:
             let comment = '## ✅ Requirements Validation Passed\n\n';
             comment += 'All requirements have been validated successfully.\n\n';
 
-            // Try to read traceability matrix summary
+            // Read traceability matrix summary (required for all PRs)
             try {
               const matrix = fs.readFileSync('traceability_matrix.md', 'utf8');
               const lines = matrix.split('\n');
@@ -135,9 +135,13 @@ jobs:
                 const summaryLines = lines.slice(summaryStart, summaryStart + 20);
                 comment += '### Traceability Summary\n\n';
                 comment += summaryLines.join('\n');
+              } else {
+                throw new Error('Summary section not found in traceability matrix');
               }
             } catch (err) {
-              console.log('Could not read traceability matrix:', err);
+              console.error('Traceability matrix error:', err);
+              core.setFailed(`Failed to read traceability matrix: ${err.message}`);
+              throw err;  // Fail the workflow
             }
 
             comment += '\n\n📊 [View full traceability matrix in artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})';
@@ -160,38 +164,93 @@ jobs:
 
       - name: Check implementation files have requirement headers
         run: |
+          set -euo pipefail
           echo "::group::Checking Implementation Headers"
 
           MISSING_HEADERS=()
 
-          # Check SQL files
-          for file in $(find database -name "*.sql" -not -path "*/tests/*" -not -path "*/migrations/*" 2>/dev/null || true); do
-            if [ -f "$file" ]; then
-              if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-                MISSING_HEADERS+=("$file")
-              fi
-            fi
-          done
+          # Check SQL files in database directory
+          if [ -d "database" ]; then
+            shopt -s nullglob
+            SQL_FILES=(database/**/*.sql)
+            shopt -u nullglob
 
-          # Check Dart files (when they exist)
-          for file in $(find packages apps -name "*.dart" 2>/dev/null || true); do
-            if [ -f "$file" ] && [ "$(basename "$file")" != "main.dart" ]; then
-              if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+            for file in "${SQL_FILES[@]}"; do
+              # Skip tests and migrations
+              if [[ "$file" =~ /tests/ ]] || [[ "$file" =~ /migrations/ ]]; then
+                continue
+              fi
+
+              if [ -f "$file" ] && ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
                 MISSING_HEADERS+=("$file")
               fi
-            fi
-          done
+            done
+            echo "::notice::Checked ${#SQL_FILES[@]} SQL files in database/"
+          else
+            echo "::notice::database/ directory not found, skipping SQL validation"
+          fi
+
+          # Check Dart files in packages directory
+          if [ -d "packages" ]; then
+            shopt -s nullglob
+            DART_FILES=(packages/**/*.dart)
+            shopt -u nullglob
+
+            for file in "${DART_FILES[@]}"; do
+              if [ "$(basename "$file")" != "main.dart" ] && ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+                MISSING_HEADERS+=("$file")
+              fi
+            done
+            echo "::notice::Checked ${#DART_FILES[@]} Dart files in packages/"
+          else
+            echo "::notice::packages/ directory not found, skipping Dart validation"
+          fi
+
+          # Check Dart files in apps directory
+          if [ -d "apps" ]; then
+            shopt -s nullglob
+            APP_FILES=(apps/**/*.dart)
+            shopt -u nullglob
+
+            for file in "${APP_FILES[@]}"; do
+              if [ "$(basename "$file")" != "main.dart" ] && ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
+                MISSING_HEADERS+=("$file")
+              fi
+            done
+            echo "::notice::Checked ${#APP_FILES[@]} Dart files in apps/"
+          else
+            echo "::notice::apps/ directory not found, skipping Dart validation"
+          fi
 
           echo "::endgroup::"
 
+          # Determine branch to decide enforcement level
+          BRANCH="${{ github.base_ref }}"
+          ENFORCE_HEADERS=false
+
+          if [[ "$BRANCH" == "main" ]] || [[ "$BRANCH" == "staging" ]] || [[ "$BRANCH" == "production" ]]; then
+            ENFORCE_HEADERS=true
+          fi
+
           if [ ${#MISSING_HEADERS[@]} -gt 0 ]; then
-            echo "::warning::The following implementation files are missing requirement headers:"
-            for file in "${MISSING_HEADERS[@]}"; do
-              echo "::warning file=$file::Missing IMPLEMENTS REQUIREMENTS header"
-            done
-            echo ""
-            echo "ℹ️  Note: This is a warning, not a failure. Please add requirement headers when possible."
-            echo "See spec/requirements-format.md for the correct format."
+            if [ "$ENFORCE_HEADERS" = "true" ]; then
+              echo "::error::The following implementation files are missing requirement headers:"
+              for file in "${MISSING_HEADERS[@]}"; do
+                echo "::error file=$file::Missing IMPLEMENTS REQUIREMENTS header"
+              done
+              echo ""
+              echo "❌ Implementation headers are REQUIRED for $BRANCH branch."
+              echo "See spec/requirements-format.md for the correct format."
+              exit 1
+            else
+              echo "::warning::The following implementation files are missing requirement headers:"
+              for file in "${MISSING_HEADERS[@]}"; do
+                echo "::warning file=$file::Missing IMPLEMENTS REQUIREMENTS header"
+              done
+              echo ""
+              echo "ℹ️  Note: This is a warning for feature branches. Headers will be required when merging to main/staging/production."
+              echo "See spec/requirements-format.md for the correct format."
+            fi
           else
             echo "✅ All implementation files have requirement headers"
           fi
@@ -286,12 +345,24 @@ jobs:
           fetch-depth: 0  # Full history for gitleaks
 
       - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: '8.29.0'  # Version from .github/versions.env
         run: |
-          echo "::group::Installing gitleaks"
-          wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
-          tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+          set -euo pipefail
+          echo "::group::Installing gitleaks v${GITLEAKS_VERSION}"
+
+          # Download with retry for network resilience
+          for i in {1..3}; do
+            if wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz; then
+              break
+            fi
+            echo "Download attempt $i failed, retrying..."
+            sleep 5
+          done
+
+          tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
           sudo mv gitleaks /usr/local/bin/
-          rm gitleaks_8.18.0_linux_x64.tar.gz
+          rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz
           gitleaks version
           echo "::endgroup::"
 
