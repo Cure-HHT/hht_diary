@@ -71,16 +71,32 @@ jobs:
           npm run test:integration
 
       - name: Create database backup
+        id: backup
         run: |
+          set -euo pipefail
           echo "Creating database backup before migration..."
+
+          BACKUP_FILE="backup-staging-${{ github.run_id }}.sql"
           doppler run -- supabase db dump \
             --project-ref $SUPABASE_PROJECT_ID \
             --data-only \
-            -f backup-staging-$(date +%Y%m%d-%H%M%S).sql
+            -f "$BACKUP_FILE"
+
+          # Verify backup was created
+          if [ ! -f "$BACKUP_FILE" ]; then
+            echo "❌ Backup file not created"
+            exit 1
+          fi
+
+          echo "✅ Backup created: $BACKUP_FILE"
+          echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
 
       - name: Database migration (with rollback on failure)
         id: migrate
+        env:
+          BACKUP_FILE: ${{ steps.backup.outputs.backup_file }}
         run: |
+          set -euo pipefail
           echo "Starting database migration..."
 
           # Link to Supabase project
@@ -88,12 +104,19 @@ jobs:
 
           # Execute migrations
           if ! doppler run -- supabase db push; then
-            echo "Migration failed, attempting rollback..."
-            doppler run -- supabase db reset --db-url $DATABASE_URL
+            echo "❌ Migration failed, restoring from backup..."
+
+            # Restore from backup using psql
+            if ! doppler run -- psql -f "$BACKUP_FILE"; then
+              echo "❌ CRITICAL: Migration failed AND backup restore failed!"
+              exit 2
+            fi
+
+            echo "✅ Database restored from backup"
             exit 1
           fi
 
-          echo "Migration completed successfully"
+          echo "✅ Migration completed successfully"
 
       - name: Deploy application
         run: |
