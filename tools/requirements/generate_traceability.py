@@ -274,10 +274,19 @@ class TraceabilityGenerator:
         }
         emoji = status_emoji.get(req.status, '❓')
 
+        # Format implementation files
+        impl_info = ""
+        if req.implementation_files:
+            file_count = len(req.implementation_files)
+            if file_count == 1:
+                impl_info = f"\n{prefix}  - Implementation: {req.implementation_files[0]}"
+            else:
+                impl_info = f"\n{prefix}  - Implementation: {file_count} files ({', '.join(req.implementation_files[:3])}{'...' if file_count > 3 else ''})"
+
         lines.append(
             f"{prefix}- {emoji} **REQ-{req.id}**: {req.title}\n"
             f"{prefix}  - Level: {req.level} | Status: {req.status}\n"
-            f"{prefix}  - File: {req.file_path.name}:{req.line_number}"
+            f"{prefix}  - File: {req.file_path.name}:{req.line_number}{impl_info}"
         )
 
         # Find and format children
@@ -472,7 +481,7 @@ class TraceabilityGenerator:
         .req-content {{
             flex: 1;
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px 200px;
             align-items: center;
             gap: 12px;
             min-width: 0;
@@ -513,6 +522,16 @@ class TraceabilityGenerator:
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
+        .req-implementation {{
+            font-size: 10px;
+            color: #7f8c8d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }}
+        .req-implementation.multiple-files {{
+            cursor: help;
+        }}
         .status-badge {{
             display: inline-block;
             padding: 2px 6px;
@@ -543,7 +562,7 @@ class TraceabilityGenerator:
         }}
         .filter-header {{
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px 200px;
             align-items: center;
             gap: 12px;
             padding: 8px 10px 8px 42px;
@@ -709,6 +728,9 @@ class TraceabilityGenerator:
             html += f'                    <option value="{topic}">{topic}</option>\n'
 
         html += """                </select>
+            </div>
+            <div class="filter-column">
+                <div class="filter-label">Implementation</div>
             </div>
         </div>
 
@@ -956,6 +978,17 @@ class TraceabilityGenerator:
         # Extract topic from filename
         topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
 
+        # Format implementation files
+        if req.implementation_files:
+            file_count = len(req.implementation_files)
+            if file_count == 1:
+                impl_html = f'<div class="req-implementation">{req.implementation_files[0]}</div>'
+            else:
+                file_list = ', '.join(req.implementation_files)
+                impl_html = f'<div class="req-implementation multiple-files" title="{file_list}">{file_count} files</div>'
+        else:
+            impl_html = '<div class="req-implementation">-</div>'
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
         <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}">
@@ -970,6 +1003,7 @@ class TraceabilityGenerator:
                     </div>
                     <div class="req-status">{test_badge}</div>
                     <div class="req-location">{req.file_path.name}:{req.line_number}</div>
+                    {impl_html}
                 </div>
             </div>
         </div>
@@ -1117,7 +1151,8 @@ class TraceabilityGenerator:
             'Implements',
             'Traced By',
             'File',
-            'Line'
+            'Line',
+            'Implementation Files'
         ])
 
         # Sort requirements by ID
@@ -1138,7 +1173,8 @@ class TraceabilityGenerator:
                 ', '.join(req.implements) if req.implements else '-',
                 ', '.join(sorted(children)) if children else '-',
                 req.file_path.name,
-                req.line_number
+                req.line_number,
+                ', '.join(req.implementation_files) if req.implementation_files else '-'
             ])
 
         return output.getvalue()
