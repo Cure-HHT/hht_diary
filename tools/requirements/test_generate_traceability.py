@@ -149,7 +149,8 @@ CREATE TABLE test (
         self.assertGreater(len(req.implementation_files), 0)
 
         # Check that schema.sql is in the implementation files
-        impl_files_str = ', '.join(req.implementation_files)
+        # implementation_files is now List[Tuple[str, int]]
+        impl_files_str = ', '.join([path for path, line in req.implementation_files])
         self.assertIn('schema.sql', impl_files_str)
 
 
@@ -201,7 +202,7 @@ def test():
         req = self.gen.requirements['p00001']
 
         if req.implementation_files:
-            self.assertIn('Implementation:', markdown)
+            self.assertIn('**Implemented in**:', markdown)
 
     def test_csv_generation(self):
         """Test CSV output generation"""
@@ -221,7 +222,7 @@ def test():
         # Check for essential HTML elements
         self.assertIn('<html', html.lower())
         self.assertIn('REQ-p00001', html)
-        self.assertIn('req-implementation', html)
+        self.assertIn('impl-files', html)
 
 
 class TestEdgeCases(unittest.TestCase):
@@ -306,8 +307,8 @@ Test requirement for validation.
         self.assertIn('</html>', html)
 
         # Check for traceability-specific elements
-        self.assertIn('req-implementation', html)  # Implementation column CSS
-        self.assertIn('Implementation</div>', html)  # Implementation header
+        self.assertIn('impl-files', html)  # Implementation section CSS
+        self.assertIn('impl-files-header', html)  # Implementation header class
 
     def test_csv_format_valid(self):
         """Test that CSV output is valid CSV format"""
@@ -384,7 +385,9 @@ Test requirement for validation.
         # If there are implementation files, check formatting
         req = gen.requirements.get('p00001')
         if req and req.implementation_files:
-            self.assertIn('Implementation:', markdown)
+            self.assertIn('Implemented in', markdown)
+            # Should have markdown links with line numbers
+            self.assertIn('test.py:', markdown)
 
 
 def run_tests():
