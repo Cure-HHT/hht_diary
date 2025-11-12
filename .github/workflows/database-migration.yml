@@ -35,13 +35,15 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
-          which psql || (echo "ERROR: postgresql-client installation failed" && exit 1)
+          # Pinned to PostgreSQL 15 (matches production database version)
+          # Last updated: 2025-11-11
+          sudo apt-get install -y postgresql-client-15
+          which psql || (echo "ERROR: postgresql-client-15 installation failed" && exit 1)
 
       - name: Test schema deployment
         run: |

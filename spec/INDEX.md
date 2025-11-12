@@ -106,7 +106,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00046 | ops-monitoring-observability.md | Uptime Monitoring | b1a74a81 |
 | REQ-o00047 | ops-monitoring-observability.md | Performance Monitoring | 6b0d1af7 |
 | REQ-o00048 | ops-monitoring-observability.md | Audit Log Monitoring | 600b3f14 |
-| REQ-o00049 | ops-artifact-management.md | Artifact Retention and Archival | 159267f6 |
+| REQ-o00049 | ops-artifact-management.md | Artifact Retention and Archival | 83f459da |
 | REQ-o00050 | ops-artifact-management.md | Environment Parity and Separation | 50e126da |
 | REQ-o00051 | ops-artifact-management.md | Change Control and Audit Trail | abb65c22 |
 | REQ-o00052 | ops-cicd.md | CI/CD Pipeline for Requirement Traceability | 150d2b29 |

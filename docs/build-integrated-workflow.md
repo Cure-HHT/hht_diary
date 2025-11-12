@@ -55,7 +55,7 @@ Builds the Flutter mobile application.
 8. Upload APK and AAB as artifacts
 
 #### 3. archive-per-sponsor
-Archives build artifacts to per-sponsor S3 buckets.
+Archives build artifacts to environment-specific S3 buckets.
 
 **Depends on:** `integrate-sponsors`, `build-mobile-app`
 
@@ -63,13 +63,25 @@ Archives build artifacts to per-sponsor S3 buckets.
 
 **Matrix:** Runs once per sponsor
 
+**Environment-Specific Behavior:**
+
+| Environment | Bucket | Retention | Object Lock | Use Case |
+|-------------|--------|-----------|-------------|----------|
+| Production | `SPONSOR_ARTIFACTS_BUCKET` | 7 years | ✅ Enabled | FDA-compliant production releases |
+| Staging | `SPONSOR_ARTIFACTS_BUCKET_STAGING` | 30 days | ❌ Disabled | Pre-production testing |
+| Development | `SPONSOR_ARTIFACTS_BUCKET_DEV` | 7 days | ❌ Disabled | Testing archival workflow |
+
 **Steps:**
-1. Checkout code
-2. Download build artifacts (manifest, APK, AAB)
-3. Get sponsor-specific AWS credentials from Doppler
-4. Create archive with metadata
-5. Upload to sponsor S3 bucket (`s3://{bucket}/builds/YYYY/MM/DD/`)
-6. Verify archive integrity
+1. Display archival configuration (environment, bucket, retention)
+2. Checkout code
+3. Download build artifacts (manifest, APK, AAB)
+4. Get environment-specific AWS credentials and bucket from Doppler
+5. Create archive with metadata (includes environment flag)
+6. Upload to S3 with environment-specific path:
+   - Production: `s3://{bucket}/builds/YYYY/MM/DD/`
+   - Staging: `s3://{bucket}/staging/builds/YYYY/MM/DD/`
+   - Development: `s3://{bucket}/dev/builds/YYYY/MM/DD/`
+7. Verify archive integrity
 
 #### 4. summary
 Generates build summary for GitHub Actions UI.
@@ -90,12 +102,32 @@ Generates build summary for GitHub Actions UI.
 Navigate to Actions → Build Integrated App → Run workflow
 
 **Options:**
+- `environment`: Target environment (development/staging/production)
+  - **development** (default): Test buckets, 7-day retention
+  - **staging**: Pre-production buckets, 30-day retention
+  - **production**: Production buckets, 7-year retention (FDA compliance)
 - `archive_artifacts`: Whether to archive to S3 (default: false)
 
 ### CLI Trigger
 
+**Development Build (Test Archival):**
 ```bash
 gh workflow run build-integrated.yml \
+  -f environment=development \
+  -f archive_artifacts=true
+```
+
+**Staging Build (Pre-Production Test):**
+```bash
+gh workflow run build-integrated.yml \
+  -f environment=staging \
+  -f archive_artifacts=true
+```
+
+**Production Build (7-Year FDA Archival):**
+```bash
+gh workflow run build-integrated.yml \
+  -f environment=production \
   -f archive_artifacts=true
 ```
 
@@ -147,13 +179,21 @@ For each sponsor, create secrets with `{SPONSOR_NAME}` suffix (uppercase):
 
 **Required Secrets:**
 - `SPONSOR_AWS_REGION` - AWS region (e.g., `eu-west-1`)
-- `SPONSOR_ARTIFACTS_BUCKET` - S3 bucket name (e.g., `hht-diary-artifacts-callisto-eu-west-1`)
+- `SPONSOR_ARTIFACTS_BUCKET` - Production S3 bucket (7-year retention)
+  - Example: `hht-diary-artifacts-callisto-eu-west-1`
+
+**Optional Secrets (for testing archival):**
+- `SPONSOR_ARTIFACTS_BUCKET_STAGING` - Staging S3 bucket (30-day retention)
+  - Fallback: `hht-diary-artifacts-{sponsor}-staging`
+- `SPONSOR_ARTIFACTS_BUCKET_DEV` - Development S3 bucket (7-day retention)
+  - Fallback: `hht-diary-artifacts-{sponsor}-dev`
 
 ### S3 Bucket Structure
 
+**Production Bucket** (`SPONSOR_ARTIFACTS_BUCKET`):
 ```
 hht-diary-artifacts-{sponsor}-{region}/
-├── builds/
+├── builds/                              # Production builds (7-year retention)
 │   ├── 2025/
 │   │   ├── 01/
 │   │   │   ├── 10/
@@ -161,6 +201,26 @@ hht-diary-artifacts-{sponsor}-{region}/
 │   │   │   ├── 11/
 │   │   │   │   └── hht-diary-CAL-e5f6g7h8.tar.gz
 │   ├── latest.tar.gz -> 2025/01/11/hht-diary-CAL-e5f6g7h8.tar.gz
+```
+
+**Staging Bucket** (`SPONSOR_ARTIFACTS_BUCKET_STAGING`):
+```
+hht-diary-artifacts-{sponsor}-staging/
+├── staging/                             # Staging builds (30-day retention)
+│   ├── builds/
+│   │   ├── 2025/01/10/
+│   │   │   └── hht-diary-CAL-x7y8z9a0.tar.gz
+│   ├── latest.tar.gz
+```
+
+**Development Bucket** (`SPONSOR_ARTIFACTS_BUCKET_DEV`):
+```
+hht-diary-artifacts-{sponsor}-dev/
+├── dev/                                 # Dev builds (7-day retention)
+│   ├── builds/
+│   │   ├── 2025/01/10/
+│   │   │   └── hht-diary-CAL-b1c2d3e4.tar.gz
+│   ├── latest.tar.gz
 ```
 
 ## Archive Format
@@ -181,14 +241,20 @@ hht-diary-{CODE}-{SHA}/
 {
   "sponsor": "callisto",
   "sponsor_code": "CAL",
+  "environment": "production",
   "git_sha": "a1b2c3d4e5f6g7h8...",
   "timestamp": "2025-01-10T12:34:56Z",
   "github_run_id": "12345678",
   "github_run_number": "42",
   "github_actor": "github-actions[bot]",
-  "workflow": "build-integrated"
+  "workflow": "build-integrated",
+  "is_production": true
 }
 ```
+
+**Fields:**
+- `environment`: Build environment (development/staging/production)
+- `is_production`: Boolean flag for quick filtering of production archives
 
 ### sponsor-build-manifest.json
 
@@ -233,6 +299,203 @@ This ensures:
 - Each sponsor can independently access their archives
 - FDA audits can be sponsor-specific
 - No cross-sponsor data leakage
+
+## Testing Archival Process
+
+### Why Test Environments Matter
+
+The archival process uploads to S3 with different retention policies:
+- **Production**: 7-year immutable retention (Object Lock enabled)
+- **Staging**: 30-day mutable retention (for pre-production testing)
+- **Development**: 7-day mutable retention (for workflow testing)
+
+Testing with production buckets risks:
+- Polluting compliance records with test data
+- Wasting storage costs on non-production artifacts
+- Creating confusion during FDA audits
+
+### Testing Workflow
+
+#### 1. Development Environment (Recommended for Testing)
+
+Use this for testing changes to the archival workflow itself.
+
+```bash
+gh workflow run build-integrated.yml \
+  -f environment=development \
+  -f archive_artifacts=true
+```
+
+**Characteristics:**
+- Uses `SPONSOR_ARTIFACTS_BUCKET_DEV` or fallback bucket
+- 7-day automatic deletion
+- Path: `s3://{bucket}/dev/builds/YYYY/MM/DD/`
+- No Object Lock (can be deleted manually if needed)
+- Metadata includes `"is_production": false`
+
+**Verify Archive:**
+```bash
+# List development archives
+aws s3 ls s3://hht-diary-artifacts-callisto-dev/dev/builds/ --recursive
+
+# Download latest
+aws s3 cp s3://hht-diary-artifacts-callisto-dev/dev/builds/latest.tar.gz ./test-archive.tar.gz
+
+# Extract and inspect
+tar -xzf test-archive.tar.gz
+cat hht-diary-CAL-*/metadata.json
+```
+
+#### 2. Staging Environment (Pre-Production)
+
+Use this for final validation before production releases.
+
+```bash
+gh workflow run build-integrated.yml \
+  -f environment=staging \
+  -f archive_artifacts=true
+```
+
+**Characteristics:**
+- Uses `SPONSOR_ARTIFACTS_BUCKET_STAGING`
+- 30-day retention (suitable for release candidates)
+- Path: `s3://{bucket}/staging/builds/YYYY/MM/DD/`
+- No Object Lock
+- Metadata includes `"environment": "staging"`
+
+**Use Cases:**
+- Testing new Doppler configurations
+- Validating bucket permissions
+- Verifying archive integrity before production
+- Release candidate archival
+
+#### 3. Production Environment (Production Only)
+
+**⚠️ Use only for actual production releases!**
+
+```bash
+gh workflow run build-integrated.yml \
+  -f environment=production \
+  -f archive_artifacts=true
+```
+
+**Characteristics:**
+- Uses `SPONSOR_ARTIFACTS_BUCKET`
+- 7-year retention (FDA compliance)
+- Path: `s3://{bucket}/builds/YYYY/MM/DD/`
+- Object Lock enabled (immutable)
+- Metadata includes `"is_production": true`
+
+### Setting Up Test Buckets
+
+#### Option 1: Use Terraform Module (Recommended)
+
+Create test buckets using the sponsor-s3 module:
+
+```hcl
+# In sponsor/callisto/infrastructure/terraform/s3-test-buckets.tf
+
+module "test_buckets" {
+  source = "../../../../infrastructure/terraform/modules/sponsor-s3"
+
+  sponsor_code = "callisto"
+  aws_region   = var.aws_region
+
+  # Development bucket (7-day retention)
+  artifacts_retention_days = 7
+  artifacts_lifecycle_enabled = true
+  enable_object_lock = false  # Allow deletion
+
+  # Override bucket names for dev/staging
+  bucket_prefix = "hht-diary-test"
+}
+```
+
+#### Option 2: Manual Bucket Creation
+
+Create simple S3 buckets for testing:
+
+```bash
+# Development bucket
+aws s3 mb s3://hht-diary-artifacts-callisto-dev --region eu-west-1
+
+# Add lifecycle policy (7-day expiration)
+aws s3api put-bucket-lifecycle-configuration \
+  --bucket hht-diary-artifacts-callisto-dev \
+  --lifecycle-configuration '{
+    "Rules": [{
+      "Status": "Enabled",
+      "Id": "DeleteAfter7Days",
+      "Expiration": {"Days": 7}
+    }]
+  }'
+
+# Staging bucket (30-day expiration)
+aws s3 mb s3://hht-diary-artifacts-callisto-staging --region eu-west-1
+aws s3api put-bucket-lifecycle-configuration \
+  --bucket hht-diary-artifacts-callisto-staging \
+  --lifecycle-configuration '{
+    "Rules": [{
+      "Status": "Enabled",
+      "Id": "DeleteAfter30Days",
+      "Expiration": {"Days": 30}
+    }]
+  }'
+```
+
+#### Add to Doppler
+
+Add test bucket names to sponsor Doppler config:
+
+```bash
+# Development bucket
+doppler secrets set SPONSOR_ARTIFACTS_BUCKET_DEV="hht-diary-artifacts-callisto-dev" \
+  --project hht-diary-callisto --config production
+
+# Staging bucket
+doppler secrets set SPONSOR_ARTIFACTS_BUCKET_STAGING="hht-diary-artifacts-callisto-staging" \
+  --project hht-diary-callisto --config production
+```
+
+### Verifying Test Archives
+
+Check that archives are being created correctly:
+
+```bash
+# 1. List all archives in dev environment
+aws s3 ls s3://hht-diary-artifacts-callisto-dev/dev/builds/ --recursive
+
+# 2. Download and inspect latest
+aws s3 cp s3://hht-diary-artifacts-callisto-dev/dev/builds/latest.tar.gz ./
+
+# 3. Extract
+tar -xzf latest.tar.gz
+
+# 4. Verify contents
+ls -lh hht-diary-CAL-*/
+cat hht-diary-CAL-*/metadata.json | jq .
+
+# 5. Check environment flag
+cat hht-diary-CAL-*/metadata.json | jq -r '.environment, .is_production'
+# Should output:
+# development
+# false
+```
+
+### Cleanup
+
+Development and staging archives auto-delete after 7/30 days respectively. For immediate cleanup:
+
+```bash
+# Delete specific archive
+aws s3 rm s3://hht-diary-artifacts-callisto-dev/dev/builds/2025/01/10/hht-diary-CAL-x1y2z3.tar.gz
+
+# Delete all dev archives
+aws s3 rm s3://hht-diary-artifacts-callisto-dev/dev/ --recursive
+
+# Delete entire dev bucket (if recreating)
+aws s3 rb s3://hht-diary-artifacts-callisto-dev --force
+```
 
 ## Troubleshooting
 

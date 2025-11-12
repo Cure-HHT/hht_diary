@@ -1,0 +1,120 @@
+# Dependabot Configuration
+# Enables automated dependency updates for GitHub Actions, npm, and Docker
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00052: Automated dependency management
+#   REQ-d00053: Development environment tooling
+#
+# Documentation: https://docs.github.com/en/code-security/dependabot
+# Last updated: 2025-11-11
+
+version: 2
+
+updates:
+  # GitHub Actions - Weekly updates on Mondays
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"  # 3 AM to avoid business hours
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "[Dependabot]"
+      include: "scope"
+    reviewers:
+      - "ops-team"
+    # Group minor and patch updates together
+    groups:
+      github-actions-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # npm packages - VS Code extension
+  - package-ecosystem: "npm"
+    directory: "/tools/vscode-linear-req-inserter"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+      - "vscode-extension"
+    commit-message:
+      prefix: "[Dependabot]"
+      include: "scope"
+    # Ignore major version updates for stable packages
+    ignore:
+      - dependency-name: "vscode"
+        update-types: ["version-update:semver-major"]
+
+  # npm packages - Linear CLI tools
+  - package-ecosystem: "npm"
+    directory: "/tools/linear-cli"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+      - "linear-tools"
+    commit-message:
+      prefix: "[Dependabot]"
+      include: "scope"
+
+  # Docker - Development environment
+  - package-ecosystem: "docker"
+    directory: "/tools/dev-env/docker"
+    schedule:
+      interval: "monthly"
+      day: "1"  # First day of month
+      time: "03:00"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "dev-environment"
+    commit-message:
+      prefix: "[Dependabot]"
+      include: "scope"
+    reviewers:
+      - "ops-team"
+    # Only track base images, not tool versions (handled manually for FDA compliance)
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Python packages - Requirement tools
+  - package-ecosystem: "pip"
+    directory: "/tools/requirements"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+      - "requirements-tools"
+    commit-message:
+      prefix: "[Dependabot]"
+      include: "scope"
+
+# Notes:
+# 1. Dependabot does NOT support SHA-pinning GitHub Actions
+#    - For FDA compliance, consider Renovate (see Linear ticket CUR-XXX)
+# 2. Dockerfile ENV versions (e.g., SUPABASE_CLI_VERSION) are NOT detected
+#    - These must be updated manually (quarterly maintenance review)
+# 3. Security updates are enabled automatically if vulnerability alerts are on
+# 4. Align this with quarterly maintenance-check.yml reviews

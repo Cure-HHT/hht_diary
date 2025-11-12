@@ -348,3 +348,168 @@ resource "aws_iam_user_policy_attachment" "cicd_artifacts" {
   user       = aws_iam_user.cicd[0].name
   policy_arn = aws_iam_policy.cicd_artifacts_access.arn
 }
+
+# ============================================================================
+# TEST BUCKETS (Optional - for CI/CD archival testing)
+# ============================================================================
+
+# Staging Test Bucket (30-day retention)
+resource "aws_s3_bucket" "artifacts_staging" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = var.staging_bucket_name
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name        = "${var.sponsor_code} Staging Artifacts (Test)"
+      Purpose     = "Pre-production archival testing"
+      Retention   = "30 days"
+      Environment = "staging"
+      Sponsor     = var.sponsor_name
+      SponsorCode = var.sponsor_code
+    }
+  )
+}
+
+resource "aws_s3_bucket_versioning" "artifacts_staging" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_staging[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts_staging" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_staging[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "artifacts_staging" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_staging[0].id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Staging Lifecycle: 7 days → Standard-IA, 30 days → Delete
+resource "aws_s3_bucket_lifecycle_configuration" "artifacts_staging" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_staging[0].id
+
+  rule {
+    id     = "staging-lifecycle"
+    status = "Enabled"
+
+    transition {
+      days          = 7
+      storage_class = "STANDARD_IA"
+    }
+
+    expiration {
+      days = 30
+    }
+  }
+
+  rule {
+    id     = "cleanup-multipart"
+    status = "Enabled"
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+# Development Test Bucket (7-day retention)
+resource "aws_s3_bucket" "artifacts_dev" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = var.dev_bucket_name
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name        = "${var.sponsor_code} Development Artifacts (Test)"
+      Purpose     = "Workflow archival testing"
+      Retention   = "7 days"
+      Environment = "development"
+      Sponsor     = var.sponsor_name
+      SponsorCode = var.sponsor_code
+    }
+  )
+}
+
+resource "aws_s3_bucket_versioning" "artifacts_dev" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_dev[0].id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts_dev" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_dev[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "artifacts_dev" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_dev[0].id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Development Lifecycle: 7 days → Delete
+resource "aws_s3_bucket_lifecycle_configuration" "artifacts_dev" {
+  count = var.create_test_buckets ? 1 : 0
+
+  bucket = aws_s3_bucket.artifacts_dev[0].id
+
+  rule {
+    id     = "dev-lifecycle"
+    status = "Enabled"
+
+    expiration {
+      days = 7
+    }
+  }
+
+  rule {
+    id     = "cleanup-multipart"
+    status = "Enabled"
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
