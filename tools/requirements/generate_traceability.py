@@ -30,7 +30,7 @@ import sys
 import csv
 import json
 from pathlib import Path
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -54,7 +54,7 @@ class Requirement:
     file_path: Path
     line_number: int
     test_info: Optional[TestInfo] = None
-    implementation_files: List[str] = field(default_factory=list)  # Files that implement this requirement
+    implementation_files: List[Tuple[str, int]] = field(default_factory=list)  # (file_path, line_number) tuples for files that implement this requirement
 
 
 class TraceabilityGenerator:
@@ -214,16 +214,23 @@ class TraceabilityGenerator:
             # Skip files that can't be read
             return set()
 
-        # Find all requirement IDs referenced in this file
-        matches = pattern.findall(content)
-        referenced_reqs = set(matches)
+        # Find all requirement IDs referenced in this file with their line numbers
+        referenced_reqs = set()
+        rel_path = file_path.relative_to(file_path.parent.parent)  # Relative to repo root
 
-        # Add this file to each referenced requirement's implementation_files list
-        for req_id in referenced_reqs:
+        for match in pattern.finditer(content):
+            req_id = match.group(1)
+            referenced_reqs.add(req_id)
+
+            # Calculate line number from match position
+            line_num = content[:match.start()].count('\n') + 1
+
+            # Add (file_path, line_number) tuple to requirement's implementation_files
             if req_id in self.requirements:
-                rel_path = file_path.relative_to(file_path.parent.parent)  # Relative to repo root
-                if str(rel_path) not in self.requirements[req_id].implementation_files:
-                    self.requirements[req_id].implementation_files.append(str(rel_path))
+                impl_entry = (str(rel_path), line_num)
+                # Avoid duplicates (same file, same line)
+                if impl_entry not in self.requirements[req_id].implementation_files:
+                    self.requirements[req_id].implementation_files.append(impl_entry)
 
         return referenced_reqs
 
@@ -274,20 +281,20 @@ class TraceabilityGenerator:
         }
         emoji = status_emoji.get(req.status, '❓')
 
-        # Format implementation files
-        impl_info = ""
-        if req.implementation_files:
-            file_count = len(req.implementation_files)
-            if file_count == 1:
-                impl_info = f"\n{prefix}  - Implementation: {req.implementation_files[0]}"
-            else:
-                impl_info = f"\n{prefix}  - Implementation: {file_count} files ({', '.join(req.implementation_files[:3])}{'...' if file_count > 3 else ''})"
-
         lines.append(
             f"{prefix}- {emoji} **REQ-{req.id}**: {req.title}\n"
             f"{prefix}  - Level: {req.level} | Status: {req.status}\n"
-            f"{prefix}  - File: {req.file_path.name}:{req.line_number}{impl_info}"
+            f"{prefix}  - File: {req.file_path.name}:{req.line_number}"
         )
+
+        # Format implementation files as nested list with clickable links
+        if req.implementation_files:
+            lines.append(f"{prefix}  - **Implemented in**:")
+            for file_path, line_num in req.implementation_files:
+                # Create markdown link to file with line number anchor
+                # Format: [database/schema.sql:42](../database/schema.sql#L42)
+                link = f"[{file_path}:{line_num}](../{file_path}#L{line_num})"
+                lines.append(f"{prefix}    - {link}")
 
         # Find and format children
         children = [
@@ -481,7 +488,7 @@ class TraceabilityGenerator:
         .req-content {{
             flex: 1;
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px 200px;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
             align-items: center;
             gap: 12px;
             min-width: 0;
@@ -522,15 +529,30 @@ class TraceabilityGenerator:
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
-        .req-implementation {{
-            font-size: 10px;
-            color: #7f8c8d;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .impl-files {{
+            margin: 8px 0 8px 40px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-left: 3px solid #6c757d;
+            font-size: 11px;
         }}
-        .req-implementation.multiple-files {{
-            cursor: help;
+        .impl-files-header {{
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 6px;
+            font-size: 10px;
+            text-transform: uppercase;
+        }}
+        .impl-file-item {{
+            padding: 3px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }}
+        .impl-file-item a {{
+            color: #0066cc;
+            text-decoration: none;
+        }}
+        .impl-file-item a:hover {{
+            text-decoration: underline;
         }}
         .status-badge {{
             display: inline-block;
@@ -562,7 +584,7 @@ class TraceabilityGenerator:
         }}
         .filter-header {{
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px 200px;
+            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
             align-items: center;
             gap: 12px;
             padding: 8px 10px 8px 42px;
@@ -728,9 +750,6 @@ class TraceabilityGenerator:
             html += f'                    <option value="{topic}">{topic}</option>\n'
 
         html += """                </select>
-            </div>
-            <div class="filter-column">
-                <div class="filter-label">Implementation</div>
             </div>
         </div>
 
@@ -978,16 +997,16 @@ class TraceabilityGenerator:
         # Extract topic from filename
         topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
 
-        # Format implementation files
+        # Format implementation files as nested section
+        impl_section = ''
         if req.implementation_files:
-            file_count = len(req.implementation_files)
-            if file_count == 1:
-                impl_html = f'<div class="req-implementation">{req.implementation_files[0]}</div>'
-            else:
-                file_list = ', '.join(req.implementation_files)
-                impl_html = f'<div class="req-implementation multiple-files" title="{file_list}">{file_count} files</div>'
-        else:
-            impl_html = '<div class="req-implementation">-</div>'
+            impl_section = '<div class="impl-files">'
+            impl_section += '<div class="impl-files-header">Implemented in:</div>'
+            for file_path, line_num in req.implementation_files:
+                # Create clickable link to file (relative path)
+                link = f"../{file_path}#L{line_num}"
+                impl_section += f'<div class="impl-file-item"><a href="{link}">{file_path}:{line_num}</a></div>'
+            impl_section += '</div>'
 
         # Build HTML for single flat row with unique instance ID
         html = f"""
@@ -1003,9 +1022,9 @@ class TraceabilityGenerator:
                     </div>
                     <div class="req-status">{test_badge}</div>
                     <div class="req-location">{req.file_path.name}:{req.line_number}</div>
-                    {impl_html}
                 </div>
             </div>
+            {impl_section}
         </div>
 """
         return html
@@ -1165,6 +1184,9 @@ class TraceabilityGenerator:
                 if req.id in r.implements
             ]
 
+            # Format implementation files as "file:line" strings
+            impl_files_str = ', '.join([f'{path}:{line}' for path, line in req.implementation_files]) if req.implementation_files else '-'
+
             writer.writerow([
                 req.id,
                 req.title,
@@ -1174,7 +1196,7 @@ class TraceabilityGenerator:
                 ', '.join(sorted(children)) if children else '-',
                 req.file_path.name,
                 req.line_number,
-                ', '.join(req.implementation_files) if req.implementation_files else '-'
+                impl_files_str
             ])
 
         return output.getvalue()
