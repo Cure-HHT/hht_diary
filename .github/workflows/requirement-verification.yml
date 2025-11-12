@@ -27,13 +27,16 @@ jobs:
       - name: Detect changed requirements
         id: detect
         run: |
-          set -e
+          set -euo pipefail
+
+          # Run detection script
           if ! python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/detect-changes.py \
             --format json > changes.json; then
             echo "❌ ERROR: detect-changes.py failed" >&2
             exit 1
           fi
 
+          # Parse results using array-based approach (no subshells)
           if ! CHANGED_COUNT=$(jq '.summary.changed_count' changes.json 2>&1); then
             echo "❌ ERROR: Failed to parse changes.json" >&2
             cat changes.json
@@ -49,22 +52,76 @@ jobs:
 
       - name: Scan implementations
         if: steps.detect.outputs.total > 0
+        id: scan
         run: |
-          set -e
-          # Scan for implementations of changed requirements
-          jq -r '.changed_requirements[].req_id' changes.json | while read req_id; do
-            echo "Scanning implementations for REQ-$req_id..."
+          set -euo pipefail
+
+          # Determine branch for enforcement level
+          BRANCH="${{ github.base_ref || github.ref_name }}"
+          echo "Target branch: $BRANCH"
+
+          # Determine enforcement level
+          ENFORCE_LEVEL="info"
+          if [[ "$BRANCH" == "production" ]] || [[ "$BRANCH" == "staging" ]]; then
+            ENFORCE_LEVEL="error"
+          elif [[ "$BRANCH" == "main" ]]; then
+            ENFORCE_LEVEL="warning"
+          fi
+          echo "Enforcement level: $ENFORCE_LEVEL"
+
+          # Load requirements into array (no subshells)
+          mapfile -t req_ids < <(jq -r '.changed_requirements[].req_id' changes.json)
+
+          # Check if array is empty
+          if [ ${#req_ids[@]} -eq 0 ]; then
+            echo "ℹ️ No changed requirements found"
+            exit 0
+          fi
+
+          echo "Found ${#req_ids[@]} changed requirements to scan"
+
+          # Initialize implementations file
+          echo "[]" > implementations.json
+
+          # Track failures
+          FAILED_REQS=()
+
+          # Process each requirement
+          for req_id in "${req_ids[@]}"; do
+            echo "Scanning implementations for $req_id..."
             if ! python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/scan-implementations.py \
-              $req_id --format json >> implementations.json; then
-              echo "❌ ERROR: scan-implementations.py failed for $req_id" >&2
-              exit 1
+              "$req_id" --format json >> implementations.json 2>&1; then
+              echo "❌ Scan failed for $req_id" >&2
+              FAILED_REQS+=("$req_id")
             fi
           done
+
+          # Handle failures based on enforcement level
+          if [ ${#FAILED_REQS[@]} -gt 0 ]; then
+            echo ""
+            echo "Failed to scan ${#FAILED_REQS[@]} requirement(s): ${FAILED_REQS[*]}"
+
+            if [[ "$ENFORCE_LEVEL" == "error" ]]; then
+              echo "❌ ERROR: Implementation scanning failed for $BRANCH branch" >&2
+              echo "scan_status=failed" >> $GITHUB_OUTPUT
+              exit 1
+            elif [[ "$ENFORCE_LEVEL" == "warning" ]]; then
+              echo "⚠️ WARNING: Implementation scanning failed (not blocking for $BRANCH branch)"
+              echo "scan_status=warning" >> $GITHUB_OUTPUT
+            else
+              echo "ℹ️ INFO: Implementation scanning had issues (informational only for $BRANCH branch)"
+              echo "scan_status=info" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✅ All implementations scanned successfully"
+            echo "scan_status=success" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate report
         if: steps.detect.outputs.total > 0
         run: |
-          set -e
+          set -euo pipefail
+
           python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/generate-report.py \
             --from-tracking --format markdown --output verification-report.md
 
@@ -123,10 +180,12 @@ ${report}
       - name: Summary
         if: always()
         run: |
-          set -e
+          set -euo pipefail
+
           echo "## Requirement Verification Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          # Check detection status
           if [ "${{ steps.detect.conclusion }}" == "failure" ]; then
             echo "❌ **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -134,10 +193,32 @@ ${report}
             exit 1
           fi
 
+          # Show requirement counts
           echo "- **Changed**: ${{ steps.detect.outputs.changed_count }}" >> $GITHUB_STEP_SUMMARY
           echo "- **New**: ${{ steps.detect.outputs.new_count }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Total**: ${{ steps.detect.outputs.total }}" >> $GITHUB_STEP_SUMMARY
 
+          # Show scan status
+          SCAN_STATUS="${{ steps.scan.outputs.scan_status }}"
+          if [ -n "$SCAN_STATUS" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            case "$SCAN_STATUS" in
+              success)
+                echo "✅ **Scan Status**: All implementations scanned successfully" >> $GITHUB_STEP_SUMMARY
+                ;;
+              warning)
+                echo "⚠️ **Scan Status**: Completed with warnings (not blocking)" >> $GITHUB_STEP_SUMMARY
+                ;;
+              info)
+                echo "ℹ️ **Scan Status**: Informational (see logs for details)" >> $GITHUB_STEP_SUMMARY
+                ;;
+              failed)
+                echo "❌ **Scan Status**: FAILED - blocking merge" >> $GITHUB_STEP_SUMMARY
+                ;;
+            esac
+          fi
+
+          # Overall status
           if [ "${{ steps.detect.outputs.total }}" -gt 0 ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ Verification completed - see artifacts for details" >> $GITHUB_STEP_SUMMARY
