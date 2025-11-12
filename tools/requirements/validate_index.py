@@ -35,14 +35,15 @@ REQ_HEADER_PATTERN = re.compile(r'^#{1,6}\s+(REQ-[pod]\d{5}):\s*(.+)$', re.MULTI
 INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|\s*([a-f0-9]{8}|TBD)\s*\|$', re.MULTILINE)
 
 
-def scan_spec_files() -> Dict[str, Tuple[str, str]]:
+def scan_spec_files() -> Tuple[Dict[str, Tuple[str, str]], list]:
     """
     Scan all spec/*.md files for requirement headers.
 
     Returns:
-        Dict mapping REQ-ID to (filename, title)
+        Tuple of (Dict mapping REQ-ID to (filename, title), list of error messages)
     """
     requirements = {}
+    errors = []
 
     for spec_file in SPEC_DIR.glob("*.md"):
         if spec_file.name in ["INDEX.md", "README.md", "requirements-format.md"]:
@@ -55,21 +56,24 @@ def scan_spec_files() -> Dict[str, Tuple[str, str]]:
             title = match.group(2).strip()
 
             if req_id in requirements:
-                print(f"⚠️  WARNING: Duplicate requirement {req_id} found in:")
-                print(f"    - {requirements[req_id][0]}")
-                print(f"    - {spec_file.name}")
+                # FDA compliance violation - duplicate requirement breaks traceability
+                error_msg = f"❌ ERROR: Duplicate requirement {req_id} found in:\n"
+                error_msg += f"    - {requirements[req_id][0]}\n"
+                error_msg += f"    - {spec_file.name}"
+                print(error_msg)
+                errors.append(f"Duplicate requirement {req_id} in {requirements[req_id][0]} and {spec_file.name}")
 
             requirements[req_id] = (spec_file.name, title)
 
-    return requirements
+    return requirements, errors
 
 
-def parse_index() -> Dict[str, Tuple[str, str]]:
+def parse_index() -> Tuple[Dict[str, Tuple[str, str]], list]:
     """
     Parse spec/INDEX.md to extract all requirement entries.
 
     Returns:
-        Dict mapping REQ-ID to (filename, title)
+        Tuple of (Dict mapping REQ-ID to (filename, title), list of error messages)
     """
     if not INDEX_FILE.exists():
         print(f"❌ ERROR: {INDEX_FILE} does not exist")
@@ -77,6 +81,7 @@ def parse_index() -> Dict[str, Tuple[str, str]]:
 
     content = INDEX_FILE.read_text(encoding='utf-8')
     index_entries = {}
+    errors = []
 
     for match in INDEX_ROW_PATTERN.finditer(content):
         req_id = match.group(1)
@@ -84,11 +89,14 @@ def parse_index() -> Dict[str, Tuple[str, str]]:
         title = match.group(3).strip()
 
         if req_id in index_entries:
-            print(f"⚠️  WARNING: Duplicate entry for {req_id} in INDEX.md")
+            # Data integrity violation - INDEX.md is source of truth, must not have duplicates
+            error_msg = f"❌ ERROR: Duplicate entry for {req_id} in INDEX.md"
+            print(error_msg)
+            errors.append(f"Duplicate entry for {req_id} in INDEX.md")
 
         index_entries[req_id] = (filename, title)
 
-    return index_entries
+    return index_entries, errors
 
 
 def validate_index():
@@ -102,17 +110,18 @@ def validate_index():
 
     # Scan spec files
     print("📖 Scanning spec/ files for requirements...")
-    spec_requirements = scan_spec_files()
+    spec_requirements, scan_errors = scan_spec_files()
     print(f"   Found {len(spec_requirements)} requirements in spec files")
     print()
 
     # Parse INDEX.md
     print("📋 Parsing INDEX.md...")
-    index_entries = parse_index()
+    index_entries, index_errors = parse_index()
     print(f"   Found {len(index_entries)} entries in INDEX.md")
     print()
 
-    errors = []
+    # Initialize errors/warnings and add any duplicate detection errors
+    errors = scan_errors + index_errors
     warnings = []
 
     # Check 1: Every requirement in spec files should be in INDEX
