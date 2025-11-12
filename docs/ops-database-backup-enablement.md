@@ -7,6 +7,11 @@ Database backup and deployment log archival to S3 is controlled by a feature fla
 **Current State**: DISABLED (feature flag defaults to `false`)
 **When Enabled**: Backups and deployment logs automatically upload to S3 with 7-year retention
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-o00008: Backup and Retention Policy
+- REQ-o00044: Database Migration Automation
+
 ---
 
 ## Feature Flag Behavior

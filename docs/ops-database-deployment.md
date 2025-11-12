@@ -4,6 +4,12 @@
 
 This guide covers deploying JSONB validation functions and RLS policies to your Supabase database.
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-o00004: Database Schema Deployment
+- REQ-o00027: Event Sourcing State Protection Policy Deployment
+- REQ-d00007: Database Schema Implementation and Deployment
+
 ---
 
 ## Single Source of Truth for Schemas

@@ -9,6 +9,8 @@
 - REQ-p00011: ALCOA+ Data Integrity Principles
 - REQ-p00010: FDA 21 CFR Part 11 Compliance
 - REQ-p00004: Immutable Audit Trail via Event Sourcing
+- REQ-p00013: Complete Data Change History
+- REQ-o00005: Audit Trail Monitoring
 
 ---
 

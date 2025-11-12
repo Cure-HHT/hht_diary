@@ -1,5 +1,10 @@
 # Git Hooks Setup Guide
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-d00018: Git Hook Implementation
+- REQ-o00017: Version Control Workflow
+
 This guide consolidates git hook setup information from all installed Claude Code plugins and provides comprehensive instructions for configuring, managing, and troubleshooting project git hooks.
 
 ## Overview

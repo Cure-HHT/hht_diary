@@ -2,6 +2,12 @@
 
 **Welcome to the Clinical Diary project!** This guide will get you set up and productive in 5-60 minutes depending on your chosen approach.
 
+## REFERENCES REQUIREMENTS
+
+- REQ-d00027: Containerized Development Environments
+- REQ-d00055: Role-Based Environment Separation
+- REQ-d00058: Secrets Management via Doppler
+
 ---
 
 ## Choose Your Setup Path

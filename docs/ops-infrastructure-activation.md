@@ -6,6 +6,14 @@
 
 ---
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-o00041: Infrastructure as Code for Cloud Resources
+- REQ-o00042: Infrastructure Change Control
+- REQ-o00001: Separate Supabase Projects Per Sponsor
+
+---
+
 ## Overview
 
 This guide explains how to activate each component of Phase 1 infrastructure. All components are fully implemented but remain dormant until explicitly activated.

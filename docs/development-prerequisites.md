@@ -1,5 +1,11 @@
 # Development Prerequisites Guide
 
+## REFERENCES REQUIREMENTS
+
+- REQ-d00027: Containerized Development Environments
+- REQ-d00058: Secrets Management via Doppler
+- REQ-d00059: Development Tool Specifications
+
 This guide consolidates all tool installation and environment setup requirements for working on the Clinical Diary Platform. It serves as the single source of truth for development environment setup.
 
 ## Overview

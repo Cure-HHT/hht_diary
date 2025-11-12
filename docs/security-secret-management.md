@@ -6,6 +6,14 @@
 
 ---
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-d00058: Secrets Management via Doppler
+- REQ-o00015: Secrets management (ops level)
+- REQ-p00017: Data Encryption
+
+---
+
 ## Overview
 
 Secret management is critical for security compliance. This guide consolidates best practices for handling all types of secrets in this project: API tokens, database credentials, signing keys, and other sensitive data.

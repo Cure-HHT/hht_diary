@@ -6,6 +6,9 @@ Complete guide for tagging production candidates and managing hotfixes.
 - REQ-d00072: Production candidate tagging
 - REQ-o00018: Release management
 - REQ-o00019: Hotfix workflow
+- REQ-o00010: Mobile App Release Process
+- REQ-o00049: Artifact Retention and Archival
+- REQ-o00051: Change Control and Audit Trail
 
 ## Overview
 
