@@ -60,7 +60,7 @@ class Requirement:
 class TraceabilityGenerator:
     """Generates traceability matrices"""
 
-    REQ_HEADER_PATTERN = re.compile(r'^###\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
+    REQ_HEADER_PATTERN = re.compile(r'^#+\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
     METADATA_PATTERN = re.compile(
         r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+\*\*Status\*\*:\s+(Active|Draft|Deprecated)',
         re.MULTILINE
