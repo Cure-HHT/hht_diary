@@ -582,6 +582,9 @@ class TraceabilityGenerator:
         .req-item.collapsed-by-parent {{
             display: none;
         }}
+        .impl-files.collapsed-by-parent {{
+            display: none;
+        }}
         .filter-header {{
             display: grid;
             grid-template-columns: 130px 1fr 60px 90px 60px 180px;
@@ -791,19 +794,39 @@ class TraceabilityGenerator:
 
         // Hide all descendants of a requirement instance
         function hideDescendants(parentInstanceId) {
+            // Hide child requirements
             document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
                 child.classList.add('collapsed-by-parent');
                 // Recursively hide descendants' descendants
                 hideDescendants(child.dataset.instanceId);
             });
+
+            // Also hide implementation files of the parent requirement
+            const parentItem = document.querySelector(`[data-instance-id="${parentInstanceId}"]`);
+            if (parentItem) {
+                const implFiles = parentItem.querySelector('.impl-files');
+                if (implFiles) {
+                    implFiles.classList.add('collapsed-by-parent');
+                }
+            }
         }
 
         // Show immediate children of a requirement instance only (not grandchildren)
         function showDescendants(parentInstanceId) {
+            // Show child requirements
             document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
                 child.classList.remove('collapsed-by-parent');
                 // Do NOT recursively show grandchildren - they stay hidden until their parent is expanded
             });
+
+            // Also show implementation files of the parent requirement
+            const parentItem = document.querySelector(`[data-instance-id="${parentInstanceId}"]`);
+            if (parentItem) {
+                const implFiles = parentItem.querySelector('.impl-files');
+                if (implFiles) {
+                    implFiles.classList.remove('collapsed-by-parent');
+                }
+            }
         }
 
         // Expand all requirements
