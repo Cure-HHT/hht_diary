@@ -19,6 +19,14 @@ on:
         description: 'Reason for production deployment'
         required: true
         type: string
+      enable_backup_archival:
+        description: 'Archive pre-migration backup to S3 (requires configured S3 buckets)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   ENVIRONMENT: production
@@ -119,21 +127,12 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
 
-      - name: Create database backup (7-year retention)
-        run: |
-          echo "Creating production database backup..."
-          BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
-
-          doppler run -- supabase db dump \
-            --project-ref $SUPABASE_PROJECT_ID \
-            --data-only \
-            -f $BACKUP_FILE
-
-          # TODO: Upload to S3 Glacier for 7-year retention
-          # aws s3 cp $BACKUP_FILE s3://clinical-diary-backups/production/ \
-          #   --storage-class GLACIER
-
-          echo "✅ Backup created: $BACKUP_FILE"
+      - name: Configure AWS Credentials for Backup
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'eu-west-1' }}
 
       - name: Database migration (with rollback plan)
         id: migrate
@@ -144,6 +143,48 @@ jobs:
           # Link to Supabase project
           doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID
 
+      - name: Create pre-migration database backup (7-year retention)
+        id: backup
+        if: inputs.enable_backup_archival == 'true'
+        run: |
+          echo "Creating production database backup before migration..."
+          BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
+
+          # Use pg_dump with DATABASE_URL from Doppler (Supabase PostgreSQL connection)
+          # This backs up the actual production database, not Supabase config
+          doppler run -- pg_dump "$DATABASE_URL" \
+            --no-owner \
+            --no-acl \
+            --clean \
+            --if-exists \
+            -f "$BACKUP_FILE"
+
+          echo "Backup size: $(du -h "$BACKUP_FILE" | cut -f1)"
+
+          # Compress backup for storage efficiency (~70-90% reduction)
+          gzip "$BACKUP_FILE"
+          BACKUP_FILE_GZ="${BACKUP_FILE}.gz"
+
+          echo "Compressed size: $(du -h "$BACKUP_FILE_GZ" | cut -f1)"
+
+          # Get AWS region and bucket from Doppler
+          AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain || echo "eu-west-1")
+          BACKUP_BUCKET=$(doppler secrets get SPONSOR_BACKUPS_BUCKET --plain || echo "hht-diary-backups-callisto-${AWS_REGION}")
+
+          # Upload to S3 (lifecycle policy transitions to Deep Archive for 7-year retention)
+          # Path structure: backups/YYYY/MM/DD/filename.sql.gz
+          S3_PATH="s3://${BACKUP_BUCKET}/backups/$(date +%Y/%m/%d)/${BACKUP_FILE_GZ}"
+
+          aws s3 cp "${BACKUP_FILE_GZ}" "$S3_PATH" \
+            --tagging "environment=production&type=database-backup&retention-years=7&fda-compliant=true&pre-migration=true" \
+            --metadata "git-sha=${{ github.sha }},deployer=${{ github.actor }},timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ),version=${{ github.event.inputs.version }}"
+
+          echo "✅ Pre-migration backup created and uploaded to S3"
+          echo "backup_location=$S3_PATH" >> $GITHUB_OUTPUT
+          echo "backup_size=$(stat -c%s "${BACKUP_FILE_GZ}")" >> $GITHUB_OUTPUT
+
+      - name: Execute database migration
+        run: |
           # Dry run first
           echo "Running migration dry-run..."
           doppler run -- supabase db push --dry-run
@@ -195,23 +236,49 @@ jobs:
         if: success()
         run: |
           echo "Recording production deployment..."
-          DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).log"
+          DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).json"
 
+          # Create structured JSON log for FDA compliance
+          cat > $DEPLOYMENT_LOG <<EOF
           {
-            echo "Deployment Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-            echo "Environment: production"
-            echo "Version: ${{ github.event.inputs.version }}"
-            echo "Commit: ${{ github.sha }}"
-            echo "Deployer: ${{ github.actor }}"
-            echo "Reason: ${{ github.event.inputs.reason }}"
-            echo "Approvers: [Available in GitHub Actions UI]"
-            echo "Outcome: success"
-            echo "Duration: ${{ job.duration }} seconds"
-          } > $DEPLOYMENT_LOG
+            "deployment_timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "environment": "production",
+            "version": "${{ github.event.inputs.version }}",
+            "commit_sha": "${{ github.sha }}",
+            "deployer": "${{ github.actor }}",
+            "reason": "${{ github.event.inputs.reason }}",
+            "github_run_id": "${{ github.run_id }}",
+            "github_run_number": "${{ github.run_number }}",
+            "outcome": "success",
+            "backup_location": "${{ steps.backup.outputs.backup_location || 'not-enabled' }}",
+            "backup_size_bytes": "${{ steps.backup.outputs.backup_size || '0' }}",
+            "workflow": "deploy-production",
+            "s3_archival_enabled": ${{ inputs.enable_backup_archival == 'true' }}
+          }
+          EOF
 
-          # TODO: Upload to S3 Glacier for 7-year retention
-          # aws s3 cp $DEPLOYMENT_LOG s3://clinical-diary-audit-logs/deployments/ \
-          #   --storage-class GLACIER
+          cat $DEPLOYMENT_LOG
+
+          if [ "${{ inputs.enable_backup_archival }}" != "true" ]; then
+            echo ""
+            echo "ℹ️  S3 audit log archival not enabled - log saved locally only"
+            echo "   Enable by setting 'enable_backup_archival' input to 'true' when triggering workflow"
+            exit 0
+          fi
+
+          # Get AWS region and bucket from Doppler
+          AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain || echo "eu-west-1")
+          AUDIT_BUCKET=$(doppler secrets get SPONSOR_AUDIT_LOGS_BUCKET --plain || echo "hht-diary-audit-logs-callisto-${AWS_REGION}")
+
+          # Upload to S3 with Deep Archive storage class (7-year retention via lifecycle policy)
+          # Path structure: deployments/YYYY/MM/DD/filename.json
+          S3_PATH="s3://${AUDIT_BUCKET}/deployments/$(date +%Y/%m/%d)/${DEPLOYMENT_LOG}"
+
+          aws s3 cp "$DEPLOYMENT_LOG" "$S3_PATH" \
+            --tagging "environment=production&type=deployment-log&retention-years=7&fda-compliant=true" \
+            --metadata "git-sha=${{ github.sha }},deployer=${{ github.actor }},version=${{ github.event.inputs.version}}"
+
+          echo "✅ Deployment log uploaded to S3: $S3_PATH"
 
       - name: Notify team
         if: success()
