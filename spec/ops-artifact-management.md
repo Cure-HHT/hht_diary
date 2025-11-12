@@ -770,7 +770,7 @@ To activate artifact management:
    aws s3 ls s3://clinical-diary-artifacts/ --recursive
    ```
 
-See `infrastructure/ACTIVATION_GUIDE.md` for complete activation procedures.
+See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 ---
 

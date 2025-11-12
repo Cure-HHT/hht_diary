@@ -9,6 +9,15 @@
 
 The Anspar Spec Compliance plugin enforces strict adherence to specification guidelines through automated validation and AI-powered analysis. It prevents non-compliant content from entering your repository by validating spec/ directory files at commit time.
 
+## Prerequisites
+
+See the following guides for setup requirements:
+- [Development Prerequisites](../../../../docs/development-prerequisites.md) - Required tools and installation
+- [Git Hooks Setup](../../../../docs/git-hooks-setup.md) - Configuring project git hooks
+- [Secret Management](../../../../docs/security-secret-management.md) - API tokens and credentials
+
+For requirement format details, see [spec/README.md](../../../../spec/README.md).
+
 **Key Features**:
 - ✅ AI-powered validation agent
 - ✅ Git pre-commit hook integration
@@ -443,6 +452,8 @@ This plugin works alongside:
 - **traceability-matrix**: Generates traceability matrices
 
 ### With CI/CD
+
+See [CI/CD Setup Guide](../../../../docs/cicd-setup-guide.md) for comprehensive GitHub Actions integration examples.
 
 Add to your CI pipeline:
 

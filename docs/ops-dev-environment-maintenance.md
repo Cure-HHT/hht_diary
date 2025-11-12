@@ -206,5 +206,5 @@ A: Not recommended - it's automated compliance proof. Document reason in ADR if 
 ## See Also
 
 - `.github/workflows/maintenance-check.yml` - Automated enforcement
-- `../../docs/adr/ADR-006-docker-dev-environments.md` - Architecture decisions
-- `../../spec/dev-environment.md` - Requirements
+- `adr/ADR-006-docker-dev-environments.md` - Architecture decisions
+- `../spec/dev-environment.md` - Requirements

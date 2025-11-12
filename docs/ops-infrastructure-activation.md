@@ -360,7 +360,7 @@ Activate before production deployment. Can activate dev/staging earlier for test
 
 #### Step 1: Set Up Sentry
 
-Follow `docs/monitoring/sentry-setup.md` in detail. Summary:
+Follow `ops-monitoring-sentry.md` in detail. Summary:
 
 1. Create Sentry account and organization: `clinical-diary`
 
@@ -388,7 +388,7 @@ Follow `docs/monitoring/sentry-setup.md` in detail. Summary:
 
 #### Step 2: Set Up Better Uptime
 
-Follow `docs/monitoring/better-uptime-setup.md` in detail. Summary:
+Follow `ops-monitoring-better-uptime.md` in detail. Summary:
 
 1. Create Better Uptime account (free tier)
 
@@ -699,8 +699,8 @@ If you need to deactivate a component:
 ### Getting Help
 
 - **Documentation**: All specs in `spec/ops-*.md`
-- **Integration Guides**: `docs/monitoring/*.md`
-- **Runbook**: `docs/ops/incident-response-runbook.md`
+- **Integration Guides**: `ops-monitoring-sentry.md`, `ops-monitoring-better-uptime.md`
+- **Runbook**: `ops-incident-response-runbook.md`
 - **Issues**: Create GitHub issue with `[infrastructure]` tag
 
 ---

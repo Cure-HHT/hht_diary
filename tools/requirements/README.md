@@ -6,6 +6,14 @@ Tools for validating and tracking requirements across PRD, Operations, and Devel
 > simple-requirements and traceability-matrix plugins in `tools/anspar-cc-plugins/plugins/`.
 > See `.githooks/README.md` for hook configuration.
 
+## Prerequisites
+
+See the following guides:
+- [Development Prerequisites](../../docs/development-prerequisites.md) - Installing Python, jq, and other required tools
+- [Git Hooks Setup](../../docs/git-hooks-setup.md) - Configuring requirement validation hooks
+
+For requirement format details, see [spec/README.md](../../spec/README.md) (single source of truth).
+
 ## Overview
 
 This directory contains Python scripts that:
@@ -100,7 +108,9 @@ python3 tools/requirements/generate_traceability.py --format html --output docs/
 - All requirement fields in table format
 - Good for reporting and filtering
 
-## Integration with CI/CD
+## CI/CD Integration
+
+See [CI/CD Setup Guide](../../docs/cicd-setup-guide.md) for comprehensive GitHub Actions integration examples.
 
 ### GitHub Actions
 
