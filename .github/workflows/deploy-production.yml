@@ -119,7 +119,15 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
 
+      - name: Configure AWS Credentials for Backup
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'eu-west-1' }}
+
       - name: Create database backup (7-year retention)
+        id: backup
         run: |
           echo "Creating production database backup..."
           BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
@@ -129,11 +137,25 @@ jobs:
             --data-only \
             -f $BACKUP_FILE
 
-          # TODO: Upload to S3 Glacier for 7-year retention
-          # aws s3 cp $BACKUP_FILE s3://clinical-diary-backups/production/ \
-          #   --storage-class GLACIER
+          # Compress backup for storage efficiency
+          gzip $BACKUP_FILE
+          BACKUP_FILE_GZ="${BACKUP_FILE}.gz"
 
-          echo "✅ Backup created: $BACKUP_FILE"
+          # Get AWS region and bucket from Doppler
+          AWS_REGION=$(doppler secrets get AWS_REGION --plain || echo "eu-west-1")
+          BACKUP_BUCKET=$(doppler secrets get SPONSOR_BACKUPS_BUCKET --plain || echo "hht-diary-backups-callisto-${AWS_REGION}")
+
+          # Upload to S3 with Deep Archive storage class (7-year retention via lifecycle policy)
+          # Path structure: backups/YYYY/MM/DD/filename.sql.gz
+          S3_PATH="s3://${BACKUP_BUCKET}/backups/$(date +%Y/%m/%d)/${BACKUP_FILE_GZ}"
+
+          aws s3 cp "${BACKUP_FILE_GZ}" "$S3_PATH" \
+            --tagging "environment=production&type=database-backup&retention-years=7&fda-compliant=true" \
+            --metadata "git-sha=${{ github.sha }},deployer=${{ github.actor }},timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          echo "✅ Backup created and uploaded to S3"
+          echo "backup_location=$S3_PATH" >> $GITHUB_OUTPUT
+          echo "backup_size=$(stat -f%z "${BACKUP_FILE_GZ}" 2>/dev/null || stat -c%s "${BACKUP_FILE_GZ}")" >> $GITHUB_OUTPUT
 
       - name: Database migration (with rollback plan)
         id: migrate
@@ -195,23 +217,39 @@ jobs:
         if: success()
         run: |
           echo "Recording production deployment..."
-          DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).log"
+          DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).json"
 
+          # Create structured JSON log for FDA compliance
+          cat > $DEPLOYMENT_LOG <<EOF
           {
-            echo "Deployment Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-            echo "Environment: production"
-            echo "Version: ${{ github.event.inputs.version }}"
-            echo "Commit: ${{ github.sha }}"
-            echo "Deployer: ${{ github.actor }}"
-            echo "Reason: ${{ github.event.inputs.reason }}"
-            echo "Approvers: [Available in GitHub Actions UI]"
-            echo "Outcome: success"
-            echo "Duration: ${{ job.duration }} seconds"
-          } > $DEPLOYMENT_LOG
+            "deployment_timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "environment": "production",
+            "version": "${{ github.event.inputs.version }}",
+            "commit_sha": "${{ github.sha }}",
+            "deployer": "${{ github.actor }}",
+            "reason": "${{ github.event.inputs.reason }}",
+            "github_run_id": "${{ github.run_id }}",
+            "github_run_number": "${{ github.run_number }}",
+            "outcome": "success",
+            "backup_location": "${{ steps.backup.outputs.backup_location }}",
+            "backup_size_bytes": "${{ steps.backup.outputs.backup_size }}",
+            "workflow": "deploy-production"
+          }
+          EOF
 
-          # TODO: Upload to S3 Glacier for 7-year retention
-          # aws s3 cp $DEPLOYMENT_LOG s3://clinical-diary-audit-logs/deployments/ \
-          #   --storage-class GLACIER
+          # Get AWS region and bucket from Doppler
+          AWS_REGION=$(doppler secrets get AWS_REGION --plain || echo "eu-west-1")
+          AUDIT_BUCKET=$(doppler secrets get SPONSOR_AUDIT_LOGS_BUCKET --plain || echo "hht-diary-audit-logs-callisto-${AWS_REGION}")
+
+          # Upload to S3 with Deep Archive storage class (7-year retention via lifecycle policy)
+          # Path structure: deployments/YYYY/MM/DD/filename.json
+          S3_PATH="s3://${AUDIT_BUCKET}/deployments/$(date +%Y/%m/%d)/${DEPLOYMENT_LOG}"
+
+          aws s3 cp "$DEPLOYMENT_LOG" "$S3_PATH" \
+            --tagging "environment=production&type=deployment-log&retention-years=7&fda-compliant=true" \
+            --metadata "git-sha=${{ github.sha }},deployer=${{ github.actor }},version=${{ github.event.inputs.version}}"
+
+          echo "✅ Deployment log uploaded to S3: $S3_PATH"
 
       - name: Notify team
         if: success()
