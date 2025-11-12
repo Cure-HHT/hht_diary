@@ -241,10 +241,11 @@ jobs:
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
-      - name: Get Sponsor Config
+      - name: Get Sponsor Config (callisto)
+        if: matrix.sponsor == 'callisto'
         id: config
         env:
-          DOPPLER_TOKEN: ${{ secrets[matrix.doppler_secret] }}
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_callisto }}
         run: |
           # Get sponsor-specific AWS credentials and region
           AWS_REGION=$(doppler secrets get SPONSOR_AWS_REGION --plain)
@@ -266,11 +267,12 @@ jobs:
 
           echo "Using bucket: $ARTIFACTS_BUCKET"
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (callisto)
+        if: matrix.sponsor == 'callisto'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets[matrix.aws_key_secret] }}
-          aws-secret-access-key: ${{ secrets[matrix.aws_secret_secret] }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_callisto }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_callisto }}
           aws-region: ${{ steps.config.outputs.aws_region }}
 
       - name: Create Archive
