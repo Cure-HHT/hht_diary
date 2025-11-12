@@ -19,6 +19,14 @@ on:
         description: 'Reason for production deployment'
         required: true
         type: string
+      enable_backup_archival:
+        description: 'Archive pre-migration backup to S3 (requires configured S3 buckets)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   ENVIRONMENT: production
@@ -137,44 +145,8 @@ jobs:
 
       - name: Create pre-migration database backup (7-year retention)
         id: backup
+        if: inputs.enable_backup_archival == 'true'
         run: |
-          # Feature flag: Enable S3 backup archival
-          # Set ENABLE_S3_BACKUP_ARCHIVAL=true in Doppler when infrastructure is ready
-          ENABLE_BACKUP=$(doppler secrets get ENABLE_S3_BACKUP_ARCHIVAL --plain --fallback "false" || echo "false")
-
-          if [ "$ENABLE_BACKUP" != "true" ]; then
-            echo "════════════════════════════════════════════════════════"
-            echo "  ℹ️  S3 BACKUP ARCHIVAL NOT YET ENABLED"
-            echo "════════════════════════════════════════════════════════"
-            echo ""
-            echo "Database backup archival to S3 is currently disabled."
-            echo ""
-            echo "To enable this feature, complete the following setup:"
-            echo "  1. Apply Terraform configuration (create S3 buckets)"
-            echo "     - hht-diary-backups-{sponsor}-{region}"
-            echo "     - hht-diary-audit-logs-{sponsor}-{region}"
-            echo ""
-            echo "  2. Configure Doppler secrets:"
-            echo "     - SPONSOR_BACKUPS_BUCKET"
-            echo "     - SPONSOR_AUDIT_LOGS_BUCKET"
-            echo "     - SPONSOR_AWS_REGION"
-            echo ""
-            echo "  3. Verify AWS credentials are configured"
-            echo ""
-            echo "  4. Enable the feature flag in Doppler:"
-            echo "     doppler secrets set ENABLE_S3_BACKUP_ARCHIVAL=true \\"
-            echo "       --project hht-diary-callisto --config production"
-            echo ""
-            echo "See: docs/WIP/phase5-pr1-multi-sponsor-infrastructure-setup.md"
-            echo "════════════════════════════════════════════════════════"
-
-            # Set empty outputs for downstream steps
-            echo "backup_location=not-configured" >> $GITHUB_OUTPUT
-            echo "backup_size=0" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "✅ S3 backup archival is ENABLED"
           echo "Creating production database backup before migration..."
           BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
 
@@ -263,9 +235,6 @@ jobs:
       - name: Record deployment (7-year retention)
         if: success()
         run: |
-          # Feature flag: Enable S3 audit log archival
-          ENABLE_BACKUP=$(doppler secrets get ENABLE_S3_BACKUP_ARCHIVAL --plain --fallback "false" || echo "false")
-
           echo "Recording production deployment..."
           DEPLOYMENT_LOG="deployment-prod-$(date +%Y%m%d-%H%M%S).json"
 
@@ -281,19 +250,19 @@ jobs:
             "github_run_id": "${{ github.run_id }}",
             "github_run_number": "${{ github.run_number }}",
             "outcome": "success",
-            "backup_location": "${{ steps.backup.outputs.backup_location }}",
-            "backup_size_bytes": "${{ steps.backup.outputs.backup_size }}",
+            "backup_location": "${{ steps.backup.outputs.backup_location || 'not-enabled' }}",
+            "backup_size_bytes": "${{ steps.backup.outputs.backup_size || '0' }}",
             "workflow": "deploy-production",
-            "s3_archival_enabled": $ENABLE_BACKUP
+            "s3_archival_enabled": ${{ inputs.enable_backup_archival == 'true' }}
           }
           EOF
 
           cat $DEPLOYMENT_LOG
 
-          if [ "$ENABLE_BACKUP" != "true" ]; then
+          if [ "${{ inputs.enable_backup_archival }}" != "true" ]; then
             echo ""
-            echo "ℹ️  S3 audit log archival not yet enabled - log saved locally only"
-            echo "   Enable with: ENABLE_S3_BACKUP_ARCHIVAL=true in Doppler"
+            echo "ℹ️  S3 audit log archival not enabled - log saved locally only"
+            echo "   Enable by setting 'enable_backup_archival' input to 'true' when triggering workflow"
             exit 0
           fi
 
