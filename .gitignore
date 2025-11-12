@@ -53,6 +53,18 @@ validation-reports/
 NEXT_STEPS_OPTIONS.md
 
 # =====================================
+# SPONSOR ISOLATION (CRITICAL!)
+# =====================================
+# Ignore ALL sponsor directories by default to prevent accidental commits
+# of locally cloned sponsor repos to core repo
+sponsor/*/
+
+# Exception: Track template and active sponsors in monorepo
+# NOTE: When migrating sponsors to separate repos, remove from whitelist
+!sponsor/template/
+!sponsor/callisto/
+
+# =====================================
 # SPONSOR-SPECIFIC SECRETS (CRITICAL!)
 # =====================================
 # Sponsor configuration secrets
