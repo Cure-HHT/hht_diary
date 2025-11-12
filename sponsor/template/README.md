@@ -33,6 +33,10 @@ Where:
 When ready to move to separate repositories, this directory will become a
 standalone repository at `cure-hht/sponsor-<name>`.
 
+**Important**: When migrating a sponsor to a separate repository:
+1. Remove the sponsor from the `.gitignore` whitelist (remove `!sponsor/{name}/` line)
+2. This ensures the sponsor directory won't accidentally be committed to core if cloned locally
+
 ## IMPLEMENTS REQUIREMENTS
 
 - REQ-d00068: Sponsor template structure

@@ -248,6 +248,8 @@ For multi-repo sponsor isolation:
    tag: v1.0.0
    ```
 3. Ensure `SPONSOR_REPO_TOKEN` is set in `hht-diary-core` for cloning access
+4. **Update `.gitignore`**: Remove sponsor from whitelist (delete `!sponsor/{name}/` line)
+   - This prevents accidentally committing locally cloned sponsor repos to core
 
 ## Troubleshooting
 
