@@ -126,37 +126,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION || 'eu-west-1' }}
 
-      - name: Create database backup (7-year retention)
-        id: backup
-        run: |
-          echo "Creating production database backup..."
-          BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
-
-          doppler run -- supabase db dump \
-            --project-ref $SUPABASE_PROJECT_ID \
-            --data-only \
-            -f $BACKUP_FILE
-
-          # Compress backup for storage efficiency
-          gzip $BACKUP_FILE
-          BACKUP_FILE_GZ="${BACKUP_FILE}.gz"
-
-          # Get AWS region and bucket from Doppler
-          AWS_REGION=$(doppler secrets get AWS_REGION --plain || echo "eu-west-1")
-          BACKUP_BUCKET=$(doppler secrets get SPONSOR_BACKUPS_BUCKET --plain || echo "hht-diary-backups-callisto-${AWS_REGION}")
-
-          # Upload to S3 with Deep Archive storage class (7-year retention via lifecycle policy)
-          # Path structure: backups/YYYY/MM/DD/filename.sql.gz
-          S3_PATH="s3://${BACKUP_BUCKET}/backups/$(date +%Y/%m/%d)/${BACKUP_FILE_GZ}"
-
-          aws s3 cp "${BACKUP_FILE_GZ}" "$S3_PATH" \
-            --tagging "environment=production&type=database-backup&retention-years=7&fda-compliant=true" \
-            --metadata "git-sha=${{ github.sha }},deployer=${{ github.actor }},timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-          echo "✅ Backup created and uploaded to S3"
-          echo "backup_location=$S3_PATH" >> $GITHUB_OUTPUT
-          echo "backup_size=$(stat -f%z "${BACKUP_FILE_GZ}" 2>/dev/null || stat -c%s "${BACKUP_FILE_GZ}")" >> $GITHUB_OUTPUT
-
       - name: Database migration (with rollback plan)
         id: migrate
         run: |
@@ -166,6 +135,47 @@ jobs:
           # Link to Supabase project
           doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID
 
+      - name: Create pre-migration database backup (7-year retention)
+        id: backup
+        run: |
+          echo "Creating production database backup before migration..."
+          BACKUP_FILE="backup-prod-$(date +%Y%m%d-%H%M%S).sql"
+
+          # Use pg_dump with DATABASE_URL from Doppler (Supabase PostgreSQL connection)
+          # This backs up the actual production database, not Supabase config
+          doppler run -- pg_dump "$DATABASE_URL" \
+            --no-owner \
+            --no-acl \
+            --clean \
+            --if-exists \
+            -f "$BACKUP_FILE"
+
+          echo "Backup size: $(du -h "$BACKUP_FILE" | cut -f1)"
+
+          # Compress backup for storage efficiency (~70-90% reduction)
+          gzip "$BACKUP_FILE"
+          BACKUP_FILE_GZ="${BACKUP_FILE}.gz"
+
+          echo "Compressed size: $(du -h "$BACKUP_FILE_GZ" | cut -f1)"
+
+          # Get AWS region and bucket from Doppler
+          AWS_REGION=$(doppler secrets get AWS_REGION --plain || echo "eu-west-1")
+          BACKUP_BUCKET=$(doppler secrets get SPONSOR_BACKUPS_BUCKET --plain || echo "hht-diary-backups-callisto-${AWS_REGION}")
+
+          # Upload to S3 (lifecycle policy transitions to Deep Archive for 7-year retention)
+          # Path structure: backups/YYYY/MM/DD/filename.sql.gz
+          S3_PATH="s3://${BACKUP_BUCKET}/backups/$(date +%Y/%m/%d)/${BACKUP_FILE_GZ}"
+
+          aws s3 cp "${BACKUP_FILE_GZ}" "$S3_PATH" \
+            --tagging "environment=production&type=database-backup&retention-years=7&fda-compliant=true&pre-migration=true" \
+            --metadata "git-sha=${{ github.sha }},deployer=${{ github.actor }},timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ),version=${{ github.event.inputs.version }}"
+
+          echo "✅ Pre-migration backup created and uploaded to S3"
+          echo "backup_location=$S3_PATH" >> $GITHUB_OUTPUT
+          echo "backup_size=$(stat -c%s "${BACKUP_FILE_GZ}")" >> $GITHUB_OUTPUT
+
+      - name: Execute database migration
+        run: |
           # Dry run first
           echo "Running migration dry-run..."
           doppler run -- supabase db push --dry-run
