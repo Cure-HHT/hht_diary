@@ -35,20 +35,56 @@ jobs:
           python3 tools/requirements/validate_requirements.py
           echo "✅ Requirement validation passed"
 
-      - name: Test traceability matrix generation
-        run: |
-          echo "🔍 Testing traceability matrix generation..."
-          python3 tools/requirements/generate_traceability.py --format markdown
-          python3 tools/requirements/generate_traceability.py --format html
-          echo "✅ Traceability matrix generation passed"
+      # Phase 4: Multi-sponsor traceability matrix generation
+      # Generates combined (all sponsors) + per-sponsor reports
+      # Output structure: build-reports/{combined|sponsor-name}/traceability/
 
-      - name: Upload traceability artifacts
+      - name: Generate combined traceability matrix (Markdown)
+        run: |
+          echo "🔍 Testing combined traceability matrix generation (Markdown)..."
+          python3 tools/requirements/generate_traceability.py \
+            --mode combined \
+            --format markdown \
+            --output-dir build-reports/combined/traceability
+          echo "✅ Combined traceability matrix (Markdown) generated"
+
+      - name: Generate combined traceability matrix (HTML)
+        run: |
+          echo "🔍 Testing combined traceability matrix generation (HTML)..."
+          python3 tools/requirements/generate_traceability.py \
+            --mode combined \
+            --format html \
+            --output-dir build-reports/combined/traceability
+          echo "✅ Combined traceability matrix (HTML) generated"
+
+      - name: Generate per-sponsor traceability matrices
+        run: |
+          echo "🔍 Testing sponsor-specific traceability matrix generation..."
+          # Get sponsor list from Doppler/environment
+          # TODO: Pull from Doppler when available, hardcoded for now
+          SPONSORS="callisto titan"
+          for sponsor in $SPONSORS; do
+            echo "Generating traceability for sponsor: $sponsor"
+            python3 tools/requirements/generate_traceability.py \
+              --mode sponsor \
+              --sponsor $sponsor \
+              --format markdown \
+              --output-dir build-reports/$sponsor/traceability
+            python3 tools/requirements/generate_traceability.py \
+              --mode sponsor \
+              --sponsor $sponsor \
+              --format html \
+              --output-dir build-reports/$sponsor/traceability
+          done
+          echo "✅ Sponsor-specific traceability matrices generated"
+
+      - name: Upload build reports as artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: traceability-matrix
-          path: |
-            traceability_matrix.md
-            traceability_matrix.html
+          name: build-reports-${{ github.sha }}
+          path: build-reports/
+          retention-days: 90
 
   test-linear-cli-tools:
     runs-on: ubuntu-latest
