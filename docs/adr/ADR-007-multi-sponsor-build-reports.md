@@ -63,7 +63,7 @@ build-reports/
 
 **Version Control Strategy**:
 - **Tracked in git**: Directory structure, README files, .gitkeep files, templates/
-- **NOT tracked in git**: Generated reports (*.md, *.json, *.html in sponsor subdirectories)
+- **NOT tracked in git**: Generated reports (`*.md`, `*.json`, `*.html` in sponsor subdirectories)
 - **Reason**: Generated reports are artifacts, not source code; they would create massive commit noise
 
 **Generation and Storage**:
