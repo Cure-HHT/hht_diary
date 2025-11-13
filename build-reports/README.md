@@ -6,6 +6,10 @@ This directory contains auto-generated build and validation reports for the Clin
 
 ```
 build-reports/
+├── templates/          # Template files showing expected format for test results
+│   ├── README.md       # Documentation for template usage
+│   ├── jenkins/        # JUnit XML format templates
+│   └── requirement_test_mapping.template.json
 ├── combined/           # Aggregated reports across all sponsors
 │   ├── traceability/   # Requirement-to-code traceability reports
 │   ├── test-results/   # Combined test execution results
@@ -21,6 +25,14 @@ build-reports/
 ```
 
 ## Report Categories
+
+### Templates
+The `templates/` subdirectory contains reference templates showing the expected format for test results and requirement-test mappings. These are NOT actual test results, but serve as:
+- Documentation of expected file formats (JUnit XML, requirement-test mappings)
+- Starting point for implementing test infrastructure
+- Reference for CI/CD pipeline configuration
+
+See `templates/README.md` for detailed documentation on template usage and test integration.
 
 ### Traceability Reports
 - Requirement-to-code mapping (REQ-xxxxx to source files)

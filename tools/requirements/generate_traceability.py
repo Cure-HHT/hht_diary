@@ -1275,7 +1275,7 @@ def main():
     parser.add_argument(
         '--test-mapping',
         type=Path,
-        help='Path to requirement-test mapping JSON file (default: test_results/requirement_test_mapping.json)'
+        help='Path to requirement-test mapping JSON file (default: build-reports/templates/requirement_test_mapping.template.json)'
     )
 
     args = parser.parse_args()
@@ -1293,8 +1293,8 @@ def main():
     if args.test_mapping:
         test_mapping_file = args.test_mapping
     else:
-        # Default location
-        test_mapping_file = repo_root / 'test_results' / 'requirement_test_mapping.json'
+        # Default location (template file for reference)
+        test_mapping_file = repo_root / 'build-reports' / 'templates' / 'requirement_test_mapping.template.json'
 
     # Collect implementation directories to scan
     impl_dirs = []

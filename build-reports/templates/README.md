@@ -1,33 +1,64 @@
-# Test Results Integration
+# Test Results Templates
 
-This directory contains test results and mappings for requirement traceability.
+**WARNING: TEMPLATES - NOT ACTUAL TEST RESULTS**
+
+This directory (`build-reports/templates/`) contains **TEMPLATE FILES** showing the expected format for test results and requirement-test mappings. These are NOT actual test results.
+
+**Actual test results** are generated during CI/CD builds and written to:
+```
+build-reports/{sponsor}/test-results/
+```
+
+## Purpose
+
+These templates demonstrate:
+1. The expected structure of test result files (JUnit XML format)
+2. The format for mapping requirements to test cases
+3. How test results integrate with the traceability matrix
+4. What actual test data should look like when implemented
 
 ## Overview
 
 The traceability matrix can display test coverage and results for each requirement. This provides visibility into which requirements are tested and their current pass/fail status.
 
+When tests are implemented, the CI/CD pipeline will:
+1. Run automated tests and generate JUnit XML results
+2. Discover test-to-requirement mappings from code markers
+3. Copy results to `build-reports/{sponsor}/test-results/`
+4. Generate traceability matrix with test status indicators
+
 ## Directory Structure
 
+### Template Files (This Directory)
 ```
-test_results/
-├── README.md                    # This file
-├── requirement_test_mapping.json # Maps requirements to test cases
-├── jenkins/                     # Jenkins test results (JUnit XML)
-│   ├── latest.xml              # Most recent test run
-│   └── archive/                # Historical test results
+build-reports/templates/                         # TEMPLATES ONLY
+├── README.md                                    # This file
+├── requirement_test_mapping.template.json       # Template: requirement-to-test mapping
+└── jenkins/
+    └── latest.template.xml                      # Template: JUnit XML format
+```
+
+### Actual Test Results (Generated During Builds)
+```
+build-reports/{sponsor}/test-results/            # ACTUAL RESULTS
+├── requirement_test_mapping.json                # Generated from test markers
+├── junit/
+│   ├── latest.xml                              # Most recent test run
+│   └── archive/
 │       ├── 2025-10-25_build-123.xml
 │       └── ...
-└── manual/                      # Manual test results
-    └── manual_test_results.json
+└── manual/
+    └── manual_test_results.json                # Manual test tracking
 ```
 
 ## Test Result Formats
 
 ### 1. JUnit XML (Jenkins Output)
 
-**Location**: `test_results/jenkins/latest.xml`
+**Template**: `build-reports/templates/jenkins/latest.template.xml`
+**Actual Results**: `build-reports/{sponsor}/test-results/junit/latest.xml`
 
-Jenkins generates standard JUnit XML format:
+Jenkins generates standard JUnit XML format. Here's what actual test results will look like:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -47,9 +78,10 @@ Jenkins generates standard JUnit XML format:
 
 ### 2. Requirement-Test Mapping
 
-**Location**: `test_results/requirement_test_mapping.json`
+**Template**: `build-reports/templates/requirement_test_mapping.template.json`
+**Actual Results**: `build-reports/{sponsor}/test-results/requirement_test_mapping.json`
 
-Maps requirements to test cases:
+Maps requirements to test cases. Here's the expected format when tests are implemented:
 
 ```json
 {
@@ -104,9 +136,10 @@ Maps requirements to test cases:
 
 ### 3. Manual Test Results
 
-**Location**: `test_results/manual/manual_test_results.json`
+**Template**: Not yet created (see format below)
+**Actual Results**: `build-reports/{sponsor}/test-results/manual/manual_test_results.json`
 
-For requirements tested manually (UI, usability, compliance):
+For requirements tested manually (UI, usability, compliance). Here's the expected format:
 
 ```json
 {
@@ -147,11 +180,11 @@ For requirements tested manually (UI, usability, compliance):
 The traceability generator reads these files and displays test status:
 
 ```bash
-# Generate with test results
+# Generate with test results (using actual results, not templates)
 python3 tools/requirements/generate_traceability.py \
   --format html \
-  --test-results test_results/jenkins/latest.xml \
-  --test-mapping test_results/requirement_test_mapping.json
+  --test-results build-reports/{sponsor}/test-results/junit/latest.xml \
+  --test-mapping build-reports/{sponsor}/test-results/requirement_test_mapping.json
 ```
 
 **HTML Output** will show:
@@ -179,11 +212,14 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                // Run tests
-                sh 'pytest --junitxml=test_results/jenkins/latest.xml'
+                // Run tests and generate JUnit XML
+                sh 'pytest --junitxml=build-reports/${SPONSOR}/test-results/junit/latest.xml'
 
-                // Archive results
-                sh 'cp test_results/jenkins/latest.xml test_results/jenkins/archive/$(date +%Y-%m-%d)_build-${BUILD_NUMBER}.xml'
+                // Archive results with timestamp
+                sh 'cp build-reports/${SPONSOR}/test-results/junit/latest.xml build-reports/${SPONSOR}/test-results/junit/archive/$(date +%Y-%m-%d)_build-${BUILD_NUMBER}.xml'
+
+                // Discover test-requirement mappings from code
+                sh 'python3 tools/requirements/discover_test_mappings.py --output build-reports/${SPONSOR}/test-results/requirement_test_mapping.json'
             }
         }
 
@@ -192,8 +228,9 @@ pipeline {
                 sh '''
                     python3 tools/requirements/generate_traceability.py \
                         --format both \
-                        --test-results test_results/jenkins/latest.xml \
-                        --test-mapping test_results/requirement_test_mapping.json
+                        --test-results build-reports/${SPONSOR}/test-results/junit/latest.xml \
+                        --test-mapping build-reports/${SPONSOR}/test-results/requirement_test_mapping.json \
+                        --output build-reports/${SPONSOR}/traceability_matrix.html
                 '''
             }
         }
@@ -202,13 +239,13 @@ pipeline {
             steps {
                 // Publish HTML reports
                 publishHTML([
-                    reportDir: '.',
+                    reportDir: 'build-reports/${SPONSOR}',
                     reportFiles: 'traceability_matrix.html',
                     reportName: 'Traceability Matrix'
                 ])
 
                 // Archive test results
-                junit 'test_results/jenkins/latest.xml'
+                junit 'build-reports/${SPONSOR}/test-results/junit/latest.xml'
             }
         }
     }
@@ -257,18 +294,21 @@ A test discovery script can parse these markers and generate `requirement_test_m
 
 ### Manual Mapping
 
-Edit `requirement_test_mapping.json` directly to link requirements to tests.
+Edit `build-reports/{sponsor}/test-results/requirement_test_mapping.json` directly to link requirements to tests.
 
-### Automated Mapping
+You can use the template at `build-reports/templates/requirement_test_mapping.template.json` as a starting point.
 
-Run test discovery:
+### Automated Mapping (Recommended)
+
+Run test discovery to automatically generate mappings from code markers:
 
 ```bash
 # Discover test-requirement mappings from code
-python3 tools/requirements/discover_test_mappings.py
+python3 tools/requirements/discover_test_mappings.py \
+  --output build-reports/{sponsor}/test-results/requirement_test_mapping.json
 
-# This scans all test files for requirement markers and generates:
-# test_results/requirement_test_mapping.json
+# This scans all test files for requirement markers (e.g., @pytest.mark.requirement("p00001"))
+# and generates the mapping file automatically
 ```
 
 ## Compliance and Validation
@@ -290,17 +330,39 @@ For FDA 21 CFR Part 11 and other compliance frameworks:
 6. **HTML report** shows REQ-p00001 with test status ✅ (2 tests, all passed)
 7. **QA reviews** traceability matrix, identifies untested requirements
 
+## Using These Templates
+
+### For Test Implementation
+
+1. **Review the template files** in this directory to understand expected formats
+2. **Write test code** with requirement markers (see examples above)
+3. **Configure CI/CD** to output results to `build-reports/{sponsor}/test-results/`
+4. **Run test discovery** to generate requirement mappings automatically
+5. **Verify results** match the template structure
+
+### Template Files Reference
+
+| Template File | Purpose | Actual Output Location |
+|--------------|---------|------------------------|
+| `build-reports/templates/requirement_test_mapping.template.json` | Shows mapping format | `build-reports/{sponsor}/test-results/requirement_test_mapping.json` |
+| `build-reports/templates/jenkins/latest.template.xml` | Shows JUnit XML format | `build-reports/{sponsor}/test-results/junit/latest.xml` |
+
 ## Current Status
 
-**Status**: Not yet implemented (all requirements show as "not tested")
+**Status**: Phase 2 - Templates Created
 
-When tests are added:
-1. Create test files with requirement markers
-2. Run test discovery to generate mapping
-3. Configure Jenkins to output JUnit XML
-4. Regenerate traceability matrix with test results
+- Template files demonstrate expected formats
+- Actual test infrastructure not yet deployed
+- Test discovery tool (`discover_test_mappings.py`) to be implemented
+- CI/CD integration pending
+
+**Next Steps**:
+1. Implement test discovery tool
+2. Create test files with requirement markers
+3. Configure Jenkins pipeline to use `build-reports/{sponsor}/test-results/`
+4. Integrate test results with traceability matrix generation
 
 ---
 
-**Last Updated**: 2025-10-25
-**Integration Status**: Pending (test infrastructure not yet deployed)
+**Last Updated**: 2025-11-12
+**Status**: Templates ready for Phase 2 implementation
