@@ -1471,10 +1471,10 @@ def main():
         output_dir = args.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
         if args.format == 'both':
-            output_file = output_dir / 'matrix.md'
+            output_file = output_dir / 'traceability_matrix.md'
         else:
             ext = '.html' if args.format == 'html' else ('.csv' if args.format == 'csv' else '.md')
-            output_file = output_dir / f'matrix{ext}'
+            output_file = output_dir / f'traceability_matrix{ext}'
     else:
         # Use default output path based on mode
         if args.mode == 'core':
@@ -1487,10 +1487,10 @@ def main():
         output_dir.mkdir(parents=True, exist_ok=True)
 
         if args.format == 'both':
-            output_file = output_dir / 'matrix.md'
+            output_file = output_dir / 'traceability_matrix.md'
         else:
             ext = '.html' if args.format == 'html' else ('.csv' if args.format == 'csv' else '.md')
-            output_file = output_dir / f'matrix{ext}'
+            output_file = output_dir / f'traceability_matrix{ext}'
 
     # Handle 'both' format option
     if args.format == 'both':
