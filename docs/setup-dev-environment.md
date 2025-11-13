@@ -6,8 +6,10 @@
 **Status**: Active
 
 **IMPLEMENTS REQUIREMENTS**:
-- REQ-d00027: Development Environment and Tooling Setup
-- REQ-o00017: Development Workflow Configuration
+- REQ-d00027: Containerized Development Environments
+- REQ-d00055: Role-Based Environment Separation
+- REQ-d00058: Secrets Management via Doppler
+- REQ-d00060: VS Code Dev Containers Integration
 
 ---
 
@@ -21,7 +23,39 @@ This guide provides comprehensive setup instructions for the Clinical Trial Diar
 
 ## 1. Prerequisites
 
-### 1.1 Required Software
+### 1.1 Development Environment Options
+
+This project supports two development approaches:
+
+1. **Docker-based Development** (Recommended): Role-separated containers with consistent tooling
+2. **Local Development**: Direct installation on your machine
+
+**Docker-based development** is recommended for:
+- Consistent environments across team
+- FDA validation requirements
+- Role-based access control (Developer, QA, DevOps, Management)
+- Quick onboarding (5 minutes vs 2 hours)
+
+**Local development** is suitable for:
+- Offline work requirements
+- Specific IDE integrations
+- Custom tooling preferences
+
+### 1.2 Required Software
+
+#### Docker-Based Development
+
+**Required**:
+- **Docker Desktop** (Windows/Mac): https://www.docker.com/products/docker-desktop
+- **Docker Engine** (Linux): https://docs.docker.com/engine/install/
+- **VS Code** (optional, recommended): With Dev Containers extension (ms-vscode-remote.remote-containers)
+
+**Platform-Specific Notes**:
+- **Windows WSL2**: Use WSL2 terminal for better performance. Files in `/home/ubuntu/repos` are faster than Windows filesystem.
+- **macOS Apple Silicon**: Docker Desktop supports ARM64. Some tools may be x86 only (handled automatically).
+- **Linux**: Native Docker performance (fastest), no VM overhead.
+
+#### Local Development
 
 **Core Tools**:
 - **Git**: Version 2.30+ (`git --version`)
@@ -43,7 +77,7 @@ This guide provides comprehensive setup instructions for the Clinical Trial Diar
   ```
 - **Windows**: WSL2 with Ubuntu 22.04+
 
-### 1.2 Required Accounts
+### 1.3 Required Accounts
 
 - **GitHub**: Access to project repository
 - **Linear**: Project management and issue tracking
@@ -54,7 +88,182 @@ This guide provides comprehensive setup instructions for the Clinical Trial Diar
 
 ## 2. Initial Setup
 
-### 2.1 Clone Repository
+### 2.1 Docker-Based Setup (Recommended)
+
+#### Quick Start
+
+```bash
+cd tools/dev-env
+./setup.sh
+```
+
+First run takes 15-30 minutes (downloads and builds images).
+
+#### Roles and Capabilities
+
+| Role | Container | Tools | Use Case |
+|------|-----------|-------|----------|
+| Developer | `dev` | Flutter, Android SDK, Node, Python | Build mobile app |
+| QA | `qa` | Playwright, test frameworks | Run automated tests |
+| DevOps | `ops` | Terraform, Supabase CLI, Cosign, Syft | Deploy infrastructure |
+| Management | `mgmt` | Git (read-only), report viewers | View status |
+
+#### Daily Usage - Method 1: VS Code (Recommended)
+
+1. Open project in VS Code
+2. Press `F1` → "Dev Containers: Reopen in Container"
+3. Select role: Developer, QA, DevOps, or Management
+4. VS Code reopens inside container
+
+#### Daily Usage - Method 2: Command Line
+
+```bash
+# Start container
+docker compose up -d dev
+
+# Enter container
+docker compose exec dev bash
+
+# Stop container
+docker compose stop dev
+```
+
+#### Role Switching
+
+**VS Code**:
+1. `F1` → "Dev Containers: Reopen in Container"
+2. Select different role
+
+**Command Line**:
+```bash
+docker compose stop dev
+docker compose up -d qa
+docker compose exec qa bash
+```
+
+#### Common Docker Commands
+
+```bash
+# Start all containers
+docker compose up -d
+
+# Start specific role
+docker compose up -d dev
+
+# Enter container
+docker compose exec dev bash
+
+# View logs
+docker compose logs dev
+
+# Stop all containers
+docker compose down
+
+# Rebuild images
+./setup.sh --rebuild
+
+# Run validation
+./validate-environment.sh --full
+```
+
+#### Secrets Management (Doppler)
+
+Inside any container:
+
+```bash
+# One-time setup
+doppler login
+doppler setup --project clinical-diary-dev --config dev
+
+# Use secrets with commands
+doppler run -- gh auth login
+doppler run -- flutter build
+
+# Or get shell with secrets
+doppler run -- bash
+```
+
+#### File System Structure
+
+**Host Machine**:
+```
+tools/dev-env/
+├── docker/               # Dockerfiles
+├── docker-compose.yml    # Container orchestration
+├── setup.sh              # Setup script
+└── README.md             # Quick reference (redirects to this doc)
+```
+
+**Inside Containers**:
+```
+/workspace/
+├── repos/                # Git repositories (persisted)
+├── exchange/             # Share files between roles
+├── src/                  # Source code (bind mount)
+└── reports/              # Test reports (QA only)
+```
+
+**Named Volumes (Persist Data)**:
+- `clinical-diary-repos` - Git repositories
+- `clinical-diary-exchange` - File sharing
+- `qa-reports` - Test reports
+
+**Bind Mounts (Direct Access)**:
+- `/workspace/src` → Project root
+- `/home/ubuntu/.ssh` → Your SSH keys (read-only)
+- `/home/ubuntu/.gitconfig.host` → Your git config (read-only)
+
+#### Git Configuration in Containers
+
+Each role has a default identity:
+- dev: "Developer <dev@clinical-diary.local>"
+- qa: "QA Automation Bot <qa@clinical-diary.local>"
+- ops: "DevOps Engineer <ops@clinical-diary.local>"
+- mgmt: "Manager <mgmt@clinical-diary.local>"
+
+To use your personal identity:
+```bash
+git config --global include.path /home/ubuntu/.gitconfig.host
+```
+
+#### Health Checks
+
+```bash
+# Check container status
+docker compose ps
+
+# Run health check manually
+docker compose exec dev /usr/local/bin/health-check.sh
+```
+
+#### Cleanup
+
+```bash
+# Stop containers (data persists)
+docker compose down
+
+# Remove containers and volumes (⚠️ data loss)
+docker compose down -v
+
+# Remove unused images
+docker image prune -a
+```
+
+#### CI/CD Integration
+
+GitHub Actions workflows use these same Docker images:
+- `.github/workflows/qa-automation.yml` - Automated testing
+- `.github/workflows/build-publish-images.yml` - Image builds
+
+**See**:
+- [Development Environment Architecture](/home/mclew/dev24/diary-worktrees/clean-docs/docs/setup-dev-environment-architecture.md)
+- [Dev Environment Maintenance](/home/mclew/dev24/diary-worktrees/clean-docs/docs/ops-dev-environment-maintenance.md)
+
+---
+
+### 2.2 Local Development Setup
+
+#### Clone Repository
 
 ```bash
 # Clone the repository
@@ -72,7 +281,7 @@ git config core.hooksPath .githooks
 
 ---
 
-### 2.2 Install Node.js via nvm
+#### Install Node.js via nvm
 
 ```bash
 # Install nvm
@@ -96,7 +305,7 @@ npm --version   # Should show 9.x.x or higher
 
 ---
 
-### 2.3 Install Python Dependencies
+#### Install Python Dependencies
 
 ```bash
 # Ensure Python 3.10+ is installed
@@ -515,7 +724,97 @@ Access via: https://app.supabase.com/project/YOUR_PROJECT_ID/editor
 
 ## 7. Troubleshooting
 
-### 7.1 Git Hooks Not Running
+### 7.1 Docker-Specific Issues
+
+#### Docker Daemon Not Running
+
+**Problem**: Docker commands return "Cannot connect to Docker daemon".
+
+**Solution**:
+```bash
+# Windows/Mac: Open Docker Desktop
+
+# Linux:
+sudo systemctl start docker
+sudo systemctl enable docker  # Start on boot
+```
+
+---
+
+#### Permission Denied (Linux Only)
+
+**Problem**: "Permission denied" when running Docker commands.
+
+**Solution**:
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Apply group changes without logout
+newgrp docker
+
+# Verify
+docker ps
+```
+
+---
+
+#### Image Build Fails
+
+**Problem**: Docker build fails with errors.
+
+**Solution**:
+```bash
+# Clear Docker build cache
+docker builder prune
+
+# Rebuild from scratch
+cd tools/dev-env
+./setup.sh --rebuild
+```
+
+---
+
+#### Container Won't Start
+
+**Problem**: Container fails to start or immediately exits.
+
+**Solution**:
+```bash
+# Check logs for errors
+docker compose logs dev
+
+# Remove and recreate container
+docker compose down
+docker compose up -d dev
+
+# Check container status
+docker compose ps
+```
+
+---
+
+#### Flutter Command Not Found in Container
+
+**Problem**: Flutter command not working inside container.
+
+**Solution**:
+You're in the wrong container. Flutter is only in `dev` and `qa` containers.
+
+```bash
+# Check which container you're in
+docker compose exec dev flutter --version  # Should work
+docker compose exec ops flutter --version  # Won't work
+
+# Switch to dev container
+docker compose stop ops
+docker compose up -d dev
+docker compose exec dev bash
+```
+
+---
+
+### 7.2 Git Hooks Not Running
 
 **Problem**: Pre-commit hook doesn't run.
 
@@ -533,7 +832,7 @@ chmod +x .githooks/pre-commit
 
 ---
 
-### 7.2 Node.js Command Not Found
+### 7.3 Node.js Command Not Found
 
 **Problem**: `node` or `npm` commands not found.
 
@@ -551,7 +850,7 @@ source ~/.bashrc
 
 ---
 
-### 7.3 Linear API Token Not Working
+### 7.4 Linear API Token Not Working
 
 **Problem**: Linear CLI tools return authentication errors.
 
@@ -574,7 +873,7 @@ node fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json
 
 ---
 
-### 7.4 Requirement Validation Fails
+### 7.5 Requirement Validation Fails
 
 **Problem**: Pre-commit hook blocks commit due to validation errors.
 
@@ -603,7 +902,7 @@ git commit
 
 ---
 
-### 7.5 Claude Code Not Responding
+### 7.6 Claude Code Not Responding
 
 **Problem**: Claude Code extension not working or slow.
 
@@ -677,6 +976,34 @@ git commit
 ---
 
 ## 10. Onboarding Checklist
+
+### Docker-Based Development (Recommended)
+
+**New Developer Onboarding**:
+- [ ] Access granted: GitHub, Linear, Supabase, Doppler
+- [ ] Docker Desktop installed and running
+- [ ] Repository cloned
+- [ ] Docker environment built (`cd tools/dev-env && ./setup.sh`)
+- [ ] Docker environment validated (`./validate-environment.sh --full`)
+- [ ] VS Code with Dev Containers extension (optional)
+- [ ] Successfully entered dev container (via VS Code or `docker compose exec dev bash`)
+- [ ] Doppler configured inside container (`doppler login && doppler setup`)
+- [ ] Git hooks configured and tested
+- [ ] Claude Code extension installed and authenticated (if using VS Code)
+- [ ] Requirement validation tested (runs without errors)
+- [ ] Sample feature branch created and tested
+- [ ] Pre-commit hook tested (blocks invalid commits)
+- [ ] Read project documentation: README.md, CLAUDE.md, spec/README.md
+- [ ] Understand requirement traceability workflow
+- [ ] First ticket assigned and implemented
+- [ ] Code reviewed by team member
+- [ ] PR created and merged
+
+**Estimated completion time**: 1-2 hours (spread over 1 day)
+
+---
+
+### Local Development
 
 **New Developer Onboarding**:
 - [ ] Access granted: GitHub, Linear, Supabase, Doppler

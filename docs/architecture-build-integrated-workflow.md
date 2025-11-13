@@ -6,6 +6,9 @@ Comprehensive guide for the multi-sponsor integrated build workflow.
 - REQ-d00071: Integrated build workflow
 - REQ-d00070: Sponsor integration automation
 - REQ-o00016: FDA compliance archival
+- REQ-o00043: Automated Deployment Pipeline
+- REQ-o00049: Artifact Retention and Archival
+- REQ-p00012: Clinical Data Retention Requirements
 
 ## Overview
 

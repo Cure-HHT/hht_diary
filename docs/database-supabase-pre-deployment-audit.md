@@ -11,6 +11,9 @@
 - REQ-p00010: FDA 21 CFR Part 11 Compliance
 - REQ-p00015: Database-Level Access Enforcement
 - REQ-p00017: Data Encryption
+- REQ-p00011: ALCOA+ Data Integrity Principles
+- REQ-o00005: Audit Trail Monitoring
+- REQ-p00004: Immutable Audit Trail via Event Sourcing
 
 ---
 

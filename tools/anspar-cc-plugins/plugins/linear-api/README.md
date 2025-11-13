@@ -559,6 +559,10 @@ The plugin uses the following Linear GraphQL operations:
 
 For full API documentation, see: https://developers.linear.app/docs
 
+## Security
+
+For best practices on managing Linear API tokens securely, see [Secret Management Guide](../../../../docs/security-secret-management.md).
+
 ## Troubleshooting
 
 ### Token Issues

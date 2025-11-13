@@ -11,6 +11,15 @@ The Anspar Simple Requirements plugin provides comprehensive requirement managem
 
 This plugin provides **git hook integration** for validation and **automated change tracking** when requirements are modified.
 
+## Prerequisites
+
+See the following guides for setup requirements:
+- [Development Prerequisites](../../../../docs/development-prerequisites.md) - Required tools and installation
+- [Git Hooks Setup](../../../../docs/git-hooks-setup.md) - Configuring project git hooks
+- [Secret Management](../../../../docs/security-secret-management.md) - API tokens and credentials
+
+For requirement format details, see [spec/README.md](../../../../spec/README.md).
+
 **Key Features**:
 - ✅ **Validation**: Format, uniqueness, and link validation before commits
 - ✅ **Change Detection**: Automatic detection of modified requirements
@@ -289,6 +298,8 @@ For detailed workflow documentation, see [TRACKING-WORKFLOW.md](./TRACKING-WORKF
 See [VERIFICATION-GUIDE.md](./VERIFICATION-GUIDE.md) for details.
 
 ## Phase 5: CI/CD Integration
+
+See [CI/CD Setup Guide](../../../../docs/cicd-setup-guide.md) for comprehensive GitHub Actions integration examples.
 
 **Automated verification in GitHub Actions:**
 

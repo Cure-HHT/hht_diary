@@ -527,7 +527,7 @@ To activate monitoring:
    - Access Better Uptime dashboard
    - Access Supabase metrics dashboard
 
-See `infrastructure/ACTIVATION_GUIDE.md` for complete activation procedures.
+See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 ---
 

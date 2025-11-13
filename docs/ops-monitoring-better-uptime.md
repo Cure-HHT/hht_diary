@@ -4,6 +4,10 @@
 **Audience**: Operations team, DevOps engineers
 **Status**: Ready to activate (follow steps when ready)
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-o00046: Uptime Monitoring
+
 ---
 
 ## Overview

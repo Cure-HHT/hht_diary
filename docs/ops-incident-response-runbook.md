@@ -6,6 +6,12 @@
 
 ---
 
+## REFERENCES REQUIREMENTS
+
+- REQ-o00045: Error Tracking and Monitoring
+- REQ-o00046: Uptime Monitoring
+- REQ-o00005: Audit Trail Monitoring
+
 ## Overview
 
 This runbook defines procedures for detecting, responding to, and resolving production incidents in the Clinical Diary application.

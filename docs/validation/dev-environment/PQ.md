@@ -420,10 +420,16 @@ gh run watch
 
 #### Test PQ-3.5: Platform Comparison
 
-**Platforms to Test**:
+**Platforms in use to Test**:
 - Linux (native Docker)
+[ ] in-use 
+[x] not in-use
 - macOS (Docker Desktop)
-- Windows WSL2 (Docker Desktop)
+[ ] in-use 
+[x] not in-use
+-  Windows WSL2 (Docker Desktop)
+[x] in-use 
+[ ] not in-use
 
 **Test Procedure** (repeat on each platform):
 

@@ -8,8 +8,14 @@ at different levels (PRD -> Ops -> Dev).
 Scans both specification files and implementation files:
 - spec/*.md: Requirement definitions
 - database/*.sql: Database implementation
-- diary_app/**/*.dart: Flutter diary app (future)
-- portal_app/**/*.dart: Flutter portal base app (future)
+- apps/**/*.dart: Flutter apps (future)
+- sponsor/{name}/**/*: Sponsor-specific implementations
+
+Multi-Sponsor Support (Phase 3):
+- Core mode: Scan only core directories (exclude /sponsor/)
+- Sponsor mode: Scan specific sponsor + core directories
+- Combined mode: Scan all directories (core + all sponsors)
+- Supports sponsor-specific REQ IDs: REQ-{SPONSOR}-{p|o|d}NNNNN (e.g., REQ-CAL-d00001)
 
 Output formats:
 - HTML: Interactive web page with collapsible hierarchy (enhanced!)
@@ -23,6 +29,7 @@ Features:
 - Status badges (Active/Draft/Deprecated)
 - Implementation file tracking (which files implement which requirements)
 - Markdown source ensures HTML consistency
+- Sponsor-aware directory scanning and filtering
 """
 
 import re
@@ -60,7 +67,9 @@ class Requirement:
 class TraceabilityGenerator:
     """Generates traceability matrices"""
 
-    REQ_HEADER_PATTERN = re.compile(r'^#+\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
+    # Updated to support sponsor-specific REQ IDs: REQ-{SPONSOR}-{p|o|d}NNNNN (e.g., REQ-CAL-d00001)
+    # Also supports core REQ IDs: REQ-{p|o|d}NNNNN (e.g., REQ-d00027)
+    REQ_HEADER_PATTERN = re.compile(r'^#+\s+REQ-(?:([A-Z]+)-)?([pod]\d{5}):\s+(.+)$', re.MULTILINE)
     METADATA_PATTERN = re.compile(
         r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+\*\*Status\*\*:\s+(Active|Draft|Deprecated)',
         re.MULTILINE
@@ -73,12 +82,15 @@ class TraceabilityGenerator:
         'Dev': 'DEV'
     }
 
-    def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None, impl_dirs: Optional[List[Path]] = None):
+    def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None, impl_dirs: Optional[List[Path]] = None,
+                 sponsor: Optional[str] = None, mode: str = 'core'):
         self.spec_dir = spec_dir
         self.requirements: Dict[str, Requirement] = {}
         self.test_mapping_file = test_mapping_file
         self.test_data: Dict[str, TestInfo] = {}
         self.impl_dirs = impl_dirs or []  # Directories containing implementation files
+        self.sponsor = sponsor  # Sponsor name (e.g., 'callisto', 'titan')
+        self.mode = mode  # Report mode: 'core', 'sponsor', 'combined'
 
     def generate(self, format: str = 'markdown', output_file: Path = None):
         """Generate traceability matrix in specified format"""
@@ -138,9 +150,16 @@ class TraceabilityGenerator:
             content = file_path.read_text(encoding='utf-8', errors='ignore')
 
         for match in self.REQ_HEADER_PATTERN.finditer(content):
-            req_id = match.group(1)
-            title = match.group(2).strip()
+            sponsor_prefix = match.group(1)  # May be None for core requirements
+            req_id_core = match.group(2)  # The core part (e.g., 'd00027')
+            title = match.group(3).strip()
             line_num = content[:match.start()].count('\n') + 1
+
+            # Build full requirement ID (with sponsor prefix if present)
+            if sponsor_prefix:
+                req_id = f"{sponsor_prefix}-{req_id_core}"
+            else:
+                req_id = req_id_core
 
             remaining_content = content[match.end():]
             metadata_match = self.METADATA_PATTERN.search(remaining_content[:500])
@@ -176,8 +195,8 @@ class TraceabilityGenerator:
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
         # Pattern to match requirement references in code comments
-        # Matches: REQ-p00001, REQ-o00042, REQ-d00156
-        req_ref_pattern = re.compile(r'REQ-([pod]\d{5})')
+        # Matches: REQ-p00001, REQ-o00042, REQ-d00156, REQ-CAL-d00001
+        req_ref_pattern = re.compile(r'REQ-(?:([A-Z]+)-)?([pod]\d{5})')
 
         total_files_scanned = 0
         total_refs_found = 0
@@ -185,6 +204,11 @@ class TraceabilityGenerator:
         for impl_dir in self.impl_dirs:
             if not impl_dir.exists():
                 print(f"   ⚠️  Implementation directory not found: {impl_dir}")
+                continue
+
+            # Apply mode-based filtering
+            if self._should_skip_directory(impl_dir):
+                print(f"   ⏭️  Skipping directory (mode={self.mode}): {impl_dir}")
                 continue
 
             # Determine file patterns based on directory
@@ -199,6 +223,10 @@ class TraceabilityGenerator:
             for pattern in patterns:
                 for file_path in impl_dir.glob(pattern):
                     if file_path.is_file():
+                        # Skip files in sponsor directories if not in the right mode
+                        if self._should_skip_file(file_path):
+                            continue
+
                         total_files_scanned += 1
                         refs = self._scan_file_for_requirements(file_path, req_ref_pattern)
                         total_refs_found += len(refs)
@@ -219,7 +247,15 @@ class TraceabilityGenerator:
         rel_path = file_path.relative_to(file_path.parent.parent)  # Relative to repo root
 
         for match in pattern.finditer(content):
-            req_id = match.group(1)
+            sponsor_prefix = match.group(1)  # May be None for core requirements
+            req_id_core = match.group(2)  # The core part (e.g., 'd00027')
+
+            # Build full requirement ID (with sponsor prefix if present)
+            if sponsor_prefix:
+                req_id = f"{sponsor_prefix}-{req_id_core}"
+            else:
+                req_id = req_id_core
+
             referenced_reqs.add(req_id)
 
             # Calculate line number from match position
@@ -233,6 +269,51 @@ class TraceabilityGenerator:
                     self.requirements[req_id].implementation_files.append(impl_entry)
 
         return referenced_reqs
+
+    def _should_skip_directory(self, dir_path: Path) -> bool:
+        """Check if a directory should be skipped based on mode"""
+        # Check if directory is under /sponsor/
+        try:
+            # Try to get relative path from repo root
+            parts = dir_path.parts
+            if 'sponsor' in parts:
+                sponsor_idx = parts.index('sponsor')
+                if sponsor_idx + 1 < len(parts):
+                    dir_sponsor = parts[sponsor_idx + 1]
+
+                    # In core mode, skip all sponsor directories
+                    if self.mode == 'core':
+                        return True
+
+                    # In sponsor mode, skip sponsor directories that don't match our sponsor
+                    if self.mode == 'sponsor' and self.sponsor and dir_sponsor != self.sponsor:
+                        return True
+
+            return False
+        except (ValueError, IndexError):
+            return False
+
+    def _should_skip_file(self, file_path: Path) -> bool:
+        """Check if a file should be skipped based on mode"""
+        # Check if file is under /sponsor/
+        try:
+            parts = file_path.parts
+            if 'sponsor' in parts:
+                sponsor_idx = parts.index('sponsor')
+                if sponsor_idx + 1 < len(parts):
+                    file_sponsor = parts[sponsor_idx + 1]
+
+                    # In core mode, skip all sponsor files
+                    if self.mode == 'core':
+                        return True
+
+                    # In sponsor mode, skip sponsor files that don't match our sponsor
+                    if self.mode == 'sponsor' and self.sponsor and file_sponsor != self.sponsor:
+                        return True
+
+            return False
+        except (ValueError, IndexError):
+            return False
 
     def _generate_markdown(self) -> str:
         """Generate markdown traceability matrix"""
@@ -1275,10 +1356,31 @@ def main():
     parser.add_argument(
         '--test-mapping',
         type=Path,
-        help='Path to requirement-test mapping JSON file (default: test_results/requirement_test_mapping.json)'
+        help='Path to requirement-test mapping JSON file (default: build-reports/templates/requirement_test_mapping.template.json)'
+    )
+    parser.add_argument(
+        '--sponsor',
+        type=str,
+        help='Sponsor name for sponsor-specific reports (e.g., "callisto", "titan"). Required when --mode is "sponsor"'
+    )
+    parser.add_argument(
+        '--mode',
+        choices=['core', 'sponsor', 'combined'],
+        default='core',
+        help='Report mode: "core" (exclude sponsor code), "sponsor" (specific sponsor + core), "combined" (all code)'
+    )
+    parser.add_argument(
+        '--output-dir',
+        type=Path,
+        help='Output directory path (overrides default based on mode)'
     )
 
     args = parser.parse_args()
+
+    # Validate sponsor argument
+    if args.mode == 'sponsor' and not args.sponsor:
+        print("Error: --sponsor is required when --mode is 'sponsor'")
+        sys.exit(1)
 
     # Find spec directory
     script_dir = Path(__file__).parent
@@ -1293,43 +1395,115 @@ def main():
     if args.test_mapping:
         test_mapping_file = args.test_mapping
     else:
-        # Default location
-        test_mapping_file = repo_root / 'test_results' / 'requirement_test_mapping.json'
+        # Default location (template file for reference)
+        test_mapping_file = repo_root / 'build-reports' / 'templates' / 'requirement_test_mapping.template.json'
 
-    # Collect implementation directories to scan
+    # Collect implementation directories to scan based on mode
     impl_dirs = []
 
-    # Always scan database directory if it exists
-    database_dir = repo_root / 'database'
-    if database_dir.exists():
-        impl_dirs.append(database_dir)
+    if args.mode == 'core':
+        # Core mode: scan core directories only (exclude /sponsor/)
+        print(f"Mode: CORE - scanning core directories only")
+        database_dir = repo_root / 'database'
+        if database_dir.exists():
+            impl_dirs.append(database_dir)
 
-    # Scan Flutter diary app if it exists (future)
-    diary_app_dir = repo_root / 'diary_app'
-    if diary_app_dir.exists():
-        impl_dirs.append(diary_app_dir)
+        # Scan apps directory if it exists
+        apps_dir = repo_root / 'apps'
+        if apps_dir.exists():
+            impl_dirs.append(apps_dir)
 
-    # Scan Flutter portal app if it exists (future)
-    portal_app_dir = repo_root / 'portal_app'
-    if portal_app_dir.exists():
-        impl_dirs.append(portal_app_dir)
+    elif args.mode == 'sponsor':
+        # Sponsor mode: scan specific sponsor + core directories
+        print(f"Mode: SPONSOR ({args.sponsor}) - scanning sponsor + core directories")
 
-    generator = TraceabilityGenerator(spec_dir, test_mapping_file=test_mapping_file, impl_dirs=impl_dirs)
+        # Add sponsor directory
+        sponsor_dir = repo_root / 'sponsor' / args.sponsor
+        if not sponsor_dir.exists():
+            print(f"Warning: Sponsor directory not found: {sponsor_dir}")
+        else:
+            impl_dirs.append(sponsor_dir)
+
+        # Also scan core directories
+        database_dir = repo_root / 'database'
+        if database_dir.exists():
+            impl_dirs.append(database_dir)
+
+        apps_dir = repo_root / 'apps'
+        if apps_dir.exists():
+            impl_dirs.append(apps_dir)
+
+    elif args.mode == 'combined':
+        # Combined mode: scan ALL directories (core + all sponsors)
+        print(f"Mode: COMBINED - scanning all directories")
+
+        # Add core directories
+        database_dir = repo_root / 'database'
+        if database_dir.exists():
+            impl_dirs.append(database_dir)
+
+        apps_dir = repo_root / 'apps'
+        if apps_dir.exists():
+            impl_dirs.append(apps_dir)
+
+        # Add all sponsor directories
+        sponsor_root = repo_root / 'sponsor'
+        if sponsor_root.exists():
+            for sponsor_dir in sponsor_root.iterdir():
+                if sponsor_dir.is_dir() and not sponsor_dir.name.startswith('.'):
+                    impl_dirs.append(sponsor_dir)
+                    print(f"   Including sponsor: {sponsor_dir.name}")
+
+    generator = TraceabilityGenerator(
+        spec_dir,
+        test_mapping_file=test_mapping_file,
+        impl_dirs=impl_dirs,
+        sponsor=args.sponsor,
+        mode=args.mode
+    )
+
+    # Determine output path based on --output-dir, --output, or defaults
+    if args.output:
+        # Explicit output file specified
+        output_file = args.output
+    elif args.output_dir:
+        # Output directory specified - construct filename
+        output_dir = args.output_dir
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if args.format == 'both':
+            output_file = output_dir / 'traceability_matrix.md'
+        else:
+            ext = '.html' if args.format == 'html' else ('.csv' if args.format == 'csv' else '.md')
+            output_file = output_dir / f'traceability_matrix{ext}'
+    else:
+        # Use default output path based on mode
+        if args.mode == 'core':
+            output_dir = repo_root / 'build-reports' / 'combined' / 'traceability'
+        elif args.mode == 'sponsor':
+            output_dir = repo_root / 'build-reports' / args.sponsor / 'traceability'
+        elif args.mode == 'combined':
+            output_dir = repo_root / 'build-reports' / 'combined' / 'traceability'
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        if args.format == 'both':
+            output_file = output_dir / 'traceability_matrix.md'
+        else:
+            ext = '.html' if args.format == 'html' else ('.csv' if args.format == 'csv' else '.md')
+            output_file = output_dir / f'traceability_matrix{ext}'
 
     # Handle 'both' format option
     if args.format == 'both':
-        print("📊 Generating both Markdown and HTML formats...")
+        print("Generating both Markdown and HTML formats...")
         # Generate markdown
-        md_output = args.output if args.output else Path('traceability_matrix.md')
-        if md_output.suffix != '.md':
-            md_output = md_output.with_suffix('.md')
+        md_output = output_file if output_file.suffix == '.md' else output_file.with_suffix('.md')
         generator.generate(format='markdown', output_file=md_output)
 
         # Generate HTML
         html_output = md_output.with_suffix('.html')
         generator.generate(format='html', output_file=html_output)
     else:
-        generator.generate(format=args.format, output_file=args.output)
+        generator.generate(format=args.format, output_file=output_file)
 
 
 if __name__ == '__main__':

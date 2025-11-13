@@ -5,6 +5,12 @@
 **Audience**: DevOps, Sponsors
 **Purpose**: Migration guide for environment-aware S3 archival system
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-o00050: Environment Parity and Separation
+- REQ-o00049: Artifact Retention and Archival
+- REQ-o00041: Infrastructure as Code for Cloud Resources
+
 ---
 
 ## Overview

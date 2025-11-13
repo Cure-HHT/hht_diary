@@ -124,6 +124,8 @@ curl -Ls --tlsv1.2 --proto "=https" https://cli.doppler.com/install.sh | sudo sh
 
 ## CI/CD Integration
 
+For comprehensive CI/CD integration examples and GitHub Actions workflows, see [CI/CD Setup Guide](../../docs/cicd-setup-guide.md).
+
 ### GitHub Actions Example
 
 ```yaml

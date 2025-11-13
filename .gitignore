@@ -1,3 +1,8 @@
+# =====================================
+# GENERIC
+# =====================================
+
+
 # Database connection files
 .env
 .env.local
@@ -18,6 +23,7 @@
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/permissions-registry.json
 
 # Logs
 *.log
@@ -41,50 +47,6 @@ Thumbs.db
 .Thumbs.db
 desktop.ini
 
-# Untracked notes and scratch files
-/untracked-notes/
-
-# Auto-generated build artifacts (regenerate via tools/requirements/)
-traceability_matrix.md
-traceability_matrix.html
-validation-reports/
-
-# Planning documents (local use only)
-NEXT_STEPS_OPTIONS.md
-
-# =====================================
-# SPONSOR ISOLATION (CRITICAL!)
-# =====================================
-# Ignore ALL sponsor directories by default to prevent accidental commits
-# of locally cloned sponsor repos to core repo
-sponsor/*/
-
-# Exception: Track template and active sponsors in monorepo
-# NOTE: When migrating sponsors to separate repos, remove from whitelist
-!sponsor/template/
-!sponsor/callisto/
-
-# =====================================
-# SPONSOR-SPECIFIC SECRETS (CRITICAL!)
-# =====================================
-# Sponsor configuration secrets
-sponsor/*/config/*.env
-sponsor/*/config/supabase.env
-sponsor/*/config/secrets.*
-sponsor/*/config/.env*
-sponsor/*/.env*
-
-# Sponsor credentials and keys
-sponsor/*/config/*.key
-sponsor/*/config/*.pem
-sponsor/*/config/credentials.*
-
-# Sponsor build outputs (local testing)
-sponsor/*/build/
-sponsor/*/.dart_tool/
-sponsor/*/.flutter-plugins
-sponsor/*/.flutter-plugins-dependencies
-
 # =====================================
 # BUILD ARTIFACTS
 # =====================================
@@ -99,6 +61,15 @@ build/
 .pub-cache/
 .pub/
 flutter_*.log
+
+# Build and validation reports (auto-generated)
+# Ignore all files in build-reports and subdirectories
+build-reports/**/*
+# Exception: Keep documentation and directory structure markers
+!build-reports/README.md
+!build-reports/.gitkeep
+!build-reports/**/
+!build-reports/**/.gitkeep
 
 # iOS
 *.ipa
@@ -131,8 +102,8 @@ local.properties
 # =====================================
 # NODE MODULES (for Edge Functions)
 # =====================================
+# We use npm: so that *is* tracked.
 node_modules/
-package-lock.json
 yarn.lock
 
 # =====================================
@@ -147,13 +118,48 @@ ENV/
 env/
 
 # =====================================
-# TESTING
 # =====================================
-coverage/
-test_results/
-*.lcov
-# Linear API cache
-tools/anspar-cc-plugins/plugins/linear-api/.cache/
-# Requirement-ticket mapping cache (requirement-traceability plugin)
-.requirement-cache.json
-.claude/permissions-registry.json
+#          PROJECT SPECIFIC           #
+# =====================================
+# =====================================
+
+# =====================================
+# Untracked notes and scratch files
+/untracked-notes/
+
+# =====================================
+# SPONSOR ISOLATION (CRITICAL!)
+# =====================================
+# Ignore ALL sponsor directories by default to prevent accidental commits
+# of locally cloned sponsor repos to core repo
+sponsor/*/
+
+# Exception: Track template 
+!sponsor/template/
+
+# **NOTE** 
+# Temporarily tracking single sponsor in monorepo.
+# Remove this when migrated to separat sponsor repos
+!sponsor/callisto/
+
+# =====================================
+# SPONSOR-SPECIFIC SECRETS (CRITICAL!)
+# =====================================
+# Sponsor configuration secrets
+sponsor/*/config/*.env
+sponsor/*/config/supabase.env
+sponsor/*/config/secrets.*
+sponsor/*/config/.env*
+sponsor/*/.env*
+
+# Sponsor credentials and keys
+sponsor/*/config/*.key
+sponsor/*/config/*.pem
+sponsor/*/config/credentials.*
+
+# Sponsor build outputs (local testing)
+sponsor/*/build/
+sponsor/*/.dart_tool/
+sponsor/*/.flutter-plugins
+sponsor/*/.flutter-plugins-dependencies
+

@@ -4,6 +4,12 @@
 
 This plugin maintains bidirectional traceability between formal requirements in `spec/` files and Linear tickets (CUR-*, ENG-*, OPS-*), ensuring compliance with 21 CFR Part 11 requirements for requirement traceability.
 
+## Prerequisites
+
+- [Development Prerequisites](../../../../docs/development-prerequisites.md) - Required tools (jq, Node.js)
+- [Linear API Configuration](../linear-api/README.md) - Setting up Linear API access
+- [Git Workflow](../../../../docs/git-workflow.md) - Understanding requirement references in commits
+
 ## Purpose
 
 In FDA-regulated software development, every feature must be traceable to a formal requirement. This plugin:

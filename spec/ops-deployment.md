@@ -910,6 +910,225 @@ netlify domains:add orion-portal.clinicaldiary.com
 
 ---
 
+## Build Reports and Traceability
+
+### Multi-Sponsor Build Reports Architecture
+
+All build and validation reports are centralized in the `build-reports/` directory with per-sponsor isolation. This architecture supports FDA 21 CFR Part 11 compliance requirements for complete traceability and 7-year retention.
+
+**See**: [ADR-007: Multi-Sponsor Build Reports Architecture](../docs/adr/ADR-007-multi-sponsor-build-reports.md) for complete architectural decision rationale.
+
+### Directory Structure
+
+```
+build-reports/
+├── README.md              # Documentation
+├── templates/            # Template files (version controlled)
+│   ├── jenkins/          # JUnit XML format templates
+│   └── requirement_test_mapping.template.json
+├── combined/             # Cross-sponsor aggregated reports
+│   ├── traceability/     # Combined requirement traceability
+│   ├── test-results/     # Aggregated test results
+│   └── validation/       # Cross-sponsor validation
+├── callisto/             # Callisto sponsor reports
+│   ├── traceability/
+│   ├── test-results/
+│   └── validation/
+└── titan/                # Titan sponsor reports
+    ├── traceability/
+    ├── test-results/
+    └── validation/
+```
+
+### Report Categories
+
+**Traceability Reports**:
+- Requirement-to-code mapping (REQ-xxxxx to source files)
+- Test coverage by requirement
+- Compliance validation matrices
+- Generated from git history and source annotations
+
+**Test Results**:
+- Unit test execution results (JUnit XML format)
+- Integration test results
+- End-to-end test results
+- Test coverage reports (line, branch, function coverage)
+
+**Validation Reports**:
+- Spec compliance validation (spec/ directory structure)
+- Git hook validation (requirement traceability enforcement)
+- FDA 21 CFR Part 11 compliance checks
+- ALCOA+ principles validation
+
+### CI/CD Report Generation
+
+Reports are automatically generated during:
+
+**Pull Request Validation**:
+```yaml
+# In GitHub Actions workflow
+- name: Generate Validation Reports
+  run: |
+    python3 tools/requirements/validate_requirements.py \
+      --output build-reports/combined/validation/
+    python3 tools/requirements/generate_traceability.py \
+      --output build-reports/combined/traceability/
+```
+
+**Main Branch Builds**:
+- Full test suite execution
+- Comprehensive traceability matrix
+- Per-sponsor report generation
+
+**Release Builds**:
+- Complete validation bundle
+- Archival package creation
+- S3 upload for long-term retention
+
+### S3 Archival
+
+Long-term archival follows FDA 21 CFR Part 11 requirements (7-year minimum retention):
+
+**S3 Structure**:
+```
+s3://clinical-diary-build-reports/
+├── core/
+│   └── {git-tag}/              # e.g., v2025.11.12.a
+│       └── {timestamp}/        # e.g., 20251112-143022
+│           ├── combined/
+│           │   ├── traceability/
+│           │   ├── test-results/
+│           │   └── validation/
+│           ├── callisto/
+│           └── titan/
+└── sponsors/
+    ├── callisto/
+    │   └── {git-tag}/
+    └── titan/
+        └── {git-tag}/
+```
+
+**Upload Command**:
+```bash
+# Automated in GitHub Actions
+aws s3 sync build-reports/ \
+  s3://clinical-diary-build-reports/core/${GIT_TAG}/${TIMESTAMP}/ \
+  --metadata "commit-sha=${COMMIT_SHA},build-user=${BUILD_USER}" \
+  --storage-class STANDARD
+```
+
+**Lifecycle Policy**:
+- First 90 days: S3 Standard (fast access)
+- After 90 days: Glacier Deep Archive (long-term retention)
+- Minimum retention: 7 years
+- No automatic deletion
+
+### Access Control
+
+**GitHub Actions Artifacts**:
+- 90-day retention for recent builds
+- Accessible via GitHub Actions UI
+- Requires repository access
+
+**S3 Long-Term Archive**:
+- IAM role-based access
+- Read-only for most users
+- Write access only for CI/CD service accounts
+- Audit logging via AWS CloudTrail
+
+**Access Commands**:
+```bash
+# List recent builds
+aws s3 ls s3://clinical-diary-build-reports/core/
+
+# Download specific report bundle
+aws s3 cp s3://clinical-diary-build-reports/core/v2025.11.12.a/20251112-143022/ \
+  ./reports/ --recursive
+
+# Search for specific requirement traceability
+aws s3 cp s3://clinical-diary-build-reports/core/v2025.11.12.a/20251112-143022/combined/traceability/REQ-p00001.json \
+  ./reports/
+```
+
+### Local Report Generation
+
+Developers can generate reports locally for debugging:
+
+```bash
+# Generate traceability matrix
+python3 tools/requirements/generate_traceability.py \
+  --output build-reports/combined/traceability/
+
+# Run validation checks
+python3 tools/requirements/validate_requirements.py \
+  --output build-reports/combined/validation/
+
+# Generate test coverage report
+flutter test --coverage
+genhtml coverage/lcov.info -o build-reports/combined/test-results/coverage/
+```
+
+**Note**: Locally generated reports are gitignored and not uploaded to S3.
+
+### Tamper Evidence
+
+**Integrity Verification**:
+- Each report includes SHA-256 checksum
+- S3 object versioning enabled
+- Checksums verified on download
+
+**Generate Checksum**:
+```bash
+# During report generation
+sha256sum build-reports/combined/traceability/matrix.json > \
+  build-reports/combined/traceability/matrix.json.sha256
+```
+
+**Verify Checksum**:
+```bash
+# After downloading from S3
+sha256sum -c matrix.json.sha256
+```
+
+### Report Retention Policy
+
+| Location | Retention | Purpose |
+|----------|-----------|---------|
+| **Local (build-reports/)** | Until cleaned | Development/debugging |
+| **GitHub Actions** | 90 days | Recent build validation |
+| **S3 Standard** | 90 days | Fast access to recent reports |
+| **S3 Glacier** | 7+ years | FDA compliance archive |
+
+### Troubleshooting
+
+**Missing Reports**:
+```bash
+# Check if reports generated
+ls -la build-reports/combined/
+
+# Check CI/CD logs for generation failures
+gh run view <run-id> --log
+```
+
+**S3 Access Issues**:
+```bash
+# Verify AWS credentials
+aws sts get-caller-identity
+
+# Check bucket permissions
+aws s3api get-bucket-policy --bucket clinical-diary-build-reports
+
+# List accessible reports
+aws s3 ls s3://clinical-diary-build-reports/core/ --recursive | head -n 20
+```
+
+**Report Format Errors**:
+- Verify generation script versions match expected format
+- Check report metadata for format version
+- Consult build-reports/templates/ for expected structure
+
+---
+
 ## Package Publishing
 
 ### GitHub Package Registry

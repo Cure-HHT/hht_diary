@@ -66,4 +66,4 @@ This validation approach satisfies:
 
 - **FDA Guidance**: [Computerized Systems Used in Clinical Investigations](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/computerized-systems-used-clinical-investigations)
 - **Requirements**: `spec/prd-clinical-trials.md`
-- **Test Infrastructure**: `database/testing/README.md`
+- **Test Infrastructure**: `database/migrations/README.md`

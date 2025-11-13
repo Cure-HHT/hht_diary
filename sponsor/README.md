@@ -234,6 +234,235 @@ flutter test integration_test/
 
 ---
 
+## Sponsor-Specific Build Reports
+
+Each sponsor has dedicated build and validation reports that provide complete traceability for their specific implementation.
+
+### Report Location
+
+Sponsor-specific reports are generated in the centralized `build-reports/` directory:
+
+```
+build-reports/
+├── callisto/             # Callisto sponsor reports
+│   ├── traceability/     # Requirement-to-code mapping for Callisto
+│   ├── test-results/     # Test execution results
+│   └── validation/       # Validation reports
+└── titan/                # Titan sponsor reports
+    ├── traceability/
+    ├── test-results/
+    └── validation/
+```
+
+**See**: `../build-reports/README.md` for complete documentation on report structure and access.
+
+### What Reports Are Available
+
+**Traceability Reports**:
+- Mapping of sponsor requirements to implementation code
+- Test coverage by requirement
+- Compliance validation for sponsor-specific features
+- Generated from git history and source annotations
+
+**Test Results**:
+- Unit test results for sponsor-specific code (`sponsor/{name}/lib/`)
+- Integration test results with sponsor Supabase instance
+- End-to-end test results for sponsor portal
+- Test coverage metrics (line, branch, function)
+
+**Validation Reports**:
+- Sponsor repository structure validation
+- Configuration file validation (portal.yaml, mobile.yaml)
+- Contract test compliance
+- Branding asset validation
+- Security scan results
+
+### Accessing Reports
+
+**Recent Builds (Last 90 Days)**:
+
+GitHub Actions artifacts are available for recent builds:
+
+```bash
+# List recent workflow runs
+gh run list --repo yourorg/clinical-diary
+
+# Download artifacts for specific run
+gh run download <run-id> --name build-reports-callisto
+```
+
+**Historical Reports (7+ Years)**:
+
+Long-term archived reports are stored in AWS S3:
+
+```bash
+# List available reports for your sponsor
+aws s3 ls s3://clinical-diary-build-reports/sponsors/callisto/
+
+# Download specific release reports
+aws s3 cp s3://clinical-diary-build-reports/sponsors/callisto/v2025.11.12.a/ \
+  ./reports/ --recursive
+```
+
+**Note**: S3 access requires appropriate IAM permissions. Contact DevOps for access.
+
+### Local Report Generation
+
+Sponsors can generate reports locally for development and debugging:
+
+```bash
+# From sponsor repository root
+cd clinical-diary
+
+# Generate traceability for your sponsor
+python3 tools/requirements/generate_traceability.py \
+  --sponsor callisto \
+  --output build-reports/callisto/traceability/
+
+# Validate sponsor configuration
+dart run tools/build_system/validate_sponsor.dart \
+  --sponsor-repo ../clinical-diary-callisto \
+  --output build-reports/callisto/validation/
+
+# Run tests and generate coverage
+cd ../clinical-diary-callisto
+flutter test --coverage
+genhtml coverage/lcov.info -o ../clinical-diary/build-reports/callisto/test-results/coverage/
+```
+
+**Note**: Locally generated reports are gitignored and not uploaded to S3.
+
+### Report Contents
+
+**Traceability Matrix**:
+- Every REQ-xxxxx implemented in sponsor code
+- Source files implementing each requirement
+- Tests validating each requirement
+- Git commits introducing each feature
+
+**Test Execution Results**:
+- Pass/fail status for all tests
+- Execution time and performance metrics
+- Code coverage percentages
+- Failed test details with stack traces
+
+**Validation Checklist**:
+- Repository structure compliance
+- Required files present (SponsorConfig, EdcSync, etc.)
+- Contract test results
+- No prohibited content (secrets, PII)
+- Branding asset validation (size, format)
+
+### FDA Compliance
+
+All sponsor reports are retained for minimum 7 years per FDA 21 CFR Part 11 requirements:
+
+**Tamper Evidence**:
+- Each report includes SHA-256 checksum
+- S3 object versioning prevents tampering
+- Audit trail tracks who accessed what when
+
+**Retention Policy**:
+
+| Location | Retention | Access Method |
+|----------|-----------|---------------|
+| Local | Until cleaned | `build-reports/{sponsor}/` |
+| GitHub Actions | 90 days | `gh run download` |
+| S3 Standard | 90 days | AWS CLI/Console |
+| S3 Glacier | 7+ years | AWS CLI (restore then download) |
+
+**Audit Access**:
+
+Sponsors can verify the integrity of archived reports:
+
+```bash
+# Download report and checksum
+aws s3 cp s3://clinical-diary-build-reports/sponsors/callisto/v2025.11.12.a/traceability/matrix.json ./
+aws s3 cp s3://clinical-diary-build-reports/sponsors/callisto/v2025.11.12.a/traceability/matrix.json.sha256 ./
+
+# Verify integrity
+sha256sum -c matrix.json.sha256
+```
+
+### CI/CD Integration
+
+Reports are automatically generated during sponsor CI/CD workflows:
+
+**On Pull Request**:
+- Validation reports (structure, configuration)
+- Contract test results
+- Quick smoke test results
+
+**On Main Branch Push**:
+- Full test suite execution
+- Complete traceability matrix
+- Coverage reports
+
+**On Release Tag**:
+- Complete validation bundle
+- Archival package with all reports
+- Automatic upload to S3
+
+**Workflow Configuration** (in sponsor repository):
+
+```yaml
+# .github/workflows/deploy_production.yml
+- name: Generate Reports
+  run: |
+    cd ../clinical-diary
+    python3 tools/requirements/generate_traceability.py \
+      --sponsor callisto \
+      --output build-reports/callisto/traceability/
+
+- name: Upload Reports
+  uses: actions/upload-artifact@v3
+  with:
+    name: build-reports-callisto
+    path: build-reports/callisto/
+    retention-days: 90
+
+- name: Archive to S3
+  run: |
+    aws s3 sync build-reports/callisto/ \
+      s3://clinical-diary-build-reports/sponsors/callisto/${GIT_TAG}/${TIMESTAMP}/
+```
+
+### Privacy and Isolation
+
+**Complete Isolation**:
+- Sponsor reports contain ONLY that sponsor's data
+- No cross-sponsor information leakage
+- Separate S3 paths per sponsor
+- Independent access control per sponsor
+
+**No Shared Data**:
+- Reports do NOT include other sponsors' code
+- Reports do NOT include other sponsors' test results
+- Reports do NOT include cross-sponsor analysis
+
+**Combined Reports**:
+The `build-reports/combined/` directory contains aggregated reports for the core platform only. These reports:
+- Aggregate data across all sponsors for core platform validation
+- Do NOT expose sponsor-specific implementation details
+- Used for core platform compliance and quality metrics
+
+### Support
+
+**Report Issues**:
+If reports are missing, incomplete, or incorrect:
+
+1. Check CI/CD workflow logs: `gh run view <run-id> --log`
+2. Verify report generation scripts executed successfully
+3. Check S3 for archived reports: `aws s3 ls s3://clinical-diary-build-reports/sponsors/{sponsor}/`
+4. Contact DevOps if reports are permanently missing
+
+**Documentation**:
+- Build Reports: `../build-reports/README.md`
+- Build System: `../spec/ops-deployment.md` (Build Reports section)
+- ADR: `../docs/adr/ADR-007-multi-sponsor-build-reports.md`
+
+---
+
 ## Templates and Abstractions
 
 ### _template/ (Future)

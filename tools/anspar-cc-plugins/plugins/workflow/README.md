@@ -1209,6 +1209,14 @@ This plugin is part of the Anspar Foundation tooling ecosystem. Contributions we
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
+## Additional Resources
+
+See the following guides for related workflow information:
+- [Git Workflow](../../../../docs/git-workflow.md) - Branching strategy and commit conventions
+- [Git Hooks Setup](../../../../docs/git-hooks-setup.md) - Hook configuration and troubleshooting
+- [Development Environment Setup](../../../../docs/setup-dev-environment.md) - Dev container configuration
+- [Secret Management](../../../../docs/security-secret-management.md) - Managing secrets and preventing leaks
+
 ## Related Documentation
 
 - **Workflow State Schema**: [docs/workflow-state-schema.md](docs/workflow-state-schema.md)

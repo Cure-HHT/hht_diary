@@ -4,6 +4,13 @@
 
 This document provides a step-by-step guide to set up the infrastructure required for multi-sponsor database backups before implementing the workflow changes.
 
+## IMPLEMENTS REQUIREMENTS
+
+- REQ-o00008: Backup and Retention Policy
+- REQ-o00049: Artifact Retention and Archival
+- REQ-o00041: Infrastructure as Code for Cloud Resources
+- REQ-p00012: Clinical Data Retention Requirements
+
 **Current State**:
 - ❌ S3 backup buckets not created
 - ❌ Per-sponsor Doppler secrets not configured

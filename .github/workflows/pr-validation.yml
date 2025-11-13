@@ -61,18 +61,50 @@ jobs:
 
           echo "✅ Requirement validation passed"
 
-      - name: Generate traceability matrix (Markdown)
+      # Phase 4: Multi-sponsor traceability matrix generation
+      # Generates combined (all sponsors) + per-sponsor reports
+      # Output structure: build-reports/{combined|sponsor-name}/traceability/
+
+      - name: Generate combined traceability matrix (Markdown)
         if: success()
         run: |
-          echo "::group::Generate Traceability Matrix (Markdown)"
-          python3 tools/requirements/generate_traceability.py --format markdown
+          echo "::group::Generate Combined Traceability Matrix (Markdown)"
+          python3 tools/requirements/generate_traceability.py \
+            --mode combined \
+            --format markdown \
+            --output-dir build-reports/combined/traceability
           echo "::endgroup::"
 
-      - name: Generate traceability matrix (HTML)
+      - name: Generate combined traceability matrix (HTML)
         if: success()
         run: |
-          echo "::group::Generate Traceability Matrix (HTML)"
-          python3 tools/requirements/generate_traceability.py --format html
+          echo "::group::Generate Combined Traceability Matrix (HTML)"
+          python3 tools/requirements/generate_traceability.py \
+            --mode combined \
+            --format html \
+            --output-dir build-reports/combined/traceability
+          echo "::endgroup::"
+
+      - name: Generate per-sponsor traceability matrices
+        if: success()
+        run: |
+          echo "::group::Generate Sponsor-Specific Traceability Matrices"
+          # Get sponsor list from Doppler/environment
+          # TODO: Pull from Doppler when available, hardcoded for now
+          SPONSORS="callisto titan"
+          for sponsor in $SPONSORS; do
+            echo "Generating traceability for sponsor: $sponsor"
+            python3 tools/requirements/generate_traceability.py \
+              --mode sponsor \
+              --sponsor $sponsor \
+              --format markdown \
+              --output-dir build-reports/$sponsor/traceability
+            python3 tools/requirements/generate_traceability.py \
+              --mode sponsor \
+              --sponsor $sponsor \
+              --format html \
+              --output-dir build-reports/$sponsor/traceability
+          done
           echo "::endgroup::"
 
       - name: Validate INDEX.md accuracy
@@ -90,14 +122,12 @@ jobs:
 
           echo "✅ INDEX.md validation passed"
 
-      - name: Upload traceability matrix as artifact
+      - name: Upload build reports as artifacts
         if: success()  # Only upload if generation succeeded
         uses: actions/upload-artifact@v4
         with:
-          name: traceability-matrix-${{ github.sha }}
-          path: |
-            traceability_matrix.md
-            traceability_matrix.html
+          name: build-reports-${{ github.sha }}
+          path: build-reports/
           retention-days: 90
           if-no-files-found: error  # Fail if files missing (they're required)
 
@@ -124,16 +154,16 @@ jobs:
             let comment = '## ✅ Requirements Validation Passed\n\n';
             comment += 'All requirements have been validated successfully.\n\n';
 
-            // Read traceability matrix summary (required for all PRs)
+            // Read combined traceability matrix summary (required for all PRs)
             try {
-              const matrix = fs.readFileSync('traceability_matrix.md', 'utf8');
+              const matrix = fs.readFileSync('build-reports/combined/traceability/traceability_matrix.md', 'utf8');
               const lines = matrix.split('\n');
 
               // Extract summary stats
               const summaryStart = lines.findIndex(l => l.includes('## Summary'));
               if (summaryStart >= 0) {
                 const summaryLines = lines.slice(summaryStart, summaryStart + 20);
-                comment += '### Traceability Summary\n\n';
+                comment += '### Combined Traceability Summary\n\n';
                 comment += summaryLines.join('\n');
               } else {
                 throw new Error('Summary section not found in traceability matrix');

@@ -506,7 +506,7 @@ To activate deployment automation:
    # Verify deployment workflow runs automatically
    ```
 
-See `infrastructure/ACTIVATION_GUIDE.md` for complete activation procedures.
+See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 ---
 

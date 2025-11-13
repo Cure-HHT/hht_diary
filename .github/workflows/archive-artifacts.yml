@@ -3,6 +3,12 @@
 #
 # Archive Build Artifacts to S3
 # Runs after successful production deployment
+#
+# Multi-Sponsor Archival Strategy (Phase 5):
+# - Combined reports archived to: s3://.../builds/{version}/combined/
+# - Per-sponsor reports archived to: s3://.../builds/{version}/sponsors/{sponsor-name}/
+# - Each sponsor's artifacts are isolated for compliance and privacy
+# - All artifacts maintain 7-year retention for FDA 21 CFR Part 11 compliance
 
 name: Archive Build Artifacts
 
@@ -30,18 +36,18 @@ jobs:
           VERSION=$(git describe --tags --always)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Download build artifacts
+      - name: Download build reports
         uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
-          path: ./artifacts
+          name: build-reports-${{ github.sha }}
+          path: ./build-reports
         continue-on-error: true  # May not exist for manual runs
 
       - name: Create archive metadata
         run: |
           cat > metadata.json <<EOF
           {
-            "artifact_type": "build",
+            "artifact_type": "build_reports",
             "build_id": "${{ github.run_id }}",
             "workflow_run_id": "${{ github.event.workflow_run.id }}",
             "commit_sha": "${{ github.sha }}",
@@ -49,70 +55,200 @@ jobs:
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "deployer": "${{ github.actor }}",
             "environment": "production",
-            "retention_years": 7
+            "retention_years": 7,
+            "structure": {
+              "combined": ["traceability", "test-results", "validation"],
+              "sponsors": ["callisto", "titan"]
+            }
           }
           EOF
 
-      - name: Package artifacts
+      - name: Set sponsor list
+        id: sponsors
         run: |
-          ARCHIVE_NAME="artifacts-prod-$(date +%Y%m%d-%H%M%S).tar.gz"
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+          # TODO: Pull sponsor list from Doppler when available
+          # For now, hardcode the active sponsors
+          SPONSORS="callisto titan"
+          echo "sponsors=$SPONSORS" >> $GITHUB_OUTPUT
+          echo "Sponsors to archive: $SPONSORS"
 
-          # Package artifacts if they exist, otherwise just metadata
-          if [ -d "artifacts" ]; then
-            tar -czf $ARCHIVE_NAME artifacts/ metadata.json
+      - name: Package combined reports
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE_NAME="combined-reports-${VERSION}-$(date +%Y%m%d-%H%M%S).tar.gz"
+          echo "COMBINED_ARCHIVE=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+          # Package combined reports with metadata
+          if [ -d "build-reports/combined" ]; then
+            tar -czf $ARCHIVE_NAME \
+              -C build-reports/combined \
+              . \
+              -C ../.. \
+              metadata.json
+            echo "✅ Packaged combined reports: $ARCHIVE_NAME"
           else
-            echo "No build artifacts found, archiving metadata only"
+            echo "⚠️  No combined reports found, archiving metadata only"
             tar -czf $ARCHIVE_NAME metadata.json
           fi
 
-      - name: Generate checksum
+      - name: Generate combined checksum
         run: |
-          sha256sum $ARCHIVE_NAME > $ARCHIVE_NAME.sha256
-          cat $ARCHIVE_NAME.sha256
+          sha256sum $COMBINED_ARCHIVE > $COMBINED_ARCHIVE.sha256
+          cat $COMBINED_ARCHIVE.sha256
 
-      - name: Upload to S3
+      - name: Upload combined reports to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
         run: |
-          # Upload archive
-          aws s3 cp $ARCHIVE_NAME s3://clinical-diary-artifacts/builds/ \
-            --metadata "version=${{ steps.version.outputs.version }},environment=production,build_id=${{ github.run_id }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          S3_PATH="s3://clinical-diary-artifacts/builds/${VERSION}/combined/"
+
+          # Upload archive with metadata
+          aws s3 cp $COMBINED_ARCHIVE ${S3_PATH} \
+            --metadata "version=${VERSION},environment=production,build_id=${{ github.run_id }},type=combined"
 
           # Upload checksum
-          aws s3 cp $ARCHIVE_NAME.sha256 s3://clinical-diary-artifacts/builds/
+          aws s3 cp $COMBINED_ARCHIVE.sha256 ${S3_PATH}
 
-          echo "✅ Artifacts archived to S3"
-          echo "Archive: $ARCHIVE_NAME"
-          echo "Location: s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME"
+          echo "✅ Combined reports archived to S3"
+          echo "Archive: $COMBINED_ARCHIVE"
+          echo "Location: ${S3_PATH}${COMBINED_ARCHIVE}"
 
-      - name: Verify upload
+      - name: Verify combined upload
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-west-1
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          S3_PATH="s3://clinical-diary-artifacts/builds/${VERSION}/combined/"
+
           # Verify file exists in S3
-          aws s3 ls s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME
+          aws s3 ls ${S3_PATH}${COMBINED_ARCHIVE}
 
           # Download checksum and verify
-          aws s3 cp s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME.sha256 verify.sha256
-          sha256sum -c verify.sha256
+          aws s3 cp ${S3_PATH}${COMBINED_ARCHIVE}.sha256 verify-combined.sha256
+          sha256sum -c verify-combined.sha256
 
-          echo "✅ Upload verified successfully"
+          echo "✅ Combined upload verified successfully"
+
+      - name: Package and upload sponsor reports
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-1
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SPONSORS="${{ steps.sponsors.outputs.sponsors }}"
+
+          # Iterate through each sponsor
+          for sponsor in $SPONSORS; do
+            echo "📦 Processing sponsor: $sponsor"
+
+            ARCHIVE_NAME="${sponsor}-reports-${VERSION}-$(date +%Y%m%d-%H%M%S).tar.gz"
+
+            # Package sponsor-specific reports
+            if [ -d "build-reports/$sponsor" ]; then
+              tar -czf $ARCHIVE_NAME \
+                -C build-reports/$sponsor \
+                . \
+                -C ../.. \
+                metadata.json
+              echo "✅ Packaged $sponsor reports: $ARCHIVE_NAME"
+
+              # Generate checksum
+              sha256sum $ARCHIVE_NAME > $ARCHIVE_NAME.sha256
+              cat $ARCHIVE_NAME.sha256
+
+              # Upload to sponsor-specific S3 path
+              S3_PATH="s3://clinical-diary-artifacts/builds/${VERSION}/sponsors/${sponsor}/"
+
+              aws s3 cp $ARCHIVE_NAME ${S3_PATH} \
+                --metadata "version=${VERSION},environment=production,build_id=${{ github.run_id }},sponsor=${sponsor}"
+
+              aws s3 cp $ARCHIVE_NAME.sha256 ${S3_PATH}
+
+              echo "✅ Uploaded $sponsor reports to ${S3_PATH}"
+
+              # Verify upload
+              aws s3 ls ${S3_PATH}${ARCHIVE_NAME}
+              aws s3 cp ${S3_PATH}${ARCHIVE_NAME}.sha256 verify-${sponsor}.sha256
+              sha256sum -c verify-${sponsor}.sha256
+              echo "✅ Verified $sponsor upload"
+            else
+              echo "⚠️  No reports found for sponsor: $sponsor"
+            fi
+          done
+
+          echo "✅ All sponsor reports archived successfully"
 
       - name: Log archival
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SPONSORS="${{ steps.sponsors.outputs.sponsors }}"
+
           cat >> archival-log.txt <<EOF
-          [$(date -u +"%Y-%m-%d %H:%M:%S UTC")] Archived build artifacts
-          Archive: $ARCHIVE_NAME
-          Version: ${{ steps.version.outputs.version }}
+          [$(date -u +"%Y-%m-%d %H:%M:%S UTC")] Archived build reports
+          Version: ${VERSION}
           Build ID: ${{ github.run_id }}
-          Size: $(du -h $ARCHIVE_NAME | cut -f1)
-          ---
+          Combined Archive: $COMBINED_ARCHIVE ($(du -h $COMBINED_ARCHIVE | cut -f1))
+          Combined Location: s3://clinical-diary-artifacts/builds/${VERSION}/combined/
+
+          Sponsor Archives:
           EOF
+
+          for sponsor in $SPONSORS; do
+            SPONSOR_ARCHIVE="${sponsor}-reports-${VERSION}-"*.tar.gz
+            if [ -f $SPONSOR_ARCHIVE ]; then
+              echo "  - $sponsor: $(du -h $SPONSOR_ARCHIVE | cut -f1)" >> archival-log.txt
+              echo "    Location: s3://clinical-diary-artifacts/builds/${VERSION}/sponsors/${sponsor}/" >> archival-log.txt
+            fi
+          done
+
+          echo "---" >> archival-log.txt
+          cat archival-log.txt
+
+      - name: Generate S3 structure documentation
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          cat > s3-structure.txt <<EOF
+          S3 Archival Structure for Version ${VERSION}
+          ============================================
+
+          Base Path: s3://clinical-diary-artifacts/builds/${VERSION}/
+
+          Combined Reports:
+            ${VERSION}/combined/
+              ├── combined-reports-${VERSION}-*.tar.gz
+              ├── combined-reports-${VERSION}-*.tar.gz.sha256
+              └── Contents:
+                  ├── traceability/    (Combined traceability matrices)
+                  ├── test-results/    (All test results)
+                  └── validation/      (Validation reports)
+
+          Sponsor-Specific Reports:
+            ${VERSION}/sponsors/callisto/
+              ├── callisto-reports-${VERSION}-*.tar.gz
+              ├── callisto-reports-${VERSION}-*.tar.gz.sha256
+              └── Contents:
+                  ├── traceability/    (Callisto-specific traceability)
+                  ├── test-results/    (Callisto test results)
+                  └── validation/      (Callisto validation)
+
+            ${VERSION}/sponsors/titan/
+              ├── titan-reports-${VERSION}-*.tar.gz
+              ├── titan-reports-${VERSION}-*.tar.gz.sha256
+              └── Contents:
+                  ├── traceability/    (Titan-specific traceability)
+                  ├── test-results/    (Titan test results)
+                  └── validation/      (Titan validation)
+
+          Retention: 7 years (FDA 21 CFR Part 11 compliance)
+          Verification: SHA256 checksums for all archives
+          EOF
+          cat s3-structure.txt
 
       - name: Notify on failure
         if: failure()
@@ -120,3 +256,9 @@ jobs:
           echo "❌ Artifact archival failed"
           echo "Build ID: ${{ github.run_id }}"
           echo "Version: ${{ steps.version.outputs.version }}"
+          echo ""
+          echo "Check the following:"
+          echo "  - AWS credentials are valid"
+          echo "  - S3 bucket exists and is accessible"
+          echo "  - Build reports were generated in previous workflow"
+          echo "  - Sponsor list is correct"

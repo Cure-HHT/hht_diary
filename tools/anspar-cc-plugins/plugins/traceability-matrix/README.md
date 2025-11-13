@@ -33,6 +33,11 @@ This plugin provides the **git hook integration** for the matrix generation scri
 - **Bash**: >=4.0
 - **Generation Script**: `tools/requirements/generate_traceability.py` must exist in parent project
 
+See the following guides for setup requirements:
+- [Development Prerequisites](../../../../docs/development-prerequisites.md) - Required tools (jq, yq)
+- [Git Hooks Setup](../../../../docs/git-hooks-setup.md) - Configuring hooks for automatic matrix generation
+- [CI/CD Setup Guide](../../../../docs/cicd-setup-guide.md) - GitHub Actions integration
+
 ## Setup
 
 ### 1. Configure Git Hooks
