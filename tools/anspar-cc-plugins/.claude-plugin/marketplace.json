@@ -62,6 +62,11 @@
   "metadata": {
     "created": "2025-11-09",
     "purpose": "Plugin marketplace with proper agent orchestration patterns",
-    "repository": "https://github.com/anspar-foundation/diary"
+    "repository": "https://github.com/anspar-foundation/diary",
+    "installation": {
+      "scope": "project",
+      "note": "Install plugins at PROJECT level (.claude/settings.json), NOT user level (~/.claude/settings.json)",
+      "documentation": "./README.md"
+    }
   }
 }
