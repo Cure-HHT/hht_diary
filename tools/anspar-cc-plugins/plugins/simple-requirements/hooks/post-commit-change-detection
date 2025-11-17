@@ -107,8 +107,8 @@ if python3 "$UPDATE_SCRIPT" --input "$TEMP_CHANGES"; then
     if [ "${LINEAR_CREATE_TICKETS:-false}" = "true" ]; then
         echo -e "${BLUE}🎫 Creating Linear verification tickets...${NC}"
 
-        # Check if linear-integration plugin is available
-        LINEAR_SCRIPT="tools/anspar-cc-plugins/plugins/linear-integration/scripts/create-verification-ticket.js"
+        # Check if linear-api plugin is available
+        LINEAR_SCRIPT="tools/anspar-cc-plugins/plugins/linear-api/scripts/create-verification-ticket.js"
 
         if [ -f "$LINEAR_SCRIPT" ]; then
             # Create ticket for each changed requirement
@@ -119,7 +119,7 @@ if python3 "$UPDATE_SCRIPT" --input "$TEMP_CHANGES"; then
             echo ""
         else
             echo -e "${YELLOW}   ℹ️  Linear integration not available${NC}"
-            echo "   Install: linear-integration plugin for automatic ticket creation"
+            echo "   Install: linear-api plugin for automatic ticket creation"
             echo ""
         fi
     fi

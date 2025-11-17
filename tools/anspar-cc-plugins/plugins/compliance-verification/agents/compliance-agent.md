@@ -153,7 +153,7 @@ If you encounter issues:
 ## Integration with Other Plugins
 
 - **workflow**: Claim verification tickets before starting work
-- **linear-integration**: Leverages shared Linear API utilities
+- **linear-api**: Leverages shared Linear API utilities
 - **simple-requirements**: Consumes requirement change events
 - **traceability-matrix**: Verification tickets contribute to traceability documentation
 

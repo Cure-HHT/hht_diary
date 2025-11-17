@@ -7,7 +7,7 @@
 # and caches them in WORKFLOW_STATE.
 #
 # Architecture:
-#   1. Uses linear-integration plugin to fetch ticket data
+#   1. Uses linear-api plugin to fetch ticket data
 #   2. Uses parse-req-refs.sh to extract REQ references
 #   3. Caches results in WORKFLOW_STATE
 #
@@ -66,10 +66,10 @@ echo "🔍 Fetching requirements for $TICKET_ID..."
 # Step 1: Fetch Ticket from Linear
 # =====================================================
 
-# Check if linear-integration plugin is available
-LINEAR_PLUGIN="$SCRIPT_DIR/../../linear-integration"
+# Check if linear-api plugin is available
+LINEAR_PLUGIN="$SCRIPT_DIR/../../linear-api"
 if [ ! -d "$LINEAR_PLUGIN" ]; then
-    echo "⚠️  WARNING: linear-integration plugin not found"
+    echo "⚠️  WARNING: linear-api plugin not found"
     echo "   Requirements will not be fetched from Linear"
     exit 0
 fi

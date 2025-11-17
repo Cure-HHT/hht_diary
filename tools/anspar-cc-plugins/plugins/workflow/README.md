@@ -20,7 +20,7 @@ workflow v2.0 is the next-generation workflow enforcement plugin. It enforces re
 - ✅ Active ticket enforcement before commits
 - ✅ Distributed worktree support
 - ✅ Sponsor context tracking (core vs sponsor-specific work)
-- ✅ Tracker-agnostic design (Linear integration via linear-integration)
+- ✅ Tracker-agnostic design (Linear integration via linear-api)
 - ✅ Comprehensive audit trail (append-only history)
 
 ### 🐳 Dev Container Detection (NEW)
@@ -211,7 +211,7 @@ investigating and create a ticket when ready.
   brew install gitleaks              # macOS
   # Linux: see https://github.com/gitleaks/gitleaks#installation
   ```
-- **Optional**: linear-integration plugin for Linear API integration
+- **Optional**: linear-api plugin for Linear API integration
 
 ## Setup
 
@@ -962,7 +962,7 @@ See [docs/workflow-state-schema.md](docs/workflow-state-schema.md) for:
 
 ### Tracker Integration
 
-This plugin is designed to be tracker-agnostic. Linear integration is provided through the linear-integration plugin.
+This plugin is designed to be tracker-agnostic. Linear integration is provided through the linear-api plugin.
 
 **Integration points**:
 - `claim-ticket.sh`: Optionally fetch requirements from ticket tracker
@@ -970,7 +970,7 @@ This plugin is designed to be tracker-agnostic. Linear integration is provided t
 - `trackerMetadata` field in state: Extensible for different trackers
 
 **Supported trackers** (future):
-- Linear (via linear-integration)
+- Linear (via linear-api)
 - Notion (planned)
 - Jira (planned)
 - GitHub Issues (planned)
@@ -1114,7 +1114,7 @@ brew install jq
 ### With Other Plugins
 
 This plugin works alongside:
-- **linear-integration**: Provides Linear API integration
+- **linear-api**: Provides Linear API integration
 - **simple-requirements**: Validates requirement format
 - **traceability-matrix**: Generates traceability matrices
 - **spec-compliance**: Enforces spec/ directory compliance
@@ -1190,7 +1190,7 @@ fi
 - **Bash**: >=4.0
 - **Git**: For hooks and worktree support
 - **jq**: For JSON parsing (required)
-- **Optional**: linear-integration for Linear API features
+- **Optional**: linear-api for Linear API features
 
 ## License
 
@@ -1221,7 +1221,7 @@ See the following guides for related workflow information:
 
 - **Workflow State Schema**: [docs/workflow-state-schema.md](docs/workflow-state-schema.md)
 - **Requirement Format**: See spec/requirements-format.md in parent project
-- **Linear Integration**: tools/anspar-cc-plugins/plugins/linear-integration
+- **Linear Integration**: tools/anspar-cc-plugins/plugins/linear-api
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
 - **Original Workflow Plugin**: tools/anspar-cc-plugins/plugins/workflow
 

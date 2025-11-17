@@ -217,7 +217,7 @@ And number is 5 digits (e.g., REQ-p00042)
 
 ## Integration with Other Plugins
 
-### linear-integration Plugin
+### linear-api Plugin
 - Share cache file (`.requirement-cache.json`)
 - Use ticket search: `/ticket search <term>`
 - Link to tickets: `/ticket CUR-123`

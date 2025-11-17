@@ -289,7 +289,7 @@ bash tools/anspar-cc-plugins/plugins/linear-api/skills/search-tickets.skill \
 
 ## Integration with Other Plugins
 
-This plugin is designed to be a low-level building block. Higher-level plugins (like `linear-integration` for the diary project) should:
+This plugin is designed to be a low-level building block. Higher-level plugins (like `linear-api` for the diary project) should:
 
 1. Import this plugin for basic CRUD operations
 2. Add project-specific business logic

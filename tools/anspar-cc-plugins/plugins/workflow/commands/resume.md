@@ -169,7 +169,7 @@ The command handles:
 ## Related Commands
 
 - `/claim` - Claim a new or specific ticket
-- `/ticket` - Ticket management (linear-integration plugin)
+- `/ticket` - Ticket management (linear-api plugin)
 
 ## Implementation
 

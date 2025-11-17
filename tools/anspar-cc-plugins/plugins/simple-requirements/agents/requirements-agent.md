@@ -205,7 +205,7 @@ Implementation is considered up-to-date with the current requirement.
 ## Integration with Other Systems
 
 ### Linear Integration
-If LINEAR_CREATE_TICKETS=true and linear-integration plugin is installed:
+If LINEAR_CREATE_TICKETS=true and linear-api plugin is installed:
 - Post-commit hook can auto-create verification tickets
 - Tickets linked to changed requirements in tracking file
 - Helps manage verification workflow

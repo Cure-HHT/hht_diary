@@ -25,7 +25,7 @@ For requirement format details, see [spec/README.md](../../../../spec/README.md)
 - ✅ **Change Detection**: Automatic detection of modified requirements
 - ✅ **Tracking System**: Persistent tracking of outdated implementations
 - ✅ **Session Notifications**: Alerts about changed requirements when starting work
-- ✅ **Linear Integration**: Optional ticket creation for verification (requires linear-integration plugin)
+- ✅ **Linear Integration**: Optional ticket creation for verification (requires linear-api plugin)
 - ✅ **Requirements Agent**: Specialized sub-agent for requirement operations
 - ✅ **Get Requirement**: Fetch any requirement by ID with full metadata
 - ✅ **Verification Workflow**: Simple commands to mark requirements as verified
@@ -513,7 +513,7 @@ find . -name "validate_requirements.py"
 This plugin works alongside:
 - **traceability-matrix**: Generates traceability matrices
 - **spec-compliance**: Enforces spec/ directory compliance
-- **linear-integration**: Creates Linear tickets from requirements
+- **linear-api**: Creates Linear tickets from requirements
 
 ### With CI/CD
 

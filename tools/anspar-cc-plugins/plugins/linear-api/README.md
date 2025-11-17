@@ -651,7 +651,7 @@ MIT License
 
 ## Related Plugins
 
-- **linear-integration**: Diary-specific Linear integration with requirement validation
+- **linear-api**: Diary-specific Linear integration with requirement validation
 - **workflow**: Git workflow enforcement
 - **simple-requirements**: Requirement format validation
 
@@ -659,7 +659,7 @@ MIT License
 
 ### 2.0.0 (Current)
 - Initial release as standalone generic plugin
-- Extracted from linear-integration plugin
+- Extracted from linear-api plugin
 - Consolidated update operations into single script
 - Added skills-based invocation
 - Auto-discovery of team IDs

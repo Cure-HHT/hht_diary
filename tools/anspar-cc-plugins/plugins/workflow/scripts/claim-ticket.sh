@@ -196,8 +196,8 @@ echo ""
 
 REQUIREMENTS="[]"
 
-# Check if linear-integration is available
-LINEAR_INTEGRATION_PATH="$WORKTREE_PATH/tools/anspar-cc-plugins/plugins/linear-integration"
+# Check if linear-api is available
+LINEAR_INTEGRATION_PATH="$WORKTREE_PATH/tools/anspar-cc-plugins/plugins/linear-api"
 
 if [ -d "$LINEAR_INTEGRATION_PATH" ] && [ -n "$LINEAR_API_TOKEN" ]; then
     echo "🔍 Fetching requirements from Linear..."
@@ -207,7 +207,7 @@ if [ -d "$LINEAR_INTEGRATION_PATH" ] && [ -n "$LINEAR_API_TOKEN" ]; then
     if command -v node &> /dev/null; then
         # Use Linear API to fetch ticket description
         # Extract REQ-xxx references from description
-        # This requires a helper script in linear-integration
+        # This requires a helper script in linear-api
 
         # For now, we'll just note that this integration point exists
         echo "   ⚠️  Linear integration available but requires fetch-ticket-details.js"
@@ -401,7 +401,7 @@ jq '.' "$STATE_FILE"
 # Optional: Update Linear Ticket Status
 # =====================================================
 
-# This would require linear-integration
+# This would require linear-api
 # For now, just note that this integration point exists
 
 echo ""

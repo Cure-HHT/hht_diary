@@ -305,7 +305,7 @@ ls -l traceability_matrix.*
 This plugin works alongside:
 - **simple-requirements**: Validates requirements before matrix generation
 - **spec-compliance**: Enforces spec/ directory compliance
-- **linear-integration**: Creates Linear tickets from requirements
+- **linear-api**: Creates Linear tickets from requirements
 
 ### With CI/CD
 

@@ -215,7 +215,7 @@ This plugin is part of the diary project's Claude Code marketplace plugins. No s
 ### Environment Variables
 
 Required:
-- `LINEAR_API_TOKEN`: Linear API token (provided by linear-integration plugin)
+- `LINEAR_API_TOKEN`: Linear API token (provided by linear-api plugin)
 
 ## Usage
 
@@ -392,7 +392,7 @@ Verification tickets are automatically labeled:
 **Missing LINEAR_API_TOKEN**:
 ```
 Error: Missing LINEAR_API_TOKEN environment variable
-Solution: Ensure token is set via linear-integration plugin
+Solution: Ensure token is set via linear-api plugin
 ```
 
 **Requirement not found**:
@@ -414,7 +414,7 @@ Possible causes:
 ```
 Error: Linear API error: 401 Unauthorized
 Solution: Verify LINEAR_API_TOKEN is valid
-         Run: node tools/anspar-cc-plugins/plugins/linear-integration/scripts/test-config.js
+         Run: node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js
 ```
 
 ### Rate Limiting
@@ -522,4 +522,4 @@ Initial release:
 - Verification ticket creation for changed requirements
 - Subsystem impact analysis (11 subsystems)
 - FDA 21 CFR Part 11 compliance verification workflows
-- Integration with linear-integration and simple-requirements plugins
+- Integration with linear-api and simple-requirements plugins

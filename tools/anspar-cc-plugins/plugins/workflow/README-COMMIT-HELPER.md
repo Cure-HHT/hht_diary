@@ -304,14 +304,14 @@ This means no requirements were found or cached. Options:
 
 **Causes**:
 - No Linear API token configured
-- linear-integration plugin not installed
+- linear-api plugin not installed
 - Network issues
 - Ticket doesn't exist
 
-**Solution**: Configure Linear integration (see linear-integration plugin README)
+**Solution**: Configure Linear integration (see linear-api plugin README)
 
 ## See Also
 
 - [Workflow Plugin README](README.md)
-- [Linear Integration Plugin](../linear-integration/README.md)
+- [Linear Integration Plugin](../linear-api/README.md)
 - [Requirements System](../../../../spec/README.md)
