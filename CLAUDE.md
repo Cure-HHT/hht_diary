@@ -132,6 +132,53 @@ The following **priortiy plugins** are located in `tools/anspar-cc-plugins/plugi
 - Supabase credentials managed via Doppler (see `spec/ops-security.md`)
 - All audit events are tamper-evident (cryptographic hashing)
 
+## Security Scanning (IMPLEMENTS REQ-p01018)
+
+The project uses a **defense-in-depth security scanning strategy** with multiple specialized tools:
+
+### Automated Security Scanners
+
+1. **Gitleaks** (Secret Detection)
+   - Runs: Pre-commit hook + CI/CD
+   - Purpose: Prevent accidental commit of secrets (API keys, tokens, passwords)
+   - Exit behavior: BLOCKS commit/PR if secrets detected
+   - Version: v8.29.0 (pinned in `.github/versions.env`)
+
+2. **Trivy** (Multi-Layer Vulnerability Scanner)
+   - Runs: CI/CD only
+   - Purpose: Detect vulnerabilities in dependencies, IaC configs, containers
+   - Scan layers:
+     - Filesystem: npm, pub, pip package vulnerabilities
+     - IaC: Dockerfile, Terraform, K8s misconfigurations
+     - Container: Docker image OS package vulnerabilities
+   - Exit behavior: Report only (doesn't block PR)
+   - Results: Uploaded to GitHub Security → Code scanning
+
+3. **Flutter Analyze** (Dart/Flutter Static Analysis)
+   - Runs: CI/CD only
+   - Purpose: Static analysis for Dart/Flutter code (CodeQL alternative)
+   - Checks: Type safety, unused code, potential nulls, security patterns
+   - Exit behavior: BLOCKS PR if errors detected
+
+### Why NOT CodeQL?
+
+**CodeQL does NOT support Dart/Flutter** (our primary language). The "28 CodeQL alerts" in repository history were about GitHub Actions workflow files, not codebase security. CodeQL was never actually enabled for application code scanning.
+
+**Current approach provides better coverage**:
+- Trivy scans dependencies and infrastructure
+- Flutter Analyze provides Dart-specific static analysis
+- Gitleaks prevents secret leaks
+
+### Security Scanning Guidance for Claude
+
+When implementing code:
+- **Secrets**: Use environment variables, never hardcode. Gitleaks will block commits with secrets.
+- **Dependencies**: Keep packages updated. Trivy alerts appear in GitHub Security tab.
+- **Code Quality**: Run `flutter analyze` locally before committing. CI will fail if errors exist.
+- **Review Findings**: Check PR status checks. Address any security scanner failures before merge.
+
+**Documentation**: See `docs/security/scanning-strategy.md` for complete scanner details, workflows, and troubleshooting.
+
 ## Important Notes
 
 - The workflow plugin provides proactive task-switching detection via UserPromptSubmit hooks
