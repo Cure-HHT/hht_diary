@@ -403,13 +403,13 @@ python3 scripts/detect-changes.py --format json | \
 
 2. Test Linear integration:
    ```bash
-   node tools/anspar-cc-plugins/plugins/linear-integration/scripts/test-config.js
+   node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-config.js
    ```
 
 3. Manual ticket creation:
    ```bash
    python3 scripts/detect-changes.py --format json | jq '.changed_requirements[0]' | \
-     node tools/anspar-cc-plugins/plugins/linear-integration/scripts/create-verification-ticket.js
+     node tools/anspar-cc-plugins/plugins/linear-api/scripts/create-verification-ticket.js
    ```
 
 ## Advanced Usage
@@ -448,4 +448,4 @@ python3 scripts/detect-changes.py --format json | \
 - **Requirements Format**: `spec/README.md`
 - **Validation System**: `tools/requirements/validate_requirements.py`
 - **INDEX.md Management**: `tools/requirements/update-REQ-hashes.py`
-- **Linear Integration**: `tools/anspar-cc-plugins/plugins/linear-integration/`
+- **Linear Integration**: `tools/anspar-cc-plugins/plugins/linear-api/`

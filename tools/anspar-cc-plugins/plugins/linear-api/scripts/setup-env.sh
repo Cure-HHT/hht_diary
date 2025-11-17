@@ -3,7 +3,7 @@
 # Linear Integration Plugin - Environment Setup
 #
 # This script discovers your LINEAR_TEAM_ID automatically and provides
-# commands to export it for use with other linear-integration scripts.
+# commands to export it for use with other linear-api scripts.
 #
 # Usage:
 #   source tools/anspar-cc-plugins/plugins/linear-api/scripts/setup-env.sh

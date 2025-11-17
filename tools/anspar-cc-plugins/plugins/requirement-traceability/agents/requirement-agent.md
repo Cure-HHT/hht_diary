@@ -189,7 +189,7 @@ When a ticket is claimed via workflow plugin:
 3. If ticket implements requirement, agent can validate implementation
 
 ### With `/ticket` Command
-The `/ticket` slash command (from linear-integration) works seamlessly:
+The `/ticket` slash command (from linear-api) works seamlessly:
 ```bash
 /ticket CUR-123  # Shows ticket details including requirement reference
 ```

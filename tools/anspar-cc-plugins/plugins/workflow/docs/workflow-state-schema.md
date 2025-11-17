@@ -327,7 +327,7 @@ Operations are designed to be **idempotent** or **append-only**:
 
 ## Integration with Ticket Trackers
 
-### Linear Integration (linear-integration)
+### Linear Integration (linear-api)
 
 When claiming a ticket, the workflow plugin can optionally:
 

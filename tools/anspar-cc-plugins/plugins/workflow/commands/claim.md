@@ -139,7 +139,7 @@ The command validates:
 ## Related Commands
 
 - `/resume` - Resume work on a previously released ticket
-- `/ticket` - Alias for ticket management (linear-integration plugin)
+- `/ticket` - Alias for ticket management (linear-api plugin)
 
 ## Implementation
 

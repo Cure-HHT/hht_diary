@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - get-active-ticket.sh: Read active ticket from worktree state
   - suggest-req.sh: Suggest REQ IDs based on active ticket
 - Distributed state management for multiple concurrent worktrees
-- Tracker-agnostic design (Linear integration via linear-integration)
+- Tracker-agnostic design (Linear integration via linear-api)
 
 ### Features
 - **Distributed Worktrees**: Multiple worktrees can work on same/different tickets
@@ -107,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bash >=4.0
 - Git
 - jq (for JSON parsing in scripts)
-- Optional: linear-integration (for Linear API features)
+- Optional: linear-api (for Linear API features)
 
 ### Future
 - GitHub PR hooks integration
