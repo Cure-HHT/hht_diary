@@ -500,7 +500,7 @@ jobs:
 
       - name: Upload Trivy filesystem results to GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-fs-results.sarif'
           category: 'trivy-filesystem'
@@ -508,7 +508,7 @@ jobs:
 
       - name: Upload Trivy IaC results to GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-iac-results.sarif'
           category: 'trivy-iac'
@@ -516,7 +516,7 @@ jobs:
 
       - name: Upload Trivy container results to GitHub Security
         if: always() && steps.check-docker.outputs.has_docker == 'true'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-container-results.sarif'
           category: 'trivy-container'
