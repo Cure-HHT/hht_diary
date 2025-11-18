@@ -100,6 +100,13 @@ jobs:
           provenance: ${{ github.event_name != 'pull_request' }}
           sbom: ${{ github.event_name != 'pull_request' }}
 
+      - name: Tag image for local use
+        if: github.event_name == 'pull_request'
+        run: |
+          # Extract first tag from metadata action output
+          FIRST_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+          docker tag "$FIRST_TAG" clinical-diary-base:latest
+
       - name: Export local image for downstream jobs
         if: github.event_name == 'pull_request'
         run: docker save -o /tmp/base-image.tar clinical-diary-base:latest
@@ -182,12 +189,16 @@ jobs:
           provenance: ${{ github.event_name != 'pull_request' }}
           sbom: ${{ github.event_name != 'pull_request' }}
 
-      - name: Export local image for downstream jobs
+      - name: Tag image for local use
         if: github.event_name == 'pull_request'
         run: |
-          # Tag the built image with the expected name for downstream jobs
-          docker tag ${{ steps.meta.outputs.tags }} clinical-diary-dev:latest
-          docker save -o /tmp/dev-image.tar clinical-diary-dev:latest
+          # Extract first tag from metadata action output
+          FIRST_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+          docker tag "$FIRST_TAG" clinical-diary-dev:latest
+
+      - name: Export local image for downstream jobs
+        if: github.event_name == 'pull_request'
+        run: docker save -o /tmp/dev-image.tar clinical-diary-dev:latest
 
       - name: Upload dev image artifact
         if: github.event_name == 'pull_request'
