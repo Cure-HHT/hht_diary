@@ -102,13 +102,7 @@ jobs:
 
       - name: Export local image for downstream jobs
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v5
-        with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/base.Dockerfile
-          tags: clinical-diary-base:latest
-          outputs: type=docker,dest=/tmp/base-image.tar
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+        run: docker save -o /tmp/base-image.tar clinical-diary-base:latest
 
       - name: Upload base image artifact
         if: github.event_name == 'pull_request'
@@ -190,15 +184,10 @@ jobs:
 
       - name: Export local image for downstream jobs
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v5
-        with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/dev.Dockerfile
-          build-args: |
-            BASE_IMAGE_REF=clinical-diary-base:latest
-          tags: clinical-diary-dev:latest
-          outputs: type=docker,dest=/tmp/dev-image.tar
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
+        run: |
+          # Tag the built image with the expected name for downstream jobs
+          docker tag ${{ steps.meta.outputs.tags }} clinical-diary-dev:latest
+          docker save -o /tmp/dev-image.tar clinical-diary-dev:latest
 
       - name: Upload dev image artifact
         if: github.event_name == 'pull_request'
