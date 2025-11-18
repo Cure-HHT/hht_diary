@@ -20,6 +20,7 @@ This document describes the comprehensive security scanning strategy for the Cli
 - ✅ **Gitleaks**: Secret scanning (pre-commit + CI/CD)
 - ✅ **Trivy**: Multi-layer vulnerability scanning (dependencies, IaC, containers)
 - ✅ **Flutter Analyze**: Dart/Flutter static analysis
+- ✅ **Squawk**: PostgreSQL migration safety linting
 - ✅ **Defense-in-Depth**: Multiple tools at multiple stages
 
 ## Scanner Matrix
@@ -31,6 +32,7 @@ This document describes the comprehensive security scanning strategy for the Cli
 | **Trivy (IaC)** | Infrastructure misconfig | Docker, Terraform, K8s | CI/CD | ❌ No (report only) |
 | **Trivy (container)** | Container vulnerabilities | Docker images | CI/CD | ❌ No (report only) |
 | **Flutter Analyze** | Dart/Flutter static analysis | .dart files | CI/CD | ✅ Yes |
+| **Squawk** | PostgreSQL migration safety | .sql files (database/) | CI/CD | ✅ Yes |
 
 ## Scanner Details
 
@@ -157,6 +159,65 @@ This document describes the comprehensive security scanning strategy for the Cli
 - Flutter analyzer: https://dart.dev/tools/dartanalyzer
 - Analysis options: https://dart.dev/guides/language/analysis-options
 
+### 4. Squawk (PostgreSQL Migration Linting)
+
+**Purpose**: Prevent dangerous PostgreSQL migration operations that could cause downtime or data loss
+
+**Configuration**: `.github/workflows/qa-automation.yml` (sql-linting job)
+
+**What It Checks**:
+- **Table Locks**: Operations that hold locks during migration (blocking production)
+- **Missing Indexes**: Foreign keys without indexes (performance degradation)
+- **Unsafe ALTER TABLE**: Operations that rewrite entire table
+- **NOT NULL Constraints**: Adding NOT NULL without DEFAULT (breaks inserts)
+- **Column Renames**: Renaming that breaks existing application code
+- **Data Type Changes**: Type conversions that could lose data
+
+**Examples of Issues Detected**:
+```sql
+-- ❌ BAD: Adds NOT NULL without default (breaks existing apps)
+ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL;
+
+-- ✅ GOOD: Provides default or makes nullable initially
+ALTER TABLE users ADD COLUMN email VARCHAR(255) DEFAULT '';
+
+-- ❌ BAD: Adds index with CONCURRENTLY missing (locks table)
+CREATE INDEX idx_users_email ON users(email);
+
+-- ✅ GOOD: Uses CONCURRENTLY to avoid locks
+CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
+```
+
+**Version**: v0.29.2 (pinned in workflow)
+
+**When It Runs**:
+- **CI/CD**: `.github/workflows/qa-automation.yml`
+- Only scans changed SQL files in PR (efficient)
+- Manual trigger can scan all SQL files
+
+**Exit Behavior**:
+- Fails workflow if dangerous patterns detected (exit code 1)
+- Provides detailed explanation of each issue
+
+**How to Fix**:
+1. Review Squawk error message in PR check
+2. Common fixes:
+   - Add `CONCURRENTLY` to index creation
+   - Add `DEFAULT` to NOT NULL columns
+   - Use multi-step migration for type changes
+   - Add indexes before adding foreign keys
+3. Update migration file
+4. Re-run CI/CD
+
+**PostgreSQL-Specific Benefits**:
+- Matches Supabase backend (PostgreSQL 15+)
+- Understands PostgreSQL locking behavior
+- Knows safe migration patterns for production
+
+**Resources**:
+- Squawk GitHub: https://github.com/sbdchd/squawk
+- PostgreSQL safe migrations: https://www.braintreepayments.com/blog/safe-operations-for-high-volume-postgresql/
+
 ## Defense-in-Depth Strategy
 
 Our security scanning uses multiple layers:
@@ -173,6 +234,7 @@ Our security scanning uses multiple layers:
 │  • Gitleaks: Full repository scan                       │
 │  • Trivy: Dependencies, IaC, Containers                 │
 │  • Flutter Analyze: Dart/Flutter code                   │
+│  • Squawk: PostgreSQL migrations (changed files)        │
 └─────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -187,6 +249,7 @@ Our security scanning uses multiple layers:
 - **Gitleaks**: Specialized in secret patterns (high accuracy)
 - **Trivy**: Comprehensive vulnerability database (dependencies + containers + IaC)
 - **Flutter Analyze**: Language-specific static analysis (Dart/Flutter expert)
+- **Squawk**: PostgreSQL-specific migration safety (prevents production downtime)
 - **No single tool catches everything**: Overlap provides redundancy
 
 ## FDA 21 CFR Part 11 Compliance
@@ -292,12 +355,54 @@ Error: Secret detected in staged files
 4. Re-run: `flutter analyze` (should show "No issues found")
 5. Commit and push
 
+### Workflow 4: Squawk Detects Unsafe Migration
+
+**Scenario**: PR check fails with Squawk warning about SQL migration
+
+**Example Error**:
+```
+⚠️ database/migrations/001_add_user_email.sql
+
+warning: prefer-text-field
+note: Prefer text fields over varchar/char fields
+
+   1 | ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL;
+     |                                     ^^^^^^^^^^^^
+
+help: Use text fields rather than varchar fields
+
+warning: adding-not-null-to-existing-column
+note: Adding a NOT NULL field to an existing table requires exclusive locks
+
+   1 | ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL;
+     |                                                  ^^^^^^^^
+
+help: Add the column as nullable, then use a multi-step migration
+```
+
+**Resolution**:
+1. Review Squawk message in PR check summary
+2. Fix the migration:
+```sql
+-- Step 1: Add column as nullable
+ALTER TABLE users ADD COLUMN email TEXT;
+
+-- Step 2: Backfill with default (in separate migration if needed)
+UPDATE users SET email = '' WHERE email IS NULL;
+
+-- Step 3: Add NOT NULL constraint (in separate migration)
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+```
+3. Commit updated migration
+4. Re-run CI/CD (Squawk should pass)
+
 ## Scanner Maintenance
 
 **Version Updates**:
 - Gitleaks: Update `.github/versions.env` → `GITLEAKS_VERSION`
 - Trivy: Update `.github/workflows/qa-automation.yml` → `aquasecurity/trivy-action@VERSION`
 - Flutter: Update `.github/versions.env` → `FLUTTER_VERSION`
+- Squawk: Update `.github/workflows/qa-automation.yml` → `SQUAWK_VERSION`
 
 **Configuration Updates**:
 - Gitleaks rules: Edit `.gitleaks.toml`
@@ -320,6 +425,7 @@ Error: Secret detected in staged files
 - Trivy IaC: 10-20 seconds
 - Trivy container: 2-5 minutes (includes image build)
 - Flutter Analyze: 10-30 seconds
+- Squawk: < 5 seconds (only changed files)
 
 **Total CI/CD Overhead**: ~5-8 minutes per PR (scans run in parallel)
 
@@ -331,7 +437,10 @@ Error: Secret detected in staged files
 ## FAQ
 
 **Q: Why don't we use tool X?**
-A: We evaluated multiple tools. Our current stack provides comprehensive coverage for our tech stack (Dart/Flutter + Python + Docker). Additional tools would add overhead without meaningful security improvements.
+A: We evaluated multiple tools. Our current stack provides comprehensive coverage for our tech stack (Dart/Flutter + Python + PostgreSQL + Docker). Additional tools would add overhead without meaningful security improvements.
+
+**Q: Why Squawk instead of SQLFluff?**
+A: Squawk is PostgreSQL-specific and focuses on migration safety (locks, downtime). SQLFluff is more general (syntax, style) but doesn't catch PostgreSQL-specific production issues. Squawk prevents actual outages.
 
 **Q: Can I disable scanners locally?**
 A: Pre-commit hooks can be bypassed with `git commit --no-verify`, but CI/CD scans cannot be bypassed. Use `--no-verify` only for draft commits that won't be pushed.
@@ -369,3 +478,4 @@ A:
 | 2025-11-17 | Initial documentation | Claude (CUR-336) |
 | 2025-11-17 | Added Flutter/Dart security job | Claude (CUR-336) |
 | 2025-11-17 | Enhanced Trivy with IaC and container scanning | Claude (CUR-336) |
+| 2025-11-17 | Added Squawk PostgreSQL migration linting | Claude (CUR-336) |

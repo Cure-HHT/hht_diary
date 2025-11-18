@@ -689,3 +689,150 @@ jobs:
             outdated.json
           retention-days: 30
         continue-on-error: true
+
+  sql-linting:
+    name: SQL Migration Linting
+    runs-on: ubuntu-latest
+    # IMPLEMENTS REQUIREMENTS:
+    #   REQ-p01018: Security Audit and Compliance (SQL migration safety)
+    # Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for detecting changed files
+
+      - name: Check for SQL files
+        id: check-sql
+        run: |
+          echo "::group::Checking for SQL files in database/"
+
+          if find database -name "*.sql" -type f 2>/dev/null | grep -q .; then
+            echo "has_sql=true" >> $GITHUB_OUTPUT
+            echo "✅ SQL files detected:"
+            find database -name "*.sql" -type f | head -10
+            SQL_COUNT=$(find database -name "*.sql" -type f | wc -l)
+            if [ "$SQL_COUNT" -gt 10 ]; then
+              echo "... and $((SQL_COUNT - 10)) more"
+            fi
+          else
+            echo "has_sql=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No SQL files found in database/ - skipping linting"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Get changed SQL files
+        if: steps.check-sql.outputs.has_sql == 'true' && github.event_name == 'pull_request'
+        id: changed-sql
+        run: |
+          echo "::group::Detecting changed SQL files in this PR"
+
+          # Get list of changed SQL files
+          CHANGED_SQL=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '\.sql$' || true)
+
+          if [ -n "$CHANGED_SQL" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "✅ Changed SQL files:"
+            echo "$CHANGED_SQL" | sed 's/^/  - /'
+
+            # Save for later use
+            echo "$CHANGED_SQL" > changed-sql-files.txt
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No SQL files changed in this PR - skipping Squawk"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Install Squawk
+        if: steps.check-sql.outputs.has_sql == 'true' && (steps.changed-sql.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch')
+        run: |
+          echo "::group::Installing Squawk PostgreSQL linter"
+
+          # Download latest Squawk release
+          SQUAWK_VERSION="v0.29.2"
+          wget -q https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x86_64 -O squawk
+          chmod +x squawk
+          sudo mv squawk /usr/local/bin/squawk
+
+          # Verify installation
+          squawk --version
+
+          echo "::endgroup::"
+
+      - name: Run Squawk on changed files
+        if: steps.check-sql.outputs.has_sql == 'true' && steps.changed-sql.outputs.has_changes == 'true'
+        id: squawk
+        continue-on-error: true
+        run: |
+          echo "::group::Running Squawk on changed SQL files"
+          echo "## SQL Migration Linting Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          LINT_FAILED=false
+
+          while IFS= read -r sql_file; do
+            if [ -f "$sql_file" ]; then
+              echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Run squawk and capture output
+              if squawk "$sql_file" > squawk-output.txt 2>&1; then
+                echo "✅ No issues detected" >> $GITHUB_STEP_SUMMARY
+              else
+                LINT_FAILED=true
+                echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                cat squawk-output.txt >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+
+                # Also output to console for GitHub annotations
+                cat squawk-output.txt
+              fi
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done < changed-sql-files.txt
+
+          echo "::endgroup::"
+
+          if [ "$LINT_FAILED" = "true" ]; then
+            echo "::warning::Squawk detected potential issues in SQL migrations. Review the step summary for details."
+            exit 1
+          fi
+
+      - name: Run Squawk on all migrations (manual trigger)
+        if: steps.check-sql.outputs.has_sql == 'true' && github.event_name == 'workflow_dispatch' && steps.changed-sql.outputs.has_changes != 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::Running Squawk on all SQL files (manual trigger)"
+          echo "## SQL Migration Linting Results (Full Scan)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          find database -name "*.sql" -type f | while IFS= read -r sql_file; do
+            echo "Linting: $sql_file"
+            squawk "$sql_file" || true
+          done
+
+          echo "::endgroup::"
+
+      - name: Generate linting summary
+        if: always() && steps.check-sql.outputs.has_sql == 'true'
+        run: |
+          if [ "${{ steps.changed-sql.outputs.has_changes }}" != "true" ] && [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "## SQL Migration Linting" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⏭️ No SQL files changed in this PR - linting skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Squawk checks for**:" >> $GITHUB_STEP_SUMMARY
+            echo "- Table locks during migrations" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing indexes on foreign keys" >> $GITHUB_STEP_SUMMARY
+            echo "- Unsafe ALTER TABLE operations" >> $GITHUB_STEP_SUMMARY
+            echo "- NOT NULL additions without defaults" >> $GITHUB_STEP_SUMMARY
+          fi

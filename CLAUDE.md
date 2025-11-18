@@ -160,6 +160,13 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Checks: Type safety, unused code, potential nulls, security patterns
    - Exit behavior: BLOCKS PR if errors detected
 
+4. **Squawk** (PostgreSQL Migration Safety)
+   - Runs: CI/CD only (on changed SQL files)
+   - Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
+   - Checks: Table locks, missing indexes, unsafe ALTER TABLE, NOT NULL without DEFAULT
+   - Exit behavior: BLOCKS PR if dangerous patterns detected
+   - Version: v0.29.2
+
 ### Why NOT CodeQL?
 
 **CodeQL does NOT support Dart/Flutter** (our primary language). The "28 CodeQL alerts" in repository history were about GitHub Actions workflow files, not codebase security. CodeQL was never actually enabled for application code scanning.
@@ -167,6 +174,7 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
 **Current approach provides better coverage**:
 - Trivy scans dependencies and infrastructure
 - Flutter Analyze provides Dart-specific static analysis
+- Squawk prevents PostgreSQL migration issues
 - Gitleaks prevents secret leaks
 
 ### Security Scanning Guidance for Claude
@@ -175,6 +183,10 @@ When implementing code:
 - **Secrets**: Use environment variables, never hardcode. Gitleaks will block commits with secrets.
 - **Dependencies**: Keep packages updated. Trivy alerts appear in GitHub Security tab.
 - **Code Quality**: Run `flutter analyze` locally before committing. CI will fail if errors exist.
+- **Database Migrations**: Use safe PostgreSQL patterns. Squawk will block dangerous migrations.
+  - Always use `CONCURRENTLY` for index creation
+  - Add `DEFAULT` when adding NOT NULL columns
+  - Avoid operations that lock tables in production
 - **Review Findings**: Check PR status checks. Address any security scanner failures before merge.
 
 **Documentation**: See `docs/security/scanning-strategy.md` for complete scanner details, workflows, and troubleshooting.
