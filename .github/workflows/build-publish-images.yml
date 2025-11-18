@@ -18,6 +18,11 @@ on:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
       - '.github/workflows/build-publish-images.yml'
+  pull_request:
+    paths:
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
+      - '.github/workflows/build-publish-images.yml'
   workflow_dispatch:
     inputs:
       push_to_registry:
