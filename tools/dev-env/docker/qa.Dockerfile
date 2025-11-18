@@ -7,11 +7,17 @@
 # QA Environment Dockerfile
 # Extends dev with: Playwright, testing tools, report generation
 
-ARG BASE_IMAGE=clinical-diary-dev:latest
+ARG DEV_IMAGE_NAME=clinical-diary-dev
+ARG DEV_IMAGE_TAG=latest
+ARG DEV_IMAGE_REF=${DEV_IMAGE_NAME}:${DEV_IMAGE_TAG}
+
+# Trivy DS001 Compliance: Tag explicitly specified via DEV_IMAGE_TAG
+# CI/CD can override entire REF with registry path (e.g., ghcr.io/cure-hht/clinical-diary-dev:latest)
 # QA inherits from dev since it needs Flutter for integration tests
-FROM ${BASE_IMAGE}
+FROM ${DEV_IMAGE_REF}
 
 LABEL com.clinical-diary.role="qa"
+LABEL com.clinical-diary.base-image="${DEV_IMAGE_REF}"
 LABEL description="QA environment with testing frameworks and report generation"
 
 USER root

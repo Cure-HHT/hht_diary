@@ -6,10 +6,16 @@
 # Management Environment Dockerfile
 # Minimal, read-only environment for management and audit access
 
+ARG BASE_IMAGE_NAME=clinical-diary-base
 ARG BASE_IMAGE_TAG=latest
-FROM clinical-diary-base:${BASE_IMAGE_TAG}
+ARG BASE_IMAGE_REF=${BASE_IMAGE_NAME}:${BASE_IMAGE_TAG}
+
+# Trivy DS001 Compliance: Tag explicitly specified via BASE_IMAGE_TAG
+# CI/CD can override entire REF with registry path (e.g., ghcr.io/cure-hht/clinical-diary-base:latest)
+FROM ${BASE_IMAGE_REF}
 
 LABEL com.clinical-diary.role="mgmt"
+LABEL com.clinical-diary.base-image="${BASE_IMAGE_REF}"
 LABEL description="Management environment with read-only tools"
 
 USER root

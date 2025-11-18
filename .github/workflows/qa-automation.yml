@@ -254,13 +254,13 @@ jobs:
           docker push ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
 
           echo "Building dev image (FROM GHCR base)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE=ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build dev --build-arg BASE_IMAGE_REF=ghcr.io/${REPO_OWNER}/clinical-diary-base:latest
           echo "Pushing dev to GHCR..."
           docker tag clinical-diary-dev:latest ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
           docker push ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
 
           echo "Building qa image (FROM GHCR dev)..."
-          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg BASE_IMAGE=ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
+          docker compose --profile build-only -f docker-compose.yml -f docker-compose.ci.yml build qa --build-arg DEV_IMAGE_REF=ghcr.io/${REPO_OWNER}/clinical-diary-dev:latest
           echo "Pushing qa to GHCR..."
           docker tag clinical-diary-qa:latest ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest
           docker push ghcr.io/${REPO_OWNER}/clinical-diary-qa:latest

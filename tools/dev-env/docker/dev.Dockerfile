@@ -6,10 +6,16 @@
 # Developer Environment Dockerfile
 # Extends base with: Flutter, Android SDK, development tools
 
-ARG BASE_IMAGE=clinical-diary-base:latest
-FROM ${BASE_IMAGE}
+ARG BASE_IMAGE_NAME=clinical-diary-base
+ARG BASE_IMAGE_TAG=latest
+ARG BASE_IMAGE_REF=${BASE_IMAGE_NAME}:${BASE_IMAGE_TAG}
+
+# Trivy DS001 Compliance: Tag explicitly specified via BASE_IMAGE_TAG
+# CI/CD can override entire REF with registry path (e.g., ghcr.io/cure-hht/clinical-diary-base:latest)
+FROM ${BASE_IMAGE_REF}
 
 LABEL com.clinical-diary.role="dev"
+LABEL com.clinical-diary.base-image="${BASE_IMAGE_REF}"
 LABEL description="Developer environment with Flutter and Android SDK"
 
 USER root

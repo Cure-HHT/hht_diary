@@ -18,6 +18,11 @@ on:
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
       - '.github/workflows/build-publish-images.yml'
+  pull_request:
+    paths:
+      - 'tools/dev-env/docker/**'
+      - 'tools/dev-env/docker-compose.yml'
+      - '.github/workflows/build-publish-images.yml'
   workflow_dispatch:
     inputs:
       push_to_registry:
@@ -53,6 +58,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # Use docker driver for PR builds to enable docker load/image sharing between jobs
+          # Use docker-container driver (default) for main builds to support provenance/SBOM
+          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -88,18 +97,19 @@ jobs:
           # Images in GHCR serve as cache - pull latest before build
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
           cache-to: type=inline
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+      - name: Tag image for local use
+        if: github.event_name == 'pull_request'
+        run: |
+          # Extract first tag from metadata action output
+          FIRST_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+          docker tag "$FIRST_TAG" clinical-diary-base:latest
 
       - name: Export local image for downstream jobs
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v5
-        with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/base.Dockerfile
-          tags: clinical-diary-base:latest
-          outputs: type=docker,dest=/tmp/base-image.tar
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+        run: docker save -o /tmp/base-image.tar clinical-diary-base:latest
 
       - name: Upload base image artifact
         if: github.event_name == 'pull_request'
@@ -114,6 +124,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-base
 
+    env:
+      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
+
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
 
@@ -123,6 +136,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # Use docker driver for PR builds to enable docker load/image sharing between jobs
+          # Use docker-container driver (default) for main builds to support provenance/SBOM
+          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
 
       - name: Download base image (PR only)
         if: github.event_name == 'pull_request'
@@ -163,26 +180,25 @@ jobs:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/dev.Dockerfile
           build-args: |
-            BASE_IMAGE_TAG=latest
+            BASE_IMAGE_REF=${{ env.BASE_IMAGE_REF }}
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
           cache-to: type=inline
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+      - name: Tag image for local use
+        if: github.event_name == 'pull_request'
+        run: |
+          # Extract first tag from metadata action output
+          FIRST_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+          docker tag "$FIRST_TAG" clinical-diary-dev:latest
 
       - name: Export local image for downstream jobs
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v5
-        with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/dev.Dockerfile
-          build-args: |
-            BASE_IMAGE_TAG=latest
-          tags: clinical-diary-dev:latest
-          outputs: type=docker,dest=/tmp/dev-image.tar
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dev:latest
+        run: docker save -o /tmp/dev-image.tar clinical-diary-dev:latest
 
       - name: Upload dev image artifact
         if: github.event_name == 'pull_request'
@@ -197,6 +213,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-base, build-dev]
 
+    env:
+      DEV_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-dev:latest' || 'ghcr.io/cure-hht/clinical-diary-dev:latest' }}
+
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
 
@@ -206,6 +225,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # Use docker driver for PR builds to enable docker load/image sharing between jobs
+          # Use docker-container driver (default) for main builds to support provenance/SBOM
+          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
 
       - name: Download base image (PR only)
         if: github.event_name == 'pull_request'
@@ -255,19 +278,22 @@ jobs:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/qa.Dockerfile
           build-args: |
-            BASE_IMAGE_TAG=latest
+            DEV_IMAGE_REF=${{ env.DEV_IMAGE_REF }}
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa:latest
           cache-to: type=inline
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
 
   build-ops:
     name: Build Ops Image
     runs-on: ubuntu-latest
     needs: build-base
+
+    env:
+      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
 
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
@@ -278,6 +304,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # Use docker driver for PR builds to enable docker load/image sharing between jobs
+          # Use docker-container driver (default) for main builds to support provenance/SBOM
+          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
 
       - name: Download base image (PR only)
         if: github.event_name == 'pull_request'
@@ -318,19 +348,22 @@ jobs:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/ops.Dockerfile
           build-args: |
-            BASE_IMAGE_TAG=latest
+            BASE_IMAGE_REF=${{ env.BASE_IMAGE_REF }}
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops:latest
           cache-to: type=inline
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
 
   build-mgmt:
     name: Build Management Image
     runs-on: ubuntu-latest
     needs: build-base
+
+    env:
+      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
 
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
@@ -341,6 +374,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # Use docker driver for PR builds to enable docker load/image sharing between jobs
+          # Use docker-container driver (default) for main builds to support provenance/SBOM
+          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
 
       - name: Download base image (PR only)
         if: github.event_name == 'pull_request'
@@ -381,14 +418,14 @@ jobs:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/mgmt.Dockerfile
           build-args: |
-            BASE_IMAGE_TAG=latest
+            BASE_IMAGE_REF=${{ env.BASE_IMAGE_REF }}
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt:latest
           cache-to: type=inline
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
 
   sign-and-sbom:
     name: Sign Images & Generate SBOMs
