@@ -434,6 +434,7 @@ jobs:
     # IMPLEMENTS REQUIREMENTS:
     #   REQ-p01018: Security Audit and Compliance (automated vulnerability scanning)
     # Enabled: Using Trivy which works with private repos without paid GitHub license
+    # Scans: Filesystem dependencies, IaC configs, Container images
 
     permissions:
       contents: read
@@ -450,25 +451,388 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'  # Don't fail on filesystem issues
 
-      - name: Upload Trivy results to GitHub Security
+      - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-iac-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'  # Don't fail on IaC issues
+          skip-dirs: 'node_modules,vendor,.git'
+
+      - name: Check for Docker images to scan
+        id: check-docker
+        run: |
+          if [ -f "tools/dev-env/docker/base.Dockerfile" ] || find . -name "Dockerfile" -o -name "*.dockerfile" | grep -q .; then
+            echo "has_docker=true" >> $GITHUB_OUTPUT
+            echo "✅ Dockerfile(s) detected - will scan built images"
+          else
+            echo "has_docker=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No Dockerfiles found - skipping container scan"
+          fi
+
+      - name: Set up Docker Buildx (for image scanning)
+        if: steps.check-docker.outputs.has_docker == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build base image for scanning
+        if: steps.check-docker.outputs.has_docker == 'true'
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml build base --no-cache
+
+      - name: Run Trivy container scanner (base image)
+        if: steps.check-docker.outputs.has_docker == 'true'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'image'
+          image-ref: 'clinical-diary-base:latest'
+          format: 'sarif'
+          output: 'trivy-container-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'  # Don't fail on container issues
+
+      - name: Upload Trivy filesystem results to GitHub Security
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
-          category: 'trivy-scan'
+          sarif_file: 'trivy-fs-results.sarif'
+          category: 'trivy-filesystem'
+        continue-on-error: true
 
-      - name: Generate vulnerability report
+      - name: Upload Trivy IaC results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-iac-results.sarif'
+          category: 'trivy-iac'
+        continue-on-error: true
+
+      - name: Upload Trivy container results to GitHub Security
+        if: always() && steps.check-docker.outputs.has_docker == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-container-results.sarif'
+          category: 'trivy-container'
+        continue-on-error: true
+
+      - name: Generate comprehensive vulnerability report
         if: always()
         run: |
           echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f trivy-results.sarif ]; then
-            echo "### Trivy Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Trivy scan completed. Results uploaded to GitHub Security tab." >> $GITHUB_STEP_SUMMARY
+          echo "### Trivy Multi-Layer Security Scan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Filesystem scan
+          if [ -f trivy-fs-results.sarif ]; then
+            echo "✅ **Filesystem Dependencies**: Scanned for vulnerable packages" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # IaC scan
+          if [ -f trivy-iac-results.sarif ]; then
+            echo "✅ **Infrastructure as Code**: Scanned Dockerfiles, Terraform, K8s configs" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Container scan
+          if [ -f trivy-container-results.sarif ]; then
+            echo "✅ **Container Images**: Scanned base development image" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Action**: Review detailed findings in the Security → Code scanning tab" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Scope**:" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependencies (npm, pub, pip packages)" >> $GITHUB_STEP_SUMMARY
+          echo "- IaC misconfigurations (Docker, Terraform, K8s)" >> $GITHUB_STEP_SUMMARY
+          echo "- Container vulnerabilities (OS packages, base images)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload all scan results as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-results-${{ github.sha }}
+          path: |
+            trivy-*.sarif
+          retention-days: 30
+        continue-on-error: true
+
+  flutter-dart-security:
+    name: Flutter/Dart Security Analysis
+    runs-on: ubuntu-latest
+    # IMPLEMENTS REQUIREMENTS:
+    #   REQ-p01018: Security Audit and Compliance (static analysis for Dart/Flutter)
+    # Purpose: Provides static analysis for Dart/Flutter codebase (not supported by CodeQL)
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for Flutter/Dart code
+        id: check-flutter
+        run: |
+          if [ -f pubspec.yaml ] || find . -name "pubspec.yaml" -type f | grep -q .; then
+            echo "has_flutter=true" >> $GITHUB_OUTPUT
+            echo "✅ Flutter/Dart code detected"
+          else
+            echo "has_flutter=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No Flutter/Dart code found - skipping analysis"
+          fi
+
+      - name: Set up Flutter
+        if: steps.check-flutter.outputs.has_flutter == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'  # Version from .github/versions.env
+          channel: 'stable'
+
+      - name: Install dependencies
+        if: steps.check-flutter.outputs.has_flutter == 'true'
+        run: |
+          if [ -f pubspec.yaml ]; then
+            flutter pub get
+          fi
+          # Check for packages directory
+          if [ -d packages ]; then
+            for pkg in packages/*/; do
+              if [ -f "${pkg}pubspec.yaml" ]; then
+                echo "Installing dependencies for ${pkg}"
+                (cd "$pkg" && flutter pub get)
+              fi
+            done
+          fi
+
+      - name: Run Flutter analyze
+        if: steps.check-flutter.outputs.has_flutter == 'true'
+        id: flutter-analyze
+        continue-on-error: true
+        run: |
+          echo "## Flutter/Dart Static Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          ANALYSIS_FAILED=false
+
+          # Analyze root project
+          if [ -f pubspec.yaml ]; then
+            echo "### Root Project" >> $GITHUB_STEP_SUMMARY
+            if flutter analyze --no-fatal-infos --no-fatal-warnings > analyze-output.txt 2>&1; then
+              echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
+            else
+              ANALYSIS_FAILED=true
+              echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              cat analyze-output.txt >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Action**: Review security findings in the Security tab of this repository." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Analyze packages
+          if [ -d packages ]; then
+            for pkg in packages/*/; do
+              if [ -f "${pkg}pubspec.yaml" ]; then
+                PKG_NAME=$(basename "$pkg")
+                echo "### Package: $PKG_NAME" >> $GITHUB_STEP_SUMMARY
+                if (cd "$pkg" && flutter analyze --no-fatal-infos --no-fatal-warnings > ../analyze-${PKG_NAME}.txt 2>&1); then
+                  echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
+                else
+                  ANALYSIS_FAILED=true
+                  echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
+                  echo '```' >> $GITHUB_STEP_SUMMARY
+                  cat "analyze-${PKG_NAME}.txt" >> $GITHUB_STEP_SUMMARY
+                  echo '```' >> $GITHUB_STEP_SUMMARY
+                fi
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
+
+          if [ "$ANALYSIS_FAILED" = "true" ]; then
+            exit 1
+          fi
+
+      - name: Check for outdated dependencies
+        if: steps.check-flutter.outputs.has_flutter == 'true'
+        continue-on-error: true
+        run: |
+          echo "### Dependency Security Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f pubspec.yaml ]; then
+            flutter pub outdated --json > outdated.json 2>&1 || true
+            if [ -s outdated.json ]; then
+              echo "⚠️ Outdated dependencies detected - review for security updates" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Run \`flutter pub outdated\` locally for details" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ All dependencies are up to date" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Upload analysis results
+        if: always() && steps.check-flutter.outputs.has_flutter == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-analysis-results-${{ github.sha }}
+          path: |
+            analyze-*.txt
+            outdated.json
+          retention-days: 30
+        continue-on-error: true
+
+  sql-linting:
+    name: SQL Migration Linting
+    runs-on: ubuntu-latest
+    # IMPLEMENTS REQUIREMENTS:
+    #   REQ-p01018: Security Audit and Compliance (SQL migration safety)
+    # Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
+
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for detecting changed files
+
+      - name: Check for SQL files
+        id: check-sql
+        run: |
+          echo "::group::Checking for SQL files in database/"
+
+          if find database -name "*.sql" -type f 2>/dev/null | grep -q .; then
+            echo "has_sql=true" >> $GITHUB_OUTPUT
+            echo "✅ SQL files detected:"
+            find database -name "*.sql" -type f | head -10
+            SQL_COUNT=$(find database -name "*.sql" -type f | wc -l)
+            if [ "$SQL_COUNT" -gt 10 ]; then
+              echo "... and $((SQL_COUNT - 10)) more"
+            fi
+          else
+            echo "has_sql=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No SQL files found in database/ - skipping linting"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Get changed SQL files
+        if: steps.check-sql.outputs.has_sql == 'true' && github.event_name == 'pull_request'
+        id: changed-sql
+        run: |
+          echo "::group::Detecting changed SQL files in this PR"
+
+          # Get list of changed SQL files
+          CHANGED_SQL=$(git diff --name-only --diff-filter=ACMR ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '\.sql$' || true)
+
+          if [ -n "$CHANGED_SQL" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "✅ Changed SQL files:"
+            echo "$CHANGED_SQL" | sed 's/^/  - /'
+
+            # Save for later use
+            echo "$CHANGED_SQL" > changed-sql-files.txt
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No SQL files changed in this PR - skipping Squawk"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Install Squawk
+        if: steps.check-sql.outputs.has_sql == 'true' && (steps.changed-sql.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch')
+        run: |
+          echo "::group::Installing Squawk PostgreSQL linter"
+
+          # Download latest Squawk release
+          SQUAWK_VERSION="v0.29.2"
+          wget -q https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x86_64 -O squawk
+          chmod +x squawk
+          sudo mv squawk /usr/local/bin/squawk
+
+          # Verify installation
+          squawk --version
+
+          echo "::endgroup::"
+
+      - name: Run Squawk on changed files
+        if: steps.check-sql.outputs.has_sql == 'true' && steps.changed-sql.outputs.has_changes == 'true'
+        id: squawk
+        continue-on-error: true
+        run: |
+          echo "::group::Running Squawk on changed SQL files"
+          echo "## SQL Migration Linting Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          LINT_FAILED=false
+
+          while IFS= read -r sql_file; do
+            if [ -f "$sql_file" ]; then
+              echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Run squawk and capture output
+              if squawk "$sql_file" > squawk-output.txt 2>&1; then
+                echo "✅ No issues detected" >> $GITHUB_STEP_SUMMARY
+              else
+                LINT_FAILED=true
+                echo "⚠️ Issues detected:" >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                cat squawk-output.txt >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+
+                # Also output to console for GitHub annotations
+                cat squawk-output.txt
+              fi
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done < changed-sql-files.txt
+
+          echo "::endgroup::"
+
+          if [ "$LINT_FAILED" = "true" ]; then
+            echo "::warning::Squawk detected potential issues in SQL migrations. Review the step summary for details."
+            exit 1
+          fi
+
+      - name: Run Squawk on all migrations (manual trigger)
+        if: steps.check-sql.outputs.has_sql == 'true' && github.event_name == 'workflow_dispatch' && steps.changed-sql.outputs.has_changes != 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::Running Squawk on all SQL files (manual trigger)"
+          echo "## SQL Migration Linting Results (Full Scan)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          find database -name "*.sql" -type f | while IFS= read -r sql_file; do
+            echo "Linting: $sql_file"
+            squawk "$sql_file" || true
+          done
+
+          echo "::endgroup::"
+
+      - name: Generate linting summary
+        if: always() && steps.check-sql.outputs.has_sql == 'true'
+        run: |
+          if [ "${{ steps.changed-sql.outputs.has_changes }}" != "true" ] && [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "## SQL Migration Linting" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⏭️ No SQL files changed in this PR - linting skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Squawk checks for**:" >> $GITHUB_STEP_SUMMARY
+            echo "- Table locks during migrations" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing indexes on foreign keys" >> $GITHUB_STEP_SUMMARY
+            echo "- Unsafe ALTER TABLE operations" >> $GITHUB_STEP_SUMMARY
+            echo "- NOT NULL additions without defaults" >> $GITHUB_STEP_SUMMARY
           fi

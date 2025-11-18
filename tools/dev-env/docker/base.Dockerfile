@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00027: Containerized Development Environments
-#   REQ-d00032: Development Tool Specifications
+#   REQ-d00059: Development Tool Specifications
 #
 # Base Docker Image for Clinical Diary Development Environments
 # Provides common tools used across all roles (dev, qa, ops, mgmt)
@@ -138,10 +138,10 @@ RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com
 # Version pinned: 2025-11-09
 # Prevents accidental commit of secrets (API keys, tokens, passwords)
 # ============================================================
-ENV GITLEAKS_VERSION=v8.29.0
-RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/${GITLEAKS_VERSION}/gitleaks_8.29.0_linux_x64.tar.gz && \
-    tar -xzf gitleaks_8.29.0_linux_x64.tar.gz -C /usr/local/bin && \
-    rm gitleaks_8.29.0_linux_x64.tar.gz && \
+ENV GITLEAKS_VERSION=8.29.0
+RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
+    tar -xzf gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz -C /usr/local/bin && \
+    rm gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz && \
     gitleaks version
 
 # ============================================================
