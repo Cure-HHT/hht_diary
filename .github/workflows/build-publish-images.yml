@@ -115,7 +115,7 @@ jobs:
     needs: build-base
 
     env:
-      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || format('{0}/{1}-base:latest', env.REGISTRY, env.IMAGE_PREFIX) }}
+      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
 
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
@@ -201,7 +201,7 @@ jobs:
     needs: [build-base, build-dev]
 
     env:
-      DEV_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-dev:latest' || format('{0}/{1}-dev:latest', env.REGISTRY, env.IMAGE_PREFIX) }}
+      DEV_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-dev:latest' || 'ghcr.io/cure-hht/clinical-diary-dev:latest' }}
 
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
@@ -276,7 +276,7 @@ jobs:
     needs: build-base
 
     env:
-      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || format('{0}/{1}-base:latest', env.REGISTRY, env.IMAGE_PREFIX) }}
+      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
 
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
@@ -342,7 +342,7 @@ jobs:
     needs: build-base
 
     env:
-      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || format('{0}/{1}-base:latest', env.REGISTRY, env.IMAGE_PREFIX) }}
+      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
 
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
