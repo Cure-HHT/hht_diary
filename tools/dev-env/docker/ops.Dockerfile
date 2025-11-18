@@ -6,8 +6,8 @@
 # DevOps Environment Dockerfile
 # Extends base with: Terraform, Supabase CLI, deployment tools
 
-ARG BASE_IMAGE_TAG=latest
-FROM clinical-diary-base:${BASE_IMAGE_TAG}
+ARG BASE_IMAGE_REF=clinical-diary-base:latest
+FROM ${BASE_IMAGE_REF}
 
 LABEL com.clinical-diary.role="ops"
 LABEL description="DevOps environment with infrastructure and deployment tools"

@@ -6,8 +6,8 @@
 # Management Environment Dockerfile
 # Minimal, read-only environment for management and audit access
 
-ARG BASE_IMAGE_TAG=latest
-FROM clinical-diary-base:${BASE_IMAGE_TAG}
+ARG BASE_IMAGE_REF=clinical-diary-base:latest
+FROM ${BASE_IMAGE_REF}
 
 LABEL com.clinical-diary.role="mgmt"
 LABEL description="Management environment with read-only tools"

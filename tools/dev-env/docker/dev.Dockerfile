@@ -6,8 +6,8 @@
 # Developer Environment Dockerfile
 # Extends base with: Flutter, Android SDK, development tools
 
-ARG BASE_IMAGE=clinical-diary-base:latest
-FROM ${BASE_IMAGE}
+ARG BASE_IMAGE_REF=clinical-diary-base:latest
+FROM ${BASE_IMAGE_REF}
 
 LABEL com.clinical-diary.role="dev"
 LABEL description="Developer environment with Flutter and Android SDK"
