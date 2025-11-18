@@ -1,0 +1,18 @@
+# Trivy Ignore List
+#
+# This file contains Trivy vulnerability checks that are intentionally ignored
+# with justification for each exclusion.
+#
+# Format: <vulnerability-id> [# comment]
+#
+# Last updated: 2025-11-18
+
+# DS001: ':latest' tag used in FROM statements
+# Justification: Our Dockerfiles use ':latest' in ARG defaults for local development.
+# The CI/CD workflows override these with specific GHCR references (e.g., ghcr.io/cure-hht/clinical-diary-base:latest).
+# This is intentional and safe because:
+# 1. Local development benefits from ':latest' for convenience
+# 2. CI/CD always provides explicit registry paths
+# 3. Production builds are tagged with commit SHAs for reproducibility
+# Files affected: dev.Dockerfile, ops.Dockerfile, mgmt.Dockerfile, qa.Dockerfile
+DS001
