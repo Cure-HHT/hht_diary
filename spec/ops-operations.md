@@ -429,17 +429,21 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    # Expected: 200 OK
    ```
 
-3. **Check Dead Letter Queue** (3 minutes):
+3. **Check Failed Sync Attempts** (3 minutes):
    ```sql
-   -- Check failed sync attempts
+   -- Check failed syncs pending retry (ordered by audit_id to maintain event sequence)
    SELECT
+     sync_id,
      audit_id,
      event_uuid,
-     attempts,
+     attempt_count,
      last_error,
-     created_at
-   FROM edc_sync_failures
-   ORDER BY created_at DESC
+     next_retry_at,
+     synced_at
+   FROM edc_sync_log
+   WHERE sync_status = 'FAILED'
+     AND next_retry_at IS NOT NULL
+   ORDER BY audit_id ASC  -- Maintain chronological event order for retries
    LIMIT 20;
    ```
 
@@ -448,7 +452,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    # Invoke Edge Function to retry
    curl -X POST https://abcd1234.supabase.co/functions/v1/edc_sync_retry \
      -H "Authorization: Bearer SERVICE_ROLE_KEY" \
-     -d '{"audit_ids": [123, 124, 125]}'
+     -d '{"sync_ids": [123, 124, 125]}'
    ```
 
 5. **Contact EDC Support** (if API down) (10 minutes):

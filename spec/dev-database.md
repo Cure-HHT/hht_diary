@@ -256,6 +256,9 @@ supabase functions new edc-sync
 ```
 
 **Example: EDC Sync Function** (edc-sync/index.ts):
+
+> **CRITICAL**: Event ordering MUST be preserved during retries. The `audit_id` field (auto-incrementing) establishes chronological order. Retry queries MUST use `ORDER BY audit_id ASC` to maintain event sequence integrity in the EDC system.
+
 ```typescript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -274,7 +277,7 @@ serve(async (req) => {
     // Fetch event from audit trail
     const { data: auditEvent, error } = await supabaseClient
       .from('record_audit')
-      .select('*')
+      .select('audit_id, event_uuid, patient_id, operation, data, server_timestamp')
       .eq('event_uuid', event_uuid)
       .single()
 
@@ -294,12 +297,27 @@ serve(async (req) => {
     })
 
     if (!edcResponse.ok) {
+      // Log sync failure with retry scheduling
+      // NOTE: audit_id maintains event ordering for retries
+      const attemptCount = 1
+      const nextRetryAt = new Date(Date.now() + Math.pow(2, attemptCount) * 60000) // Exponential backoff
+
+      await supabaseClient.from('edc_sync_log').insert({
+        audit_id: auditEvent.audit_id,
+        event_uuid: auditEvent.event_uuid,
+        sync_status: 'FAILED',
+        attempt_count: attemptCount,
+        next_retry_at: nextRetryAt.toISOString(),
+        last_error: `EDC API error: ${edcResponse.statusText}`,
+      })
+
       throw new Error(`EDC sync failed: ${edcResponse.statusText}`)
     }
 
     // Log sync success
     await supabaseClient.from('edc_sync_log').insert({
-      event_uuid,
+      audit_id: auditEvent.audit_id,
+      event_uuid: auditEvent.event_uuid,
       sync_status: 'SUCCESS',
       edc_response: await edcResponse.json(),
     })
@@ -509,14 +527,28 @@ CREATE TABLE custom_patient_fields (
 ```
 
 2. **EDC Sync Tracking**:
+
+> **CRITICAL**: The `audit_id` foreign key is required to maintain chronological event ordering during retries. EDC systems require events in the exact order they occurred to maintain data integrity.
+
 ```sql
 CREATE TABLE edc_sync_log (
   sync_id BIGSERIAL PRIMARY KEY,
-  event_uuid UUID REFERENCES record_audit(event_uuid),
+  audit_id BIGINT NOT NULL REFERENCES record_audit(audit_id),
+  event_uuid UUID NOT NULL REFERENCES record_audit(event_uuid),
   sync_status TEXT CHECK (sync_status IN ('PENDING', 'SUCCESS', 'FAILED')),
+  attempt_count INTEGER DEFAULT 1,
+  next_retry_at TIMESTAMPTZ,
+  last_error TEXT,
   edc_response JSONB,
   synced_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Partial index for efficient retry queue queries (ordered by audit_id to maintain event order)
+CREATE INDEX idx_edc_retry_queue ON edc_sync_log(audit_id, next_retry_at)
+  WHERE sync_status = 'FAILED' AND next_retry_at IS NOT NULL;
+
+-- Ensure one sync record per audit event
+CREATE UNIQUE INDEX idx_edc_sync_audit_unique ON edc_sync_log(audit_id);
 ```
 
 3. **Custom Validations**:
