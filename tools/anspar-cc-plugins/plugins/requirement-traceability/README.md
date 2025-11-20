@@ -299,11 +299,15 @@ Skills are executable wrappers for use with Claude Code agents:
 ./skills/enhance-links.skill --dry-run
 ```
 
-## Slash Command
+## Slash Commands
 
-The `/req` slash command provides quick access to requirement management:
+The plugin provides two slash commands for requirement management and traceability:
 
-### Display Requirement
+### `/req` - Requirement Management
+
+Quick access to requirement information:
+
+#### Display Requirement
 ```
 /req REQ-p00042
 ```
@@ -313,7 +317,7 @@ Shows:
 - Associated Linear tickets
 - Ticket status
 
-### Search Requirements
+#### Search Requirements
 ```
 /req search authentication
 ```
@@ -322,23 +326,57 @@ Finds all requirements matching "authentication" and shows:
 - Requirement IDs
 - Associated tickets
 
-### New Requirement Guide
+#### New Requirement Guide
 ```
 /req new
 ```
 Displays step-by-step guide for creating new requirements.
 
-### Validate Requirements
+#### Validate Requirements
 ```
 /req validate
 ```
 Runs `tools/requirements/validate_requirements.py` and shows results.
 
-### Help
+#### Help
 ```
 /req
 ```
 Shows usage summary and recent requirements.
+
+### `/add-REQ-to-ticket` - Link Requirements to Tickets
+
+Add formal requirement references to Linear tickets:
+
+#### Add REQ to Specific Ticket
+```
+/add-REQ-to-ticket CUR-123 REQ-p00042
+```
+Validates requirement and adds reference to ticket description.
+
+#### Add REQ with Implementation Checklist
+```
+/add-REQ-to-ticket CUR-123 REQ-p00042 --with-checklist
+```
+Adds requirement reference AND generates implementation checklist from acceptance criteria.
+
+#### Scan for Tickets Missing REQs
+```
+/add-REQ-to-ticket scan
+```
+Finds all open tickets without requirement references and suggests matches.
+
+#### Bulk Add REQs
+```
+/add-REQ-to-ticket --bulk mappings.json
+```
+Processes multiple ticket-to-requirement mappings from a file.
+
+#### Interactive Mode
+```
+/add-REQ-to-ticket
+```
+Guides you through adding REQ references with prompts.
 
 ## Installation
 
