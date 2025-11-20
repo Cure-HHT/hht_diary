@@ -507,7 +507,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 - [ ] RLS policies enforce role-based data access
 - [ ] Admin can access all dashboards
 
-*End* *Role-Based Access Control Implementation* | **Hash**: 394dec01
+*End* *Role-Based Access Control Implementation* | **Hash**: 6d335872
 ---
 
 # REQ-d00033: Site-Based Data Isolation
