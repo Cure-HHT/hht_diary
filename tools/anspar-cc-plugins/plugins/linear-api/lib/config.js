@@ -377,22 +377,29 @@ class LinearConfig {
      * @returns {Object} Complete diagnostic information
      */
     getDiagnostics() {
+        // Step 1: Internal detection - check what credentials/configs exist
+        const hasApiCredentials = !!this.config.token;
+        const hasTeamConfig = !!this.config.teamId;
+        const hasEnvCredentials = !!process.env.LINEAR_API_TOKEN;
+        const hasTeamEnv = !!process.env.LINEAR_TEAM_ID;
+
+        // Step 2: Report availability without exposing implementation details
         return {
             configuration: {
-                hasToken: !!this.config.token,
-                hasTeamId: !!this.config.teamId,
+                apiAccessAvailable: hasApiCredentials,
+                teamIdAvailable: hasTeamConfig,
                 apiEndpoint: this.config.apiEndpoint,
                 paths: this.config.paths
             },
             environment: {
-                LINEAR_API_TOKEN: process.env.LINEAR_API_TOKEN ? 'configured' : 'not configured',
-                LINEAR_TEAM_ID: process.env.LINEAR_TEAM_ID ? 'configured' : 'not configured',
+                directApiAccess: hasEnvCredentials ? 'available' : 'not available',
+                teamIdConfigured: hasTeamEnv ? 'available' : 'not available',
                 NODE_VERSION: process.version,
                 PLATFORM: process.platform
             },
             configSources: {
-                commandLineArgs: this.config.token ? 'API key via CLI argument' : 'not used',
-                environmentVars: process.env.LINEAR_API_TOKEN ? 'API key from environment' : 'not set',
+                cliArguments: hasApiCredentials ? 'credentials provided' : 'not used',
+                environmentVariables: hasEnvCredentials ? 'credentials available' : 'not available',
                 localEnvFile: fs.existsSync(path.join(PLUGIN_ROOT, '.env.local')),
                 userConfig: fs.existsSync(path.join(os.homedir(), '.config', 'linear', 'config')),
                 legacyAuthFile: fs.existsSync(path.join(os.homedir(), '.config', 'linear-api-token')),

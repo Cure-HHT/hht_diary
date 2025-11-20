@@ -249,7 +249,7 @@ class LinearAdapter {
     }
 
     // If MCP failed, try API as fallback
-    if (this.accessMethod === 'mcp' && accessDetector.isApiTokenAvailable()) {
+    if (this.accessMethod === 'mcp' && accessDetector.isApiAvailable()) {
       if (this.debug) {
         console.log(`🔄 Falling back to API for ${operation}`);
       }

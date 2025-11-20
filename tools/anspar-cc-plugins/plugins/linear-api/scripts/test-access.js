@@ -38,7 +38,7 @@ async function main() {
     console.log('');
     console.log('You need either:');
     console.log('  1. Linear MCP connected in Claude Code (run: /mcp)');
-    console.log('  2. LINEAR_API_TOKEN environment variable set');
+    console.log('  2. Direct API access configured (see setup guide)');
     console.log('');
     console.log('For detailed setup instructions, see:');
     console.log('  tools/anspar-cc-plugins/plugins/linear-api/README.md');
@@ -69,14 +69,14 @@ async function main() {
     console.log('');
 
   } else if (accessMethod === 'api') {
-    console.log('✅ LINEAR API TOKEN DETECTED');
+    console.log('✅ LINEAR DIRECT API ACCESS AVAILABLE');
     console.log('');
     console.log('Access Method: Direct API (GraphQL)');
-    console.log('Authentication: API Token');
+    console.log('Authentication: Direct API credentials');
     console.log('Best for: Claude Code CLI, automation, CI/CD');
     console.log('');
     console.log('📋 API Configuration:');
-    console.log(`   API Key Status: ${process.env.LINEAR_API_TOKEN ? 'configured' : 'not configured'}`);
+    console.log(`   API Access: ${process.env.LINEAR_API_TOKEN ? 'available' : 'not available'}`);
     console.log(`   Team ID: ${config.getTeamId(false) || '(will auto-discover)'}`);
     console.log(`   Endpoint: ${config.getApiEndpoint()}`);
     console.log('');
@@ -91,8 +91,8 @@ async function main() {
     const diagnostics = config.getDiagnostics();
 
     console.log('Configuration:');
-    console.log(`  API Key Available: ${diagnostics.configuration.hasToken}`);
-    console.log(`  Team ID Available: ${diagnostics.configuration.hasTeamId}`);
+    console.log(`  API Access Available: ${diagnostics.configuration.apiAccessAvailable}`);
+    console.log(`  Team ID Available: ${diagnostics.configuration.teamIdAvailable}`);
     console.log(`  API Endpoint: ${diagnostics.configuration.apiEndpoint}`);
     console.log('');
 
@@ -114,7 +114,8 @@ async function main() {
     console.log(`  Cached Method: ${accessDiag.cachedMethod || 'none'}`);
     console.log(`  Last Check: ${accessDiag.lastCheck || 'never'}`);
     console.log(`  Cache Valid: ${accessDiag.cacheValid}`);
-    console.log(`  API Token Available: ${accessDiag.apiTokenAvailable}`);
+    console.log(`  Direct API Access: ${accessDiag.apiAccessAvailable ? 'available' : 'not available'}`);
+    console.log(`  MCP Access: ${accessDiag.mcpAccessAvailable ? 'available' : 'not available'}`);
     console.log('');
   }
 

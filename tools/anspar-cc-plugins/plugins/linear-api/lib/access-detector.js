@@ -48,11 +48,11 @@ class AccessDetector {
     if (preferMcp) {
       if (await this.isMcpAvailable()) {
         method = 'mcp';
-      } else if (this.isApiTokenAvailable()) {
+      } else if (this.isApiAvailable()) {
         method = 'api';
       }
     } else {
-      if (this.isApiTokenAvailable()) {
+      if (this.isApiAvailable()) {
         method = 'api';
       } else if (await this.isMcpAvailable()) {
         method = 'mcp';
@@ -134,11 +134,30 @@ class AccessDetector {
   }
 
   /**
-   * Check if API token is available
+   * Check if API access is available
+   * Step 1: Internal detection - checks if authentication credentials exist
+   * @private
+   * @returns {boolean}
+   */
+  _hasApiCredentials() {
+    return !!(process.env.LINEAR_API_TOKEN);
+  }
+
+  /**
+   * Check if direct API access is available
+   * Step 2: Public interface - reports API availability without exposing implementation
+   * @returns {boolean}
+   */
+  isApiAvailable() {
+    return this._hasApiCredentials();
+  }
+
+  /**
+   * @deprecated Use isApiAvailable() instead
    * @returns {boolean}
    */
   isApiTokenAvailable() {
-    return !!(process.env.LINEAR_API_TOKEN);
+    return this.isApiAvailable();
   }
 
   /**
@@ -163,18 +182,24 @@ class AccessDetector {
    * @returns {Object}
    */
   getDiagnostics() {
+    // Step 1: Detect what's available (internal)
+    const apiAvailable = this.isApiAvailable();
+    const mcpAvailable = this.isMcpAvailable();
+
+    // Step 2: Report availability without exposing implementation details
     return {
       cachedMethod: this.cachedMethod,
       lastCheck: this.lastCheck ? new Date(this.lastCheck).toISOString() : null,
       cacheValid: this.isCacheValid(),
-      apiTokenAvailable: this.isApiTokenAvailable(),
+      apiAccessAvailable: apiAvailable,
+      mcpAccessAvailable: mcpAvailable,
       mcpConfigPaths: [
         path.join(process.cwd(), '.mcp.json'),
         path.join(process.env.HOME || '', '.claude', '.mcp.json')
       ],
       environment: {
         CLAUDE_CODE: process.env.CLAUDE_CODE || '(not set)',
-        LINEAR_API_TOKEN: this.isApiTokenAvailable() ? 'configured' : 'not configured'
+        directApiAccess: apiAvailable ? 'available' : 'not available'
       }
     };
   }
@@ -184,13 +209,15 @@ class AccessDetector {
    * @returns {string}
    */
   async getStatusMessage() {
+    // Step 1: Detect what's available (internal)
     const method = await this.detect();
 
+    // Step 2: Report availability without exposing implementation details
     if (!method) {
-      return `❌ No Linear access method available.
+      return `❌ No Linear access available.
 
       Options:
-      1. Set LINEAR_API_TOKEN environment variable
+      1. Configure direct API access (see README for setup)
       2. Configure Linear MCP in Claude Code (run: /mcp)
 
       For more help, see: tools/anspar-cc-plugins/plugins/linear-api/README.md`;
@@ -201,7 +228,7 @@ class AccessDetector {
     }
 
     if (method === 'api') {
-      return `✓ Using Linear API (Direct API access with authentication key)`;
+      return `✓ Using Linear API (Direct API access available)`;
     }
 
     return 'Unknown access method';
