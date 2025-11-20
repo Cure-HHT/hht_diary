@@ -11,7 +11,75 @@ This plugin provides basic CRUD operations for Linear tickets via the Linear Gra
 - **Auto-Configuration**: Automatically discovers team IDs
 - **Caching**: 24-hour cache for team/label data
 - **Skills-Based**: Easily invokable via Claude Code skills
+- **Dual Access**: Works with both Linear MCP and direct API
 - **Pure API**: Direct GraphQL operations with no abstraction layers
+
+## Access Methods
+
+This plugin supports two methods for accessing Linear:
+
+### 🌐 Linear MCP (Model Context Protocol)
+**Best for**: Claude Code web (claude.ai/code)
+
+The plugin automatically uses Linear MCP when available in Claude Code. No configuration required!
+
+**Advantages**:
+- ✅ No API token needed
+- ✅ OAuth security (managed by Claude Code)
+- ✅ Automatic authentication
+- ✅ Centrally managed access
+
+**Setup**:
+1. In Claude Code, use the `/mcp` command
+2. Authenticate with Linear via OAuth
+3. Run scripts normally - MCP will be auto-detected
+
+### 🔑 Direct API Access
+**Best for**: Claude Code CLI, automation, CI/CD
+
+Uses LINEAR_API_TOKEN for direct GraphQL API access.
+
+**Advantages**:
+- ✅ Works in any environment
+- ✅ No OAuth flow needed
+- ✅ Full API access
+- ✅ Scriptable and automatable
+
+**Setup**:
+1. Get token from https://linear.app/settings/api
+2. Set environment variable:
+   ```bash
+   export LINEAR_API_TOKEN="lin_api_..."
+   ```
+3. Or use Doppler: `doppler run -- claude`
+
+### How Access Method is Selected
+
+The plugin automatically detects and uses the best available method:
+
+1. **MCP First** (if in Claude Code web)
+   - Checks for connected Linear MCP server
+   - Uses OAuth authentication
+
+2. **API Fallback** (if MCP unavailable)
+   - Checks for LINEAR_API_TOKEN
+   - Uses direct GraphQL API
+
+3. **Automatic Failover**
+   - If MCP operation fails, automatically tries API
+   - Seamless fallback for reliability
+
+### Check Your Access Method
+
+```bash
+node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-access.js
+```
+
+This shows:
+- Which access method is active
+- Whether MCP is available
+- Whether API token is set
+- Full diagnostic information
 
 ## What This Plugin Does NOT Do
 
@@ -628,6 +696,72 @@ node /full/path/to/scripts/fetch-tickets.js
 - **Environment Variables**: Always use environment variables for secrets
 - **Cache**: Cache does not store sensitive data (only team IDs, label info)
 
+## Troubleshooting
+
+### MCP Issues
+
+**Problem**: "MCP not available" in Claude Code web
+
+**Solution**:
+1. Run `/mcp` in Claude Code
+2. Check if Linear is listed
+3. If not, connect Linear MCP
+4. Authenticate when prompted
+
+**Problem**: "OAuth authentication failed"
+
+**Solution**:
+1. Run `/mcp` in Claude Code
+2. Select "Manage authentication" for Linear
+3. Re-authenticate with your Linear account
+
+### API Token Issues
+
+**Problem**: "LINEAR_API_TOKEN not found"
+
+**Solution**:
+- Set the environment variable:
+  ```bash
+  export LINEAR_API_TOKEN="lin_api_..."
+  ```
+- Or use Doppler:
+  ```bash
+  doppler run -- claude
+  ```
+- Get your token from: https://linear.app/settings/api
+
+**Problem**: "Authentication failed" with API token
+
+**Solution**:
+- Verify your token is valid (check Linear settings)
+- Ensure the token has the required permissions
+- Try generating a new token
+
+### Fallback Not Working
+
+**Problem**: "Both MCP and API failed"
+
+**Solution**:
+- Check MCP connection: `/mcp`
+- Check API token: `echo $LINEAR_API_TOKEN`
+- Check network connectivity
+- Check Linear service status
+- Run diagnostics:
+  ```bash
+  node tools/anspar-cc-plugins/plugins/linear-api/scripts/test-access.js --verbose
+  ```
+
+### When to Use Which Method
+
+| Scenario | Recommended Method |
+| -------- | ------------------ |
+| Claude Code web (claude.ai/code) | MCP (automatic) |
+| Claude Code CLI | API token |
+| CI/CD pipelines | API token |
+| Automation scripts | API token |
+| Team collaboration | MCP (OAuth) |
+| Personal use | Either |
+
 ## Contributing
 
 This plugin is part of the Anspar marketplace. To contribute:
@@ -657,7 +791,15 @@ MIT License
 
 ## Version History
 
-### 2.0.0 (Current)
+### 3.0.0 (Current)
+- **Linear MCP Support**: Added Model Context Protocol integration
+- **Dual Access**: Automatic detection of MCP vs API access
+- **Graceful Fallback**: Auto-fallback from MCP to API on errors
+- **Enhanced Diagnostics**: New test-access.js for troubleshooting
+- **Updated Documentation**: Comprehensive MCP setup and usage guides
+- Implements: REQ-d00053 (Development Environment and Tooling Setup)
+
+### 2.0.0
 - Initial release as standalone generic plugin
 - Extracted from linear-api plugin
 - Consolidated update operations into single script

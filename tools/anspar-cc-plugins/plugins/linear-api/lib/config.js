@@ -355,6 +355,51 @@ class LinearConfig {
             }
         }
     }
+
+    /**
+     * Get access method information (MCP vs API)
+     * @returns {Promise<Object>} Access method diagnostics
+     */
+    async getAccessInfo() {
+        try {
+            const linearAdapter = require('./linear-adapter');
+            return await linearAdapter.getDiagnostics();
+        } catch (error) {
+            return {
+                error: error.message,
+                note: 'Linear adapter not initialized'
+            };
+        }
+    }
+
+    /**
+     * Get diagnostic information for troubleshooting
+     * @returns {Object} Complete diagnostic information
+     */
+    getDiagnostics() {
+        return {
+            configuration: {
+                hasToken: !!this.config.token,
+                hasTeamId: !!this.config.teamId,
+                apiEndpoint: this.config.apiEndpoint,
+                paths: this.config.paths
+            },
+            environment: {
+                LINEAR_API_TOKEN: process.env.LINEAR_API_TOKEN ? '(set)' : '(not set)',
+                LINEAR_TEAM_ID: process.env.LINEAR_TEAM_ID ? '(set)' : '(not set)',
+                NODE_VERSION: process.version,
+                PLATFORM: process.platform
+            },
+            configSources: {
+                commandLineArgs: this.config.token ? 'token provided via CLI' : 'not used',
+                environmentVars: process.env.LINEAR_API_TOKEN ? 'token from env' : 'not set',
+                localEnvFile: fs.existsSync(path.join(PLUGIN_ROOT, '.env.local')),
+                userConfig: fs.existsSync(path.join(os.homedir(), '.config', 'linear', 'config')),
+                legacyToken: fs.existsSync(path.join(os.homedir(), '.config', 'linear-api-token')),
+                savedConfig: fs.existsSync(path.join(PLUGIN_ROOT, '.linear-config.json'))
+            }
+        };
+    }
 }
 
 // Export singleton instance
