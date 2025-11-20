@@ -91,7 +91,7 @@ git commit -m "test" --dry-run
 
 ### 1. AI-Powered Validation Agent
 
-**Agent**: `spec-compliance-enforcer`
+**Agent**: `spec-compliance`
 
 **Capabilities**:
 - Validates file naming conventions
@@ -263,10 +263,10 @@ Run validation anytime without committing:
 
 ### AI Agent Invocation
 
-Invoke the spec-compliance-enforcer agent directly in Claude Code:
+Invoke the spec-compliance agent directly in Claude Code:
 
 1. Open Claude Code
-2. Use the Task tool with `subagent_type="spec-compliance-enforcer"`
+2. Use the Task tool with `subagent_type="spec-compliance"`
 3. Provide context about spec/ changes to validate
 
 Example:

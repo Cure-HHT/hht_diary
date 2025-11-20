@@ -17,5 +17,5 @@
   ],
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/spec-compliance",
-  "agents": "./agents/spec-compliance-enforcer.md"
+  "agents": "./agents/spec-compliance.md"
 }

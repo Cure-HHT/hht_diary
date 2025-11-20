@@ -1,5 +1,5 @@
 ---
-name: compliance-agent
+name: compliance-verification
 description: FDA 21 CFR Part 11 compliance verification workflows with requirement change tracking and subsystem impact analysis
 tools: Bash, Read, Grep
 ---

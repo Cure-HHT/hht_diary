@@ -231,3 +231,4 @@ When working with plugins that provide specialized agents:
 
 **Example**: When working with plugins, prefer `/plugin-wizard` over manually creating plugin files.
 - always try to use a specific plugin sub-agent
+- When a command or a sequence of commands requires execution within a specific directory, use a subshell to contain the directory change. example: (cd /path/to/specific/directory && command1 && command2)

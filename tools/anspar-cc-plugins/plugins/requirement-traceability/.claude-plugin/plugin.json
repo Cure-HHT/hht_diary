@@ -10,6 +10,6 @@
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/requirement-traceability",
   "license": "MIT",
-  "agents": "./agents/requirement-agent.md",
+  "agents": "./agents/requirement-traceability.md",
   "skills": "./skills/"
 }

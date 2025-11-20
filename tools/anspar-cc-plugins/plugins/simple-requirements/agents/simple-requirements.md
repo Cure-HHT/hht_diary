@@ -1,5 +1,5 @@
 ---
-name: RequirementsAgent
+name: simple-requirements
 description: Specialized agent for requirement operations, change detection, and tracking management
 ---
 

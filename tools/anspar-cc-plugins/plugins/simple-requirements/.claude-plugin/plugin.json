@@ -19,5 +19,5 @@
   ],
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/simple-requirements",
-  "agents": "./agents/requirements-agent.md"
+  "agents": "./agents/simple-requirements.md"
 }

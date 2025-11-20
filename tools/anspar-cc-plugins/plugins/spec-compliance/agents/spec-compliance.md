@@ -1,5 +1,5 @@
 ---
-name: spec-compliance-enforcer
+name: spec-compliance
 description: Proactive enforcement of spec/ directory guidelines including file naming, audience scope, and requirement format validation
 tools: Read, Grep, Bash
 ---

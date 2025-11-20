@@ -1,5 +1,5 @@
 ---
-name: workflow-enforcer
+name: workflow
 description: Enforces git workflow by ensuring active ticket is claimed before implementation work and validates REQ references in commits
 tools: Bash, Read, AskUserQuestion
 ---
