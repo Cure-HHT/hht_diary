@@ -255,84 +255,107 @@ supabase functions new edc-sync
 # edge_functions/edc-sync/index.ts
 ```
 
-**Example: EDC Sync Function** (edc-sync/index.ts):
+**Example: EDC Sync Worker** (edc-sync/index.ts):
 
-> **CRITICAL**: Event ordering MUST be preserved during retries. The `audit_id` field (auto-incrementing) establishes chronological order. Retry queries MUST use `ORDER BY audit_id ASC` to maintain event sequence integrity in the EDC system.
+> **CRITICAL**: Events sync in strict sequential order. If event N fails, all subsequent events block until event N succeeds. Worker continuously processes events in `audit_id` order.
 
 ```typescript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-serve(async (req) => {
-  try {
-    // Get Supabase client (authenticated with service role)
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+// Background worker that continuously syncs events in order
+async function syncWorker() {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
 
-    // Parse incoming sync request
-    const { event_uuid, operation } = await req.json()
+  while (true) {
+    try {
+      // Find highest successfully synced event
+      const { data: lastSuccess } = await supabaseClient
+        .from('edc_sync_log')
+        .select('audit_id')
+        .eq('sync_status', 'SUCCESS')
+        .order('audit_id', { ascending: false })
+        .limit(1)
+        .single()
 
-    // Fetch event from audit trail
-    const { data: auditEvent, error } = await supabaseClient
-      .from('record_audit')
-      .select('audit_id, event_uuid, patient_id, operation, data, server_timestamp')
-      .eq('event_uuid', event_uuid)
-      .single()
+      const lastSyncedId = lastSuccess?.audit_id ?? 0
 
-    if (error) throw error
+      // Get next event to sync (audit_id order is sequential)
+      const { data: nextEvent } = await supabaseClient
+        .from('record_audit')
+        .select('audit_id, event_uuid, patient_id, operation, data')
+        .gt('audit_id', lastSyncedId)
+        .order('audit_id', { ascending: true })
+        .limit(1)
+        .single()
 
-    // Transform to EDC format (sponsor-specific)
-    const edcPayload = transformToEdcFormat(auditEvent)
+      if (!nextEvent) {
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for new events
+        continue
+      }
 
-    // Send to EDC system
-    const edcResponse = await fetch(Deno.env.get('EDC_ENDPOINT')!, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('EDC_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(edcPayload),
-    })
+      // Transform to EDC format (sponsor-specific)
+      const edcPayload = transformToEdcFormat(nextEvent)
 
-    if (!edcResponse.ok) {
-      // Log sync failure with retry scheduling
-      // NOTE: audit_id maintains event ordering for retries
-      const attemptCount = 1
-      const nextRetryAt = new Date(Date.now() + Math.pow(2, attemptCount) * 60000) // Exponential backoff
-
-      await supabaseClient.from('edc_sync_log').insert({
-        audit_id: auditEvent.audit_id,
-        event_uuid: auditEvent.event_uuid,
-        sync_status: 'FAILED',
-        attempt_count: attemptCount,
-        next_retry_at: nextRetryAt.toISOString(),
-        last_error: `EDC API error: ${edcResponse.statusText}`,
+      // Attempt sync to EDC
+      const edcResponse = await fetch(Deno.env.get('EDC_ENDPOINT')!, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('EDC_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(edcPayload),
       })
 
-      throw new Error(`EDC sync failed: ${edcResponse.statusText}`)
+      if (edcResponse.ok) {
+        // Success - log and move to next event
+        await supabaseClient.from('edc_sync_log').insert({
+          audit_id: nextEvent.audit_id,
+          event_uuid: nextEvent.event_uuid,
+          sync_status: 'SUCCESS',
+          edc_response: await edcResponse.json(),
+        })
+      } else {
+        // Failed - log error and retry THIS event (blocks subsequent events)
+        const existingLog = await supabaseClient
+          .from('edc_sync_log')
+          .select('attempt_count')
+          .eq('audit_id', nextEvent.audit_id)
+          .single()
+
+        const attemptCount = (existingLog?.data?.attempt_count ?? 0) + 1
+
+        await supabaseClient.from('edc_sync_log').upsert({
+          audit_id: nextEvent.audit_id,
+          event_uuid: nextEvent.event_uuid,
+          sync_status: 'FAILED',
+          attempt_count: attemptCount,
+          last_error: `EDC API error: ${edcResponse.statusText}`,
+        })
+
+        // Exponential backoff before retry
+        const backoffMs = Math.min(Math.pow(2, attemptCount) * 1000, 60000)
+        await new Promise(resolve => setTimeout(resolve, backoffMs))
+      }
+
+    } catch (error) {
+      console.error('Sync worker error:', error)
+      await new Promise(resolve => setTimeout(resolve, 5000))
     }
-
-    // Log sync success
-    await supabaseClient.from('edc_sync_log').insert({
-      audit_id: auditEvent.audit_id,
-      event_uuid: auditEvent.event_uuid,
-      sync_status: 'SUCCESS',
-      edc_response: await edcResponse.json(),
-    })
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
   }
+}
+
+// Start worker on function deployment
+syncWorker()
+
+// Health check endpoint
+serve(async (req) => {
+  return new Response(JSON.stringify({ status: 'running' }), {
+    headers: { 'Content-Type': 'application/json' }
+  })
 })
 
 function transformToEdcFormat(auditEvent: any): any {
@@ -528,28 +551,29 @@ CREATE TABLE custom_patient_fields (
 
 2. **EDC Sync Tracking**:
 
-> **CRITICAL**: The `audit_id` foreign key is required to maintain chronological event ordering during retries. EDC systems require events in the exact order they occurred to maintain data integrity.
+> **CRITICAL**: Events MUST sync in strict sequential order. If event N fails, all subsequent events are blocked until event N succeeds. The `audit_id` establishes this immutable sequence.
 
 ```sql
 CREATE TABLE edc_sync_log (
   sync_id BIGSERIAL PRIMARY KEY,
   audit_id BIGINT NOT NULL REFERENCES record_audit(audit_id),
   event_uuid UUID NOT NULL REFERENCES record_audit(event_uuid),
-  sync_status TEXT CHECK (sync_status IN ('PENDING', 'SUCCESS', 'FAILED')),
+  sync_status TEXT CHECK (sync_status IN ('SUCCESS', 'FAILED')),
   attempt_count INTEGER DEFAULT 1,
-  next_retry_at TIMESTAMPTZ,
   last_error TEXT,
   edc_response JSONB,
   synced_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Partial index for efficient retry queue queries (ordered by audit_id to maintain event order)
-CREATE INDEX idx_edc_retry_queue ON edc_sync_log(audit_id, next_retry_at)
-  WHERE sync_status = 'FAILED' AND next_retry_at IS NOT NULL;
+-- Find highest successfully synced event (sync position)
+CREATE INDEX idx_edc_last_success ON edc_sync_log(audit_id DESC)
+  WHERE sync_status = 'SUCCESS';
 
 -- Ensure one sync record per audit event
 CREATE UNIQUE INDEX idx_edc_sync_audit_unique ON edc_sync_log(audit_id);
 ```
+
+**Sync Strategy**: Sequential blocking. Worker syncs events in `audit_id` order, retrying failed event until success before advancing to next event.
 
 3. **Custom Validations**:
 ```sql
