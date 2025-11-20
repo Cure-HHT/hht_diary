@@ -83,7 +83,7 @@ Create Flutter Web app in `sponsor/{name}/lib/portal/`
 Each sponsor operates **completely independently**:
 
 | Aspect | Isolation Method |
-|--------|------------------|
+| --- | --- |
 | **Database** | Separate Supabase project per sponsor |
 | **Portal** | Unique URL per sponsor (e.g., `callisto-portal.example.com`) |
 | **Users** | Independent user accounts per sponsor |
@@ -365,7 +365,7 @@ All sponsor reports are retained for minimum 7 years per FDA 21 CFR Part 11 requ
 **Retention Policy**:
 
 | Location | Retention | Access Method |
-|----------|-----------|---------------|
+| --- | --- | --- |
 | Local | Until cleaned | `build-reports/{sponsor}/` |
 | GitHub Actions | 90 days | `gh run download` |
 | S3 Standard | 90 days | AWS CLI/Console |

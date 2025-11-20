@@ -151,21 +151,21 @@ docker-compose.yml
 
 ## Role-Based Tool Matrix
 
-| Tool / Feature         | dev | qa | ops | mgmt |
-|------------------------|-----|----|----|------|
-| **Git**                | ✅  | ✅ | ✅ | ✅ (read-only) |
-| **GitHub CLI**         | ✅  | ✅ | ✅ | ✅ (read-only) |
-| **Doppler CLI**        | ✅  | ✅ | ✅ | ✅ |
-| **Node.js 20**         | ✅  | ✅ | ✅ | ❌ |
-| **Python 3.11+**       | ✅  | ✅ | ✅ | ❌ |
-| **Flutter 3.24**       | ✅  | ✅ | ❌ | ❌ |
-| **Android SDK**        | ✅  | ✅ | ❌ | ❌ |
-| **Playwright**         | ❌  | ✅ | ❌ | ❌ |
-| **Terraform**          | ❌  | ❌ | ✅ | ❌ |
-| **Supabase CLI**       | ✅  | ✅ | ✅ | ❌ |
-| **Claude Code CLI**    | ✅  | ✅ | ✅ | ❌ |
-| **jq (JSON processor)**| ✅  | ✅ | ✅ | ✅ |
-| **Write Access**       | ✅  | ✅ | ✅ | ❌ |
+| Tool / Feature | dev | qa | ops | mgmt |
+| --- | --- | --- | --- | --- |
+| **Git** | ✅ | ✅ | ✅ | ✅ (read-only) |
+| **GitHub CLI** | ✅ | ✅ | ✅ | ✅ (read-only) |
+| **Doppler CLI** | ✅ | ✅ | ✅ | ✅ |
+| **Node.js 20** | ✅ | ✅ | ✅ | ❌ |
+| **Python 3.11+** | ✅ | ✅ | ✅ | ❌ |
+| **Flutter 3.24** | ✅ | ✅ | ❌ | ❌ |
+| **Android SDK** | ✅ | ✅ | ❌ | ❌ |
+| **Playwright** | ❌ | ✅ | ❌ | ❌ |
+| **Terraform** | ❌ | ❌ | ✅ | ❌ |
+| **Supabase CLI** | ✅ | ✅ | ✅ | ❌ |
+| **Claude Code CLI** | ✅ | ✅ | ✅ | ❌ |
+| **jq (JSON processor)** | ✅ | ✅ | ✅ | ✅ |
+| **Write Access** | ✅ | ✅ | ✅ | ❌ |
 
 ---
 
@@ -620,7 +620,7 @@ Month 3:
 ## Performance Metrics
 
 | Metric | Target | Actual | Notes |
-|--------|--------|--------|-------|
+| --- | --- | --- | --- |
 | First-time setup | < 30 min | TBD | Includes Docker install + image pull |
 | Subsequent startup | < 30 sec | TBD | Container start from stopped state |
 | Flutter hot reload | < 1 sec | TBD | Within dev container |

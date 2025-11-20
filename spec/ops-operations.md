@@ -675,7 +675,7 @@ echo "Logs archived: $DATE"
 **Target Metrics**:
 
 | Metric | Target | Alert Threshold |
-|--------|--------|-----------------|
+| --- | --- | --- |
 | Portal uptime | 99.9% | <99.5% |
 | API response time (p95) | <500ms | >1000ms |
 | Database query time (p95) | <100ms | >300ms |

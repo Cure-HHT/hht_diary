@@ -782,7 +782,7 @@ This allows linking operational logs to audit trail entries for investigation.
 ### Separation of Concerns
 
 | Aspect | Audit Trail | Operational Logs |
-|--------|-------------|------------------|
+| --- | --- | --- |
 | **Purpose** | Compliance, legal evidence | Debugging, monitoring |
 | **Storage** | PostgreSQL database | Log aggregation service |
 | **Retention** | 7+ years (permanent) | 30-90 days |
@@ -1060,7 +1060,7 @@ assert(logs.length > 0);
 ### Quick Reference
 
 | What are you logging? | Use This |
-|----------------------|----------|
+| --- | --- |
 | User created/updated/deleted data | **Audit Trail** |
 | API request took 200ms | **Operational Log** |
 | Authentication succeeded | **Both** (different details) |

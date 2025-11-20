@@ -163,7 +163,7 @@ Permission configuration SHALL include:
 **Permission Matrix**:
 
 | Action | USER | INVESTIGATOR | ANALYST | ADMIN |
-|--------|------|--------------|---------|-------|
+| --- | --- | --- | --- | --- |
 | Create own diary entry | ✅ | ❌ | ❌ | ✅ |
 | Edit own diary entry | ✅ | ❌ | ❌ | ✅ |
 | View own data | ✅ | ❌ | ❌ | ✅ |
@@ -498,7 +498,7 @@ WHERE timestamp > now() - interval '90 days';
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 1.0.0 | 2025-10-14 | Initial security documentation | Development Team |
 
 ---

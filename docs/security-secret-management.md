@@ -277,10 +277,10 @@ doppler run -- flutter build appbundle
    sudo apt-get update
    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
      'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' \
-     | sudo gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg
+ | sudo gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg
    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] \
      https://packages.doppler.com/public/cli/deb/debian any-version main" \
-     | sudo tee /etc/apt/sources.list.d/doppler-cli.list
+ | sudo tee /etc/apt/sources.list.d/doppler-cli.list
    sudo apt-get update && sudo apt-get install doppler
    ```
 
@@ -656,7 +656,7 @@ doppler secrets set LINEAR_API_KEY="lin_api_xxxxxxxxxxxxx" \
 **Scopes and Permissions**:
 
 | Scope | Permission | Usage |
-|-------|-----------|-------|
+| --- | --- | --- |
 | `repo` | Full repository access | Clone, push, pull |
 | `workflow` | Modify workflows | Update GitHub Actions |
 | `read:org` | Read organization data | View team members |
@@ -692,7 +692,7 @@ Create reminder calendar events for rotation dates:
 ```bash
 # Example: Linear API token expires on date
 echo "Linear API token - schedule rotation" \
-  | at "3 months from now"
+ | at "3 months from now"
 ```
 
 ### Service Account Tokens

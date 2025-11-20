@@ -74,7 +74,7 @@ Migration File (migrations/001_initial_schema.sql)
 **Why The Difference?**
 
 | Aspect | Implementation Files | Migration Files |
-|--------|---------------------|-----------------|
+| --- | --- | --- |
 | **Audience** | Developers, auditors, compliance | DevOps, DBAs, deployment automation |
 | **Traceability** | Requirements (REQ-xxx) | Other migrations (dependencies) |
 | **Lifecycle** | Long-lived, stable | Created once, never modified |
@@ -1279,7 +1279,7 @@ VALUES (010, '010_add_session_tracking.sql');
 ## Migration History
 
 | Migration | Description | Date | Ticket | Status |
-|-----------|-------------|------|--------|--------|
+| --- | --- | --- | --- | --- |
 | 001 | Initial schema | 2025-10-14 | Initial | Applied |
 | 002 | Add audit metadata fields | 2025-10-14 | TICKET-001 | Applied |
 | 003 | Add tamper detection | 2025-10-14 | TICKET-002 | Applied |

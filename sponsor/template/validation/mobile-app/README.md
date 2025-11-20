@@ -109,7 +109,7 @@ This validation covers the following requirements:
 ### Product Requirements (PRD)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-p00006 | Offline-First Data Entry | OQ-002, PQ-001 |
 | REQ-p00007 | Automatic Sponsor Configuration | OQ-005 |
 | REQ-p00008 | Single Mobile App for All Sponsors | IQ-001, OQ-005 |
@@ -117,7 +117,7 @@ This validation covers the following requirements:
 ### Development Requirements (DEV)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-d00004 | Local-First Data Entry Implementation | OQ-002 |
 | REQ-d00005 | Sponsor Configuration Detection Implementation | OQ-005 |
 | REQ-d00006 | Mobile App Build and Release Process | IQ-001 |
@@ -126,7 +126,7 @@ This validation covers the following requirements:
 ### Operations Requirements (OPS)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-o00010 | Mobile App Release Process | IQ-001 |
 
 ---
@@ -406,5 +406,5 @@ Revalidation required when:
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-13 | 1.0 | Development Team | Initial validation framework |

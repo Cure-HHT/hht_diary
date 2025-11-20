@@ -486,18 +486,18 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 
 **Role Permissions Matrix**:
 
-| Feature                | Admin | Investigator | Auditor |
-|------------------------|-------|--------------|---------|
-| View all users         | ✅    | ❌           | ✅      |
-| Create users (Inv/Aud) | ✅    | ❌           | ❌      |
-| Generate linking codes | ❌    | ✅           | ❌      |
-| Enroll patients        | ❌    | ✅ (own sites) | ❌    |
-| View patient data      | ✅    | ✅ (own sites) | ✅ (all) |
-| Send questionnaires    | ❌    | ✅ (own sites) | ❌    |
-| Revoke patient tokens  | ❌    | ✅ (own sites) | ❌    |
-| Revoke investigator/auditor tokens | ✅ | ❌ | ❌      |
-| Generate monthly reports | ❌  | ✅           | ❌      |
-| Export database        | ❌    | ❌           | ✅      |
+| Feature | Admin | Investigator | Auditor |
+| --- | --- | --- | --- |
+| View all users | ✅ | ❌ | ✅ |
+| Create users (Inv/Aud) | ✅ | ❌ | ❌ |
+| Generate linking codes | ❌ | ✅ | ❌ |
+| Enroll patients | ❌ | ✅ (own sites) | ❌ |
+| View patient data | ✅ | ✅ (own sites) | ✅ (all) |
+| Send questionnaires | ❌ | ✅ (own sites) | ❌ |
+| Revoke patient tokens | ❌ | ✅ (own sites) | ❌ |
+| Revoke investigator/auditor tokens | ✅ | ❌ | ❌ |
+| Generate monthly reports | ❌ | ✅ | ❌ |
+| Export database | ❌ | ❌ | ✅ |
 
 **Acceptance Criteria**:
 - [ ] `AuthProvider` provides user, role, loading state
@@ -507,7 +507,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 - [ ] RLS policies enforce role-based data access
 - [ ] Admin can access all dashboards
 
-*End* *Role-Based Access Control Implementation* | **Hash**: 394dec01
+*End* *Role-Based Access Control Implementation* | **Hash**: 6d335872
 ---
 
 # REQ-d00033: Site-Based Data Isolation

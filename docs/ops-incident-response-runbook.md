@@ -27,7 +27,7 @@ This runbook defines procedures for detecting, responding to, and resolving prod
 ## Incident Response Team
 
 | Role | Responsibilities | Contact |
-|------|------------------|---------|
+| --- | --- | --- |
 | **Primary On-Call** | First responder, incident commander | Rotates weekly |
 | **Secondary On-Call** | Backup, escalation | Rotates weekly |
 | **Tech Lead** | Technical escalation, major decisions | Fixed |
@@ -455,7 +455,7 @@ Clinical Diary Security Team
 ### Quick Access Links
 
 | Tool | URL | Purpose |
-|------|-----|---------|
+| --- | --- | --- |
 | Better Uptime | https://betteruptime.com/team/clinical-diary | Uptime monitoring |
 | Sentry | https://sentry.io/organizations/clinical-diary | Error tracking |
 | Supabase Dashboard | https://app.supabase.com | Database management |
@@ -647,5 +647,5 @@ Document drill results and update runbook accordingly.
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial runbook (ready to use) |

@@ -57,7 +57,7 @@ Basic plugin structure validation:
 ### Pre-Commit Hook Tests
 
 | Test Case | Description |
-|-----------|-------------|
+| --- | --- |
 | `test_precommit_blocks_without_ticket` | Verifies commits are blocked when no ticket is claimed |
 | `test_precommit_allows_with_valid_ticket` | Verifies commits succeed with active ticket |
 | `test_precommit_blocks_commits_to_main` | Verifies main branch protection |
@@ -66,7 +66,7 @@ Basic plugin structure validation:
 ### Commit-Msg Hook Tests
 
 | Test Case | Description |
-|-----------|-------------|
+| --- | --- |
 | `test_commitmsg_blocks_without_req_reference` | Blocks commits without `Implements:`/`Fixes:` |
 | `test_commitmsg_blocks_invalid_req_format` | Blocks invalid REQ formats (e.g., `REQ-123`) |
 | `test_commitmsg_allows_valid_req_implements` | Allows `Implements: REQ-d00001` |
@@ -76,20 +76,20 @@ Basic plugin structure validation:
 ### Post-Commit Hook Tests
 
 | Test Case | Description |
-|-----------|-------------|
+| --- | --- |
 | `test_postcommit_records_workflow_history` | Verifies commits are recorded in workflow history |
 
 ### Integration Tests
 
 | Test Case | Description |
-|-----------|-------------|
+| --- | --- |
 | `test_integration_valid_workflow` | Complete workflow from ticket claim to commit |
 | `test_integration_spec_file_changes` | Spec file modifications trigger matrix regeneration |
 
 ### Bypass Tests
 
 | Test Case | Description |
-|-----------|-------------|
+| --- | --- |
 | `test_bypass_with_no_verify` | Verifies `--no-verify` flag bypasses all hooks |
 
 ## Test Architecture
@@ -199,7 +199,7 @@ These tests can be integrated into CI/CD pipelines:
 These tests validate **REQ-d00018** (Git Hook Implementation):
 
 | Requirement | Test Coverage |
-|-------------|---------------|
+| --- | --- |
 | Pre-commit hook validates requirements | ✅ `test_commitmsg_*` tests |
 | Auto-regenerates traceability matrices | ✅ `test_integration_spec_file_changes` |
 | Blocks commits with validation errors | ✅ All `assert_failure` tests |

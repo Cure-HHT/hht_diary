@@ -23,7 +23,7 @@ This document describes how to add a new pharmaceutical sponsor to the HHT Diary
 **Before starting**, gather the following information for the new sponsor:
 
 | Information | Example | Notes |
-|------------|---------|-------|
+| --- | --- | --- |
 | Sponsor name (lowercase) | `titan` | Used in project names, URLs |
 | Sponsor code (3 letters) | `TTN` | Used in identifiers |
 | AWS region | `us-west-2` | Geographic deployment region |

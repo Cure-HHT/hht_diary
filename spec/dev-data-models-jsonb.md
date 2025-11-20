@@ -67,7 +67,7 @@ type EventRecord = {
 ### Field Definitions
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `id` | string (UUID) | Yes | Client-generated UUID. Must match `record_state.event_uuid`. Recommended: UUID v7 for time-ordering. |
 | `versioned_type` | string | Yes | Event type with version. Format: `{event_type}-v{major}.{minor}`. Examples: `"epistaxis-v1.0"`, `"survey-v2.1"` |
 | `event_data` | object | Yes | Type-specific event data. Structure depends on `versioned_type`. See event-specific schemas below. |
@@ -124,7 +124,7 @@ type EpistaxisRecord = {
 ### Field Definitions
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `id` | string (UUID) | Yes | Event identifier. Typically matches parent `EventRecord.id`. |
 | `startTime` | string (ISO 8601) | Yes | When nosebleed started. Must include timezone. |
 | `endTime` | string (ISO 8601) | No | When nosebleed stopped. Omit if ongoing or unknown. |
@@ -140,7 +140,7 @@ type EpistaxisRecord = {
 Meaningful string values per ALCOA+ principles:
 
 | Value | Clinical Meaning | Display Text |
-|-------|------------------|--------------|
+| --- | --- | --- |
 | `"minimal"` | Trace blood only | Minimal |
 | `"mild"` | Brief, self-limiting | Mild |
 | `"moderate"` | Requires intervention | Moderate |
@@ -302,7 +302,7 @@ type SurveyScore = {
 ### Field Definitions
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `id` | string (UUID) | Yes | Event identifier. Typically matches parent `EventRecord.id`. |
 | `completedAt` | string (ISO 8601) | Yes | When survey was completed. Must include timezone. |
 | `survey` | array | Yes | Array of question/response pairs. Must be non-empty. |
@@ -312,7 +312,7 @@ type SurveyScore = {
 ### SurveyQuestion Fields
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `question_id` | string | Yes | Unique identifier for this question (e.g., "q1_frequency"). Stable across versions. |
 | `question_text` | string | Yes | Full text of question. Stored for auditability even if question changes later. |
 | `response` | any | No | Answer value. Type depends on question (number, string, boolean, array). Omit if skipped. |
@@ -321,7 +321,7 @@ type SurveyScore = {
 ### SurveyScore Fields
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| --- | --- | --- | --- |
 | `total` | number | Yes | Total calculated score. |
 | `subscales` | object | No | Named subscale scores (e.g., {"anxiety": 10, "depression": 15}). |
 | `rubric_version` | string | Yes | Version of scoring algorithm used. Format: "v{major}.{minor}" |
@@ -342,7 +342,7 @@ type SurveyScore = {
 ### Planned Types
 
 | Type | Version | Description | Status |
-|------|---------|-------------|--------|
+| --- | --- | --- | --- |
 | `medication-v1.0` | 1.0 | Medication adherence tracking | Planned |
 | `symptom-v1.0` | 1.0 | General symptom diary | Planned |
 | `quality_of_life-v1.0` | 1.0 | QoL assessment | Planned |
@@ -467,7 +467,7 @@ See `database/schema.sql` for implementation.
 ### ALCOA+ Principles Applied
 
 | Principle | Implementation |
-|-----------|----------------|
+| --- | --- |
 | **Attributable** | `created_by` in event store, UUID links to user |
 | **Legible** | Meaningful string enums, clear field names |
 | **Contemporaneous** | `client_timestamp` captures when event occurred |

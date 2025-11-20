@@ -492,5 +492,5 @@ For issues or questions:
 ## Change History
 
 | Date | Version | Changes |
-|------|---------|---------|
+| --- | --- | --- |
 | 2025-11-11 | 1.0 | Initial migration guide for environment-aware archival system |

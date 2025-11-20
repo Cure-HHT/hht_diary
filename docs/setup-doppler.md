@@ -13,7 +13,7 @@ This document provides an overview of Doppler secrets management for the HHT Dia
 Doppler setup is organized by audience and use case:
 
 | Document | Audience | When to Use |
-|----------|----------|-------------|
+| --- | --- | --- |
 | **[doppler-setup-project.md](./doppler-setup-project.md)** | DevOps / Project Admin | **Once per project** - Initial Doppler infrastructure setup |
 | **[doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)** | DevOps / Project Admin | **Each new sponsor** - Onboard pharmaceutical sponsors |
 | **[doppler-setup-new-dev.md](./doppler-setup-new-dev.md)** | Software Developers | **Each new developer** - Configure local development environment |

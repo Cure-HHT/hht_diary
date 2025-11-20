@@ -534,7 +534,7 @@ Contextual explanation for stakeholders (no REQ-ID needed)
 ### Heading Level Guidelines
 
 | Level | Purpose | REQ-ID Required? | Example |
-|-------|---------|------------------|---------|
+| --- | --- | --- | --- |
 | `#` | Document title OR formal requirement | Only requirements | `# Security Architecture`<br>or<br>`# REQ-p00002: MFA for Staff` |
 | `##` | Major topic section (organizational) | Never | `## User Authentication` |
 | `###` | Explanatory subsections | Never | `### How Users Log In` |

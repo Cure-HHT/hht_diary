@@ -411,7 +411,7 @@ See `ui_example.dart` for complete examples including:
 If migrating from the TypeScript mock-up (`diary.tsx`):
 
 | TypeScript | Dart |
-|------------|------|
+| --- | --- |
 | `string` | `String` |
 | `Date` | `DateTime` |
 | `boolean` | `bool` |

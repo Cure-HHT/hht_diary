@@ -48,7 +48,7 @@ Get your Linear API token from: https://linear.app/settings/api
 ## Available Skills
 
 | Skill | Command | Purpose |
-|-------|---------|---------|
+| --- | --- | --- |
 | **fetch-tickets** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/fetch-tickets.skill [TICKET-IDS...]` | Fetch ticket details by ID or current active ticket |
 | **create-ticket** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/create-ticket.skill --title="Title" [options]` | Create a new ticket |
 | **update-ticket** | `bash tools/anspar-cc-plugins/plugins/linear-api/skills/update-ticket.skill --ticketId=ID [options]` | Update ticket status, description, checklist, or add requirement reference |

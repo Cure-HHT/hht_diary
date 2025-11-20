@@ -118,7 +118,7 @@ This validation covers the following requirements:
 ### Product Requirements (PRD)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-p00003 | Separate Database Per Sponsor | IQ-001 |
 | REQ-p00004 | Immutable Audit Trail via Event Sourcing | OQ-002, OQ-003 |
 | REQ-p00013 | Complete Data Change History | OQ-002 |
@@ -130,7 +130,7 @@ This validation covers the following requirements:
 ### Development Requirements (DEV)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-d00007 | Database Schema Implementation and Deployment | IQ-001 |
 | REQ-d00011 | Multi-Site Schema Implementation | IQ-001 |
 | REQ-d00019 | Patient Data Isolation RLS Implementation | OQ-001 |
@@ -140,7 +140,7 @@ This validation covers the following requirements:
 ### Operations Requirements (OPS)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-o00003 | Supabase Project Provisioning Per Sponsor | IQ-001 |
 | REQ-o00004 | Database Schema Deployment | IQ-001 |
 | REQ-o00020 | Patient Data Isolation Policy Deployment | OQ-001 |
@@ -522,5 +522,5 @@ Mobile-only deployments store data locally on devices and may sync peer-to-peer 
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-13 | 1.0 | Development Team | Initial database validation framework |

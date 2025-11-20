@@ -730,7 +730,7 @@ supabase db push --include ./database/migrations/003_add_edc_queue.sql
 ## Change Log
 
 | Date | Migration | Description | Author |
-|------|-----------|-------------|--------|
+| --- | --- | --- | --- |
 | 2025-10-14 | 001 | Initial schema | Team |
 | 2025-10-14 | Strategy Doc | Migration strategy created | Claude Code |
 

@@ -226,7 +226,7 @@ This document specifies the continuous integration and continuous delivery (CI/C
 #### Artifact Outputs
 
 | Artifact | Format | Retention | Purpose |
-|----------|--------|-----------|---------|
+| --- | --- | --- | --- |
 | `traceability_matrix.md` | Markdown | 90 days | Human-readable audit trail |
 | `traceability_matrix.html` | HTML | 90 days | Presentation-quality report |
 
@@ -713,7 +713,7 @@ Both outcomes are compliant and indicate no issues detected.
 ### Metrics to Track
 
 | Metric | Target | Alert Threshold |
-|--------|--------|-----------------|
+| --- | --- | --- |
 | Workflow success rate | > 95% | < 90% |
 | Average runtime | < 5 min | > 8 min |
 | Artifact generation success | 100% | < 100% |
@@ -737,7 +737,7 @@ Both outcomes are compliant and indicate no issues detected.
 This CI/CD pipeline supports the following 21 CFR Part 11 requirements:
 
 | Regulation | Requirement | CI/CD Implementation |
-|------------|-------------|----------------------|
+| --- | --- | --- |
 | §11.10(a) | System validation | Automated validation on every PR |
 | §11.10(b) | Accurate copies | Traceability matrix artifacts |
 | §11.10(e) | Audit trails | GitHub Actions logs + artifacts |
@@ -786,7 +786,7 @@ This CI/CD system has been validated per:
 ## Change Log
 
 | Date | Version | Changes | Author |
-|------|---------|---------|--------|
+| --- | --- | --- | --- |
 | 2025-10-28 | 1.0 | Initial CI/CD specification | DevOps Team |
 
 ---

@@ -1093,7 +1093,7 @@ sha256sum -c matrix.json.sha256
 ### Report Retention Policy
 
 | Location | Retention | Purpose |
-|----------|-----------|---------|
+| --- | --- | --- |
 | **Local (build-reports/)** | Until cleaned | Development/debugging |
 | **GitHub Actions** | 90 days | Recent build validation |
 | **S3 Standard** | 90 days | Fast access to recent reports |

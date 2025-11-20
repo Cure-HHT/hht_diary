@@ -167,7 +167,7 @@ For requirements tested manually (UI, usability, compliance). Here's the expecte
 ## Test Status Values
 
 | Status | Meaning | Display Color |
-|--------|---------|---------------|
+| --- | --- | --- |
 | `passed` | All tests passed | Green ✅ |
 | `failed` | One or more tests failed | Red ❌ |
 | `error` | Test encountered error | Orange ⚠️ |
@@ -343,7 +343,7 @@ For FDA 21 CFR Part 11 and other compliance frameworks:
 ### Template Files Reference
 
 | Template File | Purpose | Actual Output Location |
-|--------------|---------|------------------------|
+| --- | --- | --- |
 | `build-reports/templates/requirement_test_mapping.template.json` | Shows mapping format | `build-reports/{sponsor}/test-results/requirement_test_mapping.json` |
 | `build-reports/templates/jenkins/latest.template.xml` | Shows JUnit XML format | `build-reports/{sponsor}/test-results/junit/latest.xml` |
 

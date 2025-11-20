@@ -111,7 +111,7 @@ This validation covers the following requirements:
 ### Product Requirements (PRD)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-p00009 | Sponsor-Specific Web Portals | IQ-001, OQ-003 |
 | REQ-p00024 | Portal User Roles and Permissions | OQ-002 |
 | REQ-p00025 | Patient Enrollment Workflow | OQ-005 |
@@ -123,7 +123,7 @@ This validation covers the following requirements:
 ### Development Requirements (DEV)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-d00028 | Portal Frontend Framework | IQ-001 |
 | REQ-d00031 | Supabase Authentication Integration | OQ-001 |
 | REQ-d00032 | Role-Based Access Control Implementation | OQ-002 |
@@ -135,7 +135,7 @@ This validation covers the following requirements:
 ### Operations Requirements (OPS)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-o00009 | Portal Deployment Per Sponsor | IQ-001 |
 | REQ-o00055 | Role-Based Visual Indicator Verification | OQ-002 |
 
@@ -457,5 +457,5 @@ Portal-less deployments are valid - the mobile app provides all core functionali
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-13 | 1.0 | Development Team | Initial portal validation framework |

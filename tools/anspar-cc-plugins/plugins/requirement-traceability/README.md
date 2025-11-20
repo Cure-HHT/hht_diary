@@ -52,7 +52,7 @@ Where:
 The `spec/` directory is organized by audience:
 
 | File Pattern | Audience | Code Examples? |
-|--------------|----------|----------------|
+| --- | --- | --- |
 | `prd-*.md` | Product team, stakeholders | **NO** - Only descriptions |
 | `ops-*.md` | Operations, deployment | CLI commands OK |
 | `dev-*.md` | Developers, implementation | **YES** - Full code examples |
@@ -65,7 +65,7 @@ Each spec file contains multiple related requirements grouped by topic (e.g., `p
 
 ```markdown
 | REQ-ID | File | Title | Hash |
-|--------|------|-------|------|
+| --- | --- | --- | --- |
 | REQ-p00001 | prd-authentication.md | Multi-sponsor user authentication | a3f9c2... |
 | REQ-p00042 | prd-authentication.md | Multi-factor authentication via TOTP | b7e4d1... |
 ...
@@ -116,7 +116,7 @@ Each spec file contains multiple related requirements grouped by topic (e.g., `p
 This plugin depends on the `linear-api` plugin for:
 
 | Module | Purpose |
-|--------|---------|
+| --- | --- |
 | `lib/graphql-client.js` | Linear GraphQL API client |
 | `lib/ticket-creator.js` | Ticket creation with templates |
 | `lib/label-manager.js` | Label creation and assignment |
@@ -287,7 +287,7 @@ and extends REQ-d00042 (database schema) → ENG-56, ENG-91.
 Skills are executable wrappers for use with Claude Code agents:
 
 | Skill | Script | Purpose |
-|-------|--------|---------|
+| --- | --- | --- |
 | `create-req-tickets.skill` | `scripts/create-req-tickets.js` | Create tickets for requirements |
 | `add-checklist.skill` | `scripts/add-checklist.js` | Add implementation checklist |
 | `enhance-links.skill` | `scripts/enhance-links.js` | Enhance cross-references |

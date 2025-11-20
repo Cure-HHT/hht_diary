@@ -15,7 +15,7 @@
 We support two development environments. Choose based on your preference:
 
 | Approach | Setup Time | Best For | Requirements |
-|----------|------------|----------|--------------|
+| --- | --- | --- | --- |
 | **🌐 GitHub Codespaces** | **5 minutes** | Remote work, quick start | GitHub account |
 | **💻 Local Dev Containers** | **1-2 hours** | Offline work, full control | Docker Desktop |
 
@@ -257,7 +257,7 @@ git checkout -b feature/my-feature
 You have **4 different container environments**:
 
 | Role | Purpose | Tools | Git Identity |
-|------|---------|-------|--------------|
+| --- | --- | --- | --- |
 | **dev** | Feature development | Flutter, Android SDK, Node, Python | "Developer" |
 | **qa** | Testing, QA automation | Playwright, test frameworks | "QA Automation Bot" |
 | **ops** | Deployment, infrastructure | Terraform, Supabase, Cosign | "DevOps Engineer" |

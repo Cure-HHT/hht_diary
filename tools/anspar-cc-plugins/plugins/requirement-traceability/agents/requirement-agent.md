@@ -62,7 +62,7 @@ This plugin depends on the `linear-api` plugin for:
 ## Available Skills
 
 | Skill | Purpose | Usage |
-|-------|---------|-------|
+| --- | --- | --- |
 | `create-req-tickets` | Create Linear tickets for requirements without tickets | `create-req-tickets.skill [--dry-run] [--file spec/prd-file.md]` |
 | `add-checklist` | Add implementation checklist to a ticket | `add-checklist.skill <ticket-id> <req-id>` |
 | `enhance-links` | Add requirement cross-references to ticket descriptions | `enhance-links.skill [--dry-run]` |

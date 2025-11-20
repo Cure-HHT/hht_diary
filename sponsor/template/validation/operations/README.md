@@ -115,7 +115,7 @@ This validation covers the following requirements:
 ### Operations Requirements (OPS)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-o00045 | Error Tracking and Monitoring | IQ-001, OQ-002 |
 | REQ-o00046 | Uptime Monitoring | IQ-001, OQ-001 |
 | REQ-o00047 | Performance Monitoring | IQ-001, OQ-003 |
@@ -125,7 +125,7 @@ This validation covers the following requirements:
 ### Product Requirements (PRD)
 
 | Requirement | Title | Validation Protocol |
-|-------------|-------|---------------------|
+| --- | --- | --- |
 | REQ-p00004 | Immutable Audit Trail via Event Sourcing | OQ-004 |
 | REQ-p00012 | Clinical Data Retention Requirements | OQ-005, PQ-001 |
 
@@ -526,5 +526,5 @@ Operations validation includes continuous monitoring components:
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-13 | 1.0 | Development Team | Initial operations validation framework |

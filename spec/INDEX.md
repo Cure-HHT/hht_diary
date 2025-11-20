@@ -13,7 +13,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 ---
 
 | Requirement ID | File | Title | Hash |
-|----------------|------|-------|------|
+| --- | --- | --- | --- |
 | REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | 5fa9f76f |
 | REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | 8c25b197 |
 | REQ-d00003 | dev-security.md | Supabase Auth Configuration Per Sponsor | 67ec9c94 |
@@ -44,7 +44,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
 | REQ-d00031 | dev-portal.md | Supabase Authentication Integration | 8abcbfac |
-| REQ-d00032 | dev-portal.md | Role-Based Access Control Implementation | 394dec01 |
+| REQ-d00032 | dev-portal.md | Role-Based Access Control Implementation | 6d335872 |
 | REQ-d00033 | dev-portal.md | Site-Based Data Isolation | c3440de7 |
 | REQ-d00034 | dev-portal.md | Login Page Implementation | 50d0c2b5 |
 | REQ-d00035 | dev-portal.md | Admin Dashboard Implementation | 7b82ec93 |
