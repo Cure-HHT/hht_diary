@@ -9,23 +9,24 @@
  *   node scan-tickets-for-reqs.js [--format=summary|json]
  */
 
-const { executeGraphQL } = require('../../linear-api/lib/graphql-client');
+const graphqlClient = require('../../linear-api/lib/graphql-client');
 const { validateEnvironment } = require('../../linear-api/lib/env-validation');
 const config = require('../../linear-api/lib/config');
 const fs = require('fs');
 const path = require('path');
 
 /**
- * GraphQL query to fetch all open issues
+ * GraphQL query to fetch all open issues (including backlog)
  */
 const QUERY_OPEN_ISSUES = `
-  query($teamId: String!) {
+  query($teamId: String!, $after: String) {
     team(id: $teamId) {
       issues(
         filter: {
-          state: { type: { in: ["started", "unstarted"] } }
+          state: { type: { in: ["started", "unstarted", "backlog"] } }
         }
         first: 100
+        after: $after
       ) {
         nodes {
           id
@@ -46,6 +47,13 @@ const QUERY_OPEN_ISSUES = `
           project {
             name
           }
+          assignee {
+            name
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
         }
       }
     }
@@ -116,52 +124,191 @@ function extractRequirements(description) {
 }
 
 /**
- * Suggest requirement based on ticket title and labels
+ * Extract keywords from ticket for requirement matching
  */
-function suggestRequirement(ticket, indexData) {
+function extractKeywords(ticket) {
     const titleLower = ticket.title.toLowerCase();
+    const descLower = (ticket.description || '').toLowerCase();
     const labels = ticket.labels?.nodes?.map(l => l.name.toLowerCase()) || [];
 
-    // Keyword-based matching
-    const suggestions = [];
+    // Common stopwords to filter out
+    const stopwords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'from', 'by', 'as', 'is', 'was', 'are', 'were', 'be', 'been', 'being']);
 
-    // Database-related
-    if (titleLower.includes('schema') || titleLower.includes('database') ||
-        titleLower.includes('migration') || labels.includes('database')) {
-        suggestions.push('REQ-d00007'); // Database Schema Implementation
+    // Extract words from title and description
+    const words = new Set();
+
+    // Add title words (higher weight)
+    titleLower.split(/\s+/).forEach(word => {
+        const cleaned = word.replace(/[^a-z0-9-]/g, '');
+        if (cleaned.length > 2 && !stopwords.has(cleaned)) {
+            words.add(cleaned);
+        }
+    });
+
+    // Add description words
+    descLower.split(/\s+/).forEach(word => {
+        const cleaned = word.replace(/[^a-z0-9-]/g, '');
+        if (cleaned.length > 2 && !stopwords.has(cleaned)) {
+            words.add(cleaned);
+        }
+    });
+
+    // Add labels
+    labels.forEach(label => words.add(label));
+
+    return Array.from(words);
+}
+
+/**
+ * Find candidate requirements from INDEX.md based on keywords
+ */
+function findCandidateRequirements(keywords, indexData) {
+    const candidates = [];
+
+    for (const [reqId, info] of Object.entries(indexData)) {
+        const titleLower = info.title.toLowerCase();
+        let matchScore = 0;
+        const matchedKeywords = [];
+
+        // Check each keyword against requirement title
+        for (const keyword of keywords) {
+            if (titleLower.includes(keyword)) {
+                matchScore++;
+                matchedKeywords.push(keyword);
+            }
+        }
+
+        if (matchScore > 0) {
+            candidates.push({
+                reqId,
+                file: info.file,
+                title: info.title,
+                matchScore,
+                matchedKeywords
+            });
+        }
     }
 
-    // Authentication-related
-    if (titleLower.includes('auth') || titleLower.includes('login') ||
-        titleLower.includes('authentication') || labels.includes('security')) {
-        suggestions.push('REQ-p00001'); // Multi-sponsor authentication
+    // Sort by match score (descending)
+    candidates.sort((a, b) => b.matchScore - a.matchScore);
+
+    // Return top 10 candidates
+    return candidates.slice(0, 10);
+}
+
+/**
+ * Read requirement body from spec file
+ */
+function readRequirementBody(reqId, fileName) {
+    try {
+        const filePath = path.join(process.cwd(), 'spec', fileName);
+        const content = fs.readFileSync(filePath, 'utf8');
+
+        // Find the requirement section
+        const reqPattern = new RegExp(`# ${reqId}:([^#]+)(?=\\n#|$)`, 's');
+        const match = content.match(reqPattern);
+
+        if (match) {
+            return match[1].trim();
+        }
+
+        return null;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Evaluate relevance of a requirement to a ticket
+ */
+function evaluateRelevance(ticket, candidate) {
+    const reqBody = readRequirementBody(candidate.reqId, candidate.file);
+
+    if (!reqBody) {
+        return { ...candidate, confidence: 'low', reason: 'Could not read requirement body' };
     }
 
-    // MFA-related
-    if (titleLower.includes('mfa') || titleLower.includes('multi-factor') ||
-        titleLower.includes('2fa') || titleLower.includes('totp')) {
-        suggestions.push('REQ-p00042'); // Multi-factor authentication
+    const titleLower = ticket.title.toLowerCase();
+    const descLower = (ticket.description || '').toLowerCase();
+    const reqBodyLower = reqBody.toLowerCase();
+
+    let relevanceScore = candidate.matchScore * 10; // Base score from keyword matches
+    const reasons = [];
+
+    // Check for keyword matches in requirement body
+    const ticketKeywords = extractKeywords(ticket);
+    let bodyMatches = 0;
+
+    for (const keyword of ticketKeywords) {
+        if (reqBodyLower.includes(keyword)) {
+            bodyMatches++;
+            relevanceScore += 2;
+        }
     }
 
-    // Portal-related
-    if (titleLower.includes('portal') || titleLower.includes('dashboard') ||
-        titleLower.includes('admin') || labels.includes('portal')) {
-        suggestions.push('REQ-p00024'); // Portal User Roles and Permissions
+    if (bodyMatches > 0) {
+        reasons.push(`${bodyMatches} keyword matches in requirement body`);
     }
 
-    // Requirements/traceability-related
-    if (titleLower.includes('requirement') || titleLower.includes('traceability') ||
-        titleLower.includes('validation') || labels.includes('requirements')) {
-        suggestions.push('REQ-d00015'); // Traceability Matrix Auto-Generation
+    // Check for exact phrase matches
+    const titlePhrases = titleLower.split(/[,;.]/).map(p => p.trim()).filter(p => p.length > 5);
+    for (const phrase of titlePhrases) {
+        if (reqBodyLower.includes(phrase)) {
+            relevanceScore += 15;
+            reasons.push(`Exact phrase match: "${phrase}"`);
+        }
     }
 
-    // Event sourcing-related
-    if (titleLower.includes('event') || titleLower.includes('sourcing') ||
-        titleLower.includes('audit') || titleLower.includes('immutable')) {
-        suggestions.push('REQ-p00004'); // Immutable Audit Trail via Event Sourcing
+    // Determine confidence level
+    let confidence;
+    if (relevanceScore >= 30) {
+        confidence = 'high';
+    } else if (relevanceScore >= 15) {
+        confidence = 'medium';
+    } else {
+        confidence = 'low';
     }
 
-    return suggestions.length > 0 ? suggestions[0] : null;
+    return {
+        reqId: candidate.reqId,
+        title: candidate.title,
+        confidence,
+        score: relevanceScore,
+        reason: reasons.length > 0 ? reasons.join('; ') : `${candidate.matchScore} keyword matches in title`
+    };
+}
+
+/**
+ * Suggest requirements based on ticket content using intelligent matching
+ */
+function suggestRequirement(ticket, indexData) {
+    // Extract keywords from ticket
+    const keywords = extractKeywords(ticket);
+
+    if (keywords.length === 0) {
+        return null;
+    }
+
+    // Find candidate requirements from INDEX
+    const candidates = findCandidateRequirements(keywords, indexData);
+
+    if (candidates.length === 0) {
+        return null;
+    }
+
+    // Evaluate each candidate by reading full requirement
+    const evaluated = candidates.map(candidate => evaluateRelevance(ticket, candidate));
+
+    // Filter to high and medium confidence matches
+    const goodMatches = evaluated.filter(e => e.confidence === 'high' || e.confidence === 'medium');
+
+    // Return top matches (up to 3)
+    if (goodMatches.length > 0) {
+        return goodMatches.slice(0, 3);
+    }
+
+    // If no good matches, return the top low-confidence match
+    return evaluated.length > 0 ? [evaluated[0]] : null;
 }
 
 /**
@@ -222,18 +369,31 @@ async function main() {
     // Load INDEX data
     const indexData = loadIndexData();
 
-    // Fetch open issues
+    // Fetch open issues with pagination
     console.log('📋 Scanning Linear tickets for requirement references...\n');
 
-    let response;
+    let allIssues = [];
+    let hasNextPage = true;
+    let after = null;
+
     try {
-        response = await executeGraphQL(QUERY_OPEN_ISSUES, { teamId }, apiToken);
+        while (hasNextPage) {
+            const data = await graphqlClient.execute(QUERY_OPEN_ISSUES, { teamId, after });
+            const issuesData = data?.team?.issues;
+
+            if (issuesData?.nodes) {
+                allIssues.push(...issuesData.nodes);
+            }
+
+            hasNextPage = issuesData?.pageInfo?.hasNextPage || false;
+            after = issuesData?.pageInfo?.endCursor || null;
+        }
     } catch (error) {
         console.error('Error fetching tickets:', error.message);
         process.exit(1);
     }
 
-    const issues = response.data?.team?.issues?.nodes || [];
+    const issues = allIssues;
 
     if (issues.length === 0) {
         console.log('No open tickets found.');
@@ -249,8 +409,8 @@ async function main() {
             const reqs = extractRequirements(issue.description);
             withReqs.push({ ...issue, requirements: reqs });
         } else {
-            const suggestion = suggestRequirement(issue, indexData);
-            withoutReqs.push({ ...issue, suggestion });
+            const suggestions = suggestRequirement(issue, indexData);
+            withoutReqs.push({ ...issue, suggestions });
         }
     }
 
@@ -285,12 +445,11 @@ async function main() {
                 console.log(`🔴 Urgent Priority (${urgent.length}):`);
                 for (const ticket of urgent) {
                     console.log(`  • ${ticket.identifier}: ${ticket.title}`);
-                    if (ticket.suggestion) {
-                        const reqInfo = indexData[ticket.suggestion];
-                        if (reqInfo) {
-                            console.log(`    💡 Suggested: ${ticket.suggestion} - ${reqInfo.title}`);
-                        } else {
-                            console.log(`    💡 Suggested: ${ticket.suggestion}`);
+                    if (ticket.suggestions && ticket.suggestions.length > 0) {
+                        for (const suggestion of ticket.suggestions) {
+                            const confidenceIcon = suggestion.confidence === 'high' ? '🟢' : suggestion.confidence === 'medium' ? '🟡' : '🔴';
+                            console.log(`    💡 ${confidenceIcon} ${suggestion.reqId} - ${suggestion.title} (${suggestion.confidence})`);
+                            console.log(`       ${suggestion.reason}`);
                         }
                     }
                 }
@@ -301,12 +460,11 @@ async function main() {
                 console.log(`🟠 High Priority (${high.length}):`);
                 for (const ticket of high) {
                     console.log(`  • ${ticket.identifier}: ${ticket.title}`);
-                    if (ticket.suggestion) {
-                        const reqInfo = indexData[ticket.suggestion];
-                        if (reqInfo) {
-                            console.log(`    💡 Suggested: ${ticket.suggestion} - ${reqInfo.title}`);
-                        } else {
-                            console.log(`    💡 Suggested: ${ticket.suggestion}`);
+                    if (ticket.suggestions && ticket.suggestions.length > 0) {
+                        for (const suggestion of ticket.suggestions) {
+                            const confidenceIcon = suggestion.confidence === 'high' ? '🟢' : suggestion.confidence === 'medium' ? '🟡' : '🔴';
+                            console.log(`    💡 ${confidenceIcon} ${suggestion.reqId} - ${suggestion.title} (${suggestion.confidence})`);
+                            console.log(`       ${suggestion.reason}`);
                         }
                     }
                 }
@@ -317,8 +475,11 @@ async function main() {
                 console.log(`🟡 Medium Priority (${medium.length}):`);
                 for (const ticket of medium.slice(0, 5)) {
                     console.log(`  • ${ticket.identifier}: ${ticket.title}`);
-                    if (ticket.suggestion) {
-                        console.log(`    💡 Suggested: ${ticket.suggestion}`);
+                    if (ticket.suggestions && ticket.suggestions.length > 0) {
+                        for (const suggestion of ticket.suggestions) {
+                            const confidenceIcon = suggestion.confidence === 'high' ? '🟢' : suggestion.confidence === 'medium' ? '🟡' : '🔴';
+                            console.log(`    💡 ${confidenceIcon} ${suggestion.reqId} - ${suggestion.title} (${suggestion.confidence})`);
+                        }
                     }
                 }
                 if (medium.length > 5) {
