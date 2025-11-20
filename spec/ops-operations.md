@@ -429,27 +429,42 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    # Expected: 200 OK
    ```
 
-3. **Check Dead Letter Queue** (3 minutes):
+3. **Check Sync Position** (3 minutes):
    ```sql
-   -- Check failed sync attempts
+   -- Find current sync position (last successfully synced event)
    SELECT
      audit_id,
      event_uuid,
-     attempts,
+     synced_at
+   FROM edc_sync_log
+   WHERE sync_status = 'SUCCESS'
+   ORDER BY audit_id DESC
+   LIMIT 1;
+
+   -- Check if any event is currently failing (blocking subsequent events)
+   SELECT
+     sync_id,
+     audit_id,
+     event_uuid,
+     attempt_count,
      last_error,
-     created_at
-   FROM edc_sync_failures
-   ORDER BY created_at DESC
-   LIMIT 20;
+     synced_at
+   FROM edc_sync_log
+   WHERE sync_status = 'FAILED'
+   ORDER BY audit_id ASC  -- Shows blocking event (lowest audit_id)
+   LIMIT 1;
    ```
 
-4. **Retry Failed Syncs** (5 minutes):
+4. **Monitor Sync Worker** (2 minutes):
    ```bash
-   # Invoke Edge Function to retry
-   curl -X POST https://abcd1234.supabase.co/functions/v1/edc_sync_retry \
-     -H "Authorization: Bearer SERVICE_ROLE_KEY" \
-     -d '{"audit_ids": [123, 124, 125]}'
+   # Check worker health
+   curl https://abcd1234.supabase.co/functions/v1/edc_sync
+
+   # View worker logs
+   supabase functions logs edc_sync --tail=50
    ```
+
+   **Note**: Worker automatically retries failed events with exponential backoff. No manual retry needed unless worker is stuck.
 
 5. **Contact EDC Support** (if API down) (10 minutes):
    - Check EDC system status page

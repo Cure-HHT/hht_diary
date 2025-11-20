@@ -415,8 +415,8 @@ For sponsors in **proxy mode**, Edge Functions sync diary events to their EDC sy
 - Custom RDBMS
 
 **Error Handling**:
-- Retry logic for transient failures
-- Dead letter queue for persistent failures
+- Exponential backoff retry logic for transient failures
+- Failed sync tracking in `edc_sync_log` table
 - Alerting via monitoring service
 - Manual reconciliation interface in portal
 
