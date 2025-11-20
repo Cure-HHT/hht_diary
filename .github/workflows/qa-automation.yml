@@ -454,6 +454,8 @@ jobs:
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'  # Don't fail on filesystem issues
+        env:
+          TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
 
       - name: Run Trivy IaC scanner (Terraform, Docker, K8s)
         uses: aquasecurity/trivy-action@0.28.0
@@ -465,6 +467,8 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '0'  # Don't fail on IaC issues
           skip-dirs: 'node_modules,vendor,.git'
+        env:
+          TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
 
       - name: Check for Docker images to scan
         id: check-docker
@@ -497,6 +501,8 @@ jobs:
           output: 'trivy-container-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'  # Don't fail on container issues
+        env:
+          TRIVY_QUIET: true  # Suppress INFO logs, keep errors and results
 
       - name: Upload Trivy filesystem results to GitHub Security
         if: always()
