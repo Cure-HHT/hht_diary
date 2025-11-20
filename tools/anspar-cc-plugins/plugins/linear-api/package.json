@@ -1,0 +1,25 @@
+{
+  "name": "@anspar-cc-plugins/linear-api",
+  "version": "1.0.0",
+  "description": "Linear API plugin with MCP and direct API support",
+  "type": "commonjs",
+  "main": "lib/linear-adapter.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [
+    "linear",
+    "mcp",
+    "claude-code",
+    "plugin"
+  ],
+  "author": "Cure HHT",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

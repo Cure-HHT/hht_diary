@@ -355,6 +355,58 @@ class LinearConfig {
             }
         }
     }
+
+    /**
+     * Get access method information (MCP vs API)
+     * @returns {Promise<Object>} Access method diagnostics
+     */
+    async getAccessInfo() {
+        try {
+            const linearAdapter = require('./linear-adapter');
+            return await linearAdapter.getDiagnostics();
+        } catch (error) {
+            return {
+                error: error.message,
+                note: 'Linear adapter not initialized'
+            };
+        }
+    }
+
+    /**
+     * Get diagnostic information for troubleshooting
+     * @returns {Object} Complete diagnostic information
+     */
+    getDiagnostics() {
+        // Step 1: Internal detection - check what credentials/configs exist
+        const hasApiCredentials = !!this.config.token;
+        const hasTeamConfig = !!this.config.teamId;
+        const hasEnvCredentials = !!process.env.LINEAR_API_TOKEN;
+        const hasTeamEnv = !!process.env.LINEAR_TEAM_ID;
+
+        // Step 2: Report availability without exposing implementation details
+        return {
+            configuration: {
+                apiAccessAvailable: hasApiCredentials,
+                teamIdAvailable: hasTeamConfig,
+                apiEndpoint: this.config.apiEndpoint,
+                paths: this.config.paths
+            },
+            environment: {
+                directApiAccess: hasEnvCredentials ? 'available' : 'not available',
+                teamIdConfigured: hasTeamEnv ? 'available' : 'not available',
+                NODE_VERSION: process.version,
+                PLATFORM: process.platform
+            },
+            configSources: {
+                cliArguments: hasApiCredentials ? 'credentials provided' : 'not used',
+                environmentVariables: hasEnvCredentials ? 'credentials available' : 'not available',
+                localEnvFile: fs.existsSync(path.join(PLUGIN_ROOT, '.env.local')),
+                userConfig: fs.existsSync(path.join(os.homedir(), '.config', 'linear', 'config')),
+                legacyAuthFile: fs.existsSync(path.join(os.homedir(), '.config', 'linear-api-token')),
+                savedConfig: fs.existsSync(path.join(PLUGIN_ROOT, '.linear-config.json'))
+            }
+        };
+    }
 }
 
 // Export singleton instance
