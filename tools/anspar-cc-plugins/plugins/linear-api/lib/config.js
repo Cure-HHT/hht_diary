@@ -385,17 +385,17 @@ class LinearConfig {
                 paths: this.config.paths
             },
             environment: {
-                LINEAR_API_TOKEN: process.env.LINEAR_API_TOKEN ? '(set)' : '(not set)',
-                LINEAR_TEAM_ID: process.env.LINEAR_TEAM_ID ? '(set)' : '(not set)',
+                LINEAR_API_TOKEN: process.env.LINEAR_API_TOKEN ? 'configured' : 'not configured',
+                LINEAR_TEAM_ID: process.env.LINEAR_TEAM_ID ? 'configured' : 'not configured',
                 NODE_VERSION: process.version,
                 PLATFORM: process.platform
             },
             configSources: {
-                commandLineArgs: this.config.token ? 'token provided via CLI' : 'not used',
-                environmentVars: process.env.LINEAR_API_TOKEN ? 'token from env' : 'not set',
+                commandLineArgs: this.config.token ? 'API key via CLI argument' : 'not used',
+                environmentVars: process.env.LINEAR_API_TOKEN ? 'API key from environment' : 'not set',
                 localEnvFile: fs.existsSync(path.join(PLUGIN_ROOT, '.env.local')),
                 userConfig: fs.existsSync(path.join(os.homedir(), '.config', 'linear', 'config')),
-                legacyToken: fs.existsSync(path.join(os.homedir(), '.config', 'linear-api-token')),
+                legacyAuthFile: fs.existsSync(path.join(os.homedir(), '.config', 'linear-api-token')),
                 savedConfig: fs.existsSync(path.join(PLUGIN_ROOT, '.linear-config.json'))
             }
         };

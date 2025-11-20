@@ -76,7 +76,7 @@ async function main() {
     console.log('Best for: Claude Code CLI, automation, CI/CD');
     console.log('');
     console.log('📋 API Configuration:');
-    console.log(`   Token: ${process.env.LINEAR_API_TOKEN ? '(set)' : '(not set)'}`);
+    console.log(`   API Key Status: ${process.env.LINEAR_API_TOKEN ? 'configured' : 'not configured'}`);
     console.log(`   Team ID: ${config.getTeamId(false) || '(will auto-discover)'}`);
     console.log(`   Endpoint: ${config.getApiEndpoint()}`);
     console.log('');
@@ -91,8 +91,8 @@ async function main() {
     const diagnostics = config.getDiagnostics();
 
     console.log('Configuration:');
-    console.log(`  Has Token: ${diagnostics.configuration.hasToken}`);
-    console.log(`  Has Team ID: ${diagnostics.configuration.hasTeamId}`);
+    console.log(`  API Key Available: ${diagnostics.configuration.hasToken}`);
+    console.log(`  Team ID Available: ${diagnostics.configuration.hasTeamId}`);
     console.log(`  API Endpoint: ${diagnostics.configuration.apiEndpoint}`);
     console.log('');
 

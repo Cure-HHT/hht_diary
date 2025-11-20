@@ -174,7 +174,7 @@ class AccessDetector {
       ],
       environment: {
         CLAUDE_CODE: process.env.CLAUDE_CODE || '(not set)',
-        LINEAR_API_TOKEN: this.isApiTokenAvailable() ? '(set)' : '(not set)'
+        LINEAR_API_TOKEN: this.isApiTokenAvailable() ? 'configured' : 'not configured'
       }
     };
   }
@@ -201,7 +201,7 @@ class AccessDetector {
     }
 
     if (method === 'api') {
-      return `✓ Using Linear API (Token-based access via LINEAR_API_TOKEN)`;
+      return `✓ Using Linear API (Direct API access with authentication key)`;
     }
 
     return 'Unknown access method';
