@@ -242,7 +242,53 @@ node scripts/add-checklist.js CUR-123 p00042 --dry-run
 - [ ] Update ops deployment guide
 ```
 
-### 3. Enhance Requirement Cross-References
+### 3. Scan Tickets for Missing REQ References
+
+Find all open tickets that don't have requirement references:
+
+```bash
+# Scan with summary output
+node scripts/scan-tickets-for-reqs.js
+
+# JSON output for automation
+node scripts/scan-tickets-for-reqs.js --format=json
+```
+
+**What it does**:
+1. Fetches all open Linear tickets (Todo, In Progress status)
+2. Checks each ticket description for REQ-{p|o|d}NNNNN references
+3. Identifies tickets without any REQ references
+4. Suggests appropriate requirements based on:
+   - Ticket title keywords
+   - Labels (security, database, portal, etc.)
+   - Project context
+5. Groups results by priority (Urgent → High → Medium → Low)
+
+**Output Example**:
+```
+📋 Scanning Linear tickets for requirement references...
+
+Total open tickets: 23
+✓ With REQ references: 15
+⚠️  Missing REQ references: 8
+
+📋 TICKETS MISSING REQUIREMENT REFERENCES:
+
+🔴 Urgent Priority (2):
+  • CUR-145: Implement user authentication
+    💡 Suggested: REQ-p00001 - Multi-sponsor user authentication
+
+  • CUR-156: Database schema for patients
+    💡 Suggested: REQ-d00007 - Database schema implementation
+
+💡 NEXT STEPS:
+1. Review suggested requirement mappings above
+2. Add REQ references using:
+   /add-REQ-to-ticket TICKET-ID REQ-ID
+3. Or create bulk mapping file for multiple updates
+```
+
+### 4. Enhance Requirement Cross-References
 
 Scan tickets for requirement references and add links to related tickets:
 
@@ -290,12 +336,14 @@ Skills are executable wrappers for use with Claude Code agents:
 | --- | --- | --- |
 | `create-req-tickets.skill` | `scripts/create-req-tickets.js` | Create tickets for requirements |
 | `add-checklist.skill` | `scripts/add-checklist.js` | Add implementation checklist |
+| `scan-tickets-for-reqs.skill` | `scripts/scan-tickets-for-reqs.js` | Find tickets missing REQ references |
 | `enhance-links.skill` | `scripts/enhance-links.js` | Enhance cross-references |
 
 **Usage in Agent**:
 ```bash
 ./skills/create-req-tickets.skill --dry-run
 ./skills/add-checklist.skill CUR-123 p00042
+./skills/scan-tickets-for-reqs.skill
 ./skills/enhance-links.skill --dry-run
 ```
 
