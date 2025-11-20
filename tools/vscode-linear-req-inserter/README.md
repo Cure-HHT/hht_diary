@@ -97,7 +97,7 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
 ## Configuration
 
 | Setting | Description | Default |
-|---------|-------------|---------|
+| --- | --- | --- |
 | `linearReqInserter.apiToken` | Linear API token | (empty) |
 | `linearReqInserter.teamId` | Linear team ID (optional) | (empty) |
 | `linearReqInserter.specPath` | Path to spec/ directory | `${workspaceFolder}/spec` |
@@ -127,7 +127,7 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
 The extension automatically detects file types and uses appropriate comment syntax:
 
 | File Types | Comment Style | Example |
-|------------|---------------|---------|
+| --- | --- | --- |
 | `.sql` | `--` | `-- REQ-p00001: Title` |
 | `.dart`, `.js`, `.ts`, `.java`, `.cpp` | `//` | `// REQ-p00001: Title` |
 | `.py`, `.rb`, `.sh` | `#` | `# REQ-p00001: Title` |

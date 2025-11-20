@@ -34,7 +34,7 @@ This plugin depends on:
 ## Available Skills
 
 | Skill | Purpose | Usage |
-|-------|---------|-------|
+| --- | --- | --- |
 | `create-verification` | Create verification ticket for changed requirement | `create-verification.skill '{"req_id":"d00027","old_hash":"abc","new_hash":"def","title":"...","file":"..."}'` |
 | `add-subsystem-checklist` | Add subsystem checklists to tickets | `add-subsystem-checklist.skill --token=<token> [--dry-run]` |
 

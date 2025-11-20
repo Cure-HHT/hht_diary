@@ -556,7 +556,7 @@ validate_diary_data(data JSONB) RETURNS BOOLEAN
 ### Critical RLS Policies
 
 | Table | Policy | Purpose |
-|-------|--------|---------|
+| --- | --- | --- |
 | `record_audit` | `audit_user_select` | Users see only their audit entries |
 | `record_audit` | `audit_user_insert` | Users insert only their own entries |
 | `record_state` | `state_user_select` | Users see only their diary entries |
@@ -566,7 +566,7 @@ validate_diary_data(data JSONB) RETURNS BOOLEAN
 ### Event Type Versions
 
 | Type | Version | Status |
-|------|---------|--------|
+| --- | --- | --- |
 | `epistaxis` | v1.0 | Production |
 | `survey` | v1.0 | Production (generic) |
 | `quality_of_life` | v1.0 | Planned |

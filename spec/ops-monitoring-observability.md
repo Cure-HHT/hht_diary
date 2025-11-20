@@ -344,7 +344,7 @@ The system SHALL monitor audit trail integrity with:
 ## Technology Stack
 
 | Component | Technology | Cost | Purpose |
-|-----------|-----------|------|---------|
+| --- | --- | --- | --- |
 | **Error Tracking** | Sentry | $26/month | Exception capture, performance monitoring |
 | **Uptime Monitoring** | Better Uptime | Free | Multi-region health checks, status page |
 | **Database Metrics** | Supabase Built-in | Included | Query performance, connection pools |
@@ -644,5 +644,5 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial specification (ready to activate) |

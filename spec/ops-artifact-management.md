@@ -270,7 +270,7 @@ The system SHALL maintain change control audit trail with:
 ## Technology Stack
 
 | Component | Technology | Cost (monthly) | Purpose |
-|-----------|-----------|----------------|---------|
+| --- | --- | --- | --- |
 | **Hot Storage** | AWS S3 Standard | ~$5 | Recent artifacts (0-90 days) |
 | **Cold Storage** | AWS S3 Glacier Deep Archive | ~$1 | Long-term retention (7 years) |
 | **Version Control** | GitHub (included) | $0 | Source code retention |
@@ -786,7 +786,7 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 **Calculation**:
 
 | Storage Type | Size | Duration | Cost/GB/month | Total |
-|--------------|------|----------|---------------|-------|
+| --- | --- | --- | --- | --- |
 | Hot (0-90 days) | 12 GB | 90 days | $0.023 | $0.28 |
 | Cold (7 years) | 336 GB | 7 years | $0.00099 | $0.33 |
 | **Total** | | | | **~$9/month** |
@@ -807,5 +807,5 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial specification (ready to activate) |

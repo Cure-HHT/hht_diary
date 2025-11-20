@@ -191,7 +191,7 @@ Successfully consolidated and reorganized documentation across the entire reposi
 ### Files Summary
 
 | Action | Count | Total Lines |
-|--------|-------|-------------|
+| --- | --- | --- |
 | **Moved** | 5 files | 2,120 lines |
 | **Renamed** | 1 file | 291 lines |
 | **Created** | 4 files | 3,904 lines |

@@ -33,7 +33,7 @@ module "supabase" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|----------|
+| --- | --- | --- | --- | --- |
 | organization_id | Supabase organization ID | string | - | yes |
 | project_name | Name of the Supabase project | string | - | yes |
 | database_password | Database password (sensitive) | string | - | yes |
@@ -53,7 +53,7 @@ module "supabase" {
 ## Outputs
 
 | Name | Description | Sensitive |
-|------|-------------|-----------|
+| --- | --- | --- |
 | project_id | Supabase project ID | no |
 | project_name | Project name | no |
 | project_region | Project region | no |

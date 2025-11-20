@@ -100,7 +100,7 @@ Decision documentation SHALL ensure:
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 1.0 | 2025-10-25 | Initial requirements for requirements management process | Development Team |
 
 ---

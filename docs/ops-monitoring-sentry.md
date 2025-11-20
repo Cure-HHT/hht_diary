@@ -584,5 +584,5 @@ Verify in Sentry:
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial setup guide (ready to activate) |

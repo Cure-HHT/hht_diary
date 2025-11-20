@@ -232,7 +232,7 @@ Examples:
 ## Files
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `generate-commit-msg.sh` | Main commit message generator |
 | `fetch-ticket-reqs.sh` | Fetches and caches REQ references |
 | `parse-req-refs.sh` | Reusable REQ reference parser |

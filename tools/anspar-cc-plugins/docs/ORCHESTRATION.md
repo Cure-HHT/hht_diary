@@ -57,7 +57,7 @@ Result: Reliable, reusable, maintainable
 ### Sub-Agent Specialization Benefits
 
 | Benefit | Description |
-|---------|-------------|
+| --- | --- |
 | **Expertise** | Sub-agents are experts in their domain |
 | **Consistency** | Same logic used every time |
 | **Testability** | Agents can be tested independently |
@@ -231,7 +231,7 @@ Get token from: https://linear.app/settings/api"
 ### Delegate to Sub-Agent When
 
 | Scenario | Example | Agent |
-|----------|---------|-------|
+| --- | --- | --- |
 | **Domain-specific operations** | Linear ticket operations | linear-api-agent |
 | **External API calls** | Fetch from Linear API | linear-api-agent |
 | **Complex parsing** | Parse requirement format | requirements-agent |
@@ -242,7 +242,7 @@ Get token from: https://linear.app/settings/api"
 ### Implement Directly When
 
 | Scenario | Example | Tool |
-|----------|---------|------|
+| --- | --- | --- |
 | **Simple file operations** | Read a single file | Read |
 | **Basic text transformations** | Extract lines from output | Bash/grep |
 | **User clarification** | Ask user for preferences | AskUserQuestion |
@@ -254,7 +254,7 @@ Get token from: https://linear.app/settings/api"
 **Sometimes unclear - use judgment**:
 
 | Task | Delegate? | Reasoning |
-|------|-----------|-----------|
+| --- | --- | --- |
 | Read multiple spec files | Maybe | If parsing complex format → delegate. If just reading → direct |
 | Create git commit | Maybe | If workflow-managed project → delegate to workflow-enforcer. Otherwise → direct |
 | Search codebase | Maybe | If domain-specific search → delegate. If simple grep → direct |
@@ -429,7 +429,7 @@ Claude (Orchestrator):
 **Use orchestration when**:
 
 | Scenario | Overhead | Benefit | Verdict |
-|----------|----------|---------|---------|
+| --- | --- | --- | --- |
 | Complex API operations | +2-5 sec | Reliability, consistency | ✅ Worth it |
 | Domain-specific parsing | +1-2 sec | Correctness, reusability | ✅ Worth it |
 | Multi-step workflows | +3-10 sec | Maintainability, testability | ✅ Worth it |

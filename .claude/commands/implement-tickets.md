@@ -169,7 +169,7 @@ After implementing 5 tickets:
 ### Ticket Types and Deliverables:
 
 | Ticket Type | Deliverable | Location |
-|-------------|-------------|----------|
+| --- | --- | --- |
 | Database schema | SQL files | `database/schema.sql` |
 | Migrations | SQL files | `database/migrations/` |
 | Validation tooling | Python scripts | `tools/requirements/` |

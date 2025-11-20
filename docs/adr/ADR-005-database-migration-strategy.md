@@ -215,7 +215,7 @@ Migration strategy validates successfully when:
 ## Change Log
 
 | Date | Change | Author |
-|------|--------|--------|
+| --- | --- | --- |
 | 2025-10-14 | Initial ADR created | Claude Code |
 
 ---

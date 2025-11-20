@@ -366,7 +366,7 @@ This ensures compliance with least-privilege principle.
 ## Comparison with ctest
 
 | Feature | dbtest (with auth_audit.sql) | ctest |
-|---------|------------------------------|-------|
+| --- | --- | --- |
 | Authentication events | ✅ All types | ✅ Basic |
 | OAuth provider tracking | ✅ Yes | ✅ Yes |
 | Suspicious activity detection | ✅ Automatic | ❌ No |

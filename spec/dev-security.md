@@ -310,7 +310,7 @@ The system defines **7 roles** with specific permissions:
 ## Access Control Matrix
 
 | Resource | Patient | Investigator | Analyst | Sponsor | Auditor | Admin |
-|----------|---------|--------------|---------|---------|---------|-------|
+| --- | --- | --- | --- | --- | --- | --- |
 | Own diary entries | Read/Write | Read-only (site) | - | - | Read-only | Read/Write |
 | Other patient entries | - | Read-only (site) | Read-only (site) | Read-only (de-ID) | Read-only | Read/Write |
 | Annotations | View own | Create (site) | - | - | View all | Create |
@@ -529,7 +529,7 @@ The system defines **7 roles** with specific permissions:
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 2.0 | 2025-01-24 | Scope revision: Authentication & authorization only | Development Team |
 | 1.0 | 2025-01-24 | Initial security architecture (superseded) | Development Team |
 
@@ -978,7 +978,7 @@ For compliance audits, verify:
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 1.0.0 | 2025-10-14 | Initial documentation | Development Team |
 
 ---

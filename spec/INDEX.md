@@ -13,7 +13,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 ---
 
 | Requirement ID | File | Title | Hash |
-|----------------|------|-------|------|
+| --- | --- | --- | --- |
 | REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | 5fa9f76f |
 | REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | 8c25b197 |
 | REQ-d00003 | dev-security.md | Supabase Auth Configuration Per Sponsor | 67ec9c94 |

@@ -86,7 +86,7 @@ This plugin is a **thin wrapper** that calls the shared validation script:
 simple-requirements/
 └── hooks/
     └── pre-commit-requirement-validation  ← Git hook (this plugin)
-                 |
+ |
                  v
         tools/requirements/
         └── validate_requirements.py       ← Shared script (CI/CD compatible)

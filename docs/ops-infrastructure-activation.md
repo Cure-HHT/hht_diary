@@ -671,7 +671,7 @@ If you need to deactivate a component:
 ## Cost Summary
 
 | Component | Monthly Cost | Notes |
-|-----------|--------------|-------|
+| --- | --- | --- |
 | **Terraform State** | $0-1 | Free (Terraform Cloud) or $1 (S3) |
 | **Supabase** | $50 | $0 dev + $25 staging + $25 prod |
 | **GitHub Actions** | $0 | Included in plan |
@@ -744,5 +744,5 @@ After Phase 1 activation:
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial activation guide for Phase 1 |

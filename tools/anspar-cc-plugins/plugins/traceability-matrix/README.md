@@ -82,11 +82,11 @@ This plugin is a **thin wrapper** that calls the shared generation script:
 traceability-matrix/
 └── hooks/
     └── pre-commit-traceability-matrix  ← Git hook (this plugin)
-                 |
+ |
                  v
         tools/requirements/
         └── generate_traceability.py    ← Shared script (CI/CD compatible)
-                 |
+ |
                  v
         traceability_matrix.md          ← Generated output (gitignored)
         traceability_matrix.html

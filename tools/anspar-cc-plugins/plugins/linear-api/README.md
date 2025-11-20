@@ -130,7 +130,7 @@ bash tools/anspar-cc-plugins/plugins/linear-api/skills/list-labels.skill --filte
 All skills are located in `skills/` and are executable bash wrappers around the core scripts.
 
 | Skill | Purpose |
-|-------|---------|
+| --- | --- |
 | `fetch-tickets.skill` | Fetch ticket details by ID |
 | `create-ticket.skill` | Create a new ticket |
 | `update-ticket.skill` | Update ticket status/description/checklist |
@@ -389,7 +389,7 @@ source scripts/setup-env.sh
 The plugin includes reusable JavaScript modules:
 
 | Module | Purpose |
-|--------|---------|
+| --- | --- |
 | `config.js` | Configuration management and auto-discovery |
 | `env-validation.js` | Environment variable validation |
 | `graphql-client.js` | Low-level GraphQL client |

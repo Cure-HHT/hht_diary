@@ -304,7 +304,7 @@ bash "$SCRIPT_DIR/scripts/do-thing.sh" "$@"
 ### Skills vs. Scripts
 
 | Aspect | Skills | Scripts |
-|--------|--------|---------|
+| --- | --- | --- |
 | **Purpose** | Agent interface | Implementation |
 | **Location** | `skills/` | `scripts/` |
 | **Complexity** | Thin wrapper (2-5 lines) | Full logic |

@@ -248,7 +248,7 @@ The system SHALL automate database migrations with the following capabilities:
 ## Technology Stack
 
 | Component | Technology | Purpose |
-|-----------|-----------|---------|
+| --- | --- | --- |
 | **CI/CD Platform** | GitHub Actions | Workflow orchestration |
 | **Migration Tool** | Supabase CLI | Database migrations |
 | **Secrets Management** | Doppler | Secure credential injection |
@@ -625,5 +625,5 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial specification (ready to activate) |

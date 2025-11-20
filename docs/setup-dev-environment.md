@@ -102,7 +102,7 @@ First run takes 15-30 minutes (downloads and builds images).
 #### Roles and Capabilities
 
 | Role | Container | Tools | Use Case |
-|------|-----------|-------|----------|
+| --- | --- | --- | --- |
 | Developer | `dev` | Flutter, Android SDK, Node, Python | Build mobile app |
 | QA | `qa` | Playwright, test frameworks | Run automated tests |
 | DevOps | `ops` | Terraform, Supabase CLI, Cosign, Syft | Deploy infrastructure |

@@ -69,7 +69,7 @@ Archives build artifacts to environment-specific S3 buckets.
 **Environment-Specific Behavior:**
 
 | Environment | Bucket | Retention | Object Lock | Use Case |
-|-------------|--------|-----------|-------------|----------|
+| --- | --- | --- | --- | --- |
 | Production | `SPONSOR_ARTIFACTS_BUCKET` | 7 years | ✅ Enabled | FDA-compliant production releases |
 | Staging | `SPONSOR_ARTIFACTS_BUCKET_STAGING` | 30 days | ❌ Disabled | Pre-production testing |
 | Development | `SPONSOR_ARTIFACTS_BUCKET_DEV` | 7 days | ❌ Disabled | Testing archival workflow |

@@ -11,7 +11,7 @@ The `anspar-cc-plugins` marketplace provides specialized Claude Code plugins for
 ## Plugin Catalog
 
 | Plugin | Version | Purpose |
-|--------|---------|---------|
+| --- | --- | --- |
 | **plugin-wizard** | 1.0.0 | Create new plugins using 2-phase workflow |
 | **linear-api** | 2.0.0 | Generic Linear API integration for ticket management |
 | **workflow** | 3.0.0 | Git workflow enforcement with requirement traceability |
@@ -264,5 +264,5 @@ MIT License - See individual plugin directories for details.
 ## Version History
 
 | Version | Date | Changes |
-|---------|------|---------|
+| --- | --- | --- |
 | 1.0.0 | 2025-11-09 | Initial marketplace release with 8 plugins |

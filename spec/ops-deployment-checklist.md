@@ -416,9 +416,9 @@ Compliance Officer: __________________
 ## Version History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 1.0 | 2025-XX-XX | Initial deployment | _______ |
-|  |  |  |  |
+| | | | |
 
 ---
 

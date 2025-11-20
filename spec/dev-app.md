@@ -323,7 +323,7 @@ Build process SHALL include:
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 1.0 | 2025-01-24 | Initial mobile app specification | Development Team |
 
 ---

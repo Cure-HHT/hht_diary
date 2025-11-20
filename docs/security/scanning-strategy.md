@@ -26,7 +26,7 @@ This document describes the comprehensive security scanning strategy for the Cli
 ## Scanner Matrix
 
 | Tool | Purpose | Languages/Targets | When | Exit on Failure |
-|------|---------|-------------------|------|-----------------|
+| --- | --- | --- | --- | --- |
 | **Gitleaks** | Secret detection | All files | Pre-commit + CI/CD | ✅ Yes |
 | **Trivy (filesystem)** | Dependency vulnerabilities | npm, pub, pip, etc. | CI/CD | ❌ No (report only) |
 | **Trivy (IaC)** | Infrastructure misconfig | Docker, Terraform, K8s | CI/CD | ❌ No (report only) |
@@ -367,7 +367,7 @@ warning: prefer-text-field
 note: Prefer text fields over varchar/char fields
 
    1 | ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL;
-     |                                     ^^^^^^^^^^^^
+ |                                     ^^^^^^^^^^^^
 
 help: Use text fields rather than varchar fields
 
@@ -375,7 +375,7 @@ warning: adding-not-null-to-existing-column
 note: Adding a NOT NULL field to an existing table requires exclusive locks
 
    1 | ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL;
-     |                                                  ^^^^^^^^
+ |                                                  ^^^^^^^^
 
 help: Add the column as nullable, then use a multi-step migration
 ```
@@ -474,7 +474,7 @@ A:
 ## Change Log
 
 | Date | Change | Author |
-|------|--------|--------|
+| --- | --- | --- |
 | 2025-11-17 | Initial documentation | Claude (CUR-336) |
 | 2025-11-17 | Added Flutter/Dart security job | Claude (CUR-336) |
 | 2025-11-17 | Enhanced Trivy with IaC and container scanning | Claude (CUR-336) |

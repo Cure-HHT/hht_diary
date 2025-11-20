@@ -38,7 +38,7 @@ What other options did we consider and why were they rejected?
 ## Index of ADRs
 
 | ADR | Title | Status | Date |
-|-----|-------|--------|------|
+| --- | --- | --- | --- |
 | [001](./ADR-001-event-sourcing-pattern.md) | Event Sourcing Pattern for Diary Data | Accepted | 2025-10-14 |
 | [002](./ADR-002-jsonb-flexible-schema.md) | JSONB for Flexible Diary Schema | Accepted | 2025-10-14 |
 | [003](./ADR-003-row-level-security.md) | Row-Level Security for Multi-Tenancy | Accepted | 2025-10-14 |
@@ -190,7 +190,7 @@ Code: src/i18n/*.ts  (with requirement references in comments)
 ### When to Create Each
 
 | Document Type | Purpose | When to Create | Example |
-|---------------|---------|----------------|---------|
+| --- | --- | --- | --- |
 | **Ticket** | Track work to be done | User/stakeholder requests feature or bug fix | "Add multi-language support" |
 | **ADR** | Document architectural decision | Significant design choice with trade-offs | "Why we chose i18next over custom solution" |
 | **Requirement** | Define what system must do | Feature accepted and needs formal specification | "REQ-p00019: System shall support EN/ES/FR" |

@@ -1017,7 +1017,7 @@ SET request.jwt.claims = '{"sub": "test_inv", "role": "INVESTIGATOR", "active_si
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --- | --- | --- | --- |
 | 1.0 | 2025-01-24 | Initial developer database guide | Development Team |
 
 ---

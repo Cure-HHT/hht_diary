@@ -386,7 +386,7 @@ When system changes:
 ## Change History
 
 | Date | Version | Author | Changes |
-|------|---------|--------|---------|
+| --- | --- | --- | --- |
 | 2025-01-13 | 1.0 | Development Team | Initial validation framework |
 
 ---
