@@ -10,6 +10,6 @@
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/linear-api",
   "license": "MIT",
-  "agents": "./agents/linear-api-agent.md",
+  "agents": "./agents/linear-api.md",
   "skills": "./skills/"
 }

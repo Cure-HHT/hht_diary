@@ -1,5 +1,5 @@
 ---
-name: requirement-agent
+name: requirement-traceability
 description: Requirement-to-ticket traceability for spec/ requirements with Linear integration
 tools: Bash, Read, Grep
 ---

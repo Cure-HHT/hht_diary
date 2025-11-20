@@ -1,5 +1,5 @@
 ---
-name: linear-api-agent
+name: linear-api
 description: Generic Linear API client for ticket CRUD operations using GraphQL API
 tools: Bash, Read
 ---

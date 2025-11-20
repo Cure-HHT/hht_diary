@@ -267,7 +267,7 @@ compliance-verification/
 ├── .claude-plugin/
 │   └── plugin.json              # Plugin manifest
 ├── agents/
-│   └── compliance-agent.md      # Agent documentation and knowledge
+│   └── compliance-verification.md      # Agent documentation and knowledge
 ├── scripts/
 │   ├── create-verification.js   # Create verification tickets
 │   └── add-subsystem-checklist.js  # Add subsystem checklists to tickets

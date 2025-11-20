@@ -10,6 +10,6 @@
   "repository": "https://github.com/anspar/diary",
   "homepage": "https://github.com/anspar/diary/tree/main/tools/anspar-cc-plugins/plugins/compliance-verification",
   "license": "MIT",
-  "agents": "./agents/compliance-agent.md",
+  "agents": "./agents/compliance-verification.md",
   "skills": "./skills/"
 }
