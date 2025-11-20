@@ -122,6 +122,50 @@ if [ -n "$DOCKERFILES_CHANGED" ]; then
 fi
 
 # =====================================================
+# 3. Markdown Linting (Built-in)
+# =====================================================
+
+# Check if any markdown files are being committed
+MARKDOWN_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' | grep -v 'untracked-notes/' || true)
+
+if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
+    echo "📝 Linting markdown files..."
+    echo ""
+
+    # Check if markdownlint-cli is installed
+    if command -v markdownlint &> /dev/null; then
+        MARKDOWNLINT_FAILED=0
+
+        # Lint all staged markdown files at once
+        if ! echo "$MARKDOWN_FILES_CHANGED" | xargs markdownlint --config .markdownlint.json; then
+            MARKDOWNLINT_FAILED=1
+        fi
+
+        if [ $MARKDOWNLINT_FAILED -eq 1 ]; then
+            echo ""
+            echo "❌ Markdown linting failed!"
+            echo ""
+            echo "Fix the errors above before committing."
+            echo ""
+            echo "Common fixes:"
+            echo "  - MD060: Ensure table separators match cell style (compact: | --- |)"
+            echo ""
+            echo "To bypass this check (NOT RECOMMENDED):"
+            echo "  git commit --no-verify"
+            exit 1
+        fi
+
+        echo ""
+        echo "✅ Markdown linting passed!"
+        echo ""
+    else
+        echo "⚠️  WARNING: markdownlint not installed - skipping markdown linting"
+        echo "   Install: npm install -g markdownlint-cli@0.46.0"
+        echo ""
+    fi
+fi
+
+# =====================================================
 # All Validations Passed
 # =====================================================
 
