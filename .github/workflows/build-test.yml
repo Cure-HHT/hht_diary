@@ -117,8 +117,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load version pinning
+        run: |
+          # Export all versions from .github/versions.env to GitHub Actions environment
+          while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ "$key" =~ ^#.*$ ]] && continue
+            [[ -z "$key" ]] && continue
+            # Remove whitespace and export to GITHUB_ENV
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs)
+            echo "${key}=${value}" >> $GITHUB_ENV
+          done < .github/versions.env
+
       - name: Install markdown linter
-        run: npm install -g markdownlint-cli@0.46.0
+        run: npm install -g markdownlint-cli@${{ env.MARKDOWNLINT_CLI_VERSION }}
 
       - name: Lint markdown files
         run: |

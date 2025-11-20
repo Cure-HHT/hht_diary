@@ -125,6 +125,19 @@ fi
 # 3. Markdown Linting (Built-in)
 # =====================================================
 
+# Load central version pinning
+if [ -f .github/versions.env ]; then
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        # Remove whitespace and export
+        key=$(echo "$key" | xargs)
+        value=$(echo "$value" | xargs)
+        export "${key}=${value}"
+    done < .github/versions.env
+fi
+
 # Check if any markdown files are being committed
 MARKDOWN_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' | grep -v 'untracked-notes/' || true)
 
@@ -160,7 +173,7 @@ if [ -n "$MARKDOWN_FILES_CHANGED" ]; then
         echo ""
     else
         echo "⚠️  WARNING: markdownlint not installed - skipping markdown linting"
-        echo "   Install: npm install -g markdownlint-cli@0.46.0"
+        echo "   Install: npm install -g markdownlint-cli@${MARKDOWNLINT_CLI_VERSION:-latest}"
         echo ""
     fi
 fi
