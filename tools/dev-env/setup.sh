@@ -59,6 +59,49 @@ check_environment() {
     exit 1
   fi
 
+  # Fix .gitconfig if it's a directory (Docker mount issue)
+  if [ -d "${HOME}/.gitconfig" ]; then
+    warning "~/.gitconfig is a directory (likely created by Docker mount)"
+    echo "  Docker creates directories for missing mount targets."
+    echo "  Fixing by creating proper .gitconfig file..."
+    rmdir "${HOME}/.gitconfig" 2>/dev/null || {
+      error "Failed to remove .gitconfig directory (not empty)"
+      echo "  Please manually fix: rm -rf ~/.gitconfig && touch ~/.gitconfig"
+      exit 1
+    }
+    # Create basic gitconfig
+    cat > "${HOME}/.gitconfig" << 'EOF'
+[user]
+	name = Developer
+	email = dev@example.com
+[init]
+	defaultBranch = main
+[pull]
+	rebase = false
+[core]
+	editor = vim
+EOF
+    success "Created ~/.gitconfig (please update name/email)"
+  # Create .gitconfig if it doesn't exist
+  elif [ ! -f "${HOME}/.gitconfig" ]; then
+    info "Creating ~/.gitconfig (required for Docker volume mount)"
+    cat > "${HOME}/.gitconfig" << 'EOF'
+[user]
+	name = Developer
+	email = dev@example.com
+[init]
+	defaultBranch = main
+[pull]
+	rebase = false
+[core]
+	editor = vim
+EOF
+    warning "Created ~/.gitconfig with default values"
+    echo "  Please update your name and email with:"
+    echo "    git config --global user.name 'Your Name'"
+    echo "    git config --global user.email 'your.email@example.com'"
+  fi
+
   success "Environment variables validated"
 }
 
@@ -129,6 +172,50 @@ check_doppler() {
   fi
 }
 
+check_node() {
+  info "Checking Node.js installation..."
+
+  if ! command -v node &> /dev/null; then
+    error "Node.js not found on host system."
+    echo ""
+    echo "  Node.js is required for running development tools and scripts."
+    echo ""
+    echo "  Installation instructions:"
+    if [ "$PLATFORM" = "macOS" ]; then
+      echo "  • Homebrew: brew install node"
+      echo "  • Official installer: https://nodejs.org/"
+      echo "  • nvm (recommended): https://github.com/nvm-sh/nvm"
+    elif [ "$PLATFORM" = "Linux" ]; then
+      echo "  • Ubuntu/Debian: sudo apt-get install nodejs npm"
+      echo "  • Using nvm (recommended): https://github.com/nvm-sh/nvm"
+    else
+      echo "  • Official installer: https://nodejs.org/"
+      echo "  • nvm (recommended): https://github.com/nvm-sh/nvm"
+    fi
+    echo ""
+    exit 1
+  fi
+
+  local node_version=$(node --version)
+  local npm_version=$(npm --version 2>/dev/null || echo "not found")
+
+  success "Node.js found: $node_version"
+
+  if [ "$npm_version" != "not found" ]; then
+    success "npm found: v$npm_version"
+  else
+    warning "npm not found. Node.js is installed but npm is missing."
+    echo "  Install npm or use a complete Node.js installation."
+  fi
+
+  # Check minimum Node.js version (v18+)
+  local major_version=$(echo "$node_version" | sed 's/v\([0-9]*\).*/\1/')
+  if [ "$major_version" -lt 18 ]; then
+    warning "Node.js version $node_version is older than recommended (v18+)"
+    echo "  Consider upgrading for better compatibility."
+  fi
+}
+
 # ============================================================
 # Build Docker Images
 # ============================================================
@@ -137,7 +224,15 @@ build_base_image() {
   info "Building base image..."
   cd "$SCRIPT_DIR"
 
+  # On macOS, force linux/amd64 platform for Flutter compatibility
+  local platform_flag=""
+  if [ "$PLATFORM" = "macOS" ]; then
+    platform_flag="--platform linux/amd64"
+    info "Building for linux/amd64 (required for Flutter on Apple Silicon)"
+  fi
+
   docker build \
+    $platform_flag \
     -f docker/base.Dockerfile \
     -t clinical-diary-base:latest \
     docker/
@@ -157,7 +252,14 @@ build_role_image() {
     exit 1
   fi
 
+  # On macOS, force linux/amd64 platform for Flutter compatibility
+  local platform_flag=""
+  if [ "$PLATFORM" = "macOS" ]; then
+    platform_flag="--platform linux/amd64"
+  fi
+
   docker build \
+    $platform_flag \
     -f "docker/${role}.Dockerfile" \
     -t "clinical-diary-${role}:latest" \
     --build-arg BASE_IMAGE_TAG=latest \
@@ -200,7 +302,9 @@ start_service() {
   info "Or use VS Code Dev Containers:"
   echo "  1. Open VS Code"
   echo "  2. Command Palette → 'Dev Containers: Reopen in Container'"
-  echo "  3. Select: Clinical Diary - $(echo $role | sed 's/.*/\u&/')"
+  # Use bash parameter expansion for cross-platform uppercase (works on macOS BSD and Linux GNU)
+  role_upper="$(tr '[:lower:]' '[:upper:]' <<< ${role:0:1})${role:1}"
+  echo "  3. Select: Clinical Diary - $role_upper"
 }
 
 # ============================================================
@@ -364,6 +468,9 @@ interactive_setup() {
   check_docker_compose
   echo ""
 
+  check_node
+  echo ""
+
   check_doppler
   echo ""
 
@@ -477,6 +584,7 @@ main() {
       detect_platform
       check_docker
       check_docker_compose
+      check_node
       if [ -z "${2:-}" ]; then
         error "Role not specified. Use: dev, qa, ops, or mgmt"
         exit 1
@@ -490,6 +598,7 @@ main() {
       detect_platform
       check_docker
       check_docker_compose
+      check_node
       build_all_images
       validate_setup
       ;;
@@ -498,6 +607,7 @@ main() {
       detect_platform
       check_docker
       check_docker_compose
+      check_node
       validate_setup
       ;;
     --rebuild)
@@ -505,10 +615,16 @@ main() {
       detect_platform
       check_docker
       check_docker_compose
+      check_node
       info "Backing up volumes before rebuild..."
       backup_volumes
       echo ""
       info "Rebuilding all images from scratch..."
+      # On macOS, force linux/amd64 platform for Flutter compatibility
+      if [ "$PLATFORM" = "macOS" ]; then
+        export DOCKER_DEFAULT_PLATFORM=linux/amd64
+        info "Building for linux/amd64 (required for Flutter on Apple Silicon)"
+      fi
       docker compose build --no-cache
       success "Rebuild complete!"
       validate_setup
