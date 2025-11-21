@@ -24,8 +24,38 @@ permissions:
   checks: write
 
 jobs:
+  # Detect what changed to skip irrelevant tests
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      spec: ${{ steps.filter.outputs.spec }}
+      code: ${{ steps.filter.outputs.code }}
+      database: ${{ steps.filter.outputs.database }}
+      python: ${{ steps.filter.outputs.python }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            spec:
+              - 'spec/**'
+            code:
+              - 'packages/**'
+              - 'apps/**'
+            database:
+              - 'database/**'
+            python:
+              - 'tools/**/*.py'
+            workflows:
+              - '.github/workflows/**'
+
   validate-requirements:
     name: Validate Requirements Format & Traceability
+    needs: changes
+    if: needs.changes.outputs.spec == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -39,6 +69,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -185,6 +216,8 @@ jobs:
 
   validate-code-headers:
     name: Validate Code Implementation Headers
+    needs: changes
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.database == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -287,46 +320,16 @@ jobs:
 
   validate-migrations:
     name: Validate Database Migration Headers
+    needs: changes
+    if: needs.changes.outputs.database == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Need full history to check changed files
-
-      - name: Check if migrations were changed in this PR
-        id: check-migrations
-        run: |
-          echo "::group::Checking if migrations were modified"
-
-          # Check if this is a PR or a push
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
-
-            # Get list of changed files
-            CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
-
-            # Check if any migration files were changed
-            if echo "$CHANGED_FILES" | grep -q "^database/migrations/.*\.sql$"; then
-              echo "migrations_changed=true" >> $GITHUB_OUTPUT
-              echo "✓ Migration files were modified in this PR"
-            else
-              echo "migrations_changed=false" >> $GITHUB_OUTPUT
-              echo "ℹ️  No migration files were modified in this PR"
-            fi
-          else
-            # For push events, assume we should check all migrations
-            echo "migrations_changed=true" >> $GITHUB_OUTPUT
-            echo "ℹ️  Push event - will validate all existing migrations"
-          fi
-
-          echo "::endgroup::"
 
       - name: Validate migration file headers
-        if: steps.check-migrations.outputs.migrations_changed == 'true'
         run: |
           echo "::group::Validating Migration Headers"
 
@@ -357,14 +360,9 @@ jobs:
             echo "✅ All migration files have proper headers"
           fi
 
-      - name: Report no migrations to validate
-        if: steps.check-migrations.outputs.migrations_changed == 'false'
-        run: |
-          echo "::notice::No migration files were modified in this PR"
-          echo "✅ Migration validation: PASSED (no migrations to validate)"
-
   security-check:
     name: Security - Check for Secrets
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -429,6 +427,8 @@ jobs:
 
   fda-compliance-check:
     name: FDA Compliance - Audit Trail Verification
+    needs: changes
+    if: needs.changes.outputs.database == 'true' || needs.changes.outputs.spec == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -471,6 +471,8 @@ jobs:
 
   test-git-hooks:
     name: Test Git Hooks
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -543,7 +545,7 @@ jobs:
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
+    needs: [changes, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
     if: always()
 
     steps:
@@ -552,52 +554,86 @@ jobs:
           echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          # Show what changed
+          echo "### Changed Files" >> $GITHUB_STEP_SUMMARY
+          echo "- Spec: ${{ needs.changes.outputs.spec == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Code: ${{ needs.changes.outputs.code == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Database: ${{ needs.changes.outputs.database == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Python: ${{ needs.changes.outputs.python == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Workflows: ${{ needs.changes.outputs.workflows == 'true' && '✓' || '—' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Show test results
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+
+          # Requirements
           if [ "${{ needs.validate-requirements.result }}" = "success" ]; then
             echo "✅ Requirements validation: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-requirements.result }}" = "skipped" ]; then
+            echo "⏭️ Requirements validation: SKIPPED (no spec changes)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Requirements validation: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # Code headers
           if [ "${{ needs.validate-code-headers.result }}" = "success" ]; then
-            echo "✅ Code headers validation: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Code headers: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-code-headers.result }}" = "skipped" ]; then
+            echo "⏭️ Code headers: SKIPPED (no code changes)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️  Code headers validation: WARNING" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Code headers: WARNING" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # Migrations
           if [ "${{ needs.validate-migrations.result }}" = "success" ]; then
-            echo "✅ Migration headers validation: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Migration headers: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-migrations.result }}" = "skipped" ]; then
+            echo "⏭️ Migration headers: SKIPPED (no database changes)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Migration headers validation: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Migration headers: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # Security - always runs
           if [ "${{ needs.security-check.result }}" = "success" ]; then
             echo "✅ Security check: PASSED" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Security check: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # FDA compliance
           if [ "${{ needs.fda-compliance-check.result }}" = "success" ]; then
-            echo "✅ FDA compliance check: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "✅ FDA compliance: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.fda-compliance-check.result }}" = "skipped" ]; then
+            echo "⏭️ FDA compliance: SKIPPED (no relevant changes)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ FDA compliance check: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "❌ FDA compliance: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
+          # Git hooks
           if [ "${{ needs.test-git-hooks.result }}" = "success" ]; then
             echo "✅ Git hook tests: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-git-hooks.result }}" = "skipped" ]; then
+            echo "⏭️ Git hook tests: SKIPPED (no workflow changes)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ Git hook tests: FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Overall result
-          if [ "${{ needs.validate-requirements.result }}" = "success" ] && \
-             [ "${{ needs.security-check.result }}" = "success" ] && \
-             [ "${{ needs.fda-compliance-check.result }}" = "success" ] && \
-             [ "${{ needs.test-git-hooks.result }}" = "success" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🎉 All critical validations passed!" >> $GITHUB_STEP_SUMMARY
+          # Overall result - only check jobs that ran
+          echo "" >> $GITHUB_STEP_SUMMARY
+          FAILED=false
+
+          if [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
+             [ "${{ needs.security-check.result }}" = "failure" ] || \
+             [ "${{ needs.fda-compliance-check.result }}" = "failure" ] || \
+             [ "${{ needs.test-git-hooks.result }}" = "failure" ] || \
+             [ "${{ needs.validate-migrations.result }}" = "failure" ]; then
+            FAILED=true
+          fi
+
+          if [ "$FAILED" = "false" ]; then
+            echo "🎉 All validations passed!" >> $GITHUB_STEP_SUMMARY
             exit 0
           else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️  Some validations failed. Please review the errors above." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Some validations failed. Please review the errors above." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
