@@ -48,20 +48,29 @@ This directory contains the Docker Compose configuration and Dockerfiles for the
 For faster builds with cached layers:
 
 ```bash
-# Create GitHub Personal Access Token (PAT):
-# 1. Go to: https://github.com/settings/tokens/new
-# 2. Name: "GHCR Access for Clinical Diary"
-# 3. Expiration: 90 days (or longer)
-# 4. Scopes: Check "read:packages"
-# 5. Generate and copy the token
+# 1. Create GitHub Personal Access Token (PAT):
+#    • Go to: https://github.com/settings/tokens/new
+#    • Name: "GHCR Access for Clinical Diary"
+#    • Expiration: 90 days (or longer)
+#    • Scopes: Check "read:packages"
+#    • Generate and copy the token
 
-# Authenticate Docker with GHCR:
-export CR_PAT=YOUR_TOKEN_HERE
-echo $CR_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+# 2. Store token in Doppler (secure secrets management):
+doppler secrets set GITHUB_TOKEN
+# Paste your token when prompted (input will be hidden)
 
-# Verify authentication:
+# 3. Authenticate Docker with GHCR using Doppler:
+doppler run -- bash -c 'echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin'
+
+# 4. Verify authentication:
 docker pull ghcr.io/cure-hht/clinical-diary-base:latest
 ```
+
+**Why Doppler?**
+- Tokens are encrypted and centrally managed
+- Available across all development environments
+- No risk of accidentally committing secrets to git
+- Easy rotation and revocation
 
 ### 2. Run Setup Script
 
