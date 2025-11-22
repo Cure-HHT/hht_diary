@@ -22,13 +22,21 @@ USER root
 
 # ============================================================
 # OpenJDK 17 (LTS, required for Android builds)
+# Dynamically detect JAVA_HOME to support multiple architectures (amd64, arm64)
 # ============================================================
 RUN apt-get update -y && \
     apt-get install -y openjdk-17-jdk && \
     java -version && \
     rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# Detect JAVA_HOME dynamically using update-alternatives (works on amd64, arm64, etc.)
+RUN JAVA_BIN=$(update-alternatives --query java | grep 'Value:' | awk '{print $2}') && \
+    DETECTED_JAVA_HOME=$(dirname $(dirname $JAVA_BIN)) && \
+    ln -sf $DETECTED_JAVA_HOME /usr/lib/jvm/default-java && \
+    echo "JAVA_HOME detected as: $DETECTED_JAVA_HOME"
+
+ENV JAVA_HOME=/usr/lib/jvm/default-java
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # ============================================================
 # Flutter 3.24.0 (stable channel)

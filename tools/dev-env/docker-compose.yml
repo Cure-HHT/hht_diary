@@ -27,7 +27,11 @@ services:
       cache_from:
         - clinical-diary-base:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
+      # Force linux/amd64 for cross-platform compatibility
+      platforms:
+        - linux/amd64
     image: clinical-diary-base:latest
+    platform: linux/amd64
     # Base is not meant to be run directly, only built
     profiles:
       - build-only
@@ -47,10 +51,15 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
         - clinical-diary-dev:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
+      # Force linux/amd64 for Flutter compatibility on Apple Silicon
+      platforms:
+        - linux/amd64
     pull_policy: build
     image: clinical-diary-dev:latest
     container_name: clinical-diary-dev
     hostname: dev
+    # Specify platform for runtime (required for Apple Silicon)
+    platform: linux/amd64
 
     # User configuration (non-root for security)
     user: "ubuntu:ubuntu"
@@ -125,10 +134,13 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-dev:latest
         - clinical-diary-qa:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-qa:latest
+      platforms:
+        - linux/amd64
     pull_policy: build
     image: clinical-diary-qa:latest
     container_name: clinical-diary-qa
     hostname: qa
+    platform: linux/amd64
 
     user: "ubuntu:ubuntu"
 
@@ -188,10 +200,13 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
         - clinical-diary-ops:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-ops:latest
+      platforms:
+        - linux/amd64
     pull_policy: build
     image: clinical-diary-ops:latest
     container_name: clinical-diary-ops
     hostname: ops
+    platform: linux/amd64
 
     user: "ubuntu:ubuntu"
 
@@ -245,10 +260,13 @@ services:
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-base:latest
         - clinical-diary-mgmt:latest
         - ghcr.io/${GITHUB_REPOSITORY_OWNER:-mclew}/clinical-diary-mgmt:latest
+      platforms:
+        - linux/amd64
     pull_policy: build
     image: clinical-diary-mgmt:latest
     container_name: clinical-diary-mgmt
     hostname: mgmt
+    platform: linux/amd64
 
     user: "ubuntu:ubuntu"
 
