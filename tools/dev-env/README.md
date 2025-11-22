@@ -21,6 +21,7 @@ pull access denied, repository does not exist or may require authorization
 - Docker Desktop installed and running
 - Node.js 18+ installed
 - Doppler CLI installed and authenticated (required for secrets)
+- GitHub Container Registry (GHCR) authentication (recommended for faster builds)
 
 ## This Directory
 
@@ -42,13 +43,39 @@ This directory contains the Docker Compose configuration and Dockerfiles for the
 
 ## Quick Start
 
+### 1. Authenticate with GitHub Container Registry (Recommended)
+
+For faster builds with cached layers:
+
 ```bash
-# Build environment (first time, takes 15-30 minutes)
+# Create GitHub Personal Access Token (PAT):
+# 1. Go to: https://github.com/settings/tokens/new
+# 2. Name: "GHCR Access for Clinical Diary"
+# 3. Expiration: 90 days (or longer)
+# 4. Scopes: Check "read:packages"
+# 5. Generate and copy the token
+
+# Authenticate Docker with GHCR:
+export CR_PAT=YOUR_TOKEN_HERE
+echo $CR_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+
+# Verify authentication:
+docker pull ghcr.io/cure-hht/clinical-diary-base:latest
+```
+
+### 2. Run Setup Script
+
+```bash
+# Build environment (first time, takes 5-15 minutes with GHCR, 15-30 without)
 ./setup.sh
 
 # Validate installation
 ./validate-environment.sh --full
+```
 
+### 3. Start Development Container
+
+```bash
 # Start development container
 docker compose up -d dev
 

@@ -210,6 +210,52 @@ check_doppler() {
   fi
 }
 
+check_ghcr_auth() {
+  info "Checking GitHub Container Registry authentication..."
+
+  # Try to authenticate with GHCR to pull cached layers
+  local ghcr_authenticated=false
+
+  # Check if user has docker credentials for ghcr.io
+  if docker-credential-desktop.exe get <<< "ghcr.io" &> /dev/null 2>&1 || \
+     docker-credential-secretservice get <<< "ghcr.io" &> /dev/null 2>&1 || \
+     grep -q "ghcr.io" ~/.docker/config.json 2>/dev/null; then
+    ghcr_authenticated=true
+    success "GHCR authentication found"
+  else
+    warning "GHCR authentication not found"
+    echo ""
+    echo "  GitHub Container Registry (GHCR) authentication is recommended for:"
+    echo "    • Faster builds using cached layers from CI/CD"
+    echo "    • Pulling pre-built images instead of building from scratch"
+    echo ""
+    echo "  To authenticate with GHCR:"
+    echo ""
+    echo "  1. Create GitHub Personal Access Token (PAT):"
+    echo "     • Go to: https://github.com/settings/tokens/new"
+    echo "     • Name: 'GHCR Access for Clinical Diary'"
+    echo "     • Expiration: 90 days (or longer)"
+    echo "     • Scopes: Select 'read:packages'"
+    echo "     • Click 'Generate token' and copy it"
+    echo ""
+    echo "  2. Authenticate Docker with GHCR:"
+    echo "     export CR_PAT=YOUR_TOKEN_HERE"
+    echo "     echo \$CR_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin"
+    echo ""
+    echo "  3. Verify authentication:"
+    echo "     docker pull ghcr.io/cure-hht/clinical-diary-base:latest || echo 'Failed to pull'"
+    echo ""
+
+    read -p "Continue without GHCR authentication? Builds will be slower. [Y/n] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
+      info "Setup cancelled. Please authenticate with GHCR and try again."
+      exit 1
+    fi
+    warning "Continuing without GHCR - builds will take longer and use no cache"
+  fi
+}
+
 check_node() {
   info "Checking Node.js installation..."
 
@@ -510,6 +556,9 @@ interactive_setup() {
   echo ""
 
   check_doppler
+  echo ""
+
+  check_ghcr_auth
   echo ""
 
   info "This will build Docker images for all roles:"
