@@ -1,8 +1,26 @@
 {
+  // ============================================================
+  // ⚠️ FIRST-TIME SETUP REQUIRED - READ THIS BEFORE OPENING! ⚠️
+  // ============================================================
+  //
+  // DO NOT open in Dev Container until you've run setup:
+  //   1. Close VS Code
+  //   2. cd tools/dev-env
+  //   3. ./setup.sh
+  //   4. Wait for completion (5-15 minutes)
+  //   5. NOW open in Dev Container
+  //
+  // Why? The base Docker image must be built locally first.
+  // See: .devcontainer/README.md for complete instructions.
+  // ============================================================
+
   "name": "Clinical Diary - Developer (Default)",
   "dockerComposeFile": "../tools/dev-env/docker-compose.yml",
   "service": "dev",
   "workspaceFolder": "/workspace/src",
+
+  // Run prerequisite checks on host BEFORE attempting build
+  "initializeCommand": "${localWorkspaceFolder}/.devcontainer/check-prerequisites.sh",
 
   "customizations": {
     "vscode": {
