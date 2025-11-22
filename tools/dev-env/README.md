@@ -2,6 +2,26 @@
 
 **See**: [Setup: Development Environment](../../docs/setup-dev-environment.md) for complete setup instructions and usage guide.
 
+## ⚠️ IMPORTANT: First-Time Setup Required
+
+**Before starting any containers**, you MUST run the setup script to build required Docker images:
+
+```bash
+cd tools/dev-env
+./setup.sh
+```
+
+This builds the base image (`clinical-diary-base:latest`) and role-specific images. Without this step, container startup will fail with:
+```
+failed to resolve source metadata for docker.io/library/clinical-diary-base:latest:
+pull access denied, repository does not exist or may require authorization
+```
+
+**Prerequisites checked by setup script**:
+- Docker Desktop installed and running
+- Node.js 18+ installed
+- Doppler CLI installed and authenticated (required for secrets)
+
 ## This Directory
 
 This directory contains the Docker Compose configuration and Dockerfiles for the role-based development containers:
