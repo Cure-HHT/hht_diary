@@ -95,7 +95,7 @@ The portal SHALL be implemented using Flutter for web deployment, enabling code 
 
 **Technical Details**:
 - **Framework**: Flutter 3.24+ (stable channel)
-- **Language**: Dart 3.5+
+- **Language**: Dart 3.10+
 - **Target Platform**: Web (HTML renderer for wide browser compatibility)
 - **Build Tool**: Flutter build web (optimized production builds)
 - **Package Manager**: pub (Dart's package manager)
@@ -2929,7 +2929,7 @@ This development specification defines the technical implementation requirements
 
 **Key Technologies**:
 - Flutter 3.24+ for web
-- Dart 3.5+
+- Dart 3.10+
 - Supabase Auth (OAuth + email/password)
 - Supabase Database with RLS policies
 - Netlify deployment
