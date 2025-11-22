@@ -14,7 +14,7 @@
 
 ## Executive Summary
 
-The Event Sourcing System is a reusable software module that provides a client-side interface to event-sourced PostgreSQL databases. It enables client applications to interact with event streams and materialized views while maintaining compliance with FDA 21 CFR Part 11 requirements for electronic records and audit trails.
+The Event Sourcing System is a reusable software module that provides a client-side interface to an event-sourced database. It enables client applications to interact with event streams and materialized views while maintaining compliance with FDA 21 CFR Part 11 requirements for electronic records and audit trails.
 
 **Key Benefits**:
 - Offline-first architecture with automatic event synchronization
