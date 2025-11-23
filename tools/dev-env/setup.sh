@@ -151,13 +151,43 @@ detect_platform() {
 }
 
 check_doppler() {
-  info "Checking Doppler CLI configuration (optional)..."
+  info "Checking Doppler CLI (required for secrets management)..."
 
   if ! command -v doppler &> /dev/null; then
-    warning "Doppler CLI not found on host system."
-    echo "  Doppler is available inside containers but you may want it on host too."
-    echo "  Install: https://docs.doppler.com/docs/install-cli"
-    return 0
+    error "Doppler CLI not found on host system."
+    echo ""
+    echo "  Doppler is REQUIRED for secrets management in this project."
+    echo "  The dev containers will not function properly without it."
+    echo ""
+    echo "  Installation instructions:"
+    echo ""
+
+    if [ "$PLATFORM" = "macOS" ]; then
+      echo "  macOS (using Homebrew):"
+      echo "    brew install gnupg"
+      echo "    brew install dopplerhq/cli/doppler"
+      echo ""
+    elif [ "$PLATFORM" = "Linux" ]; then
+      echo "  Linux (Ubuntu/Debian 22.04+):"
+      echo "    sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl gnupg"
+      echo "    curl -sLf --retry 3 --tlsv1.2 --proto \"=https\" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | sudo gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg"
+      echo "    echo \"deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main\" | sudo tee /etc/apt/sources.list.d/doppler-cli.list"
+      echo "    sudo apt-get update && sudo apt-get install doppler"
+      echo ""
+    elif [ "$PLATFORM" = "Windows" ]; then
+      echo "  Windows WSL2 (Ubuntu):"
+      echo "    # Follow Linux instructions above within WSL2"
+      echo "    # Or use shell script method:"
+      echo "    mkdir -p \$HOME/bin"
+      echo "    curl -Ls --tlsv1.2 --proto \"=https\" --retry 3 https://cli.doppler.com/install.sh | sh -s -- --install-path \$HOME/bin"
+      echo ""
+    fi
+
+    echo "  Documentation: https://docs.doppler.com/docs/install-cli"
+    echo ""
+    echo "  After installing, run: doppler login"
+    echo ""
+    exit 1
   fi
 
   success "Doppler CLI found: $(doppler --version)"
@@ -167,8 +197,67 @@ check_doppler() {
     success "Doppler is configured and authenticated"
   else
     warning "Doppler CLI found but not authenticated."
-    echo "  Run 'doppler login' to authenticate, or configure inside containers later."
+    echo "  Run 'doppler login' to authenticate before starting containers."
     echo "  See: tools/dev-env/doppler-setup.md"
+    echo ""
+    read -p "Continue without Doppler authentication? [y/N] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      info "Setup cancelled. Please run 'doppler login' and try again."
+      exit 1
+    fi
+    warning "Continuing without Doppler authentication - containers may fail at runtime"
+  fi
+}
+
+check_ghcr_auth() {
+  info "Checking GitHub Container Registry authentication..."
+
+  # Try to authenticate with GHCR to pull cached layers
+  local ghcr_authenticated=false
+
+  # Check if user has docker credentials for ghcr.io
+  if docker-credential-desktop.exe get <<< "ghcr.io" &> /dev/null 2>&1 || \
+     docker-credential-secretservice get <<< "ghcr.io" &> /dev/null 2>&1 || \
+     grep -q "ghcr.io" ~/.docker/config.json 2>/dev/null; then
+    ghcr_authenticated=true
+    success "GHCR authentication found"
+  else
+    warning "GHCR authentication not found"
+    echo ""
+    echo "  GitHub Container Registry (GHCR) authentication is recommended for:"
+    echo "    • Faster builds using cached layers from CI/CD"
+    echo "    • Pulling pre-built images instead of building from scratch"
+    echo ""
+    echo "  To authenticate with GHCR:"
+    echo ""
+    echo "  1. Create GitHub Personal Access Token (PAT):"
+    echo "     • Go to: https://github.com/settings/tokens/new"
+    echo "     • Name: 'GHCR Access for Clinical Diary'"
+    echo "     • Expiration: 90 days (or longer)"
+    echo "     • Scopes: Select 'read:packages'"
+    echo "     • Click 'Generate token' and copy it"
+    echo ""
+    echo "  2. Store token in Doppler:"
+    echo "     doppler secrets set GITHUB_TOKEN"
+    echo "     # Paste your token when prompted"
+    echo ""
+    echo "  3. Authenticate Docker with GHCR using Doppler:"
+    echo "     doppler run -- bash -c 'echo \$GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin'"
+    echo ""
+    echo "  4. Verify authentication:"
+    echo "     docker pull ghcr.io/cure-hht/clinical-diary-base:latest || echo 'Failed to pull'"
+    echo ""
+    echo "  Note: The GITHUB_TOKEN will be available in all Doppler-managed environments."
+    echo ""
+
+    read -p "Continue without GHCR authentication? Builds will be slower. [Y/n] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
+      info "Setup cancelled. Please authenticate with GHCR and try again."
+      exit 1
+    fi
+    warning "Continuing without GHCR - builds will take longer and use no cache"
   fi
 }
 
@@ -472,6 +561,9 @@ interactive_setup() {
   echo ""
 
   check_doppler
+  echo ""
+
+  check_ghcr_auth
   echo ""
 
   info "This will build Docker images for all roles:"

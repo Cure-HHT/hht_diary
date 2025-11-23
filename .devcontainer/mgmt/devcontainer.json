@@ -1,8 +1,13 @@
 {
+  // ⚠️ FIRST-TIME SETUP REQUIRED: Run tools/dev-env/setup.sh BEFORE opening in container!
+  // See: .devcontainer/README.md for complete instructions.
   "name": "Clinical Diary - Management (Read-Only)",
   "dockerComposeFile": "../../tools/dev-env/docker-compose.yml",
   "service": "mgmt",
   "workspaceFolder": "/workspace/src",
+  
+  // Run prerequisite checks on host BEFORE attempting build
+  "initializeCommand": "${localWorkspaceFolder}/.devcontainer/check-prerequisites.sh",
 
   "customizations": {
     "vscode": {
