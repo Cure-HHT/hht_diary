@@ -41,9 +41,7 @@ void main() {
     });
 
     test('copyWith creates new instance with updated values', () {
-      final original = DatastoreConfig.development(
-        deviceId: 'device-1',
-      );
+      final original = DatastoreConfig.development(deviceId: 'device-1');
 
       final updated = original.copyWith(
         deviceId: 'device-2',
@@ -59,7 +57,7 @@ void main() {
   group('DatastoreException', () {
     test('DatabaseException contains message', () {
       final exception = DatabaseException('Test error');
-      
+
       expect(exception.message, equals('Test error'));
       expect(exception.toString(), contains('DatabaseException'));
       expect(exception.toString(), contains('Test error'));
@@ -70,7 +68,7 @@ void main() {
         'Invalid signature',
         eventId: 'event-123',
       );
-      
+
       expect(exception.message, equals('Invalid signature'));
       expect(exception.eventId, equals('event-123'));
       expect(exception.toString(), contains('🚨 SECURITY ALERT'));
