@@ -156,7 +156,7 @@ flutter build web --release --web-renderer html
 - [ ] URL strategy removes `#` from routes
 - [ ] Works on Chrome, Firefox, Safari, Edge (latest versions)
 
-*End* *Portal Frontend Framework* | **Hash**: 38268b2d
+*End* *Portal Frontend Framework* | **Hash**: 7eefcecd
 
 ---
 

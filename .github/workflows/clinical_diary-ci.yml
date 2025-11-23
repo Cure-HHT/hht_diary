@@ -22,7 +22,7 @@ jobs:
     defaults:
       run:
         working-directory: apps/clinical_diary
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
     defaults:
       run:
         working-directory: apps/clinical_diary
-    
+
     strategy:
       matrix:
         flutter-version: ['stable', 'beta']

@@ -1,0 +1,13 @@
+# Repository Git Configuration
+# IMPLEMENTS: REQ-d00053 (Development Environment and Tooling Setup)
+#
+# This file contains repository-specific Git configuration.
+# To use this configuration, run from the repository root:
+#   git config include.path ../.gitconfig
+#
+# Or use the setup script:
+#   ./scripts/setup-repo.sh
+
+[core]
+	# Use custom hooks directory for workflow enforcement
+	hooksPath = .githooks
