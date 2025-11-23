@@ -21,10 +21,7 @@ class SyncException extends DatastoreException {
   });
 
   /// Create a network connectivity error.
-  factory SyncException.networkError({
-    Object? cause,
-    StackTrace? stackTrace,
-  }) {
+  factory SyncException.networkError({Object? cause, StackTrace? stackTrace}) {
     return SyncException(
       'Network connectivity error. Will retry automatically.',
       isRetryable: true,
@@ -81,10 +78,7 @@ class SyncException extends DatastoreException {
   }
 
   /// Create a timeout error.
-  factory SyncException.timeout({
-    Object? cause,
-    StackTrace? stackTrace,
-  }) {
+  factory SyncException.timeout({Object? cause, StackTrace? stackTrace}) {
     return SyncException(
       'Sync operation timed out. Will retry automatically.',
       isRetryable: true,

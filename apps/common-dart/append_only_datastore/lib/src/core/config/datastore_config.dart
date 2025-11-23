@@ -47,9 +47,9 @@ class DatastoreConfig {
     this.enableTelemetry = false,
     this.telemetryEndpoint,
   }) : assert(
-          !enableEncryption || encryptionKey != null,
-          'encryptionKey must be provided when encryption is enabled',
-        );
+         !enableEncryption || encryptionKey != null,
+         'encryptionKey must be provided when encryption is enabled',
+       );
 
   /// Create a development configuration with sensible defaults.
   factory DatastoreConfig.development({

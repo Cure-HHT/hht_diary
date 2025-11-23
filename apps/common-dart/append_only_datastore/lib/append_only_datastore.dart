@@ -72,12 +72,12 @@
 ///
 /// ## Phase 1 MVP Status
 ///
-/// ✅ Configuration and DI setup  
-/// ⏳ Database layer (Day 4-5)  
-/// ⏳ Event storage (Day 6-7)  
-/// ⏳ Offline queue (Day 8-9)  
-/// ⏳ Conflict detection (Day 10-11)  
-/// ⏳ Query service (Day 12-13)  
+/// ✅ Configuration and DI setup
+/// ⏳ Database layer (Day 4-5)
+/// ⏳ Event storage (Day 6-7)
+/// ⏳ Offline queue (Day 8-9)
+/// ⏳ Conflict detection (Day 10-11)
+/// ⏳ Query service (Day 12-13)
 /// ⏳ Sync engine (Day 14-15)
 ///
 library;

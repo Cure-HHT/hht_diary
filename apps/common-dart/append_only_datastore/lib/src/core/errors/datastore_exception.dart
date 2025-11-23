@@ -13,11 +13,7 @@ abstract class DatastoreException implements Exception {
   /// Optional stack trace.
   final StackTrace? stackTrace;
 
-  const DatastoreException(
-    this.message, {
-    this.cause,
-    this.stackTrace,
-  });
+  const DatastoreException(this.message, {this.cause, this.stackTrace});
 
   @override
   String toString() {
@@ -31,11 +27,7 @@ abstract class DatastoreException implements Exception {
 
 /// Exception thrown when database operations fail.
 class DatabaseException extends DatastoreException {
-  const DatabaseException(
-    super.message, {
-    super.cause,
-    super.stackTrace,
-  });
+  const DatabaseException(super.message, {super.cause, super.stackTrace});
 }
 
 /// Exception thrown when event validation fails.
@@ -62,11 +54,7 @@ class EventValidationException extends DatastoreException {
 
 /// Exception thrown when event serialization/deserialization fails.
 class SerializationException extends DatastoreException {
-  const SerializationException(
-    super.message, {
-    super.cause,
-    super.stackTrace,
-  });
+  const SerializationException(super.message, {super.cause, super.stackTrace});
 }
 
 /// Exception thrown when conflict detection or resolution fails.
@@ -120,9 +108,5 @@ class SignatureException extends DatastoreException {
 
 /// Exception thrown when configuration is invalid.
 class ConfigurationException extends DatastoreException {
-  const ConfigurationException(
-    super.message, {
-    super.cause,
-    super.stackTrace,
-  });
+  const ConfigurationException(super.message, {super.cause, super.stackTrace});
 }

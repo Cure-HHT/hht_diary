@@ -85,9 +85,7 @@ class Datastore {
   ///   ),
   /// );
   /// ```
-  static Future<Datastore> initialize({
-    required DatastoreConfig config,
-  }) async {
+  static Future<Datastore> initialize({required DatastoreConfig config}) async {
     // Reset existing instance if present
     if (_instance != null) {
       await _instance!.reset();
@@ -103,9 +101,9 @@ class Datastore {
 
   /// Private constructor.
   Datastore._(this.config)
-      : syncStatus = signal(SyncStatus.idle),
-        queueDepth = signal(0),
-        lastSyncTime = signal(null) {
+    : syncStatus = signal(SyncStatus.idle),
+      queueDepth = signal(0),
+      lastSyncTime = signal(null) {
     // TODO: Initialize services (Phase 1)
     // database = DatabaseProvider(config: config);
     // repository = SQLiteEventRepository(database: database);
