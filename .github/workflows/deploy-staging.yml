@@ -20,7 +20,7 @@ env:
   SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_STAGING }}
   # Load versions from central file
   NODE_VERSION: '20'
-  FLUTTER_VERSION: '3.24.0'
+  FLUTTER_VERSION: '3.38.3'
   SUPABASE_CLI_VERSION: '2.54.10'
 
 jobs:
