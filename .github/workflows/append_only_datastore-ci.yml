@@ -1,0 +1,70 @@
+name: Append-Only Datastore CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/append_only_datastore/**'
+      - '.github/workflows/append_only_datastore-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/append_only_datastore/**'
+      - '.github/workflows/append_only_datastore-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/common-dart/append_only_datastore
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      
+      - name: Analyze project source
+        run: flutter analyze --fatal-infos
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/common-dart/append_only_datastore
+    
+    strategy:
+      matrix:
+        flutter-version: ['stable', 'beta']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+          channel: ${{ matrix.flutter-version }}
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Run tests
+        run: |
+          chmod +x tool/test.sh
+          ./tool/test.sh

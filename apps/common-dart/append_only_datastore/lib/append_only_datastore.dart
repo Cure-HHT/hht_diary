@@ -18,21 +18,28 @@
 /// import 'package:append_only_datastore/append_only_datastore.dart';
 ///
 /// // Initialize the datastore
-/// await setupDatastoreDI(
+/// await Datastore.initialize(
 ///   config: DatastoreConfig.development(
 ///     deviceId: 'device-123',
 ///     userId: 'user-456',
+///     encryptionKey: await getSecureKey(), // SQLCipher encryption
 ///   ),
 /// );
 ///
 /// // Append an event (TODO: Phase 1 - Day 6)
-/// // await getIt<EventRepository>().append(myEvent);
+/// // await Datastore.instance.repository.append(myEvent);
 ///
 /// // Query events (TODO: Phase 1 - Day 12)
-/// // final events = await getIt<QueryService>().getEvents();
+/// // final events = await Datastore.instance.queryService.getEvents();
 ///
 /// // Manual sync (TODO: Phase 1 - Day 14)
-/// // await getIt<SyncService>().syncNow();
+/// // await Datastore.instance.syncService.syncNow();
+///
+/// // Watch sync status in UI
+/// // Watch((context) {
+/// //   final status = Datastore.instance.syncStatus.value;
+/// //   return Text(status.message);
+/// // });
 /// ```
 ///
 /// ## Architecture
@@ -78,8 +85,8 @@ library;
 // Core configuration
 export 'src/core/config/datastore_config.dart';
 
-// Dependency injection
-export 'src/core/di/service_locator.dart';
+// Datastore Singletonz
+export 'src/core/di/datastore.dart';
 
 // Exceptions
 export 'src/core/errors/datastore_exception.dart';

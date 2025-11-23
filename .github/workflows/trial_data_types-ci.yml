@@ -1,0 +1,68 @@
+name: Trial Data Types CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/trial_data_types/**'
+      - '.github/workflows/trial_data_types-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/common-dart/trial_data_types/**'
+      - '.github/workflows/trial_data_types-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/common-dart/trial_data_types
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+      
+      - name: Install dependencies
+        run: dart pub get
+      
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      
+      - name: Analyze project source
+        run: dart analyze --fatal-infos
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/common-dart/trial_data_types
+    
+    strategy:
+      matrix:
+        sdk: ['stable', 'beta']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+      
+      - name: Install dependencies
+        run: dart pub get
+      
+      - name: Run tests
+        run: |
+          chmod +x tool/test.sh
+          ./tool/test.sh

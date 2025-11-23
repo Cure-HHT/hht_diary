@@ -1,0 +1,46 @@
+name: Clinical Diary Coverage
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/clinical_diary/**'
+      - '.github/workflows/clinical_diary-coverage.yml'
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/clinical_diary
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+      
+      - name: Run tests with coverage
+        run: |
+          chmod +x tool/coverage.sh
+          ./tool/coverage.sh
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: apps/clinical_diary/coverage/lcov.info
+          flags: clinical_diary
+          name: clinical-diary-coverage
+          fail_ci_if_error: false
