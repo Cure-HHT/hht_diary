@@ -1,8 +1,9 @@
 # Architecture Decisions for Append-Only Datastore
 
 **Version**: 1.1.0  
-**Status**: DRAFT - Pending Review  
-**Last Updated**: 2025-11-22
+**Status**: APPROVED  
+**Last Updated**: 2025-11-23  
+**Approved By**: Michael Bushe
 
 ## Executive Summary
 
