@@ -25,7 +25,7 @@ Then: Set up dependency injection structure - what do you recommend?  (get_it?  
 Then:
 does the application/ code belong in the append_only_datastore or in clinical_diary?
 
-- [ ] Create folder structure:
+* [ ] Create folder structure:
 Let's update the plan. domain can move to the new project:
 apps/common-dart/trial_data_types
 

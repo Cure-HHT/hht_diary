@@ -42,7 +42,7 @@ class Datastore {
 ### Alternatives Considered
 
 | Option | Verdict | Why |
-|--------|---------|-----|
+| ------ | ------- | --- |
 | get_it | ❌ Rejected | Overkill for our scope |
 | Injectable | ❌ Rejected | Requires code generation |
 | Manual DI | ⚠️ Considered | Too much wiring in app |

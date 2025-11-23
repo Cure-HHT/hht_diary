@@ -735,6 +735,7 @@ For:
 ## 📋 Decision Matrix
 
 ### Client Storage
+
 | Requirement | SQLite+SQLCipher | Isar | Hive | ObjectBox | Custom |
 | ---------- | --------------- | ---- | ---- | --------- | ------ |
 | FDA Compliance | ✅✅✅ | ✅ | ❌ | ✅ | ❓ |
@@ -747,8 +748,9 @@ For:
 | App Size Impact | ✅✅ | ✅✅✅ | ✅✅✅ | ✅ | ✅✅✅ |
 
 ### Server Storage
+
 | Requirement | PostgreSQL | Kafka | PostgreSQL+Kafka | SQLite | EventStoreDB |
-|------------|------------|-------|------------------|--------|--------------|
+| ------------ | ---------- | ----- | ---------------- | ------ | ------------ |
 | FDA Compliance | ✅✅✅ | ⚠️ | ✅✅✅ | ✅✅ | ✅✅ |
 | Supabase Integration | ✅✅✅ | ❌ | ✅✅ | ❌❌ | ❌❌ |
 | Real-Time | ✅✅✅ | ✅✅✅ | ✅✅✅ | ❌❌ | ✅✅ |

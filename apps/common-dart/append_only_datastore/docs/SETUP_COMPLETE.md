@@ -250,7 +250,7 @@ class SyncIndicator extends StatelessWidget {
 ## 📚 Key Files Reference
 
 | File | Purpose | Status |
-|------|---------|--------|
+| ---- | ------- | ------ |
 | ARCHITECTURE.md | Approved architecture decisions | ✅ APPROVED |
 | PLAN.md | Day-by-day implementation plan | ✅ UPDATED |
 | analysis_options.yaml | Strict linting rules | ✅ CREATED (all 3 projects) |
