@@ -26,20 +26,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          sdk: 'stable'
-      
+          flutter-version: '3.38.3'
+          channel: 'stable'
+
       - name: Install dependencies
-        run: dart pub get
-      
+        run: flutter pub get
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
-      
+
       - name: Analyze project source
-        run: dart analyze --fatal-infos
+        run: flutter analyze --fatal-infos
 
   test:
     name: Test
@@ -52,20 +53,20 @@ jobs:
 
     strategy:
       matrix:
-        sdk: ['stable', 'beta']
-    
+        flutter-version: ['stable', 'beta']
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          sdk: ${{ matrix.sdk }}
-      
+          channel: ${{ matrix.flutter-version }}
+
       - name: Install dependencies
-        run: dart pub get
-      
+        run: flutter pub get
+
       - name: Run tests
         run: |
           chmod +x tool/test.sh
