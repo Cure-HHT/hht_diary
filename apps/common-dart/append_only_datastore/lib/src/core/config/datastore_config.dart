@@ -11,7 +11,6 @@ class DatastoreConfig {
   final String databaseName;
 
   /// Enable SQLCipher encryption.
-  /// WARNING: Must be false for Phase 1 MVP.
   final bool enableEncryption;
 
   /// Encryption key for SQLCipher.
@@ -40,7 +39,7 @@ class DatastoreConfig {
   const DatastoreConfig({
     this.databasePath,
     this.databaseName = 'clinical_events.db',
-    this.enableEncryption = false,
+    this.enableEncryption = true,
     this.encryptionKey,
     this.userId,
     required this.deviceId,
@@ -56,11 +55,14 @@ class DatastoreConfig {
   factory DatastoreConfig.development({
     required String deviceId,
     String? userId,
+    String? encryptionKey,
   }) {
     return DatastoreConfig(
       deviceId: deviceId,
       userId: userId,
       databaseName: 'clinical_events_dev.db',
+      enableEncryption: encryptionKey != null,
+      encryptionKey: encryptionKey,
       enableTelemetry: true,
     );
   }
