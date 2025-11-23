@@ -1,0 +1,1 @@
+Directory for Dart packages that can be shared between client and server.

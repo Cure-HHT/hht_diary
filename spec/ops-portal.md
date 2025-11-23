@@ -34,7 +34,7 @@ Before deploying a portal instance, ensure you have:
 3. **Domain Name** registered and DNS access
 4. **SSL Certificate** (auto-provisioned by Netlify)
 5. **Environment Variables** prepared (Supabase URL, Anon Key, OAuth credentials)
-6. **Flutter SDK** installed (v3.24+ stable)
+6. **Flutter SDK** installed (v3.38+ stable)
 7. **Git Repository** access (core repo + sponsor repo)
 
 ---
@@ -151,8 +151,8 @@ In Netlify dashboard (or `netlify.toml` in sponsor repo):
   command = "dart run tools/build_system/build_portal.dart --sponsor-repo ../sponsor --environment production"
 
 [build.environment]
-  FLUTTER_VERSION = "3.24.0"
-  DART_VERSION = "3.5.0"
+  FLUTTER_VERSION = "3.38.3"
+  DART_VERSION = "3.10.1"
 
 [[redirects]]
   from = "/*"
@@ -236,7 +236,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.38.3'
           channel: 'stable'
 
       - name: Build Portal

@@ -175,7 +175,7 @@ Development environments SHALL include specific tool versions selected for stabi
 Tool specifications SHALL include:
 
 **Mobile Development (dev, qa)**:
-- Flutter 3.24.0 (stable channel, LTS release)
+- Flutter 3.38.3 (stable channel, LTS release)
 - Android SDK cmdline-tools latest (11076708)
 - Android platform-tools (latest via sdkmanager)
 - Android build-tools 34.0.0
@@ -364,7 +364,7 @@ Shared workspace SHALL include:
 
 ## Tool Version Rationale
 
-### Flutter 3.24.0
+### Flutter 3.38.3
 - **Status**: Stable release
 - **Release Date**: 2024-08-07
 - **Support**: Active stable channel
