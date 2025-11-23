@@ -5,7 +5,7 @@ homepage:
 
 environment:
   sdk: ^3.10.1
-  flutter: ">=1.17.0"
+  flutter: ">=3.38.3"
 
 dependencies:
   crypto: ^3.0.7
@@ -14,9 +14,9 @@ dependencies:
     sdk: flutter
   json_annotation: ^4.9.0
   path: ^1.9.1
-  signals: ^5.5.0
+  signals: ^6.2.0
   sqflite: ^2.4.2
-  sqflite_sqlcipher: ^3.0.0
+  sqflite_sqlcipher: ^3.4.0
   uuid: ^4.5.2
 
 dev_dependencies:

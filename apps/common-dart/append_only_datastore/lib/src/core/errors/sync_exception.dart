@@ -2,14 +2,6 @@ import 'package:append_only_datastore/src/core/errors/datastore_exception.dart';
 
 /// Exception thrown when synchronization operations fail.
 class SyncException extends DatastoreException {
-  /// HTTP status code, if applicable.
-  final int? statusCode;
-
-  /// Number of events that failed to sync.
-  final int? failedEventCount;
-
-  /// Whether this is a retryable error.
-  final bool isRetryable;
 
   const SyncException(
     super.message, {
@@ -86,6 +78,14 @@ class SyncException extends DatastoreException {
       stackTrace: stackTrace,
     );
   }
+  /// HTTP status code, if applicable.
+  final int? statusCode;
+
+  /// Number of events that failed to sync.
+  final int? failedEventCount;
+
+  /// Whether this is a retryable error.
+  final bool isRetryable;
 
   @override
   String toString() {

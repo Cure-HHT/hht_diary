@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('DatastoreConfig', () {
@@ -56,7 +56,7 @@ void main() {
 
   group('DatastoreException', () {
     test('DatabaseException contains message', () {
-      final exception = DatabaseException('Test error');
+      const exception = DatabaseException('Test error');
 
       expect(exception.message, equals('Test error'));
       expect(exception.toString(), contains('DatabaseException'));
@@ -64,7 +64,7 @@ void main() {
     });
 
     test('SignatureException indicates security alert', () {
-      final exception = SignatureException(
+      const exception = SignatureException(
         'Invalid signature',
         eventId: 'event-123',
       );

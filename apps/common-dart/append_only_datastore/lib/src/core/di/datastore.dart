@@ -1,6 +1,5 @@
-import 'package:signals/signals.dart';
-
 import 'package:append_only_datastore/src/core/config/datastore_config.dart';
+import 'package:signals/signals.dart';
 
 /// Service locator for the append-only datastore.
 ///
@@ -35,6 +34,25 @@ import 'package:append_only_datastore/src/core/config/datastore_config.dart';
 /// });
 /// ```
 class Datastore {
+
+  /// Private constructor.
+  Datastore._(this.config)
+    : syncStatus = signal(SyncStatus.idle),
+      queueDepth = signal(0),
+      lastSyncTime = signal(null) {
+    // TODO: Initialize services (Phase 1)
+    // database = DatabaseProvider(config: config);
+    // repository = SQLiteEventRepository(database: database);
+    // queue = OfflineQueueManager(repository: repository);
+    // syncService = SyncService(
+    //   queue: queue,
+    //   repository: repository,
+    //   config: config,
+    //   statusSignal: syncStatus,
+    // );
+    // queryService = QueryService(repository: repository);
+    // conflictResolver = ConflictResolver();
+  }
   static Datastore? _instance;
 
   /// Get the initialized datastore instance.
@@ -97,25 +115,6 @@ class Datastore {
     // await _instance!.database.initialize();
 
     return _instance!;
-  }
-
-  /// Private constructor.
-  Datastore._(this.config)
-    : syncStatus = signal(SyncStatus.idle),
-      queueDepth = signal(0),
-      lastSyncTime = signal(null) {
-    // TODO: Initialize services (Phase 1)
-    // database = DatabaseProvider(config: config);
-    // repository = SQLiteEventRepository(database: database);
-    // queue = OfflineQueueManager(repository: repository);
-    // syncService = SyncService(
-    //   queue: queue,
-    //   repository: repository,
-    //   config: config,
-    //   statusSignal: syncStatus,
-    // );
-    // queryService = QueryService(repository: repository);
-    // conflictResolver = ConflictResolver();
   }
 
   /// Reset the datastore, closing all connections and clearing state.

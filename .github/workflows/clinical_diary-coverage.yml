@@ -12,6 +12,8 @@ jobs:
   coverage:
     name: Coverage Report
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: apps/clinical_diary

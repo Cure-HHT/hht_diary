@@ -4,6 +4,8 @@
 /// This allows callers to catch all datastore-related errors with a single
 /// catch clause if needed.
 abstract class DatastoreException implements Exception {
+
+  const DatastoreException(this.message, {this.cause, this.stackTrace});
   /// Human-readable error message.
   final String message;
 
@@ -12,8 +14,6 @@ abstract class DatastoreException implements Exception {
 
   /// Optional stack trace.
   final StackTrace? stackTrace;
-
-  const DatastoreException(this.message, {this.cause, this.stackTrace});
 
   @override
   String toString() {
@@ -32,8 +32,6 @@ class DatabaseException extends DatastoreException {
 
 /// Exception thrown when event validation fails.
 class EventValidationException extends DatastoreException {
-  /// The invalid event data (sanitized).
-  final Map<String, dynamic>? eventData;
 
   const EventValidationException(
     super.message, {
@@ -41,6 +39,8 @@ class EventValidationException extends DatastoreException {
     super.cause,
     super.stackTrace,
   });
+  /// The invalid event data (sanitized).
+  final Map<String, dynamic>? eventData;
 
   @override
   String toString() {
@@ -59,8 +59,6 @@ class SerializationException extends DatastoreException {
 
 /// Exception thrown when conflict detection or resolution fails.
 class ConflictException extends DatastoreException {
-  /// The conflicting event IDs.
-  final List<String>? conflictingEventIds;
 
   const ConflictException(
     super.message, {
@@ -68,6 +66,8 @@ class ConflictException extends DatastoreException {
     super.cause,
     super.stackTrace,
   });
+  /// The conflicting event IDs.
+  final List<String>? conflictingEventIds;
 
   @override
   String toString() {
@@ -83,8 +83,6 @@ class ConflictException extends DatastoreException {
 ///
 /// This is a CRITICAL security exception indicating possible tampering.
 class SignatureException extends DatastoreException {
-  /// The event ID that failed signature verification.
-  final String? eventId;
 
   const SignatureException(
     super.message, {
@@ -92,6 +90,8 @@ class SignatureException extends DatastoreException {
     super.cause,
     super.stackTrace,
   });
+  /// The event ID that failed signature verification.
+  final String? eventId;
 
   @override
   String toString() {
