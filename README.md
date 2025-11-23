@@ -69,7 +69,7 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 **After cloning the repository**, run the setup script to configure Git hooks and repository settings:
 
 ```bash
-./scripts/setup-repo.sh
+./tools/setup-repo.sh
 ```
 
 This enables:
