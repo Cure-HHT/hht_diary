@@ -64,6 +64,19 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 
 ## Development
 
+### Initial Setup
+
+**After cloning the repository**, run the setup script to configure Git hooks and repository settings:
+
+```bash
+./scripts/setup-repo.sh
+```
+
+This enables:
+- Git hooks for commit validation and workflow tracking
+- Requirement reference enforcement
+- Secret scanning with gitleaks
+
 ### Development Environment
 
 The Clinical Diary project uses Docker-based containerized development environments to ensure consistency, security, and FDA compliance.
