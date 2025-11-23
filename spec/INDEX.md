@@ -40,7 +40,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00025 | dev-security-RLS.md | Administrator Break-Glass RLS Implementation | 4a44951a |
 | REQ-d00026 | dev-security-RLS.md | Event Sourcing State Protection RLS Implementation | a665366e |
 | REQ-d00027 | dev-environment.md | Containerized Development Environments | 13d56217 |
-| REQ-d00028 | dev-portal.md | Portal Frontend Framework | 38268b2d |
+| REQ-d00028 | dev-portal.md | Portal Frontend Framework | 7eefcecd |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
 | REQ-d00031 | dev-portal.md | Supabase Authentication Integration | 8abcbfac |
@@ -63,7 +63,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00056 | dev-environment.md | Cross-Platform Development Support | 223d3f08 |
 | REQ-d00057 | dev-environment.md | CI/CD Environment Parity | e58f7423 |
 | REQ-d00058 | dev-environment.md | Secrets Management via Doppler | 6119c7b8 |
-| REQ-d00059 | dev-environment.md | Development Tool Specifications | fd2e04d2 |
+| REQ-d00059 | dev-environment.md | Development Tool Specifications | 1a59e7e8 |
 | REQ-d00060 | dev-environment.md | VS Code Dev Containers Integration | 07abf106 |
 | REQ-d00061 | dev-environment.md | Automated QA Workflow | fc47d463 |
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 7b290df6 |
