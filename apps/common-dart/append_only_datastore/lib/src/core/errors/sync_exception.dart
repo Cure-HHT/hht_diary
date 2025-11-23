@@ -2,7 +2,6 @@ import 'package:append_only_datastore/src/core/errors/datastore_exception.dart';
 
 /// Exception thrown when synchronization operations fail.
 class SyncException extends DatastoreException {
-
   const SyncException(
     super.message, {
     this.statusCode,
@@ -78,6 +77,7 @@ class SyncException extends DatastoreException {
       stackTrace: stackTrace,
     );
   }
+
   /// HTTP status code, if applicable.
   final int? statusCode;
 

@@ -4,8 +4,8 @@
 /// This allows callers to catch all datastore-related errors with a single
 /// catch clause if needed.
 abstract class DatastoreException implements Exception {
-
   const DatastoreException(this.message, {this.cause, this.stackTrace});
+
   /// Human-readable error message.
   final String message;
 
@@ -32,13 +32,13 @@ class DatabaseException extends DatastoreException {
 
 /// Exception thrown when event validation fails.
 class EventValidationException extends DatastoreException {
-
   const EventValidationException(
     super.message, {
     this.eventData,
     super.cause,
     super.stackTrace,
   });
+
   /// The invalid event data (sanitized).
   final Map<String, dynamic>? eventData;
 
@@ -59,13 +59,13 @@ class SerializationException extends DatastoreException {
 
 /// Exception thrown when conflict detection or resolution fails.
 class ConflictException extends DatastoreException {
-
   const ConflictException(
     super.message, {
     this.conflictingEventIds,
     super.cause,
     super.stackTrace,
   });
+
   /// The conflicting event IDs.
   final List<String>? conflictingEventIds;
 
@@ -83,13 +83,13 @@ class ConflictException extends DatastoreException {
 ///
 /// This is a CRITICAL security exception indicating possible tampering.
 class SignatureException extends DatastoreException {
-
   const SignatureException(
     super.message, {
     this.eventId,
     super.cause,
     super.stackTrace,
   });
+
   /// The event ID that failed signature verification.
   final String? eventId;
 

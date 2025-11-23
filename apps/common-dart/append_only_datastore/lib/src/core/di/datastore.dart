@@ -34,7 +34,6 @@ import 'package:signals/signals.dart';
 /// });
 /// ```
 class Datastore {
-
   /// Private constructor.
   Datastore._(this.config)
     : syncStatus = signal(SyncStatus.idle),

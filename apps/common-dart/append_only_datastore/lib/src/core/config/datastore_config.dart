@@ -3,7 +3,6 @@
 /// This class holds all configuration needed to initialize the datastore,
 /// including database paths, encryption settings, and sync endpoints.
 class DatastoreConfig {
-
   const DatastoreConfig({
     required this.deviceId,
     this.databasePath,
@@ -51,6 +50,7 @@ class DatastoreConfig {
       enableTelemetry: true,
     );
   }
+
   /// Path to the SQLite database file.
   /// If null, uses default application documents directory.
   final String? databasePath;
