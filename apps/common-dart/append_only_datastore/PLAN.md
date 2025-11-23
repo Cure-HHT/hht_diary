@@ -397,16 +397,18 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 ## 🚨 Risk Register
 
 ### Technical Risks
+
 | Risk | Impact | Mitigation |
-|------|--------|------------|
+| ---- | ------ | ---------- |
 | SQLCipher performance | High | Benchmark early, have fallback |
 | Sync conflicts | High | Conservative detection, clear UI |
 | Schema migration failure | High | Extensive testing, rollback plan |
 | Platform differences | Medium | Early cross-platform testing |
 
 ### Compliance Risks
+
 | Risk | Impact | Mitigation |
-|------|--------|------------|
+| ---- | ------ | ---------- |
 | Audit trail gaps | Critical | Database constraints, testing |
 | Signature tampering | Critical | Strong crypto, validation |
 | Data loss | Critical | Multiple backup strategies |
@@ -442,7 +444,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 ## 🔄 Version History
 
 | Version | Date | Author | Changes |
-|---------|------|--------|---------|
+| ------- | ---------- | ------------ | ----------------------- |
 | 1.0.0 | 2025-01-24 | AI Assistant | Initial plan created |
 
 ---

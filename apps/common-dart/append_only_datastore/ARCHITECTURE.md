@@ -356,7 +356,7 @@ Based on evaluation, the recommended architecture is:
 ## 📋 Decision Matrix
 
 | Requirement | SQLite+SQLCipher | Isar | Hive | ObjectBox | Custom |
-|------------|-----------------|------|------|-----------|--------|
+| ---------- | --------------- | ---- | ---- | --------- | ------ |
 | FDA Compliance | ✅✅✅ | ✅ | ❌ | ✅ | ❓ |
 | Offline-First | ✅✅✅ | ✅✅✅ | ✅✅ | ✅✅✅ | ✅✅ |
 | Performance | ✅✅ | ✅✅✅ | ✅✅ | ✅✅✅ | ✅ |

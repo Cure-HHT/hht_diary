@@ -218,7 +218,7 @@ Tool specifications SHALL include:
 - Tool version verification script runs on container startup
 - Documentation includes tool update policy and testing procedures
 
-*End* *Development Tool Specifications* | **Hash**: fd2e04d2
+*End* *Development Tool Specifications* | **Hash**: 1a59e7e8
 ---
 
 # REQ-d00060: VS Code Dev Containers Integration
