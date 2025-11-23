@@ -1,0 +1,19 @@
+name: clinical_diary
+description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

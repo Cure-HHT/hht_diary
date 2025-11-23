@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0  
 **Status**: IN PROGRESS  
-**Last Updated**: 2025-01-24  
+**Last Updated**: 2025-11-22  
 **Target Completion**: Phase 1 MVP by 2025-02-07
 
 ## 🎯 Implementation Strategy
@@ -21,13 +21,13 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 ### 1. Core Infrastructure (Days 1-2)
 
 #### 1.1 Project Setup
-- [ ] Update pubspec.yaml with required dependencies
-  - [ ] sqflite: ^2.3.0
-  - [ ] path: ^1.9.0
-  - [ ] uuid: ^4.3.3
-  - [ ] crypto: ^3.0.3
-  - [ ] json_annotation: ^4.8.1
-  - [ ] dartastic_otel: latest (for telemetry)
+- [x] Update pubspec.yaml with required dependencies
+  - [x] sqflite: ^2.3.0
+  - [x] path: ^1.9.0
+  - [x] uuid: ^4.3.3
+  - [x] crypto: ^3.0.3
+  - [x] json_annotation: ^4.8.1
+  - [x] dartastic_otel: latest (for telemetry)
 - [ ] Configure linting rules (analysis_options.yaml)
 - [ ] Set up dependency injection structure
 - [ ] Create folder structure:
