@@ -1,0 +1,48 @@
+name: Append-Only Datastore Coverage
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/common-dart/append_only_datastore/**'
+      - '.github/workflows/append_only_datastore-coverage.yml'
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/common-dart/append_only_datastore
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.3'
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+      
+      - name: Run tests with coverage
+        run: |
+          chmod +x tool/coverage.sh
+          ./tool/coverage.sh
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: apps/common-dart/append_only_datastore/coverage/lcov.info
+          flags: append_only_datastore
+          name: append-only-datastore-coverage
+          fail_ci_if_error: false
