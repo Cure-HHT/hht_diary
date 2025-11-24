@@ -124,7 +124,7 @@ When using AI-assisted development tools (Claude, GitHub Copilot, etc.), the fol
 **Compliance Requirements**:
 - ✅ Implements all core contract tests
 - ✅ Audit trail for all sponsor-specific changes
-- ✅ Secrets managed via GitHub Secrets + Supabase secrets
+- ✅ Secrets managed via GitHub Secrets + GCP Secret Manager
 - ✅ FDA 21 CFR Part 11 validation workflow
 
 **What MUST be in Sponsor Repo**:

@@ -1,8 +1,8 @@
 # Daily Operations Playbook
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Operations (SRE, DevOps, On-Call Engineers)
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-11-24
 **Status**: Active
 
 > **See**: ops-deployment.md for deployment procedures
@@ -14,10 +14,10 @@
 
 ## Executive Summary
 
-Daily operational procedures, monitoring, incident response, and routine maintenance for the multi-sponsor clinical diary system. Each sponsor operates an independent Supabase instance requiring separate monitoring and maintenance.
+Daily operational procedures, monitoring, incident response, and routine maintenance for the multi-sponsor clinical diary system. Each sponsor operates an independent GCP project with Cloud SQL, Identity Platform, and Cloud Run services requiring separate monitoring and maintenance.
 
-**Architecture Context**: Multi-sponsor deployment with per-sponsor Supabase instances
-**Monitoring Approach**: Per-sponsor dashboards + aggregated multi-sponsor view
+**Architecture Context**: Multi-sponsor deployment with per-sponsor GCP projects
+**Monitoring Approach**: Cloud Monitoring per project + aggregated multi-sponsor view
 **On-Call Model**: 24/7 coverage for production incidents
 **SLA Targets**:
 - Portal uptime: 99.9% (43 minutes downtime/month)
@@ -35,30 +35,30 @@ Daily operational procedures, monitoring, incident response, and routine mainten
 
 #### 1. System Health Dashboard Review
 
-**Supabase Dashboard** (per sponsor):
+**GCP Console** (per sponsor project):
 
 ```bash
-# List all sponsor Supabase projects
-supabase projects list
+# List all sponsor GCP projects
+gcloud projects list --filter="labels.app=clinical-diary"
 
-# For each sponsor, check:
-# - API uptime (should be 100% last 24h)
-# - Database connections (should be <70% of pool)
-# - Edge Function invocations (check error rate <1%)
-# - Storage usage (alert if >80%)
+# For each sponsor project, check:
+# - Cloud Run service health
+# - Cloud SQL instance status
+# - Identity Platform metrics
+# - Cloud Monitoring alerts
 ```
 
 **Metrics to Review**:
-- [ ] API requests (last 24h): Check for anomalies
-- [ ] Database CPU usage: <80% average
-- [ ] Database memory usage: <90%
-- [ ] Database disk usage: <80%
-- [ ] Edge Function errors: <1% of invocations
-- [ ] Authentication failures: <5% of attempts
+- [ ] Cloud Run requests (last 24h): Check for anomalies
+- [ ] Cloud SQL CPU usage: <80% average
+- [ ] Cloud SQL memory usage: <90%
+- [ ] Cloud SQL disk usage: <80%
+- [ ] Cloud Run errors: <1% of requests
+- [ ] Identity Platform auth failures: <5% of attempts
 
 #### 2. Portal Accessibility Check
 
-**Automated Check** (runs every 5 minutes via monitoring service):
+**Automated Check** (runs every 5 minutes via Cloud Monitoring uptime checks):
 
 ```bash
 # Check each sponsor portal
@@ -76,7 +76,7 @@ curl -I https://andromeda-portal.clinicaldiary.com
 
 #### 3. Mobile App Sync Status
 
-**Query per sponsor** (Supabase SQL):
+**Query per sponsor** (via Cloud SQL Proxy):
 
 ```sql
 -- Check sync activity last 24 hours
@@ -136,22 +136,25 @@ FROM record_audit;
 
 #### 5. Backup Verification
 
-**Supabase Automatic Backups**:
+**Cloud SQL Automatic Backups**:
 
 ```bash
-# Check last backup timestamp (via Supabase dashboard)
-# Expected: Within last 6 hours
+# Check last backup timestamp
+gcloud sql backups list --instance=prod-instance --project=sponsor-project --limit=5
 
+# Expected: Within last 6 hours
 # Verify backup size is reasonable (not zero, not unexpectedly large)
 ```
 
 **Manual Backup Check** (weekly):
 
 ```bash
-# Restore latest backup to staging environment
-supabase db restore --project-ref staging-xyz backup-latest.sql
+# Point-in-time recovery test to staging
+gcloud sql instances clone prod-instance staging-test-instance \
+  --project=sponsor-project \
+  --point-in-time="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
 
-# Run smoke tests against restored data
+# Run smoke tests against restored instance
 flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 ```
 
@@ -159,48 +162,45 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 ## Monitoring Dashboards
 
-### Supabase Built-In Dashboard
+### Cloud Monitoring Dashboard
 
-**Location**: https://supabase.com/dashboard/project/{project-ref}
+**Location**: GCP Console → Monitoring → Dashboards
 
-**Key Tabs**:
+**Key Dashboards**:
 
 1. **Overview**:
-   - API requests graph
-   - Database CPU/memory
-   - Active connections
-   - Storage usage
+   - Cloud Run request count and latency
+   - Cloud SQL CPU/memory
+   - Cloud SQL connections
+   - Error rates
 
 2. **Logs**:
-   - API logs (recent requests)
-   - Database logs (slow queries, errors)
-   - Edge Function logs
+   - Cloud Logging (API logs, app logs)
+   - Cloud SQL logs (slow queries, errors)
+   - Cloud Run logs
 
-3. **Reports**:
-   - Weekly usage summary
-   - API usage by endpoint
-   - Database query performance
+3. **Uptime**:
+   - Portal health checks
+   - API endpoint checks
 
-### Custom Monitoring (Optional)
-
-**Tools**: Grafana + Prometheus (if implemented)
+### Custom Monitoring (Cloud Monitoring)
 
 **Dashboards**:
 
 1. **Multi-Sponsor Overview**:
    - All sponsors on single dashboard
-   - API uptime per sponsor
+   - Cloud Run uptime per sponsor
    - Error rates per sponsor
    - User activity per sponsor
 
 2. **Per-Sponsor Deep Dive**:
    - Detailed metrics for single sponsor
-   - Slow query analysis
+   - Slow query analysis (Cloud SQL Insights)
    - User session duration
    - Sync conflict rate
 
 3. **Mobile App Metrics**:
-   - App crashes (via Firebase Crashlytics or Sentry)
+   - App crashes (via Firebase Crashlytics)
    - Sync success/failure rate
    - Offline duration
    - Device types
@@ -217,18 +217,18 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 ### Critical Alerts (Page On-Call Immediately)
 
-**Supabase Alerts** (configure in dashboard):
+**Cloud Monitoring Alerts** (configure per project):
 
 1. **Database Down**:
-   - Trigger: Database unreachable for >1 minute
+   - Trigger: Cloud SQL instance unreachable for >1 minute
    - Action: Page on-call, follow incident response runbook
 
-2. **API Error Rate Spike**:
+2. **Cloud Run Error Rate Spike**:
    - Trigger: Error rate >5% over 5 minutes
    - Action: Page on-call, check logs
 
 3. **Disk Usage Critical**:
-   - Trigger: Database disk >90% full
+   - Trigger: Cloud SQL disk >90% full
    - Action: Page on-call, expand storage immediately
 
 4. **Backup Failure**:
@@ -242,12 +242,12 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    - Action: Investigate slow queries, consider scaling
 
 6. **High Connection Count**:
-   - Trigger: Connections >80% of pool for >15 minutes
+   - Trigger: Connections >80% of max for >15 minutes
    - Action: Review connection usage, check for leaks
 
-7. **Edge Function Errors**:
+7. **Cloud Run Service Errors**:
    - Trigger: Error rate >2% over 15 minutes
-   - Action: Check Edge Function logs, investigate EDC connectivity (proxy mode)
+   - Action: Check Cloud Run logs, investigate EDC connectivity (proxy mode)
 
 8. **Sync Conflicts Increasing**:
    - Trigger: Conflict rate >5% of syncs
@@ -278,28 +278,44 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    # Check portal status
    curl -I https://orion-portal.clinicaldiary.com
 
-   # Check Netlify status page
-   curl https://netlifystatus.com/api/v2/status.json
+   # Check Cloud Run service status
+   gcloud run services describe portal \
+     --project=sponsor-project \
+     --region=us-central1
    ```
 
-2. **Check Netlify Deployment** (3 minutes):
-   - Login to Netlify dashboard
-   - Check recent deployments for failures
-   - Check build logs for errors
+2. **Check Cloud Run Logs** (3 minutes):
+   ```bash
+   # View recent errors
+   gcloud run services logs tail portal \
+     --project=sponsor-project \
+     --region=us-central1
 
-3. **Check Supabase Backend** (3 minutes):
-   - Login to Supabase dashboard
-   - Verify database is reachable
-   - Check API logs for errors
+   # Or via Cloud Logging
+   gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" \
+     --project=sponsor-project \
+     --limit=50
+   ```
+
+3. **Check Cloud SQL Backend** (3 minutes):
+   ```bash
+   # Check Cloud SQL instance status
+   gcloud sql instances describe prod-instance --project=sponsor-project
+
+   # Expected: state: RUNNABLE
+   ```
 
 4. **Rollback if Needed** (5 minutes):
    ```bash
-   # Rollback to last working deployment
-   netlify deploy:restore <previous-deploy-id>
+   # Route traffic to previous revision
+   gcloud run services update-traffic portal \
+     --project=sponsor-project \
+     --region=us-central1 \
+     --to-revisions=PREVIOUS_REVISION=100
    ```
 
 5. **Escalate if Unresolved** (10 minutes):
-   - Contact Netlify support
+   - Contact GCP support (if on support plan)
    - Post in team Slack channel
    - Update status page
 
@@ -313,7 +329,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 1. **Identify Slow Queries** (3 minutes):
    ```sql
-   -- Find slowest queries
+   -- Find slowest queries (requires pg_stat_statements)
    SELECT
      query,
      calls,
@@ -352,9 +368,17 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    - Check for missing indexes
 
 5. **Scale if Needed** (10 minutes):
-   - Upgrade Supabase plan (more CPU/memory)
-   - Add read replicas (if available)
-   - Enable connection pooling
+   ```bash
+   # Increase Cloud SQL tier
+   gcloud sql instances patch prod-instance \
+     --project=sponsor-project \
+     --tier=db-custom-4-15360
+
+   # Enable Query Insights if not already
+   gcloud sql instances patch prod-instance \
+     --project=sponsor-project \
+     --insights-config-query-insights-enabled
+   ```
 
 **Resolution Time Target**: 20 minutes
 
@@ -366,20 +390,18 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 1. **Check Error Logs** (3 minutes):
    ```bash
-   # Supabase API logs
-   # Filter by status code 4xx, 5xx
-   # Look for authentication failures, validation errors
+   # Cloud Run API logs
+   gcloud logging read "resource.type=cloud_run_revision AND severity>=WARNING" \
+     --project=sponsor-project \
+     --limit=100
    ```
 
 2. **Verify API Accessibility** (2 minutes):
    ```bash
    # Test API endpoint
-   curl -X POST https://abcd1234.supabase.co/rest/v1/record_audit \
-     -H "apikey: ANON_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"test": true}'
+   curl -X GET https://api-sponsor.example.com/health
 
-   # Expected: 401 (auth required) or 200 (if test data valid)
+   # Expected: HTTP 200
    # NOT: timeout, 5xx errors
    ```
 
@@ -391,8 +413,8 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    WHERE schemaname = 'public';
 
    -- Test policy for specific user
-   SET ROLE authenticated;
-   SET request.jwt.claim.sub = 'user-uuid-here';
+   SET app.user_id = 'user-uuid-here';
+   SET app.role = 'USER';
    SELECT * FROM record_audit WHERE patient_id = 'user-uuid-here';
    ```
 
@@ -410,14 +432,16 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 ### Runbook 4: EDC Sync Failure (Proxy Mode)
 
-**Symptoms**: Edge Function errors, data not appearing in EDC system
+**Symptoms**: Cloud Run EDC sync service errors, data not appearing in EDC system
 
 **Response Steps**:
 
-1. **Check Edge Function Logs** (3 minutes):
+1. **Check Cloud Run Logs** (3 minutes):
    ```bash
-   # View recent errors
-   supabase functions logs edc_sync --tail=100
+   # View EDC sync service logs
+   gcloud run services logs tail edc-sync \
+     --project=sponsor-project \
+     --region=us-central1
    ```
 
 2. **Verify EDC API Connectivity** (2 minutes):
@@ -458,10 +482,12 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 4. **Monitor Sync Worker** (2 minutes):
    ```bash
    # Check worker health
-   curl https://abcd1234.supabase.co/functions/v1/edc_sync
+   curl https://edc-sync-sponsor.run.app/health
 
    # View worker logs
-   supabase functions logs edc_sync --tail=50
+   gcloud run services logs tail edc-sync \
+     --project=sponsor-project \
+     --region=us-central1
    ```
 
    **Note**: Worker automatically retries failed events with exponential backoff. No manual retry needed unless worker is stuck.
@@ -485,15 +511,13 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    - Notify security team immediately
 
 2. **Isolate Affected Accounts** (5 minutes):
-   ```sql
-   -- Disable user account
-   UPDATE auth.users
-   SET banned_until = NOW() + INTERVAL '24 hours'
-   WHERE id = 'suspicious-user-id';
+   ```bash
+   # Disable user in Identity Platform
+   gcloud identity-platform users update USER_UID \
+     --project=sponsor-project \
+     --disabled
 
-   -- Revoke all sessions
-   DELETE FROM auth.sessions
-   WHERE user_id = 'suspicious-user-id';
+   # Or via Firebase Admin SDK in Cloud Function
    ```
 
 3. **Review Audit Trail** (10 minutes):
@@ -512,7 +536,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
    ```
 
 4. **Check for Data Exfiltration** (10 minutes):
-   - Review API logs for bulk data access
+   - Review Cloud Logging for bulk data access
    - Check for export operations
    - Verify RLS policies were enforced
 
@@ -537,9 +561,9 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 ### Daily Tasks
 
 **Automated** (no manual intervention):
-- [ ] Supabase automatic backups (every 6 hours)
-- [ ] Log rotation
-- [ ] Certificate renewal checks
+- [ ] Cloud SQL automatic backups (configurable frequency)
+- [ ] Log rotation (Cloud Logging)
+- [ ] SSL certificate renewal (Cloud Run managed)
 
 **Manual Review**:
 - [ ] Review overnight alerts
@@ -550,7 +574,7 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 **Mondays** (30 minutes):
 - [ ] Review error logs for patterns
-- [ ] Check database performance trends
+- [ ] Check database performance trends (Cloud SQL Insights)
 - [ ] Review sync conflict rate
 - [ ] Test backup restore (sample sponsor)
 - [ ] Update on-call schedule
@@ -564,13 +588,15 @@ flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 echo "=== Weekly Maintenance: $(date) ==="
 
 # 1. Generate weekly report
-supabase db query --file scripts/weekly_report.sql > reports/weekly-$(date +%Y%m%d).txt
+cloud-sql-proxy sponsor-project:us-central1:prod-instance --port=5432 &
+sleep 3
+psql -h 127.0.0.1 -U app_user -d clinical_diary -f scripts/weekly_report.sql > reports/weekly-$(date +%Y%m%d).txt
 
 # 2. Check for unused indexes
-supabase db query --file scripts/unused_indexes.sql
+psql -h 127.0.0.1 -U app_user -d clinical_diary -f scripts/unused_indexes.sql
 
 # 3. Check database bloat
-supabase db query --file scripts/check_bloat.sql
+psql -h 127.0.0.1 -U app_user -d clinical_diary -f scripts/check_bloat.sql
 
 # 4. Test backup restore (staging)
 ./scripts/test_backup_restore.sh staging
@@ -583,7 +609,7 @@ echo "=== Weekly Maintenance Complete ==="
 **First Monday of Month** (2 hours):
 - [ ] Review and update monitoring dashboards
 - [ ] Security audit (review access logs)
-- [ ] Performance tuning (analyze slow queries)
+- [ ] Performance tuning (analyze slow queries via Cloud SQL Insights)
 - [ ] Capacity planning review
 - [ ] Update documentation for any operational changes
 - [ ] Review incident response effectiveness (postmortems)
@@ -593,77 +619,83 @@ echo "=== Weekly Maintenance Complete ==="
 ### Quarterly Tasks
 
 **End of Quarter** (4 hours):
-- [ ] Supabase plan usage review (upgrade if needed)
+- [ ] GCP resource usage review (optimize costs)
 - [ ] Disaster recovery test (full restore)
 - [ ] Review and update incident runbooks
 - [ ] SLA compliance review
 - [ ] Compliance audit preparation
-- [ ] Contract renewal review (Supabase, Netlify)
+- [ ] Contract renewal review (GCP, external services)
 
 ---
 
 ## Log Analysis
 
-### Useful Supabase Log Queries
+### Useful Cloud Logging Queries
 
-**API Logs**:
+**Cloud Run Logs**:
 
 ```bash
 # View last 100 API errors
-supabase logs --type api --filter "status>=400" --tail=100
+gcloud logging read 'resource.type="cloud_run_revision" AND severity>=ERROR' \
+  --project=sponsor-project \
+  --limit=100
 
 # Track specific user's requests
-supabase logs --type api --filter "user_id=abc123" --tail=50
+gcloud logging read 'resource.type="cloud_run_revision" AND jsonPayload.user_id="abc123"' \
+  --project=sponsor-project \
+  --limit=50
 
 # Slow requests (>1 second)
-supabase logs --type api --filter "duration>1000" --tail=50
+gcloud logging read 'resource.type="cloud_run_revision" AND httpRequest.latency>"1s"' \
+  --project=sponsor-project \
+  --limit=50
 ```
 
-**Database Logs**:
+**Cloud SQL Logs**:
 
 ```bash
-# Slow queries (>100ms)
-supabase logs --type db --filter "duration>100" --tail=50
+# View database logs
+gcloud logging read 'resource.type="cloudsql_database"' \
+  --project=sponsor-project \
+  --limit=100
 
-# Connection errors
-supabase logs --type db --filter "error" --tail=100
+# Slow queries (enable pgAudit or use Cloud SQL Insights)
+gcloud logging read 'resource.type="cloudsql_database" AND textPayload:"duration:"' \
+  --project=sponsor-project \
+  --limit=50
 ```
 
-**Edge Function Logs**:
+**Identity Platform Logs**:
 
 ```bash
-# View Edge Function errors
-supabase functions logs edc_sync --filter "level=error" --tail=100
-
-# Track specific event
-supabase functions logs edc_sync --filter "event_uuid=xyz789"
+# Authentication events
+gcloud logging read 'resource.type="identitytoolkit.googleapis.com/Project"' \
+  --project=sponsor-project \
+  --limit=100
 ```
 
 ### Log Retention
 
-**Supabase Free Tier**: 7 days
-**Supabase Pro**: 90 days
-**Archived Logs**: Export to S3/GCS for long-term storage (7 years for compliance)
+**Cloud Logging Default**: 30 days
+**Cloud Logging with Log Sink**: Configurable (export to Cloud Storage)
+**Compliance Archive**: 7 years (export to Cloud Storage with retention policy)
 
 **Export Script**:
 
 ```bash
 #!/bin/bash
-# Export logs for archival (run weekly)
+# Export logs for archival (configure as Cloud Logging sink)
 
-DATE=$(date +%Y%m%d)
-PROJECT_REF="abcd1234"
+PROJECT_ID="sponsor-project"
+BUCKET="gs://clinical-diary-logs-archive-${PROJECT_ID}"
 
-# Export API logs
-supabase logs --type api --output json > logs/api-$PROJECT_REF-$DATE.json
+# Create log sink for long-term archival
+gcloud logging sinks create compliance-archive \
+  "${BUCKET}" \
+  --project=${PROJECT_ID} \
+  --log-filter='resource.type="cloud_run_revision" OR resource.type="cloudsql_database"'
 
-# Export database logs
-supabase logs --type db --output json > logs/db-$PROJECT_REF-$DATE.json
-
-# Upload to S3 (compliance archive)
-aws s3 cp logs/ s3://clinical-diary-logs-archive/ --recursive
-
-echo "Logs archived: $DATE"
+echo "Log sink created - logs will automatically export to ${BUCKET}"
 ```
 
 ---
@@ -680,12 +712,12 @@ echo "Logs archived: $DATE"
 | API response time (p95) | <500ms | >1000ms |
 | Database query time (p95) | <100ms | >300ms |
 | Mobile sync success rate | 99.5% | <98% |
-| Edge Function success rate | 99% | <97% |
+| Cloud Run success rate | 99% | <97% |
 | Backup success rate | 100% | <100% |
 
 ### Performance Analysis Queries
 
-**Slow Query Analysis**:
+**Slow Query Analysis** (via Cloud SQL Insights or pg_stat_statements):
 
 ```sql
 -- Top 10 slowest queries
@@ -736,7 +768,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 4. Consider materialized views
 
 **If database CPU high**:
-1. Scale up Supabase plan
+1. Scale up Cloud SQL tier
 2. Add read replicas
 3. Optimize expensive queries
 4. Implement caching layer
@@ -772,8 +804,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 **Level 4**: CTO (for business-critical decisions)
 
 **External Escalation**:
-- Supabase Support: support@supabase.com (Pro plan: <4 hour SLA)
-- Netlify Support: support@netlify.com
+- GCP Support: Via GCP Console (depends on support plan)
 - Sponsor Contact: (per sponsor contact list)
 
 ### Incident Documentation
@@ -807,11 +838,11 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 
 ## Root Cause
 
-Database connection pool (100 connections) exceeded due to...
+Database connection pool exceeded due to...
 
 ## Resolution
 
-Increased connection pool to 200, added monitoring for connection usage.
+Increased Cloud SQL max connections, added monitoring for connection usage.
 
 ## Action Items
 
@@ -830,7 +861,7 @@ Increased connection pool to 200, added monitoring for connection usage.
 
 ### Status Page Updates
 
-**Tool**: Statuspage.io or similar
+**Tool**: Cloud Monitoring uptime dashboard or external status page service
 
 **Update Policy**:
 - Critical incidents: Update immediately
@@ -873,8 +904,8 @@ The issue has been resolved. All services are operating normally.
 Clinical trial data and audit trails SHALL be backed up regularly with retention policies meeting regulatory requirements (minimum 7 years), ensuring data recoverability and compliance.
 
 Backup and retention SHALL include:
-- Automated database backups every 6 hours
-- Point-in-time recovery capability for 30 days
+- Automated database backups (Cloud SQL automated backups)
+- Point-in-time recovery capability for 30 days (Cloud SQL PITR)
 - Long-term archive retention per study requirements
 - Regular backup restore testing (weekly)
 - Disaster recovery procedures tested quarterly
@@ -882,7 +913,7 @@ Backup and retention SHALL include:
 **Rationale**: Implements data retention requirements (p00012) through operational backup policies. Regular testing ensures backups are actually restorable, not just created.
 
 **Acceptance Criteria**:
-- Automated backups run every 6 hours without failure
+- Automated backups run without failure
 - Backup retention meets or exceeds study-specific requirements
 - Weekly backup restore tests to staging environment
 - Quarterly disaster recovery drills documented
@@ -893,12 +924,17 @@ Backup and retention SHALL include:
 
 ### Automated Backups
 
-**Supabase Automatic Backups**:
-- Frequency: Every 6 hours
+**Cloud SQL Automatic Backups**:
+- Frequency: Configurable (recommended: every 4-6 hours)
 - Retention: 30 days (point-in-time recovery)
-- Storage: Encrypted, geo-redundant
+- Storage: Encrypted, regional (optionally cross-regional)
 
-**No action required** (automated by Supabase)
+**Verify backup configuration**:
+```bash
+gcloud sql instances describe prod-instance \
+  --project=sponsor-project \
+  --format="yaml(settings.backupConfiguration)"
+```
 
 ### Manual Backup Verification
 
@@ -908,20 +944,25 @@ Backup and retention SHALL include:
 #!/bin/bash
 # Test backup restore to staging
 
-PROJECT_REF="staging-xyz"
-BACKUP_FILE="backup-latest.sql"
+PROJECT_ID="sponsor-project"
+PROD_INSTANCE="prod-instance"
+STAGING_INSTANCE="staging-restore-test"
 
-echo "1. Export production backup"
-supabase db dump --project-ref prod-abc > $BACKUP_FILE
+echo "1. Clone production to staging (point-in-time)"
+gcloud sql instances clone $PROD_INSTANCE $STAGING_INSTANCE \
+  --project=$PROJECT_ID \
+  --point-in-time="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"
 
-echo "2. Restore to staging"
-supabase db restore --project-ref $PROJECT_REF $BACKUP_FILE
+echo "2. Wait for clone to complete"
+gcloud sql operations list --instance=$STAGING_INSTANCE --project=$PROJECT_ID --limit=1
 
 echo "3. Run smoke tests"
 flutter test integration_test/smoke_test.dart --dart-define=ENV=staging
 
 if [ $? -eq 0 ]; then
   echo "✓ Backup restore test PASSED"
+  # Clean up test instance
+  gcloud sql instances delete $STAGING_INSTANCE --project=$PROJECT_ID --quiet
 else
   echo "✗ Backup restore test FAILED - investigate immediately"
   exit 1
@@ -932,12 +973,12 @@ fi
 
 **Quarterly** (full DR drill):
 
-1. Simulate complete Supabase project failure
-2. Create new Supabase project
-3. Restore from backup
+1. Simulate complete GCP project failure
+2. Create new GCP project (or use DR project)
+3. Restore Cloud SQL from backup
 4. Deploy database schema
-5. Deploy Edge Functions
-6. Configure authentication
+5. Deploy Cloud Run services
+6. Configure Identity Platform
 7. Deploy portal
 8. Test end-to-end functionality
 
@@ -952,6 +993,9 @@ fi
 - **Security Operations**: ops-security.md
 - **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
 - **Database Implementation**: dev-database.md
+- **Cloud SQL Documentation**: https://cloud.google.com/sql/docs
+- **Cloud Run Documentation**: https://cloud.google.com/run/docs
+- **Cloud Monitoring Documentation**: https://cloud.google.com/monitoring/docs
 
 ---
 

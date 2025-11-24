@@ -16,7 +16,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | --- | --- | --- | --- |
 | REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | 5fa9f76f |
 | REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | 8c25b197 |
-| REQ-d00003 | dev-security.md | Supabase Auth Configuration Per Sponsor | 67ec9c94 |
+| REQ-d00003 | dev-security.md | Identity Platform Auth Configuration Per Sponsor | 67ec9c94 |
 | REQ-d00004 | dev-app.md | Local-First Data Entry Implementation | 843d0664 |
 | REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | d43b407d |
 | REQ-d00006 | dev-app.md | Mobile App Build and Release Process | 6dfe9c2d |
@@ -43,7 +43,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00028 | dev-portal.md | Portal Frontend Framework | 7eefcecd |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
-| REQ-d00031 | dev-portal.md | Supabase Authentication Integration | 8abcbfac |
+| REQ-d00031 | dev-portal.md | Firebase Authentication Integration | 8abcbfac |
 | REQ-d00032 | dev-portal.md | Role-Based Access Control Implementation | 6d335872 |
 | REQ-d00033 | dev-portal.md | Site-Based Data Isolation | c3440de7 |
 | REQ-d00034 | dev-portal.md | Login Page Implementation | 50d0c2b5 |
@@ -74,9 +74,9 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
-| REQ-o00001 | ops-deployment.md | Separate Supabase Projects Per Sponsor | 970de2df |
+| REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 970de2df |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | 8786c322 |
-| REQ-o00003 | ops-database-setup.md | Supabase Project Provisioning Per Sponsor | 10544ffd |
+| REQ-o00003 | ops-database-setup.md | Cloud SQL Provisioning Per Sponsor | 10544ffd |
 | REQ-o00004 | ops-database-setup.md | Database Schema Deployment | b9f6a0b5 |
 | REQ-o00005 | ops-operations.md | Audit Trail Monitoring | f48b8b6b |
 | REQ-o00006 | ops-security-authentication.md | MFA Configuration for Staff Accounts | 16f074eb |

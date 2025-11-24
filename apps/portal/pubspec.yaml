@@ -14,9 +14,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Supabase integration
-  supabase_flutter: ^2.5.0
-
   # Routing
   go_router: ^14.0.0
 
@@ -38,7 +35,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  # assets:
-  #   - assets/logo.png
-  #   - assets/icon.png

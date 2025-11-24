@@ -17,7 +17,8 @@ This document specifies the implementation details for PostgreSQL Row-Level Secu
 
 **Technology Stack**:
 - PostgreSQL 15+ Row-Level Security
-- Supabase Auth (JWT-based authentication)
+- Identity Platform (Firebase Auth) with JWT-based authentication
+- Application-set session variables for RLS context
 - PL/pgSQL functions for claim extraction
 - Migration scripts for deployment
 
@@ -89,7 +90,7 @@ CREATE POLICY patient_insert_audit ON record_audit
   );
 ```
 
-**Rationale**: Implements patient data isolation (o00020) through JWT claim validation. Policies leverage Supabase's request context to extract user identity and enforce row-level filtering.
+**Rationale**: Implements patient data isolation (o00020) through JWT claim validation. Policies leverage application-set PostgreSQL session variables to extract user identity and enforce row-level filtering.
 
 **Acceptance Criteria**:
 - `current_user_id()` function returns UUID from JWT `sub` claim
@@ -958,7 +959,7 @@ Never disable RLS in production:
 - **Operations Procedures**: ops-security-RLS.md
 - **Database Schema**: dev-database.md
 - **PostgreSQL RLS Documentation**: https://www.postgresql.org/docs/current/ddl-rowsecurity.html
-- **Supabase RLS Guide**: https://supabase.com/docs/guides/auth/row-level-security
+- **Cloud SQL Documentation**: https://cloud.google.com/sql/docs/postgres
 
 ---
 

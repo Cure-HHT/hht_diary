@@ -11,7 +11,7 @@
 
 This document specifies the technical implementation requirements for the Clinical Trial Web Portal, a sponsor-specific web application built with **Flutter Web** that enables Admins and Investigators to manage clinical trial users, enroll patients, monitor patient engagement, and manage questionnaires.
 
-The portal is a **separate application** from the patient diary mobile app, deployed as a web-only Flutter application. It provides role-based dashboards with site-level data isolation, integrates with Supabase for authentication and database access, and generates linking codes for patient enrollment.
+The portal is a **separate application** from the patient diary mobile app, deployed as a web-only Flutter application. It provides role-based dashboards with site-level data isolation, integrates with Firebase Auth for authentication and Cloud Run API for database access, and generates linking codes for patient enrollment.
 
 **Related Documents**:
 - Product Requirements: `spec/prd-portal.md` (Portal product requirements)
@@ -39,17 +39,22 @@ The portal is a standalone Flutter web application, separate from the patient di
 │           └────────────────┘                                 │
 │                            │                                 │
 │                  ┌─────────▼─────────┐                      │
-│                  │  Supabase Auth    │ (OAuth + Email/Pwd)  │
+│                  │  Firebase Auth    │ (OAuth + Email/Pwd)  │
 │                  └─────────┬─────────┘                      │
 │                            │                                 │
 │                  ┌─────────▼─────────┐                      │
-│                  │ Supabase Flutter  │ (RLS-enforced)       │
-│                  │      Client       │                       │
+│                  │   HTTP Client +   │ (JWT in headers)     │
+│                  │   Cloud Run API   │                       │
 │                  └─────────┬─────────┘                      │
 └────────────────────────────┼─────────────────────────────────┘
                              │
                    ┌─────────▼─────────┐
-                   │  Supabase Cloud   │
+                   │   Cloud Run API   │
+                   │   (Dart Server)   │
+                   └─────────┬─────────┘
+                             │
+                   ┌─────────▼─────────┐
+                   │    Cloud SQL      │
                    │  (PostgreSQL 15)  │
                    │  - portal_users   │
                    │  - patients       │
@@ -74,7 +79,7 @@ The portal is a standalone Flutter web application, separate from the patient di
 - **Authentication First**: All routes protected, role-based access
 - **Database-Driven UI**: RLS policies enforce data isolation
 - **Responsive Design**: Desktop-first, tablet support
-- **No Backend API**: Direct Supabase client access with RLS
+- **Cloud Run API**: HTTP client calls to Dart server with RLS enforcement
 - **Separate App**: Independent from patient diary mobile app (may merge later)
 
 **Scope Simplifications**:
@@ -105,7 +110,9 @@ The portal SHALL be implemented using Flutter for web deployment, enabling code 
 dependencies:
   flutter:
     sdk: flutter
-  supabase_flutter: ^2.5.0     # Supabase client with auth
+  firebase_core: ^2.24.0       # Firebase initialization
+  firebase_auth: ^4.16.0       # Firebase Auth
+  http: ^1.1.0                 # HTTP client for Cloud Run API
   go_router: ^14.0.0           # Declarative routing
   provider: ^6.1.0             # State management
   flutter_svg: ^2.0.0          # SVG icons
@@ -354,42 +361,106 @@ final router = GoRouter(
 
 ## Authentication & Authorization Requirements
 
-# REQ-d00031: Supabase Authentication Integration
+# REQ-d00031: Firebase Authentication Integration
 
 **Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
 
-The portal SHALL use Supabase Authentication for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
+The portal SHALL use Firebase Authentication (Identity Platform) for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
 
 **Technical Details**:
-- **Auth Provider**: Supabase Auth
+- **Auth Provider**: Firebase Auth (Identity Platform)
 - **OAuth Providers**:
   - Google Workspace (OAuth 2.0)
   - Microsoft 365 (OAuth 2.0)
-- **Email/Password**: Native Supabase auth with email verification
-- **Session Storage**: Supabase client handles JWT storage in browser localStorage
-- **Token Refresh**: Automatic via Supabase client
+- **Email/Password**: Firebase Auth with email verification
+- **Session Storage**: Firebase Auth handles JWT storage in browser localStorage
+- **Token Refresh**: Automatic via Firebase Auth SDK
 
-**Supabase Configuration** (`lib/supabase_client.dart`):
+**Firebase Configuration** (`lib/firebase_client.dart`):
 ```dart
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-Future<void> initSupabase() async {
-  await Supabase.initialize(
-    url: const String.fromEnvironment('SUPABASE_URL'),
-    anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce, // Proof Key for Code Exchange
+Future<void> initFirebase() async {
+  await Firebase.initializeApp(
+    options: FirebaseOptions(
+      apiKey: const String.fromEnvironment('FIREBASE_API_KEY'),
+      authDomain: const String.fromEnvironment('FIREBASE_AUTH_DOMAIN'),
+      projectId: const String.fromEnvironment('GCP_PROJECT_ID'),
+      appId: const String.fromEnvironment('FIREBASE_APP_ID'),
     ),
   );
 }
 
-final supabase = Supabase.instance.client;
+final auth = FirebaseAuth.instance;
+```
+
+**API Client** (`lib/api_client.dart`):
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+
+class ApiClient {
+  final String baseUrl;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  ApiClient({required this.baseUrl});
+
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await _auth.currentUser?.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<dynamic> get(String endpoint) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: await _getHeaders(),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('API error: ${response.statusCode}');
+  }
+
+  Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: await _getHeaders(),
+      body: jsonEncode(body),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('API error: ${response.statusCode}');
+  }
+
+  Future<dynamic> patch(String endpoint, Map<String, dynamic> body) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: await _getHeaders(),
+      body: jsonEncode(body),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('API error: ${response.statusCode}');
+  }
+}
+
+final apiClient = ApiClient(
+  baseUrl: const String.fromEnvironment('API_BASE_URL'),
+);
 ```
 
 **Authentication Provider** (`lib/providers/auth_provider.dart`):
 ```dart
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../api_client.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _user;
@@ -406,9 +477,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    // Get initial session
-    final session = supabase.auth.currentSession;
-    _user = session?.user;
+    // Get initial user
+    _user = FirebaseAuth.instance.currentUser;
     if (_user != null) {
       await _fetchUserRole();
     }
@@ -416,8 +486,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     // Listen for auth state changes
-    supabase.auth.onAuthStateChange.listen((data) async {
-      _user = data.session?.user;
+    FirebaseAuth.instance.authStateChanges().listen((user) async {
+      _user = user;
       if (_user != null) {
         await _fetchUserRole();
       } else {
@@ -428,24 +498,29 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _fetchUserRole() async {
-    final response = await supabase
-        .from('portal_users')
-        .select('role')
-        .eq('supabase_user_id', _user!.id)
-        .single();
+    final response = await apiClient.get('/api/portal/me');
     _userRole = response['role'] as String;
   }
 
-  Future<void> signInWithOAuth(OAuthProvider provider) async {
-    await supabase.auth.signInWithOAuth(provider);
+  Future<void> signInWithGoogle() async {
+    final provider = GoogleAuthProvider();
+    await FirebaseAuth.instance.signInWithPopup(provider);
+  }
+
+  Future<void> signInWithMicrosoft() async {
+    final provider = MicrosoftAuthProvider();
+    await FirebaseAuth.instance.signInWithPopup(provider);
   }
 
   Future<void> signInWithEmail(String email, String password) async {
-    await supabase.auth.signInWithPassword(email: email, password: password);
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
   }
 
   Future<void> signOut() async {
-    await supabase.auth.signOut();
+    await FirebaseAuth.instance.signOut();
     _user = null;
     _userRole = null;
     notifyListeners();
@@ -453,29 +528,29 @@ class AuthProvider extends ChangeNotifier {
 }
 ```
 
-**OAuth Configuration** (Supabase Dashboard):
-- **Google OAuth**: Client ID, Client Secret from Google Cloud Console
-- **Microsoft OAuth**: Client ID, Client Secret from Azure AD
-- **Redirect URLs**: `https://{sponsor-subdomain}.netlify.app/auth/callback`
+**OAuth Configuration** (GCP Identity Platform Console):
+- **Google OAuth**: Enable Google provider in Identity Platform
+- **Microsoft OAuth**: Configure Microsoft provider with Azure AD credentials
+- **Authorized Domains**: Add Cloud Run URL and custom domain
 
 **Acceptance Criteria**:
-- [ ] Supabase client configured with environment variables
+- [ ] Firebase initialized with environment variables
 - [ ] Google OAuth working (login, logout, session persistence)
 - [ ] Microsoft OAuth working
 - [ ] Email/password login working
 - [ ] Email verification required for email/password signups
-- [ ] Automatic token refresh every 50 minutes
+- [ ] Automatic token refresh via Firebase SDK
 - [ ] Session persists across browser refresh
 - [ ] Logout clears all auth state
 
-*End* *Supabase Authentication Integration* | **Hash**: 8abcbfac
+*End* *Firebase Authentication Integration* | **Hash**: 8abcbfac
 ---
 
 # REQ-d00032: Role-Based Access Control Implementation
 
 **Level**: Dev | **Implements**: p00038, p00028 | **Status**: Draft
 
-The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and database queries SHALL be filtered by role using Supabase RLS policies.
+The portal SHALL enforce role-based access control (RBAC) with three roles: Admin, Investigator, and Auditor. UI routing and API queries SHALL be filtered by role using server-side RLS policies enforced by the Cloud Run API.
 
 **Technical Details**:
 - **Roles**: Admin, Investigator, Auditor (no Analyst role)
@@ -524,15 +599,8 @@ Investigators SHALL only see and manage patients from their assigned sites, enfo
 **Site Access Query** (Investigator Dashboard):
 ```dart
 Future<List<Patient>> getInvestigatorPatients() async {
-  // RLS policy automatically filters by user's site access
-  final response = await supabase
-      .from('patients')
-      .select('''
-        *,
-        site:sites(site_number, name, location),
-        questionnaires(type, status, last_completion_date)
-      ''')
-      .order('last_data_entry_date', ascending: false);
+  // RLS policy on server automatically filters by user's site access
+  final response = await apiClient.get('/api/portal/patients');
 
   return (response as List)
       .map((json) => Patient.fromJson(json))
@@ -540,18 +608,17 @@ Future<List<Patient>> getInvestigatorPatients() async {
 }
 ```
 
-**RLS Policy** (database implementation):
+**RLS Policy** (database implementation - enforced by Cloud Run API):
 ```sql
 -- Investigators can only see patients from their assigned sites
+-- Server sets session variables from Firebase token before queries
 CREATE POLICY "investigators_own_sites_patients" ON patients
   FOR SELECT
   USING (
-    auth.jwt() ->> 'role' = 'investigator'
+    current_setting('app.role', true) = 'investigator'
     AND site_id IN (
       SELECT site_id FROM user_site_access
-      WHERE user_id = (
-        SELECT id FROM portal_users WHERE supabase_user_id = auth.uid()
-      )
+      WHERE user_id = current_setting('app.user_id', true)::uuid
     )
   );
 ```
@@ -590,7 +657,7 @@ The portal SHALL provide a login page with OAuth (Google, Microsoft) and email/p
 ```dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../providers/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -611,11 +678,28 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _handleOAuthLogin(OAuthProvider provider) async {
+  Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
     try {
       final authProvider = context.read<AuthProvider>();
-      await authProvider.signInWithOAuth(provider);
+      await authProvider.signInWithGoogle();
+      // Redirect handled by router onAuthStateChange
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleMicrosoftLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.signInWithMicrosoft();
       // Redirect handled by router onAuthStateChange
     } catch (error) {
       if (mounted) {
@@ -778,13 +862,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Future<void> _loadUsers() async {
     setState(() => _isLoading = true);
     try {
-      final response = await supabase
-          .from('portal_users')
-          .select('''
-            *,
-            site_access:user_site_access(site:sites(site_number, name))
-          ''')
-          .order('created_at', ascending: false);
+      final response = await apiClient.get('/api/portal/users');
 
       setState(() {
         _users = (response as List)
@@ -822,10 +900,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     if (confirmed != true) return;
 
     try {
-      await supabase
-          .from('portal_users')
-          .update({'status': 'revoked'})
-          .eq('id', userId);
+      await apiClient.patch('/api/portal/users/$userId', {'status': 'revoked'});
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Investigator access revoked')),
@@ -1068,10 +1143,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   }
 
   Future<void> _loadSites() async {
-    final response = await supabase
-        .from('sites')
-        .select()
-        .order('site_number');
+    final response = await apiClient.get('/api/portal/sites');
 
     setState(() {
       _allSites = (response as List)
@@ -1105,30 +1177,15 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
     setState(() => _isLoading = true);
 
     try {
-      // Create portal user
-      final userResponse = await supabase
-          .from('portal_users')
-          .insert({
-            'name': _nameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'role': _selectedRole,
-            'linking_code': _selectedRole == 'Investigator' ? _linkingCode : null, // Only Investigators get linking codes
-            'status': 'active',
-          })
-          .select()
-          .single();
-
-      final userId = userResponse['id'] as String;
-
-      // Create site access records (only for Investigators)
-      if (_selectedRole == 'Investigator') {
-        final siteAccessRecords = _selectedSiteIds.map((siteId) => {
-          'user_id': userId,
-          'site_id': siteId,
-        }).toList();
-
-        await supabase.from('user_site_access').insert(siteAccessRecords);
-      }
+      // Create portal user via API
+      final userResponse = await apiClient.post('/api/portal/users', {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'role': _selectedRole,
+        'linking_code': _selectedRole == 'Investigator' ? _linkingCode : null,
+        'status': 'active',
+        'site_ids': _selectedRole == 'Investigator' ? _selectedSiteIds : [],
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1388,11 +1445,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   }
 
   Future<void> _loadMySites() async {
-    // RLS automatically filters by user's site access
-    final response = await supabase
-        .from('sites')
-        .select()
-        .order('site_number');
+    // API automatically filters by user's site access via RLS
+    final response = await apiClient.get('/api/portal/my-sites');
 
     _mySites = (response as List)
         .map((json) => Site.fromJson(json))
@@ -1400,15 +1454,8 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
   }
 
   Future<void> _loadMyPatients() async {
-    // RLS automatically filters by user's site access
-    final response = await supabase
-        .from('patients')
-        .select('''
-          *,
-          site:sites(site_number, name),
-          questionnaires(type, status, last_completion_date)
-        ''')
-        .order('last_data_entry_date', ascending: false);
+    // API automatically filters by user's site access via RLS
+    final response = await apiClient.get('/api/portal/patients');
 
     _patients = (response as List)
         .map((json) => Patient.fromJson(json))
@@ -1417,14 +1464,10 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
 
   Future<void> _sendQuestionnaire(String patientId, String type) async {
     try {
-      await supabase
-          .from('questionnaires')
-          .update({
-            'status': 'sent',
-            'sent_at': DateTime.now().toIso8601String(),
-          })
-          .eq('patient_id', patientId)
-          .eq('type', type);
+      await apiClient.post('/api/portal/questionnaires/send', {
+        'patient_id': patientId,
+        'type': type,
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$type questionnaire sent')),
@@ -1439,14 +1482,10 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
 
   Future<void> _acknowledgeQuestionnaire(String patientId, String type) async {
     try {
-      await supabase
-          .from('questionnaires')
-          .update({
-            'status': 'not_sent',
-            'acknowledged_at': DateTime.now().toIso8601String(),
-          })
-          .eq('patient_id', patientId)
-          .eq('type', type);
+      await apiClient.post('/api/portal/questionnaires/acknowledge', {
+        'patient_id': patientId,
+        'type': type,
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Questionnaire acknowledged')),
@@ -1694,10 +1733,9 @@ class _InvestigatorDashboardState extends State<InvestigatorDashboard> {
     if (confirmed != true) return;
 
     try {
-      await supabase
-          .from('patients')
-          .update({'status': 'unenrolled'})
-          .eq('patient_id', patientId);
+      await apiClient.patch('/api/portal/patients/$patientId', {
+        'status': 'unenrolled',
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Patient unenrolled')),
@@ -1887,44 +1925,11 @@ class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
     setState(() => _isLoading = true);
 
     try {
-      // Check if linking code already exists (should be unique)
-      final existing = await supabase
-          .from('patients')
-          .select('id')
-          .eq('linking_code', _linkingCode)
-          .maybeSingle();
-
-      if (existing != null) {
-        throw Exception('Linking code collision (very rare). Please try again.');
-      }
-
-      // Create patient record (patient_id will be assigned when patient enrolls)
-      final patientResponse = await supabase
-          .from('patients')
-          .insert({
-            'site_id': _selectedSiteId,
-            'linking_code': _linkingCode,
-            'enrollment_date': DateTime.now().toIso8601String(),
-            'status': 'pending_enrollment', // Changed when patient uses code
-          })
-          .select()
-          .single();
-
-      final patientId = patientResponse['id'] as String;
-
-      // Create initial questionnaire records
-      await supabase.from('questionnaires').insert([
-        {
-          'patient_id': patientId,
-          'type': 'NOSE_HHT',
-          'status': 'not_sent',
-        },
-        {
-          'patient_id': patientId,
-          'type': 'QoL',
-          'status': 'not_sent',
-        },
-      ]);
+      // API handles linking code uniqueness check and patient creation
+      await apiClient.post('/api/portal/patients/enroll', {
+        'site_id': _selectedSiteId,
+        'linking_code': _linkingCode,
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2106,14 +2111,8 @@ class _AuditorDashboardState extends State<AuditorDashboard> {
   }
 
   Future<void> _loadUsers() async {
-    // RLS allows Auditors to see all users
-    final response = await supabase
-        .from('portal_users')
-        .select('''
-          *,
-          site_access:user_site_access(site:sites(site_number, name))
-        ''')
-        .order('created_at', ascending: false);
+    // API allows Auditors to see all users via RLS
+    final response = await apiClient.get('/api/portal/users');
 
     _users = (response as List)
         .map((json) => PortalUser.fromJson(json))
@@ -2121,15 +2120,8 @@ class _AuditorDashboardState extends State<AuditorDashboard> {
   }
 
   Future<void> _loadPatients() async {
-    // RLS allows Auditors to see all patients
-    final response = await supabase
-        .from('patients')
-        .select('''
-          *,
-          site:sites(site_number, name),
-          questionnaires(type, status, last_completion_date)
-        ''')
-        .order('enrollment_date', ascending: false);
+    // API allows Auditors to see all patients via RLS
+    final response = await apiClient.get('/api/portal/patients');
 
     _patients = (response as List)
         .map((json) => Patient.fromJson(json))
@@ -2137,10 +2129,7 @@ class _AuditorDashboardState extends State<AuditorDashboard> {
   }
 
   Future<void> _loadSites() async {
-    final response = await supabase
-        .from('sites')
-        .select()
-        .order('site_number');
+    final response = await apiClient.get('/api/portal/sites');
 
     _sites = (response as List)
         .map((json) => Site.fromJson(json))
@@ -2453,7 +2442,7 @@ CREATE TYPE user_role AS ENUM ('Admin', 'Investigator', 'Auditor');
 
 CREATE TABLE portal_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  supabase_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  firebase_uid TEXT UNIQUE, -- Firebase Auth UID (nullable until user enrolls)
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role user_role NOT NULL,
@@ -2463,8 +2452,8 @@ CREATE TABLE portal_users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Index for fast role lookup by Supabase user ID
-CREATE INDEX idx_portal_users_supabase_id ON portal_users(supabase_user_id);
+-- Index for fast role lookup by Firebase UID
+CREATE INDEX idx_portal_users_firebase_uid ON portal_users(firebase_uid);
 
 -- Index for email lookups
 CREATE INDEX idx_portal_users_email ON portal_users(email);
@@ -2472,51 +2461,39 @@ CREATE INDEX idx_portal_users_email ON portal_users(email);
 -- Index for linking code lookups (mobile app uses this)
 CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
 
--- RLS policies
+-- RLS policies (enforced via application-set session variables)
 ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
 
 -- Admins and Auditors can see all users
 CREATE POLICY "admins_auditors_see_all_users" ON portal_users
   FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role IN ('Admin', 'Auditor')
-    )
+    current_setting('app.role', true) IN ('Admin', 'Auditor')
   );
 
 -- Investigators can see themselves
 CREATE POLICY "users_see_themselves" ON portal_users
   FOR SELECT
-  USING (supabase_user_id = auth.uid());
+  USING (firebase_uid = current_setting('app.user_id', true));
 
 -- Admins can insert new users
 CREATE POLICY "admins_insert_users" ON portal_users
   FOR INSERT
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role = 'Admin'
-    )
+    current_setting('app.role', true) = 'Admin'
   );
 
 -- Admins can update user status (revoke tokens)
 CREATE POLICY "admins_update_users" ON portal_users
   FOR UPDATE
   USING (
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role = 'Admin'
-    )
+    current_setting('app.role', true) = 'Admin'
   );
 ```
 
 **Columns**:
 - `id`: Primary key (UUID)
-- `supabase_user_id`: Foreign key to Supabase `auth.users` table (nullable until investigator enrolls device)
+- `firebase_uid`: Firebase Auth UID (nullable until investigator enrolls device)
 - `email`: Unique email address for login
 - `name`: Display name (e.g., "Dr. Sarah Johnson")
 - `role`: Enum (Admin, Investigator)
@@ -2563,39 +2540,28 @@ CREATE INDEX idx_user_site_access_user ON user_site_access(user_id);
 -- Index for fast user lookups by site
 CREATE INDEX idx_user_site_access_site ON user_site_access(site_id);
 
--- RLS policies
+-- RLS policies (enforced via application-set session variables)
 ALTER TABLE user_site_access ENABLE ROW LEVEL SECURITY;
 
 -- Admins and Auditors can see all site access records
 CREATE POLICY "admins_auditors_see_all_site_access" ON user_site_access
   FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role IN ('Admin', 'Auditor')
-    )
+    current_setting('app.role', true) IN ('Admin', 'Auditor')
   );
 
 -- Investigators can see their own site access
 CREATE POLICY "users_see_own_site_access" ON user_site_access
   FOR SELECT
   USING (
-    user_id IN (
-      SELECT id FROM portal_users
-      WHERE supabase_user_id = auth.uid()
-    )
+    user_id = current_setting('app.user_id', true)::uuid
   );
 
 -- Admins can insert site access records
 CREATE POLICY "admins_insert_site_access" ON user_site_access
   FOR INSERT
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role = 'Admin'
-    )
+    current_setting('app.role', true) = 'Admin'
   );
 ```
 
@@ -2650,24 +2616,16 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
   FOR SELECT
   USING (
     -- Admins and Auditors see all
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role IN ('Admin', 'Auditor')
-    )
+    current_setting('app.role', true) IN ('Admin', 'Auditor')
     OR
     -- Investigators see patients from their assigned sites
     (
-      EXISTS (
-        SELECT 1 FROM portal_users pu
-        WHERE pu.supabase_user_id = auth.uid()
-        AND pu.role = 'Investigator'
-      )
+      current_setting('app.role', true) = 'Investigator'
       AND site_id IN (
         SELECT usa.site_id
         FROM user_site_access usa
         JOIN portal_users pu ON usa.user_id = pu.id
-        WHERE pu.supabase_user_id = auth.uid()
+        WHERE pu.firebase_uid = current_setting('app.user_id', true)
       )
     )
   );
@@ -2677,24 +2635,16 @@ CREATE POLICY "investigators_insert_own_sites_patients" ON patients
   FOR INSERT
   WITH CHECK (
     -- Admins can enroll anywhere
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role = 'Admin'
-    )
+    current_setting('app.role', true) = 'Admin'
     OR
     -- Investigators can only enroll at their assigned sites
     (
-      EXISTS (
-        SELECT 1 FROM portal_users pu
-        WHERE pu.supabase_user_id = auth.uid()
-        AND pu.role = 'Investigator'
-      )
+      current_setting('app.role', true) = 'Investigator'
       AND site_id IN (
         SELECT usa.site_id
         FROM user_site_access usa
         JOIN portal_users pu ON usa.user_id = pu.id
-        WHERE pu.supabase_user_id = auth.uid()
+        WHERE pu.firebase_uid = current_setting('app.user_id', true)
       )
     )
   );
@@ -2704,23 +2654,15 @@ CREATE POLICY "investigators_update_own_sites_patients" ON patients
   FOR UPDATE
   USING (
     -- Same logic as SELECT policy
-    EXISTS (
-      SELECT 1 FROM portal_users pu
-      WHERE pu.supabase_user_id = auth.uid()
-      AND pu.role = 'Admin'
-    )
+    current_setting('app.role', true) = 'Admin'
     OR
     (
-      EXISTS (
-        SELECT 1 FROM portal_users pu
-        WHERE pu.supabase_user_id = auth.uid()
-        AND pu.role = 'Investigator'
-      )
+      current_setting('app.role', true) = 'Investigator'
       AND site_id IN (
         SELECT usa.site_id
         FROM user_site_access usa
         JOIN portal_users pu ON usa.user_id = pu.id
-        WHERE pu.supabase_user_id = auth.uid()
+        WHERE pu.firebase_uid = current_setting('app.user_id', true)
       )
     )
   );
@@ -2859,68 +2801,104 @@ CREATE TRIGGER questionnaires_updated_at
 
 ## Deployment Requirements
 
-# REQ-d00043: Netlify Deployment Configuration
+# REQ-d00043: Cloud Run Deployment Configuration
 
 **Level**: Dev | **Implements**: o00009 | **Status**: Draft
 
-The portal SHALL be deployed to Netlify with sponsor-specific subdomains, automatic builds from Git, and environment variable configuration.
+The portal SHALL be deployed to Cloud Run with sponsor-specific custom domains, automatic builds via Cloud Build, and environment variable configuration.
 
 **Technical Details**:
-- **Platform**: Netlify (static site hosting)
+- **Platform**: Cloud Run (containerized web hosting)
 - **Build Command**: `flutter build web --release --web-renderer html`
-- **Publish Directory**: `build/web/`
-- **Deployment**: Automatic on `main` branch push
+- **Container**: nginx serving static Flutter web build
+- **Deployment**: Automatic on `main` branch push via Cloud Build
 
-**Netlify Configuration File** (`netlify.toml`):
-```toml
-[build]
-  command = "flutter build web --release --web-renderer html"
-  publish = "build/web"
+**Dockerfile** (`Dockerfile.portal`):
+```dockerfile
+# Stage 1: Build Flutter web app
+FROM ghcr.io/cirruslabs/flutter:stable AS builder
+WORKDIR /app
+COPY pubspec.* ./
+RUN flutter pub get
+COPY . .
+ARG FIREBASE_API_KEY
+ARG FIREBASE_AUTH_DOMAIN
+ARG GCP_PROJECT_ID
+ARG FIREBASE_APP_ID
+ARG API_BASE_URL
+RUN flutter build web --release --web-renderer html \
+    --dart-define=FIREBASE_API_KEY=$FIREBASE_API_KEY \
+    --dart-define=FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN \
+    --dart-define=GCP_PROJECT_ID=$GCP_PROJECT_ID \
+    --dart-define=FIREBASE_APP_ID=$FIREBASE_APP_ID \
+    --dart-define=API_BASE_URL=$API_BASE_URL
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.google.com https://*.microsoft.com; frame-ancestors 'none';"
+# Stage 2: Serve with nginx
+FROM nginx:alpine
+COPY --from=builder /app/build/web /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
 ```
 
-**Environment Variables** (Netlify Dashboard):
+**nginx Configuration** (`nginx.conf`):
+```nginx
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SPA routing - serve index.html for all routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "DENY";
+    add_header X-Content-Type-Options "nosniff";
+    add_header Referrer-Policy "strict-origin-when-cross-origin";
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()";
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.run.app https://*.googleapis.com https://*.google.com https://*.microsoft.com; frame-ancestors 'none';";
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+}
 ```
-SUPABASE_URL=https://<sponsor-project>.supabase.co
-SUPABASE_ANON_KEY=<anon-key-from-supabase>
+
+**Environment Variables** (Cloud Run / Secret Manager):
+```
+FIREBASE_API_KEY=AIza...  # From Firebase Console
+FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
+GCP_PROJECT_ID=<sponsor-project-id>
+FIREBASE_APP_ID=1:123456789:web:abc123
+API_BASE_URL=https://api-<sponsor>-uc.a.run.app
 ```
 
 **Build Settings**:
-- **Flutter Version**: Specify in `.flutter-version` file
-- **Build Image**: Ubuntu 20.04 (default Netlify image)
-- **Node Version**: Not required (Flutter uses Dart SDK)
+- **Cloud Build**: Triggered by GitHub push via Workload Identity Federation
+- **Artifact Registry**: Container images stored in sponsor's GCP project
+- **Cloud Run**: Serverless hosting with auto-scaling
 
 **Sponsor-Specific Deployment**:
-- Each sponsor gets a separate Netlify site
-- Custom domain: `https://<sponsor-name>.clinicaltrial.com` (or sponsor-provided domain)
-- Each site points to same Git repo but different Supabase project
-- Environment variables differ per sponsor
+- Each sponsor gets a separate Cloud Run service in their GCP project
+- Custom domain: `https://portal.<sponsor-name>.clinicaltrial.com` (or sponsor-provided domain)
+- Each deployment uses same Git repo but different GCP project
+- Environment variables and Firebase config differ per sponsor
 
 **Acceptance Criteria**:
-- [ ] `netlify.toml` configuration file created
-- [ ] Build command configured correctly
-- [ ] Publish directory set to `build/web/`
-- [ ] SPA redirects configured (`/* → /index.html`)
-- [ ] Security headers configured
+- [ ] Dockerfile builds Flutter web app and nginx container
+- [ ] nginx.conf configures SPA routing and security headers
+- [ ] Container pushed to Artifact Registry
+- [ ] Cloud Run service deployed with correct environment variables
+- [ ] SPA routing works (`/* → index.html`)
+- [ ] Security headers configured correctly
 - [ ] CSP headers restrict resource loading
-- [ ] Environment variables set in Netlify dashboard
 - [ ] Automatic deployments trigger on `main` branch push
-- [ ] Custom domain configured for sponsor
+- [ ] Custom domain configured with SSL certificate
 
-*End* *Netlify Deployment Configuration* | **Hash**: d7c11f03
+*End* *Cloud Run Deployment Configuration* | **Hash**: d7c11f03
 ---
 
 ## Summary
@@ -2930,9 +2908,10 @@ This development specification defines the technical implementation requirements
 **Key Technologies**:
 - Flutter 3.24+ for web
 - Dart 3.10+
-- Supabase Auth (OAuth + email/password)
-- Supabase Database with RLS policies
-- Netlify deployment
+- Firebase Auth / Identity Platform (OAuth + email/password)
+- Cloud SQL PostgreSQL with RLS policies
+- Cloud Run API (Dart server with HTTP client)
+- Cloud Run deployment (nginx container)
 
 **Simplified Scope**:
 - **Two roles only**: Admin, Investigator (no Auditor/Analyst)
@@ -2953,7 +2932,7 @@ This development specification defines the technical implementation requirements
 4. Implement authentication and routing (REQ-d00030, d00031)
 5. Build Admin dashboard (REQ-d00035, d00036)
 6. Build Investigator dashboard (REQ-d00037, d00038)
-7. Deploy to Netlify (REQ-d00043)
+7. Deploy to Cloud Run (REQ-d00043)
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Development
-**Last Updated**: 2025-10-26
+**Last Updated**: 2025-11-24
 **Status**: Active
 
 > **See**: prd-app.md for application architecture
@@ -63,7 +63,7 @@ Development infrastructure SHALL provide separate containerized environments for
 Role-based environments SHALL include:
 - **Developer**: Full development tools (Flutter, Android SDK, hot reload, debugging)
 - **QA**: Testing frameworks (Playwright, Flutter integration tests, report generation)
-- **DevOps**: Infrastructure tools (Terraform, Supabase CLI, deployment automation)
+- **DevOps**: Infrastructure tools (Terraform, gcloud CLI, Cloud SQL Proxy, deployment automation)
 - **Management**: Read-only tools (repository viewer, report access, audit log queries)
 - Distinct Git identities per role (name, email, GPG signing)
 - Role-specific GitHub Personal Access Tokens with minimal scopes
@@ -157,7 +157,7 @@ Doppler integration SHALL provide:
 **Acceptance Criteria**:
 - Doppler CLI installed in all role containers
 - GitHub tokens accessed via `doppler run -- gh auth login`
-- Supabase tokens accessed via `doppler run -- supabase link`
+- GCP credentials accessed via `doppler run -- gcloud auth login`
 - No secrets in Git history, Dockerfiles, or compose files
 - Doppler audit log captures all secret access
 - Documentation covers Doppler setup per role
@@ -202,7 +202,8 @@ Tool specifications SHALL include:
 
 **Infrastructure (ops)**:
 - Terraform 1.9+ (infrastructure as code)
-- Supabase CLI latest (database management)
+- gcloud CLI latest (GCP management)
+- Cloud SQL Proxy latest (database connectivity)
 
 **Documentation (mgmt)**:
 - Pandoc (document conversion)
@@ -305,6 +306,7 @@ Validation SHALL include:
 - Playwright can run sample tests
 - Terraform can validate configurations
 - Doppler can retrieve secrets
+- gcloud CLI can authenticate with GCP
 
 **Performance Qualification (PQ)**:
 - Build times within acceptable ranges

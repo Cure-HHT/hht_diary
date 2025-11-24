@@ -2,7 +2,26 @@
 
 **Audience**: Operations team
 **Purpose**: Define monitoring, error tracking, and observability requirements
-**Status**: Ready to activate (integrations ready, not connected)
+**Status**: Active
+**Version**: 2.0.0
+**Last Updated**: 2025-11-24
+
+---
+
+## Overview
+
+This document specifies the monitoring and observability stack for the Clinical Trial Diary Platform on Google Cloud Platform. The stack uses GCP Cloud Operations (formerly Stackdriver) for centralized logging, monitoring, and tracing with OpenTelemetry compliance.
+
+**Technology Stack**:
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Logging** | Cloud Logging | Centralized log aggregation |
+| **Monitoring** | Cloud Monitoring | Metrics and dashboards |
+| **Tracing** | Cloud Trace | Distributed tracing (OpenTelemetry) |
+| **Error Reporting** | Cloud Error Reporting | Exception aggregation |
+| **Uptime** | Cloud Monitoring Uptime Checks | Health monitoring |
+| **Alerting** | Cloud Monitoring Alerting | Incident notification |
 
 ---
 
@@ -25,7 +44,7 @@ The system SHALL provide comprehensive error tracking and monitoring that:
 
 2. **Error Metadata**:
    - Timestamp (UTC)
-   - User ID (if authenticated)
+   - User ID (if authenticated, anonymized)
    - Session ID
    - Device information (OS, browser, version)
    - Application version
@@ -50,12 +69,12 @@ The system SHALL provide comprehensive error tracking and monitoring that:
    - FDA audit trail compliance
 
 **Validation**:
-- **IQ**: Verify Sentry integration configured correctly
+- **IQ**: Verify Cloud Error Reporting configured correctly
 - **OQ**: Verify errors captured and grouped correctly
 - **PQ**: Verify error capture latency <5 seconds
 
 **Acceptance Criteria**:
-- ✅ Sentry SDK integrated in frontend and backend
+- ✅ Cloud Error Reporting enabled for all services
 - ✅ All environments configured (dev/staging/production)
 - ✅ PII scrubbing enabled
 - ✅ Alerts configured for critical errors
@@ -73,13 +92,13 @@ The system SHALL provide comprehensive error tracking and monitoring that:
 The system SHALL provide uptime monitoring that:
 
 1. **Health Checks**:
-   - API endpoint availability (every 30 seconds)
-   - Database connectivity (every 1 minute)
-   - Authentication service availability (every 1 minute)
+   - API endpoint availability (every 60 seconds)
+   - Database connectivity (every 60 seconds)
+   - Authentication service availability (every 60 seconds)
    - Response time monitoring (<2 seconds)
 
 2. **Geographic Monitoring**:
-   - Monitor from multiple geographic locations
+   - Monitor from multiple GCP regions
    - Detect regional outages
    - Measure latency by region
 
@@ -87,10 +106,10 @@ The system SHALL provide uptime monitoring that:
    - Automatic incident creation on downtime
    - Incident escalation after 5 minutes
    - Automatic incident resolution on recovery
-   - Root cause analysis prompts
+   - Root cause analysis via Cloud Trace
 
-4. **Status Page**:
-   - Public status page (status.clinical-diary.com)
+4. **Status Page** (Optional):
+   - Public status page via Cloud Monitoring
    - Real-time status updates
    - Incident history
    - Scheduled maintenance announcements
@@ -98,18 +117,17 @@ The system SHALL provide uptime monitoring that:
 5. **Alerting**:
    - Immediate alert on downtime
    - SMS/email/Slack notifications
-   - On-call rotation support
+   - On-call rotation support via PagerDuty integration
    - Alert acknowledgment tracking
 
 **Validation**:
-- **IQ**: Verify Better Uptime monitors configured
+- **IQ**: Verify uptime checks configured
 - **OQ**: Verify downtime detected within 1 minute
 - **PQ**: Verify alert delivery within 30 seconds
 
 **Acceptance Criteria**:
-- ✅ Uptime monitors configured for all critical endpoints
+- ✅ Uptime checks configured for all critical endpoints
 - ✅ Multi-region monitoring enabled
-- ✅ Status page published
 - ✅ Alerting configured with on-call rotation
 - ✅ 99.9% uptime SLA monitored
 
@@ -131,7 +149,7 @@ The system SHALL monitor application performance with:
    - Mobile app performance metrics
    - Resource utilization (CPU, memory, database connections)
 
-2. **Transaction Tracing**:
+2. **Transaction Tracing** (OpenTelemetry):
    - End-to-end request tracing
    - Database query analysis
    - External API call tracking
@@ -150,13 +168,13 @@ The system SHALL monitor application performance with:
    - Custom metric visualization
 
 **Validation**:
-- **IQ**: Verify performance monitoring configured
-- **OQ**: Verify metrics collected correctly
+- **IQ**: Verify Cloud Trace configured
+- **OQ**: Verify traces captured correctly
 - **PQ**: Verify dashboard updates within 1 minute
 
 **Acceptance Criteria**:
-- ✅ Supabase metrics dashboard configured
-- ✅ Sentry performance monitoring enabled
+- ✅ Cloud Trace enabled with OpenTelemetry
+- ✅ Cloud Monitoring dashboards configured
 - ✅ Performance alerts configured
 - ✅ SLA compliance tracked (95% of requests <2 seconds)
 
@@ -191,7 +209,7 @@ The system SHALL monitor audit trail integrity with:
 
 4. **Retention Verification**:
    - Verify 7-year retention policy compliance
-   - Monitor archival to S3 Glacier
+   - Monitor archival to Cloud Storage Coldline
    - Alert on retention policy violations
    - Automatic lifecycle management verification
 
@@ -219,11 +237,12 @@ The system SHALL monitor audit trail integrity with:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐        ┌──────────────┐                      │
-│  │ Flutter App  │        │ Supabase API │                      │
-│  │ (Frontend)   │        │ (Backend)    │                      │
+│  │ Flutter App  │        │ Dart Server  │                      │
+│  │ (Frontend)   │        │ (Cloud Run)  │                      │
 │  └──────┬───────┘        └──────┬───────┘                      │
 │         │                       │                              │
-│         │ Sentry SDK            │ Sentry SDK                   │
+│         │ OpenTelemetry         │ OpenTelemetry                │
+│         │ (via Cloud Trace)     │ + Cloud Logging              │
 │         │                       │                              │
 └─────────┼───────────────────────┼──────────────────────────────┘
           │                       │
@@ -231,85 +250,67 @@ The system SHALL monitor audit trail integrity with:
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Error Tracking (Sentry)                                         │
+│ GCP Cloud Operations                                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌────────────────────────────────────────┐                    │
-│  │ Error Aggregation                      │                    │
-│  │ • Group similar errors                 │                    │
-│  │ • Extract stack traces                 │                    │
-│  │ • Scrub PII/PHI                        │                    │
-│  │ • Enrich with context                  │                    │
+│  │ Cloud Logging                          │                    │
+│  │ • Centralized log aggregation          │                    │
+│  │ • Structured logging (JSON)            │                    │
+│  │ • Log-based metrics                    │                    │
+│  │ • Log routing and filtering            │                    │
 │  └────────────────┬───────────────────────┘                    │
 │                   │                                             │
-│                   ▼                                             │
-│  ┌────────────────────────────────────────┐                    │
-│  │ Alerting Engine                        │                    │
-│  │ • Critical errors → Immediate alert    │                    │
-│  │ • Recurring errors → Escalation        │                    │
-│  │ • Spike detection → Auto-alert         │                    │
+│  ┌────────────────▼───────────────────────┐                    │
+│  │ Cloud Error Reporting                  │                    │
+│  │ • Error aggregation                    │                    │
+│  │ • Stack trace deduplication            │                    │
+│  │ • Error trends and alerts              │                    │
+│  │ • PII scrubbing                        │                    │
+│  └────────────────┬───────────────────────┘                    │
+│                   │                                             │
+│  ┌────────────────▼───────────────────────┐                    │
+│  │ Cloud Trace (OpenTelemetry)            │                    │
+│  │ • Distributed tracing                  │                    │
+│  │ • Latency analysis                     │                    │
+│  │ • Service dependency mapping           │                    │
+│  │ • Performance bottlenecks              │                    │
+│  └────────────────┬───────────────────────┘                    │
+│                   │                                             │
+│  ┌────────────────▼───────────────────────┐                    │
+│  │ Cloud Monitoring                       │                    │
+│  │ • Custom dashboards                    │                    │
+│  │ • Alerting policies                    │                    │
+│  │ • Uptime checks                        │                    │
+│  │ • SLO tracking                         │                    │
 │  └────────────────┬───────────────────────┘                    │
 │                   │                                             │
 │                   ├─────────▶ Email                             │
 │                   ├─────────▶ Slack                             │
-│                   └─────────▶ PagerDuty                         │
+│                   ├─────────▶ PagerDuty                         │
+│                   └─────────▶ Pub/Sub (for automation)          │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
 
 ┌─────────────────────────────────────────────────────────────────┐
-│ Uptime Monitoring (Better Uptime)                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Health Check Monitors (every 30-60 seconds):                  │
-│                                                                 │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐       │
-│  │ US East      │   │ US West      │   │ EU West      │       │
-│  └──────┬───────┘   └──────┬───────┘   └──────┬───────┘       │
-│         │                  │                  │                │
-│         └──────────────────┼──────────────────┘                │
-│                            │                                   │
-│                            ▼                                   │
-│         ┌──────────────────────────────────┐                   │
-│         │ Endpoints:                       │                   │
-│         │ • API Health: /health            │                   │
-│         │ • Auth: /auth/v1/health          │                   │
-│         │ • Database: /db/health           │                   │
-│         └──────────────┬───────────────────┘                   │
-│                        │                                       │
-│         ┌──── DOWN ────┤                                       │
-│         │              │                                       │
-│         ▼              ▼ UP                                    │
-│  ┌──────────────┐  ┌──────────────┐                           │
-│  │ Create       │  │ Update       │                           │
-│  │ Incident     │  │ Status Page  │                           │
-│  └──────┬───────┘  └──────────────┘                           │
-│         │                                                      │
-│         ├─────────▶ SMS                                        │
-│         ├─────────▶ Email                                      │
-│         └─────────▶ Slack                                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-
-┌─────────────────────────────────────────────────────────────────┐
-│ Performance Monitoring                                          │
+│ Database Monitoring                                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────────────────────────┐                   │
-│  │ Supabase Metrics Dashboard              │                   │
-│  │ • Database query performance            │                   │
+│  │ Cloud SQL Insights                      │                   │
+│  │ • Query performance analysis            │                   │
 │  │ • Connection pool utilization           │                   │
 │  │ • Storage usage and growth              │                   │
-│  │ • API request rates                     │                   │
+│  │ • Slow query detection                  │                   │
 │  └─────────────────────────────────────────┘                   │
 │                                                                 │
 │  ┌─────────────────────────────────────────┐                   │
-│  │ Sentry Performance                      │                   │
-│  │ • Transaction tracing                   │                   │
-│  │ • API response times (p50/p95/p99)      │                   │
-│  │ • Frontend page load times              │                   │
-│  │ • Database query analysis               │                   │
+│  │ Built-in Cloud SQL Metrics              │                   │
+│  │ • CPU utilization                       │                   │
+│  │ • Memory usage                          │                   │
+│  │ • Disk I/O                              │                   │
+│  │ • Connections                           │                   │
 │  └─────────────────────────────────────────┘                   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -320,11 +321,11 @@ The system SHALL monitor audit trail integrity with:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────────────────────────┐                   │
-│  │ Tamper Detection (PostgreSQL Function)  │                   │
+│  │ Tamper Detection (Cloud Scheduler)      │                   │
 │  │ • Runs every 5 minutes                  │                   │
 │  │ • Verifies cryptographic hashes         │                   │
 │  │ • Checks sequence number continuity     │                   │
-│  │ • Alerts on anomalies                   │                   │
+│  │ • Triggers Cloud Function on anomaly    │                   │
 │  └─────────────────┬───────────────────────┘                   │
 │                    │                                            │
 │         ┌──────────┴──────────┐                                │
@@ -332,9 +333,9 @@ The system SHALL monitor audit trail integrity with:
 │         ▼ TAMPERING           ▼ NORMAL                         │
 │  ┌──────────────┐      ┌──────────────┐                        │
 │  │ Emergency    │      │ Log Success  │                        │
-│  │ Alert        │      └──────────────┘                        │
-│  │ + Incident   │                                              │
-│  └──────────────┘                                              │
+│  │ Alert        │      │ to Cloud     │                        │
+│  │ + Incident   │      │ Logging      │                        │
+│  └──────────────┘      └──────────────┘                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -345,74 +346,189 @@ The system SHALL monitor audit trail integrity with:
 
 | Component | Technology | Cost | Purpose |
 | --- | --- | --- | --- |
-| **Error Tracking** | Sentry | $26/month | Exception capture, performance monitoring |
-| **Uptime Monitoring** | Better Uptime | Free | Multi-region health checks, status page |
-| **Database Metrics** | Supabase Built-in | Included | Query performance, connection pools |
-| **Audit Monitoring** | Custom (PostgreSQL) | Included | Tamper detection, compliance reporting |
-| **Long-term Storage** | S3 Glacier | ~$1/month | 7-year retention for critical errors |
+| **Logging** | Cloud Logging | ~$0.50/GB ingested | Centralized log aggregation |
+| **Monitoring** | Cloud Monitoring | Free tier + ~$0.10/metric | Dashboards and alerts |
+| **Tracing** | Cloud Trace | $0.20/million spans | Distributed tracing |
+| **Error Reporting** | Cloud Error Reporting | Free | Exception aggregation |
+| **Uptime Checks** | Cloud Monitoring | Free (up to 100) | Health monitoring |
+| **Long-term Storage** | Cloud Storage Coldline | ~$0.004/GB/month | 7-year compliance retention |
 
-**Total Cost**: ~$27/month
+**Estimated Monthly Cost**: ~$20-50/month (depending on volume)
 
 ---
 
 ## Integration Guides
 
-### Sentry Integration
+### Cloud Logging Integration
 
-See `docs/monitoring/sentry-setup.md` for complete setup instructions.
+**Dart Server (Cloud Run)**:
 
-**Quick Start**:
+```dart
+import 'dart:convert';
+import 'dart:io';
 
-1. Create Sentry account and project
-2. Install SDKs:
-   ```bash
-   # Flutter
-   flutter pub add sentry_flutter
+/// Structured logging for Cloud Logging
+class CloudLogger {
+  final String serviceName;
+  final String environment;
 
-   # Backend (if using custom functions)
-   npm install @sentry/node
-   ```
+  CloudLogger({
+    required this.serviceName,
+    required this.environment,
+  });
 
-3. Configure in application:
-   ```dart
-   // lib/main.dart
-   await SentryFlutter.init(
-     (options) {
-       options.dsn = const String.fromEnvironment('SENTRY_DSN');
-       options.environment = const String.fromEnvironment('ENVIRONMENT');
-       options.beforeSend = scr ubPii;  // Remove PII
-     },
-     appRunner: () => runApp(MyApp()),
-   );
-   ```
+  void info(String message, {Map<String, dynamic>? labels}) {
+    _log('INFO', message, labels: labels);
+  }
 
-4. Store DSN in Doppler:
-   ```bash
-   doppler secrets set SENTRY_DSN="https://xxx@sentry.io/xxx"
-   ```
+  void warning(String message, {Map<String, dynamic>? labels}) {
+    _log('WARNING', message, labels: labels);
+  }
 
----
+  void error(String message, {Object? error, StackTrace? stackTrace, Map<String, dynamic>? labels}) {
+    _log('ERROR', message, error: error, stackTrace: stackTrace, labels: labels);
+  }
 
-### Better Uptime Integration
+  void _log(
+    String severity,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+    Map<String, dynamic>? labels,
+  }) {
+    final logEntry = {
+      'severity': severity,
+      'message': message,
+      'serviceContext': {
+        'service': serviceName,
+        'version': Platform.environment['K_REVISION'] ?? 'unknown',
+      },
+      'labels': {
+        'environment': environment,
+        ...?labels,
+      },
+      if (error != null) 'error': {
+        'message': error.toString(),
+        if (stackTrace != null) 'stackTrace': stackTrace.toString(),
+      },
+    };
 
-See `docs/monitoring/better-uptime-setup.md` for complete setup instructions.
+    // Cloud Run captures stdout as Cloud Logging entries
+    print(jsonEncode(logEntry));
+  }
+}
 
-**Quick Start**:
+// Usage
+final logger = CloudLogger(
+  serviceName: 'clinical-diary-api',
+  environment: Platform.environment['ENVIRONMENT'] ?? 'development',
+);
 
-1. Create Better Uptime account (free tier)
+logger.info('Request processed', labels: {'userId': userId, 'endpoint': '/api/entries'});
+logger.error('Database connection failed', error: e, stackTrace: stackTrace);
+```
 
-2. Add monitors:
-   - API Health: `https://your-project.supabase.co/rest/v1/health`
-   - Auth Health: `https://your-project.supabase.co/auth/v1/health`
+### Cloud Trace Integration (OpenTelemetry)
 
-3. Configure alerts:
-   - Email: your-team@example.com
-   - Slack: Install Slack integration
-   - SMS: Configure for production on-call
+**Dart Server with OpenTelemetry**:
 
-4. Create status page:
-   - Subdomain: status.clinical-diary.com
-   - Custom domain (optional): Configure DNS
+```dart
+import 'package:opentelemetry/api.dart';
+import 'package:opentelemetry/sdk.dart';
+import 'package:opentelemetry_exporter_cloud_trace/cloud_trace_exporter.dart';
+
+void initializeTracing() {
+  final exporter = CloudTraceExporter(
+    projectId: Platform.environment['GCP_PROJECT_ID']!,
+  );
+
+  final tracerProvider = TracerProviderBase(
+    processors: [BatchSpanProcessor(exporter)],
+  );
+
+  registerGlobalTracerProvider(tracerProvider);
+}
+
+// Usage in request handler
+Future<Response> handleRequest(Request request) async {
+  final tracer = globalTracerProvider.getTracer('clinical-diary-api');
+
+  return tracer.startActiveSpan('handleRequest', (span) async {
+    span.setAttribute('http.method', request.method);
+    span.setAttribute('http.url', request.url.toString());
+
+    try {
+      // Database query with child span
+      final result = await tracer.startActiveSpan('database.query', (dbSpan) async {
+        dbSpan.setAttribute('db.system', 'postgresql');
+        dbSpan.setAttribute('db.statement', 'SELECT * FROM record_state');
+
+        final data = await db.query('SELECT * FROM record_state');
+        return data;
+      });
+
+      span.setStatus(StatusCode.ok);
+      return Response.ok(jsonEncode(result));
+    } catch (e, stackTrace) {
+      span.setStatus(StatusCode.error, e.toString());
+      span.recordException(e, stackTrace: stackTrace);
+      rethrow;
+    }
+  });
+}
+```
+
+### Cloud Error Reporting
+
+Errors logged to Cloud Logging are automatically picked up by Cloud Error Reporting when properly formatted:
+
+```dart
+void reportError(Object error, StackTrace stackTrace, {String? userId}) {
+  final errorReport = {
+    'severity': 'ERROR',
+    'message': error.toString(),
+    '@type': 'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',
+    'serviceContext': {
+      'service': 'clinical-diary-api',
+      'version': Platform.environment['K_REVISION'] ?? 'unknown',
+    },
+    'context': {
+      'reportLocation': {
+        'functionName': 'handleRequest',
+      },
+      if (userId != null) 'user': userId,
+    },
+    'stack_trace': stackTrace.toString(),
+  };
+
+  print(jsonEncode(errorReport));
+}
+```
+
+### Uptime Checks Configuration
+
+```bash
+# Create uptime check for API health endpoint
+gcloud monitoring uptime-check-configs create clinical-diary-api-health \
+  --display-name="Clinical Diary API Health" \
+  --http-check-path="/health" \
+  --http-check-port=443 \
+  --monitored-resource-type="uptime_url" \
+  --monitored-resource-labels="project_id=${PROJECT_ID},host=api.clinical-diary.com" \
+  --period=60s \
+  --timeout=10s \
+  --regions=usa-oregon,usa-virginia,europe-belgium
+
+# Create uptime check for authentication
+gcloud monitoring uptime-check-configs create clinical-diary-auth-health \
+  --display-name="Clinical Diary Auth Health" \
+  --http-check-path="/auth/health" \
+  --http-check-port=443 \
+  --monitored-resource-type="uptime_url" \
+  --monitored-resource-labels="project_id=${PROJECT_ID},host=api.clinical-diary.com" \
+  --period=60s \
+  --timeout=10s
+```
 
 ---
 
@@ -420,41 +536,132 @@ See `docs/monitoring/better-uptime-setup.md` for complete setup instructions.
 
 ### Operations Dashboard
 
-**Key Metrics**:
+Create via Cloud Console or Terraform:
+
+```hcl
+resource "google_monitoring_dashboard" "operations" {
+  dashboard_json = jsonencode({
+    displayName = "Clinical Diary Operations"
+    gridLayout = {
+      widgets = [
+        {
+          title = "API Request Rate"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_count\""
+                }
+              }
+            }]
+          }
+        },
+        {
+          title = "API Latency (p95)"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_latencies\""
+                  aggregation = {
+                    alignmentPeriod = "60s"
+                    perSeriesAligner = "ALIGN_PERCENTILE_95"
+                  }
+                }
+              }
+            }]
+          }
+        },
+        {
+          title = "Error Rate"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/log_entry_count\" AND metric.labels.severity=\"ERROR\""
+                }
+              }
+            }]
+          }
+        },
+        {
+          title = "Cloud SQL CPU"
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesFilter = {
+                  filter = "resource.type=\"cloudsql_database\" AND metric.type=\"cloudsql.googleapis.com/database/cpu/utilization\""
+                }
+              }
+            }]
+          }
+        }
+      ]
+    }
+  })
+}
+```
+
+### Key Metrics
+
+**Operations Dashboard**:
 - Uptime percentage (rolling 24h/7d/30d)
 - Error rate (errors per 1000 requests)
 - p95 API response time
 - Active users
 - Database connection pool utilization
 
-**Access**: ops.clinical-diary.com (internal only)
-
----
-
-### Compliance Dashboard
-
-**Key Metrics**:
+**Compliance Dashboard**:
 - Audit trail tamper checks (last 7 days)
 - Audit record completeness (% of actions with records)
 - Retention compliance (7-year verification)
 - Access control violations
 - Failed authentication attempts
 
-**Access**: compliance.clinical-diary.com (restricted to QA/Compliance team)
-
 ---
 
 ## Alerting Strategy
 
+### Alert Policies
+
+```bash
+# Create alert for high error rate
+gcloud monitoring alert-policies create \
+  --display-name="High Error Rate" \
+  --condition-filter='resource.type="cloud_run_revision" AND metric.type="logging.googleapis.com/log_entry_count" AND metric.labels.severity="ERROR"' \
+  --condition-threshold-value=10 \
+  --condition-threshold-duration=300s \
+  --condition-threshold-comparison=COMPARISON_GT \
+  --notification-channels=${NOTIFICATION_CHANNEL_ID} \
+  --documentation='High error rate detected. Check Cloud Error Reporting for details.'
+
+# Create alert for API latency
+gcloud monitoring alert-policies create \
+  --display-name="High API Latency" \
+  --condition-filter='resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_latencies"' \
+  --condition-threshold-value=2000 \
+  --condition-threshold-duration=300s \
+  --condition-threshold-comparison=COMPARISON_GT \
+  --aggregations='alignmentPeriod=60s,perSeriesAligner=ALIGN_PERCENTILE_95' \
+  --notification-channels=${NOTIFICATION_CHANNEL_ID}
+
+# Create alert for database CPU
+gcloud monitoring alert-policies create \
+  --display-name="Database High CPU" \
+  --condition-filter='resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/cpu/utilization"' \
+  --condition-threshold-value=0.8 \
+  --condition-threshold-duration=300s \
+  --condition-threshold-comparison=COMPARISON_GT \
+  --notification-channels=${NOTIFICATION_CHANNEL_ID}
+```
+
 ### Critical Alerts (Immediate Response Required)
 
-- **Production downtime** → On-call engineer (SMS + phone call)
+- **Production downtime** → On-call engineer (SMS + phone call via PagerDuty)
 - **Audit trail tampering detected** → Security team + Tech Lead
 - **Database connection pool exhausted** → On-call engineer
 - **Error rate >5%** → On-call engineer
 - **Authentication service down** → On-call engineer
-
----
 
 ### Warning Alerts (Response within 1 hour)
 
@@ -463,8 +670,6 @@ See `docs/monitoring/better-uptime-setup.md` for complete setup instructions.
 - **Staging smoke tests failed** → QA team
 - **Backup failure** → Operations team
 - **Disk space >80%** → Operations team
-
----
 
 ### Info Alerts (Daily Digest)
 
@@ -475,59 +680,146 @@ See `docs/monitoring/better-uptime-setup.md` for complete setup instructions.
 
 ---
 
-## Incident Response Integration
+## Notification Channels
 
-### Incident Creation
+### Setup Notification Channels
 
-Automatic incident creation for:
-- Production downtime >1 minute
-- Critical errors affecting >10 users
-- Audit trail tampering
-- Security breaches
+```bash
+# Email notification channel
+gcloud monitoring channels create \
+  --display-name="Engineering Team Email" \
+  --type=email \
+  --channel-labels=email_address=engineering@clinical-diary.com
 
-**Incident Ticket Created In**: GitHub Issues with `incident` label
+# Slack notification channel
+gcloud monitoring channels create \
+  --display-name="Ops Slack Channel" \
+  --type=slack \
+  --channel-labels=channel_name=#clinical-diary-ops \
+  --channel-labels=auth_token=${SLACK_WEBHOOK_URL}
 
-**Incident Runbook**: See `docs/ops/incident-response-runbook.md`
+# PagerDuty integration (for critical alerts)
+gcloud monitoring channels create \
+  --display-name="PagerDuty On-Call" \
+  --type=pagerduty \
+  --channel-labels=service_key=${PAGERDUTY_SERVICE_KEY}
+```
 
 ---
 
-## Activation Instructions
+## Audit Trail Monitoring
 
-To activate monitoring:
+### Tamper Detection Scheduler
 
-1. **Set up Sentry** (see `docs/monitoring/sentry-setup.md`):
-   ```bash
-   # Create Sentry organization and projects
-   # Add DSNs to Doppler
-   doppler secrets set SENTRY_DSN_DEV="..."
-   doppler secrets set SENTRY_DSN_STAGING="..."
-   doppler secrets set SENTRY_DSN_PROD="..."
-   ```
+```bash
+# Create Cloud Scheduler job for tamper detection
+gcloud scheduler jobs create http audit-tamper-check \
+  --location=$REGION \
+  --schedule="*/5 * * * *" \
+  --uri="https://${CLOUD_RUN_URL}/admin/audit/verify" \
+  --http-method=POST \
+  --oidc-service-account-email=${SERVICE_ACCOUNT}
+```
 
-2. **Set up Better Uptime** (see `docs/monitoring/better-uptime-setup.md`):
-   ```bash
-   # Create monitors for each environment
-   # Configure status page
-   # Set up alert integrations (email, Slack, SMS)
-   ```
+### Tamper Detection Function
 
-3. **Enable audit monitoring**:
-   ```sql
-   -- Deploy audit tamper detection function
-   -- (Already included in database/schema.sql)
-   SELECT cron.schedule(
-     'audit-tamper-check',
-     '*/5 * * * *',  -- Every 5 minutes
-     $$ SELECT check_audit_trail_integrity() $$
-   );
-   ```
+```dart
+// Endpoint: POST /admin/audit/verify
+Future<Response> verifyAuditIntegrity(Request request) async {
+  final logger = CloudLogger(serviceName: 'audit-monitor', environment: environment);
 
-4. **Configure dashboards**:
-   - Access Sentry dashboard
-   - Access Better Uptime dashboard
-   - Access Supabase metrics dashboard
+  try {
+    // Check for tampered records
+    final tamperedRecords = await db.query('''
+      SELECT * FROM detect_tampered_records(
+        now() - interval '10 minutes',
+        now()
+      )
+    ''');
 
-See `docs/ops-infrastructure-activation.md` for complete activation procedures.
+    if (tamperedRecords.isNotEmpty) {
+      // CRITICAL: Tampering detected
+      logger.error(
+        'AUDIT TAMPERING DETECTED',
+        labels: {
+          'tampered_count': tamperedRecords.length.toString(),
+          'alert_type': 'SECURITY_CRITICAL',
+        },
+      );
+
+      // Create incident
+      await createSecurityIncident(
+        title: 'Audit Trail Tampering Detected',
+        severity: 'CRITICAL',
+        recordCount: tamperedRecords.length,
+      );
+
+      return Response.internalServerError(
+        body: jsonEncode({'status': 'TAMPERING_DETECTED', 'count': tamperedRecords.length}),
+      );
+    }
+
+    // Check for sequence gaps
+    final sequenceGaps = await db.query('SELECT * FROM check_audit_sequence_gaps()');
+
+    if (sequenceGaps.isNotEmpty) {
+      logger.warning(
+        'Audit sequence gaps detected',
+        labels: {'gap_count': sequenceGaps.length.toString()},
+      );
+    }
+
+    logger.info('Audit integrity check passed');
+    return Response.ok(jsonEncode({'status': 'OK', 'checked_at': DateTime.now().toIso8601String()}));
+
+  } catch (e, stackTrace) {
+    logger.error('Audit integrity check failed', error: e, stackTrace: stackTrace);
+    return Response.internalServerError();
+  }
+}
+```
+
+---
+
+## Log Retention and Export
+
+### Configure Log Retention
+
+```bash
+# Set log retention to 90 days for hot storage
+gcloud logging buckets update _Default \
+  --location=global \
+  --retention-days=90
+
+# Create log sink for long-term compliance storage
+gcloud logging sinks create compliance-archive \
+  --destination=storage.googleapis.com/${BUCKET_NAME}/logs \
+  --log-filter='resource.type="cloud_run_revision" OR resource.type="cloudsql_database"'
+```
+
+### Cloud Storage Lifecycle for Compliance
+
+```bash
+# Set lifecycle policy for 7-year retention
+cat > lifecycle.json << EOF
+{
+  "lifecycle": {
+    "rule": [
+      {
+        "action": {"type": "SetStorageClass", "storageClass": "COLDLINE"},
+        "condition": {"age": 90}
+      },
+      {
+        "action": {"type": "Delete"},
+        "condition": {"age": 2555}
+      }
+    ]
+  }
+}
+EOF
+
+gsutil lifecycle set lifecycle.json gs://${BUCKET_NAME}
+```
 
 ---
 
@@ -538,30 +830,27 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 **Objective**: Verify monitoring integrations installed correctly
 
 **Procedure**:
-1. Verify Sentry SDK integrated in Flutter app and backend
-2. Verify Better Uptime monitors configured
-3. Verify audit monitoring function deployed
-4. Verify dashboards accessible
-5. Document installation in validation log
+1. Verify Cloud Logging receiving logs from Cloud Run
+2. Verify Cloud Trace receiving spans
+3. Verify Cloud Error Reporting detecting errors
+4. Verify uptime checks configured
+5. Verify alert policies created
+6. Document installation in validation log
 
-**Acceptance**: All integrations installed and accessible
-
----
+**Acceptance**: All integrations operational
 
 ### Operational Qualification (OQ)
 
 **Objective**: Verify monitoring captures events correctly
 
 **Procedure**:
-1. Generate test error → Verify captured in Sentry within 5 seconds
-2. Simulate API downtime → Verify Better Uptime detects within 1 minute
+1. Generate test error → Verify captured in Error Reporting within 5 seconds
+2. Simulate API downtime → Verify uptime check fails within 1 minute
 3. Test audit tampering detection → Verify alert within 5 minutes
 4. Test alerting → Verify alerts delivered to correct channels
 5. Document results in validation log
 
 **Acceptance**: All test events captured and alerted correctly
-
----
 
 ### Performance Qualification (PQ)
 
@@ -583,60 +872,80 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 ## Troubleshooting
 
-### Errors Not Appearing in Sentry
+### Logs Not Appearing in Cloud Logging
 
-**Symptoms**: Errors occur in application but not captured in Sentry
+**Symptoms**: Application logs not visible in Cloud Logging
 
 **Diagnosis**:
-1. Verify Sentry DSN configured correctly
-2. Check network connectivity to Sentry
-3. Verify Sentry SDK initialized before app code runs
+1. Verify logs are being written to stdout/stderr
+2. Check log format is valid JSON
+3. Verify Cloud Run service has logging permissions
 
 **Resolution**:
-1. Check Doppler secrets: `doppler secrets get SENTRY_DSN`
-2. Test connectivity: `curl https://sentry.io/api/`
-3. Verify SDK initialization order in `main.dart`
+```bash
+# Verify logging permissions
+gcloud projects get-iam-policy $PROJECT_ID \
+  --filter="bindings.members:serviceAccount:*@$PROJECT_ID.iam.gserviceaccount.com"
+
+# Check for logging.logWriter role
+```
+
+### Traces Not Appearing in Cloud Trace
+
+**Symptoms**: Distributed traces not visible
+
+**Diagnosis**:
+1. Verify OpenTelemetry SDK initialized
+2. Check Cloud Trace API enabled
+3. Verify service account has trace writer role
+
+**Resolution**:
+```bash
+# Enable Cloud Trace API
+gcloud services enable cloudtrace.googleapis.com
+
+# Grant trace writer role
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:${SERVICE_ACCOUNT}" \
+  --role="roles/cloudtrace.agent"
+```
+
+### False Uptime Alerts
+
+**Symptoms**: Uptime checks report downtime but service is up
+
+**Diagnosis**:
+1. Check health endpoint response time
+2. Verify health endpoint returns 200 status
+3. Check for regional connectivity issues
+
+**Resolution**:
+1. Optimize health endpoint response time (<10s)
+2. Increase uptime check timeout
+3. Review regional check results separately
 
 ---
 
-### False Downtime Alerts
+## Migration from Previous Stack
 
-**Symptoms**: Better Uptime reports downtime but application is up
+If migrating from Sentry/Better Uptime:
 
-**Diagnosis**:
-1. Check application response time (may be timing out)
-2. Check geographic-specific issues
-3. Verify health check endpoint functioning
-
-**Resolution**:
-1. Optimize slow endpoints
-2. Adjust timeout thresholds in Better Uptime
-3. Fix health check endpoint if broken
-
----
-
-### Audit Tamper Detection False Positives
-
-**Symptoms**: Tamper detection alerts but no actual tampering
-
-**Diagnosis**:
-1. Check for concurrent writes causing hash race conditions
-2. Verify hash algorithm consistency
-3. Check for clock skew issues
-
-**Resolution**:
-1. Review audit trail locking mechanism
-2. Verify PostgreSQL version and hash functions
-3. Fix timestamp generation if needed
+1. **Remove Sentry SDK** from Flutter app and backend
+2. **Add Cloud Logging/Trace** integration as shown above
+3. **Create Cloud Monitoring dashboards** to replace Sentry dashboards
+4. **Configure uptime checks** to replace Better Uptime monitors
+5. **Update alert channels** to Cloud Monitoring notification channels
+6. **Verify error capture** working before decommissioning Sentry
 
 ---
 
 ## References
 
-- INFRASTRUCTURE_GAP_ANALYSIS.md - Phase 1 implementation plan
-- docs/monitoring/sentry-setup.md - Sentry integration guide
-- docs/monitoring/better-uptime-setup.md - Better Uptime integration guide
-- docs/ops/incident-response-runbook.md - Incident response procedures
+- [Cloud Logging Documentation](https://cloud.google.com/logging/docs)
+- [Cloud Monitoring Documentation](https://cloud.google.com/monitoring/docs)
+- [Cloud Trace Documentation](https://cloud.google.com/trace/docs)
+- [Cloud Error Reporting Documentation](https://cloud.google.com/error-reporting/docs)
+- [OpenTelemetry for Dart](https://opentelemetry.io/docs/instrumentation/dart/)
 - spec/dev-audit-trail.md - Audit trail implementation details
 
 ---
@@ -645,4 +954,5 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 | Date | Version | Author | Changes |
 | --- | --- | --- | --- |
-| 2025-01-27 | 1.0 | Claude | Initial specification (ready to activate) |
+| 2025-01-27 | 1.0 | Claude | Initial specification with Sentry/Better Uptime |
+| 2025-11-24 | 2.0 | Claude | Migration to GCP Cloud Operations (removed Sentry) |

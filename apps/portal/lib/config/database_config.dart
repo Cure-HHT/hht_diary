@@ -3,7 +3,6 @@
 
 import '../services/database_service.dart';
 import '../services/local_database_service.dart';
-import '../services/supabase_database_service.dart';
 
 /// Database environment types
 enum DatabaseEnvironment {

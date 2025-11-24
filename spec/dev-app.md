@@ -20,16 +20,16 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 - Offline-first with automatic background sync
 - Event Sourcing for complete audit trail
 - Sponsor-specific branding and configuration
-- Secure connection to sponsor's Supabase instance
+- Secure connection to sponsor's GCP backend (Cloud SQL + Identity Platform)
 - FDA 21 CFR Part 11 compliant data capture
 
 **Technology Stack**:
 - **Framework**: Flutter (single codebase � iOS + Android)
 - **Language**: Dart
-- **Backend**: Supabase (per sponsor)
+- **Backend**: GCP (Cloud SQL + Identity Platform + Cloud Run per sponsor)
 - **Local Storage**: SQLite via sqflite package
 - **State Management**: Riverpod
-- **Networking**: Supabase client for Dart
+- **Networking**: Firebase Auth SDK + HTTP client for Cloud Run API
 
 ---
 
@@ -43,7 +43,7 @@ The mobile application SHALL implement automatic sponsor detection and configura
 
 Implementation SHALL include:
 - Enrollment token parser extracting sponsor identifier
-- Configuration loader fetching sponsor-specific settings (Supabase URL, project keys, branding assets)
+- Configuration loader fetching sponsor-specific settings (GCP project ID, Firebase config, API URL, branding assets)
 - Runtime sponsor context switching based on active user session
 - Bundled sponsor configurations in app assets
 - Validation of sponsor configuration completeness before connection
@@ -54,7 +54,7 @@ Implementation SHALL include:
 **Acceptance Criteria**:
 - Enrollment token correctly identifies sponsor
 - Sponsor configuration loaded from bundled assets
-- App connects to correct sponsor Supabase instance
+- App connects to correct sponsor GCP backend
 - Sponsor branding applied after configuration load
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
@@ -69,7 +69,7 @@ Implementation SHALL include:
 - App name: "Clinical Diary" (generic, not sponsor-specific)
 - Contains **ALL** sponsor configurations bundled in app
 - Sponsor detected via enrollment token
-- Connects to sponsor's dedicated Supabase instance
+- Connects to sponsor's dedicated GCP backend
 
 
 ### Why Single App?
@@ -82,7 +82,7 @@ Implementation SHALL include:
 - Reduced maintenance overhead
 
 **Sponsor Isolation**:
-- Each sponsor: separate Supabase project (database + auth)
+- Each sponsor: separate GCP project (Cloud SQL + Identity Platform)
 - No data sharing between sponsors
 - Sponsor branding applied post-enrollment
 - Authentication tokens scoped to single sponsor
@@ -316,7 +316,8 @@ Build process SHALL include:
 - **Security Architecture**: prd-security.md
 - **FDA Compliance**: prd-clinical-trials.md
 - **Flutter Documentation**: https://flutter.dev/docs
-- **Supabase Flutter Client**: https://supabase.com/docs/reference/dart/introduction
+- **Firebase Auth Flutter**: https://firebase.google.com/docs/auth/flutter/start
+- **Cloud SQL Documentation**: https://cloud.google.com/sql/docs
 
 ---
 
@@ -325,6 +326,7 @@ Build process SHALL include:
 | Version | Date | Changes | Author |
 | --- | --- | --- | --- |
 | 1.0 | 2025-01-24 | Initial mobile app specification | Development Team |
+| 2.0 | 2025-11-24 | Updated for GCP backend | Development Team |
 
 ---
 

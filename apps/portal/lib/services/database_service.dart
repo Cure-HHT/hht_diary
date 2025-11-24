@@ -3,7 +3,7 @@
 //   REQ-p00003: Separate Database Per Sponsor
 
 /// Abstract database service interface
-/// Allows switching between Supabase (production) and local mock (testing)
+/// Allows switching between production database and local mock (testing)
 abstract class DatabaseService {
   // Auth methods
   Future<Map<String, dynamic>?> signInWithEmail(String email, String password);

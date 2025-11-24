@@ -2,7 +2,6 @@
 //   REQ-d00028: Portal Frontend Framework
 //   REQ-p00009: Sponsor-Specific Web Portals
 
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'database_service.dart';
 
 /// Supabase database service for production and UAT environments
