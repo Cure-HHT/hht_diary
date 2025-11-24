@@ -14,6 +14,7 @@ Then in the PLAN.md
 Mark the architecture as reviewed and approved.
 
 Let's hold off on the other preimplementation gates:
+
 * Development environment setup validated
 * CI/CD pipeline configured
 

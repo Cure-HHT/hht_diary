@@ -36,7 +36,8 @@ clinical_diary/       # Flutter app - UI & business logic
 **A:** ✅ get_it + Signals (NOT Riverpod)
 
 **Q: Where does application/ code go?**  
-**A:** 
+**A:**
+
 - ✅ Generic services → append_only_datastore (SyncService, QueryService)
 - ✅ App-specific logic → clinical_diary (RecordNosebleedCommand, etc.)
 
@@ -45,6 +46,7 @@ clinical_diary/       # Flutter app - UI & business logic
 
 **Q: Should infrastructure be separated?**  
 **A:** ✅ YES
+
 - Client infrastructure → append_only_datastore
 - Server infrastructure → Future server project (Phase 2)
 

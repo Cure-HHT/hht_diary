@@ -14,18 +14,21 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 ### Three-Package Structure
 
 **1. trial_data_types** (Pure Dart package - shared types)
+
 - Domain entities, events, and value objects
 - Shared between client (Flutter) and server (Supabase)
 - No Flutter dependencies
 - Basis for PostgreSQL table definitions
 
 **2. append_only_datastore** (Flutter package - client storage)
+
 - SQLite implementation for offline storage
 - Event repository and sync engine
 - Query services and conflict resolution
 - Depends on: trial_data_types
 
 **3. clinical_diary** (Flutter app)
+
 - Application-specific business logic
 - UI presentation layer
 - Depends on: append_only_datastore, trial_data_types
@@ -33,6 +36,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 ## 📋 Phase 1 - MVP Implementation Checklist
 
 ### Pre-Implementation Gates
+
 - [x] Architecture documented (ARCHITECTURE.md)
 - [x] Implementation plan created (this document)
 - [x] ✅ **Architecture reviewed and approved**
@@ -42,8 +46,10 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 ### 1. Core Infrastructure Setup (Days 1-2)
 
 #### 1.1 Project: trial_data_types Setup
+
 - [x] Create analysis_options.yaml with linting rules
 - [ ] Create folder structure:
+
   ```
   lib/
   ├── src/
@@ -61,9 +67,11 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
   │       └── identifier.dart
   └── trial_data_types.dart
   ```
+
 - [ ] Export public API
 
 #### 1.2 Project: append_only_datastore Setup
+
 - [x] Update pubspec.yaml with required dependencies:
   - [x] sqflite: ^2.3.0
   - [x] sqflite_sqlcipher: ^3.0.0
@@ -77,6 +85,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 - [x] Create analysis_options.yaml with linting rules
 - [ ] Set up dependency injection (get_it)
 - [ ] Create folder structure:
+
   ```
   lib/
   ├── src/
@@ -111,6 +120,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
   ```
 
 #### 1.3 Project: clinical_diary Setup
+
 - [ ] Update pubspec.yaml with dependencies:
   - [ ] trial_data_types: path: ../common-dart/trial_data_types
   - [ ] append_only_datastore: path: ../common-dart/append_only_datastore
@@ -119,6 +129,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 - [x] Create analysis_options.yaml with linting rules
 - [ ] Set up dependency injection (get_it)
 - [ ] Create folder structure:
+
   ```
   lib/
   ├── src/
@@ -147,6 +158,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 **Recommendation**: Use **strict linting** for production medical software.
 
 Create `analysis_options.yaml` in all three projects:
+
 ```yaml
 include: package:lints/recommended.yaml
 
@@ -317,11 +329,13 @@ linter:
 ```
 
 **Optional adjustments**:
+
 - Remove `lines_longer_than_80_chars` if too strict
 - Switch `prefer_relative_imports` to `always_use_package_imports` based on preference
 - Add `public_member_api_docs` if you want to enforce documentation
 
 #### 2.2 Tasks
+
 - [ ] Add analysis_options.yaml to trial_data_types
 - [ ] Add analysis_options.yaml to append_only_datastore
 - [ ] Add analysis_options.yaml to clinical_diary
@@ -333,6 +347,7 @@ linter:
 #### 3.1 Recommendation: get_it + Signals
 
 **Why get_it?**
+
 - ✅ **Simple Service Locator**: Easy to understand and use
 - ✅ **No Code Generation**: Works without build_runner
 - ✅ **Excellent for Flutter**: Battle-tested in production apps
@@ -341,6 +356,7 @@ linter:
 - ✅ **Reset Support**: Easy to reset for testing
 
 **Why Signals?**
+
 - ✅ **Fine-Grained Reactivity**: Only rebuilds what changed
 - ✅ **No Code Generation**: Simple to use
 - ✅ **Automatic Dependency Tracking**: Signals track their dependencies
@@ -348,6 +364,7 @@ linter:
 - ✅ **Works with get_it**: Perfect combination
 
 **Alternatives Considered**:
+
 - ❌ **Riverpod**: User explicitly wants to avoid
 - ⚠️ **Injectable**: Requires code generation, adds complexity
 - ⚠️ **Provider**: Less flexible than Signals for complex state
@@ -355,6 +372,7 @@ linter:
 #### 3.2 Implementation Example
 
 **append_only_datastore/lib/src/core/di/service_locator.dart**:
+
 ```dart
 import 'package:get_it/get_it.dart';
 import 'package:signals/signals.dart';
@@ -416,6 +434,7 @@ Future<void> resetDatastoreDI() async {
 ```
 
 **Using Signals for Reactive State**:
+
 ```dart
 // In sync service
 class SyncService {
@@ -470,6 +489,7 @@ class SyncStatusWidget extends StatelessWidget {
 ```
 
 #### 3.3 Tasks
+
 - [ ] Create service_locator.dart in append_only_datastore
 - [ ] Implement setupDatastoreDI() function
 - [ ] Create DatastoreConfig class
@@ -480,10 +500,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 4. Core Domain Models (Days 2-3) - trial_data_types
 
 #### 4.1 Event Base Classes
+
 - [ ] **Write tests first** for Event base class
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail (Red phase)**
 - [ ] Implement Event base class:
+
   ```dart
   abstract class Event {
     String get eventId;
@@ -496,11 +518,13 @@ class SyncStatusWidget extends StatelessWidget {
     Map<String, dynamic> toJson();
   }
   ```
+
 - [ ] **Write tests** for EventMetadata
 - [ ] Implement EventMetadata
 - [ ] **All tests passing (Green phase)**
 
 #### 4.2 Domain Entities
+
 - [ ] **Write tests** for Participant entity
 - [ ] Implement Participant
 - [ ] **Write tests** for Trial entity
@@ -508,6 +532,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] **All tests passing**
 
 #### 4.3 Value Objects
+
 - [ ] **Write tests** for Email value object
 - [ ] Implement Email with validation
 - [ ] **Write tests** for PhoneNumber
@@ -517,10 +542,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 5. Database Layer (Days 4-5) - append_only_datastore
 
 #### 5.1 SQLite Schema
+
 - [ ] **Write integration tests** for database operations
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail**
 - [ ] Create database schema migration (V1__initial_schema.sql)
+
   ```sql
   CREATE TABLE events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -547,10 +574,12 @@ class SyncStatusWidget extends StatelessWidget {
   CREATE INDEX idx_events_sync ON events(sync_status);
   CREATE INDEX idx_events_created ON events(created_at);
   ```
+
 - [ ] Implement immutability trigger
 - [ ] **All integration tests passing**
 
 #### 5.2 Database Connection Manager
+
 - [ ] **Write tests** for DatabaseProvider
 - [ ] Implement DatabaseProvider with connection pooling
 - [ ] **Write tests** for migration runner
@@ -560,10 +589,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 6. Event Storage (Days 6-7) - append_only_datastore
 
 #### 6.1 Event Repository
+
 - [ ] **Write tests** for EventRepository interface
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail**
 - [ ] Implement EventRepository
+
   ```dart
   abstract class EventRepository {
     Future<void> append(Event event);
@@ -577,10 +608,12 @@ class SyncStatusWidget extends StatelessWidget {
     Future<void> markAsSynced(List<String> eventIds);
   }
   ```
+
 - [ ] Implement SQLiteEventRepository
 - [ ] **All tests passing**
 
 #### 6.2 Event Serialization
+
 - [ ] **Write tests** for JSON serialization
 - [ ] Implement Event to/from JSON
 - [ ] **Write tests** for signature generation
@@ -590,10 +623,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 7. Offline Queue (Days 8-9) - append_only_datastore
 
 #### 7.1 Queue Manager
+
 - [ ] **Write tests** for OfflineQueueManager
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail**
 - [ ] Implement OfflineQueueManager
+
   ```dart
   class OfflineQueueManager {
     Future<void> enqueue(Event event);
@@ -603,10 +638,12 @@ class SyncStatusWidget extends StatelessWidget {
     Future<void> retry(String eventId);
   }
   ```
+
 - [ ] Implement retry logic with exponential backoff
 - [ ] **All tests passing**
 
 #### 7.2 Queue Persistence
+
 - [ ] **Write tests** for queue persistence
 - [ ] Implement queue state persistence
 - [ ] **Write tests** for queue recovery
@@ -616,10 +653,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 8. Conflict Detection (Days 10-11) - append_only_datastore
 
 #### 8.1 Version Vector Implementation
+
 - [ ] **Write tests** for VersionVector operations
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail**
 - [ ] Implement VersionVector
+
   ```dart
   class VersionVector {
     Map<String, int> versions;
@@ -629,9 +668,11 @@ class SyncStatusWidget extends StatelessWidget {
     void increment(String deviceId);
   }
   ```
+
 - [ ] **All tests passing**
 
 #### 8.2 Conflict Detector
+
 - [ ] **Write tests** for ConflictDetector
 - [ ] Implement ConflictDetector service
 - [ ] **Write tests** for conflict resolution strategies
@@ -641,10 +682,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 9. Query Projections (Days 12-13) - append_only_datastore
 
 #### 9.1 Materialized Views
+
 - [ ] **Write tests** for view generation
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail**
 - [ ] Create materialized view tables
+
   ```sql
   CREATE TABLE current_state (
     aggregate_id TEXT PRIMARY KEY,
@@ -654,10 +697,12 @@ class SyncStatusWidget extends StatelessWidget {
     version INTEGER NOT NULL
   );
   ```
+
 - [ ] Implement view update triggers
 - [ ] **All tests passing**
 
 #### 9.2 Query Service
+
 - [ ] **Write tests** for QueryService
 - [ ] Implement QueryService for current state queries
 - [ ] **Write tests** for caching layer
@@ -667,10 +712,12 @@ class SyncStatusWidget extends StatelessWidget {
 ### 10. Basic Sync Engine (Days 14-15) - append_only_datastore
 
 #### 10.1 Manual Sync Trigger
+
 - [ ] **Write tests** for SyncService
 - [ ] **Get tests reviewed**
 - [ ] **Confirm tests fail**
 - [ ] Implement SyncService
+
   ```dart
   class SyncService {
     Future<SyncResult> syncNow();
@@ -678,9 +725,11 @@ class SyncStatusWidget extends StatelessWidget {
     Stream<SyncStatus> get status;
   }
   ```
+
 - [ ] **All tests passing**
 
 #### 10.2 Sync Protocol
+
 - [ ] **Write tests** for sync protocol
 - [ ] Define REST API contract
 - [ ] Implement batch event submission
@@ -690,6 +739,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 11. Telemetry Integration (Day 16) - append_only_datastore
 
 #### 11.1 OpenTelemetry Setup
+
 - [ ] **Write tests** for telemetry integration
 - [ ] Configure Dartastic OpenTelemetry
 - [ ] Instrument database operations
@@ -704,6 +754,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 12. Application Layer (Days 17-18) - clinical_diary
 
 #### 12.1 Commands and Queries
+
 - [ ] **Write tests** for RecordNosebleedCommand
 - [ ] Implement RecordNosebleedCommand
 - [ ] **Write tests** for GetNosebleedHistoryQuery
@@ -711,6 +762,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] **All tests passing**
 
 #### 12.2 ViewModels with Signals
+
 - [ ] **Write tests** for NosebleedViewModel
 - [ ] Implement NosebleedViewModel using Signals
 - [ ] **Write tests** for sync status integration
@@ -720,12 +772,14 @@ class SyncStatusWidget extends StatelessWidget {
 ### 13. UI Implementation (Days 19-20) - clinical_diary
 
 #### 13.1 Screens
+
 - [ ] Create HomeScreen with sync status
 - [ ] Create NosebleedEntryScreen
 - [ ] Create NosebleedHistoryScreen
 - [ ] Implement navigation
 
 #### 13.2 Widgets
+
 - [ ] Create NosebleedListItem widget
 - [ ] Create SyncStatusIndicator using Signals
 - [ ] Create offline banner
@@ -733,6 +787,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 14. Test Utilities (Day 21)
 
 #### 14.1 Test Harness - append_only_datastore
+
 - [ ] Create DatastoreTestHarness
 - [ ] Implement in-memory test database
 - [ ] Create test event factories
@@ -740,6 +795,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] Create assertion helpers
 
 #### 14.2 Mock Implementations
+
 - [ ] Mock sync service
 - [ ] Mock conflict resolver
 - [ ] Mock telemetry provider
@@ -747,6 +803,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 15. Documentation & Examples (Day 22)
 
 #### 15.1 API Documentation
+
 - [ ] Document all public APIs (trial_data_types)
 - [ ] Document all public APIs (append_only_datastore)
 - [ ] Create usage examples
@@ -754,6 +811,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] Create troubleshooting guide
 
 #### 15.2 Sample Implementation
+
 - [ ] Create example clinical event types
 - [ ] Implement nosebleed tracking example
 - [ ] Show conflict resolution example
@@ -762,6 +820,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 16. Compliance Validation (Day 23)
 
 #### 16.1 FDA 21 CFR Part 11 Checklist
+
 - [ ] Verify audit trail completeness
 - [ ] Validate signature implementation
 - [ ] Confirm immutability enforcement
@@ -769,6 +828,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] Document compliance mapping
 
 #### 16.2 Security Review
+
 - [ ] Review encryption implementation
 - [ ] Validate key management
 - [ ] Test tamper detection
@@ -777,6 +837,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 17. Performance Testing (Day 24)
 
 #### 17.1 Benchmarks
+
 - [ ] Event creation: Target <10ms
 - [ ] Local query: Target <50ms
 - [ ] Queue capacity: Test with 10,000 events
@@ -784,6 +845,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] Battery impact: Profile sync operations
 
 #### 17.2 Optimization
+
 - [ ] Add database indexes
 - [ ] Optimize JSON serialization
 - [ ] Tune batch sizes
@@ -792,6 +854,7 @@ class SyncStatusWidget extends StatelessWidget {
 ### 18. Integration Testing (Day 25)
 
 #### 18.1 End-to-End Tests
+
 - [ ] Complete offline workflow
 - [ ] Sync with mock server
 - [ ] Multi-device conflict scenario
@@ -799,6 +862,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] Recovery from corruption
 
 #### 18.2 Platform Testing
+
 - [ ] Test on iOS
 - [ ] Test on Android
 - [ ] Test on Web (if applicable)
@@ -807,6 +871,7 @@ class SyncStatusWidget extends StatelessWidget {
 ## 🚀 Phase 2 - Production Hardening (Future)
 
 ### Planned Enhancements
+
 - [ ] SQLCipher encryption integration
 - [ ] Automatic sync with connectivity detection
 - [ ] Advanced conflict resolution strategies
@@ -819,6 +884,7 @@ class SyncStatusWidget extends StatelessWidget {
 ## 🎯 Phase 3 - Enterprise Features (Future)
 
 ### Planned Features
+
 - [ ] Multi-tenant support
 - [ ] Event transformation and migration
 - [ ] Time-travel debugging
@@ -828,6 +894,7 @@ class SyncStatusWidget extends StatelessWidget {
 ## 📊 Success Metrics
 
 ### Phase 1 Completion Criteria
+
 - [ ] All unit tests passing (100% of required coverage)
 - [ ] All integration tests passing
 - [ ] Performance benchmarks met
@@ -837,6 +904,7 @@ class SyncStatusWidget extends StatelessWidget {
 - [ ] Security review passed
 
 ### Key Performance Indicators
+
 - Event creation latency: <10ms (p95) ✅ Required
 - Local query latency: <50ms (p95) ✅ Required
 - Sync success rate: >99% ✅ Required
@@ -846,6 +914,7 @@ class SyncStatusWidget extends StatelessWidget {
 ## 🔄 Daily Workflow
 
 ### TDD Cycle (MANDATORY)
+
 1. **Morning**: Write tests for next component
 2. **Review**: Get peer review of tests
 3. **Red Phase**: Confirm tests fail
@@ -856,6 +925,7 @@ class SyncStatusWidget extends StatelessWidget {
 8. **Document**: Update API docs
 
 ### End of Day Checklist
+
 - [ ] All new code has tests
 - [ ] All tests are passing
 - [ ] Code follows style guide
@@ -892,12 +962,14 @@ class SyncStatusWidget extends StatelessWidget {
 ## ✅ Sign-offs Required
 
 ### Before Phase 1 Completion
+
 - [ ] Technical Lead Approval
 - [ ] Security Review
 - [ ] Compliance Review
 - [x] Architecture Review ✅
 
 ### Before Production Deployment
+
 - [ ] FDA Validation
 - [ ] Penetration Testing
 - [ ] Performance Testing

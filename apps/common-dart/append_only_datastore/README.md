@@ -51,6 +51,7 @@ This package uses **SQLCipher** for database encryption. Encryption is **enabled
 ### Using Doppler for Key Management
 
 1. **Install Doppler CLI**:
+
    ```bash
    # Mac
    brew install dopplerhq/cli/doppler
@@ -60,17 +61,20 @@ This package uses **SQLCipher** for database encryption. Encryption is **enabled
    ```
 
 2. **Login to Doppler**:
+
    ```bash
    doppler login
    ```
 
 3. **Setup Project**:
+
    ```bash
    cd apps/common-dart/append_only_datastore
    doppler setup
    ```
 
 4. **Set Encryption Key** (generate strong 32-byte key):
+
    ```bash
    # Generate a secure key
    openssl rand -base64 32
@@ -80,6 +84,7 @@ This package uses **SQLCipher** for database encryption. Encryption is **enabled
    ```
 
 5. **Access in Development**:
+
    ```bash
    # Run with Doppler
    doppler run -- flutter run
@@ -108,11 +113,13 @@ OTEL_API_KEY=<your-otel-key>
 ### Development vs Production Keys
 
 **Development** (less strict, can be shared):
+
 ```bash
 doppler secrets set DATASTORE_ENCRYPTION_KEY="dev-key-not-for-production" --config dev
 ```
 
 **Production** (strict, never commit):
+
 ```bash
 doppler secrets set DATASTORE_ENCRYPTION_KEY="$(openssl rand -base64 32)" --config prd
 ```
@@ -143,17 +150,20 @@ xdg-open coverage/html/index.html  # Linux
 ### Install lcov (for coverage HTML reports)
 
 **Mac**:
+
 ```bash
 brew install lcov
 ```
 
 **Linux** (Ubuntu/Debian):
+
 ```bash
 sudo apt-get update
 sudo apt-get install lcov
 ```
 
 **Linux** (Fedora/RHEL):
+
 ```bash
 sudo dnf install lcov
 ```
@@ -161,8 +171,9 @@ sudo dnf install lcov
 ### Coverage in CI/CD
 
 Coverage is automatically run on every push to `main`. View reports:
+
 - GitHub Actions: Check workflow artifacts
-- Codecov: https://codecov.io/gh/your-org/hht_diary
+- Codecov: <https://codecov.io/gh/your-org/hht_diary>
 
 ## 📚 Development
 
@@ -220,6 +231,7 @@ flutter pub get
 ### FDA 21 CFR Part 11 Compliance
 
 This datastore implements:
+
 - **§11.10(e)**: Immutable audit trail (database triggers)
 - **§11.10(c)**: Sequence of operations (sequence numbers)
 - **§11.50**: Signature manifestations (cryptographic signatures)
@@ -260,6 +272,7 @@ See repository root LICENSE file.
 ## 🤝 Contributing
 
 This is FDA-regulated medical software. All contributions must:
+
 - Pass all tests
 - Maintain 90%+ code coverage
 - Follow strict linting rules

@@ -14,6 +14,7 @@ This document covers both **client-side** (Flutter applications) and **server-si
 ## Critical Requirements Recap
 
 ### Client-Side Requirements
+
 1. **FDA 21 CFR Part 11 Compliance**: Immutable audit trail, user attribution, tamper detection
 2. **Offline-First**: Full functionality without connectivity, automatic synchronization
 3. **Multi-Device Support**: Conflict resolution for concurrent edits
@@ -22,6 +23,7 @@ This document covers both **client-side** (Flutter applications) and **server-si
 6. **Observability**: Integration with Dartastic OpenTelemetry
 
 ### Server-Side Requirements
+
 1. **FDA 21 CFR Part 11 Compliance**: Immutable audit trail, tamper detection, database-level constraints
 2. **High Availability**: 99.9%+ uptime for clinical trial operations
 3. **Scalability**: Support for hundreds of concurrent users, millions of events
@@ -37,6 +39,7 @@ This document covers both **client-side** (Flutter applications) and **server-si
 **Implementation**: `sqflite` + `sqflite_sqlcipher`
 
 **Pros:**
+
 - ✅ **Mature & Battle-tested**: Used in millions of production apps
 - ✅ **FDA Compliance Ready**: Supports triggers for audit trails, immutable tables via constraints
 - ✅ **Encryption**: SQLCipher provides transparent AES-256 encryption
@@ -47,11 +50,13 @@ This document covers both **client-side** (Flutter applications) and **server-si
 - ✅ **Observability**: Can intercept all SQL for telemetry
 
 **Cons:**
+
 - ❌ SQL complexity for nested JSON structures
 - ❌ Requires SQL knowledge for maintenance
 - ❌ SQLCipher adds ~7MB to app size
 
 **Compliance Features:**
+
 ```sql
 -- Immutable event table with audit fields
 CREATE TABLE events (
@@ -82,6 +87,7 @@ END;
 **Implementation**: `isar` package
 
 **Pros:**
+
 - ✅ **NoSQL Simplicity**: Object database, no SQL required
 - ✅ **Fast**: Memory-mapped, very fast reads
 - ✅ **Built-in Encryption**: AES-256 encryption support
@@ -89,6 +95,7 @@ END;
 - ✅ **Type Safety**: Strongly typed queries
 
 **Cons:**
+
 - ❌ **Immutability Challenges**: No built-in way to prevent updates
 - ❌ **Limited Query Power**: No complex joins or SQL features
 - ❌ **Newer/Less Proven**: Fewer production deployments
@@ -96,6 +103,7 @@ END;
 - ❌ **Migration Complexity**: Schema changes require careful handling
 
 **Compliance Risk:**
+
 - Harder to guarantee immutability without database-level constraints
 - Would need application-level enforcement (less reliable)
 
@@ -104,12 +112,14 @@ END;
 **Implementation**: `hive` package
 
 **Pros:**
+
 - ✅ **Simple API**: Key-value store, easy to use
 - ✅ **Pure Dart**: No native dependencies
 - ✅ **Fast**: In-memory with disk persistence
 - ✅ **Lightweight**: Small footprint
 
 **Cons:**
+
 - ❌ **No Built-in Encryption**: Requires hive_cipher adapter
 - ❌ **No Query Language**: Manual filtering/sorting
 - ❌ **No Transactions**: Risk of partial writes
@@ -123,12 +133,14 @@ END;
 **Implementation**: `objectbox` package
 
 **Pros:**
+
 - ✅ **High Performance**: Very fast, especially for writes
 - ✅ **ACID Transactions**: Data integrity
 - ✅ **Sync Support**: Built-in synchronization (ObjectBox Sync)
 - ✅ **Relations**: Support for object relations
 
 **Cons:**
+
 - ❌ **Commercial License**: Requires paid license for production
 - ❌ **Large Binary Size**: Adds significant size to app
 - ❌ **Limited Immutability**: No database-level constraints
@@ -139,11 +151,13 @@ END;
 **Implementation**: Direct file I/O with JSON/Protobuf
 
 **Pros:**
+
 - ✅ **Full Control**: Complete control over format and behavior
 - ✅ **Minimal Dependencies**: No external packages
 - ✅ **Format Flexibility**: Can use JSON, Protobuf, MessagePack
 
 **Cons:**
+
 - ❌ **High Development Cost**: Must implement everything
 - ❌ **No Query Engine**: Must build indexing and queries
 - ❌ **Reliability Risk**: Must handle corruption, atomic writes
@@ -154,6 +168,7 @@ END;
 ### Overview
 
 The server-side event store has different requirements than the client:
+
 - Must handle hundreds of concurrent connections
 - Needs real-time event subscriptions (WebSocket/Server-Sent Events)
 - Requires complex queries across millions of events
@@ -166,6 +181,7 @@ The server-side event store has different requirements than the client:
 **Implementation**: Direct PostgreSQL with Supabase features
 
 **Pros:**
+
 - ✅✅✅ **Native Supabase Integration**: Already have PostgreSQL infrastructure
 - ✅✅✅ **FDA Compliance Excellence**: Row-level security, audit logging, immutable constraints
 - ✅✅✅ **ACID Transactions**: Guaranteed data consistency across complex operations
@@ -181,11 +197,13 @@ The server-side event store has different requirements than the client:
 - ✅ **Observability**: pganalyze, pg_stat_statements for performance monitoring
 
 **Cons:**
+
 - ⚠️ **Vertical Scaling Limits**: Eventually hits single-machine limits (addressable with read replicas)
 - ⚠️ **Connection Pooling**: Requires connection pooler (PgBouncer) for high concurrency
 - ❌ **Not Purpose-Built for Streams**: Requires careful schema design for high-throughput event ingestion
 
 **FDA Compliance Implementation:**
+
 ```sql
 -- Immutable events table with comprehensive audit trail
 CREATE TABLE events (
@@ -292,6 +310,7 @@ CREATE POLICY tenant_isolation ON events
 ```
 
 **Real-Time Event Subscriptions via Supabase:**
+
 ```dart
 // Client-side Dart/Flutter code
 final supabase = Supabase.instance.client;
@@ -311,12 +330,14 @@ final subscription = supabase
 ```
 
 **Performance Characteristics:**
+
 - **Write throughput**: 1,000-10,000 events/second (single instance)
 - **Read latency**: <5ms for indexed queries
 - **Storage**: Unlimited (PostgreSQL supports petabyte-scale)
 - **Concurrent connections**: 200-500 (with PgBouncer: 10,000+)
 
 **Scaling Strategy:**
+
 1. **Vertical scaling**: Increase CPU/RAM for single instance (Supabase handles)
 2. **Read replicas**: Add read-only replicas for query load (Supabase Pro+)
 3. **Table partitioning**: Partition events by tenant_id or date range
@@ -324,6 +345,7 @@ final subscription = supabase
 5. **Caching**: Redis for hot data (materialized view results)
 
 **Cost Analysis (Supabase):**
+
 - **Free tier**: 500MB database, 2GB bandwidth, 50,000 monthly active users
 - **Pro tier** ($25/mo): 8GB database, 50GB bandwidth, 100,000 MAU
 - **Team tier** ($599/mo): 100GB database, 250GB bandwidth, read replicas
@@ -334,6 +356,7 @@ final subscription = supabase
 **Implementation**: Event streaming platform with consumer groups
 
 **Pros:**
+
 - ✅✅✅ **Purpose-Built for Events**: Designed specifically for event streaming
 - ✅✅✅ **High Throughput**: Millions of events per second
 - ✅✅✅ **Durability**: Append-only logs with configurable retention
@@ -344,6 +367,7 @@ final subscription = supabase
 - ✅ **Decoupling**: Producers and consumers are independent
 
 **Cons:**
+
 - ❌❌❌ **Not a Database**: No direct querying, requires external storage for views
 - ❌❌❌ **Operational Complexity**: Requires dedicated cluster management (ZooKeeper/KRaft)
 - ❌❌ **Infrastructure Cost**: Separate cluster to maintain and monitor
@@ -354,6 +378,7 @@ final subscription = supabase
 - ❌ **FDA Compliance**: Requires additional audit infrastructure
 
 **Architecture Pattern:**
+
 ```
 Flutter App → Supabase Edge Function → Kafka Producer → Kafka Topic
                                                              ↓
@@ -366,18 +391,21 @@ Flutter App → Supabase Edge Function → Kafka Producer → Kafka Topic
 ```
 
 **When Kafka Makes Sense:**
+
 1. **Event-Driven Microservices**: Multiple independent services consuming events
 2. **Data Pipeline**: Streaming to analytics, data warehouses, ML systems
 3. **Extreme Scale**: >100,000 events/second sustained throughput
 4. **Event Processing**: Complex event processing, stream joins, windowing
 
 **FDA Compliance Challenges:**
+
 - Kafka topics are NOT append-only from a database perspective (messages can expire)
 - Requires secondary storage (PostgreSQL) for permanent audit trail
 - Need to implement tamper detection separately
 - Must ensure end-to-end delivery guarantees
 
 **Cost Considerations:**
+
 - **Managed Kafka** (Confluent Cloud): $1-2/hour for small clusters ($720-1,440/month)
 - **AWS MSK**: $0.21/hour per broker (minimum 3 brokers = $456/month)
 - **Self-Hosted**: 3x VMs + monitoring + operational overhead
@@ -390,6 +418,7 @@ Flutter App → Supabase Edge Function → Kafka Producer → Kafka Topic
 **Implementation**: PostgreSQL as source of truth, Kafka for event streaming
 
 **Architecture:**
+
 ```
 Flutter App → REST API → PostgreSQL (Immutable Events)
                               ↓
@@ -404,6 +433,7 @@ Flutter App → REST API → PostgreSQL (Immutable Events)
 ```
 
 **Pros:**
+
 - ✅✅ **Best of Both Worlds**: PostgreSQL durability + Kafka streaming
 - ✅✅ **Scalable Architecture**: Separate read and write concerns
 - ✅ **FDA Compliance**: PostgreSQL provides audit trail
@@ -411,6 +441,7 @@ Flutter App → REST API → PostgreSQL (Immutable Events)
 - ✅ **Event Replay**: Kafka for replay, PostgreSQL for queries
 
 **Cons:**
+
 - ❌❌❌ **Highest Complexity**: Must manage two distinct systems
 - ❌❌❌ **Operational Overhead**: PostgreSQL + Kafka + CDC connector
 - ❌❌ **Cost**: Both PostgreSQL and Kafka infrastructure
@@ -418,6 +449,7 @@ Flutter App → REST API → PostgreSQL (Immutable Events)
 - ❌ **Debugging**: Harder to trace issues across systems
 
 **When This Makes Sense:**
+
 1. **Multiple Event Consumers**: Analytics, ML, reporting systems
 2. **High Read/Write Separation**: Many more reads than writes
 3. **Enterprise Scale**: Large organization with dedicated platform team
@@ -430,11 +462,13 @@ Flutter App → REST API → PostgreSQL (Immutable Events)
 **Implementation**: SQLite database files on server
 
 **Pros:**
+
 - ✅ **Simple**: Single file database
 - ✅ **No Server**: Embedded database
 - ✅ **Fast**: Excellent performance for single-user scenarios
 
 **Cons:**
+
 - ❌❌❌ **Single Writer**: No concurrent write support
 - ❌❌❌ **No Network Protocol**: Not designed for client-server
 - ❌❌ **No Real-Time Subscriptions**: Cannot push updates to clients
@@ -450,11 +484,13 @@ Flutter App → REST API → PostgreSQL (Immutable Events)
 **EventStoreDB, Marten (PostgreSQL), Axon Server**
 
 **Pros:**
+
 - ✅✅ **Purpose-Built**: Designed specifically for event sourcing
 - ✅ **Event Streams**: First-class event stream support
 - ✅ **Projections**: Built-in projection engines
 
 **Cons:**
+
 - ❌❌ **Not PostgreSQL**: Requires separate infrastructure from Supabase
 - ❌❌ **Learning Curve**: Different from SQL databases
 - ❌ **Ecosystem**: Smaller community than PostgreSQL
@@ -468,17 +504,20 @@ Flutter App → REST API → PostgreSQL (Immutable Events)
 ### Option 1: Event-Based Sync with REST API (RECOMMENDED)
 
 **Architecture:**
+
 ```
 Client Queue → Batch Upload → Server Event Log → Acknowledgments
 ```
 
 **Pros:**
+
 - ✅ Simple and reliable
 - ✅ Idempotent operations
 - ✅ Easy to debug and monitor
 - ✅ Works with any backend
 
 **Implementation:**
+
 ```dart
 class SyncEngine {
   Future<void> sync() async {
@@ -499,11 +538,13 @@ class SyncEngine {
 ### Option 2: WebSocket-Based Real-time Sync
 
 **Pros:**
+
 - ✅ Real-time updates
 - ✅ Bidirectional communication
 - ✅ Lower latency
 
 **Cons:**
+
 - ❌ Connection management complexity
 - ❌ Requires persistent connections
 - ❌ Battery drain on mobile
@@ -511,11 +552,13 @@ class SyncEngine {
 ### Option 3: GraphQL Subscriptions
 
 **Pros:**
+
 - ✅ Efficient data fetching
 - ✅ Real-time capabilities
 - ✅ Type safety
 
 **Cons:**
+
 - ❌ Additional complexity
 - ❌ Requires GraphQL backend
 - ❌ Larger client library
@@ -527,6 +570,7 @@ class SyncEngine {
 **Option 1: Database-Level Encryption (RECOMMENDED)**
 
 **SQLCipher Implementation:**
+
 ```dart
 final db = await openDatabase(
   path,
@@ -536,6 +580,7 @@ final db = await openDatabase(
 ```
 
 **Pros:**
+
 - ✅ Transparent to application
 - ✅ Proven security
 - ✅ No performance overhead for queries
@@ -543,10 +588,12 @@ final db = await openDatabase(
 **Option 2: Application-Level Field Encryption**
 
 **Pros:**
+
 - ✅ Selective encryption
 - ✅ Works with any storage
 
 **Cons:**
+
 - ❌ Can't query encrypted fields
 - ❌ Complex key management
 - ❌ Performance overhead
@@ -554,10 +601,12 @@ final db = await openDatabase(
 **Option 3: File System Encryption**
 
 **Pros:**
+
 - ✅ OS-level security
 - ✅ No app changes needed
 
 **Cons:**
+
 - ❌ Not all platforms support
 - ❌ User must enable
 - ❌ Not sufficient for FDA compliance alone
@@ -567,6 +616,7 @@ final db = await openDatabase(
 **PostgreSQL Encryption at Rest (RECOMMENDED)**
 
 Supabase provides:
+
 - ✅ **Disk Encryption**: Encrypted block storage (AWS EBS encryption)
 - ✅ **Transparent**: No performance impact
 - ✅ **Key Management**: AWS KMS integration
@@ -575,6 +625,7 @@ Supabase provides:
 **Optional: Column-Level Encryption**
 
 For highly sensitive fields (e.g., PHI):
+
 ```sql
 -- Encrypt specific columns with pgcrypto
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -589,6 +640,7 @@ FROM events;
 ```
 
 **Cons:**
+
 - ❌ Cannot index encrypted fields
 - ❌ Performance overhead for encryption/decryption
 - ❌ Key management complexity
@@ -598,6 +650,7 @@ FROM events;
 ### Option 1: Version Vectors (RECOMMENDED)
 
 **Implementation:**
+
 ```dart
 class VersionVector {
   final Map<String, int> versions; // deviceId -> version
@@ -613,6 +666,7 @@ class VersionVector {
 ```
 
 **Pros:**
+
 - ✅ Detects all conflicts accurately
 - ✅ Supports multiple devices
 - ✅ No false positives
@@ -620,20 +674,24 @@ class VersionVector {
 ### Option 2: Last-Write-Wins (LWW)
 
 **Pros:**
+
 - ✅ Simple implementation
 - ✅ No user intervention
 
 **Cons:**
+
 - ❌ Data loss possible
 - ❌ Not suitable for clinical data
 
 ### Option 3: Operational Transformation (OT)
 
 **Pros:**
+
 - ✅ Automatic merging
 - ✅ Preserves intent
 
 **Cons:**
+
 - ❌ Complex implementation
 - ❌ Domain-specific transforms needed
 
@@ -662,6 +720,7 @@ abstract class Event {
 ```
 
 **Pros:**
+
 - ✅ Backward compatibility
 - ✅ Gradual migration
 - ✅ Audit trail preserved
@@ -669,10 +728,12 @@ abstract class Event {
 ### Option 2: Database Migrations
 
 **Pros:**
+
 - ✅ Standard approach
 - ✅ Tool support
 
 **Cons:**
+
 - ❌ Can't modify events (immutable)
 - ❌ Complex for event sourcing
 
@@ -681,7 +742,9 @@ abstract class Event {
 Based on comprehensive evaluation, the recommended architecture is:
 
 ### Client Storage Layer
+
 **SQLite with SQLCipher** for:
+
 - Proven reliability in production
 - FDA compliance features (triggers, constraints)
 - Built-in encryption
@@ -689,7 +752,9 @@ Based on comprehensive evaluation, the recommended architecture is:
 - Cross-platform support
 
 ### Server Storage Layer
+
 **PostgreSQL (Native Supabase)** for:
+
 - Native integration with existing infrastructure
 - FDA compliance excellence (ACID, audit logging, immutability)
 - Real-time subscriptions via Supabase Realtime
@@ -699,34 +764,44 @@ Based on comprehensive evaluation, the recommended architecture is:
 - Multi-tenant row-level security
 
 ### Sync Strategy
+
 **Event-based REST API** for:
+
 - Simplicity and reliability
 - Easy debugging and monitoring
 - Idempotent operations
 - Backend flexibility
 
 ### Encryption
+
 **Client**: Database-level (SQLCipher)  
 **Server**: PostgreSQL disk encryption (Supabase default)  
 For:
+
 - Transparent operation
 - Proven security
 - Optimal performance
 
 ### Conflict Resolution
+
 **Version Vectors** for:
+
 - Accurate conflict detection
 - Multi-device support
 - Audit trail preservation
 
 ### Schema Evolution
+
 **Versioned Events with Upcasting** for:
+
 - Backward compatibility
 - Immutable event preservation
 - Gradual migration support
 
 ### Real-Time Updates
+
 **Supabase Realtime** for:
+
 - Native PostgreSQL integration
 - Minimal operational overhead
 - WebSocket-based subscriptions
@@ -737,7 +812,7 @@ For:
 ### Client Storage
 
 | Requirement | SQLite+SQLCipher | Isar | Hive | ObjectBox | Custom |
-| ---------- | --------------- | ---- | ---- | --------- | ------ |
+| ----------- | ---------------- | ---- | ---- | --------- | ------ |
 | FDA Compliance | ✅✅✅ | ✅ | ❌ | ✅ | ❓ |
 | Offline-First | ✅✅✅ | ✅✅✅ | ✅✅ | ✅✅✅ | ✅✅ |
 | Performance | ✅✅ | ✅✅✅ | ✅✅ | ✅✅✅ | ✅ |
@@ -748,8 +823,9 @@ For:
 | App Size Impact | ✅✅ | ✅✅✅ | ✅✅✅ | ✅ | ✅✅✅ |
 
 ### Server Storage
+
 | Requirement | PostgreSQL | Kafka | PostgreSQL+Kafka | SQLite | EventStoreDB |
-|------------|------------|-------|------------------|--------|--------------|
+| ----------- | ---------- | ----- | ---------------- | ------ | ------------ |
 | FDA Compliance | ✅✅✅ | ⚠️ | ✅✅✅ | ✅✅ | ✅✅ |
 | Supabase Integration | ✅✅✅ | ❌ | ✅✅ | ❌❌ | ❌❌ |
 | Real-Time | ✅✅✅ | ✅✅✅ | ✅✅✅ | ❌❌ | ✅✅ |
@@ -763,33 +839,41 @@ For:
 ## 🚦 Implementation Priorities
 
 ### Phase 1 - MVP (Client + Server)
+
 **Client:**
+
 1. SQLite with basic schema
 2. Local event storage
 3. Manual sync trigger
 4. Basic conflict detection
 
 **Server:**
+
 1. PostgreSQL event table with immutability constraints
 2. REST API for event submission
 3. Basic materialized views
 4. Tenant isolation (row-level security)
 
 ### Phase 2 - Production (Client + Server)
+
 **Client:**
+
 1. SQLCipher encryption
 2. Automatic sync
 3. Version vector conflicts
 4. OpenTelemetry integration
 
 **Server:**
+
 1. Supabase Realtime subscriptions
 2. Automated materialized view refresh
 3. OpenTelemetry distributed tracing
 4. Performance monitoring and alerts
 
 ### Phase 3 - Enterprise (Server-Focused)
+
 **Server:**
+
 1. Read replicas for query scaling
 2. Table partitioning for large datasets
 3. Advanced analytics (optional: Kafka integration)
@@ -804,19 +888,22 @@ For:
 **Mitigation**: Use community edition (free) or budget for commercial license
 
 **Risk: SQL Complexity**
-**Mitigation**: 
+**Mitigation**:
+
 - Abstract SQL behind repository pattern
 - Provide query builder DSL
 - Comprehensive documentation
 
 **Risk: Migration Errors**
 **Mitigation**:
+
 - Extensive migration testing
 - Rollback capabilities
 - Gradual rollout support
 
 **Risk: Sync Conflicts**
 **Mitigation**:
+
 - Conservative conflict detection
 - User notifications
 - Manual resolution UI
@@ -825,12 +912,14 @@ For:
 
 **Risk: PostgreSQL Connection Limits**
 **Mitigation**:
+
 - PgBouncer connection pooling (included with Supabase)
 - Connection timeout monitoring
 - Automatic retry logic in clients
 
 **Risk: Database Performance Degradation**
 **Mitigation**:
+
 - Comprehensive indexing strategy
 - Table partitioning by tenant_id or date
 - Regular VACUUM and ANALYZE
@@ -838,6 +927,7 @@ For:
 
 **Risk: Storage Growth**
 **Mitigation**:
+
 - Data retention policies (archive old events)
 - Compression for archived data
 - Monitor storage growth trends
@@ -845,6 +935,7 @@ For:
 
 **Risk: Single Point of Failure**
 **Mitigation**:
+
 - Supabase automatic backups
 - Point-in-time recovery capability
 - High availability configuration (Supabase Team/Enterprise)
@@ -852,6 +943,7 @@ For:
 
 **Risk: Multi-Tenant Data Leakage**
 **Mitigation**:
+
 - Strict row-level security policies
 - Comprehensive access testing
 - Tenant isolation verification in CI/CD
@@ -890,11 +982,13 @@ None met our specific requirements for offline-first, FDA compliance, and Postgr
 ### Hybrid Approach (Client)
 
 We considered using:
+
 - Isar for fast local storage
 - SQLite for audit trail only
 - Separate sync queue
 
 Rejected due to:
+
 - Complexity of maintaining consistency
 - Doubled storage requirements
 - Difficult debugging
@@ -904,12 +998,14 @@ Rejected due to:
 Kafka was seriously considered but ultimately rejected because:
 
 **Why Kafka is Excellent:**
+
 - Purpose-built for event streaming
 - Extreme scalability and throughput
 - Built-in event replay
 - Large ecosystem
 
 **Why Not for HHT Diary:**
+
 1. **Operational Overhead**: Requires dedicated cluster, ZooKeeper/KRaft, monitoring
 2. **Cost**: $500+ monthly for managed service vs $25+ for Supabase
 3. **Use Case Mismatch**: Kafka excels at high-throughput streaming with multiple consumers. Our use case is client apps submitting events to a single PostgreSQL store.
@@ -917,6 +1013,7 @@ Kafka was seriously considered but ultimately rejected because:
 5. **FDA Compliance**: Kafka requires additional infrastructure for permanent audit trail
 
 **When Kafka Would Make Sense:**
+
 - Multiple event consumers (analytics, ML, reporting systems)
 - >100,000 events/second sustained throughput
 - Event-driven microservices architecture
@@ -928,6 +1025,7 @@ If Phase 3 requires real-time analytics streaming to data warehouses, we can add
 ## ✅ Recommendation Summary
 
 ### Client Architecture
+
 **GO WITH**: SQLite + SQLCipher for the storage layer, implementing:
 
 1. **Immutable event table** with trigger-enforced append-only behavior
@@ -937,6 +1035,7 @@ If Phase 3 requires real-time analytics streaming to data warehouses, we can add
 5. **SQLCipher** for transparent encryption
 
 ### Server Architecture
+
 **GO WITH**: PostgreSQL (Native Supabase) for the event store, implementing:
 
 1. **Immutable events table** with database rules and triggers
@@ -948,6 +1047,7 @@ If Phase 3 requires real-time analytics streaming to data warehouses, we can add
 7. **OpenTelemetry integration** for observability
 
 **Rationale**: PostgreSQL provides ALL required capabilities:
+
 - ✅ FDA 21 CFR Part 11 compliance (immutability, audit trail, tamper detection)
 - ✅ Native Supabase integration (zero additional infrastructure)
 - ✅ Real-time subscriptions (Supabase Realtime)
@@ -961,6 +1061,7 @@ If Phase 3 requires real-time analytics streaming to data warehouses, we can add
 **Kafka Considered but Rejected**: While Kafka is an excellent event streaming platform, it adds operational complexity and cost without providing essential capabilities that PostgreSQL already delivers. Kafka's strengths (extreme throughput, multiple consumers, streaming pipelines) don't match our use case of client apps submitting events to a single database. If future analytics requirements demand event streaming, Kafka can be added via CDC without refactoring the core application.
 
 This architecture provides the best balance of:
+
 - ✅ FDA compliance capabilities (client and server)
 - ✅ Production reliability
 - ✅ Developer experience

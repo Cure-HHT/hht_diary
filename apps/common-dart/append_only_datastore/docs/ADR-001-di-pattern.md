@@ -113,21 +113,25 @@ get_it (or another DI container) would make sense if:
 ## Alternatives Considered
 
 ### 1. get_it (Rejected)
+
 - **Pro**: Popular, well-tested, async support
 - **Con**: External dependency, "magic" resolution, overkill for our scope
 - **Verdict**: ❌ Too much for what we need
 
 ### 2. Injectable (Rejected)
+
 - **Pro**: Compile-time DI, type-safe
 - **Con**: Requires code generation, complex setup
 - **Verdict**: ❌ Way too much complexity
 
 ### 3. Manual Constructor Injection (Considered)
+
 - **Pro**: Most explicit, zero dependencies
 - **Con**: Wiring boilerplate in app layer
 - **Verdict**: ⚠️ Good alternative, but singleton is cleaner
 
 ### 4. Static Singleton (APPROVED) ✅
+
 - **Pro**: Simple, explicit, zero dependencies, testable
 - **Con**: Global state (but scoped to module)
 - **Verdict**: ✅ **Best fit for our use case**
@@ -135,6 +139,7 @@ get_it (or another DI container) would make sense if:
 ## Migration from get_it
 
 Already completed:
+
 - ✅ Removed `get_it` dependency
 - ✅ Created `Datastore` singleton class
 - ✅ Updated all documentation
