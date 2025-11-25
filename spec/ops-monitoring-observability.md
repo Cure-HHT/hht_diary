@@ -15,7 +15,7 @@ This document specifies the monitoring and observability stack for the Clinical 
 **Technology Stack**:
 
 | Component | Technology | Purpose |
-|-----------|------------|---------|
+| --- | --- | --- |
 | **Logging** | Cloud Logging | Centralized log aggregation |
 | **Monitoring** | Cloud Monitoring | Metrics and dashboards |
 | **Tracing** | Cloud Trace | Distributed tracing (OpenTelemetry) |
@@ -344,14 +344,14 @@ The system SHALL monitor audit trail integrity with:
 
 ## Technology Stack
 
-| Component | Technology | Cost | Purpose |
-| --- | --- | --- | --- |
-| **Logging** | Cloud Logging | ~$0.50/GB ingested | Centralized log aggregation |
-| **Monitoring** | Cloud Monitoring | Free tier + ~$0.10/metric | Dashboards and alerts |
-| **Tracing** | Cloud Trace | $0.20/million spans | Distributed tracing |
-| **Error Reporting** | Cloud Error Reporting | Free | Exception aggregation |
-| **Uptime Checks** | Cloud Monitoring | Free (up to 100) | Health monitoring |
-| **Long-term Storage** | Cloud Storage Coldline | ~$0.004/GB/month | 7-year compliance retention |
+ | Component | Technology | Cost | Purpose |
+ | --- | --- | --- | --- |
+ | **Logging** | Cloud Logging | ~$0.50/GB ingested | Centralized log aggregation |
+ | **Monitoring** | Cloud Monitoring | Free tier + ~$0.10/metric | Dashboards and alerts |
+ | **Tracing** | Cloud Trace | $0.20/million spans | Distributed tracing |
+ | **Error Reporting** | Cloud Error Reporting | Free | Exception aggregation |
+ | **Uptime Checks** | Cloud Monitoring | Free (up to 100) | Health monitoring |
+ | **Long-term Storage** | Cloud Storage Coldline | ~$0.004/GB/month | 7-year compliance retention |
 
 **Estimated Monthly Cost**: ~$20-50/month (depending on volume)
 
@@ -952,7 +952,7 @@ If migrating from Sentry/Better Uptime:
 
 ## Change History
 
-| Date | Version | Author | Changes |
-| --- | --- | --- | --- |
-| 2025-01-27 | 1.0 | Claude | Initial specification with Sentry/Better Uptime |
-| 2025-11-24 | 2.0 | Claude | Migration to GCP Cloud Operations (removed Sentry) |
+ | Date | Version | Author | Changes |
+ | --- | --- | --- | --- |
+ | 2025-01-27 | 1.0 | Claude | Initial specification with Sentry/Better Uptime |
+ | 2025-11-24 | 2.0 | Claude | Migration to GCP Cloud Operations (removed Sentry) |

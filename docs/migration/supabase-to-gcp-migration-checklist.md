@@ -16,7 +16,7 @@ This document tracks the migration of the Clinical Trial Diary Platform from Sup
 ### Migration Overview
 
 | Component | Current (Supabase) | Target (GCP) |
-|-----------|-------------------|--------------|
+| --- | --- | --- |
 | Database | Supabase PostgreSQL | Cloud SQL (PostgreSQL) |
 | Auth | Supabase Auth | Identity Platform / Firebase Auth |
 | Backend | Supabase Edge Functions | Cloud Run (Dart server) |
@@ -40,7 +40,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 - Update multi-sponsor isolation model descriptions
 
 | File | Status | Notes |
-|------|--------|-------|
+| --- | --- | --- |
 | `prd-architecture-multi-sponsor.md` | [x] **DONE** | No Supabase references found |
 | `prd-database.md` | [x] **DONE** | No Supabase references found |
 | `prd-security.md` | [x] **DONE** | No Supabase references found |
@@ -54,7 +54,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 #### DEV Files (Implementation guides with code)
 
 | File | Status | Notes |
-|------|--------|-------|
+| --- | --- | --- |
 | `dev-app.md` | [x] **DONE** | Updated to GCP backend references |
 | `dev-architecture-multi-sponsor.md` | [x] **DONE** | GCP project structure |
 | `dev-compliance-practices.md` | [x] **DONE** | GCP compliance patterns |
@@ -72,7 +72,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 #### OPS Files (Deployment and operations)
 
 | File | Status | Notes |
-|------|--------|-------|
+| --- | --- | --- |
 | `ops-artifact-management.md` | [x] **DONE** | GCP Artifact Registry |
 | `ops-cicd.md` | [x] **DONE** | Minimal changes (validation focused) |
 | `ops-database-migration.md` | [x] **DONE** | Cloud SQL migration tooling |
@@ -96,7 +96,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 ### Phase 2: New Documentation Required
 
 | Document | Status | Purpose |
-|----------|--------|---------|
+| --- | --- | --- |
 | `docs/migration/doppler-vs-secret-manager.md` | [x] **DONE** | Compare Doppler to GCP Secret Manager |
 | `docs/gcp/project-structure.md` | [ ] Pending | GCP project organization |
 | `docs/gcp/cloud-sql-setup.md` | [ ] Pending | Cloud SQL provisioning guide |
@@ -285,7 +285,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 ## GCP Compliance Advantages
 
 | Requirement | Supabase | GCP |
-|-------------|----------|-----|
+| --- | --- | --- |
 | HIPAA BAA | Limited support | Full BAA available |
 | GDPR | Compliant | Compliant + data residency |
 | FDA 21 CFR Part 11 | Self-managed | Managed + certifications |
@@ -298,7 +298,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 ## GCP Service Mapping
 
 | Supabase Feature | GCP Equivalent | Notes |
-|------------------|----------------|-------|
+| --- | --- | --- |
 | PostgreSQL | Cloud SQL | Direct PostgreSQL compatibility |
 | Auth | Identity Platform | Firebase Auth SDK |
 | Edge Functions | Cloud Run | Containerized Dart server |
@@ -313,7 +313,7 @@ These files define WHAT the system does and should NOT contain code examples. Th
 ## Timeline Estimation
 
 | Phase | Description | Duration |
-|-------|-------------|----------|
+| --- | --- | --- |
 | 1 | Specification updates | 2-3 days |
 | 2 | New documentation | 1-2 days |
 | 3 | Terraform modules | 3-5 days |
@@ -351,7 +351,7 @@ If critical issues arise during migration:
 ## Change Log
 
 | Date | Version | Changes | Author |
-|------|---------|---------|--------|
+| --- | --- | --- | --- |
 | 2025-11-24 | 1.0 | Initial migration checklist | Claude |
 | 2025-11-24 | 1.1 | Completed dev-database.md, dev-security.md | Claude |
 | 2025-11-24 | 1.2 | Completed dev-environment.md, ops-database-migration.md, ops-portal.md | Claude |

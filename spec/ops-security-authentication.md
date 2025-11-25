@@ -169,7 +169,7 @@ resource "google_identity_platform_default_supported_idp_config" "apple" {
 **Via GCP Console** (Identity Platform → Settings → Password policy):
 
 | Setting | Value | Rationale |
-|---------|-------|-----------|
+| --- | --- | --- |
 | Minimum length | 12 characters | FDA compliance |
 | Require uppercase | Yes | Complexity |
 | Require lowercase | Yes | Complexity |
@@ -456,7 +456,7 @@ WHERE expires_at < now() OR is_active = false;
 ### What to Log
 
 | Event | Data Logged |
-|-------|-------------|
+| --- | --- |
 | LOGIN_SUCCESS | user_id, email, auth_method, ip, user_agent |
 | LOGIN_FAILED | email (attempted), failure_reason, ip |
 | LOGOUT | user_id, session_id |
@@ -851,7 +851,7 @@ ORDER BY up.mfa_enrolled, up.role;
 
 ## Change History
 
-| Version | Date | Changes | Author |
-| --- | --- | --- | --- |
-| 1.0 | 2025-01-24 | Initial guide (Supabase Auth) | Development Team |
-| 2.0 | 2025-11-24 | Migration to Identity Platform | Claude |
+ | Version | Date | Changes | Author |
+ | --- | --- | --- | --- |
+ | 1.0 | 2025-01-24 | Initial guide (Supabase Auth) | Development Team |
+ | 2.0 | 2025-11-24 | Migration to Identity Platform | Claude |

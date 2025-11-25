@@ -19,7 +19,7 @@ Both Doppler and GCP Secret Manager are enterprise-grade secrets management solu
 ## Feature Comparison
 
 | Feature | Doppler | GCP Secret Manager |
-|---------|---------|-------------------|
+| --- | --- | --- |
 | **Multi-environment** | Excellent (projects/configs) | Good (versions/labels) |
 | **CLI Injection** | `doppler run -- cmd` | `gcloud run services update` |
 | **Local Development** | Excellent | Requires setup |
@@ -256,7 +256,7 @@ Both solutions:
 ### Multi-Sponsor Isolation
 
 | Aspect | Doppler | Secret Manager |
-|--------|---------|----------------|
+| --- | --- | --- |
 | Project isolation | Separate Doppler projects | Separate GCP projects |
 | Access control | Team/service tokens | IAM bindings |
 | Cross-sponsor risk | Token management | IAM inheritance |
@@ -397,7 +397,7 @@ doppler run -- flutter run
 ### Doppler
 
 | Plan | Cost | Secrets | Team |
-|------|------|---------|------|
+| --- | --- | --- | --- |
 | Free | $0 | Unlimited | 5 users |
 | Team | $6/user/mo | Unlimited | Unlimited |
 | Enterprise | Custom | Unlimited | SSO, audit |
@@ -405,7 +405,7 @@ doppler run -- flutter run
 ### Secret Manager
 
 | Usage | Cost |
-|-------|------|
+| --- | --- |
 | Active secrets | $0.06/secret/month |
 | Access operations | $0.03 per 10,000 |
 | Versions | $0.06/version/month |
@@ -457,7 +457,7 @@ doppler run --config production -- \
 ## Decision Matrix
 
 | If you value... | Choose... |
-|-----------------|-----------|
+| --- | --- |
 | Developer experience | Doppler (or Hybrid) |
 | GCP-native only | Secret Manager only |
 | Cost optimization | Secret Manager only |
@@ -472,7 +472,7 @@ doppler run --config production -- \
 If choosing Hybrid approach:
 
 | Task | Duration |
-|------|----------|
+| --- | --- |
 | Create Secret Manager secrets | 1 hour |
 | Update Terraform for Cloud Run | 2-4 hours |
 | Add sync step to CI/CD | 1-2 hours |
@@ -495,5 +495,5 @@ If choosing Hybrid approach:
 ## Change Log
 
 | Date | Version | Changes | Author |
-|------|---------|---------|--------|
+| --- | --- | --- | --- |
 | 2025-11-24 | 1.0 | Initial comparison document | Claude |

@@ -518,7 +518,7 @@ clinical-diary-{sponsor}/
 **Required Variables**:
 
 | Variable | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `DATABASE_URL` | Cloud SQL connection string | `postgresql://...` |
 | `DATABASE_INSTANCE` | Cloud SQL instance name | `project:region:instance` |
 | `GCP_PROJECT_ID` | GCP project ID | `clinical-diary-orion-prod` |
@@ -531,7 +531,7 @@ clinical-diary-{sponsor}/
 **Variables** (per sponsor repository):
 
 | Variable | Description |
-|----------|-------------|
+| --- | --- |
 | `SPONSOR` | Sponsor identifier |
 | `WIF_PROVIDER` | Workload Identity Federation provider |
 | `DEPLOY_SA` | Deployment service account email |
@@ -542,7 +542,7 @@ clinical-diary-{sponsor}/
 **Secrets**:
 
 | Secret | Description |
-|--------|-------------|
+| --- | --- |
 | `DOPPLER_TOKEN_PROD` | Doppler service token (production) |
 | `DOPPLER_TOKEN_STAGING` | Doppler service token (staging) |
 | `APPLE_CERTIFICATE` | iOS code signing certificate |
@@ -1083,7 +1083,7 @@ dbmate drop && dbmate up
 
 ## Change History
 
-| Version | Date | Changes | Author |
-| --- | --- | --- | --- |
-| 1.0 | 2025-01-24 | Initial guide (Supabase) | Development Team |
-| 2.0 | 2025-11-24 | Migration to GCP (Cloud Run, Cloud SQL, Artifact Registry) | Claude |
+ | Version | Date | Changes | Author |
+ | --- | --- | --- | --- |
+ | 1.0 | 2025-01-24 | Initial guide (Supabase) | Development Team |
+ | 2.0 | 2025-11-24 | Migration to GCP (Cloud Run, Cloud SQL, Artifact Registry) | Claude |

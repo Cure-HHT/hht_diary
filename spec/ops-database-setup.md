@@ -214,7 +214,7 @@ gcloud sql instances create "${SPONSOR}-db" \
 ### Instance Sizing Guide
 
 | Environment | Tier | vCPUs | Memory | Storage | HA |
-|-------------|------|-------|--------|---------|-----|
+| --- | --- | --- | --- | --- | --- |
 | Development | db-f1-micro | Shared | 0.6 GB | 10 GB | No |
 | Staging | db-custom-1-3840 | 1 | 3.75 GB | 50 GB | No |
 | Production | db-custom-2-8192 | 2 | 8 GB | 100 GB | Yes (Regional) |

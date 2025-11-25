@@ -205,16 +205,16 @@ Permission configuration SHALL include:
 
 **Permission Matrix**:
 
-| Action | USER | INVESTIGATOR | ANALYST | ADMIN |
-| --- | --- | --- | --- | --- |
-| Create own diary entry | ✅ | ❌ | ❌ | ✅ |
-| Edit own diary entry | ✅ | ❌ | ❌ | ✅ |
-| View own data | ✅ | ❌ | ❌ | ✅ |
-| View site data | ❌ | ✅ (assigned sites) | ✅ (assigned sites) | ✅ |
-| Add annotations | ❌ | ✅ | ❌ | ✅ |
-| Assign users to sites | ❌ | ❌ | ❌ | ✅ |
-| Modify roles | ❌ | ❌ | ❌ | ✅ |
-| View audit trail | Own | Assigned sites | Assigned sites | ✅ |
+ | Action | USER | INVESTIGATOR | ANALYST | ADMIN |
+ | --- | --- | --- | --- | --- |
+ | Create own diary entry | ✅ | ❌ | ❌ | ✅ |
+ | Edit own diary entry | ✅ | ❌ | ❌ | ✅ |
+ | View own data | ✅ | ❌ | ❌ | ✅ |
+ | View site data | ❌ | ✅ (assigned sites) | ✅ (assigned sites) | ✅ |
+ | Add annotations | ❌ | ✅ | ❌ | ✅ |
+ | Assign users to sites | ❌ | ❌ | ❌ | ✅ |
+ | Modify roles | ❌ | ❌ | ❌ | ✅ |
+ | View audit trail | Own | Assigned sites | Assigned sites | ✅ |
 
 ---
 
@@ -298,7 +298,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 ### IAM Roles for Clinical Diary
 
 | Role | GCP IAM Role | Purpose |
-|------|--------------|---------|
+| --- | --- | --- |
 | Cloud SQL Access | `roles/cloudsql.client` | Connect to Cloud SQL |
 | Secret Access | `roles/secretmanager.secretAccessor` | Read secrets |
 | Logging | `roles/logging.logWriter` | Write logs |
@@ -662,10 +662,10 @@ WHERE timestamp > now() - interval '90 days';
 
 ## Revision History
 
-| Version | Date | Changes | Author |
-| --- | --- | --- | --- |
-| 1.0.0 | 2025-10-14 | Initial security documentation | Development Team |
-| 2.0.0 | 2025-11-24 | Migration to GCP (Cloud SQL, Identity Platform, IAM) | Claude |
+ | Version | Date | Changes | Author |
+ | --- | --- | --- | --- |
+ | 1.0.0 | 2025-10-14 | Initial security documentation | Development Team |
+ | 2.0.0 | 2025-11-24 | Migration to GCP (Cloud SQL, Identity Platform, IAM) | Claude |
 
 ---
 

@@ -380,7 +380,7 @@ clinical-diary-sponsor-{name}/
 ### Required Doppler Variables
 
 | Variable | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `DATABASE_URL` | Cloud SQL connection string | `postgresql://...` |
 | `DATABASE_INSTANCE` | Cloud SQL instance name | `project:us-central1:db` |
 | `GCP_PROJECT_ID` | GCP project ID | `clinical-diary-prod` |

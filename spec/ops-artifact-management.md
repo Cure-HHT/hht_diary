@@ -292,15 +292,15 @@ The system SHALL maintain change control audit trail with:
 
 ## Technology Stack
 
-| Component | Technology | Cost (monthly) | Purpose |
-| --- | --- | --- | --- |
-| **Hot Storage** | Cloud Storage Standard | ~$20/TB | Recent artifacts (0-90 days) |
-| **Cold Storage** | Cloud Storage Coldline | ~$4/TB | Long-term retention (7 years) |
-| **Container Registry** | Artifact Registry | ~$0.10/GB | Docker images |
-| **Version Control** | GitHub (included) | $0 | Source code retention |
-| **CI/CD Artifacts** | GitHub Actions + Cloud Build | Varies | Build logs, test results |
-| **Database Backups** | Cloud SQL + Cloud Storage | ~$2 | Daily backups archived |
-| **Audit Trail** | PostgreSQL + Cloud Storage | ~$1 | 7-year audit compliance |
+ | Component | Technology | Cost (monthly) | Purpose |
+ | --- | --- | --- | --- |
+ | **Hot Storage** | Cloud Storage Standard | ~$20/TB | Recent artifacts (0-90 days) |
+ | **Cold Storage** | Cloud Storage Coldline | ~$4/TB | Long-term retention (7 years) |
+ | **Container Registry** | Artifact Registry | ~$0.10/GB | Docker images |
+ | **Version Control** | GitHub (included) | $0 | Source code retention |
+ | **CI/CD Artifacts** | GitHub Actions + Cloud Build | Varies | Build logs, test results |
+ | **Database Backups** | Cloud SQL + Cloud Storage | ~$2 | Daily backups archived |
+ | **Audit Trail** | PostgreSQL + Cloud Storage | ~$1 | 7-year audit compliance |
 
 **Total Cost**: ~$10-30/month (varies by volume)
 
@@ -311,7 +311,7 @@ The system SHALL maintain change control audit trail with:
 ### Why Artifact Registry over GitHub Packages?
 
 | Feature | GitHub Packages | GCP Artifact Registry |
-|---------|-----------------|----------------------|
+| --- | --- | --- |
 | **GCP Integration** | Manual setup | Native (IAM, Cloud Build, Cloud Run) |
 | **Vulnerability Scanning** | Dependabot (limited) | Container Analysis API |
 | **Compliance** | Standard | Healthcare-specific certifications |
@@ -836,12 +836,12 @@ jobs:
 
 **Calculation**:
 
-| Storage Type | Size | Duration | Cost/GB/month | Total |
-| --- | --- | --- | --- | --- |
-| Hot (0-90 days) | 12 GB | 90 days | $0.020 | $0.24 |
-| Cold (7 years) | 336 GB | 7 years | $0.004 | $1.34 |
-| Artifact Registry | 10 GB | Ongoing | $0.10 | $1.00 |
-| **Total** | | | | **~$10/month** |
+ | Storage Type | Size | Duration | Cost/GB/month | Total |
+ | --- | --- | --- | --- | --- |
+ | Hot (0-90 days) | 12 GB | 90 days | $0.020 | $0.24 |
+ | Cold (7 years) | 336 GB | 7 years | $0.004 | $1.34 |
+ | Artifact Registry | 10 GB | Ongoing | $0.10 | $1.00 |
+ | **Total** | | | | **~$10/month** |
 
 **Note**: Costs scale linearly with artifact size and deployment frequency.
 
@@ -860,7 +860,7 @@ jobs:
 
 ## Change History
 
-| Date | Version | Author | Changes |
-| --- | --- | --- | --- |
-| 2025-01-27 | 1.0 | Claude | Initial specification (AWS S3) |
-| 2025-11-24 | 2.0 | Claude | Migration to GCP (Cloud Storage, Artifact Registry) |
+ | Date | Version | Author | Changes |
+ | --- | --- | --- | --- |
+ | 2025-01-27 | 1.0 | Claude | Initial specification (AWS S3) |
+ | 2025-11-24 | 2.0 | Claude | Migration to GCP (Cloud Storage, Artifact Registry) |
