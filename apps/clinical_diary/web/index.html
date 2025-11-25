@@ -18,21 +18,39 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Clinical Diary App - REQ-d00006: Mobile App Build and Release Process">
+  <meta name="description" content="Nosebleed Diary - Track your nosebleeds">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="clinical_diary">
+  <meta name="apple-mobile-web-app-title" content="Nosebleed Diary">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>clinical_diary</title>
+  <title>Nosebleed Diary</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Firebase SDK - required for FlutterFire web -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <!-- Initialize Firebase before Flutter loads -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCo2dMGCSQ_At7jb-v0v7jdCwHLqZexvOU",
+      authDomain: "hht-diary-mvp.firebaseapp.com",
+      projectId: "hht-diary-mvp",
+      storageBucket: "hht-diary-mvp.firebasestorage.app",
+      messagingSenderId: "681337116402",
+      appId: "1:681337116402:web:4623da2691399d14f5626b"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

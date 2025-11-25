@@ -113,44 +113,189 @@ final config = DatastoreConfig.production(
 
 ## 🧪 Testing
 
-### Run Tests
+This project uses a comprehensive testing strategy covering both Flutter (Dart) and Firebase Functions (TypeScript).
+
+### Test Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Testing Strategy                          │
+├─────────────────────────────────────────────────────────────┤
+│  Flutter (Dart)              │  Functions (TypeScript)       │
+│  ─────────────────           │  ────────────────────────     │
+│  • Unit tests (models,       │  • Unit tests (helpers,       │
+│    services, config)         │    validators, JWT)           │
+│  • Widget tests              │  • Integration tests          │
+│  • Integration tests         │    (API endpoints)            │
+│                              │  • Mocked Firestore           │
+├─────────────────────────────────────────────────────────────┤
+│  Coverage: Combined lcov report from both Dart & TypeScript │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Quick Start
 
 ```bash
-# Simple test run
+# Run all tests (Flutter + Functions)
 ./tool/test.sh
 
-# With custom concurrency
-./tool/test.sh --concurrency 20
-```
+# Run only Flutter tests
+./tool/test.sh --flutter
 
-### Run Tests with Coverage
+# Run only TypeScript/Functions tests
+./tool/test.sh --typescript
 
-```bash
-# Generate coverage report
+# Run with coverage
 ./tool/coverage.sh
 
-# View HTML report
-open coverage/html/index.html  # Mac
-xdg-open coverage/html/index.html  # Linux
+# Run coverage for specific platform
+./tool/coverage.sh --flutter
+./tool/coverage.sh --typescript
 ```
 
-### Install lcov (for coverage HTML reports)
+### Flutter Tests
 
-**Mac**:
 ```bash
+# Run Flutter tests only
+./tool/test.sh -f
+
+# With custom concurrency
+./tool/test.sh -f --concurrency 20
+
+# Run specific test file
+flutter test test/models/nosebleed_record_test.dart
+```
+
+**Test Categories:**
+- `test/models/` - Model serialization, validation, computed properties
+- `test/services/` - Service logic with mocked dependencies
+- `test/config/` - Configuration and app settings
+- `test/widgets/` - Widget rendering and interaction tests
+
+### Firebase Functions Tests
+
+```bash
+# Run Functions tests only
+./tool/test.sh -t
+
+# Or from functions directory
+cd functions
+npm test
+
+# Run with coverage
+npm run test:coverage
+```
+
+**Test Categories:**
+- `functions/src/__tests__/` - Unit and integration tests
+- Tests use `firebase-functions-test` for mocking
+
+### Coverage Reports
+
+```bash
+# Generate coverage reports
+./tool/coverage.sh
+
+# View HTML reports
+# Flutter coverage (requires lcov):
+open coverage/html-flutter/index.html  # Mac
+xdg-open coverage/html-flutter/index.html  # Linux
+
+# TypeScript/Functions coverage (always available):
+open coverage/html-functions/index.html  # Mac
+xdg-open coverage/html-functions/index.html  # Linux
+```
+
+The coverage script:
+1. Runs Flutter tests with lcov output
+2. Runs TypeScript tests with lcov output (generates HTML via Jest)
+3. Merges both lcov files into a combined report (lcov-combined.info)
+4. Generates separate HTML reports for Flutter and TypeScript
+
+**Note**: TypeScript coverage HTML is always available at `coverage/html-functions/index.html` because Jest generates it directly. Flutter HTML reports require lcov to be installed.
+
+### Install Dependencies
+
+**lcov** (required for Flutter coverage HTML reports):
+```bash
+# Mac
 brew install lcov
-```
 
-**Linux** (Ubuntu/Debian):
-```bash
-sudo apt-get update
-sudo apt-get install lcov
-```
+# Linux (Ubuntu/Debian)
+sudo apt-get update && sudo apt-get install lcov
 
-**Linux** (Fedora/RHEL):
-```bash
+# Linux (Fedora/RHEL)
 sudo dnf install lcov
+
+# Verify installation
+lcov --version
+genhtml --version
 ```
+
+Without lcov installed:
+- TypeScript coverage HTML: Available at `coverage/html-functions/index.html`
+- Flutter coverage HTML: Not available (only lcov.info file)
+
+### CI/CD Integration
+
+Tests run automatically on:
+- **Push/PR to main or develop**: Full test suite + lint + analyze
+- **Coverage**: Uploaded to Codecov on main branch pushes
+
+The CI pipeline will **fail** if:
+- `dart format` finds unformatted code
+- `flutter analyze` finds any issues (including infos)
+- `eslint` finds any issues in TypeScript
+- Any test fails
+- TypeScript compilation fails
+
+### Writing Tests
+
+**Flutter Unit Test Example:**
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:clinical_diary/models/nosebleed_record.dart';
+
+void main() {
+  group('NosebleedRecord', () {
+    test('fromJson creates valid record', () {
+      final json = {
+        'id': 'test-123',
+        'date': '2024-01-15T00:00:00.000',
+        'severity': 'dripping',
+      };
+
+      final record = NosebleedRecord.fromJson(json);
+
+      expect(record.id, 'test-123');
+      expect(record.severity, NosebleedSeverity.dripping);
+    });
+  });
+}
+```
+
+**TypeScript Unit Test Example:**
+```typescript
+import { validateEnrollmentCode } from '../validators';
+
+describe('validateEnrollmentCode', () => {
+  it('accepts valid CUREHHT codes', () => {
+    expect(validateEnrollmentCode('CUREHHT1')).toBe(true);
+    expect(validateEnrollmentCode('curehht9')).toBe(true);
+  });
+
+  it('rejects invalid codes', () => {
+    expect(validateEnrollmentCode('INVALID')).toBe(false);
+    expect(validateEnrollmentCode('CUREHHTX')).toBe(false);
+  });
+});
+```
+
+### Test Coverage Requirements
+
+- **Minimum coverage**: 80% (enforced in CI)
+- **New code**: Should have tests for all public APIs
+- **Bug fixes**: Should include regression test
 
 ### Widget Testing
 

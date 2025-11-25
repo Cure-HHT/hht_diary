@@ -20,16 +20,16 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 - Offline-first with automatic background sync
 - Event Sourcing for complete audit trail
 - Sponsor-specific branding and configuration
-- Secure connection to sponsor's GCP backend (Cloud SQL + Identity Platform)
+- Secure connection to sponsor's Firebase backend
 - FDA 21 CFR Part 11 compliant data capture
 
 **Technology Stack**:
 - **Framework**: Flutter (single codebase � iOS + Android)
 - **Language**: Dart
-- **Backend**: GCP (Cloud SQL + Identity Platform + Cloud Run per sponsor)
-- **Local Storage**: SQLite via sqflite package
-- **State Management**: Riverpod
-- **Networking**: Firebase Auth SDK + HTTP client for Cloud Run API
+- **Backend**: Firebase Firestore and Cloud Functions GCP (also, indirectly, Cloud SQL + Identity Platform)
+- **Local Storage**: Use Firestore local sync 
+- **State Management**: Signals
+- **Networking**: Firebase Firestore and Cloud Functions
 
 ---
 
@@ -43,7 +43,7 @@ The mobile application SHALL implement automatic sponsor detection and configura
 
 Implementation SHALL include:
 - Enrollment token parser extracting sponsor identifier
-- Configuration loader fetching sponsor-specific settings (GCP project ID, Firebase config, API URL, branding assets)
+- Configuration loader fetching sponsor-specific settings (GCP/Firebase project ID, Firebase config, API URL, branding assets)
 - Runtime sponsor context switching based on active user session
 - Bundled sponsor configurations in app assets
 - Validation of sponsor configuration completeness before connection

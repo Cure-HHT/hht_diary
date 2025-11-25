@@ -10,6 +10,29 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Firebase (core only - no auth, using custom JWT)
+  firebase_core: ^4.2.1
+
+  # State Management
+  signals: ^6.2.0
+
+  # Local Storage
+  shared_preferences: ^2.5.3
+  flutter_secure_storage: ^9.2.4
+
+  # UUID generation
+  uuid: ^4.5.2
+
+  # JWT handling (for token verification on client)
+  dart_jsonwebtoken: ^3.3.1
+
+  # HTTP
+  http: ^1.4.0
+
+  # Utilities
+  intl: ^0.20.2
+  collection: ^1.19.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -17,3 +40,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/

@@ -405,6 +405,53 @@ Required for:
 
 See [Dev Container Setup](#dev-container-setup) below.
 
+### lcov
+
+**Purpose**: Code coverage report generation
+
+**Minimum version**: 1.14
+
+Used for:
+- Generating HTML coverage reports from lcov.info files
+- Combining Flutter and TypeScript coverage reports
+- Filtering coverage data (excluding generated files)
+
+**Installation**:
+
+**macOS**:
+```bash
+brew install lcov
+lcov --version
+```
+
+**Ubuntu/Debian**:
+```bash
+sudo apt-get update
+sudo apt-get install -y lcov
+lcov --version
+```
+
+**Fedora/RHEL**:
+```bash
+sudo dnf install lcov
+lcov --version
+```
+
+**Windows (WSL2)**:
+```bash
+sudo apt-get update
+sudo apt-get install -y lcov
+lcov --version
+```
+
+**Verification**:
+```bash
+lcov --version   # Should be 1.14 or higher
+genhtml --help   # Verify genhtml is available
+```
+
+**Note**: Without lcov installed, you can still run coverage but won't get combined HTML reports. TypeScript/Jest generates its own HTML report in `coverage/html-functions/`.
+
 ### gitleaks
 
 **Purpose**: Secret scanning for git commits
@@ -626,7 +673,7 @@ gcloud secrets versions access latest --secret=SECRET_NAME
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install core tools
-brew install git python@3.12 node@20 jq yq gh doppler gitleaks google-cloud-sdk
+brew install git python@3.12 node@20 jq yq gh doppler gitleaks lcov google-cloud-sdk
 
 # Verify installations
 git --version
@@ -638,6 +685,7 @@ yq --version
 gh --version
 doppler --version
 gitleaks --version
+lcov --version
 gcloud --version
 ```
 
@@ -681,6 +729,9 @@ wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks-lin
 chmod +x gitleaks-linux-x64
 sudo mv gitleaks-linux-x64 /usr/local/bin/gitleaks
 
+# Install lcov (for coverage reports)
+sudo apt-get install -y lcov
+
 # Install gcloud CLI
 echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
   sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
@@ -698,6 +749,7 @@ jq --version
 yq --version
 gh --version
 gitleaks --version
+lcov --version
 gcloud --version
 ```
 
@@ -919,6 +971,7 @@ optional_tools=(
   "yq:YAML query tool"
   "doppler:Doppler CLI"
   "gitleaks:Secret scanner"
+  "lcov:Coverage report generator"
   "gcloud:Google Cloud CLI"
 )
 
@@ -975,6 +1028,7 @@ linear --version                # If installed
 yq --version                    # If installed
 doppler --version               # If installed
 gitleaks --version              # Should be 8.18.0+
+lcov --version                  # Should be 1.14+
 gcloud --version                # Should be 450.0+
 
 # Verify gcloud configuration (if using GCP)
@@ -1107,6 +1161,31 @@ sudo service docker start
 # Or configure to auto-start:
 echo 'sudo service docker start' >> ~/.bashrc
 ```
+
+### Coverage HTML reports not generated
+
+**Problem**: Running `./tool/coverage.sh` but no HTML report is created
+
+**Solution**:
+```bash
+# Check if lcov is installed
+lcov --version
+genhtml --version
+
+# If not installed:
+# macOS
+brew install lcov
+
+# Ubuntu/Debian
+sudo apt-get install -y lcov
+
+# After installing, run coverage again
+./tool/coverage.sh
+```
+
+**Note**: TypeScript (Jest) generates its own HTML report in `coverage/html-functions/` even without lcov. The lcov tool is mainly needed for:
+- Flutter coverage HTML reports
+- Combined coverage reports (Flutter + TypeScript)
 
 ### Permission denied errors
 
