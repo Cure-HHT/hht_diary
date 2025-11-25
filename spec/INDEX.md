@@ -14,16 +14,16 @@ This file provides a complete index of all formal requirements across the spec/ 
 
 | Requirement ID | File | Title | Hash |
 | --- | --- | --- | --- |
-| REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | 5fa9f76f |
-| REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | 8c25b197 |
-| REQ-d00003 | dev-security.md | Identity Platform Auth Configuration Per Sponsor | 67ec9c94 |
+| REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | cf4bce54 |
+| REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | b551cfb0 |
+| REQ-d00003 | dev-security.md | Identity Platform Auth Configuration Per Sponsor | 27095b5c |
 | REQ-d00004 | dev-app.md | Local-First Data Entry Implementation | 843d0664 |
-| REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | d43b407d |
+| REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | 5fc971c4 |
 | REQ-d00006 | dev-app.md | Mobile App Build and Release Process | 6dfe9c2d |
-| REQ-d00007 | dev-database.md | Database Schema Implementation and Deployment | 6bb78566 |
-| REQ-d00008 | dev-security.md | MFA Enrollment and Verification Implementation | 7bfb1abf |
-| REQ-d00009 | dev-security.md | Role-Based Permission Enforcement Implementation | 17e50d39 |
-| REQ-d00010 | dev-security.md | Data Encryption Implementation | d5034b3a |
+| REQ-d00007 | dev-database.md | Database Schema Implementation and Deployment | 18df4bc0 |
+| REQ-d00008 | dev-security.md | MFA Enrollment and Verification Implementation | e179439d |
+| REQ-d00009 | dev-security.md | Role-Based Permission Enforcement Implementation | 32cf086a |
+| REQ-d00010 | dev-security.md | Data Encryption Implementation | d2d03aa8 |
 | REQ-d00011 | dev-database.md | Multi-Site Schema Implementation | bf785d33 |
 | REQ-d00013 | dev-app.md | Application Instance UUID Generation | 447e987e |
 | REQ-d00014 | dev-requirements-management.md | Requirement Validation Tooling | 2263dc21 |
@@ -31,7 +31,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00016 | dev-requirements-management.md | Code-to-Requirement Linking | c857235a |
 | REQ-d00017 | dev-requirements-management.md | ADR Template and Lifecycle Tooling | 36997d8f |
 | REQ-d00018 | dev-requirements-management.md | Git Hook Implementation | 85098bca |
-| REQ-d00019 | dev-security-RLS.md | Patient Data Isolation RLS Implementation | 4d57cdcf |
+| REQ-d00019 | dev-security-RLS.md | Patient Data Isolation RLS Implementation | 42079679 |
 | REQ-d00020 | dev-security-RLS.md | Investigator Site-Scoped RLS Implementation | 0b438bc8 |
 | REQ-d00021 | dev-security-RLS.md | Investigator Annotation RLS Implementation | 024f5863 |
 | REQ-d00022 | dev-security-RLS.md | Analyst Read-Only RLS Implementation | ca57ee0e |
@@ -40,33 +40,33 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00025 | dev-security-RLS.md | Administrator Break-Glass RLS Implementation | 4a44951a |
 | REQ-d00026 | dev-security-RLS.md | Event Sourcing State Protection RLS Implementation | a665366e |
 | REQ-d00027 | dev-environment.md | Containerized Development Environments | 13d56217 |
-| REQ-d00028 | dev-portal.md | Portal Frontend Framework | 7eefcecd |
+| REQ-d00028 | dev-portal.md | Portal Frontend Framework | 27f467d3 |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
-| REQ-d00031 | dev-portal.md | Firebase Authentication Integration | 8abcbfac |
-| REQ-d00032 | dev-portal.md | Role-Based Access Control Implementation | 6d335872 |
-| REQ-d00033 | dev-portal.md | Site-Based Data Isolation | c3440de7 |
-| REQ-d00034 | dev-portal.md | Login Page Implementation | 50d0c2b5 |
-| REQ-d00035 | dev-portal.md | Admin Dashboard Implementation | 7b82ec93 |
-| REQ-d00036 | dev-portal.md | Create User Dialog Implementation | 42a93086 |
-| REQ-d00037 | dev-portal.md | Investigator Dashboard Implementation | 9f7a8612 |
-| REQ-d00038 | dev-portal.md | Enroll Patient Dialog Implementation | c553d403 |
-| REQ-d00039 | dev-portal.md | Portal Users Table Schema | 848297db |
-| REQ-d00040 | dev-portal.md | User Site Access Table Schema | 2e3c150c |
-| REQ-d00041 | dev-portal.md | Patients Table Extensions for Portal | e4b8c181 |
+| REQ-d00031 | dev-portal.md | Firebase Authentication Integration | 85ebe53e |
+| REQ-d00032 | dev-portal.md | Role-Based Access Control Implementation | 5aeb5131 |
+| REQ-d00033 | dev-portal.md | Site-Based Data Isolation | 012bc8b5 |
+| REQ-d00034 | dev-portal.md | Login Page Implementation | 90e89cec |
+| REQ-d00035 | dev-portal.md | Admin Dashboard Implementation | 4d26164b |
+| REQ-d00036 | dev-portal.md | Create User Dialog Implementation | a8751a99 |
+| REQ-d00037 | dev-portal.md | Investigator Dashboard Implementation | a4946745 |
+| REQ-d00038 | dev-portal.md | Enroll Patient Dialog Implementation | 881fec78 |
+| REQ-d00039 | dev-portal.md | Portal Users Table Schema | 7f3f554a |
+| REQ-d00040 | dev-portal.md | User Site Access Table Schema | 9ce60fc6 |
+| REQ-d00041 | dev-portal.md | Patients Table Extensions for Portal | 4662cd2a |
 | REQ-d00042 | dev-portal.md | Questionnaires Table Schema | 166c9e74 |
-| REQ-d00043 | dev-portal.md | Netlify Deployment Configuration | d7c11f03 |
-| REQ-d00051 | dev-portal.md | Auditor Dashboard Implementation | 86038561 |
+| REQ-d00043 | dev-portal.md | Netlify Deployment Configuration | da14653c |
+| REQ-d00051 | dev-portal.md | Auditor Dashboard Implementation | 1c02e54a |
 | REQ-d00052 | dev-portal.md | Role-Based Banner Component | 40c44430 |
 | REQ-d00053 | dev-requirements-management.md | Development Environment and Tooling Setup | 404b139b |
-| REQ-d00055 | dev-environment.md | Role-Based Environment Separation | d3bc3ad6 |
+| REQ-d00055 | dev-environment.md | Role-Based Environment Separation | a8ce8ecf |
 | REQ-d00056 | dev-environment.md | Cross-Platform Development Support | 223d3f08 |
 | REQ-d00057 | dev-environment.md | CI/CD Environment Parity | e58f7423 |
-| REQ-d00058 | dev-environment.md | Secrets Management via Doppler | 6119c7b8 |
-| REQ-d00059 | dev-environment.md | Development Tool Specifications | 1a59e7e8 |
+| REQ-d00058 | dev-environment.md | Secrets Management via Doppler | 313110c3 |
+| REQ-d00059 | dev-environment.md | Development Tool Specifications | 42b07b9a |
 | REQ-d00060 | dev-environment.md | VS Code Dev Containers Integration | 07abf106 |
 | REQ-d00061 | dev-environment.md | Automated QA Workflow | fc47d463 |
-| REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 7b290df6 |
+| REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 5c269c11 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | b407570f |
 | REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | e325d07b |
 | REQ-d00065 | dev-marketplace-path-validation.md | Plugin Path Validation | 770482b7 |
@@ -74,17 +74,17 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
-| REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 970de2df |
-| REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | 8786c322 |
-| REQ-o00003 | ops-database-setup.md | Cloud SQL Provisioning Per Sponsor | 10544ffd |
+| REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |
+| REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | c6ed3379 |
+| REQ-o00003 | ops-database-setup.md | Cloud SQL Provisioning Per Sponsor | 5c8ec50e |
 | REQ-o00004 | ops-database-setup.md | Database Schema Deployment | b9f6a0b5 |
 | REQ-o00005 | ops-operations.md | Audit Trail Monitoring | f48b8b6b |
-| REQ-o00006 | ops-security-authentication.md | MFA Configuration for Staff Accounts | 16f074eb |
-| REQ-o00007 | ops-security.md | Role-Based Permission Configuration | 9921779b |
-| REQ-o00008 | ops-operations.md | Backup and Retention Policy | 6268dd48 |
-| REQ-o00009 | ops-deployment.md | Portal Deployment Per Sponsor | 06ad75fd |
-| REQ-o00010 | ops-deployment.md | Mobile App Release Process | 34b8dd28 |
-| REQ-o00011 | ops-database-setup.md | Multi-Site Data Configuration Per Sponsor | 9981604d |
+| REQ-o00006 | ops-security-authentication.md | MFA Configuration for Staff Accounts | b8739ec1 |
+| REQ-o00007 | ops-security.md | Role-Based Permission Configuration | d77cbde8 |
+| REQ-o00008 | ops-operations.md | Backup and Retention Policy | 48f424bd |
+| REQ-o00009 | ops-deployment.md | Portal Deployment Per Sponsor | d0b93523 |
+| REQ-o00010 | ops-deployment.md | Mobile App Release Process | 6985c040 |
+| REQ-o00011 | ops-database-setup.md | Multi-Site Data Configuration Per Sponsor | 2af51c8b |
 | REQ-o00013 | ops-requirements-management.md | Requirements Format Validation | 2743e711 |
 | REQ-o00014 | ops-requirements-management.md | Top-Down Requirement Cascade | d36fc1fb |
 | REQ-o00015 | ops-requirements-management.md | Documentation Structure Enforcement | 426b1961 |
@@ -94,21 +94,21 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00021 | ops-security-RLS.md | Investigator Site-Scoped Access Policy Deployment | 38196c93 |
 | REQ-o00022 | ops-security-RLS.md | Investigator Annotation Access Policy Deployment | d428ead1 |
 | REQ-o00023 | ops-security-RLS.md | Analyst Read-Only Access Policy Deployment | 346c5484 |
-| REQ-o00024 | ops-security-RLS.md | Sponsor Global Access Policy Deployment | f13778ad |
+| REQ-o00024 | ops-security-RLS.md | Sponsor Global Access Policy Deployment | 1a54172d |
 | REQ-o00025 | ops-security-RLS.md | Auditor Compliance Access Policy Deployment | 7778ee1d |
 | REQ-o00026 | ops-security-RLS.md | Administrator Access Policy Deployment | bd1671e2 |
 | REQ-o00027 | ops-security-RLS.md | Event Sourcing State Protection Policy Deployment | a2326ae4 |
-| REQ-o00041 | ops-infrastructure-as-code.md | Infrastructure as Code for Cloud Resources | fa6aaa33 |
+| REQ-o00041 | ops-infrastructure-as-code.md | Infrastructure as Code for Cloud Resources | e42cc806 |
 | REQ-o00042 | ops-infrastructure-as-code.md | Infrastructure Change Control | 8b9ee3b1 |
-| REQ-o00043 | ops-deployment-automation.md | Automated Deployment Pipeline | e82a4842 |
-| REQ-o00044 | ops-deployment-automation.md | Database Migration Automation | 10291b2e |
-| REQ-o00045 | ops-monitoring-observability.md | Error Tracking and Monitoring | 4e736f6d |
-| REQ-o00046 | ops-monitoring-observability.md | Uptime Monitoring | b1a74a81 |
-| REQ-o00047 | ops-monitoring-observability.md | Performance Monitoring | 6b0d1af7 |
-| REQ-o00048 | ops-monitoring-observability.md | Audit Log Monitoring | 600b3f14 |
-| REQ-o00049 | ops-artifact-management.md | Artifact Retention and Archival | 83f459da |
-| REQ-o00050 | ops-artifact-management.md | Environment Parity and Separation | 50e126da |
-| REQ-o00051 | ops-artifact-management.md | Change Control and Audit Trail | abb65c22 |
+| REQ-o00043 | ops-deployment-automation.md | Automated Deployment Pipeline | 96f57f47 |
+| REQ-o00044 | ops-deployment-automation.md | Database Migration Automation | ba7cbea5 |
+| REQ-o00045 | ops-monitoring-observability.md | Error Tracking and Monitoring | 2f30130f |
+| REQ-o00046 | ops-monitoring-observability.md | Uptime Monitoring | 8b18418e |
+| REQ-o00047 | ops-monitoring-observability.md | Performance Monitoring | aace8eb6 |
+| REQ-o00048 | ops-monitoring-observability.md | Audit Log Monitoring | 354985e7 |
+| REQ-o00049 | ops-artifact-management.md | Artifact Retention and Archival | 2ad38e10 |
+| REQ-o00050 | ops-artifact-management.md | Environment Parity and Separation | 7ccde026 |
+| REQ-o00051 | ops-artifact-management.md | Change Control and Audit Trail | f9d8ca86 |
 | REQ-o00052 | ops-cicd.md | CI/CD Pipeline for Requirement Traceability | 150d2b29 |
 | REQ-o00053 | ops-cicd.md | Branch Protection Enforcement | d0584e9a |
 | REQ-o00054 | ops-cicd.md | Audit Trail Generation for CI/CD | 7da5e2e7 |

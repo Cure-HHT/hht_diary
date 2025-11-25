@@ -419,7 +419,7 @@ Each GCP project SHALL provide:
 - No shared configuration between sponsors
 - Project provisioning documented in runbook
 
-*End* *Separate GCP Projects Per Sponsor* | **Hash**: 970de2df
+*End* *Separate GCP Projects Per Sponsor* | **Hash**: 6d281a2e
 ---
 
 # REQ-o00002: Environment-Specific Configuration Management
@@ -442,7 +442,7 @@ Each sponsor environment SHALL maintain:
 - Secrets accessed via Secret Manager in Cloud Run
 - No credentials found in git history
 
-*End* *Environment-Specific Configuration Management* | **Hash**: 8786c322
+*End* *Environment-Specific Configuration Management* | **Hash**: c6ed3379
 ---
 
 ### Environment Types
@@ -825,7 +825,7 @@ Mobile app release SHALL include:
 - All sponsor configurations tested before release
 - Update deployment automated via CI/CD
 
-*End* *Mobile App Release Process* | **Hash**: 34b8dd28
+*End* *Mobile App Release Process* | **Hash**: 6985c040
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -877,7 +877,7 @@ Portal deployment SHALL include:
 - Portal cannot access other sponsors' APIs
 - Rollback capability per sponsor portal
 
-*End* *Portal Deployment Per Sponsor* | **Hash**: 06ad75fd
+*End* *Portal Deployment Per Sponsor* | **Hash**: d0b93523
 ---
 
 ### Cloud Run Static Site Deployment

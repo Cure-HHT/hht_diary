@@ -81,7 +81,7 @@ Role-based environments SHALL include:
 - File permissions enforce role boundaries
 - Documentation explains what each role can and cannot do
 
-*End* *Role-Based Environment Separation* | **Hash**: d3bc3ad6
+*End* *Role-Based Environment Separation* | **Hash**: a8ce8ecf
 ---
 
 # REQ-d00056: Cross-Platform Development Support
@@ -163,7 +163,7 @@ Doppler integration SHALL provide:
 - Documentation covers Doppler setup per role
 - Secret rotation procedures documented
 
-*End* *Secrets Management via Doppler* | **Hash**: 6119c7b8
+*End* *Secrets Management via Doppler* | **Hash**: 313110c3
 ---
 
 # REQ-d00059: Development Tool Specifications
@@ -219,7 +219,7 @@ Tool specifications SHALL include:
 - Tool version verification script runs on container startup
 - Documentation includes tool update policy and testing procedures
 
-*End* *Development Tool Specifications* | **Hash**: 1a59e7e8
+*End* *Development Tool Specifications* | **Hash**: 42b07b9a
 ---
 
 # REQ-d00060: VS Code Dev Containers Integration
@@ -333,7 +333,7 @@ Validation SHALL include:
 - SBOM generated and stored with each image version
 - Deprecation notices provided 90 days before environment version retirement
 
-*End* *Environment Validation & Change Control* | **Hash**: 7b290df6
+*End* *Environment Validation & Change Control* | **Hash**: 5c269c11
 ---
 
 # REQ-d00063: Shared Workspace and File Exchange

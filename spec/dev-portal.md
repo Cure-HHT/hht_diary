@@ -163,7 +163,7 @@ flutter build web --release --web-renderer html
 - [ ] URL strategy removes `#` from routes
 - [ ] Works on Chrome, Firefox, Safari, Edge (latest versions)
 
-*End* *Portal Frontend Framework* | **Hash**: 7eefcecd
+*End* *Portal Frontend Framework* | **Hash**: 27f467d3
 
 ---
 
@@ -543,7 +543,7 @@ class AuthProvider extends ChangeNotifier {
 - [ ] Session persists across browser refresh
 - [ ] Logout clears all auth state
 
-*End* *Firebase Authentication Integration* | **Hash**: 8abcbfac
+*End* *Firebase Authentication Integration* | **Hash**: 85ebe53e
 ---
 
 # REQ-d00032: Role-Based Access Control Implementation
@@ -582,7 +582,7 @@ The portal SHALL enforce role-based access control (RBAC) with three roles: Admi
 - [ ] RLS policies enforce role-based data access
 - [ ] Admin can access all dashboards
 
-*End* *Role-Based Access Control Implementation* | **Hash**: 6d335872
+*End* *Role-Based Access Control Implementation* | **Hash**: 5aeb5131
 ---
 
 # REQ-d00033: Site-Based Data Isolation
@@ -636,7 +636,7 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 - [ ] RLS policy prevents cross-site data access
 - [ ] Admin can see all sites (bypass RLS)
 
-*End* *Site-Based Data Isolation* | **Hash**: c3440de7
+*End* *Site-Based Data Isolation* | **Hash**: 012bc8b5
 ---
 
 ## Frontend Components Requirements
@@ -820,7 +820,7 @@ class _LoginPageState extends State<LoginPage> {
 - [ ] Error messages displayed via SnackBar
 - [ ] Successful login redirects to role-specific dashboard
 
-*End* *Login Page Implementation* | **Hash**: 50d0c2b5
+*End* *Login Page Implementation* | **Hash**: 90e89cec
 ---
 
 # REQ-d00035: Admin Dashboard Implementation
@@ -1069,7 +1069,7 @@ class _SummaryCard extends StatelessWidget {
 - [ ] Revoke button deactivates investigator accounts
 - [ ] Table responsive on desktop and tablet
 
-*End* *Admin Dashboard Implementation* | **Hash**: 7b82ec93
+*End* *Admin Dashboard Implementation* | **Hash**: 4d26164b
 ---
 
 # REQ-d00036: Create User Dialog Implementation
@@ -1365,7 +1365,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 - [ ] Success message shows linking code
 - [ ] Dialog closes and table refreshes after creation
 
-*End* *Create User Dialog Implementation* | **Hash**: 42a93086
+*End* *Create User Dialog Implementation* | **Hash**: a8751a99
 ---
 
 # REQ-d00037: Investigator Dashboard Implementation
@@ -1854,7 +1854,7 @@ class _QuestionnaireActions extends StatelessWidget {
 - [ ] "Unenroll" button revokes patient tokens
 - [ ] Table responsive on desktop and tablet
 
-*End* *Investigator Dashboard Implementation* | **Hash**: 9f7a8612
+*End* *Investigator Dashboard Implementation* | **Hash**: a4946745
 ---
 
 # REQ-d00038: Enroll Patient Dialog Implementation
@@ -2058,7 +2058,7 @@ class _EnrollPatientDialogState extends State<EnrollPatientDialog> {
 - [ ] Success message shows linking code
 - [ ] Dialog closes and table refreshes after enrollment
 
-*End* *Enroll Patient Dialog Implementation* | **Hash**: c553d403
+*End* *Enroll Patient Dialog Implementation* | **Hash**: 881fec78
 ---
 
 # REQ-d00051: Auditor Dashboard Implementation
@@ -2423,7 +2423,7 @@ class _SummaryCard extends StatelessWidget {
 - [ ] Summary cards show accurate counts
 - [ ] RLS policies allow Auditor read access to all data
 
-*End* *Auditor Dashboard Implementation* | **Hash**: 86038561
+*End* *Auditor Dashboard Implementation* | **Hash**: 1c02e54a
 ---
 
 ## Database Schema Requirements
@@ -2513,7 +2513,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 - [ ] Admins can query all users
 - [ ] Investigators can only query themselves
 
-*End* *Portal Users Table Schema* | **Hash**: 848297db
+*End* *Portal Users Table Schema* | **Hash**: 7f3f554a
 ---
 
 # REQ-d00040: User Site Access Table Schema
@@ -2580,7 +2580,7 @@ CREATE POLICY "admins_insert_site_access" ON user_site_access
 - [ ] RLS policies enable role-based access
 - [ ] Cascade delete removes assignments when user or site deleted
 
-*End* *User Site Access Table Schema* | **Hash**: 2e3c150c
+*End* *User Site Access Table Schema* | **Hash**: 9ce60fc6
 ---
 
 # REQ-d00041: Patients Table Extensions for Portal
@@ -2684,7 +2684,7 @@ CREATE POLICY "investigators_update_own_sites_patients" ON patients
 - [ ] Investigators can only see/enroll patients at their assigned sites
 - [ ] Migration script creates columns with proper types
 
-*End* *Patients Table Extensions for Portal* | **Hash**: e4b8c181
+*End* *Patients Table Extensions for Portal* | **Hash**: 4662cd2a
 ---
 
 # REQ-d00042: Questionnaires Table Schema
@@ -2815,7 +2815,7 @@ The portal SHALL be deployed to Cloud Run with sponsor-specific custom domains, 
 
 **Dockerfile** (`Dockerfile.portal`):
 ```dockerfile
-# Stage 1: Build Flutter web app
+## Stage 1: Build Flutter web app
 FROM ghcr.io/cirruslabs/flutter:stable AS builder
 WORKDIR /app
 COPY pubspec.* ./
@@ -2833,7 +2833,7 @@ RUN flutter build web --release --web-renderer html \
     --dart-define=FIREBASE_APP_ID=$FIREBASE_APP_ID \
     --dart-define=API_BASE_URL=$API_BASE_URL
 
-# Stage 2: Serve with nginx
+## Stage 2: Serve with nginx
 FROM nginx:alpine
 COPY --from=builder /app/build/web /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -2898,7 +2898,7 @@ API_BASE_URL=https://api-<sponsor>-uc.a.run.app
 - [ ] Automatic deployments trigger on `main` branch push
 - [ ] Custom domain configured with SSL certificate
 
-*End* *Cloud Run Deployment Configuration* | **Hash**: d7c11f03
+*End* *Cloud Run Deployment Configuration* | **Hash**: da14653c
 ---
 
 ## Summary

@@ -84,7 +84,7 @@ MFA configuration SHALL include:
 - MFA bypass not possible through configuration
 - MFA events logged in audit trail
 
-*End* *MFA Configuration for Staff Accounts* | **Hash**: 16f074eb
+*End* *MFA Configuration for Staff Accounts* | **Hash**: b8739ec1
 ---
 
 ## Identity Platform Setup

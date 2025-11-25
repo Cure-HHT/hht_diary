@@ -82,7 +82,7 @@ Provisioning SHALL include:
 - Project provisioning documented in runbook
 - Staging and production use separate projects
 
-*End* *GCP Project Provisioning Per Sponsor* | **Hash**: 10544ffd
+*End* *GCP Project Provisioning Per Sponsor* | **Hash**: 5c8ec50e
 ---
 
 ### Per-Sponsor GCP Projects
@@ -128,6 +128,31 @@ Provisioning SHALL include:
 
 **Storage**: Use Doppler per sponsor project/environment
 
+---
+
+# REQ-o00011: Multi-Site Data Configuration Per Sponsor
+
+**Level**: Ops | **Implements**: p00009, p00014 | **Status**: Active
+
+Each sponsor's database SHALL be configured with site data structures to support multi-site clinical trials, including site records, site-user assignments, and site-based access control configuration.
+
+Configuration SHALL include:
+- Site records populated with site metadata (site_id, site_name, site_number, location, contact)
+- Investigator-to-site assignments configured per trial setup
+- Analyst-to-site assignments configured per sponsor requirements
+- Patient-to-site enrollment mappings established during enrollment
+- RLS policy configurations verified for site-based data isolation
+
+**Rationale**: Implements multi-sponsor architecture (p00009) and role-based access (p00014) at the operations level. Site configuration must be completed before trial enrollment begins to ensure proper data isolation and access control.
+
+**Acceptance Criteria**:
+- Site records created for all participating trial sites
+- Site assignments configured for all investigators and analysts
+- RLS policies verified to correctly filter data by site
+- Site context correctly captured in audit trail entries
+- Documentation exists for adding/removing sites post-deployment
+
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 2af51c8b
 ---
 
 ## Step 1: GCP Project Setup

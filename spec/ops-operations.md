@@ -919,7 +919,7 @@ Backup and retention SHALL include:
 - Quarterly disaster recovery drills documented
 - Backup integrity verification automated
 
-*End* *Backup and Retention Policy* | **Hash**: 6268dd48
+*End* *Backup and Retention Policy* | **Hash**: 48f424bd
 ---
 
 ### Automated Backups

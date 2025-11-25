@@ -187,7 +187,7 @@ Permission configuration SHALL include:
 - Role assignment changes logged in audit trail
 - Permission matrix matches specification exactly
 
-*End* *Role-Based Permission Configuration* | **Hash**: 9921779b
+*End* *Role-Based Permission Configuration* | **Hash**: d77cbde8
 ---
 
 ### Role-Based Access Control (RBAC)

@@ -146,7 +146,7 @@ Policy deployment SHALL include:
 - No access to other sponsors' data (separate databases)
 - Read-only clinical access enforced by missing write policies
 
-*End* *Sponsor Global Access Policy Deployment* | **Hash**: f13778ad
+*End* *Sponsor Global Access Policy Deployment* | **Hash**: 1a54172d
 ---
 
 # REQ-o00025: Auditor Compliance Access Policy Deployment

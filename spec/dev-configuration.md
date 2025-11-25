@@ -63,7 +63,7 @@ The application SHALL validate all required fields are present at application st
 - Configuration is immutable after loading (final fields)
 - Cloud SQL connection uses appropriate format for environment
 
-*End* *Sponsor-Specific Configuration Loading* | **Hash**: 5fa9f76f
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: cf4bce54
 ---
 
 ### Implementation Example
@@ -246,7 +246,7 @@ The build SHALL fail immediately if validation fails, with clear error messages 
 - Validation completes in <1 second
 - Non-zero exit code on validation failure
 
-*End* *Pre-Build Configuration Validation* | **Hash**: 8c25b197
+*End* *Pre-Build Configuration Validation* | **Hash**: b551cfb0
 ---
 
 ### Validation Script

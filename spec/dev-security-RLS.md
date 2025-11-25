@@ -100,7 +100,7 @@ CREATE POLICY patient_insert_audit ON record_audit
 - Policies execute without performance degradation (<50ms overhead)
 - Unit tests cover all policy scenarios
 
-*End* *Patient Data Isolation RLS Implementation* | **Hash**: 4d57cdcf
+*End* *Patient Data Isolation RLS Implementation* | **Hash**: 42079679
 ---
 
 # REQ-d00020: Investigator Site-Scoped RLS Implementation
