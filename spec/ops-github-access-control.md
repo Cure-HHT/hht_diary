@@ -346,11 +346,10 @@ Organization Settings → Audit log:
 **Sponsor Repositories**:
 ```
 Required Secrets (GitHub Secrets):
-  SUPABASE_URL              - Sponsor's Supabase project URL
-  SUPABASE_ANON_KEY         - Supabase anonymous key
-  SUPABASE_SERVICE_KEY      - Service role key (CI/CD only)
-  NETLIFY_AUTH_TOKEN        - Netlify deployment token
-  NETLIFY_SITE_ID           - Portal site identifier
+  GCP_PROJECT_ID            - Sponsor's GCP project ID
+  GCP_WORKLOAD_IDENTITY     - Workload Identity Federation provider
+  GCP_SERVICE_ACCOUNT       - Service account for CI/CD
+  DOPPLER_TOKEN             - Doppler secrets access token
   APPLE_CERTIFICATE         - iOS code signing
   APPLE_PROVISIONING        - iOS provisioning profile
   ANDROID_KEYSTORE          - Android signing keystore
@@ -489,14 +488,14 @@ Security Restrictions:
 
 ```
 1. IMMEDIATE:
-   - Revoke secret in GitHub + Supabase/Netlify
-   - Invalidate all active user sessions
-   - Generate new secret
-   - Redeploy applications
+   - Revoke secret in GitHub + GCP IAM + Doppler
+   - Invalidate all active user sessions (Identity Platform)
+   - Generate new credentials
+   - Redeploy applications to Cloud Run
 
 2. INVESTIGATION:
-   - Review Supabase audit logs
-   - Check for unauthorized database access
+   - Review Cloud Audit Logs
+   - Check for unauthorized database access (Cloud SQL logs)
    - Verify data integrity
 
 3. NOTIFICATION:

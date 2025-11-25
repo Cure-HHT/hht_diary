@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Development
-**Last Updated**: 2025-10-26
+**Last Updated**: 2025-11-24
 **Status**: Active
 
 > **See**: prd-app.md for application architecture
@@ -63,7 +63,7 @@ Development infrastructure SHALL provide separate containerized environments for
 Role-based environments SHALL include:
 - **Developer**: Full development tools (Flutter, Android SDK, hot reload, debugging)
 - **QA**: Testing frameworks (Playwright, Flutter integration tests, report generation)
-- **DevOps**: Infrastructure tools (Terraform, Supabase CLI, deployment automation)
+- **DevOps**: Infrastructure tools (Terraform, gcloud CLI, Cloud SQL Proxy, deployment automation)
 - **Management**: Read-only tools (repository viewer, report access, audit log queries)
 - Distinct Git identities per role (name, email, GPG signing)
 - Role-specific GitHub Personal Access Tokens with minimal scopes
@@ -81,7 +81,7 @@ Role-based environments SHALL include:
 - File permissions enforce role boundaries
 - Documentation explains what each role can and cannot do
 
-*End* *Role-Based Environment Separation* | **Hash**: d3bc3ad6
+*End* *Role-Based Environment Separation* | **Hash**: a8ce8ecf
 ---
 
 # REQ-d00056: Cross-Platform Development Support
@@ -157,13 +157,13 @@ Doppler integration SHALL provide:
 **Acceptance Criteria**:
 - Doppler CLI installed in all role containers
 - GitHub tokens accessed via `doppler run -- gh auth login`
-- Supabase tokens accessed via `doppler run -- supabase link`
+- GCP credentials accessed via `doppler run -- gcloud auth login`
 - No secrets in Git history, Dockerfiles, or compose files
 - Doppler audit log captures all secret access
 - Documentation covers Doppler setup per role
 - Secret rotation procedures documented
 
-*End* *Secrets Management via Doppler* | **Hash**: 6119c7b8
+*End* *Secrets Management via Doppler* | **Hash**: 313110c3
 ---
 
 # REQ-d00059: Development Tool Specifications
@@ -202,7 +202,8 @@ Tool specifications SHALL include:
 
 **Infrastructure (ops)**:
 - Terraform 1.9+ (infrastructure as code)
-- Supabase CLI latest (database management)
+- gcloud CLI latest (GCP management)
+- Cloud SQL Proxy latest (database connectivity)
 
 **Documentation (mgmt)**:
 - Pandoc (document conversion)
@@ -218,7 +219,7 @@ Tool specifications SHALL include:
 - Tool version verification script runs on container startup
 - Documentation includes tool update policy and testing procedures
 
-*End* *Development Tool Specifications* | **Hash**: 1a59e7e8
+*End* *Development Tool Specifications* | **Hash**: 42b07b9a
 ---
 
 # REQ-d00060: VS Code Dev Containers Integration
@@ -305,6 +306,7 @@ Validation SHALL include:
 - Playwright can run sample tests
 - Terraform can validate configurations
 - Doppler can retrieve secrets
+- gcloud CLI can authenticate with GCP
 
 **Performance Qualification (PQ)**:
 - Build times within acceptable ranges
@@ -331,7 +333,7 @@ Validation SHALL include:
 - SBOM generated and stored with each image version
 - Deprecation notices provided 90 days before environment version retirement
 
-*End* *Environment Validation & Change Control* | **Hash**: 7b290df6
+*End* *Environment Validation & Change Control* | **Hash**: 5c269c11
 ---
 
 # REQ-d00063: Shared Workspace and File Exchange

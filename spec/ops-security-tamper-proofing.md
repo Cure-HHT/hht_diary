@@ -23,12 +23,12 @@ Provide tamper-evident auditing for schema/permission changes and privileged ope
 - Break-glass API with reason, approver, TTL; tag all elevated actions.
 - Alerts for RLS disabled, super-role grants, mass export.
 
-# Implementation: Tamper-Proofing on Supabase (DRAFT)
+# Implementation: Tamper-Proofing on GCP (DRAFT)
 
 ## Stack
-- Supabase Postgres with pgaudit
-- Audit schema (+ Storage checkpoints)
-- Edge Functions for alerts and break-glass
+- Cloud SQL PostgreSQL with pgaudit
+- Audit schema (+ Cloud Storage checkpoints)
+- Cloud Run API for alerts and break-glass
 
 ## Checklist
 1. Enable pgaudit and verify logs.

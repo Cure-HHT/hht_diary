@@ -13,7 +13,7 @@
 
 ## Executive Summary
 
-This document defines operational procedures for deploying, configuring, and monitoring PostgreSQL Row-Level Security (RLS) policies that enforce access control requirements. Each sponsor's Supabase instance requires RLS policies to be enabled and properly configured to ensure data isolation and regulatory compliance.
+This document defines operational procedures for deploying, configuring, and monitoring PostgreSQL Row-Level Security (RLS) policies that enforce access control requirements. Each sponsor's Cloud SQL instance requires RLS policies to be enabled and properly configured to ensure data isolation and regulatory compliance.
 
 ---
 
@@ -133,7 +133,7 @@ Policy deployment SHALL include:
 - SELECT policies on clinical data tables for sponsor role (no site filter)
 - No modification policies on clinical data tables for sponsor role
 - Full access policies on user management and configuration tables
-- Sponsor isolation enforced through separate Supabase projects
+- Sponsor isolation enforced through separate GCP projects (Cloud SQL)
 - Policies allow de-identified data access only
 - Write access limited to administrative tables
 
@@ -146,7 +146,7 @@ Policy deployment SHALL include:
 - No access to other sponsors' data (separate databases)
 - Read-only clinical access enforced by missing write policies
 
-*End* *Sponsor Global Access Policy Deployment* | **Hash**: f13778ad
+*End* *Sponsor Global Access Policy Deployment* | **Hash**: 1a54172d
 ---
 
 # REQ-o00025: Auditor Compliance Access Policy Deployment

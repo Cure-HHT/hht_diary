@@ -1,8 +1,8 @@
-# Supabase Database Setup Guide
+# Cloud SQL Database Setup Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Operations (Database Administrators, DevOps Engineers)
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-11-24
 **Status**: Active
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
@@ -14,10 +14,10 @@
 
 ## Executive Summary
 
-Complete guide for deploying the Clinical Trial Diary Database to Supabase in a multi-sponsor architecture. Each sponsor operates an independent Supabase project (separate PostgreSQL database + Auth instance) for complete data isolation.
+Complete guide for deploying the Clinical Trial Diary Database to Google Cloud SQL in a multi-sponsor architecture. Each sponsor operates an independent GCP project with isolated Cloud SQL instances for complete data isolation.
 
 **Key Principles**:
-- **One Supabase project per sponsor** - Complete infrastructure isolation
+- **One GCP project per sponsor** - Complete infrastructure isolation
 - **Identical core schema** - All sponsors use same base schema from core repository
 - **Sponsor-specific extensions** - Each sponsor can add custom tables/functions
 - **Independent operations** - Each sponsor has separate credentials, backups, monitoring
@@ -26,66 +26,72 @@ Complete guide for deploying the Clinical Trial Diary Database to Supabase in a 
 ```
 Sponsor A                    Sponsor B                    Sponsor C
 ┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
-│ Supabase Project A  │     │ Supabase Project B  │     │ Supabase Project C  │
-│ - PostgreSQL DB     │     │ - PostgreSQL DB     │     │ - PostgreSQL DB     │
-│ - Supabase Auth     │     │ - Supabase Auth     │     │ - Supabase Auth     │
-│ - Edge Functions    │     │ - Edge Functions    │     │ - Edge Functions    │
+│ GCP Project A       │     │ GCP Project B       │     │ GCP Project C       │
+│ - Cloud SQL         │     │ - Cloud SQL         │     │ - Cloud SQL         │
+│ - Identity Platform │     │ - Identity Platform │     │ - Identity Platform │
+│ - Cloud Run         │     │ - Cloud Run         │     │ - Cloud Run         │
 │ - Isolated Backups  │     │ - Isolated Backups  │     │ - Isolated Backups  │
 └─────────────────────┘     └─────────────────────┘     └─────────────────────┘
 ```
 
-**This Guide Covers**: Setup procedures for a single sponsor's Supabase instance. Repeat these steps for each sponsor with their own Supabase project.
+**This Guide Covers**: Setup procedures for a single sponsor's Cloud SQL instance. Repeat these steps for each sponsor with their own GCP project.
 
 ---
 
 ## Prerequisites
 
-1. **Supabase Account**
-   - Sign up at https://supabase.com
-   - Free tier is sufficient for development/testing
-   - Production deployments should use Pro tier or higher
+1. **GCP Account**
+   - Organization or standalone GCP account
+   - Billing enabled
+   - Appropriate IAM permissions (Cloud SQL Admin, IAM Admin)
 
-2. **Project Created**
-   - Create a new project in Supabase dashboard
-   - Choose a region close to your users
-   - Note your project URL and anon/service keys
+2. **GCP Project Created**
+   - Create a new project per sponsor
+   - Enable required APIs (Cloud SQL, Compute Engine, Secret Manager)
+   - Note project ID
+
+3. **Local Tools**
+   - `gcloud` CLI installed and configured
+   - `cloud_sql_proxy` for local development
+   - `psql` PostgreSQL client
+   - Terraform (optional, for IaC)
 
 ---
 
 ## Multi-Sponsor Setup Context
 
-# REQ-o00003: Supabase Project Provisioning Per Sponsor
+# REQ-o00003: GCP Project Provisioning Per Sponsor
 
 **Level**: Ops | **Implements**: p00003, o00001 | **Status**: Active
 
-Each sponsor SHALL be provisioned with dedicated Supabase project(s) for their environments (staging, production), ensuring complete database infrastructure isolation.
+Each sponsor SHALL be provisioned with a dedicated GCP project for their environments (staging, production), ensuring complete database infrastructure isolation.
 
 Provisioning SHALL include:
-- Unique Supabase project created per sponsor per environment
+- Unique GCP project created per sponsor per environment
 - Project naming follows convention: `clinical-diary-{sponsor}-{env}`
-- Geographic region selected based on sponsor's user base
-- Appropriate tier selected (Free for dev/staging, Pro+ for production)
-- Project credentials stored securely in sponsor's GitHub Secrets
+- Geographic region selected based on sponsor's user base and data residency requirements
+- Appropriate Cloud SQL tier selected based on workload
+- Project credentials stored securely in Doppler
 
-**Rationale**: Implements database isolation requirement (p00003) at the infrastructure provisioning level. Each Supabase project provides isolated PostgreSQL database, authentication system, and API endpoints.
+**Rationale**: Implements database isolation requirement (p00003) at the infrastructure provisioning level. Each GCP project provides isolated Cloud SQL database, Identity Platform authentication, and Cloud Run services.
 
 **Acceptance Criteria**:
-- Each sponsor has dedicated project URL (`https://{unique-ref}.supabase.co`)
+- Each sponsor has dedicated GCP project
 - Projects cannot share databases or authentication systems
 - Credentials unique per project and never reused
 - Project provisioning documented in runbook
 - Staging and production use separate projects
 
-*End* *Supabase Project Provisioning Per Sponsor* | **Hash**: 10544ffd
+*End* *GCP Project Provisioning Per Sponsor* | **Hash**: 5c8ec50e
 ---
 
-### Per-Sponsor Supabase Projects
+### Per-Sponsor GCP Projects
 
 **Each sponsor requires**:
-1. Dedicated Supabase project (separate account or organization)
-2. Unique project name: `clinical-diary-{sponsor-name}` (e.g., `clinical-diary-orion`)
-3. Region selection based on sponsor's primary user base
-4. Appropriate tier (Free for dev/staging, Pro+ for production)
+1. Dedicated GCP project (within organization or standalone)
+2. Unique project ID: `clinical-diary-{sponsor-name}-{env}`
+3. Region selection based on sponsor's primary user base and data residency
+4. Appropriate Cloud SQL tier based on expected workload
 
 ### Project Naming Convention
 
@@ -113,18 +119,73 @@ Provisioning SHALL include:
 ### Credential Management
 
 **Each sponsor has separate**:
-- Project URL: `https://{project-ref}.supabase.co`
-- Anon key (public, for client apps)
-- Service role key (secret, for backend/migrations)
-- Database password
+- GCP project ID
+- Cloud SQL instance connection name
+- Database user credentials
+- Service account keys (for Cloud Run)
 
 **Security**: Credentials must NEVER be shared between sponsors
 
-**Storage**: Use GitHub Secrets per sponsor repository
+**Storage**: Use Doppler per sponsor project/environment
 
 ---
 
-## Step 1: Database Deployment
+# REQ-o00011: Multi-Site Data Configuration Per Sponsor
+
+**Level**: Ops | **Implements**: p00009, p00014 | **Status**: Active
+
+Each sponsor's database SHALL be configured with site data structures to support multi-site clinical trials, including site records, site-user assignments, and site-based access control configuration.
+
+Configuration SHALL include:
+- Site records populated with site metadata (site_id, site_name, site_number, location, contact)
+- Investigator-to-site assignments configured per trial setup
+- Analyst-to-site assignments configured per sponsor requirements
+- Patient-to-site enrollment mappings established during enrollment
+- RLS policy configurations verified for site-based data isolation
+
+**Rationale**: Implements multi-sponsor architecture (p00009) and role-based access (p00014) at the operations level. Site configuration must be completed before trial enrollment begins to ensure proper data isolation and access control.
+
+**Acceptance Criteria**:
+- Site records created for all participating trial sites
+- Site assignments configured for all investigators and analysts
+- RLS policies verified to correctly filter data by site
+- Site context correctly captured in audit trail entries
+- Documentation exists for adding/removing sites post-deployment
+
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 2af51c8b
+---
+
+## Step 1: GCP Project Setup
+
+### Create Project
+
+```bash
+# Set variables
+export SPONSOR="orion"
+export ENV="prod"
+export PROJECT_ID="clinical-diary-${SPONSOR}-${ENV}"
+export REGION="us-central1"
+
+# Create project (requires org admin or standalone)
+gcloud projects create $PROJECT_ID --name="Clinical Diary ${SPONSOR} ${ENV}"
+
+# Set as active project
+gcloud config set project $PROJECT_ID
+
+# Link billing account
+gcloud billing projects link $PROJECT_ID --billing-account=BILLING_ACCOUNT_ID
+
+# Enable required APIs
+gcloud services enable sqladmin.googleapis.com
+gcloud services enable compute.googleapis.com
+gcloud services enable secretmanager.googleapis.com
+gcloud services enable run.googleapis.com
+gcloud services enable identitytoolkit.googleapis.com
+```
+
+---
+
+## Step 2: Cloud SQL Instance Creation
 
 # REQ-o00004: Database Schema Deployment
 
@@ -152,378 +213,416 @@ Schema deployment SHALL include:
 *End* *Database Schema Deployment* | **Hash**: b9f6a0b5
 ---
 
-# REQ-o00011: Multi-Site Data Configuration Per Sponsor
-
-**Level**: Ops | **Implements**: p00018 | **Status**: Active
-
-Each sponsor's database SHALL be configured with initial site records and site-based access control, enabling multi-site clinical trial operations within the sponsor's isolated environment.
-
-Site configuration SHALL include:
-- Creation of initial site records in sites table
-- Site assignment for investigators and analysts
-- RLS policies enforcing site-level data access
-- Site metadata (name, location, contact information)
-- Site activation status management
-- Documentation of site assignments for audit purposes
-
-**Rationale**: Implements multi-site support requirement (p00018) through operational configuration. Each sponsor manages their own sites independently, with database-level access control ensuring investigators see only data from assigned sites.
-
-**Acceptance Criteria**:
-- Sites table populated with sponsor's clinical trial sites
-- Each site has unique identifier within sponsor database
-- Investigator-site assignments configured correctly
-- RLS policies restrict data access to assigned sites
-- Site configuration documented for regulatory submission
-- Site management procedures defined for sponsor administrators
-
-*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 9981604d
----
-
-### Option A: SQL Editor (Quickest)
-
-1. Navigate to **SQL Editor** in Supabase Dashboard
-2. Create a new query
-3. Copy and paste each file in this order:
-   - `schema.sql`
-   - `triggers.sql`
-   - `roles.sql`
-   - `rls_policies.sql`
-   - `indexes.sql`
-4. Click "Run" after each file
-5. Verify success (no errors in output)
-
-### Option B: Migrations (Recommended for Production)
-
-**Deploy Core Schema + Sponsor Extensions**:
+### Create Cloud SQL Instance
 
 ```bash
-# Install Supabase CLI
-npm install -g supabase
+# Create Cloud SQL instance
+gcloud sql instances create "${SPONSOR}-db" \
+  --project=$PROJECT_ID \
+  --database-version=POSTGRES_15 \
+  --tier=db-custom-2-8192 \
+  --region=$REGION \
+  --storage-type=SSD \
+  --storage-size=100GB \
+  --storage-auto-increase \
+  --availability-type=REGIONAL \
+  --backup-start-time=02:00 \
+  --enable-point-in-time-recovery \
+  --maintenance-window-day=SUN \
+  --maintenance-window-hour=03 \
+  --database-flags=cloudsql.enable_pgaudit=on \
+  --root-password=$(openssl rand -base64 32)
 
-# Login to Supabase
-supabase login
-
-# Link to sponsor's Supabase project
-cd clinical-diary-{sponsor}
-supabase link --project-ref {sponsor-project-ref}
-
-# Option 1: Use core schema from GitHub package
-npm install @clinical-diary/database@1.2.3
-
-supabase db push --include node_modules/@clinical-diary/database/schema.sql
-supabase db push --include node_modules/@clinical-diary/database/triggers.sql
-supabase db push --include node_modules/@clinical-diary/database/rls_policies.sql
-supabase db push --include node_modules/@clinical-diary/database/indexes.sql
-
-# Option 2: Use core schema from local clone
-supabase db push --include ../clinical-diary/packages/database/schema.sql
-supabase db push --include ../clinical-diary/packages/database/triggers.sql
-supabase db push --include ../clinical-diary/packages/database/rls_policies.sql
-supabase db push --include ../clinical-diary/packages/database/indexes.sql
-
-# Deploy sponsor-specific extensions (if any)
-supabase db push --include ./database/extensions.sql
+# Note: Store root password in Doppler immediately!
 ```
 
-**Verification**:
+### Instance Sizing Guide
+
+| Environment | Tier | vCPUs | Memory | Storage | HA |
+| --- | --- | --- | --- | --- | --- |
+| Development | db-f1-micro | Shared | 0.6 GB | 10 GB | No |
+| Staging | db-custom-1-3840 | 1 | 3.75 GB | 50 GB | No |
+| Production | db-custom-2-8192 | 2 | 8 GB | 100 GB | Yes (Regional) |
+| Production (Large) | db-custom-4-16384 | 4 | 16 GB | 500 GB | Yes |
+
+### Create Database and User
+
+```bash
+# Create clinical diary database
+gcloud sql databases create clinical_diary \
+  --instance="${SPONSOR}-db" \
+  --charset=UTF8 \
+  --collation=en_US.UTF8
+
+# Generate secure password
+DB_PASSWORD=$(openssl rand -base64 32)
+
+# Create application user
+gcloud sql users create app_user \
+  --instance="${SPONSOR}-db" \
+  --password="$DB_PASSWORD"
+
+# Store password in Doppler
+echo "Store this password in Doppler as DATABASE_PASSWORD: $DB_PASSWORD"
+```
+
+### Configure Private IP (Recommended for Production)
+
+```bash
+# Reserve IP range for VPC peering
+gcloud compute addresses create google-managed-services-default \
+  --global \
+  --purpose=VPC_PEERING \
+  --prefix-length=16 \
+  --network=default
+
+# Create VPC peering connection
+gcloud services vpc-peerings connect \
+  --service=servicenetworking.googleapis.com \
+  --ranges=google-managed-services-default \
+  --network=default
+
+# Update instance to use private IP
+gcloud sql instances patch "${SPONSOR}-db" \
+  --network=default \
+  --no-assign-ip
+```
+
+---
+
+## Step 3: Schema Deployment
+
+### Option A: Direct SQL Deployment
+
+```bash
+# Connect via Cloud SQL Proxy (for initial setup)
+cloud_sql_proxy -instances=$PROJECT_ID:$REGION:${SPONSOR}-db=tcp:5432 &
+
+# Wait for proxy to start
+sleep 5
+
+# Set connection string
+export PGPASSWORD="$DB_PASSWORD"
+export PGHOST="127.0.0.1"
+export PGPORT="5432"
+export PGUSER="app_user"
+export PGDATABASE="clinical_diary"
+
+# Deploy core schema in order
+psql -f packages/database/schema.sql
+psql -f packages/database/triggers.sql
+psql -f packages/database/roles.sql
+psql -f packages/database/rls_policies.sql
+psql -f packages/database/indexes.sql
+
+# Deploy sponsor-specific extensions (if any)
+psql -f sponsor/${SPONSOR}/database/extensions.sql
+```
+
+### Option B: Using Migrations (Recommended)
+
+```bash
+# Using dbmate or similar migration tool
+export DATABASE_URL="postgresql://app_user:${DB_PASSWORD}@127.0.0.1:5432/clinical_diary?sslmode=disable"
+
+# Run migrations
+dbmate up
+
+# Verify migrations
+dbmate status
+```
+
+### Verification
 
 ```bash
 # Verify core tables deployed
-supabase db diff --schema public
+psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
 
-# Run integration tests
-flutter test integration_test/database_test.dart
+# Expected tables:
+# - admin_action_log
+# - investigator_annotations
+# - record_audit
+# - record_state
+# - role_change_log
+# - sites
+# - sync_conflicts
+# - user_profiles
+# - user_sessions
 ```
 
 ---
 
-## Step 2: Authentication Setup
+## Step 4: Authentication Setup (Identity Platform)
 
-### Enable Email Authentication
+### Enable Identity Platform
 
-1. Go to **Authentication → Providers** in Supabase Dashboard
-2. Enable Email provider
-3. Configure email templates (optional)
-4. Set up SMTP for production (required for emails)
-
-### Configure JWT Settings
-
-1. Go to **Settings → API**
-2. Note your JWT secret (automatically configured)
-3. JWT tokens will include these claims:
-   ```json
-   {
-     "sub": "user-uuid",
-     "email": "user@example.com",
-     "role": "USER" // or INVESTIGATOR, ANALYST, ADMIN
-   }
-   ```
-
-### Custom Claims Setup
-
-To add the `role` claim to JWT tokens, you need to create a database function:
-
-```sql
--- Create function to add custom claims
-CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-AS $$
-DECLARE
-  claims jsonb;
-  user_role text;
-BEGIN
-  -- Fetch the user role from user_profiles
-  SELECT role INTO user_role
-  FROM public.user_profiles
-  WHERE user_id = (event->>'user_id')::text;
-
-  claims := event->'claims';
-
-  -- Add custom role claim
-  IF user_role IS NOT NULL THEN
-    claims := jsonb_set(claims, '{role}', to_jsonb(user_role));
-  ELSE
-    claims := jsonb_set(claims, '{role}', to_jsonb('USER'::text));
-  END IF;
-
-  -- Update the 'claims' object in the original event
-  event := jsonb_set(event, '{claims}', claims);
-
-  RETURN event;
-END;
-$$;
-
--- Grant necessary permissions
-GRANT EXECUTE ON FUNCTION public.custom_access_token_hook TO supabase_auth_admin;
-GRANT ALL ON TABLE public.user_profiles TO supabase_auth_admin;
-
-REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook FROM authenticated, anon, public;
-```
-
-Then configure in Supabase Dashboard:
-1. Go to **Authentication → Hooks**
-2. Enable "Custom access token" hook
-3. Select the `custom_access_token_hook` function
-
----
-
-## Step 3: Initial User Setup
-
-### Create Admin User
-
-1. **Via Supabase Dashboard:**
-   - Go to **Authentication → Users**
-   - Click "Add user"
-   - Enter email and password
-   - Enable "Auto-confirm user"
-   - Note the user UUID
-
-2. **Add to user_profiles:**
-   ```sql
-   INSERT INTO user_profiles (user_id, email, full_name, role, two_factor_enabled)
-   VALUES (
-       'user-uuid-from-auth',
-       'admin@your-org.com',
-       'System Administrator',
-       'ADMIN',
-       true
-   );
-   ```
-
-### Create First Site
-
-```sql
-INSERT INTO sites (site_id, site_name, site_number, address, contact_info)
-VALUES (
-    'site_001',
-    'Main Clinical Site',
-    'SITE-001',
-    '{"street": "123 Medical Plaza", "city": "Boston", "state": "MA", "zip": "02101"}'::jsonb,
-    '{"phone": "555-0100", "email": "trials@example.org"}'::jsonb
-);
-```
-
----
-
-## Step 4: API Configuration
-
-### Get Your API Keys
-
-1. Go to **Settings → API**
-2. Copy the following:
-   - **Project URL:** `https://your-project.supabase.co`
-   - **Anon (public) key:** For client-side applications
-   - **Service role key:** For backend operations (keep secret!)
-
-### Client Configuration
-
-**JavaScript/TypeScript:**
-```javascript
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = 'https://your-project.supabase.co'
-const supabaseAnonKey = 'your-anon-key'
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-```
-
-**Environment Variables:**
 ```bash
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-key  # Backend only!
+# Enable Identity Platform API
+gcloud services enable identitytoolkit.googleapis.com
+
+# Configure Identity Platform (via console or Terraform)
+# Console: https://console.cloud.google.com/customer-identity
+```
+
+### Configure OAuth Providers
+
+1. Navigate to **Identity Platform** in GCP Console
+2. Go to **Providers** tab
+3. Enable required providers:
+   - Email/Password
+   - Google OAuth
+   - Apple Sign-In (requires Apple Developer account)
+   - Microsoft OAuth
+
+### Custom Claims for RBAC
+
+Create a Cloud Function to add custom claims to JWT tokens:
+
+```javascript
+// functions/customClaims/index.js
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+
+admin.initializeApp();
+
+exports.addCustomClaims = functions.auth.user().onCreate(async (user) => {
+  // Default role for new users
+  const defaultRole = 'USER';
+
+  try {
+    await admin.auth().setCustomUserClaims(user.uid, {
+      role: defaultRole,
+      sponsorId: process.env.SPONSOR_ID,
+    });
+
+    console.log(`Custom claims set for user ${user.uid}`);
+  } catch (error) {
+    console.error('Error setting custom claims:', error);
+  }
+});
+
+// Function to update role (called by admin)
+exports.updateUserRole = functions.https.onCall(async (data, context) => {
+  // Verify caller is admin
+  if (!context.auth?.token?.role || context.auth.token.role !== 'ADMIN') {
+    throw new functions.https.HttpsError('permission-denied', 'Must be admin');
+  }
+
+  const { userId, newRole } = data;
+  const validRoles = ['USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN'];
+
+  if (!validRoles.includes(newRole)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid role');
+  }
+
+  await admin.auth().setCustomUserClaims(userId, {
+    ...context.auth.token,
+    role: newRole,
+  });
+
+  return { success: true };
+});
+```
+
+Deploy the function:
+
+```bash
+cd functions/customClaims
+gcloud functions deploy addCustomClaims \
+  --runtime=nodejs18 \
+  --trigger-event=providers/firebase.auth/eventTypes/user.create \
+  --region=$REGION \
+  --set-env-vars=SPONSOR_ID=$SPONSOR
 ```
 
 ---
 
-## Step 5: Security Configuration
+## Step 5: RLS Configuration
 
-### Enable RLS (Already Done)
+### Set Up Session Variables for RLS
 
-All tables have RLS enabled via `rls_policies.sql`. Verify:
+RLS policies use session variables set by the application. Configure the application connection to set these:
+
+```dart
+// In Dart server (Cloud Run)
+Future<Connection> getConnection() async {
+  final conn = await Connection.open(
+    Endpoint(
+      host: '/cloudsql/$instanceConnectionName',
+      database: 'clinical_diary',
+      username: 'app_user',
+      password: databasePassword,
+    ),
+    settings: ConnectionSettings(
+      sslMode: SslMode.disable, // Unix socket doesn't use SSL
+    ),
+  );
+
+  // Set session variables for RLS
+  await conn.execute('''
+    SET app.current_user_id = '${currentUserId}';
+    SET app.current_user_role = '${currentUserRole}';
+    SET app.current_site_id = '${currentSiteId}';
+  ''');
+
+  return conn;
+}
+```
+
+### Verify RLS Policies
 
 ```sql
+-- Verify RLS is enabled on all tables
 SELECT tablename, rowsecurity
 FROM pg_tables
 WHERE schemaname = 'public'
   AND tablename NOT LIKE 'pg_%';
+
+-- Test RLS as different users
+SET app.current_user_id = 'user_123';
+SET app.current_user_role = 'USER';
+SELECT COUNT(*) FROM record_state; -- Should only see own data
+
+SET app.current_user_role = 'ADMIN';
+SELECT COUNT(*) FROM record_state; -- Should see all data
 ```
-
-All should show `rowsecurity = true`.
-
-### Configure CORS (if needed)
-
-1. Go to **Settings → API**
-2. Add allowed origins under CORS configuration
-3. For development: `http://localhost:3000`
-4. For production: `https://your-app.com`
-
-### Set Up Realtime (Optional)
-
-To enable real-time subscriptions:
-
-1. Go to **Database → Replication**
-2. Enable replication for tables you want to subscribe to:
-   - `record_state` (for live diary updates)
-   - `investigator_annotations` (for real-time notifications)
-   - `sync_conflicts` (for conflict alerts)
-
-3. Configure in your application:
-   ```javascript
-   const channel = supabase
-     .channel('diary-updates')
-     .on(
-       'postgres_changes',
-       {
-         event: 'INSERT',
-         schema: 'public',
-         table: 'record_state',
-         filter: `patient_id=eq.${userId}`
-       },
-       (payload) => {
-         console.log('New diary entry:', payload)
-       }
-     )
-     .subscribe()
-   ```
 
 ---
 
-## Step 6: Backup Configuration
+## Step 6: Service Account Setup
 
-### Enable Point-in-Time Recovery
+### Create Service Account for Cloud Run
 
-1. Go to **Settings → Database**
-2. Enable PITR (available on Pro plan and above)
-3. Configure retention period (default: 7 days)
+```bash
+# Create service account
+gcloud iam service-accounts create clinical-diary-server \
+  --display-name="Clinical Diary Server"
 
-### Set Up Scheduled Backups
+# Grant Cloud SQL Client role
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/cloudsql.client"
 
-Supabase automatically backs up your database, but for critical data:
+# Grant Secret Manager access
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
 
-1. **Pro plan:** Daily backups retained for 7 days
-2. **Team plan:** Daily backups retained for 14 days
-3. **Enterprise:** Custom retention
+---
+
+## Step 7: Backup Configuration
+
+### Automated Backups
+
+Cloud SQL provides automated daily backups:
+
+```bash
+# Verify backup configuration
+gcloud sql instances describe "${SPONSOR}-db" \
+  --format="get(settings.backupConfiguration)"
+
+# Configure retention (7 days default, up to 365)
+gcloud sql instances patch "${SPONSOR}-db" \
+  --backup-retention-count=30
+```
+
+### Point-in-Time Recovery
+
+```bash
+# Verify PITR is enabled
+gcloud sql instances describe "${SPONSOR}-db" \
+  --format="get(settings.backupConfiguration.pointInTimeRecoveryEnabled)"
+
+# PITR retention: 7 days (automatic)
+```
 
 ### Manual Backup
 
 ```bash
-# Using Supabase CLI
-supabase db dump -f backup_$(date +%Y%m%d).sql
+# Create on-demand backup
+gcloud sql backups create \
+  --instance="${SPONSOR}-db" \
+  --description="Manual backup before migration"
 
-# Or using pg_dump directly
-pg_dump "postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres" > backup.sql
+# List backups
+gcloud sql backups list --instance="${SPONSOR}-db"
+```
+
+### Export to Cloud Storage (Long-term Retention)
+
+```bash
+# Create storage bucket for backups
+gsutil mb -l $REGION gs://${PROJECT_ID}-backups
+
+# Export database to Cloud Storage
+gcloud sql export sql "${SPONSOR}-db" \
+  gs://${PROJECT_ID}-backups/backup-$(date +%Y%m%d).sql \
+  --database=clinical_diary
 ```
 
 ---
 
-## Step 7: Monitoring Setup
+## Step 8: Monitoring Setup
 
-### Enable Logs
+### Enable Cloud SQL Insights
 
-1. Go to **Logs → Database**
-2. Enable log retention
-3. Set up log exports to external service (optional)
+```bash
+# Enable query insights
+gcloud sql instances patch "${SPONSOR}-db" \
+  --insights-config-query-insights-enabled \
+  --insights-config-query-string-length=4096 \
+  --insights-config-record-application-tags \
+  --insights-config-record-client-address
+```
 
-### Create Alerts
+### Create Monitoring Alerts
 
-Monitor these metrics:
-- Database CPU usage
-- Connection count
-- Slow query log
-- Error rate
+```bash
+# Alert on high CPU
+gcloud monitoring alert-policies create \
+  --display-name="Cloud SQL High CPU" \
+  --condition-filter='resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/cpu/utilization"' \
+  --condition-threshold-value=0.8 \
+  --condition-threshold-comparison=COMPARISON_GT \
+  --notification-channels=CHANNEL_ID
 
-### Database Health Checks
-
-Add these queries to your monitoring:
-
-```sql
--- Active connections
-SELECT COUNT(*) FROM pg_stat_activity;
-
--- Table sizes
-SELECT
-  schemaname,
-  tablename,
-  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
-FROM pg_tables
-WHERE schemaname = 'public'
-ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
-
--- Unresolved conflicts
-SELECT COUNT(*) FROM sync_conflicts WHERE resolved = false;
-
--- Recent errors (check logs)
+# Alert on storage usage
+gcloud monitoring alert-policies create \
+  --display-name="Cloud SQL Storage Alert" \
+  --condition-filter='resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/disk/utilization"' \
+  --condition-threshold-value=0.8 \
+  --condition-threshold-comparison=COMPARISON_GT \
+  --notification-channels=CHANNEL_ID
 ```
 
 ---
 
-## Step 8: Performance Optimization
+## Step 9: Performance Optimization
 
-### Enable Connection Pooling
+### Connection Pooling
 
-Supabase provides connection pooling by default. Use the pooler connection string for better performance:
+For Cloud Run, use the Cloud SQL connector with connection pooling:
 
-- **Transaction mode:** For short transactions (recommended)
-  `postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres`
+```dart
+// Use postgres connection pool
+import 'package:postgres_pool/postgres_pool.dart';
 
-- **Session mode:** For long-running queries
-  `postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres`
+final pool = PgPool(
+  PgEndpoint(
+    host: '/cloudsql/$instanceConnectionName',
+    database: 'clinical_diary',
+    username: 'app_user',
+    password: databasePassword,
+  ),
+  settings: PgPoolSettings(
+    maxConnectionCount: 10,
+    maxConnectionAge: Duration(minutes: 30),
+  ),
+);
+```
 
-### Configure Compute Resources
-
-1. Go to **Settings → Database**
-2. Upgrade compute if needed (Pro plan+):
-   - Small: 2GB RAM, 2-core CPU
-   - Medium: 4GB RAM, 2-core CPU
-   - Large: 8GB RAM, 4-core CPU
-   - XL: 16GB RAM, 8-core CPU
-
-### Index Maintenance
-
-Already configured in `indexes.sql`, but monitor:
+### Index Monitoring
 
 ```sql
 -- Check index usage
@@ -549,147 +648,55 @@ WHERE idx_scan = 0
 
 ---
 
-## Step 9: Scheduled Jobs
-
-### Refresh Materialized Views
-
-Set up a cron job using pg_cron (available on Pro plan+):
-
-```sql
--- Enable pg_cron extension
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
--- Schedule view refresh every hour
-SELECT cron.schedule(
-    'refresh-reporting-views',
-    '0 * * * *',  -- Every hour
-    $$SELECT refresh_reporting_views();$$
-);
-
--- Schedule daily at 2 AM
-SELECT cron.schedule(
-    'refresh-reporting-views-daily',
-    '0 2 * * *',  -- 2 AM daily
-    $$SELECT refresh_reporting_views();$$
-);
-```
-
-### Clean Up Old Sessions
-
-```sql
--- Schedule cleanup of expired sessions
-SELECT cron.schedule(
-    'cleanup-expired-sessions',
-    '*/30 * * * *',  -- Every 30 minutes
-    $$DELETE FROM user_sessions WHERE expires_at < now();$$
-);
-```
-
----
-
 ## Step 10: Testing
 
-### Load Test Data
+### Connection Test
 
 ```bash
-# In Supabase SQL Editor
-\i seed_data.sql
+# Test connection via Cloud SQL Proxy
+cloud_sql_proxy -instances=$PROJECT_ID:$REGION:${SPONSOR}-db=tcp:5432 &
+sleep 5
+
+psql -h 127.0.0.1 -U app_user -d clinical_diary -c "SELECT version();"
 ```
 
-Or copy the contents of `seed_data.sql` into the SQL Editor.
+### RLS Test
 
-### Test Authentication Flow
+```sql
+-- Test as USER role
+SET app.current_user_id = 'test_user_123';
+SET app.current_user_role = 'USER';
 
-```javascript
-// Sign up
-const { data, error } = await supabase.auth.signUp({
-  email: 'test@example.com',
-  password: 'secure-password-123'
-})
+-- Should only see own data
+SELECT COUNT(*) FROM record_state;
 
-// Sign in
-const { data, error } = await supabase.auth.signInWithPassword({
-  email: 'test@example.com',
-  password: 'secure-password-123'
-})
+-- Test as ADMIN role
+SET app.current_user_role = 'ADMIN';
 
-// Get session
-const { data: { session } } = await supabase.auth.getSession()
+-- Should see all data
+SELECT COUNT(*) FROM record_state;
 ```
 
-### Test RLS Policies
+### Audit Trail Test
 
-```javascript
-// Should work - user can see own data
-const { data, error } = await supabase
-  .from('record_state')
-  .select('*')
-  .eq('patient_id', userId)
+```sql
+-- Create test entry
+INSERT INTO record_audit (
+  event_uuid, patient_id, site_id, operation, data,
+  created_by, role, client_timestamp, change_reason
+) VALUES (
+  gen_random_uuid(), 'test_patient', 'site_001', 'USER_CREATE',
+  '{"event_type": "test", "date": "2025-01-15"}'::jsonb,
+  'test_user', 'USER', now(), 'Test entry'
+);
 
-// Should return empty - user cannot see others' data
-const { data, error } = await supabase
-  .from('record_state')
-  .select('*')
-  .eq('patient_id', 'different-user-id')
+-- Verify state table updated
+SELECT * FROM record_state WHERE patient_id = 'test_patient';
+
+-- Verify audit hash generated
+SELECT event_uuid, record_hash FROM record_audit
+WHERE patient_id = 'test_patient';
 ```
-
-### Test Audit Trail
-
-```javascript
-// Create entry
-const { data, error } = await supabase
-  .from('record_audit')
-  .insert({
-    event_uuid: crypto.randomUUID(),
-    patient_id: userId,
-    site_id: 'site_001',
-    operation: 'USER_CREATE',
-    data: { event_type: 'test', date: '2025-02-15' },
-    created_by: userId,
-    role: 'USER',
-    client_timestamp: new Date().toISOString(),
-    change_reason: 'Test entry'
-  })
-
-// Verify state table updated automatically
-const { data: state } = await supabase
-  .from('record_state')
-  .select('*')
-  .eq('event_uuid', eventUuid)
-  .single()
-```
-
----
-
-## Common Issues and Solutions
-
-### Issue: "Invalid JWT token"
-
-**Solution:**
-- Verify JWT secret is correct
-- Check token hasn't expired
-- Ensure custom claims hook is configured
-
-### Issue: "Row-level security policy violation"
-
-**Solution:**
-- Check user has correct role in `user_profiles`
-- Verify site assignments exist
-- Review RLS policies for the table
-
-### Issue: "Too many connections"
-
-**Solution:**
-- Use connection pooler (port 6543)
-- Upgrade database plan
-- Optimize application connection handling
-
-### Issue: Slow queries
-
-**Solution:**
-- Check indexes are being used: `EXPLAIN ANALYZE your_query`
-- Run `ANALYZE` on tables
-- Consider upgrading compute resources
 
 ---
 
@@ -697,21 +704,60 @@ const { data: state } = await supabase
 
 Before going live:
 
-- [ ] Database initialized with all scripts
-- [ ] Admin user created and tested
-- [ ] Sites configured
+- [ ] Cloud SQL instance created with appropriate tier
+- [ ] Database and user created
+- [ ] Schema deployed via migrations
 - [ ] RLS policies verified
-- [ ] Custom JWT claims hook enabled
-- [ ] Backup strategy configured
-- [ ] Monitoring and alerts set up
-- [ ] Connection pooling enabled
-- [ ] SSL/TLS enforced
-- [ ] Environment variables secured
-- [ ] 2FA enabled for admin users
-- [ ] Scheduled jobs configured (view refresh)
+- [ ] Identity Platform configured
+- [ ] Custom claims function deployed
+- [ ] Service account created with minimal permissions
+- [ ] Backup configuration verified (daily + PITR)
+- [ ] Connection pooling configured
+- [ ] Monitoring alerts configured
+- [ ] SSL/TLS enforced (automatic for Cloud SQL)
+- [ ] Credentials stored in Doppler
+- [ ] VPC peering configured (production)
 - [ ] Load testing completed
 - [ ] Documentation reviewed
 - [ ] Incident response plan ready
+
+---
+
+## Common Issues and Solutions
+
+### Issue: Connection refused
+
+**Solution**: Ensure Cloud SQL Proxy is running or use proper connection string:
+```bash
+# Start Cloud SQL Proxy
+cloud_sql_proxy -instances=$PROJECT_ID:$REGION:${SPONSOR}-db=tcp:5432
+
+# Or use Unix socket in Cloud Run
+DATABASE_URL="postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance"
+```
+
+### Issue: Permission denied for RLS
+
+**Solution**: Ensure session variables are set before queries:
+```sql
+SET app.current_user_id = 'user_123';
+SET app.current_user_role = 'USER';
+```
+
+### Issue: Too many connections
+
+**Solution**:
+- Use connection pooling in application
+- Increase Cloud SQL tier
+- Check for connection leaks
+
+### Issue: Slow queries
+
+**Solution**:
+- Enable Cloud SQL Insights
+- Check indexes: `EXPLAIN ANALYZE your_query`
+- Run `ANALYZE` on tables
+- Consider upgrading instance tier
 
 ---
 
@@ -721,12 +767,12 @@ Before going live:
 
 1. **Review Architecture**: Read prd-architecture-multi-sponsor.md for complete multi-sponsor architecture
 2. **Implementation Details**: Review dev-database.md for schema details and Event Sourcing pattern
-3. **Deploy Portal**: Follow ops-deployment.md to deploy sponsor's portal
-4. **Configure Monitoring**: Set up dashboards and alerts per ops-operations.md
+3. **Deploy Backend**: Follow ops-deployment.md to deploy Cloud Run server
+4. **Configure Monitoring**: Set up dashboards and alerts per ops-monitoring-observability.md
 5. **Migration Strategy**: Review ops-database-migration.md for schema update procedures
 
 **For Additional Sponsors**:
-- Repeat this entire guide with new Supabase project
+- Repeat this entire guide with new GCP project
 - Use same core schema version for consistency
 - Maintain separate credentials and configurations
 
@@ -745,10 +791,10 @@ Before going live:
 
 ## Support
 
-**Supabase Platform**:
-- Supabase Docs: https://supabase.com/docs
-- Supabase Discord: https://discord.supabase.com
-- Supabase Support: support@supabase.com (Pro plan: <4 hour SLA)
+**GCP Platform**:
+- Cloud SQL Docs: https://cloud.google.com/sql/docs
+- Identity Platform: https://cloud.google.com/identity-platform/docs
+- Cloud Run: https://cloud.google.com/run/docs
 
 **Clinical Diary System**:
 - Review spec/ directory for architecture and implementation details
@@ -758,5 +804,5 @@ Before going live:
 ---
 
 **Document Status**: Active setup guide
-**Review Cycle**: Quarterly or when Supabase platform changes
+**Review Cycle**: Quarterly or when GCP platform changes
 **Owner**: Database Team / DevOps

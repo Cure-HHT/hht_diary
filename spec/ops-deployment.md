@@ -1,8 +1,8 @@
 # Deployment Operations Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Operations (DevOps, Release Managers, Platform Engineers)
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-11-24
 **Status**: Active
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture overview
@@ -14,16 +14,46 @@
 
 ## Executive Summary
 
-Comprehensive guide for building, deploying, and releasing the multi-sponsor clinical diary system. Covers build system usage, CI/CD pipelines, environment configuration, and FDA 21 CFR Part 11 compliant release procedures.
+Comprehensive guide for building, deploying, and releasing the multi-sponsor clinical diary system on Google Cloud Platform. Covers build system usage, CI/CD pipelines, environment configuration, and FDA 21 CFR Part 11 compliant release procedures.
 
 **Architecture**: Single public core repository + private sponsor repositories
 **Build System**: Dart-based composition of core + sponsor code
-**CI/CD**: GitHub Actions with automated validation
+**CI/CD**: GitHub Actions with Cloud Build integration
 **Deployments**:
 - Mobile: Single app containing all sponsors (App Store + Google Play)
-- Portal: Separate deployment per sponsor (Netlify static site)
-- Database: Per-sponsor Supabase instance
-- Edge Functions: Per-sponsor Deno runtime on Supabase
+- Portal: Separate deployment per sponsor (Cloud Run static site or Firebase Hosting)
+- Backend: Per-sponsor Cloud Run Dart server
+- Database: Per-sponsor Cloud SQL instance
+
+---
+
+## GCP Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Per-Sponsor GCP Project                                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐        │
+│  │ Cloud Run   │    │ Cloud Run   │    │ Cloud SQL   │        │
+│  │ (API Server)│───▶│ (Portal Web)│    │ (PostgreSQL)│        │
+│  │ Dart Server │    │ Static Site │    │             │        │
+│  └──────┬──────┘    └─────────────┘    └──────┬──────┘        │
+│         │                                      │               │
+│         │         ┌─────────────┐              │               │
+│         │         │ Identity    │              │               │
+│         └────────▶│ Platform    │◀─────────────┘               │
+│                   │ (Auth)      │                              │
+│                   └─────────────┘                              │
+│                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐        │
+│  │ Artifact    │    │ Cloud       │    │ Secret      │        │
+│  │ Registry    │    │ Storage     │    │ Manager     │        │
+│  │ (Images)    │    │ (Backups)   │    │ (Secrets)   │        │
+│  └─────────────┘    └─────────────┘    └─────────────┘        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -36,51 +66,44 @@ The build system combines public core code with private sponsor code to produce 
 **Build Process Flow**:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Step 1: VALIDATE sponsor repository                        │
-│   - Repository structure                                   │
-│   - Required implementations (SponsorConfig, EdcSync, etc.)│
-│   - Contract test compliance                               │
-└─────────────────┬───────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 1: VALIDATE sponsor repository                             │
+│   - Repository structure                                        │
+│   - Required implementations (SponsorConfig, EdcSync, etc.)     │
+│   - Contract test compliance                                    │
+└─────────────────┬───────────────────────────────────────────────┘
                   │
                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Step 2: COPY sponsor code into build workspace             │
-│   - lib/ (Dart implementation)                             │
-│   - assets/ (branding, fonts, images)                      │
-│   - config/ (build configuration)                          │
-└─────────────────┬───────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 2: COPY sponsor code into build workspace                  │
+│   - lib/ (Dart implementation)                                  │
+│   - assets/ (branding, fonts, images)                           │
+│   - config/ (build configuration)                               │
+└─────────────────┬───────────────────────────────────────────────┘
                   │
                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Step 3: COMPOSE core + sponsor into unified codebase       │
-│   - Merge dependency trees                                 │
-│   - Apply sponsor theme overrides                          │
-│   - Generate integration glue code                         │
-└─────────────────┬───────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 3: COMPOSE core + sponsor into unified codebase            │
+│   - Merge dependency trees                                      │
+│   - Apply sponsor theme overrides                               │
+│   - Generate integration glue code                              │
+└─────────────────┬───────────────────────────────────────────────┘
                   │
                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Step 4: GENERATE integration code                          │
-│   - Dependency injection bindings                          │
-│   - Route registrations                                    │
-│   - Feature flag configurations                            │
-└─────────────────┬───────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 4: BUILD artifacts                                         │
+│   - Mobile: IPA (iOS) or APK/AAB (Android)                      │
+│   - Portal: Static web assets (HTML/JS/CSS)                     │
+│   - Backend: Docker container (Dart server)                     │
+└─────────────────┬───────────────────────────────────────────────┘
                   │
                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Step 5: BUILD Flutter artifacts                            │
-│   - Mobile: IPA (iOS) or APK/AAB (Android)                 │
-│   - Portal: Static web assets (HTML/JS/CSS)                │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Step 6: PACKAGE for deployment                             │
-│   - Sign mobile binaries                                   │
-│   - Generate deployment manifests                          │
-│   - Create release artifacts                               │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Step 5: PACKAGE for deployment                                  │
+│   - Sign mobile binaries                                        │
+│   - Push container to Artifact Registry                         │
+│   - Generate deployment manifests                               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Build Scripts
@@ -92,11 +115,64 @@ The build system combines public core code with private sponsor code to produce 
 1. **validate_sponsor.dart** - Validates sponsor repository structure
 2. **build_mobile.dart** - Builds mobile app (iOS/Android)
 3. **build_portal.dart** - Builds portal (Flutter Web)
-4. **deploy.dart** - Orchestrates deployment to Supabase + hosting
+4. **build_server.dart** - Builds Dart server Docker image
+5. **deploy.dart** - Orchestrates deployment to GCP
 
 ---
 
 ## Build Commands
+
+### Backend Server Build
+
+**Command Structure**:
+
+```bash
+dart run tools/build_system/build_server.dart \
+  --sponsor-repo <path-to-sponsor-repo> \
+  --environment <staging|production>
+```
+
+**Docker Build**:
+
+```bash
+# Build Dart server container
+docker build -t clinical-diary-api:latest \
+  -f apps/server/Dockerfile .
+
+# Tag for Artifact Registry
+docker tag clinical-diary-api:latest \
+  ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${VERSION}
+
+# Push to Artifact Registry
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${VERSION}
+```
+
+**Dockerfile Example** (`apps/server/Dockerfile`):
+
+```dockerfile
+# Build stage
+FROM dart:stable AS build
+
+WORKDIR /app
+COPY pubspec.* ./
+RUN dart pub get
+
+COPY . .
+RUN dart compile exe bin/server.dart -o bin/server
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/bin/server /app/bin/server
+
+# Cloud Run expects PORT environment variable
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["/app/bin/server"]
+```
 
 ### Mobile App Build
 
@@ -148,27 +224,7 @@ dart run tools/build_system/build_portal.dart \
   --environment production
 ```
 
-**Output**: `build/web/` (static site ready for Netlify deployment)
-
-### Validation
-
-**Command**:
-
-```bash
-dart run tools/build_system/validate_sponsor.dart \
-  --sponsor-repo <path-to-sponsor-repo>
-```
-
-**Checks**:
-- Repository structure compliance
-- Required files present
-- SponsorConfig implementation
-- Contract test pass rate
-- No prohibited content (secrets, PII)
-
-**Exit Codes**:
-- `0`: Validation passed
-- `1`: Validation failed (build should not proceed)
+**Output**: `build/web/` (static site ready for Cloud Run or Firebase Hosting)
 
 ---
 
@@ -180,8 +236,6 @@ dart run tools/build_system/validate_sponsor.dart \
 
 **Trigger**: Push to `main` branch or manual workflow dispatch
 
-**Workflow Steps**:
-
 ```yaml
 name: Deploy Production
 
@@ -190,9 +244,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  REGION: us-central1
+  PROJECT_ID: clinical-diary-${{ vars.SPONSOR }}-prod
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       # 1. Checkout sponsor repository
       - uses: actions/checkout@v4
@@ -212,44 +274,58 @@ jobs:
           flutter-version: '3.19.0'
           channel: 'stable'
 
-      # 4. Validate sponsor repository
+      # 4. Authenticate to GCP
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA }}
+
+      # 5. Setup gcloud CLI
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      # 6. Validate sponsor repository
       - name: Validate Sponsor Repo
         run: |
           cd core
           dart run tools/build_system/validate_sponsor.dart \
             --sponsor-repo ../sponsor
 
-      # 5. Run contract tests
+      # 7. Run contract tests
       - name: Contract Tests
         run: |
           cd sponsor
           flutter test test/contracts/
 
-      # 6. Build mobile app (iOS)
-      - name: Build iOS
+      # 8. Build and push Docker image
+      - name: Build Server Container
         run: |
           cd core
-          dart run tools/build_system/build_mobile.dart \
-            --sponsor-repo ../sponsor \
-            --platform ios \
-            --environment production
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/clinical-diary/api:${{ github.sha }} \
+            -f apps/server/Dockerfile .
 
-      # 7. Build mobile app (Android)
-      - name: Build Android
+      - name: Push to Artifact Registry
         run: |
-          cd core
-          dart run tools/build_system/build_mobile.dart \
-            --sponsor-repo ../sponsor \
-            --platform android \
-            --environment production
-        env:
-          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/clinical-diary/api:${{ github.sha }}
 
-      # 8. Build portal
+      # 9. Deploy to Cloud Run
+      - name: Deploy API to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: clinical-diary-api
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/clinical-diary/api:${{ github.sha }}
+          flags: |
+            --service-account=${{ vars.CLOUD_RUN_SA }}
+            --vpc-connector=${{ vars.VPC_CONNECTOR }}
+            --vpc-egress=private-ranges-only
+            --add-cloudsql-instances=${{ vars.CLOUD_SQL_INSTANCE }}
+            --set-env-vars=ENVIRONMENT=production,SPONSOR_ID=${{ vars.SPONSOR }},GCP_PROJECT_ID=${{ env.PROJECT_ID }}
+            --set-secrets=DATABASE_URL=database-url:latest
+
+      # 10. Build portal
       - name: Build Portal
         run: |
           cd core
@@ -257,100 +333,104 @@ jobs:
             --sponsor-repo ../sponsor \
             --environment production
 
-      # 9. Deploy portal to Netlify
+      # 11. Deploy portal to Cloud Run (static site)
       - name: Deploy Portal
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: './core/build/web'
-          production-deploy: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-      # 10. Deploy database schema to Supabase
-      - name: Deploy Database
         run: |
-          cd sponsor
-          npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
-          npx supabase db push --include ../core/packages/database/
-          npx supabase db push --include ./database/extensions.sql
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          cd core/build/web
+          gcloud run deploy clinical-diary-portal \
+            --source . \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated
 
-      # 11. Deploy Edge Functions
-      - name: Deploy Edge Functions
-        if: ${{ vars.DEPLOYMENT_MODE == 'proxy' }}
+      # 12. Run database migrations
+      - name: Run Database Migrations
         run: |
-          cd sponsor/edge_functions
-          npx supabase functions deploy edc_sync \
-            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          # Start Cloud SQL Proxy
+          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+          chmod +x cloud_sql_proxy
+          ./cloud_sql_proxy -instances=${{ vars.CLOUD_SQL_INSTANCE }}=tcp:5432 &
+          sleep 5
 
-      # 12. Upload mobile artifacts
+          # Run migrations
+          cd core/packages/database
+          doppler run --config production -- dbmate up
+
+      # 13. Build mobile apps
+      - name: Build iOS
+        run: |
+          cd core
+          dart run tools/build_system/build_mobile.dart \
+            --sponsor-repo ../sponsor \
+            --platform ios \
+            --environment production
+
+      - name: Build Android
+        run: |
+          cd core
+          dart run tools/build_system/build_mobile.dart \
+            --sponsor-repo ../sponsor \
+            --platform android \
+            --environment production
+
+      # 14. Upload mobile artifacts
       - name: Upload iOS Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ios-production
           path: core/build/ios/ipa/ClinicalDiary.ipa
 
       - name: Upload Android Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: android-production
           path: core/build/android/app/release/app-release.aab
+
+      # 15. Verify deployment
+      - name: Verify Deployment
+        run: |
+          API_URL=$(gcloud run services describe clinical-diary-api --region=${{ env.REGION }} --format='value(status.url)')
+          curl -f "$API_URL/health" || exit 1
+          echo "✅ API deployment verified"
 ```
-
-### Staging Workflow
-
-**File**: `.github/workflows/deploy_staging.yml`
-
-**Differences from Production**:
-- Triggers on push to `develop` branch
-- Uses staging Supabase project
-- Deploys to Netlify preview URL
-- Skips mobile app store submission
 
 ---
 
 ## Environment Configuration
 
-# REQ-o00001: Separate Supabase Projects Per Sponsor
+# REQ-o00001: Separate GCP Projects Per Sponsor
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
-Each sponsor SHALL be provisioned with dedicated Supabase projects for staging and production environments, ensuring complete infrastructure isolation.
+Each sponsor SHALL be provisioned with dedicated GCP projects for staging and production environments, ensuring complete infrastructure isolation.
 
-Each Supabase project SHALL provide:
-- Isolated PostgreSQL database (no shared tables or connections)
-- Unique API endpoints with sponsor-specific URLs
-- Independent authentication configuration and user pools
-- Separate storage buckets for file uploads
-- Dedicated Edge Functions runtime environment
+Each GCP project SHALL provide:
+- Isolated Cloud SQL PostgreSQL database
+- Unique Cloud Run services with sponsor-specific URLs
+- Independent Identity Platform configuration and user pools
+- Separate Cloud Storage buckets for file uploads
+- Dedicated service accounts and IAM roles
 
-**Rationale**: Implements multi-sponsor data isolation (p00001) at the infrastructure level using Supabase's project isolation guarantees. Each sponsor's Supabase project is a completely separate deployment with its own resources, ensuring no possibility of cross-sponsor data access.
+**Rationale**: Implements multi-sponsor data isolation (p00001) at the infrastructure level using GCP's project isolation guarantees. Each sponsor's GCP project is a completely separate deployment with its own resources.
 
 **Acceptance Criteria**:
-- Each sponsor has unique Supabase project URLs for staging and production
+- Each sponsor has unique GCP project for staging and production
 - Database connections cannot span projects
-- API keys are project-specific and cannot authenticate to other sponsors' projects
-- No shared configuration files between sponsors
+- Service accounts are project-specific
+- No shared configuration between sponsors
 - Project provisioning documented in runbook
 
-*End* *Separate Supabase Projects Per Sponsor* | **Hash**: 970de2df
+*End* *Separate GCP Projects Per Sponsor* | **Hash**: 6d281a2e
 ---
 
 # REQ-o00002: Environment-Specific Configuration Management
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
-Configuration files containing environment-specific credentials SHALL be stored securely and SHALL NOT be committed to version control.
+Configuration containing environment-specific credentials SHALL be stored securely via Doppler and GCP Secret Manager, and SHALL NOT be committed to version control.
 
-Each sponsor repository SHALL maintain:
-- `config/supabase.staging.env` - Staging credentials (gitignored)
-- `config/supabase.prod.env` - Production credentials (gitignored)
+Each sponsor environment SHALL maintain:
+- Doppler project/config for secrets management
+- GCP Secret Manager for Cloud Run secrets
 - GitHub Secrets for CI/CD pipelines
 - No hardcoded credentials in source code
 
@@ -358,19 +438,19 @@ Each sponsor repository SHALL maintain:
 
 **Acceptance Criteria**:
 - `.gitignore` includes `*.env` files
-- CI/CD pipelines use GitHub Secrets, not committed credentials
-- Build scripts validate presence of required environment variables
+- CI/CD pipelines use Workload Identity Federation
+- Secrets accessed via Secret Manager in Cloud Run
 - No credentials found in git history
 
-*End* *Environment-Specific Configuration Management* | **Hash**: 8786c322
+*End* *Environment-Specific Configuration Management* | **Hash**: c6ed3379
 ---
 
 ### Environment Types
 
 **Environments**:
-1. **Local Development**: Developer machine
-2. **Staging**: Testing and UAT environment
-3. **Production**: Live clinical trial environment
+1. **Local Development**: Developer machine with Cloud SQL Proxy
+2. **Staging**: Testing and UAT environment (separate GCP project)
+3. **Production**: Live clinical trial environment (separate GCP project)
 
 ### Configuration Files
 
@@ -380,8 +460,8 @@ Each sponsor repository SHALL maintain:
 config/
 ├── mobile.yaml          # Mobile app build configuration
 ├── portal.yaml          # Portal build configuration
-├── supabase.staging.env # Staging credentials (gitignored)
-└── supabase.prod.env    # Production credentials (gitignored)
+├── server.yaml          # Server configuration
+└── cloudbuild.yaml      # Cloud Build configuration (optional)
 ```
 
 **mobile.yaml Example**:
@@ -402,64 +482,208 @@ features:
   offline_mode: true
   biometric_auth: true
   push_notifications: true
+
+# GCP Configuration (environment-specific values from Doppler)
+gcp:
+  firebase_project_id: "${FIREBASE_PROJECT_ID}"
 ```
 
-**portal.yaml Example**:
+**server.yaml Example**:
 
 ```yaml
-portal:
-  title: "Orion Clinical Trial Portal"
-  domain: "orion-portal.clinicaldiary.com"
-  theme: "orion"
+server:
+  port: 8080
+  host: "0.0.0.0"
 
-features:
-  custom_reports: true
-  data_export: true
-  real_time_dashboard: true
+database:
+  pool_size: 10
+  timeout_seconds: 30
+
+# Cloud SQL connection (via Unix socket in Cloud Run)
+cloud_sql:
+  instance_connection_name: "${DATABASE_INSTANCE}"
 ```
 
-**supabase.prod.env Example** (gitignored):
+### Doppler Configuration
+
+**Project Structure**:
+
+```
+clinical-diary-{sponsor}/
+├── development     # Local development
+├── staging         # Staging environment
+└── production      # Production environment
+```
+
+**Required Variables**:
+
+| Variable | Description | Example |
+| --- | --- | --- |
+| `DATABASE_URL` | Cloud SQL connection string | `postgresql://...` |
+| `DATABASE_INSTANCE` | Cloud SQL instance name | `project:region:instance` |
+| `GCP_PROJECT_ID` | GCP project ID | `clinical-diary-orion-prod` |
+| `SPONSOR_ID` | Sponsor identifier | `orion` |
+| `FIREBASE_PROJECT_ID` | Identity Platform project | `clinical-diary-orion-prod` |
+| `FIREBASE_API_KEY` | Firebase API key | `AIza...` |
+
+### GitHub Variables and Secrets
+
+**Variables** (per sponsor repository):
+
+| Variable | Description |
+| --- | --- |
+| `SPONSOR` | Sponsor identifier |
+| `WIF_PROVIDER` | Workload Identity Federation provider |
+| `DEPLOY_SA` | Deployment service account email |
+| `CLOUD_RUN_SA` | Cloud Run service account email |
+| `VPC_CONNECTOR` | VPC connector name |
+| `CLOUD_SQL_INSTANCE` | Cloud SQL instance connection name |
+
+**Secrets**:
+
+| Secret | Description |
+| --- | --- |
+| `DOPPLER_TOKEN_PROD` | Doppler service token (production) |
+| `DOPPLER_TOKEN_STAGING` | Doppler service token (staging) |
+| `APPLE_CERTIFICATE` | iOS code signing certificate |
+| `ANDROID_KEYSTORE` | Android keystore file |
+
+---
+
+## Cloud Run Deployment
+
+### Deploy API Server
 
 ```bash
-SUPABASE_PROJECT_REF=abcd1234efgh5678
-SUPABASE_URL=https://abcd1234efgh5678.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-# EDC Integration (proxy mode only)
-EDC_API_URL=https://rave.mdsol.com/api/v1
-EDC_API_KEY=secret-key-here
+# Deploy to Cloud Run
+gcloud run deploy clinical-diary-api \
+  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${VERSION} \
+  --region=${REGION} \
+  --platform=managed \
+  --service-account=${CLOUD_RUN_SA} \
+  --vpc-connector=${VPC_CONNECTOR} \
+  --vpc-egress=private-ranges-only \
+  --add-cloudsql-instances=${CLOUD_SQL_INSTANCE} \
+  --set-env-vars="ENVIRONMENT=production,SPONSOR_ID=${SPONSOR},GCP_PROJECT_ID=${PROJECT_ID}" \
+  --set-secrets="DATABASE_URL=database-url:latest,FIREBASE_API_KEY=firebase-api-key:latest" \
+  --min-instances=1 \
+  --max-instances=10 \
+  --memory=512Mi \
+  --cpu=1 \
+  --timeout=60s \
+  --allow-unauthenticated
 ```
 
-### GitHub Secrets
+### Deploy Portal (Static Site)
 
-**Required Secrets** (per sponsor repository):
+**Option 1: Cloud Run (recommended for consistency)**
 
-**Supabase**:
-- `SUPABASE_PROJECT_REF` - Project reference ID
-- `SUPABASE_ACCESS_TOKEN` - Service account token
-- `SUPABASE_SERVICE_ROLE_KEY` - Service role key for migrations
+```bash
+# From build/web directory
+gcloud run deploy clinical-diary-portal \
+  --source . \
+  --region=${REGION} \
+  --allow-unauthenticated
+```
 
-**Netlify**:
-- `NETLIFY_AUTH_TOKEN` - Netlify authentication token
-- `NETLIFY_SITE_ID` - Portal site ID
+**Option 2: Firebase Hosting**
 
-**Apple (iOS)**:
-- `APPLE_CERTIFICATE` - Code signing certificate (base64 encoded)
-- `APPLE_PROVISIONING_PROFILE` - Provisioning profile (base64 encoded)
-- `APPLE_TEAM_ID` - Apple Developer Team ID
-- `APP_STORE_CONNECT_KEY` - API key for App Store submission
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
 
-**Google (Android)**:
-- `ANDROID_KEYSTORE` - Keystore file (base64 encoded)
-- `ANDROID_KEY_ALIAS` - Key alias
-- `ANDROID_KEY_PASSWORD` - Key password
-- `ANDROID_STORE_PASSWORD` - Keystore password
-- `GOOGLE_PLAY_SERVICE_ACCOUNT` - Service account JSON (base64 encoded)
+# Initialize (one-time)
+firebase init hosting
 
-**EDC (Proxy Mode)**:
-- `EDC_API_URL` - EDC system API endpoint
-- `EDC_API_KEY` - EDC authentication key
+# Deploy
+firebase deploy --only hosting
+```
+
+### Health Check Endpoint
+
+**Server Implementation** (`bin/server.dart`):
+
+```dart
+import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+
+final router = Router()
+  ..get('/health', (Request request) {
+    return Response.ok(
+      jsonEncode({
+        'status': 'healthy',
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'version': Platform.environment['K_REVISION'] ?? 'unknown',
+      }),
+      headers: {'Content-Type': 'application/json'},
+    );
+  });
+```
+
+---
+
+## Database Deployment
+
+### Schema Deployment to Cloud SQL
+
+**Prerequisites**:
+- Cloud SQL Proxy for local access
+- Database migration tool (dbmate recommended)
+- Doppler for credentials
+
+**Deployment Steps**:
+
+#### 1. Start Cloud SQL Proxy
+
+```bash
+# Download Cloud SQL Proxy
+wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+chmod +x cloud_sql_proxy
+
+# Start proxy
+./cloud_sql_proxy -instances=${PROJECT_ID}:${REGION}:${INSTANCE_NAME}=tcp:5432 &
+```
+
+#### 2. Run Migrations
+
+```bash
+# Set database URL for local proxy
+export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}?sslmode=disable"
+
+# Run migrations with dbmate
+dbmate up
+
+# Or with Doppler
+doppler run --config production -- dbmate up
+```
+
+#### 3. Deploy Core Schema
+
+```bash
+# Deploy from core repository
+psql $DATABASE_URL -f packages/database/schema.sql
+psql $DATABASE_URL -f packages/database/triggers.sql
+psql $DATABASE_URL -f packages/database/functions.sql
+psql $DATABASE_URL -f packages/database/rls_policies.sql
+psql $DATABASE_URL -f packages/database/indexes.sql
+```
+
+#### 4. Deploy Sponsor Extensions
+
+```bash
+# Deploy sponsor-specific tables/functions
+psql $DATABASE_URL -f sponsor/database/extensions.sql
+```
+
+#### 5. Verify Deployment
+
+```bash
+# Verify tables
+psql $DATABASE_URL -c "\dt"
+
+# Run integration tests
+flutter test integration_test/database_test.dart
+```
 
 ---
 
@@ -515,15 +739,13 @@ git push -u origin release/1.2.3
 
 ```bash
 # Trigger staging deployment (automatic via GitHub Actions)
-# Or manually:
-cd sponsor-repo
-git checkout release/1.2.3
+# Or manually deploy to staging GCP project
+gcloud config set project ${STAGING_PROJECT_ID}
 
-# Build and deploy staging
-cd ../clinical-diary
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../sponsor-repo \
-  --environment staging
+gcloud run deploy clinical-diary-api \
+  --image=${REGION}-docker.pkg.dev/${STAGING_PROJECT_ID}/clinical-diary/api:${COMMIT_SHA} \
+  --region=${REGION} \
+  # ... other flags
 ```
 
 #### Step 3: User Acceptance Testing (UAT)
@@ -541,15 +763,6 @@ dart run tools/build_system/build_portal.dart \
 - [ ] Security scan passes
 - [ ] Compliance checklist complete
 
-**Bug Fixes**: Apply fixes directly to release branch
-
-```bash
-git checkout release/1.2.3
-# ... make fixes ...
-git commit -m "Fix: [description]"
-git push origin release/1.2.3
-```
-
 #### Step 4: Tag Release
 
 **After UAT passes**:
@@ -565,25 +778,13 @@ git tag -a v1.2.3 -m "Release 1.2.3 - Production validated $(date -I)"
 git push origin v1.2.3
 ```
 
-**Tag naming convention**: `v<major>.<minor>.<patch>`
-
 #### Step 5: Deploy to Production
 
 **Automatic deployment via GitHub Actions**:
 - Triggered by tag push
 - Builds from tagged commit
-- Deploys portal to production Netlify site
+- Deploys to production GCP project
 - Publishes mobile artifacts for app store submission
-
-**Manual deployment** (if needed):
-
-```bash
-cd clinical-diary
-dart run tools/build_system/deploy.dart \
-  --sponsor-repo ../sponsor-repo \
-  --tag v1.2.3 \
-  --environment production
-```
 
 #### Step 6: Merge Release Branch
 
@@ -616,16 +817,15 @@ Mobile app release SHALL include:
 - Release notes covering all sponsor-relevant changes
 - Testing across all sponsor configurations before release
 
-**Rationale**: Implements single mobile app requirement (p00008) through operational release procedures. Coordinated release ensures all sponsors benefit from updates simultaneously while maintaining single app approach.
+**Rationale**: Implements single mobile app requirement (p00008) through operational release procedures.
 
 **Acceptance Criteria**:
 - One app package serves all sponsors
 - iOS and Android versions synchronized
 - All sponsor configurations tested before release
-- App store listings reference single app for all sponsors
 - Update deployment automated via CI/CD
 
-*End* *Mobile App Release Process* | **Hash**: 34b8dd28
+*End* *Mobile App Release Process* | **Hash**: 6985c040
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -651,162 +851,6 @@ fastlane supply \
   --json_key google-play-service-account.json
 ```
 
-**Note**: Mobile app contains ALL sponsors. Single release includes all sponsor configurations.
-
----
-
-## Database Deployment
-
-### Schema Deployment to Supabase
-
-**Prerequisites**:
-- Supabase CLI installed: `npm install -g supabase`
-- Supabase project created
-- Service role key available
-
-**Deployment Steps**:
-
-#### 1. Link to Supabase Project
-
-```bash
-cd sponsor-repo
-supabase link --project-ref abcd1234efgh5678
-```
-
-**Configuration**: Creates `.supabase/config.toml`
-
-#### 2. Deploy Core Schema
-
-```bash
-# Deploy from core repository
-supabase db push --include ../clinical-diary/packages/database/schema.sql
-supabase db push --include ../clinical-diary/packages/database/rls_policies.sql
-supabase db push --include ../clinical-diary/packages/database/functions.sql
-supabase db push --include ../clinical-diary/packages/database/triggers.sql
-```
-
-**Alternatively**, use package from GitHub Package Registry:
-
-```bash
-npm install @clinical-diary/database@1.2.3
-
-supabase db push --include node_modules/@clinical-diary/database/schema.sql
-```
-
-#### 3. Deploy Sponsor Extensions
-
-```bash
-# Deploy sponsor-specific tables/functions
-supabase db push --include ./database/extensions.sql
-```
-
-#### 4. Verify Deployment
-
-```bash
-# Run migrations check
-supabase db diff --schema public
-
-# Run integration tests against database
-flutter test integration_test/database_test.dart
-```
-
-#### 5. Create Backup Before Production
-
-```bash
-# Backup before production deployment
-supabase db dump --data-only > backup-$(date +%Y%m%d-%H%M%S).sql
-```
-
----
-
-## Edge Functions Deployment
-
-**Applicable to**: Proxy mode sponsors only
-
-### Deploy Edge Functions to Supabase
-
-#### 1. Prepare Edge Function
-
-**Structure**: `sponsor-repo/edge_functions/edc_sync/index.ts`
-
-```typescript
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-serve(async (req) => {
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-
-  // EDC sync logic
-  // ...
-
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
-})
-```
-
-#### 2. Deploy Function
-
-```bash
-cd sponsor-repo/edge_functions
-
-# Deploy to Supabase
-supabase functions deploy edc_sync \
-  --project-ref abcd1234efgh5678
-```
-
-#### 3. Set Function Secrets
-
-```bash
-# Set EDC API credentials
-supabase secrets set EDC_API_URL=https://rave.mdsol.com/api/v1
-supabase secrets set EDC_API_KEY=secret-key-here
-```
-
-#### 4. Configure Database Webhook
-
-```sql
--- Trigger Edge Function on INSERT to record_audit
-CREATE OR REPLACE FUNCTION trigger_edc_sync()
-RETURNS TRIGGER AS $$
-BEGIN
-  PERFORM net.http_post(
-    url := 'https://abcd1234efgh5678.supabase.co/functions/v1/edc_sync',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || current_setting('app.service_role_key')
-    ),
-    body := jsonb_build_object(
-      'audit_id', NEW.audit_id,
-      'event_uuid', NEW.event_uuid,
-      'patient_id', NEW.patient_id,
-      'data', NEW.data
-    )
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER on_record_audit_insert
-  AFTER INSERT ON record_audit
-  FOR EACH ROW
-  EXECUTE FUNCTION trigger_edc_sync();
-```
-
-#### 5. Test Edge Function
-
-```bash
-# Test invocation
-curl -i --location --request POST \
-  'https://abcd1234efgh5678.supabase.co/functions/v1/edc_sync' \
-  --header 'Authorization: Bearer SERVICE_ROLE_KEY' \
-  --header 'Content-Type: application/json' \
-  --data '{"audit_id": 123, "event_uuid": "test-uuid"}'
-```
-
 ---
 
 ## Portal Deployment
@@ -819,370 +863,53 @@ Each sponsor SHALL have their web portal deployed to a unique URL with sponsor-s
 
 Portal deployment SHALL include:
 - Static site build from core + sponsor customizations
-- Deployment to unique domain or subdomain per sponsor
-- Sponsor-specific Supabase connection configuration
+- Deployment to Cloud Run or Firebase Hosting per sponsor
+- Sponsor-specific API endpoint configuration
 - Independent deployment pipeline per sponsor
-- Separate hosting account or project per sponsor
+- Separate GCP project per sponsor
 
-**Rationale**: Implements sponsor-specific portals requirement (p00009) through operational deployment procedures. Each sponsor's portal deployed independently ensures no cross-sponsor access or configuration leakage.
+**Rationale**: Implements sponsor-specific portals requirement (p00009) through operational deployment procedures.
 
 **Acceptance Criteria**:
 - Each sponsor portal has unique URL
-- Portal configuration includes only that sponsor's Supabase credentials
+- Portal configuration includes only that sponsor's API endpoint
 - Deployment process automated via CI/CD
-- Portal cannot access other sponsors' databases
+- Portal cannot access other sponsors' APIs
 - Rollback capability per sponsor portal
 
-*End* *Portal Deployment Per Sponsor* | **Hash**: 06ad75fd
+*End* *Portal Deployment Per Sponsor* | **Hash**: d0b93523
 ---
 
-### Netlify Static Site Deployment
-
-**Prerequisites**:
-- Netlify account
-- Netlify CLI installed: `npm install -g netlify-cli`
-
-#### 1. Build Portal
+### Cloud Run Static Site Deployment
 
 ```bash
-cd clinical-diary
+# Build portal
 dart run tools/build_system/build_portal.dart \
   --sponsor-repo ../sponsor-repo \
   --environment production
+
+# Deploy to Cloud Run
+cd build/web
+gcloud run deploy clinical-diary-portal \
+  --source . \
+  --region=${REGION} \
+  --allow-unauthenticated \
+  --set-env-vars="API_URL=https://clinical-diary-api-xxxxx.run.app"
 ```
 
-**Output**: `build/web/` directory
-
-#### 2. Configure Netlify
-
-**netlify.toml** (in sponsor repo):
-
-```toml
-[build]
-  publish = "build/web"
-  command = "echo 'Build completed via GitHub Actions'"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[context.production]
-  environment = { SUPABASE_URL = "https://abcd1234efgh5678.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
-
-[context.staging]
-  environment = { SUPABASE_URL = "https://staging-xyz.supabase.co", SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
-```
-
-#### 3. Deploy to Netlify
-
-**Via CLI**:
+### Custom Domain Configuration
 
 ```bash
-cd sponsor-repo
-
-# First time: Link site
-netlify link --name orion-clinical-diary-portal
-
-# Deploy production
-netlify deploy --prod --dir=../clinical-diary/build/web
-```
-
-**Via GitHub Actions** (recommended):
-- Automatic deployment on tag push
-- See CI/CD pipeline section above
-
-#### 4. Configure Custom Domain
-
-```bash
-# Add custom domain
-netlify domains:add orion-portal.clinicaldiary.com
-
-# Configure DNS (in domain registrar):
-# CNAME orion-portal -> orion-clinical-diary-portal.netlify.app
-```
-
-#### 5. Enable HTTPS
-
-**Automatic via Netlify**:
-- SSL certificate provisioned automatically
-- Enforce HTTPS: `netlify sites:update --enforce-https`
-
----
-
-## Build Reports and Traceability
-
-### Multi-Sponsor Build Reports Architecture
-
-All build and validation reports are centralized in the `build-reports/` directory with per-sponsor isolation. This architecture supports FDA 21 CFR Part 11 compliance requirements for complete traceability and 7-year retention.
-
-**See**: [ADR-007: Multi-Sponsor Build Reports Architecture](../docs/adr/ADR-007-multi-sponsor-build-reports.md) for complete architectural decision rationale.
-
-### Directory Structure
-
-```
-build-reports/
-├── README.md              # Documentation
-├── templates/            # Template files (version controlled)
-│   ├── jenkins/          # JUnit XML format templates
-│   └── requirement_test_mapping.template.json
-├── combined/             # Cross-sponsor aggregated reports
-│   ├── traceability/     # Combined requirement traceability
-│   ├── test-results/     # Aggregated test results
-│   └── validation/       # Cross-sponsor validation
-├── callisto/             # Callisto sponsor reports
-│   ├── traceability/
-│   ├── test-results/
-│   └── validation/
-└── titan/                # Titan sponsor reports
-    ├── traceability/
-    ├── test-results/
-    └── validation/
-```
-
-### Report Categories
-
-**Traceability Reports**:
-- Requirement-to-code mapping (REQ-xxxxx to source files)
-- Test coverage by requirement
-- Compliance validation matrices
-- Generated from git history and source annotations
-
-**Test Results**:
-- Unit test execution results (JUnit XML format)
-- Integration test results
-- End-to-end test results
-- Test coverage reports (line, branch, function coverage)
-
-**Validation Reports**:
-- Spec compliance validation (spec/ directory structure)
-- Git hook validation (requirement traceability enforcement)
-- FDA 21 CFR Part 11 compliance checks
-- ALCOA+ principles validation
-
-### CI/CD Report Generation
-
-Reports are automatically generated during:
-
-**Pull Request Validation**:
-```yaml
-# In GitHub Actions workflow
-- name: Generate Validation Reports
-  run: |
-    python3 tools/requirements/validate_requirements.py \
-      --output build-reports/combined/validation/
-    python3 tools/requirements/generate_traceability.py \
-      --output build-reports/combined/traceability/
-```
-
-**Main Branch Builds**:
-- Full test suite execution
-- Comprehensive traceability matrix
-- Per-sponsor report generation
-
-**Release Builds**:
-- Complete validation bundle
-- Archival package creation
-- S3 upload for long-term retention
-
-### S3 Archival
-
-Long-term archival follows FDA 21 CFR Part 11 requirements (7-year minimum retention):
-
-**S3 Structure**:
-```
-s3://clinical-diary-build-reports/
-├── core/
-│   └── {git-tag}/              # e.g., v2025.11.12.a
-│       └── {timestamp}/        # e.g., 20251112-143022
-│           ├── combined/
-│           │   ├── traceability/
-│           │   ├── test-results/
-│           │   └── validation/
-│           ├── callisto/
-│           └── titan/
-└── sponsors/
-    ├── callisto/
-    │   └── {git-tag}/
-    └── titan/
-        └── {git-tag}/
-```
-
-**Upload Command**:
-```bash
-# Automated in GitHub Actions
-aws s3 sync build-reports/ \
-  s3://clinical-diary-build-reports/core/${GIT_TAG}/${TIMESTAMP}/ \
-  --metadata "commit-sha=${COMMIT_SHA},build-user=${BUILD_USER}" \
-  --storage-class STANDARD
-```
-
-**Lifecycle Policy**:
-- First 90 days: S3 Standard (fast access)
-- After 90 days: Glacier Deep Archive (long-term retention)
-- Minimum retention: 7 years
-- No automatic deletion
-
-### Access Control
-
-**GitHub Actions Artifacts**:
-- 90-day retention for recent builds
-- Accessible via GitHub Actions UI
-- Requires repository access
-
-**S3 Long-Term Archive**:
-- IAM role-based access
-- Read-only for most users
-- Write access only for CI/CD service accounts
-- Audit logging via AWS CloudTrail
-
-**Access Commands**:
-```bash
-# List recent builds
-aws s3 ls s3://clinical-diary-build-reports/core/
-
-# Download specific report bundle
-aws s3 cp s3://clinical-diary-build-reports/core/v2025.11.12.a/20251112-143022/ \
-  ./reports/ --recursive
-
-# Search for specific requirement traceability
-aws s3 cp s3://clinical-diary-build-reports/core/v2025.11.12.a/20251112-143022/combined/traceability/REQ-p00001.json \
-  ./reports/
-```
-
-### Local Report Generation
-
-Developers can generate reports locally for debugging:
-
-```bash
-# Generate traceability matrix
-python3 tools/requirements/generate_traceability.py \
-  --output build-reports/combined/traceability/
-
-# Run validation checks
-python3 tools/requirements/validate_requirements.py \
-  --output build-reports/combined/validation/
-
-# Generate test coverage report
-flutter test --coverage
-genhtml coverage/lcov.info -o build-reports/combined/test-results/coverage/
-```
-
-**Note**: Locally generated reports are gitignored and not uploaded to S3.
-
-### Tamper Evidence
-
-**Integrity Verification**:
-- Each report includes SHA-256 checksum
-- S3 object versioning enabled
-- Checksums verified on download
-
-**Generate Checksum**:
-```bash
-# During report generation
-sha256sum build-reports/combined/traceability/matrix.json > \
-  build-reports/combined/traceability/matrix.json.sha256
-```
-
-**Verify Checksum**:
-```bash
-# After downloading from S3
-sha256sum -c matrix.json.sha256
-```
-
-### Report Retention Policy
-
-| Location | Retention | Purpose |
-| --- | --- | --- |
-| **Local (build-reports/)** | Until cleaned | Development/debugging |
-| **GitHub Actions** | 90 days | Recent build validation |
-| **S3 Standard** | 90 days | Fast access to recent reports |
-| **S3 Glacier** | 7+ years | FDA compliance archive |
-
-### Troubleshooting
-
-**Missing Reports**:
-```bash
-# Check if reports generated
-ls -la build-reports/combined/
-
-# Check CI/CD logs for generation failures
-gh run view <run-id> --log
-```
-
-**S3 Access Issues**:
-```bash
-# Verify AWS credentials
-aws sts get-caller-identity
-
-# Check bucket permissions
-aws s3api get-bucket-policy --bucket clinical-diary-build-reports
-
-# List accessible reports
-aws s3 ls s3://clinical-diary-build-reports/core/ --recursive | head -n 20
-```
-
-**Report Format Errors**:
-- Verify generation script versions match expected format
-- Check report metadata for format version
-- Consult build-reports/templates/ for expected structure
-
----
-
-## Package Publishing
-
-### GitHub Package Registry
-
-**Publishing Core Packages** (automated via GitHub Actions):
-
-#### 1. Create Release Tag
-
-```bash
-cd clinical-diary
-git tag v2025.10.24.a
-git push --tags
-```
-
-#### 2. GitHub Action Publishes Packages
-
-**Workflow**: `.github/workflows/publish.yml`
-
-```yaml
-name: Publish Packages
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
-
-      - name: Publish to GitHub Packages
-        run: |
-          cd packages/core
-          dart pub publish --server https://pub.pkg.github.com/yourorg
-        env:
-          PUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-#### 3. Sponsors Consume Packages
-
-**pubspec.yaml** (in sponsor repo):
-
-```yaml
-dependencies:
-  clinical_diary_core:
-    hosted:
-      name: clinical_diary_core
-      url: https://pub.pkg.github.com/yourorg
-    version: ^1.2.0
+# Map custom domain
+gcloud run domain-mappings create \
+  --service=clinical-diary-portal \
+  --domain=portal.orion.clinical-diary.com \
+  --region=${REGION}
+
+# Get DNS records to configure
+gcloud run domain-mappings describe \
+  --domain=portal.orion.clinical-diary.com \
+  --region=${REGION}
 ```
 
 ---
@@ -1201,10 +928,10 @@ dependencies:
 - [ ] Code coverage >80%
 
 #### Security
-- [ ] `npm audit` shows no critical vulnerabilities
+- [ ] `dart pub audit` shows no critical vulnerabilities
+- [ ] Container vulnerability scan passes
 - [ ] Secrets not committed to repository
 - [ ] All dependencies up to date
-- [ ] Security scan passes (Snyk/Dependabot)
 
 #### Database
 - [ ] Migration scripts tested on staging
@@ -1223,7 +950,6 @@ dependencies:
 - [ ] Performance benchmarks met
 - [ ] Mobile app syncs correctly
 - [ ] Portal accessible and functional
-- [ ] EDC sync functional (proxy mode)
 
 #### Release
 - [ ] Release notes prepared
@@ -1235,37 +961,32 @@ dependencies:
 
 ## Rollback Procedures
 
-### Portal Rollback
-
-**Netlify**:
+### Cloud Run Rollback
 
 ```bash
-# List recent deploys
-netlify deploy:list
+# List revisions
+gcloud run revisions list --service=clinical-diary-api --region=${REGION}
 
-# Rollback to previous deploy
-netlify deploy:restore <deploy-id>
+# Rollback to previous revision
+gcloud run services update-traffic clinical-diary-api \
+  --region=${REGION} \
+  --to-revisions=clinical-diary-api-00005-xxx=100
 ```
 
 ### Database Rollback
 
-**Supabase**:
-
 ```bash
-# Restore from backup
-supabase db restore backup-20251024-120000.sql
+# Rollback migration
+doppler run --config production -- dbmate down
 
-# Or use point-in-time recovery (within 30 days)
-supabase db restore --timestamp "2025-10-24 12:00:00"
-```
+# Or restore from Cloud SQL backup
+gcloud sql backups list --instance=${INSTANCE_NAME}
+gcloud sql backups restore ${BACKUP_ID} \
+  --restore-instance=${INSTANCE_NAME}
 
-### Edge Function Rollback
-
-```bash
-# Deploy previous version
-cd edge_functions
-git checkout v1.2.2
-supabase functions deploy edc_sync
+# Or use point-in-time recovery
+gcloud sql instances clone ${INSTANCE_NAME} ${NEW_INSTANCE_NAME} \
+  --point-in-time='2025-01-24T12:00:00Z'
 ```
 
 ### Mobile App Rollback
@@ -1281,16 +1002,15 @@ supabase functions deploy edc_sync
 
 **Post-Deployment Checks** (first 24 hours):
 
-- [ ] Portal accessible (check uptime)
+- [ ] API accessible (check Cloud Run logs)
 - [ ] Mobile app syncs successfully
-- [ ] Database connections healthy
-- [ ] Edge Functions invoked without errors
-- [ ] Error rates within normal range
+- [ ] Database connections healthy (Cloud SQL metrics)
+- [ ] Error rates within normal range (Cloud Error Reporting)
 - [ ] API response times <500ms (p95)
 - [ ] No security alerts
 - [ ] Audit trail capturing events
 
-**See**: ops-operations.md for ongoing monitoring procedures
+**See**: ops-monitoring-observability.md for detailed monitoring procedures
 
 ---
 
@@ -1313,44 +1033,33 @@ cd sponsor-repo
 flutter test test/contracts/ --reporter expanded
 ```
 
+### Cloud Run Deployment Failures
+
+**Check Logs**:
+```bash
+gcloud run services logs read clinical-diary-api --region=${REGION}
+```
+
+**Common Issues**:
+- Container fails to start: Check Dockerfile and health endpoint
+- Permission denied: Verify service account roles
+- Cannot connect to Cloud SQL: Check VPC connector and Cloud SQL instance
+
 ### Database Deployment Failures
 
 **Migration Conflicts**:
 ```bash
 # View pending migrations
-supabase migration list
+dbmate status
 
 # Reset database (staging only!)
-supabase db reset
+dbmate drop && dbmate up
 ```
 
 **Connection Errors**:
-- Verify `SUPABASE_PROJECT_REF` is correct
-- Check service role key has not expired
-- Confirm network connectivity
-
-### Portal Deployment Failures
-
-**Netlify Build Errors**:
-- Check build logs: `netlify logs`
-- Verify environment variables set correctly
-- Ensure `build/web/` directory contains `index.html`
-
-**CORS Errors**:
-- Configure Supabase CORS settings in dashboard
-- Add portal domain to allowed origins
-
-### Edge Function Errors
-
-**View Logs**:
-```bash
-supabase functions logs edc_sync
-```
-
-**Common Issues**:
-- Missing environment variables (secrets)
-- EDC API connection failures
-- Timeout errors (increase function timeout in dashboard)
+- Verify Cloud SQL Proxy is running
+- Check VPC connector configuration
+- Confirm service account has Cloud SQL Client role
 
 ---
 
@@ -1362,9 +1071,19 @@ supabase functions logs edc_sync
 - **Compliance Practices**: dev-compliance-practices.md
 - **Daily Operations**: ops-operations.md
 - **Security Operations**: ops-security.md
+- **Monitoring**: ops-monitoring-observability.md
 
 ---
 
 **Document Status**: Active operations guide
 **Review Cycle**: After each deployment or quarterly
 **Owner**: DevOps Team / Release Manager
+
+---
+
+## Change History
+
+ | Version | Date | Changes | Author |
+ | --- | --- | --- | --- |
+ | 1.0 | 2025-01-24 | Initial guide (Supabase) | Development Team |
+ | 2.0 | 2025-11-24 | Migration to GCP (Cloud Run, Cloud SQL, Artifact Registry) | Claude |

@@ -1,8 +1,8 @@
 # Multi-Sponsor Clinical Diary Architecture
 
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Version**: 2.0
+**Audience**: Software Developers
+**Last Updated**: 2025-11-24
 **Status**: Active
 
 > **See**: prd-database.md for database architecture
@@ -19,18 +19,19 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 - Single mobile app containing ALL sponsor configurations
 - Separate portal deployment per sponsor
 - Public core platform with private sponsor customizations
-- Supabase-based infrastructure (PostgreSQL + Auth + Realtime + Edge Functions)
+- GCP-based infrastructure (Cloud SQL PostgreSQL + Identity Platform + Cloud Run)
 - Type-safe extension via abstract base classes
 - Automated build system composing core + sponsor code
 - FDA 21 CFR Part 11 compliant audit trail
 
 **Technology Stack**:
 - **Mobile**: Flutter (iOS + Android from single codebase)
-- **Portal**: Flutter Web (hosted on Netlify/Vercel/Cloudflare)
-- **Backend**: Supabase (managed PostgreSQL, Auth, Edge Functions)
-- **Database**: PostgreSQL with Event Sourcing pattern
-- **Language**: Dart for all application code, TypeScript/Deno for Edge Functions
-- **Distribution**: GitHub Package Registry
+- **Portal**: Flutter Web (hosted on Cloud Run)
+- **Backend**: Dart server on Cloud Run
+- **Database**: Cloud SQL PostgreSQL with Event Sourcing pattern
+- **Auth**: Identity Platform (Firebase Auth)
+- **Language**: Dart for all application code
+- **Distribution**: GitHub Package Registry + GCP Artifact Registry
 - **Build System**: Dart-based tooling with CI/CD automation
 
 ---
@@ -45,25 +46,25 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 │                  (e.g., Orion Production)                      │
 │                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │ Supabase Project: clinical-diary-orion                    │ │
+│  │ GCP Project: clinical-diary-orion                         │ │
 │  │                                                            │ │
-│  │  ├─ PostgreSQL (Event Sourcing schema + RLS)               │ │
-│  │  ├─ Supabase Auth (OAuth/SAML with sponsor SSO)            │ │
-│  │  ├─ Edge Functions (EDC proxy sync - proprietary)          │ │
-│  │  └─ Realtime (WebSocket for live updates)                  │ │
+│  │  ├─ Cloud SQL PostgreSQL (Event Sourcing schema + RLS)    │ │
+│  │  ├─ Identity Platform (OAuth/SAML with sponsor SSO)       │ │
+│  │  ├─ Cloud Run (Dart server + EDC proxy sync)              │ │
+│  │  └─ Artifact Registry (container images)                  │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                 │
 │  Accessed by:                                                   │
 │  ├─ Mobile App (iOS/Android) → Orion configuration selected    │
 │  ├─ Portal (Flutter Web) → https://orion-portal.example.com    │
-│  └─ EDC System (Medidata Rave) ← Edge Function pushes events    │
+│  └─ EDC System (Medidata Rave) ← Cloud Run pushes events       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Deployment Modes
 
 **Endpoint Mode**: Standard deployment with no EDC integration
-**Proxy Mode**: Deployment with Edge Function syncing events to sponsor's EDC system
+**Proxy Mode**: Deployment with Cloud Run service syncing events to sponsor's EDC system
 
 ---
 
@@ -79,7 +80,7 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
 clinical-diary/                  (Root - Core platform)
 ├── packages/
 │   ├── core/                    (Abstract interfaces + core logic)
-│   └── edge_functions_shared/   (Shared utilities for Edge Functions)
+│   └── server_shared/           (Shared utilities for Dart server)
 │
 ├── apps/
 │   ├── mobile/                  (Flutter app template)
@@ -90,6 +91,14 @@ clinical-diary/                  (Root - Core platform)
 │   ├── migrations/              (Schema changes over time)
 │   ├── rls_policies.sql         (Row-Level Security)
 │   └── functions.sql            (PostgreSQL functions)
+│
+├── server/                      (Dart server for Cloud Run)
+│   ├── bin/server.dart          (Entry point)
+│   ├── lib/
+│   │   ├── database/            (Cloud SQL connection)
+│   │   ├── middleware/          (Auth middleware)
+│   │   └── services/            (Business logic)
+│   └── Dockerfile
 │
 ├── tools/
 │   ├── build_system/            (Build scripts)
@@ -116,21 +125,21 @@ clinical-diary/                  (Root - Core platform)
     │       ├── andromeda_edc_sync.dart
     │       └── andromeda_theme.dart
     │
-    ├── edge_functions/          (Sponsor Edge Functions)
+    ├── server/                  (Sponsor server extensions)
     │   ├── orion/
-    │   │   └── edc_sync/        (EDC integration for Orion)
+    │   │   └── edc_sync_service.dart  (EDC integration for Orion)
     │   └── andromeda/
-    │       └── edc_sync/        (EDC integration for Andromeda)
+    │       └── edc_sync_service.dart  (EDC integration for Andromeda)
     │
     ├── config/                  (Sponsor configurations)
     │   ├── orion/
     │   │   ├── mobile.yaml
     │   │   ├── portal.yaml
-    │   │   └── supabase.env     (credentials - gitignored)
+    │   │   └── gcp.env          (credentials - gitignored)
     │   └── andromeda/
     │       ├── mobile.yaml
     │       ├── portal.yaml
-    │       └── supabase.env
+    │       └── gcp.env
     │
     ├── assets/                  (Sponsor branding)
     │   ├── orion/
@@ -153,6 +162,7 @@ clinical-diary/                  (Root - Core platform)
 - Abstract base classes defining extension points
 - Mobile app UI framework
 - Portal UI framework
+- Dart server framework
 - Build tooling
 - Core specifications (prd/ops/dev)
 
@@ -165,12 +175,9 @@ clinical-diary/                  (Root - Core platform)
 
 **Database Deployment**:
 - Schema is **shared** (same schema.sql for all sponsors)
-- Each sponsor gets **separate Supabase project** (deployed instance)
+- Each sponsor gets **separate GCP project** with Cloud SQL instance
 - Sponsor-specific: Authorized users, deployment configuration
 - No sponsor-specific schema extensions (database is generic)
-
-**Dependency management**:
-
 
 ---
 
@@ -183,7 +190,7 @@ The public core defines abstract interfaces that sponsors extend:
 **Core Interfaces** (in `packages/core/lib/interfaces/`):
 
 1. **SponsorConfig** - Main configuration interface
-   - Properties: sponsorId, displayName, supabaseUrl, branding, features
+   - Properties: sponsorId, displayName, gcpProjectId, branding, features
    - Methods: Getters for theme, logo, custom widgets, deployment mode
 
 2. **EdcSync** - EDC integration interface (for proxy mode)
@@ -222,7 +229,7 @@ The build system composes core platform code with sponsor-specific code from the
 3. **Compose** core + sponsor into unified codebase
 4. **Generate** integration glue code
 5. **Build** Flutter app (mobile) or Flutter Web (portal)
-6. **Package** for deployment (IPA/APK for mobile, static site for portal)
+6. **Package** for deployment (IPA/APK for mobile, container for portal/server)
 
 **Build Scripts** (in `tools/build_system/`):
 - `build_mobile.dart` - Builds mobile app with sponsor configuration
@@ -233,11 +240,15 @@ The build system composes core platform code with sponsor-specific code from the
   ```bash
   dart tools/build_system/build_portal.dart --sponsor orion --environment production
   ```
+- `build_server.dart` - Builds Dart server container
+  ```bash
+  dart tools/build_system/build_server.dart --sponsor orion --environment production
+  ```
 - `validate_sponsor.dart` - Validates sponsor implementation
   ```bash
   dart tools/build_system/validate_sponsor.dart --sponsor orion
   ```
-- `deploy.dart` - Orchestrates deployment to Supabase + hosting
+- `deploy.dart` - Orchestrates deployment to GCP
   ```bash
   dart tools/build_system/deploy.dart --sponsor orion --environment production
   ```
@@ -254,6 +265,9 @@ dart tools/build_system/build_mobile.dart --sponsor orion --platform ios
 # Build Orion portal
 dart tools/build_system/build_portal.dart --sponsor orion --environment production
 
+# Build Orion server
+dart tools/build_system/build_server.dart --sponsor orion --environment production
+
 # Deploy Orion to production
 dart tools/build_system/deploy.dart --sponsor orion --environment production
 ```
@@ -264,7 +278,7 @@ The monorepo uses GitHub Actions workflows that:
 - Trigger on changes to `sponsor/{sponsor-name}/` directory
 - Run sponsor-specific validation and tests
 - Build artifacts for affected sponsor only
-- Deploy to sponsor's Supabase project
+- Deploy to sponsor's GCP project via Workload Identity Federation
 - Support manual triggers for full rebuilds
 
 **Workflow Example** (`.github/workflows/deploy-sponsor.yml`):
@@ -278,6 +292,7 @@ on:
       - 'database/**'
       - 'packages/**'
       - 'apps/**'
+      - 'server/**'
   workflow_dispatch:
     inputs:
       sponsor:
@@ -287,6 +302,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
     steps:
       - uses: actions/checkout@v4
 
@@ -301,6 +319,12 @@ jobs:
             sponsor=$(git diff --name-only HEAD~1 | grep '^sponsor/' | cut -d/ -f2 | sort -u)
             echo "sponsor=$sponsor" >> $GITHUB_OUTPUT
           fi
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Build and deploy
         run: |
@@ -320,8 +344,8 @@ jobs:
 **User Experience**:
 1. User receives enrollment token (encoded sponsor ID + patient-link ID)
 2. App detects sponsor from token value
-3. Connects to sponsor's Supabase instance
-4. Supabase validates token (unique and matching Auth ID or App instance UUID)
+3. Connects to sponsor's GCP project (Identity Platform + Cloud Run)
+4. Identity Platform validates token
 4. Applies sponsor's branding and theme
 5. User completes enrollment and uses app
 
@@ -340,14 +364,14 @@ Each sponsor gets independent portal deployment:
 - Unique domain: `orion-portal.clinicaldiary.com`
 - Sponsor-specific theme and branding
 - Custom pages and reports
-- Connects to sponsor's Supabase instance
+- Connects to sponsor's GCP backend (Cloud Run + Cloud SQL)
 
 ### Hosting
 
-Netlify (easy deployment, CDN, SSL)
+Cloud Run (containerized Flutter Web + nginx)
 
 
-**Deployment**: Static site (Flutter Web compiled to HTML/JS/CSS)
+**Deployment**: Static site (Flutter Web compiled to HTML/JS/CSS) served by nginx container
 
 ### Portal Customization
 
@@ -362,15 +386,15 @@ Sponsors can add:
 
 ## Database Architecture
 
-### Supabase-Based Infrastructure
+### GCP-Based Infrastructure
 
-**Why Supabase**:
-- Managed PostgreSQL with automatic backups
-- Built-in authentication (OAuth, SAML, JWT)
-- Auto-generated REST API with RLS enforcement
-- Real-time subscriptions via WebSockets
-- Edge Functions for custom logic (Deno runtime)
+**Why GCP (Cloud SQL + Identity Platform + Cloud Run)**:
+- Managed PostgreSQL with automatic backups and PITR
+- Built-in authentication (OAuth, SAML, JWT) via Identity Platform
+- Dart server backend with full control over API
+- VPC-native private connectivity to Cloud SQL
 - Row Level Security (RLS) enforces RBAC at database level
+- Healthcare-specific compliance certifications (HIPAA BAA, SOC 2)
 
 ### Schema Deployment
 
@@ -387,26 +411,28 @@ Sponsors can add:
 - Stored procedures
 
 **Deployment**:
-
+- Schema applied via Cloud SQL Proxy + psql
+- Migrations tracked in schema_metadata table
+- See ops-database-migration.md for procedures
 
 ### Event Sourcing Pattern
 
-All diary data changes stored as immutable events in `record_audit` table. 
+All diary data changes stored as immutable events in `record_audit` table.
 Current state derived in `record_state` table via database triggers.
 
 **See**: prd-database-event-sourcing.md for complete pattern details.
 
 ---
 
-## Edge Functions (Proxy Mode)
+## Cloud Run Services (Proxy Mode)
 
 ### EDC Synchronization
 
-For sponsors in **proxy mode**, Edge Functions sync diary events to their EDC system.
+For sponsors in **proxy mode**, Cloud Run services sync diary events to their EDC system.
 
-**Trigger**: Database webhook on INSERT to `record_audit`
-**Function**: INSERT into `sponsor_queue`, Sponsor-specific implementation of EdcSync interface
-**Execution**: Deno runtime on Supabase infrastructure
+**Trigger**: Database trigger on INSERT to `record_audit` → queue table
+**Service**: Dart service polls queue and syncs to EDC
+**Execution**: Cloud Run container with VPC connector to Cloud SQL
 
 **Example EDC systems**:
 - Medidata Rave (Orion example)
@@ -417,7 +443,7 @@ For sponsors in **proxy mode**, Edge Functions sync diary events to their EDC sy
 **Error Handling**:
 - Exponential backoff retry logic for transient failures
 - Failed sync tracking in `edc_sync_log` table
-- Alerting via monitoring service
+- Alerting via Cloud Monitoring
 - Manual reconciliation interface in portal
 
 ---
@@ -427,7 +453,7 @@ For sponsors in **proxy mode**, Edge Functions sync diary events to their EDC sy
 ### Three-Level Testing
 
 **1. Contract Tests** (in public core)
-Define requirements all implementations must meet. 
+Define requirements all implementations must meet.
 Reusable test suites that verify interface compliance.
 
 **Location**: `packages/core/test/contracts/`
@@ -444,9 +470,9 @@ Test sponsor-specific implementations custom behavior.
 
 ### Integration Testing
 
-Test against live Supabase staging instances:
+Test against Cloud SQL staging instances:
 - Database triggers and RLS policies
-- Edge Functions with mock EDC endpoints
+- Cloud Run services with mock EDC endpoints
 - Mobile app offline sync
 - Portal queries and reports
 
@@ -461,7 +487,7 @@ Test against live Supabase staging instances:
 **Published packages**:
 - `clinical_diary_core` - Core interfaces and logic
 - `clinical_diary_database` - SQL schema and migrations
-- `clinical_diary_edge_functions_shared` - Shared Edge Function utilities
+- `clinical_diary_server_shared` - Shared server utilities
 
 **Publishing**: Automated via GitHub Actions on release tag
 
@@ -489,21 +515,23 @@ Test against live Supabase staging instances:
 - Define branding and theme
 - Add custom widgets/pages
 
-**Step 3**: Configure Supabase
-- Create Supabase project
-- Configure authentication (OAuth/SAML)
-- Set environment variables
+**Step 3**: Configure GCP
+- Create GCP project
+- Provision Cloud SQL instance
+- Configure Identity Platform (OAuth/SAML)
+- Set up Cloud Run services
+- Configure Workload Identity Federation for CI/CD
 
 **Step 4**: Test locally
 - Run contract tests
-- Test against staging Supabase
+- Test against staging Cloud SQL via Cloud SQL Proxy
 - Validate mobile and portal builds
 
 **Step 5**: Deploy
 - Push to GitHub
-- CI/CD builds and deploys automatically
+- CI/CD builds and deploys automatically via Workload Identity
 - Mobile app updated in next release
-- Portal live immediately
+- Portal live immediately on Cloud Run
 
 ### Updating Core Platform
 
@@ -525,22 +553,24 @@ Test against live Supabase staging instances:
 **Step 4**: Sponsors upgrade
 - Update dependency version in pubspec.yaml
 - Run tests to verify compatibility
-- Deploy to Prodcution after Sponsor approves UAT deployment
+- Deploy to Production after Sponsor approves UAT deployment
 
 ### Developer Workflow
 
-The following workflow aligns with the principles of 21 CFR Part 11 and is similar to 
-established strategies like GitFlow: 
+The following workflow aligns with the principles of 21 CFR Part 11 and is similar to
+established strategies like GitFlow:
 
-**develop branch**: All new features and bug fixes are developed on feature 
+**develop branch**: All new features and bug fixes are developed on feature
   branches and merged into a develop branch.
 **Release branch**: When ready for a deployment, create a new, separate release branch (e.g., release/1.2.3) from the develop branch.
 **Validation**: Deploy from the release branch to a testing environment. Run all validation protocols and user acceptance tests (UAT). Fix any bugs directly on the release branch.
 **Tagging**: Once the software passes all validation, a git tag (e.g., v1.2.3) is applied to the release branch commit. This tag serves as the permanent, immutable record of the deployed version.
 **Deployment** and merging: Deploy the tagged version to the production environment. After a successful deployment, merge the release branch into main and back into develop.
-**main branch**: The main branch now contains only validated, production-ready code. It reflects the history of all official releases. 
+**main branch**: The main branch now contains only validated, production-ready code. It reflects the history of all official releases.
 
-This process provides an authoritative and unalterable record of all changes, creating a verifiable audit trail that satisfies FDA requirements. ---
+This process provides an authoritative and unalterable record of all changes, creating a verifiable audit trail that satisfies FDA requirements.
+
+---
 
 ## Security and Compliance
 
@@ -565,14 +595,16 @@ This process provides an authoritative and unalterable record of all changes, cr
 ### Secrets Management
 
 **Never in repositories**:
-- Supabase credentials
+- GCP service account keys
+- Database passwords
 - EDC API keys
 - OAuth secrets
 
 **Stored in**:
 - GitHub Secrets (for CI/CD)
+- GCP Secret Manager (for production services)
+- Doppler (for development - synced to environment)
 - Environment variables (for local development)
-- Supabase project secrets (for Edge Functions)
 
 ### FDA 21 CFR Part 11 Compliance
 

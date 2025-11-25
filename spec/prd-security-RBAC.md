@@ -19,7 +19,7 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 
 ## Multi-Sponsor Context
 
-**Sponsor Isolation**: Each sponsor has a dedicated Supabase instance (separate database + authentication system). Users, roles, and permissions are completely isolated per sponsor.
+**Sponsor Isolation**: Each sponsor has a dedicated GCP project (separate Cloud SQL database + Identity Platform authentication). Users, roles, and permissions are completely isolated per sponsor.
 
 **Implications**:
 - User accounts exist in only one sponsor's system

@@ -1,27 +1,27 @@
 # Portal Deployment and Operations Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Operations (DevOps, Release Managers, Platform Engineers)
-**Last Updated**: 2025-10-27
-**Status**: Draft
+**Last Updated**: 2025-11-24
+**Status**: Active
 
 > **See**: prd-portal.md for portal product requirements
 > **See**: dev-portal.md for implementation details
 > **See**: ops-deployment.md for overall deployment architecture
 > **See**: ops-operations.md for daily monitoring and incident response
-> **See**: ops-database-setup.md for Supabase database configuration
+> **See**: ops-database-setup.md for Cloud SQL database configuration
 
 ---
 
 ## Executive Summary
 
-This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed as a static site on Netlify, with each sponsor receiving their own isolated deployment connected to a sponsor-specific Supabase instance.
+This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Identity Platform.
 
-**Deployment Model**: One portal instance per sponsor
-**Hosting**: Netlify (static site hosting)
-**Database**: Supabase (PostgreSQL with RLS)
-**Authentication**: Supabase Auth (OAuth + email/password)
-**Domains**: Custom subdomain per sponsor (e.g., `portal-pfizer.example.com`)
+**Deployment Model**: One portal instance per sponsor GCP project
+**Hosting**: Cloud Run (containerized Flutter web app + Dart backend)
+**Database**: Cloud SQL PostgreSQL (with RLS)
+**Authentication**: Identity Platform (Firebase Auth)
+**Domains**: Custom subdomain per sponsor (e.g., `portal-sponsor.example.com`)
 
 ---
 
@@ -29,13 +29,15 @@ This guide covers deployment, configuration, monitoring, and operational procedu
 
 Before deploying a portal instance, ensure you have:
 
-1. **Netlify Account** with team access
-2. **Supabase Project** created for sponsor (separate instance per sponsor)
-3. **Domain Name** registered and DNS access
-4. **SSL Certificate** (auto-provisioned by Netlify)
-5. **Environment Variables** prepared (Supabase URL, Anon Key, OAuth credentials)
-6. **Flutter SDK** installed (v3.38+ stable)
-7. **Git Repository** access (core repo + sponsor repo)
+1. **GCP Project** created for sponsor with billing enabled
+2. **Cloud SQL Instance** provisioned with schema applied
+3. **Identity Platform** configured with auth providers
+4. **Artifact Registry** repository for container images
+5. **Domain Name** registered and DNS access
+6. **SSL Certificate** (managed via Cloud Run or Cloud Load Balancer)
+7. **gcloud CLI** authenticated with appropriate permissions
+8. **Flutter SDK** installed (v3.38+ stable)
+9. **Git Repository** access (core repo + sponsor repo)
 
 ---
 
@@ -79,9 +81,9 @@ dart run tools/build_system/build_portal.dart \
 **Example**:
 
 ```bash
-# Build Pfizer production portal
+# Build Orion production portal
 dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-pfizer \
+  --sponsor-repo ../clinical-diary-orion \
   --environment production
 ```
 
@@ -104,14 +106,14 @@ After build completes, validate the output:
 # Check build directory exists
 ls -lah build/web/
 
-# Verify index.html contains Supabase URL (should be redacted/templated)
-grep "SUPABASE_URL" build/web/index.html
+# Verify index.html contains correct config references
+grep "FIREBASE_PROJECT" build/web/index.html
 
 # Check asset sizes (should be optimized)
 du -sh build/web/assets/
 
 # Validate no secrets in build
-grep -r "SUPABASE_SERVICE_KEY" build/web/ || echo "OK: No service keys found"
+grep -r "SERVICE_ACCOUNT_KEY" build/web/ || echo "OK: No service keys found"
 ```
 
 **Expected Output**:
@@ -121,96 +123,130 @@ grep -r "SUPABASE_SERVICE_KEY" build/web/ || echo "OK: No service keys found"
 
 ---
 
-## Netlify Deployment
+## Container Build
 
-### Initial Setup
+### Dockerfile for Portal
 
-**Step 1: Create Netlify Site**
+```dockerfile
+# Dockerfile
+FROM nginx:alpine AS runtime
+
+# Copy Flutter web build
+COPY build/web /usr/share/nginx/html
+
+# Custom nginx config for SPA routing
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### nginx.conf for SPA Routing
+
+```nginx
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SPA routing - redirect all routes to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Health check endpoint
+    location /health {
+        return 200 'OK';
+        add_header Content-Type text/plain;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+}
+```
+
+### Build and Push Container
 
 ```bash
-# Install Netlify CLI (one-time)
-npm install -g netlify-cli
+# Set variables
+export PROJECT_ID=sponsor-project-id
+export REGION=us-central1
+export IMAGE_TAG=$(git rev-parse --short HEAD)
 
-# Login to Netlify
-netlify login
+# Build Flutter web app
+dart run tools/build_system/build_portal.dart \
+  --sponsor-repo ../clinical-diary-sponsor \
+  --environment production
 
-# Create new site
-netlify sites:create \
-  --name portal-pfizer-production \
-  --account-slug your-team-name
+# Build container
+docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${IMAGE_TAG} .
+
+# Configure Docker for Artifact Registry
+gcloud auth configure-docker ${REGION}-docker.pkg.dev
+
+# Push to Artifact Registry
+docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${IMAGE_TAG}
 ```
-
-**Step 2: Configure Build Settings**
-
-In Netlify dashboard (or `netlify.toml` in sponsor repo):
-
-```toml
-[build]
-  base = "core/"
-  publish = "build/web/"
-  command = "dart run tools/build_system/build_portal.dart --sponsor-repo ../sponsor --environment production"
-
-[build.environment]
-  FLUTTER_VERSION = "3.38.3"
-  DART_VERSION = "3.10.1"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  force = false
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "no-referrer"
-    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-```
-
-**Step 3: Set Environment Variables**
-
-In Netlify dashboard → Site Settings → Environment Variables:
-
-```bash
-# Supabase Configuration
-SUPABASE_URL="https://abc123.supabase.co"
-SUPABASE_ANON_KEY="eyJhbGc...your-anon-key"
-
-# OAuth Providers (if enabled)
-SUPABASE_GOOGLE_CLIENT_ID="123456789.apps.googleusercontent.com"
-SUPABASE_MICROSOFT_CLIENT_ID="abc123-def456-..."
-
-# Environment Identifier
-ENVIRONMENT="production"
-SPONSOR_ID="pfizer"
-```
-
-**IMPORTANT**: Never use `SUPABASE_SERVICE_KEY` in Netlify environment variables (portal uses anon key + RLS).
 
 ---
 
+## Cloud Run Deployment
+
 ### Deploy Command
 
-**Manual Deployment**:
-
 ```bash
-# Build portal first
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-pfizer \
-  --environment production
+# Set variables
+export PROJECT_ID=sponsor-project-id
+export REGION=us-central1
+export IMAGE_TAG=$(git rev-parse --short HEAD)
+export SERVICE_NAME=portal
 
-# Deploy to Netlify
-netlify deploy \
-  --prod \
-  --dir build/web/ \
-  --site portal-pfizer-production
+# Deploy to Cloud Run
+gcloud run deploy ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${IMAGE_TAG} \
+  --platform=managed \
+  --port=8080 \
+  --allow-unauthenticated \
+  --min-instances=1 \
+  --max-instances=10 \
+  --memory=512Mi \
+  --cpu=1 \
+  --set-env-vars="FIREBASE_PROJECT_ID=${PROJECT_ID}" \
+  --set-env-vars="GCP_PROJECT_ID=${PROJECT_ID}" \
+  --set-env-vars="ENVIRONMENT=production" \
+  --set-env-vars="SPONSOR_ID=sponsor-name"
+
+# Get deployed URL
+gcloud run services describe ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --format='value(status.url)'
 ```
 
-**Automated Deployment (CI/CD)**:
+### Automated Deployment (CI/CD)
 
-Add to sponsor repository `.github/workflows/deploy_portal.yml`:
+Add to sponsor repository `.github/workflows/deploy-portal.yml`:
 
 ```yaml
 name: Deploy Portal
@@ -220,9 +256,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE_NAME: portal
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -239,6 +284,18 @@ jobs:
           flutter-version: '3.38.3'
           channel: 'stable'
 
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev
+
       - name: Build Portal
         run: |
           cd core
@@ -246,31 +303,35 @@ jobs:
             --sponsor-repo ../sponsor \
             --environment production
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: './core/build/web'
-          production-deploy: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      - name: Build and Push Container
+        run: |
+          cd core
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${{ github.sha }} .
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE_NAME} \
+            --project=${PROJECT_ID} \
+            --region=${REGION} \
+            --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${{ github.sha }} \
+            --platform=managed \
+            --allow-unauthenticated
 ```
 
 ---
 
 ### Custom Domain Configuration
 
-**Step 1: Add Custom Domain in Netlify**
+**Step 1: Map Custom Domain in Cloud Run**
 
 ```bash
-# Via CLI
-netlify domains:add portal-pfizer.example.com \
-  --site portal-pfizer-production
-
-# Or via Netlify Dashboard:
-# Site Settings → Domain Management → Add Custom Domain
+# Add domain mapping
+gcloud run domain-mappings create \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --service=${SERVICE_NAME} \
+  --domain=portal-sponsor.example.com
 ```
 
 **Step 2: Configure DNS**
@@ -278,41 +339,36 @@ netlify domains:add portal-pfizer.example.com \
 Add DNS records in your domain registrar:
 
 ```
-# If using Netlify DNS (recommended)
-CNAME portal-pfizer -> apex-loadbalancer.netlify.com
-
-# If using external DNS
-A     portal-pfizer -> 75.2.60.5
-AAAA  portal-pfizer -> 2600:1f18:...
+# CNAME record pointing to Cloud Run
+CNAME portal-sponsor -> ghs.googlehosted.com
 ```
 
-**Step 3: Enable HTTPS**
+**Step 3: Verify SSL Certificate**
 
-Netlify automatically provisions SSL certificate via Let's Encrypt:
+Cloud Run automatically provisions SSL certificates for mapped domains:
 
 ```bash
-# Verify SSL certificate
-netlify domains:status portal-pfizer.example.com
+# Check domain mapping status
+gcloud run domain-mappings describe \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --domain=portal-sponsor.example.com
 
-# Check HTTPS enforcement
-netlify sites:update \
-  --site portal-pfizer-production \
-  --force-https
+# Expected: certificateStatus: ACTIVE
 ```
 
 **Expected Result**:
-- `https://portal-pfizer.example.com` resolves to portal
+- `https://portal-sponsor.example.com` resolves to portal
 - SSL certificate valid and auto-renewing
 - HTTP requests redirect to HTTPS
-- HSTS header enabled
 
 ---
 
-## Supabase Configuration
+## Cloud SQL Configuration
 
 ### Database Setup
 
-**See**: ops-database-setup.md for complete Supabase database configuration
+**See**: ops-database-setup.md for complete Cloud SQL database configuration
 
 **Portal-Specific Requirements**:
 
@@ -324,17 +380,11 @@ netlify sites:update \
 **Quick Validation**:
 
 ```bash
-# Install Supabase CLI
-npm install -g supabase
-
-# Login to Supabase
-supabase login
-
-# Link to project
-supabase link --project-ref abc123
+# Connect via Cloud SQL Proxy
+cloud-sql-proxy ${PROJECT_ID}:${REGION}:${INSTANCE_NAME} --port=5432 &
 
 # Verify RLS enabled on portal_users table
-supabase db remote exec --query "
+psql -h 127.0.0.1 -U app_user -d clinical_diary -c "
   SELECT tablename, rowsecurity
   FROM pg_tables
   WHERE schemaname = 'public'
@@ -348,162 +398,181 @@ supabase db remote exec --query "
 
 ### Authentication Setup
 
-**Step 1: Enable Auth Providers in Supabase Dashboard**
+**Step 1: Enable Auth Providers in Identity Platform**
 
-Navigate to: Authentication → Providers
+Navigate to: GCP Console → Identity Platform → Providers
 
 **Email/Password**:
-- ✅ Enable Email provider
-- ✅ Confirm email required: Yes
-- ✅ Secure email change: Yes
-- ✅ Secure password change: Yes
+- ✅ Enable Email/Password provider
+- ✅ Email enumeration protection: Enabled
+- ✅ Email verification required: Yes
 
 **Google OAuth** (optional):
-- ✅ Enable Google provider
-- Add Client ID and Client Secret from Google Cloud Console
-- Authorized redirect URI: `https://abc123.supabase.co/auth/v1/callback`
+```bash
+gcloud identity-platform config update \
+  --project=${PROJECT_ID} \
+  --enable-google \
+  --google-client-id="123456789.apps.googleusercontent.com" \
+  --google-client-secret-file=google-secret.txt
+```
 
 **Microsoft OAuth** (optional):
-- ✅ Enable Azure provider
-- Add Client ID and Client Secret from Azure AD
-- Authorized redirect URI: `https://abc123.supabase.co/auth/v1/callback`
-
-**Step 2: Configure Site URL**
-
-In Supabase Dashboard → Authentication → URL Configuration:
-
+```bash
+gcloud identity-platform config update \
+  --project=${PROJECT_ID} \
+  --enable-microsoft \
+  --microsoft-client-id="abc123-def456" \
+  --microsoft-client-secret-file=microsoft-secret.txt
 ```
-Site URL: https://portal-pfizer.example.com
-Redirect URLs:
-  - https://portal-pfizer.example.com
-  - https://portal-pfizer.example.com/auth/callback
-  - http://localhost:8080 (for local development only)
+
+**Step 2: Configure Authorized Domains**
+
+```bash
+# Add portal domain to authorized list
+gcloud identity-platform config update \
+  --project=${PROJECT_ID} \
+  --authorized-domains="portal-sponsor.example.com,localhost"
 ```
 
 **Step 3: Disable Public Sign-Ups**
 
-Portals should not allow self-registration (Admins create accounts):
-
-```sql
--- Run in Supabase SQL Editor
-UPDATE auth.config
-SET disable_signup = true;
-```
-
-**Validation**:
+Portals should not allow self-registration (Admins create accounts via Cloud Functions):
 
 ```bash
-# Test OAuth flow
-curl -X POST "https://abc123.supabase.co/auth/v1/signup" \
-  -H "apikey: your-anon-key" \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "testpass"}'
-
-# Expected: Error response (signups disabled)
+# Identity Platform doesn't have direct signup disable
+# Implement via Cloud Function that validates invites
+# See ops-security-authentication.md for details
 ```
 
 ---
 
 ## Monitoring and Health Checks
 
-### Netlify Monitoring
+### Cloud Monitoring
 
-**Built-in Metrics** (Netlify Dashboard → Analytics):
-- Bandwidth usage
+**Built-in Metrics** (GCP Console → Cloud Run → Service → Metrics):
 - Request count
-- Build duration
-- Deploy frequency
-- Error rates (4xx/5xx)
+- Request latency (p50, p95, p99)
+- Container instance count
+- Memory utilization
+- CPU utilization
+- Error rate (4xx/5xx)
 
-**Uptime Monitoring**:
+**Create Uptime Check**:
 
 ```bash
-# Add UptimeRobot or Pingdom monitor
-# Endpoint: https://portal-pfizer.example.com
-# Method: GET
-# Expected: HTTP 200
-# Interval: 5 minutes
+# Create uptime check
+gcloud monitoring uptime-checks create http \
+  --project=${PROJECT_ID} \
+  --display-name="Portal Health Check" \
+  --uri="https://portal-sponsor.example.com/health" \
+  --check-interval=60s \
+  --timeout=10s
 ```
 
-**Example UptimeRobot Configuration**:
-- Monitor Type: HTTPS
-- URL: `https://portal-pfizer.example.com`
-- Alert Contacts: devops@example.com
-- Monitoring Interval: 5 minutes
-- SSL Certificate Expiration Alert: 7 days before
+**Create Alert Policy**:
+
+```bash
+# Alert on high error rate
+gcloud alpha monitoring policies create \
+  --project=${PROJECT_ID} \
+  --display-name="Portal Error Rate Alert" \
+  --condition-display-name="Error rate > 5%" \
+  --condition-filter='resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_count" AND metric.labels.response_code_class="5xx"' \
+  --condition-threshold-value=0.05 \
+  --condition-threshold-comparison=COMPARISON_GT \
+  --notification-channels="projects/${PROJECT_ID}/notificationChannels/CHANNEL_ID"
+```
 
 ---
 
-### Supabase Monitoring
+### Cloud SQL Monitoring
 
-**Database Metrics** (Supabase Dashboard → Reports):
+**Database Metrics** (GCP Console → Cloud SQL → Instance → Monitoring):
 - Database size
 - Active connections
-- Query performance
-- RLS policy evaluation time
+- Query latency
+- CPU and memory utilization
+- Disk I/O
 
-**Auth Metrics**:
-- Daily active users (DAU)
-- Sign-ins per day
-- OAuth success/failure rates
+**Query Insights**:
 
-**Alerts** (Supabase Dashboard → Database → Alerts):
-
-```sql
--- Create alert for high connection count
-SELECT COUNT(*) FROM pg_stat_activity
-WHERE state = 'active'
-HAVING COUNT(*) > 80;  -- Alert if >80 active connections
+```bash
+# Enable Query Insights
+gcloud sql instances patch ${INSTANCE_NAME} \
+  --project=${PROJECT_ID} \
+  --insights-config-query-insights-enabled \
+  --insights-config-record-application-tags \
+  --insights-config-record-client-address
 ```
 
 ---
 
 ### Application Logs
 
-**Netlify Function Logs** (if using Netlify Functions):
+**Cloud Run Logs**:
 
 ```bash
 # Tail logs
-netlify functions:log
+gcloud run services logs tail ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION}
 
-# Filter by function
-netlify functions:log --function auth-callback
+# Filter by severity
+gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" \
+  --project=${PROJECT_ID} \
+  --limit=50
 ```
 
-**Supabase Logs** (Supabase Dashboard → Logs):
-- Filter by table: `portal_users`, `patients`
-- Filter by severity: `ERROR`, `WARNING`
-- Export logs for analysis: JSON or CSV
+**Cloud SQL Logs**:
+
+```bash
+# View database logs
+gcloud logging read "resource.type=cloudsql_database" \
+  --project=${PROJECT_ID} \
+  --limit=50
+```
 
 **Recommended Log Retention**: 90 days minimum for compliance (FDA 21 CFR Part 11)
+
+Configure log retention:
+```bash
+gcloud logging sinks create portal-audit-sink \
+  storage.googleapis.com/portal-audit-logs-${PROJECT_ID} \
+  --log-filter='resource.type="cloud_run_revision" OR resource.type="cloudsql_database"' \
+  --project=${PROJECT_ID}
+```
 
 ---
 
 ## Rollback Procedures
 
-### Netlify Rollback
+### Cloud Run Rollback
 
-Netlify maintains deployment history. To rollback:
+Cloud Run maintains revision history. To rollback:
 
-**Via Dashboard**:
-1. Navigate to Deploys tab
-2. Find previous successful deploy
-3. Click "Publish deploy"
+**Via Console**:
+1. Navigate to Cloud Run → Service → Revisions
+2. Find previous successful revision
+3. Click "Manage Traffic" → Route 100% to previous revision
 
 **Via CLI**:
 
 ```bash
-# List recent deploys
-netlify deploys:list
+# List revisions
+gcloud run revisions list \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --service=${SERVICE_NAME}
 
-# Restore specific deploy
-netlify deploy:restore <deploy-id>
-
-# Or rollback to previous
-netlify rollback
+# Route traffic to previous revision
+gcloud run services update-traffic ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --to-revisions=portal-00002-abc=100
 ```
 
-**Rollback Time**: ~30 seconds (static site, instant rollback)
+**Rollback Time**: ~10 seconds (container swap)
 
 ---
 
@@ -514,14 +583,13 @@ netlify rollback
 **Emergency Rollback** (if migration causes portal failure):
 
 ```bash
-# Connect to Supabase
-supabase link --project-ref abc123
+# Point-in-time recovery to before migration
+gcloud sql instances clone ${INSTANCE_NAME} ${INSTANCE_NAME}-recovered \
+  --project=${PROJECT_ID} \
+  --point-in-time="2025-01-24T09:55:00Z"
 
-# Rollback last migration
-supabase db migrations rollback
-
-# Verify portal functionality
-curl -I https://portal-pfizer.example.com
+# Update Cloud Run to use recovered instance
+# (requires service redeployment with new instance connection)
 ```
 
 **Important**: Database rollbacks may cause data loss if users have created records using new schema. Test rollback in staging first.
@@ -532,25 +600,29 @@ curl -I https://portal-pfizer.example.com
 
 ### Portal Unavailable (HTTP 5xx Errors)
 
-**Step 1: Check Netlify Status**
+**Step 1: Check Cloud Run Status**
 
 ```bash
-# Check deploy status
-netlify status
+# Check service status
+gcloud run services describe ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION}
 
-# Check recent deploys
-netlify deploys:list | head -5
+# Check recent revisions
+gcloud run revisions list \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --service=${SERVICE_NAME}
 ```
 
-**Step 2: Verify Supabase Connectivity**
+**Step 2: Verify Cloud SQL Connectivity**
 
 ```bash
-# Test database connection
-curl -X POST "https://abc123.supabase.co/rest/v1/rpc/health_check" \
-  -H "apikey: your-anon-key" \
-  -H "Content-Type: application/json"
+# Check Cloud SQL instance status
+gcloud sql instances describe ${INSTANCE_NAME} \
+  --project=${PROJECT_ID}
 
-# Expected: HTTP 200
+# Expected: state: RUNNABLE
 ```
 
 **Step 3: Rollback if Recent Deploy**
@@ -558,7 +630,11 @@ curl -X POST "https://abc123.supabase.co/rest/v1/rpc/health_check" \
 If issue started after recent deploy:
 
 ```bash
-netlify rollback
+# Route traffic to previous revision
+gcloud run services update-traffic ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --to-revisions=PREVIOUS_REVISION=100
 ```
 
 **Step 4: Notify Stakeholders**
@@ -573,20 +649,18 @@ netlify rollback
 
 **Symptoms**: Users cannot log in, OAuth redirects fail
 
-**Step 1: Check Supabase Auth Status**
+**Step 1: Check Identity Platform Status**
 
 ```bash
-# Verify auth service
-curl "https://abc123.supabase.co/auth/v1/health" \
-  -H "apikey: your-anon-key"
-
-# Expected: {"status":"ok"}
+# Verify Identity Platform configuration
+gcloud identity-platform config get \
+  --project=${PROJECT_ID}
 ```
 
 **Step 2: Verify OAuth Configuration**
 
-- Check Client IDs in Supabase Dashboard → Authentication → Providers
-- Verify Redirect URLs match portal domain
+- Check Client IDs in GCP Console → Identity Platform → Providers
+- Verify authorized domains include portal domain
 - Test OAuth flow manually
 
 **Step 3: Check RLS Policies**
@@ -606,29 +680,27 @@ WHERE schemaname = 'public' AND tablename = 'portal_users';
 
 **Symptoms**: Portal takes >5 seconds to load
 
-**Step 1: Check Netlify CDN**
+**Step 1: Check Cloud Run Latency**
 
 ```bash
-# Test CDN response time
-curl -w "@curl-format.txt" -o /dev/null -s https://portal-pfizer.example.com
+# View latency metrics
+gcloud run services describe ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --format='value(status.latestReadyRevisionName)'
+
+# Check if cold starts are the issue
+gcloud logging read 'resource.type="cloud_run_revision" AND textPayload:"Cold start"' \
+  --project=${PROJECT_ID} \
+  --limit=20
 ```
 
-**curl-format.txt**:
-```
-time_namelookup:  %{time_namelookup}s\n
-time_connect:     %{time_connect}s\n
-time_appconnect:  %{time_appconnect}s\n
-time_pretransfer: %{time_pretransfer}s\n
-time_starttransfer: %{time_starttransfer}s\n
-time_total:       %{time_total}s\n
-```
-
-**Expected**: Total time <2 seconds
+**Solution for cold starts**: Increase `--min-instances` to keep instances warm.
 
 **Step 2: Check Database Query Performance**
 
 ```sql
--- Identify slow queries
+-- Identify slow queries (requires pg_stat_statements extension)
 SELECT query, mean_exec_time, calls
 FROM pg_stat_statements
 WHERE mean_exec_time > 1000  -- >1 second
@@ -641,6 +713,7 @@ LIMIT 10;
 - Add database indexes if queries slow
 - Reduce RLS policy complexity
 - Implement pagination for large datasets
+- Increase Cloud Run CPU/memory if needed
 
 ---
 
@@ -648,56 +721,60 @@ LIMIT 10;
 
 ### Content Security Policy (CSP)
 
-Add to `netlify.toml`:
+Add to nginx.conf in container:
 
-```toml
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Content-Security-Policy = """
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://abc123.supabase.co;
-      style-src 'self' 'unsafe-inline';
-      img-src 'self' data: https:;
-      font-src 'self' data:;
-      connect-src 'self' https://abc123.supabase.co;
-      frame-ancestors 'none';
-    """
+```nginx
+add_header Content-Security-Policy "
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: https:;
+    font-src 'self' data:;
+    connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com;
+    frame-ancestors 'none';
+" always;
 ```
 
 **Rationale**: CSP prevents XSS attacks by restricting resource sources. Flutter Web requires `'unsafe-eval'` for Dart runtime.
 
 ---
 
-### Rate Limiting
+### IAM Security
 
-Configure in Supabase Dashboard → Settings → API:
+```bash
+# Ensure Cloud Run service uses dedicated service account
+gcloud run services update ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --service-account=portal-sa@${PROJECT_ID}.iam.gserviceaccount.com
 
+# Service account should have minimal permissions
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:portal-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/cloudsql.client"
 ```
-Anonymous Key Rate Limit: 100 requests/minute
-Service Key Rate Limit: 1000 requests/minute
-```
-
-**Portal-Specific**: Increase anonymous key limit if high traffic expected.
 
 ---
 
-### IP Allowlisting (Optional)
+### VPC Security (Optional)
 
-For highly sensitive sponsors, restrict portal access to specific IPs:
+For highly sensitive sponsors, deploy Cloud Run within VPC:
 
-```toml
-# netlify.toml
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Robots-Tag = "noindex"  # Prevent indexing
+```bash
+# Create VPC connector
+gcloud compute networks vpc-access connectors create portal-connector \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --network=default \
+  --range=10.8.0.0/28
 
-# Add Netlify Edge Function for IP check
-# functions/ip-check.ts
+# Update Cloud Run to use VPC connector
+gcloud run services update ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION} \
+  --vpc-connector=portal-connector \
+  --vpc-egress=private-ranges-only
 ```
-
-**See**: dev-portal.md for Edge Function implementation details.
 
 ---
 
@@ -712,18 +789,13 @@ For highly sensitive sponsors, restrict portal access to specific IPs:
 
 **Implementation**:
 
-```yaml
-# .github/workflows/deploy_portal.yml
-- name: Log Deployment
-  run: |
-    echo "Deployed by: ${{ github.actor }}" >> deploy.log
-    echo "Commit: ${{ github.sha }}" >> deploy.log
-    echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> deploy.log
+Cloud Run automatically logs all deployments in Cloud Audit Logs:
 
-    # Upload to audit system
-    curl -X POST "https://audit.example.com/deployments" \
-      -H "Content-Type: application/json" \
-      -d @deploy.log
+```bash
+# View deployment audit logs
+gcloud logging read 'protoPayload.serviceName="run.googleapis.com" AND protoPayload.methodName="google.cloud.run.v1.Services.ReplaceService"' \
+  --project=${PROJECT_ID} \
+  --limit=20
 ```
 
 ---
@@ -733,27 +805,30 @@ For highly sensitive sponsors, restrict portal access to specific IPs:
 Before production deployment, validate:
 
 ```bash
-# Check environment variables set
-netlify env:list --site portal-pfizer-production | grep SUPABASE_URL
+# Check Cloud Run service configuration
+gcloud run services describe ${SERVICE_NAME} \
+  --project=${PROJECT_ID} \
+  --region=${REGION}
 
 # Verify SSL certificate
-openssl s_client -connect portal-pfizer.example.com:443 -servername portal-pfizer.example.com
+curl -I https://portal-sponsor.example.com
 
 # Test authentication flow
-curl -X POST "https://portal-pfizer.example.com/api/test-auth" \
-  -H "Content-Type: application/json"
+curl -X GET "https://portal-sponsor.example.com/health"
 ```
 
 **Checklist**:
-- ✅ SUPABASE_URL set correctly
-- ✅ SUPABASE_ANON_KEY set correctly
-- ✅ SSL certificate valid and not expiring within 30 days
+- ✅ Cloud Run service deployed successfully
+- ✅ Custom domain mapped and SSL active
+- ✅ Cloud SQL connection configured
+- ✅ Identity Platform configured
 - ✅ OAuth providers configured (if enabled)
-- ✅ Site URL matches portal domain
+- ✅ Authorized domains include portal domain
 - ✅ RLS policies enabled on all tables
-- ✅ Public sign-ups disabled
+- ✅ Service account has minimal permissions
 - ✅ HTTPS enforced
 - ✅ Security headers configured
+- ✅ Monitoring alerts configured
 
 ---
 
@@ -763,23 +838,27 @@ curl -X POST "https://portal-pfizer.example.com/api/test-auth" \
 
 **Issue**: Portal shows blank white screen
 **Cause**: JavaScript error during Flutter initialization
-**Solution**: Check browser console for errors, verify `main.dart.js` loaded correctly
+**Solution**: Check browser console for errors, verify `main.dart.js` loaded correctly, check Cloud Run logs
 
-**Issue**: "Invalid API key" error on login
-**Cause**: `SUPABASE_ANON_KEY` not set or incorrect
-**Solution**: Verify environment variable in Netlify dashboard, redeploy
+**Issue**: "Authentication failed" error on login
+**Cause**: Identity Platform misconfiguration or domain not authorized
+**Solution**: Verify authorized domains in Identity Platform settings
 
 **Issue**: Users can log in but see "No data"
 **Cause**: RLS policies blocking access
-**Solution**: Verify user role in `portal_users` table, check RLS policies
+**Solution**: Verify user role in `portal_users` table, check RLS policies, verify session variables set correctly
 
 **Issue**: OAuth redirect fails
-**Cause**: Redirect URL mismatch
-**Solution**: Ensure Netlify domain matches Supabase redirect URL configuration
+**Cause**: Redirect URL not in authorized domains
+**Solution**: Add portal domain to Identity Platform authorized domains
 
 **Issue**: Slow initial load (>10 seconds)
-**Cause**: Flutter app bundle not optimized
-**Solution**: Rebuild with `--web-renderer html` for smaller bundle size
+**Cause**: Cold start or Flutter app bundle not optimized
+**Solution**: Increase `--min-instances=1`, rebuild with `--web-renderer html` for smaller bundle
+
+**Issue**: Connection to database fails
+**Cause**: Cloud SQL Proxy not configured or IAM permissions missing
+**Solution**: Verify Cloud Run service account has `roles/cloudsql.client`, check VPC connector if using private IP
 
 ---
 
@@ -791,3 +870,22 @@ curl -X POST "https://portal-pfizer.example.com/api/test-auth" \
 - **Database Operations**: ops-database-setup.md, ops-database-migration.md
 - **Daily Operations**: ops-operations.md
 - **Security**: ops-security.md
+- **Cloud Run Documentation**: https://cloud.google.com/run/docs
+- **Identity Platform Documentation**: https://cloud.google.com/identity-platform/docs
+- **Cloud SQL Documentation**: https://cloud.google.com/sql/docs
+
+---
+
+## Change Log
+
+| Date | Version | Changes | Author |
+| --- | --- | --- | --- |
+| 2025-10-27 | 1.0 | Initial portal operations guide | DevOps Team |
+| 2025-11-24 | 2.0 | Migration to Cloud Run and GCP | Development Team |
+
+---
+
+**Document Status**: Active portal operations guide
+**Review Cycle**: Quarterly or after major incidents
+**Owner**: DevOps Team / Platform Engineering
+**Compliance Review**: Required for new sponsor deployments per 21 CFR Part 11

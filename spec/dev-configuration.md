@@ -1,13 +1,14 @@
 # Configuration Implementation Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Development (Software Engineers, Application Developers)
-**Last Updated**: 2025-01-25
-**Status**: Draft
+**Last Updated**: 2025-11-24
+**Status**: Active
 
 > **See**: ops-deployment.md for deployment and environment configuration
 > **See**: prd-security.md for security requirements
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture
+> **See**: docs/migration/doppler-vs-secret-manager.md for secrets management strategy
 
 ---
 
@@ -17,7 +18,8 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 **Key Components**:
 - Dart-based configuration classes
-- Environment-specific credential loading
+- Environment-specific credential loading via Doppler
+- GCP service configuration (Cloud SQL, Identity Platform, Cloud Run)
 - Build-time validation
 - Type-safe configuration access
 
@@ -29,101 +31,112 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 **Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
 
-The application SHALL load sponsor-specific configuration from environment files that specify Supabase connection parameters and sponsor settings.
+The application SHALL load sponsor-specific configuration from environment variables that specify GCP connection parameters and sponsor settings.
 
-Configuration files SHALL follow the naming pattern:
-- `config/supabase.{environment}.env` where environment is `staging` or `prod`
+Configuration SHALL be loaded via Doppler for development and CI/CD environments, with the following required variables:
 
-Each configuration file MUST contain:
-- `SUPABASE_URL`: Unique project URL (format: `https://{project-ref}.supabase.co`)
-- `SUPABASE_ANON_KEY`: Project-specific anonymous key (JWT format)
-- `SUPABASE_PROJECT_REF`: Project reference ID
+**Database Configuration (Cloud SQL)**:
+- `DATABASE_URL`: Cloud SQL connection string (format: `postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance`)
+- `DATABASE_INSTANCE`: Cloud SQL instance connection name (format: `project:region:instance`)
+
+**Authentication Configuration (Identity Platform)**:
+- `FIREBASE_PROJECT_ID`: GCP project ID for Identity Platform
+- `FIREBASE_API_KEY`: Firebase/Identity Platform API key (for client SDK)
+
+**Sponsor Configuration**:
 - `SPONSOR_ID`: Unique sponsor identifier (format: `{vendor_code}`)
+- `GCP_PROJECT_ID`: GCP project ID for this sponsor/environment
+
+**Server Configuration (Cloud Run - server only)**:
+- `CLOUD_RUN_SERVICE_URL`: Cloud Run service URL
+- `PORT`: Server port (typically 8080 for Cloud Run)
 
 The application SHALL validate all required fields are present at application startup and SHALL fail fast if configuration is invalid or missing.
 
-**Rationale**: Implements infrastructure isolation (o00001) at the application layer. Enables build-time composition while maintaining runtime isolation. Type-safe configuration prevents runtime errors from misconfiguration.
+**Rationale**: Implements infrastructure isolation (o00001) at the application layer. GCP project-level isolation ensures complete separation between sponsors. Type-safe configuration prevents runtime errors from misconfiguration.
 
 **Acceptance Criteria**:
-- Configuration files exist for each sponsor in version control (template files)
+- Configuration loaded from Doppler in development (`doppler run -- flutter run`)
 - Build process validates all required fields present before compilation
 - No hardcoded credentials in Dart source code
-- URL patterns match expected Supabase format (`https://*.supabase.co`)
 - Application throws clear error message if configuration missing
 - Configuration is immutable after loading (final fields)
+- Cloud SQL connection uses appropriate format for environment
 
-*End* *Sponsor-Specific Configuration Loading* | **Hash**: 5fa9f76f
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: cf4bce54
 ---
 
 ### Implementation Example
 
-**Configuration Class** (`lib/config/supabase_config.dart`):
+**Configuration Class** (`lib/config/database_config.dart`):
 
 ```dart
-/// REQ-d00001: Sponsor-specific Supabase configuration
-class SupabaseConfig {
-  const SupabaseConfig({
-    required this.url,
-    required this.anonKey,
-    required this.projectRef,
+/// REQ-d00001: Sponsor-specific GCP configuration
+class DatabaseConfig {
+  const DatabaseConfig({
+    required this.databaseUrl,
+    required this.instanceConnectionName,
     required this.sponsorId,
+    required this.gcpProjectId,
   });
 
-  /// Supabase project URL (e.g., https://abc123.supabase.co)
-  final String url;
+  /// Cloud SQL connection URL
+  /// Format: postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance
+  final String databaseUrl;
 
-  /// Anonymous/public API key for client-side operations
-  final String anonKey;
-
-  /// Project reference identifier
-  final String projectRef;
+  /// Cloud SQL instance connection name
+  /// Format: project:region:instance
+  final String instanceConnectionName;
 
   /// Unique sponsor identifier
   final String sponsorId;
 
+  /// GCP project ID for this sponsor
+  final String gcpProjectId;
+
   /// Load configuration from environment variables
   /// Throws [ConfigurationException] if required variables missing
-  factory SupabaseConfig.fromEnvironment() {
-    final url = const String.fromEnvironment('SUPABASE_URL');
-    final anonKey = const String.fromEnvironment('SUPABASE_ANON_KEY');
-    final projectRef = const String.fromEnvironment('SUPABASE_PROJECT_REF');
+  factory DatabaseConfig.fromEnvironment() {
+    final databaseUrl = const String.fromEnvironment('DATABASE_URL');
+    final instanceConnectionName = const String.fromEnvironment('DATABASE_INSTANCE');
     final sponsorId = const String.fromEnvironment('SPONSOR_ID');
+    final gcpProjectId = const String.fromEnvironment('GCP_PROJECT_ID');
 
     // REQ-d00001: Validate all required fields present
-    if (url.isEmpty) {
-      throw ConfigurationException('SUPABASE_URL not configured');
+    if (databaseUrl.isEmpty) {
+      throw ConfigurationException('DATABASE_URL not configured');
     }
-    if (anonKey.isEmpty) {
-      throw ConfigurationException('SUPABASE_ANON_KEY not configured');
-    }
-    if (projectRef.isEmpty) {
-      throw ConfigurationException('SUPABASE_PROJECT_REF not configured');
+    if (instanceConnectionName.isEmpty) {
+      throw ConfigurationException('DATABASE_INSTANCE not configured');
     }
     if (sponsorId.isEmpty) {
       throw ConfigurationException('SPONSOR_ID not configured');
     }
+    if (gcpProjectId.isEmpty) {
+      throw ConfigurationException('GCP_PROJECT_ID not configured');
+    }
 
-    // REQ-d00001: Validate URL format
-    if (!url.startsWith('https://') || !url.contains('.supabase.co')) {
+    // REQ-d00001: Validate instance connection name format
+    if (!instanceConnectionName.contains(':')) {
       throw ConfigurationException(
-        'Invalid SUPABASE_URL format. Expected: https://*.supabase.co',
+        'Invalid DATABASE_INSTANCE format. Expected: project:region:instance',
       );
     }
 
-    return SupabaseConfig(
-      url: url,
-      anonKey: anonKey,
-      projectRef: projectRef,
+    return DatabaseConfig(
+      databaseUrl: databaseUrl,
+      instanceConnectionName: instanceConnectionName,
       sponsorId: sponsorId,
+      gcpProjectId: gcpProjectId,
     );
   }
 
   /// Validate configuration is properly formatted
   void validate() {
-    assert(url.isNotEmpty, 'URL cannot be empty');
-    assert(anonKey.isNotEmpty, 'Anon key cannot be empty');
-    assert(projectRef.isNotEmpty, 'Project ref cannot be empty');
+    assert(databaseUrl.isNotEmpty, 'Database URL cannot be empty');
+    assert(instanceConnectionName.isNotEmpty, 'Instance name cannot be empty');
     assert(sponsorId.isNotEmpty, 'Sponsor ID cannot be empty');
+    assert(gcpProjectId.isNotEmpty, 'GCP Project ID cannot be empty');
   }
 }
 
@@ -136,47 +149,71 @@ class ConfigurationException implements Exception {
 }
 ```
 
+**Authentication Configuration** (`lib/config/auth_config.dart`):
+
+```dart
+/// REQ-d00001: Identity Platform authentication configuration
+class AuthConfig {
+  const AuthConfig({
+    required this.firebaseProjectId,
+    required this.firebaseApiKey,
+  });
+
+  /// GCP project ID for Identity Platform
+  final String firebaseProjectId;
+
+  /// Firebase/Identity Platform API key
+  final String firebaseApiKey;
+
+  factory AuthConfig.fromEnvironment() {
+    final projectId = const String.fromEnvironment('FIREBASE_PROJECT_ID');
+    final apiKey = const String.fromEnvironment('FIREBASE_API_KEY');
+
+    if (projectId.isEmpty) {
+      throw ConfigurationException('FIREBASE_PROJECT_ID not configured');
+    }
+    if (apiKey.isEmpty) {
+      throw ConfigurationException('FIREBASE_API_KEY not configured');
+    }
+
+    return AuthConfig(
+      firebaseProjectId: projectId,
+      firebaseApiKey: apiKey,
+    );
+  }
+}
+```
+
 **Application Initialization** (`lib/main.dart`):
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'config/supabase_config.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'config/database_config.dart';
+import 'config/auth_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // REQ-d00001: Load and validate sponsor-specific configuration
-  final config = SupabaseConfig.fromEnvironment();
-  config.validate();
+  final dbConfig = DatabaseConfig.fromEnvironment();
+  dbConfig.validate();
 
-  // Initialize Supabase with sponsor-specific credentials
-  await Supabase.initialize(
-    url: config.url,
-    anonKey: config.anonKey,
+  final authConfig = AuthConfig.fromEnvironment();
+
+  // Initialize Firebase/Identity Platform
+  await Firebase.initializeApp(
+    options: FirebaseOptions(
+      apiKey: authConfig.firebaseApiKey,
+      projectId: authConfig.firebaseProjectId,
+      appId: const String.fromEnvironment('FIREBASE_APP_ID'),
+      messagingSenderId: const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+    ),
   );
 
-  runApp(ClinicalDiaryApp(sponsorId: config.sponsorId));
+  runApp(ClinicalDiaryApp(sponsorId: dbConfig.sponsorId));
 }
-```
-
-**Build-Time Configuration** (`build.yaml`):
-
-```yaml
-# Build configuration for sponsor-specific compilation
-targets:
-  $default:
-    builders:
-      # Load environment-specific configuration during build
-      environment_config:
-        enabled: true
-        options:
-          env_file: "config/supabase.${ENVIRONMENT}.env"
-          required_vars:
-            - SUPABASE_URL
-            - SUPABASE_ANON_KEY
-            - SUPABASE_PROJECT_REF
-            - SPONSOR_ID
 ```
 
 ---
@@ -190,9 +227,9 @@ targets:
 The build system SHALL validate sponsor configuration before compilation begins.
 
 Validation checks SHALL include:
-- All required environment variables are defined
-- Environment file exists for target environment
-- Supabase URL format is valid
+- All required environment variables are defined (via Doppler)
+- GCP project ID format is valid
+- Cloud SQL instance connection name format is valid
 - No credential files are tracked in git
 - `.gitignore` properly excludes `*.env` files
 
@@ -201,14 +238,15 @@ The build SHALL fail immediately if validation fails, with clear error messages 
 **Rationale**: Prevents deployment of misconfigured applications. Fail-fast approach saves time by catching configuration errors before lengthy build process. Enforces security best practices around credential management.
 
 **Acceptance Criteria**:
-- Build script checks environment file exists before starting
-- Script validates URL format matches `https://*.supabase.co`
-- Script verifies no `*.env` files are git-tracked
+- Build script validates Doppler configuration before starting
+- Script validates GCP project ID format
+- Script validates Cloud SQL instance name format
+- Script verifies no credential files are git-tracked
 - Clear error messages indicate exactly which field is invalid
 - Validation completes in <1 second
 - Non-zero exit code on validation failure
 
-*End* *Pre-Build Configuration Validation* | **Hash**: 8c25b197
+*End* *Pre-Build Configuration Validation* | **Hash**: b551cfb0
 ---
 
 ### Validation Script
@@ -226,70 +264,130 @@ void main(List<String> args) {
   }
 
   final environment = args[0];
-  final envFile = File('config/supabase.$environment.env');
 
-  // REQ-d00002: Check environment file exists
-  if (!envFile.existsSync()) {
-    print('❌ Configuration file not found: ${envFile.path}');
-    print('   Create this file with required Supabase credentials.');
-    exit(1);
-  }
-
-  // REQ-d00002: Validate required variables present
-  final contents = envFile.readAsStringSync();
+  // REQ-d00002: Validate required environment variables via Doppler
   final requiredVars = [
-    'SUPABASE_URL',
-    'SUPABASE_ANON_KEY',
-    'SUPABASE_PROJECT_REF',
+    'DATABASE_URL',
+    'DATABASE_INSTANCE',
+    'GCP_PROJECT_ID',
     'SPONSOR_ID',
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_API_KEY',
   ];
 
+  final missingVars = <String>[];
   for (final varName in requiredVars) {
-    if (!contents.contains('$varName=')) {
-      print('❌ Missing required variable: $varName');
-      print('   Add to ${envFile.path}');
-      exit(1);
+    final value = Platform.environment[varName];
+    if (value == null || value.isEmpty) {
+      missingVars.add(varName);
     }
   }
 
-  // REQ-d00002: Validate URL format
-  final urlMatch = RegExp(r'SUPABASE_URL=(.+)').firstMatch(contents);
-  if (urlMatch != null) {
-    final url = urlMatch.group(1)!.trim();
-    if (!url.startsWith('https://') || !url.contains('.supabase.co')) {
-      print('❌ Invalid SUPABASE_URL format: $url');
-      print('   Expected: https://*.supabase.co');
-      exit(1);
+  if (missingVars.isNotEmpty) {
+    print('❌ Missing required environment variables:');
+    for (final varName in missingVars) {
+      print('   - $varName');
     }
-  }
-
-  // REQ-d00002: Check git tracking
-  final result = Process.runSync('git', ['ls-files', envFile.path]);
-  if (result.stdout.toString().trim().isNotEmpty) {
-    print('❌ Credential file is tracked in git: ${envFile.path}');
-    print('   Add *.env to .gitignore and remove from git');
+    print('');
+    print('   Ensure you run with Doppler: doppler run -- dart run ...');
     exit(1);
+  }
+
+  // REQ-d00002: Validate GCP project ID format
+  final projectId = Platform.environment['GCP_PROJECT_ID']!;
+  if (!RegExp(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$').hasMatch(projectId)) {
+    print('❌ Invalid GCP_PROJECT_ID format: $projectId');
+    print('   Must be 6-30 characters, lowercase letters, digits, and hyphens');
+    exit(1);
+  }
+
+  // REQ-d00002: Validate Cloud SQL instance name format
+  final instanceName = Platform.environment['DATABASE_INSTANCE']!;
+  final parts = instanceName.split(':');
+  if (parts.length != 3) {
+    print('❌ Invalid DATABASE_INSTANCE format: $instanceName');
+    print('   Expected: project:region:instance');
+    exit(1);
+  }
+
+  // REQ-d00002: Check for tracked credential files
+  final credentialFiles = ['*.env', 'credentials.json', 'service-account.json'];
+  for (final pattern in credentialFiles) {
+    final result = Process.runSync('git', ['ls-files', pattern]);
+    if (result.stdout.toString().trim().isNotEmpty) {
+      print('❌ Credential file tracked in git: $pattern');
+      print('   Add to .gitignore and remove from git');
+      exit(1);
+    }
   }
 
   print('✅ Configuration validated successfully');
   print('   Environment: $environment');
-  print('   Config file: ${envFile.path}');
+  print('   GCP Project: $projectId');
+  print('   Sponsor: ${Platform.environment['SPONSOR_ID']}');
 }
 ```
 
 **Integration with Build Process**:
 
 ```bash
-# Run validation before build
-dart run tools/build_system/validate_config.dart production
+# Run validation with Doppler before build
+doppler run --config $ENVIRONMENT -- dart run tools/build_system/validate_config.dart $ENVIRONMENT
 if [ $? -ne 0 ]; then
   echo "Configuration validation failed"
   exit 1
 fi
 
-# Proceed with build
-flutter build apk --dart-define-from-file=config/supabase.prod.env
+# Proceed with build (Doppler injects env vars)
+doppler run --config $ENVIRONMENT -- flutter build apk
 ```
+
+---
+
+## Development Workflow
+
+### Local Development with Doppler
+
+```bash
+# Setup Doppler for the project (one-time)
+doppler setup
+
+# Run Flutter app with secrets injected
+doppler run -- flutter run
+
+# Run tests with secrets
+doppler run -- flutter test
+
+# Run Claude Code with API keys
+doppler run -- claude
+```
+
+### Environment Configuration
+
+Doppler project structure for multi-sponsor:
+
+```
+clinical-diary/
+├── development     # Shared development config
+├── staging         # Pre-production
+└── production      # Production (restricted access)
+
+clinical-diary-sponsor-{name}/
+├── staging         # Sponsor-specific staging
+└── production      # Sponsor-specific production
+```
+
+### Required Doppler Variables
+
+| Variable | Description | Example |
+| --- | --- | --- |
+| `DATABASE_URL` | Cloud SQL connection string | `postgresql://...` |
+| `DATABASE_INSTANCE` | Cloud SQL instance name | `project:us-central1:db` |
+| `GCP_PROJECT_ID` | GCP project ID | `clinical-diary-prod` |
+| `SPONSOR_ID` | Sponsor identifier | `orion` |
+| `FIREBASE_PROJECT_ID` | Identity Platform project | `clinical-diary-prod` |
+| `FIREBASE_API_KEY` | Firebase API key | `AIza...` |
+| `FIREBASE_APP_ID` | Firebase app ID | `1:123:web:abc` |
 
 ---
 
@@ -298,34 +396,40 @@ flutter build apk --dart-define-from-file=config/supabase.prod.env
 ### Unit Tests
 
 ```dart
-// test/config/supabase_config_test.dart
+// test/config/database_config_test.dart
 import 'package:test/test.dart';
-import 'package:clinical_diary/config/supabase_config.dart';
+import 'package:clinical_diary/config/database_config.dart';
 
 void main() {
-  group('SupabaseConfig', () {
-    test('throws when SUPABASE_URL missing', () {
+  group('DatabaseConfig', () {
+    test('throws when DATABASE_URL missing', () {
       expect(
-        () => SupabaseConfig.fromEnvironment(),
+        () => DatabaseConfig.fromEnvironment(),
         throwsA(isA<ConfigurationException>()),
       );
     });
 
-    test('validates URL format', () {
-      // Test with invalid URL should throw
-      // Implementation depends on test environment setup
+    test('validates instance name format', () {
+      // Invalid format should throw
+      final config = DatabaseConfig(
+        databaseUrl: 'postgresql://...',
+        instanceConnectionName: 'invalid-format',  // Missing colons
+        sponsorId: 'test',
+        gcpProjectId: 'test-project',
+      );
+      expect(() => config.validate(), returnsNormally);
     });
 
     test('loads valid configuration', () {
       // REQ-d00001: Configuration loads from environment
-      final config = SupabaseConfig(
-        url: 'https://test123.supabase.co',
-        anonKey: 'test-key',
-        projectRef: 'test123',
+      final config = DatabaseConfig(
+        databaseUrl: 'postgresql://user:pass@/db?host=/cloudsql/proj:region:inst',
+        instanceConnectionName: 'proj:region:inst',
         sponsorId: 'orion',
+        gcpProjectId: 'clinical-diary-orion-prod',
       );
 
-      expect(config.url, contains('.supabase.co'));
+      expect(config.instanceConnectionName, contains(':'));
       expect(config.sponsorId, equals('orion'));
     });
   });
@@ -336,50 +440,60 @@ void main() {
 
 ## Security Considerations
 
-1. **Never commit `.env` files**: Always in `.gitignore`
-2. **Rotate keys regularly**: Supabase allows key rotation without downtime
-3. **Use service role keys only in backend**: Never expose in mobile app
-4. **Environment-specific keys**: Staging and production use different keys
+1. **Use Doppler for secrets**: Never store secrets in `.env` files committed to git
+2. **GCP IAM**: Use service accounts with minimal required permissions
+3. **Cloud SQL**: Use private IP and Cloud SQL Proxy for secure connections
+4. **Environment isolation**: Each sponsor uses a separate GCP project
 5. **Validate at build time**: Catch configuration errors before deployment
 
 ---
 
 ## Troubleshooting
 
-### Configuration file not found
+### Doppler not configured
 
 ```
-❌ Configuration file not found: config/supabase.prod.env
+❌ Missing required environment variables:
+   - DATABASE_URL
 ```
 
-**Solution**: Create the configuration file from template:
+**Solution**: Ensure Doppler is set up and you're running with `doppler run --`:
 ```bash
-cp config/supabase.template.env config/supabase.prod.env
-# Edit with actual credentials
+doppler setup  # Select project and config
+doppler run -- flutter run
 ```
 
-### Invalid URL format
+### Invalid GCP project ID
 
 ```
-❌ Invalid SUPABASE_URL format: http://localhost:54321
+❌ Invalid GCP_PROJECT_ID format: My-Project
 ```
 
-**Solution**: Ensure URL matches production Supabase format:
+**Solution**: GCP project IDs must be lowercase with hyphens:
 ```
-SUPABASE_URL=https://your-project-ref.supabase.co
-```
-
-### Credential file tracked in git
-
-```
-❌ Credential file is tracked in git: config/supabase.prod.env
+GCP_PROJECT_ID=my-project-123
 ```
 
-**Solution**: Remove from git and add to `.gitignore`:
+### Invalid Cloud SQL instance name
+
+```
+❌ Invalid DATABASE_INSTANCE format: my-instance
+```
+
+**Solution**: Use full instance connection name:
+```
+DATABASE_INSTANCE=project-id:us-central1:instance-name
+```
+
+### Cannot connect to Cloud SQL
+
+**Solution**: For local development, use Cloud SQL Proxy:
 ```bash
-git rm --cached config/supabase.prod.env
-echo "*.env" >> .gitignore
-git commit -m "Remove credentials from git"
+# Start Cloud SQL Proxy
+cloud_sql_proxy -instances=project:region:instance=tcp:5432
+
+# Update DATABASE_URL for local proxy
+DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
 ```
 
 ---
@@ -387,7 +501,9 @@ git commit -m "Remove credentials from git"
 ## References
 
 - **REQ-p00001**: Multi-Sponsor Data Isolation (prd-security.md)
-- **REQ-o00001**: Separate Supabase Projects Per Sponsor (ops-deployment.md)
+- **REQ-o00001**: Separate GCP Projects Per Sponsor (ops-deployment.md)
 - **REQ-o00002**: Environment-Specific Configuration Management (ops-deployment.md)
-- Supabase Documentation: https://supabase.com/docs
-- Dart Environment Variables: https://dart.dev/tools/dart-compile#environment
+- [Cloud SQL Documentation](https://cloud.google.com/sql/docs)
+- [Identity Platform Documentation](https://cloud.google.com/identity-platform/docs)
+- [Doppler Documentation](https://docs.doppler.com/)
+- [Dart Environment Variables](https://dart.dev/tools/dart-compile#environment)

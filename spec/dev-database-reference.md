@@ -121,103 +121,137 @@ ORDER BY audit_id ASC;
 
 ---
 
-## Supabase JavaScript Examples
+## Dart Client Examples (Flutter App)
 
-### Initialize Client
+### Initialize HTTP Client with Firebase Auth
 
-```javascript
-import { createClient } from '@supabase/supabase-js'
+```dart
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
-)
+class ApiClient {
+  final String baseUrl;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  ApiClient({required this.baseUrl});
+
+  Future<Map<String, String>> _getHeaders() async {
+    final token = await _auth.currentUser?.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<http.Response> get(String endpoint) async {
+    return http.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: await _getHeaders(),
+    );
+  }
+
+  Future<http.Response> post(String endpoint, Map<String, dynamic> body) async {
+    return http.post(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: await _getHeaders(),
+      body: jsonEncode(body),
+    );
+  }
+}
 ```
 
-### Authentication
+### Authentication (Firebase Auth)
 
-```javascript
+```dart
+import 'package:firebase_auth/firebase_auth.dart';
+
+final auth = FirebaseAuth.instance;
+
 // Sign up
-await supabase.auth.signUp({
-    email: 'user@example.com',
-    password: 'secure-password'
-})
+await auth.createUserWithEmailAndPassword(
+  email: 'user@example.com',
+  password: 'secure-password',
+);
 
 // Sign in
-await supabase.auth.signInWithPassword({
-    email: 'user@example.com',
-    password: 'secure-password'
-})
+await auth.signInWithEmailAndPassword(
+  email: 'user@example.com',
+  password: 'secure-password',
+);
 
 // Sign out
-await supabase.auth.signOut()
+await auth.signOut();
 
 // Get current user
-const { data: { user } } = await supabase.auth.getUser()
+final user = auth.currentUser;
+final token = await user?.getIdToken();
 ```
 
-### Create Entry
+### Create Entry (via API)
 
-```javascript
-const { data, error } = await supabase
-    .from('record_audit')
-    .insert({
-        event_uuid: crypto.randomUUID(),
-        patient_id: user.id,
-        site_id: 'site_001',
-        operation: 'USER_CREATE',
-        data: {
-            event_type: 'epistaxis',
-            date: '2025-02-15',
-            time: '14:30',
-            duration_minutes: 15
-        },
-        created_by: user.id,
-        role: 'USER',
-        client_timestamp: new Date().toISOString(),
-        change_reason: 'Initial entry'
-    })
+```dart
+final response = await apiClient.post('/api/diary-entries', {
+  'event_uuid': Uuid().v4(),
+  'patient_id': user.uid,
+  'site_id': 'site_001',
+  'operation': 'USER_CREATE',
+  'data': {
+    'event_type': 'epistaxis',
+    'date': '2025-02-15',
+    'time': '14:30',
+    'duration_minutes': 15,
+  },
+  'created_by': user.uid,
+  'role': 'USER',
+  'client_timestamp': DateTime.now().toUtc().toIso8601String(),
+  'change_reason': 'Initial entry',
+});
+
+if (response.statusCode == 201) {
+  final entry = jsonDecode(response.body);
+  print('Created entry: ${entry['event_uuid']}');
+}
 ```
 
-### Query Entries
+### Query Entries (via API)
 
-```javascript
+```dart
 // Get user's entries
-const { data, error } = await supabase
-    .from('record_state')
-    .select('*')
-    .eq('patient_id', user.id)
-    .eq('is_deleted', false)
-    .order('updated_at', { ascending: false })
+final response = await apiClient.get(
+  '/api/diary-entries?patient_id=${user.uid}&is_deleted=false'
+);
+final entries = jsonDecode(response.body) as List;
 
 // Get with annotations
-const { data, error } = await supabase
-    .from('record_state')
-    .select(`
-        *,
-        investigator_annotations(*)
-    `)
-    .eq('patient_id', user.id)
+final response = await apiClient.get(
+  '/api/diary-entries/${eventUuid}?include=annotations'
+);
+final entryWithAnnotations = jsonDecode(response.body);
 ```
 
-### Real-time Subscription
+### Local SQLite for Offline (Flutter App)
 
-```javascript
-const channel = supabase
-    .channel('diary-updates')
-    .on(
-        'postgres_changes',
-        {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'record_state',
-            filter: `patient_id=eq.${user.id}`
-        },
-        (payload) => {
-            console.log('New entry:', payload.new)
-        }
-    )
-    .subscribe()
+```dart
+import 'package:sqflite/sqflite.dart';
+
+class LocalDatabase {
+  late Database _db;
+
+  Future<void> createEntry(Map<String, dynamic> entry) async {
+    // Save locally first (offline-first)
+    await _db.insert('local_audit', {
+      ...entry,
+      'sync_status': 'pending',
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingSync() async {
+    return _db.query('local_audit',
+      where: 'sync_status = ?',
+      whereArgs: ['pending'],
+    );
+  }
+}
 ```
 
 ---
@@ -227,62 +261,50 @@ const channel = supabase
 > **See**: prd-security-RBAC.md for role definitions and requirements
 
 ### USER (Patient)
-```javascript
-// Can create entries
-await supabase.from('record_audit').insert(entry)
+```dart
+// Can create entries via API
+await apiClient.post('/api/diary-entries', entry);
 
 // Can view own entries
-await supabase.from('record_state').select('*').eq('patient_id', userId)
+final response = await apiClient.get('/api/diary-entries?patient_id=$userId');
 
-// CANNOT view others' entries (RLS blocks)
-await supabase.from('record_state').select('*').eq('patient_id', 'other-id')
-// Returns: []
+// CANNOT view others' entries (RLS on server blocks)
+// Server returns 403 Forbidden or empty list
 ```
 
 ### INVESTIGATOR
-```javascript
+```dart
 // Can view all entries at assigned sites
-await supabase
-    .from('record_state')
-    .select('*')
-    .eq('site_id', 'site_001')
+final response = await apiClient.get('/api/sites/site_001/entries');
 
 // Can add annotations
-await supabase.from('investigator_annotations').insert(annotation)
+await apiClient.post('/api/annotations', annotation);
 
 // CANNOT modify patient data directly
-await supabase.from('record_state').update({ ... })
-// Error: Direct modification not allowed
+// Server returns 403 Forbidden
 ```
 
 ### ANALYST
-```javascript
+```dart
 // Can view data at assigned sites (read-only)
-await supabase
-    .from('record_state')
-    .select('*')
-    .eq('site_id', 'site_001')
+final response = await apiClient.get('/api/sites/site_001/entries');
 
 // Can access audit trail for analysis
-await supabase
-    .from('record_audit')
-    .select('*')
-    .eq('site_id', 'site_001')
+final response = await apiClient.get('/api/sites/site_001/audit-trail');
 ```
 
 ### ADMIN
-```javascript
+```dart
 // Can view all data
-await supabase.from('record_state').select('*')
+final response = await apiClient.get('/api/admin/entries');
 
 // Can manage sites
-await supabase.from('sites').insert(newSite)
+await apiClient.post('/api/admin/sites', newSite);
 
 // Can assign users to sites
-await supabase.from('user_site_assignments').insert(assignment)
+await apiClient.post('/api/admin/site-assignments', assignment);
 
-// All actions logged
-await supabase.from('admin_action_log').select('*')
+// All actions logged via Cloud Audit Logs
 ```
 
 ---
@@ -461,17 +483,28 @@ LIMIT 10;
 > **See**: ops-database-setup.md for complete configuration guide
 
 ```bash
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-key  # Backend only!
+# GCP Configuration
+GCP_PROJECT_ID=sponsor-project-id
+GCP_REGION=us-central1
 
-# Database (for direct connection)
-DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres
+# Cloud SQL (for server - via Unix socket in Cloud Run)
+DB_SOCKET_PATH=/cloudsql/project:region:instance
+DB_NAME=clinical_diary
+DB_USER=app_user
+# DB_PASSWORD from Secret Manager
+
+# Cloud SQL (for local development - via Cloud SQL Proxy)
+DATABASE_URL=postgresql://app_user:[PASSWORD]@localhost:5432/clinical_diary
+
+# Firebase Auth (for Flutter app)
+FIREBASE_PROJECT_ID=sponsor-project-id
+FIREBASE_API_KEY=AIza...
+
+# API (Cloud Run URL)
+API_BASE_URL=https://api-xxxxx-uc.a.run.app
 
 # Application
-NODE_ENV=production
-JWT_SECRET=your-jwt-secret
+ENVIRONMENT=production
 ```
 
 ---
@@ -491,8 +524,8 @@ JWT_SECRET=your-jwt-secret
 **Fix:** Check `sync_conflicts` table and resolve before retrying
 
 ### Invalid JWT
-**Error:** "Invalid JWT token"
-**Fix:** Re-authenticate or refresh token
+**Error:** "Invalid JWT token" or "Token expired"
+**Fix:** Re-authenticate via Firebase Auth or refresh token with `getIdToken(true)`
 
 ---
 
@@ -502,7 +535,8 @@ JWT_SECRET=your-jwt-secret
 - **Setup Guide**: ops-database-setup.md
 - **JSONB Schemas**: dev-data-models-jsonb.md
 - **Compliance**: dev-compliance-practices.md
-- **Supabase Docs**: https://supabase.com/docs
+- **Cloud SQL Docs**: https://cloud.google.com/sql/docs
+- **Firebase Auth Docs**: https://firebase.google.com/docs/auth
 - **PostgreSQL Docs**: https://www.postgresql.org/docs/
 
 ---

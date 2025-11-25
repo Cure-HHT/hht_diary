@@ -1,11 +1,11 @@
 # Database Implementation Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Software Developers
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-11-24
 **Status**: Active
 
-> **Scope**: Supabase implementation, deployment procedures, Edge Functions, development workflow
+> **Scope**: Cloud SQL implementation, Dart server database access, development workflow
 >
 > **See**: prd-database.md for schema architecture and Event Sourcing pattern
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment model
@@ -16,43 +16,66 @@
 
 ## Executive Summary
 
-This guide covers **how to implement and deploy** the database using Supabase. Each sponsor has a dedicated Supabase project with core schema + sponsor-specific extensions.
+This guide covers **how to implement and deploy** the database using Google Cloud SQL for PostgreSQL. Each sponsor has a dedicated GCP project with Cloud SQL instance + Identity Platform + Cloud Run backend.
 
 **Technology Stack**:
-- **Platform**: Supabase (managed PostgreSQL + Auth + Edge Functions)
-- **Database**: PostgreSQL 15+
-- **Edge Functions**: Deno runtime (TypeScript)
-- **CLI**: Supabase CLI for local development and deployment
+- **Platform**: Google Cloud Platform (Cloud SQL + Identity Platform + Cloud Run)
+- **Database**: PostgreSQL 15+ (Cloud SQL managed)
+- **Backend**: Dart server on Cloud Run
+- **CLI**: gcloud CLI for deployment, psql for database access
 
 ---
 
 ## Development Environment Setup
 
-### Install Supabase CLI
+### Install Required Tools
 
 ```bash
-# macOS
-brew install supabase/tap/supabase
+# Install Google Cloud SDK (macOS)
+brew install --cask google-cloud-sdk
 
-# Linux/WSL
-brew install supabase/tap/supabase
+# Initialize gcloud
+gcloud init
 
-# Windows
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
+# Install components
+gcloud components install cloud-sql-proxy
+
+# Install PostgreSQL client
+brew install postgresql
 
 # Verify installation
-supabase --version
+gcloud --version
+psql --version
+cloud-sql-proxy --version
 ```
 
-### Login to Supabase
+### Authenticate with GCP
 
 ```bash
-# Login (opens browser for authentication)
-supabase login
+# Login to GCP (opens browser)
+gcloud auth login
 
-# Verify login
-supabase projects list
+# Set default project
+gcloud config set project your-project-id
+
+# Verify
+gcloud config list
+```
+
+### Cloud SQL Proxy for Local Development
+
+Cloud SQL Proxy provides secure access to Cloud SQL from local development:
+
+```bash
+# Start Cloud SQL Proxy (keep running in background)
+cloud-sql-proxy your-project:us-central1:your-instance \
+  --port=5432
+
+# Connect with psql
+psql "host=127.0.0.1 port=5432 user=app_user dbname=clinical_diary"
+
+# Or use connection string
+export DATABASE_URL="postgresql://app_user:password@127.0.0.1:5432/clinical_diary"
 ```
 
 ---
@@ -67,20 +90,19 @@ clinical-diary/                      # Public core repository
           triggers.sql            # Event Sourcing triggers
           functions.sql           # Helper functions
           rls_policies.sql        # Row-level security
-         indexes.sql             # Performance indexes
+          indexes.sql             # Performance indexes
 
 clinical-diary-{sponsor}/            # Private sponsor repository
   database/
       extensions.sql              # Sponsor-specific tables/functions
-     seed_data.sql               # Initial data for sponsor
-  edge_functions/
-      edc-sync/                   # EDC integration (if proxy mode)
-          index.ts
-         _shared/
-     custom-validations/         # Sponsor-specific validations
-         index.ts
- supabase/
-     config.toml                 # Supabase project configuration
+      seed_data.sql               # Initial data for sponsor
+  server/
+      bin/server.dart             # Cloud Run server entry point
+      lib/
+          database/               # Database connection layer
+          services/               # Business logic
+          middleware/             # Auth middleware
+  Dockerfile                      # Cloud Run container
 ```
 
 ---
@@ -91,27 +113,27 @@ clinical-diary-{sponsor}/            # Private sponsor repository
 
 **Level**: Dev | **Implements**: o00004 | **Status**: Active
 
-Database schema files SHALL be implemented as versioned SQL scripts organized by functional area (schema, triggers, functions, RLS policies, indexes), enabling repeatable deployment to sponsor-specific Supabase instances while maintaining schema consistency across all sponsors.
+Database schema files SHALL be implemented as versioned SQL scripts organized by functional area (schema, triggers, functions, RLS policies, indexes), enabling repeatable deployment to sponsor-specific Cloud SQL instances while maintaining schema consistency across all sponsors.
 
 Implementation SHALL include:
 - SQL files organized by functional area (schema.sql, triggers.sql, functions.sql, rls_policies.sql, indexes.sql)
 - Schema versioning following semantic versioning conventions
 - Deployment scripts validating schema integrity after execution
-- Supabase CLI integration for automated deployment
+- gcloud CLI integration for automated deployment
 - Migration scripts for schema evolution with rollback capability
 - Documentation of schema dependencies and deployment order
 
-**Rationale**: Implements database schema deployment (o00004) at the development level. Supabase CLI provides tooling for SQL execution and schema management, enabling consistent schema deployment across multiple sponsor databases.
+**Rationale**: Implements database schema deployment (o00004) at the development level. gcloud CLI and Cloud SQL provide tooling for SQL execution and schema management, enabling consistent schema deployment across multiple sponsor databases.
 
 **Acceptance Criteria**:
 - All schema files execute without errors on PostgreSQL 15+
 - Deployment scripts validate table creation and trigger installation
-- Schema deployed successfully to Supabase test instance
+- Schema deployed successfully to Cloud SQL test instance
 - Migration scripts include both forward and rollback operations
 - Deployment process documented with step-by-step instructions
 - Schema version tracked in database metadata table
 
-*End* *Database Schema Implementation and Deployment* | **Hash**: 6bb78566
+*End* *Database Schema Implementation and Deployment* | **Hash**: 18df4bc0
 ---
 
 # REQ-d00011: Multi-Site Schema Implementation
@@ -141,47 +163,73 @@ Implementation SHALL include:
 *End* *Multi-Site Schema Implementation* | **Hash**: bf785d33
 ---
 
-### Option 1: GitHub Package Registry (Recommended)
+### Option 1: Direct SQL Execution (Recommended)
 
-Core schema published as versioned package:
-
-```bash
-# In sponsor repository
-npm install @clinical-diary/database@1.2.3
-
-# Deploy core schema
-supabase db push --file node_modules/@clinical-diary/database/schema.sql
-supabase db push --file node_modules/@clinical-diary/database/triggers.sql
-supabase db push --file node_modules/@clinical-diary/database/functions.sql
-supabase db push --file node_modules/@clinical-diary/database/rls_policies.sql
-supabase db push --file node_modules/@clinical-diary/database/indexes.sql
-```
-
-### Option 2: Git Submodule (Alternative)
+Execute schema files directly against Cloud SQL via Cloud SQL Proxy:
 
 ```bash
-# Add core as submodule
-git submodule add https://github.com/org/clinical-diary core
+# Ensure Cloud SQL Proxy is running
+cloud-sql-proxy your-project:us-central1:your-instance --port=5432 &
 
-# Deploy core schema
-supabase db push --file core/packages/database/schema.sql
-# ... (other files)
-```
+# Set connection string
+export PGHOST=127.0.0.1
+export PGPORT=5432
+export PGUSER=app_user
+export PGDATABASE=clinical_diary
+export PGPASSWORD=$(gcloud secrets versions access latest --secret=db-password)
 
-### Option 3: Direct SQL Execution
-
-```bash
-# Clone core repository locally
-git clone https://github.com/org/clinical-diary
-
-# Connect to Supabase project
-supabase link --project-ref your-project-ref
-
-# Execute SQL files
-cd clinical-diary/packages/database
+# Deploy core schema in order
+cd packages/database
 for file in schema.sql triggers.sql functions.sql rls_policies.sql indexes.sql; do
-  supabase db execute --file $file
+  echo "Executing $file..."
+  psql -f $file
 done
+
+# Verify deployment
+psql -c "\dt" # List tables
+psql -c "SELECT version FROM schema_metadata ORDER BY applied_at DESC LIMIT 1;"
+```
+
+### Option 2: Automated Deployment Script
+
+```bash
+#!/bin/bash
+# deploy-schema.sh
+
+set -e
+
+PROJECT_ID=${1:-$(gcloud config get-value project)}
+INSTANCE_NAME=${2:-clinical-diary}
+DATABASE=${3:-clinical_diary}
+
+echo "Deploying schema to $PROJECT_ID:$INSTANCE_NAME:$DATABASE"
+
+# Start Cloud SQL Proxy in background
+cloud-sql-proxy "$PROJECT_ID:us-central1:$INSTANCE_NAME" --port=5432 &
+PROXY_PID=$!
+sleep 3
+
+# Get credentials from Secret Manager
+DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-app-password)
+
+export PGHOST=127.0.0.1
+export PGPORT=5432
+export PGUSER=app_user
+export PGDATABASE=$DATABASE
+export PGPASSWORD=$DB_PASSWORD
+
+# Execute schema files
+for file in schema.sql triggers.sql functions.sql rls_policies.sql indexes.sql; do
+  if [ -f "$file" ]; then
+    echo "Applying $file..."
+    psql -f "$file" || { echo "Failed on $file"; kill $PROXY_PID; exit 1; }
+  fi
+done
+
+# Cleanup
+kill $PROXY_PID
+
+echo "Schema deployment complete"
 ```
 
 ---
@@ -195,17 +243,17 @@ After core schema is deployed, add sponsor-specific extensions:
 cd database
 
 # Deploy sponsor extensions
-supabase db execute --file extensions.sql
+psql -f extensions.sql
 
 # Verify deployment
-supabase db diff
+psql -c "\dt custom_*"
 ```
 
 **Example extensions.sql**:
 ```sql
 -- Sponsor-specific custom fields table
 CREATE TABLE IF NOT EXISTS custom_patient_fields (
-  patient_id TEXT PRIMARY KEY REFERENCES auth.users(id),
+  patient_id TEXT PRIMARY KEY,
   sponsor_custom_id TEXT,
   enrollment_cohort TEXT,
   custom_data JSONB,
@@ -216,13 +264,14 @@ CREATE TABLE IF NOT EXISTS custom_patient_fields (
 ALTER TABLE custom_patient_fields ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY user_select_own ON custom_patient_fields
-  FOR SELECT TO authenticated
-  USING (patient_id = auth.uid());
+  FOR SELECT
+  USING (patient_id = current_setting('app.user_id', true));
 
 -- Sponsor-specific function
-CREATE OR REPLACE FUNCTION calculate_sponsor_metric(patient_id TEXT)
+CREATE OR REPLACE FUNCTION calculate_sponsor_metric(p_patient_id TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
   -- Sponsor-specific calculation logic
@@ -233,231 +282,477 @@ $$;
 
 ---
 
-## Edge Functions
+## Cloud Run Dart Server
 
-### Edge Function Structure
+### Database Connection Layer
 
-Edge Functions run on Deno runtime (TypeScript) at the edge (globally distributed).
+The Dart server on Cloud Run connects to Cloud SQL using Unix sockets (recommended) or Cloud SQL Connector.
 
-**Use Cases**:
-- EDC sync (proxy mode sponsors)
-- Custom data validations
-- Scheduled jobs
-- Webhook handlers
+**Database Configuration** (lib/database/config.dart):
 
-### Creating an Edge Function
+```dart
+import 'dart:io';
 
-```bash
-# Create new Edge Function
-supabase functions new edc-sync
+class DatabaseConfig {
+  /// Cloud SQL instance connection name
+  /// Format: project:region:instance
+  final String instanceConnectionName;
 
-# This creates:
-# edge_functions/edc-sync/index.ts
+  /// Database name
+  final String database;
+
+  /// Database user
+  final String user;
+
+  /// Database password (from Secret Manager)
+  final String password;
+
+  /// Unix socket path for Cloud Run
+  /// /cloudsql/{instance-connection-name}
+  String get socketPath => '/cloudsql/$instanceConnectionName';
+
+  /// Connection string for Cloud Run (Unix socket)
+  String get cloudRunConnectionString =>
+      'postgres://$user:$password@/$database?host=$socketPath';
+
+  /// Connection string for local dev (via Cloud SQL Proxy)
+  String get localConnectionString =>
+      'postgres://$user:$password@127.0.0.1:5432/$database';
+
+  DatabaseConfig({
+    required this.instanceConnectionName,
+    required this.database,
+    required this.user,
+    required this.password,
+  });
+
+  factory DatabaseConfig.fromEnvironment() {
+    return DatabaseConfig(
+      instanceConnectionName: Platform.environment['DATABASE_INSTANCE']
+          ?? 'project:region:instance',
+      database: Platform.environment['DATABASE_NAME'] ?? 'clinical_diary',
+      user: Platform.environment['DATABASE_USER'] ?? 'app_user',
+      password: Platform.environment['DATABASE_PASSWORD'] ?? '',
+    );
+  }
+
+  /// Get appropriate connection string based on environment
+  String get connectionString {
+    // In Cloud Run, use Unix socket
+    if (Platform.environment.containsKey('K_SERVICE')) {
+      return cloudRunConnectionString;
+    }
+    // Local development uses TCP via Cloud SQL Proxy
+    return localConnectionString;
+  }
+}
 ```
 
-**Example: EDC Sync Worker** (edc-sync/index.ts):
+**Database Connection Pool** (lib/database/pool.dart):
+
+```dart
+import 'package:postgres/postgres.dart';
+import 'config.dart';
+
+class DatabasePool {
+  static Pool? _pool;
+  static final DatabaseConfig _config = DatabaseConfig.fromEnvironment();
+
+  /// Initialize connection pool
+  static Future<void> initialize() async {
+    final endpoint = Endpoint(
+      host: _config.socketPath,
+      database: _config.database,
+      username: _config.user,
+      password: _config.password,
+      isUnixSocket: true,
+    );
+
+    _pool = Pool.withEndpoints(
+      [endpoint],
+      settings: PoolSettings(
+        maxConnectionCount: 10,
+        maxConnectionAge: Duration(minutes: 30),
+        sslMode: SslMode.disable, // Unix socket doesn't need SSL
+      ),
+    );
+  }
+
+  /// Get a connection from the pool
+  static Future<Connection> getConnection() async {
+    if (_pool == null) {
+      await initialize();
+    }
+    return _pool!.run((connection) async => connection);
+  }
+
+  /// Execute a query with the pool
+  static Future<Result> query(
+    String sql, {
+    Map<String, dynamic>? parameters,
+  }) async {
+    if (_pool == null) {
+      await initialize();
+    }
+    return _pool!.execute(Sql.named(sql), parameters: parameters);
+  }
+
+  /// Close the pool
+  static Future<void> close() async {
+    await _pool?.close();
+    _pool = null;
+  }
+}
+```
+
+### Setting RLS Context
+
+The Dart server must set session variables for RLS policies before queries:
+
+```dart
+import 'package:postgres/postgres.dart';
+
+class RlsContext {
+  final String userId;
+  final String role;
+  final String? siteId;
+  final String sponsorId;
+
+  RlsContext({
+    required this.userId,
+    required this.role,
+    this.siteId,
+    required this.sponsorId,
+  });
+
+  /// Set RLS context for current session
+  Future<void> apply(Connection connection) async {
+    await connection.execute(
+      Sql.named('''
+        SELECT set_config('app.user_id', @userId, true),
+               set_config('app.role', @role, true),
+               set_config('app.site_id', @siteId, true),
+               set_config('app.sponsor_id', @sponsorId, true)
+      '''),
+      parameters: {
+        'userId': userId,
+        'role': role,
+        'siteId': siteId ?? '',
+        'sponsorId': sponsorId,
+      },
+    );
+  }
+
+  /// Create from verified Firebase token claims
+  factory RlsContext.fromClaims(Map<String, dynamic> claims) {
+    return RlsContext(
+      userId: claims['sub'] as String,
+      role: claims['role'] as String? ?? 'USER',
+      siteId: claims['site_id'] as String?,
+      sponsorId: claims['sponsor_id'] as String,
+    );
+  }
+}
+```
+
+**Using RLS Context in Repository**:
+
+```dart
+class RecordRepository {
+  final Connection _connection;
+  final RlsContext _context;
+
+  RecordRepository(this._connection, this._context);
+
+  Future<List<Map<String, dynamic>>> getPatientRecords() async {
+    // Set RLS context
+    await _context.apply(_connection);
+
+    // Query automatically filtered by RLS policies
+    final result = await _connection.execute(
+      Sql.named('''
+        SELECT event_uuid, patient_id, current_data, version, updated_at
+        FROM record_state
+        WHERE is_deleted = false
+        ORDER BY updated_at DESC
+      '''),
+    );
+
+    return result.map((row) => row.toColumnMap()).toList();
+  }
+
+  Future<void> insertAuditEvent({
+    required String eventUuid,
+    required String operation,
+    required Map<String, dynamic> data,
+    required String changeReason,
+    String? parentAuditId,
+  }) async {
+    await _context.apply(_connection);
+
+    await _connection.execute(
+      Sql.named('''
+        INSERT INTO record_audit (
+          event_uuid, patient_id, site_id, operation, data,
+          created_by, role, client_timestamp, change_reason, parent_audit_id
+        ) VALUES (
+          @eventUuid,
+          current_setting('app.user_id', true),
+          current_setting('app.site_id', true),
+          @operation,
+          @data::jsonb,
+          current_setting('app.user_id', true),
+          current_setting('app.role', true),
+          @clientTimestamp,
+          @changeReason,
+          @parentAuditId
+        )
+      '''),
+      parameters: {
+        'eventUuid': eventUuid,
+        'operation': operation,
+        'data': data,
+        'clientTimestamp': DateTime.now().toIso8601String(),
+        'changeReason': changeReason,
+        'parentAuditId': parentAuditId,
+      },
+    );
+  }
+}
+```
+
+---
+
+## EDC Sync Worker
+
+For sponsors using proxy mode (EDC sync), implement as a Cloud Run Job or scheduled Cloud Run service.
 
 > **CRITICAL**: Events sync in strict sequential order. If event N fails, all subsequent events block until event N succeeds. Worker continuously processes events in `audit_id` order.
 
-```typescript
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+**EDC Sync Service** (lib/services/edc_sync_service.dart):
 
-// Background worker that continuously syncs events in order
-async function syncWorker() {
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
+```dart
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../database/pool.dart';
 
-  while (true) {
-    try {
-      // Find highest successfully synced event
-      const { data: lastSuccess } = await supabaseClient
-        .from('edc_sync_log')
-        .select('audit_id')
-        .eq('sync_status', 'SUCCESS')
-        .order('audit_id', { ascending: false })
-        .limit(1)
-        .single()
+class EdcSyncService {
+  final String edcEndpoint;
+  final String edcApiKey;
 
-      const lastSyncedId = lastSuccess?.audit_id ?? 0
+  EdcSyncService({
+    required this.edcEndpoint,
+    required this.edcApiKey,
+  });
 
-      // Get next event to sync (audit_id order is sequential)
-      const { data: nextEvent } = await supabaseClient
-        .from('record_audit')
-        .select('audit_id, event_uuid, patient_id, operation, data')
-        .gt('audit_id', lastSyncedId)
-        .order('audit_id', { ascending: true })
-        .limit(1)
-        .single()
-
-      if (!nextEvent) {
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Wait for new events
-        continue
+  /// Run continuous sync worker
+  Future<void> runWorker() async {
+    while (true) {
+      try {
+        await _processNextEvent();
+      } catch (e) {
+        print('Sync worker error: $e');
+        await Future.delayed(Duration(seconds: 5));
       }
-
-      // Transform to EDC format (sponsor-specific)
-      const edcPayload = transformToEdcFormat(nextEvent)
-
-      // Attempt sync to EDC
-      const edcResponse = await fetch(Deno.env.get('EDC_ENDPOINT')!, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('EDC_API_KEY')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(edcPayload),
-      })
-
-      if (edcResponse.ok) {
-        // Success - log and move to next event
-        await supabaseClient.from('edc_sync_log').insert({
-          audit_id: nextEvent.audit_id,
-          event_uuid: nextEvent.event_uuid,
-          sync_status: 'SUCCESS',
-          edc_response: await edcResponse.json(),
-        })
-      } else {
-        // Failed - log error and retry THIS event (blocks subsequent events)
-        const existingLog = await supabaseClient
-          .from('edc_sync_log')
-          .select('attempt_count')
-          .eq('audit_id', nextEvent.audit_id)
-          .single()
-
-        const attemptCount = (existingLog?.data?.attempt_count ?? 0) + 1
-
-        await supabaseClient.from('edc_sync_log').upsert({
-          audit_id: nextEvent.audit_id,
-          event_uuid: nextEvent.event_uuid,
-          sync_status: 'FAILED',
-          attempt_count: attemptCount,
-          last_error: `EDC API error: ${edcResponse.statusText}`,
-        })
-
-        // Exponential backoff before retry
-        const backoffMs = Math.min(Math.pow(2, attemptCount) * 1000, 60000)
-        await new Promise(resolve => setTimeout(resolve, backoffMs))
-      }
-
-    } catch (error) {
-      console.error('Sync worker error:', error)
-      await new Promise(resolve => setTimeout(resolve, 5000))
     }
   }
-}
 
-// Start worker on function deployment
-syncWorker()
+  Future<void> _processNextEvent() async {
+    // Find highest successfully synced event
+    final lastSuccess = await DatabasePool.query('''
+      SELECT audit_id FROM edc_sync_log
+      WHERE sync_status = 'SUCCESS'
+      ORDER BY audit_id DESC
+      LIMIT 1
+    ''');
 
-// Health check endpoint
-serve(async (req) => {
-  return new Response(JSON.stringify({ status: 'running' }), {
-    headers: { 'Content-Type': 'application/json' }
-  })
-})
+    final lastSyncedId = lastSuccess.isEmpty
+        ? 0
+        : lastSuccess.first[0] as int;
 
-function transformToEdcFormat(auditEvent: any): any {
-  // Sponsor-specific transformation logic
-  return {
-    subject_id: auditEvent.patient_id,
-    visit_date: auditEvent.data.date,
-    // ... other EDC fields
+    // Get next event to sync
+    final nextEvent = await DatabasePool.query(
+      '''
+        SELECT audit_id, event_uuid, patient_id, operation, data
+        FROM record_audit
+        WHERE audit_id > @lastId
+        ORDER BY audit_id ASC
+        LIMIT 1
+      ''',
+      parameters: {'lastId': lastSyncedId},
+    );
+
+    if (nextEvent.isEmpty) {
+      await Future.delayed(Duration(seconds: 1));
+      return;
+    }
+
+    final event = nextEvent.first.toColumnMap();
+    final auditId = event['audit_id'] as int;
+    final eventUuid = event['event_uuid'] as String;
+
+    // Transform to EDC format
+    final edcPayload = _transformToEdcFormat(event);
+
+    // Attempt sync
+    try {
+      final response = await http.post(
+        Uri.parse(edcEndpoint),
+        headers: {
+          'Authorization': 'Bearer $edcApiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(edcPayload),
+      );
+
+      if (response.statusCode == 200) {
+        // Success
+        await DatabasePool.query(
+          '''
+            INSERT INTO edc_sync_log (audit_id, event_uuid, sync_status, edc_response)
+            VALUES (@auditId, @eventUuid, 'SUCCESS', @response::jsonb)
+          ''',
+          parameters: {
+            'auditId': auditId,
+            'eventUuid': eventUuid,
+            'response': response.body,
+          },
+        );
+      } else {
+        await _handleSyncFailure(auditId, eventUuid, response.body);
+      }
+    } catch (e) {
+      await _handleSyncFailure(auditId, eventUuid, e.toString());
+    }
+  }
+
+  Future<void> _handleSyncFailure(int auditId, String eventUuid, String error) async {
+    // Get current attempt count
+    final existing = await DatabasePool.query(
+      'SELECT attempt_count FROM edc_sync_log WHERE audit_id = @auditId',
+      parameters: {'auditId': auditId},
+    );
+
+    final attemptCount = existing.isEmpty
+        ? 1
+        : (existing.first[0] as int) + 1;
+
+    await DatabasePool.query(
+      '''
+        INSERT INTO edc_sync_log (audit_id, event_uuid, sync_status, attempt_count, last_error)
+        VALUES (@auditId, @eventUuid, 'FAILED', @attempts, @error)
+        ON CONFLICT (audit_id) DO UPDATE SET
+          sync_status = 'FAILED',
+          attempt_count = @attempts,
+          last_error = @error,
+          synced_at = now()
+      ''',
+      parameters: {
+        'auditId': auditId,
+        'eventUuid': eventUuid,
+        'attempts': attemptCount,
+        'error': error,
+      },
+    );
+
+    // Exponential backoff
+    final backoff = Duration(
+      milliseconds: (1 << attemptCount.clamp(0, 6)) * 1000,
+    );
+    await Future.delayed(backoff);
+  }
+
+  Map<String, dynamic> _transformToEdcFormat(Map<String, dynamic> event) {
+    // Sponsor-specific transformation
+    return {
+      'subject_id': event['patient_id'],
+      'visit_date': event['data']['date'],
+      // ... other EDC fields
+    };
   }
 }
-```
-
-### Deploying Edge Functions
-
-```bash
-# Deploy single function
-supabase functions deploy edc-sync
-
-# Deploy all functions
-supabase functions deploy
-
-# Set environment variables (secrets)
-supabase secrets set EDC_ENDPOINT=https://edc.example.com/api
-supabase secrets set EDC_API_KEY=secret_key_here
-
-# Test function locally
-supabase functions serve edc-sync
-
-# Invoke for testing
-curl -X POST http://localhost:54321/functions/v1/edc-sync \
-  -H "Authorization: Bearer YOUR_ANON_KEY" \
-  -d '{"event_uuid": "test-uuid"}'
-```
-
-### Shared Code Between Functions
-
-```typescript
-// edge_functions/_shared/db.ts
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-export function getSupabaseClient() {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-}
-
-// edge_functions/edc-sync/index.ts
-import { getSupabaseClient } from '../_shared/db.ts'
-
-serve(async (req) => {
-  const supabase = getSupabaseClient()
-  // ... use supabase client
-})
 ```
 
 ---
 
 ## Local Development Workflow
 
-### Start Local Supabase
+### Start Local Environment
 
 ```bash
-# Initialize Supabase in project
-supabase init
+# Start Cloud SQL Proxy
+cloud-sql-proxy your-project:us-central1:your-instance --port=5432 &
 
-# Start local Supabase (PostgreSQL + Auth + Edge Functions)
-supabase start
+# Set environment variables
+export DATABASE_URL="postgresql://app_user:password@127.0.0.1:5432/clinical_diary"
+export DATABASE_INSTANCE="your-project:us-central1:your-instance"
+export DATABASE_NAME="clinical_diary"
+export DATABASE_USER="app_user"
+export DATABASE_PASSWORD=$(gcloud secrets versions access latest --secret=db-password)
 
-# This starts:
-# - Database: postgresql://postgres:postgres@localhost:54322/postgres
-# - Studio UI: http://localhost:54323
-# - API: http://localhost:54321
+# Or use Doppler
+doppler run -- dart run bin/server.dart
 ```
 
 ### Apply Schema Locally
 
 ```bash
-# Option 1: Direct execution
-supabase db execute --file packages/database/schema.sql
-
-# Option 2: Migrations (recommended)
-supabase migration new initial_schema
-# Copy SQL into migration file
-supabase db reset  # Applies all migrations
+# Execute schema files
+psql $DATABASE_URL -f packages/database/schema.sql
+psql $DATABASE_URL -f packages/database/triggers.sql
+psql $DATABASE_URL -f packages/database/functions.sql
+psql $DATABASE_URL -f packages/database/rls_policies.sql
+psql $DATABASE_URL -f packages/database/indexes.sql
 ```
 
-### Test Changes Locally
+### Run Dart Server Locally
 
 ```bash
-# Open Supabase Studio
-open http://localhost:54323
+cd server
 
-# Or use psql
-psql postgresql://postgres:postgres@localhost:54322/postgres
+# Get dependencies
+dart pub get
 
-# Test Edge Functions locally
-supabase functions serve
+# Run server (connects via Cloud SQL Proxy)
+doppler run -- dart run bin/server.dart
 
-# In another terminal
-curl http://localhost:54321/functions/v1/your-function \
-  -d '{"test": "data"}'
+# Or with environment variables
+DATABASE_INSTANCE=project:region:instance \
+DATABASE_NAME=clinical_diary \
+DATABASE_USER=app_user \
+DATABASE_PASSWORD=secret \
+dart run bin/server.dart
+```
+
+### Test Database Connection
+
+```dart
+// test/database_test.dart
+import 'package:test/test.dart';
+import 'package:server/database/pool.dart';
+
+void main() {
+  setUpAll(() async {
+    await DatabasePool.initialize();
+  });
+
+  tearDownAll(() async {
+    await DatabasePool.close();
+  });
+
+  test('Database connection works', () async {
+    final result = await DatabasePool.query('SELECT 1 as test');
+    expect(result.first[0], equals(1));
+  });
+
+  test('Schema version exists', () async {
+    final result = await DatabasePool.query(
+      'SELECT version FROM schema_metadata ORDER BY applied_at DESC LIMIT 1'
+    );
+    expect(result, isNotEmpty);
+  });
+}
 ```
 
 ---
@@ -467,56 +762,76 @@ curl http://localhost:54321/functions/v1/your-function \
 ### Creating Migrations
 
 ```bash
-# Create new migration
-supabase migration new add_custom_fields
-
-# Edit migration file: supabase/migrations/YYYYMMDDHHMMSS_add_custom_fields.sql
+# Create timestamped migration file
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+touch database/migrations/${TIMESTAMP}_add_custom_fields.sql
 ```
 
 **Migration File Example**:
 ```sql
--- supabase/migrations/20250124120000_add_custom_fields.sql
+-- database/migrations/20251124120000_add_custom_fields.sql
+
+-- Migration metadata
+-- Version: 1.2.0
+-- Description: Add custom metadata column to record_audit
+
+BEGIN;
 
 -- Add new column to record_audit
 ALTER TABLE record_audit
 ADD COLUMN IF NOT EXISTS custom_metadata JSONB;
 
 -- Create index
-CREATE INDEX IF NOT EXISTS idx_record_audit_custom_metadata
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_record_audit_custom_metadata
 ON record_audit USING GIN (custom_metadata);
 
 -- Add comment
 COMMENT ON COLUMN record_audit.custom_metadata IS
   'Sponsor-specific custom metadata fields';
+
+-- Update schema version
+INSERT INTO schema_metadata (version, description, applied_at)
+VALUES ('1.2.0', 'Add custom metadata column', now());
+
+COMMIT;
 ```
 
 ### Applying Migrations
 
 ```bash
-# Apply to local database
-supabase db reset  # Resets and applies all migrations
+# Apply single migration
+psql $DATABASE_URL -f database/migrations/20251124120000_add_custom_fields.sql
 
-# Or apply specific migration
-supabase migration up
+# Apply all pending migrations
+for migration in database/migrations/*.sql; do
+  echo "Applying $migration..."
+  psql $DATABASE_URL -f "$migration"
+done
 
 # Check migration status
-supabase migration list
+psql $DATABASE_URL -c "SELECT version, description, applied_at FROM schema_metadata ORDER BY applied_at DESC;"
 ```
 
-### Deploying Migrations to Production
+### Rollback Strategy
 
-```bash
-# Link to production project
-supabase link --project-ref prod-project-ref
+Each migration should have a corresponding rollback file:
 
-# Preview changes
-supabase db diff
+```sql
+-- database/migrations/20251124120000_add_custom_fields.rollback.sql
 
-# Apply migrations
-supabase db push
+BEGIN;
 
-# Verify
-supabase db remote-status
+-- Remove index
+DROP INDEX IF EXISTS idx_record_audit_custom_metadata;
+
+-- Remove column
+ALTER TABLE record_audit
+DROP COLUMN IF EXISTS custom_metadata;
+
+-- Remove version entry
+DELETE FROM schema_metadata WHERE version = '1.2.0';
+
+COMMIT;
 ```
 
 ---
@@ -542,11 +857,18 @@ supabase db remote-status
 1. **Custom Patient Fields**:
 ```sql
 CREATE TABLE custom_patient_fields (
-  patient_id TEXT PRIMARY KEY REFERENCES auth.users(id),
+  patient_id TEXT PRIMARY KEY,
   sponsor_custom_id TEXT UNIQUE,
   cohort TEXT,
   custom_data JSONB
 );
+
+-- RLS using session variables
+ALTER TABLE custom_patient_fields ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY user_access ON custom_patient_fields
+  FOR ALL
+  USING (patient_id = current_setting('app.user_id', true));
 ```
 
 2. **EDC Sync Tracking**:
@@ -557,7 +879,7 @@ CREATE TABLE custom_patient_fields (
 CREATE TABLE edc_sync_log (
   sync_id BIGSERIAL PRIMARY KEY,
   audit_id BIGINT NOT NULL REFERENCES record_audit(audit_id),
-  event_uuid UUID NOT NULL REFERENCES record_audit(event_uuid),
+  event_uuid UUID NOT NULL,
   sync_status TEXT CHECK (sync_status IN ('SUCCESS', 'FAILED')),
   attempt_count INTEGER DEFAULT 1,
   last_error TEXT,
@@ -573,13 +895,12 @@ CREATE INDEX idx_edc_last_success ON edc_sync_log(audit_id DESC)
 CREATE UNIQUE INDEX idx_edc_sync_audit_unique ON edc_sync_log(audit_id);
 ```
 
-**Sync Strategy**: Sequential blocking. Worker syncs events in `audit_id` order, retrying failed event until success before advancing to next event.
-
 3. **Custom Validations**:
 ```sql
 CREATE OR REPLACE FUNCTION validate_sponsor_data(data JSONB)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
   -- Sponsor-specific validation logic
@@ -593,63 +914,115 @@ $$;
 
 ---
 
-## Supabase Auth Integration
+## Identity Platform Integration
 
-### Custom JWT Claims
+### Token Verification in Dart
 
-Add custom claims to JWT via Supabase Auth hook:
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:jose/jose.dart';
 
-```sql
-CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event JSONB)
-RETURNS JSONB
-LANGUAGE plpgsql
-STABLE
-AS $$
-DECLARE
-  claims JSONB;
-  user_role TEXT;
-  site_assignments TEXT[];
-BEGIN
-  -- Fetch user profile
-  SELECT role, active_site INTO user_role
-  FROM public.user_profiles
-  WHERE user_id = (event->>'user_id')::TEXT;
+class FirebaseAuthVerifier {
+  final String projectId;
+  JsonWebKeyStore? _keyStore;
 
-  -- Fetch site assignments (if applicable)
-  IF user_role IN ('INVESTIGATOR', 'ANALYST') THEN
-    SELECT array_agg(site_id) INTO site_assignments
-    FROM investigator_site_assignments
-    WHERE investigator_id = (event->>'user_id')::TEXT
-      AND is_active = true;
-  END IF;
+  FirebaseAuthVerifier({required this.projectId});
 
-  -- Build claims
-  claims := event->'claims';
-  claims := jsonb_set(claims, '{role}', to_jsonb(COALESCE(user_role, 'USER')));
+  /// Verify Firebase ID token and extract claims
+  Future<Map<String, dynamic>> verifyToken(String idToken) async {
+    // Fetch Google public keys (cached)
+    _keyStore ??= await _fetchPublicKeys();
 
-  IF site_assignments IS NOT NULL THEN
-    claims := jsonb_set(claims, '{site_assignments}', to_jsonb(site_assignments));
-  END IF;
+    final jwt = JsonWebToken.unverified(idToken);
 
-  -- Update event
-  event := jsonb_set(event, '{claims}', claims);
+    // Verify signature
+    final keyStore = JsonWebKeyStore()..addKeyStore(_keyStore!);
+    final verified = await jwt.verify(keyStore);
 
-  RETURN event;
-END;
-$$;
+    if (!verified) {
+      throw Exception('Invalid token signature');
+    }
 
--- Grant permissions
-GRANT EXECUTE ON FUNCTION public.custom_access_token_hook TO supabase_auth_admin;
-GRANT SELECT ON TABLE public.user_profiles TO supabase_auth_admin;
-GRANT SELECT ON TABLE investigator_site_assignments TO supabase_auth_admin;
+    final claims = jwt.claims;
 
-REVOKE EXECUTE ON FUNCTION public.custom_access_token_hook FROM authenticated, anon, public;
+    // Verify claims
+    if (claims.audience?.contains(projectId) != true) {
+      throw Exception('Invalid audience');
+    }
+
+    if (claims.issuer != 'https://securetoken.google.com/$projectId') {
+      throw Exception('Invalid issuer');
+    }
+
+    if (claims.expiry?.isBefore(DateTime.now()) == true) {
+      throw Exception('Token expired');
+    }
+
+    return claims.toJson();
+  }
+
+  Future<JsonWebKeyStore> _fetchPublicKeys() async {
+    final response = await http.get(Uri.parse(
+      'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com'
+    ));
+
+    final keys = jsonDecode(response.body) as Map<String, dynamic>;
+    final store = JsonWebKeyStore();
+
+    // Convert X.509 certs to JWKs
+    for (final entry in keys.entries) {
+      // Parse certificate and add to store
+      // Implementation depends on crypto library
+    }
+
+    return store;
+  }
+}
 ```
 
-**Configure in Supabase Dashboard**:
-1. Go to Authentication � Hooks
-2. Enable "Custom access token" hook
-3. Select `custom_access_token_hook` function
+### Auth Middleware
+
+```dart
+import 'dart:io';
+import 'package:shelf/shelf.dart';
+import '../database/rls_context.dart';
+import 'firebase_auth.dart';
+
+Middleware authMiddleware(FirebaseAuthVerifier verifier) {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      final authHeader = request.headers['authorization'];
+
+      if (authHeader == null || !authHeader.startsWith('Bearer ')) {
+        return Response.forbidden('Missing or invalid authorization header');
+      }
+
+      final token = authHeader.substring(7);
+
+      try {
+        final claims = await verifier.verifyToken(token);
+
+        // Create RLS context from claims
+        final rlsContext = RlsContext.fromClaims(claims);
+
+        // Add to request context
+        final updatedRequest = request.change(
+          context: {
+            ...request.context,
+            'claims': claims,
+            'rlsContext': rlsContext,
+          },
+        );
+
+        return innerHandler(updatedRequest);
+      } catch (e) {
+        return Response.forbidden('Invalid token: $e');
+      }
+    };
+  };
+}
+```
 
 ---
 
@@ -674,75 +1047,82 @@ BEGIN
 END $$;
 ```
 
-### Integration Testing
+### Integration Testing with Cloud SQL
 
-```typescript
-// test/database/integration.test.ts
-import { createClient } from '@supabase/supabase-js'
+```dart
+// test/integration/database_integration_test.dart
+import 'package:test/test.dart';
+import 'package:server/database/pool.dart';
+import 'package:server/database/rls_context.dart';
+import 'package:uuid/uuid.dart';
 
-describe('Database Integration Tests', () => {
-  let supabase: SupabaseClient
+void main() {
+  setUpAll(() async {
+    await DatabasePool.initialize();
+  });
 
-  beforeAll(() => {
-    supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-  })
+  tearDownAll(() async {
+    await DatabasePool.close();
+  });
 
-  test('Event Sourcing: Insert audit creates state', async () => {
-    const eventUuid = crypto.randomUUID()
+  group('Event Sourcing', () {
+    test('Insert audit creates state', () async {
+      final eventUuid = Uuid().v4();
+      final connection = await DatabasePool.getConnection();
 
-    // Insert into audit
-    const { error: auditError } = await supabase
-      .from('record_audit')
-      .insert({
-        event_uuid: eventUuid,
-        patient_id: 'test_patient',
-        site_id: 'test_site',
-        operation: 'USER_CREATE',
-        data: { test: 'data' },
-        created_by: 'test_user',
+      // Set RLS context
+      final context = RlsContext(
+        userId: 'test_patient',
         role: 'USER',
-        client_timestamp: new Date().toISOString(),
-        change_reason: 'Test',
-      })
+        siteId: 'test_site',
+        sponsorId: 'test_sponsor',
+      );
+      await context.apply(connection);
 
-    expect(auditError).toBeNull()
+      // Insert into audit
+      await connection.execute(Sql.named('''
+        INSERT INTO record_audit (
+          event_uuid, patient_id, site_id, operation, data,
+          created_by, role, client_timestamp, change_reason
+        ) VALUES (
+          @eventUuid, 'test_patient', 'test_site', 'USER_CREATE',
+          '{"test": "data"}'::jsonb, 'test_patient', 'USER',
+          now(), 'Test'
+        )
+      '''), parameters: {'eventUuid': eventUuid});
 
-    // Verify state was created
-    const { data: state, error: stateError } = await supabase
-      .from('record_state')
-      .select('*')
-      .eq('event_uuid', eventUuid)
-      .single()
+      // Verify state was created by trigger
+      final state = await connection.execute(Sql.named('''
+        SELECT * FROM record_state WHERE event_uuid = @eventUuid
+      '''), parameters: {'eventUuid': eventUuid});
 
-    expect(stateError).toBeNull()
-    expect(state.data).toEqual({ test: 'data' })
-  })
+      expect(state.length, equals(1));
+      expect(state.first.toColumnMap()['current_data'], containsPair('test', 'data'));
+    });
+  });
 
-  test('RLS: User can only access own data', async () => {
-    // Test as user (with anon key)
-    const userClient = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
-    )
+  group('RLS Policies', () {
+    test('User can only access own data', () async {
+      final connection = await DatabasePool.getConnection();
 
-    // Sign in as test user
-    await userClient.auth.signInWithPassword({
-      email: 'test@example.com',
-      password: 'testpassword',
-    })
+      // Set context as user1
+      await RlsContext(
+        userId: 'user1',
+        role: 'USER',
+        sponsorId: 'sponsor1',
+      ).apply(connection);
 
-    // Query should only return own data
-    const { data, error } = await userClient
-      .from('record_state')
-      .select('*')
+      // Query should only return user1's data
+      final result = await connection.execute(
+        'SELECT * FROM record_state'
+      );
 
-    expect(error).toBeNull()
-    expect(data.every(row => row.patient_id === 'test_user_id')).toBe(true)
-  })
-})
+      for (final row in result) {
+        expect(row.toColumnMap()['patient_id'], equals('user1'));
+      }
+    });
+  });
+}
 ```
 
 ---
@@ -763,13 +1143,14 @@ WHERE patient_id = 'patient_001'
 ORDER BY updated_at DESC
 LIMIT 20;
 
--- Check slow queries
+-- Check slow queries (Cloud SQL)
 SELECT
   query,
+  calls,
   mean_exec_time,
-  calls
+  total_exec_time
 FROM pg_stat_statements
-WHERE mean_exec_time > 1000  -- > 1 second
+WHERE mean_exec_time > 1000
 ORDER BY mean_exec_time DESC
 LIMIT 10;
 ```
@@ -797,44 +1178,39 @@ SELECT
   correlation
 FROM pg_stats
 WHERE schemaname = 'public'
-  AND n_distinct > 100  -- High cardinality
-  AND correlation < 0.1;  -- Low correlation (might benefit from index)
+  AND n_distinct > 100
+  AND correlation < 0.1;
 ```
 
 ### Connection Pooling
 
-Use Supabase connection pooler for better performance:
+Cloud Run manages connections automatically. For high concurrency:
 
-```typescript
-// Use pooler (port 6543) for serverless/high concurrency
-const supabase = createClient(
-  'https://your-project.supabase.co',
-  'your-anon-key',
-  {
-    db: {
-      schema: 'public',
-    },
-    global: {
-      headers: {
-        'x-connection-pool': 'transaction',  // or 'session'
-      },
-    },
-  }
-)
+```dart
+// Configure pool settings based on Cloud Run instance
+final poolSettings = PoolSettings(
+  maxConnectionCount: int.parse(
+    Platform.environment['MAX_DB_CONNECTIONS'] ?? '10'
+  ),
+  maxConnectionAge: Duration(minutes: 30),
+);
 ```
 
 ---
 
 ## Monitoring & Debugging
 
-### Database Logs
+### Cloud SQL Logs
 
 ```bash
-# View real-time logs
-supabase logs db
+# View database logs
+gcloud sql instances list
+gcloud logging read "resource.type=cloudsql_database" --limit=50
 
-# View specific timeframe
-supabase logs db --from "2025-01-24 10:00:00" --to "2025-01-24 11:00:00"
+# View slow queries
+gcloud logging read \
+  'resource.type="cloudsql_database" AND textPayload:"duration:"' \
+  --limit=20
 ```
 
 ### Query Statistics
@@ -868,97 +1244,126 @@ ORDER BY n_dead_tup DESC;
 
 ## Common Development Tasks
 
-### Reset Local Database
+### Reset Development Database
 
 ```bash
-# Complete reset (drops and recreates)
-supabase db reset
+# Drop and recreate database
+psql -h 127.0.0.1 -U postgres -c "DROP DATABASE IF EXISTS clinical_diary;"
+psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE clinical_diary;"
 
-# Or manually
-supabase db reset --db-url postgresql://postgres:postgres@localhost:54322/postgres
+# Reapply schema
+for file in packages/database/*.sql; do
+  psql $DATABASE_URL -f "$file"
+done
 ```
 
-### Dump Production Data (for debugging)
+### Export Schema (for debugging)
 
 ```bash
 # Dump schema only
-supabase db dump --schema-only > schema.sql
+pg_dump $DATABASE_URL --schema-only > schema_export.sql
 
-# Dump specific table data
-supabase db dump --table record_audit --data-only > audit_data.sql
-
-# Full dump (BE CAREFUL - may contain PHI)
-supabase db dump > full_dump.sql
+# Dump specific table data (BE CAREFUL - may contain PHI)
+pg_dump $DATABASE_URL --table=record_audit --data-only > audit_data.sql
 ```
 
-### Generate TypeScript Types
+### Generate Dart Types
 
-```bash
-# Generate TypeScript types from database
-supabase gen types typescript --linked > types/database.types.ts
-```
+Use build_runner with json_serializable for type-safe database models:
 
-**Usage in code**:
-```typescript
-import { Database } from './types/database.types'
+```dart
+// lib/models/record_state.dart
+import 'package:json_annotation/json_annotation.dart';
 
-type RecordAudit = Database['public']['Tables']['record_audit']['Row']
-type RecordInsert = Database['public']['Tables']['record_audit']['Insert']
+part 'record_state.g.dart';
+
+@JsonSerializable()
+class RecordState {
+  final String eventUuid;
+  final String patientId;
+  final String siteId;
+  final Map<String, dynamic> currentData;
+  final int version;
+  final int lastAuditId;
+  final DateTime updatedAt;
+  final bool isDeleted;
+
+  RecordState({
+    required this.eventUuid,
+    required this.patientId,
+    required this.siteId,
+    required this.currentData,
+    required this.version,
+    required this.lastAuditId,
+    required this.updatedAt,
+    required this.isDeleted,
+  });
+
+  factory RecordState.fromJson(Map<String, dynamic> json) =>
+      _$RecordStateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RecordStateToJson(this);
+}
 ```
 
 ---
 
 ## Troubleshooting
 
-### Issue: Migration Fails
+### Issue: Cloud SQL Proxy Connection Refused
 
-**Symptoms**: `supabase db push` fails with error
+**Symptoms**: `connection refused` when connecting via proxy
 
 **Solutions**:
 ```bash
-# Check current migration status
-supabase migration list
+# Check proxy is running
+ps aux | grep cloud-sql-proxy
 
-# Preview what would change
-supabase db diff
+# Restart proxy with verbose output
+cloud-sql-proxy your-project:us-central1:instance \
+  --port=5432 \
+  --debug-logs
 
-# If stuck, manually inspect
-psql postgresql://postgres:postgres@localhost:54322/postgres
-\dt  # List tables
-\d table_name  # Describe table
-
-# Fix migration file and retry
-supabase migration repair
-supabase db reset
-```
-
-### Issue: Edge Function Not Responding
-
-**Debug steps**:
-```bash
-# Check function logs
-supabase functions logs edc-sync
-
-# Test locally with verbose output
-supabase functions serve edc-sync --debug
-
-# Check secrets are set
-supabase secrets list
+# Check IAM permissions
+gcloud projects get-iam-policy your-project \
+  --filter="bindings.members:serviceAccount:*"
 ```
 
 ### Issue: RLS Blocking Legitimate Access
 
 **Debug**:
 ```sql
--- Test with specific user claims
-SET request.jwt.claims = '{"sub": "user_123", "role": "INVESTIGATOR", "active_site": "site_001"}';
+-- Check current session settings
+SELECT
+  current_setting('app.user_id', true) as user_id,
+  current_setting('app.role', true) as role,
+  current_setting('app.site_id', true) as site_id;
+
+-- Test with specific context
+SET app.user_id = 'user_123';
+SET app.role = 'INVESTIGATOR';
+SET app.site_id = 'site_001';
 
 -- Try query
 SELECT * FROM record_state WHERE site_id = 'site_001';
 
--- Check if RLS is problem
-SET row_security = off;  -- Only works for superuser
+-- Check policy (as superuser)
+SET row_security = off;
 SELECT * FROM record_state WHERE site_id = 'site_001';
+```
+
+### Issue: Migration Fails
+
+**Solutions**:
+```bash
+# Check current schema version
+psql $DATABASE_URL -c "SELECT * FROM schema_metadata ORDER BY applied_at DESC LIMIT 5;"
+
+# Check for locks
+psql $DATABASE_URL -c "SELECT * FROM pg_locks WHERE NOT granted;"
+
+# Check for pending transactions
+psql $DATABASE_URL -c "SELECT * FROM pg_stat_activity WHERE state = 'idle in transaction';"
 ```
 
 ---
@@ -970,34 +1375,35 @@ SELECT * FROM record_state WHERE site_id = 'site_001';
 ```bash
 # Add to .gitignore
 echo ".env.local" >> .gitignore
-echo "supabase/.env" >> .gitignore
+echo "*.key" >> .gitignore
 
-# Use environment variables
-export SUPABASE_URL=https://your-project.supabase.co
-export SUPABASE_ANON_KEY=your-anon-key
+# Use Doppler or Secret Manager
+doppler run -- dart run bin/server.dart
 ```
 
-### Service Role Key Usage
+### Service Account Usage
 
-**ONLY use service role key**:
-- In Edge Functions (server-side)
-- In backend services
-- For admin operations
+**ONLY use service accounts with minimal permissions**:
+- Cloud Run service account: `roles/cloudsql.client`
+- CI/CD service account: `roles/cloudsql.admin` (for migrations only)
 
 **NEVER**:
-- In client applications
-- In frontend code
-- In git repositories
+- Store service account keys in git
+- Use admin credentials in application code
+- Share credentials between environments
 
 ### RLS Testing
 
 Always test RLS policies thoroughly:
 ```sql
 -- Test as different roles
-SET request.jwt.claims = '{"sub": "test_user", "role": "USER"}';
+SET app.user_id = 'test_user';
+SET app.role = 'USER';
 -- Verify user can only see own data
 
-SET request.jwt.claims = '{"sub": "test_inv", "role": "INVESTIGATOR", "active_site": "site_001"}';
+SET app.user_id = 'test_inv';
+SET app.role = 'INVESTIGATOR';
+SET app.site_id = 'site_001';
 -- Verify investigator limited to assigned site
 ```
 
@@ -1009,7 +1415,7 @@ SET request.jwt.claims = '{"sub": "test_inv", "role": "INVESTIGATOR", "active_si
 - **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
 - **Production Setup**: ops-database-setup.md
 - **Migration Strategy**: ops-database-migration.md
-- **Supabase Documentation**: https://supabase.com/docs
+- **Cloud SQL Documentation**: https://cloud.google.com/sql/docs/postgres
 - **PostgreSQL Documentation**: https://www.postgresql.org/docs/
 
 ---
@@ -1019,498 +1425,10 @@ SET request.jwt.claims = '{"sub": "test_inv", "role": "INVESTIGATOR", "active_si
 | Version | Date | Changes | Author |
 | --- | --- | --- | --- |
 | 1.0 | 2025-01-24 | Initial developer database guide | Development Team |
+| 2.0 | 2025-11-24 | Migration to Cloud SQL and GCP | Development Team |
 
 ---
 
 **Document Classification**: Internal Use - Developer Guide
 **Review Frequency**: When database architecture changes
 **Owner**: Database Team / Technical Lead
-
-
----
-
-# Database Architecture (from prd-database.md)
-
-# Clinical Trial Diary Database Architecture
-
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-10-23
-**Status**: Active
-**Compliance**: FDA 21 CFR Part 11
-
-> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
-> **See**: prd-database-event-sourcing.md for Event Sourcing pattern details
-> **See**: prd-security-RBAC.md for access control
-> **See**: prd-clinical-trials.md for FDA compliance requirements
-> **See**: dev-database.md for implementation guide
-
----
-
-## Executive Summary
-
-A PostgreSQL-based database system for clinical trial patient diary data deployed as **separate Supabase instances per sponsor**, with offline-first mobile app support, complete audit trail for FDA compliance, and multi-site access control.
-
-**Architecture Pattern**: Event Sourcing with CQRS (Command Query Responsibility Segregation)
-
-**Key Features**:
-- Immutable event store for complete audit trail
-- Materialized read model for fast queries
-- Row-level security for multi-site access control
-- Offline-first sync with conflict resolution
-- Cryptographic tamper detection
-- FDA 21 CFR Part 11 compliant
-
----
-
-## Core Architecture
-
-See **prd-database-event-sourcing.md** for complete Event Sourcing pattern details.
-
-### Quick Overview
-
-**Event Store (record_audit)**:
-- Source of truth
-- Immutable append-only log
-- Every change captured as event
-- Provides audit trail for compliance
-
-**Read Model (record_state)**:
-- Current state view
-- Derived from event store via triggers
-- Optimized for queries
-- Cannot be directly modified
-
-**Pattern**: Write to event store → Read from read model
-
----
-
-## Data Identification
-
-### UUID Generation
-- **UUIDs generated by mobile app** (client-side)
-- Ensures offline-first functionality
-- Same UUID used across multiple database instances
-- Prevents duplicate key conflicts during sync
-- Format: UUID v4 (random)
-
-### Multi-Sponsor Database Architecture
-
-**Deployment Model**: Each sponsor has a dedicated Supabase project (separate PostgreSQL database + Auth instance).
-
-**Sponsor Isolation**:
-- Each sponsor = separate Supabase instance
-- No shared database infrastructure
-- Independent audit trails per sponsor
-- Complete data isolation at infrastructure level
-
-**Shared UUID Space**:
-- Client-generated UUIDs (UUID v4) enable future data portability
-- Same UUID format across all sponsor instances
-- Prevents key conflicts if data ever needs to move between sponsors
-- Each sponsor's database maintains independent audit trail for same UUID
-
-**See**: prd-architecture-multi-sponsor.md for complete multi-sponsor architecture
-
----
-
-## Database Enforcement Rules
-
-### 1. Referential Integrity
-- Enforced via PostgreSQL foreign key constraints
-- Cascading rules defined for deletions (where applicable)
-- Orphaned records prevented at database level
-
-### 2. Data Validation
-- Database triggers validate data format and ranges
-- Required fields enforced via NOT NULL constraints
-- CHECK constraints for enum-like fields
-- JSONB schema validation via triggers
-
-### 3. Event Store Maintenance
-- **Database triggers** automatically update read model when events are written
-- Trigger ensures atomic transaction: both event store write and read model update
-- Failed transactions rollback both tables
-- No application code can bypass event logging
-
-### 4. Read Model Derivation
-- Trigger on event store automatically updates read model
-- Application cannot directly update read model (enforced by permissions)
-- Ensures read model always reflects event history
-- Read model can be rebuilt by replaying events
-
----
-
-## Access Control
-
-See **prd-security-RBAC.md** for complete role definitions and permissions.
-
-### Role Summary
-- **User (Patient)**: Read/write own data only
-- **Investigator**: Site-scoped read, can annotate
-- **Analyst**: Site-scoped read-only, de-identified data
-- **Admin**: Global access, all actions logged
-
-### Row-Level Security (RLS)
-- PostgreSQL RLS policies enforce access control
-- User isolation by patient_id
-- Site-based investigator access
-- All policies enforced at database level
-
----
-
-## Conflict Resolution
-
-### Multi-Device Sync Conflicts
-- Detected when `parent_audit_id` doesn't match current state
-- Client must resolve before server accepts update
-- Resolution strategies:
-  - User chooses version (client or server)
-  - Field-level merge (non-conflicting fields combined)
-  - Manual review UI for true conflicts
-- Resolution creates new audit entry with conflict metadata
-
-### Investigator vs. User Conflicts
-- Not true conflicts - stored as separate layers
-- User data remains authoritative
-- Investigator corrections stored as annotations
-- Both visible to patient on next sync
-
----
-
-## Data Synchronization
-
-### Offline-First App Architecture
-- Mobile app stores data locally (IndexedDB/SQLite)
-- Changes queued for sync when online
-- Background sync every 15 minutes when connected
-- Delta sync: only changed records transmitted
-
-### Sync Protocol
-1. App sends: event UUID, data, parent_audit_id, client timestamp
-2. Database checks for conflicts (parent_audit_id match)
-3. If no conflict: accept and return new audit_id
-4. If conflict: return current state and conflict indicator
-5. App resolves conflict and resubmits
-6. Database writes event to event store and updates read model
-
-### Batch Operations
-- App can submit multiple events in single transaction
-- All-or-nothing: entire batch succeeds or fails
-- Reduces network overhead for catch-up syncs
-
----
-
-## Data Model Summary
-
-### Core Tables
-1. **record_audit** - Event store (immutable event log)
-2. **record_state** - Read model (current state view)
-3. **investigator_annotations** - Notes/corrections layer
-4. **sites** - Clinical trial site information
-5. **user_site_assignments** - Patient enrollment per site
-6. **investigator_site_assignments** - Investigator access per site
-7. **analyst_site_assignments** - Analyst access per site
-8. **sync_conflicts** - Multi-device sync conflict tracking
-
-### Key Fields
-- **Event UUID**: Client-generated, globally unique identifier (same across databases)
-- **Patient ID**: Links to user authentication system
-- **Site ID**: Clinical trial site for RBAC
-- **Audit ID**: Auto-incrementing event ID, establishes chronological order in event store
-- **Parent Audit ID**: Links to previous event for version tracking (Event Sourcing lineage)
-- **Data (JSONB)**: Flexible schema for diary events
-- **Timestamps**: Client and server, with timezone
-- **Change Reason**: Required for all modifications
-
----
-
-## Performance Considerations
-
-### Indexing Strategy
-- Primary keys on all tables
-- Indexes on: patient_id, site_id, UUID, timestamps
-- GIN index on JSONB columns for fast queries
-- Partial indexes for common filters (e.g., pending sync)
-
-### Partitioning
-- Event store (record_audit) partitioned by month (performance)
-- Old partitions archived to cold storage after 2 years
-- Read model (record_state) not partitioned (always small)
-
-### Scaling
-- Read replicas for investigator portal queries
-- Connection pooling (PgBouncer)
-- Materialized views for common aggregate queries
-- Automatic vacuum and analyze scheduled
-
----
-
-## Security Requirements
-
-### Encryption
-- Database encrypted at rest (AES-256)
-- All connections use TLS 1.3
-- JWT tokens for authentication
-- Passwords hashed with bcrypt
-
-### Access Logging
-- All database connections logged
-- Failed authentication attempts logged
-- Admin actions logged with justification
-- Suspicious patterns trigger alerts
-
-### Backup and Recovery
-- Automated backups every 6 hours
-- 30-day point-in-time recovery
-- Cross-region replication for disaster recovery
-- Backup encryption with separate keys
-
----
-
-## Future Enhancements
-
-### Phase 2 (6-12 months)
-- Real-time sync via WebSockets
-- Advanced analytics dashboard
-- Machine learning for data quality checks
-- Integration with electronic health records (EHR)
-
-### Phase 3 (12-24 months)
-- Multi-language support
-- Blockchain-based audit trail (optional)
-- Federated learning across trials
-- Advanced query builder for researchers
-
----
-
-## Success Metrics
-
-### Data Quality
-- 100% audit trail completeness (no missing entries)
-- <5% sync conflict rate
-- <1% manual conflict resolution rate
-- 99.9%+ data integrity verification success
-
-### Performance
-- <3 seconds average sync time
-- <100ms database query latency (95th percentile)
-- 99.9% API uptime
-- Support 10,000 concurrent users
-
-### Compliance
-- Zero critical FDA audit findings
-- 100% of corrections properly documented
-- Zero unauthorized data access incidents
-- 100% backup success rate
-
----
-
-## Appendix: Database Schema Quick Reference
-
-```
-record_audit (INSERT-only event store)
-├─ audit_id (PK, auto-increment)
-├─ event_uuid (from app)
-├─ patient_id
-├─ site_id
-├─ operation
-├─ data (JSONB)
-├─ created_by
-├─ role
-├─ client_timestamp
-├─ server_timestamp
-├─ parent_audit_id (FK → audit_id)
-└─ change_reason
-
-record_state (updatable via triggers only - read model)
-├─ event_uuid (PK, from app)
-├─ patient_id
-├─ site_id
-├─ current_data (JSONB)
-├─ version
-├─ last_audit_id (FK → audit_id)
-└─ sync_metadata
-
-investigator_annotations
-├─ annotation_id (PK)
-├─ event_uuid (FK)
-├─ investigator_id
-├─ site_id
-├─ annotation_text
-├─ requires_response
-└─ resolved
-
-sites
-├─ site_id (PK)
-├─ site_name
-└─ site_number
-
-user_site_assignments
-├─ patient_id (PK)
-├─ site_id (FK)
-└─ enrolled_at
-
-investigator_site_assignments
-├─ investigator_id (PK)
-├─ site_id (FK)
-└─ access_level
-
-analyst_site_assignments
-├─ analyst_id (PK)
-├─ site_id (FK)
-└─ access_level
-```
-
----
-
-## References
-
-- **Event Sourcing Pattern**: prd-database-event-sourcing.md
-- **JSONB Schema**: dev-data-models-jsonb.md
-- **Access Control**: prd-security-RBAC.md
-- **FDA Compliance**: prd-clinical-trials.md
-- **Implementation**: dev-database.md
-- **Deployment**: ops-database-setup.md
-- **ADR**: docs/adr/ADR-001-event-sourcing-pattern.md
-
----
-
-**Source**: Extracted and consolidated from db-spec.md
-
-
----
-
-# Event Sourcing Pattern (from prd-database-event-sourcing.md)
-
-# Event Sourcing Architecture Pattern
-
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-10-23
-
-> **See**: prd-database.md for complete database architecture
-> **See**: dev-database.md for implementation details  
-> **See**: docs/adr/ADR-001-event-sourcing-pattern.md for architectural decision rationale
-
----
-
-## Overview
-
-This system implements **Event Sourcing** - all changes are stored as a sequence of immutable events, with current state derived from replaying those events. This architectural pattern combined with CQRS (Command Query Responsibility Segregation) provides:
-
-- Complete audit trail for FDA 21 CFR Part 11 compliance
-- Point-in-time reconstruction of any record
-- Event replay capability
-- Temporal queries
-- Data integrity guarantees
-
----
-
-## 1. Event Store (record_audit table)
-
-### Purpose
-The **source of truth** for all diary data changes. Every modification to patient data is captured as an immutable event.
-
-### Characteristics
-- **Immutable append-only log** - no updates or deletes allowed
-- Records every state change as an event
-- INSERT-only operations
-- Database triggers prevent UPDATE/DELETE operations
-
-### Event Structure
-Each event contains:
-- **Auto-incrementing audit ID** - establishes chronological order
-- **Event UUID** - generated by mobile app, globally unique
-- **Patient ID** - data owner
-- **Site ID** - clinical trial site
-- **Full data snapshot (JSONB)** - complete state at this point
-- **Actor** - user/investigator/admin who made change
-- **Role** - role under which actor was operating
-- **Timestamps** - client-side and server-side (with timezone)
-- **Change reason** - required for audit trail (FDA requirement)
-- **Parent audit ID** - tracks event lineage for versioning
-- **Operation** - type of change (CREATE, UPDATE, DELETE, etc.)
-- **Conflict metadata** - for multi-device sync resolution
-
-### Capabilities
-- Point-in-time reconstruction of any record
-- Event replay for read model rebuilding
-- Temporal queries ("show me this record as of 2025-01-15")
-- Complete change history with attribution
-- Tamper-evident via cryptographic hashes 
-
----
-
-## 2. Read Model (record_state table)
-
-### Purpose
-**Materialized view** of current state, optimized for queries. This is the CQRS "read side."
-
-### Characteristics
-- One row per diary entry
-- Derived from event stream via database triggers
-- Automatically updated when events are written to event store
-- Optimized for queries with appropriate indexes
-
-### Record Structure
-Each row contains:
-- **Event UUID** - primary key, generated by app
-- **Patient ID** - data owner
-- **Site ID** - clinical trial site
-- **Current data (JSONB)** - latest state
-- **Version number** - count of events for this record
-- **Reference to last audit entry** - last_audit_id
-- **Sync metadata** - for offline-first app
-- **Soft delete flag** - is_deleted (preserves audit trail)
-- **Updated timestamp** - when last modified
-
-### Update Rules
-- **Application queries this table, not the event store**
-- Application **cannot** directly update read model
-- Updates enforced via database triggers only
-- Can be rebuilt from event store if corrupted
-- All writes flow through event store
-
----
-
-## 3. Event Sourcing Flow
-
-### Write Path (Command Side)
-```
-1. App submits change → event store (record_audit)
-2. Database trigger validates event
-3. Event written to event store (INSERT only)
-4. Trigger automatically updates read model (record_state)
-5. Transaction commits (atomic: both tables updated or both rollback)
-```
-
-### Read Path (Query Side)
-```
-1. App queries read model (record_state) for current data
-2. Fast access via indexes
-3. No event replay needed for normal queries
-```
-
-### Audit/Compliance Path
-```
-1. Auditor queries event store (record_audit) for history
-2. Can reconstruct any point-in-time view
-3. Can verify integrity via cryptographic hashes
-```
-
----
-
-## References
-
-- **Complete Architecture**: prd-database.md
-- **Implementation Guide**: dev-database.md
-- **JSONB Schema**: dev-data-models-jsonb.md
-- **ADR**: docs/adr/ADR-001-event-sourcing-pattern.md
-- **Database Schema**: database/schema.sql
-- **Triggers**: database/triggers.sql
-
----
-
-**Source**: Extracted from db-spec.md (Event Sourcing Pattern section)
-

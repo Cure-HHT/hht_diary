@@ -12,14 +12,14 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 - [ ] Review `db-spec.md` for architecture understanding
 - [ ] Review `README.md` for deployment instructions
 - [ ] Identify target environment (development/staging/production)
-- [ ] Verify Supabase project created
+- [ ] Verify GCP project created
 - [ ] Note project URL and credentials
 - [ ] Determine required compute resources
 - [ ] Plan backup and recovery strategy
 - [ ] Identify compliance requirements
 
 ### Access & Permissions
-- [ ] Supabase admin access confirmed
+- [ ] GCP project admin access confirmed
 - [ ] Database credentials secured
 - [ ] Team access roles defined
 - [ ] Service account created (if needed)
@@ -29,7 +29,7 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 ## Database Deployment
 
 ### Step 1: Schema Creation
-- [ ] Run `schema.sql` in Supabase SQL Editor
+- [ ] Run `schema.sql` via Cloud SQL Proxy
 - [ ] Verify all 12 tables created successfully
 - [ ] Check for any errors in output
 - [ ] Verify extensions enabled (uuid-ossp, pgcrypto)
@@ -61,45 +61,39 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 
 ---
 
-## Supabase Configuration
+## GCP Configuration
 
-### Authentication Setup
-- [ ] Enable Email authentication provider
-- [ ] Configure email templates
-- [ ] Set up SMTP for production
-- [ ] Enable custom JWT claims hook
-- [ ] Deploy custom_access_token_hook function
-- [ ] Test JWT token contains 'role' claim
+### Identity Platform Setup
+- [ ] Enable Identity Platform in GCP project
+- [ ] Configure email/password authentication
+- [ ] Configure email templates (via Firebase Console)
+- [ ] Set up SMTP for production emails
+- [ ] Deploy custom claims Cloud Function
+- [ ] Test Firebase ID token contains custom claims
 - [ ] Configure session timeout
-- [ ] Enable 2FA for admin roles
+- [ ] Enable MFA for admin roles
 
-### API Configuration
-- [ ] Copy Project URL
-- [ ] Copy Anon (public) key
-- [ ] Copy Service role key (keep secure!)
-- [ ] Configure CORS settings
-- [ ] Set up rate limiting (if needed)
+### Cloud Run API Configuration
+- [ ] Deploy Cloud Run service
+- [ ] Note service URL
+- [ ] Configure service account permissions
+- [ ] Configure CORS in Dart server
+- [ ] Set up rate limiting (Cloud Armor if needed)
 - [ ] Test API connection from client
 
 ### Security Settings
-- [ ] Enable SSL/TLS enforcement
-- [ ] Configure IP allowlist (if needed)
-- [ ] Set up Vault for secrets (Pro plan)
-- [ ] Review security logs
-- [ ] Enable DDoS protection
-
-### Realtime Configuration (Optional)
-- [ ] Enable replication for record_state
-- [ ] Enable replication for investigator_annotations
-- [ ] Test realtime subscriptions
-- [ ] Configure broadcast settings
+- [ ] Cloud SQL uses Private IP (VPC)
+- [ ] Configure VPC connector for Cloud Run
+- [ ] Set up Secret Manager for credentials
+- [ ] Enable Cloud Audit Logs
+- [ ] Configure Cloud Armor (DDoS protection)
 
 ---
 
 ## Initial Data Setup
 
 ### Create Admin User
-- [ ] Create first user via Supabase Auth
+- [ ] Create first user via Identity Platform
 - [ ] Note user UUID
 - [ ] Insert into user_profiles with ADMIN role
 - [ ] Enable 2FA for admin user
@@ -405,7 +399,7 @@ SELECT cron.schedule(
 
 ```
 Database Admin: __________________
-Supabase Support: support@supabase.io
+GCP Support: Via GCP Console (depends on support plan)
 On-Call Engineer: __________________
 Security Team: __________________
 Compliance Officer: __________________

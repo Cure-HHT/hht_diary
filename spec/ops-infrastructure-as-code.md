@@ -2,14 +2,14 @@
 
 **Audience**: Operations
 **Status**: Active
-**Version**: 1.0.0
-**Last Updated**: 2025-10-27
+**Version**: 2.0.0
+**Last Updated**: 2025-11-24
 
 ---
 
 ## Purpose
 
-This document specifies the infrastructure as code (IaC) approach for the Clinical Diary project, ensuring reproducible, validated, and auditable infrastructure deployments that comply with FDA 21 CFR Part 11 requirements.
+This document specifies the infrastructure as code (IaC) approach for the Clinical Diary project on Google Cloud Platform, ensuring reproducible, validated, and auditable infrastructure deployments that comply with FDA 21 CFR Part 11 requirements.
 
 ---
 
@@ -19,23 +19,25 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 **Level**: Ops | **Implements**: p00010 | **Status**: Active
 
-**SHALL** use Terraform for all Supabase infrastructure and cloud resources.
+**SHALL** use Terraform for all GCP infrastructure and cloud resources.
 
 **Rationale**: Infrastructure as code provides reproducibility, validation capability, and audit trail required for FDA compliance.
 
 **Acceptance Criteria**:
-- All Supabase projects defined in Terraform
-- All cloud storage defined in Terraform
-- Terraform state stored in version-controlled backend
+- All GCP projects defined in Terraform
+- All Cloud SQL instances defined in Terraform
+- All Cloud Run services defined in Terraform
+- Terraform state stored in version-controlled backend (GCS)
 - Infrastructure changes validated with `terraform plan` before apply
 - Separate configurations maintained for dev/staging/production environments
+- Per-sponsor infrastructure isolated in separate GCP projects
 
 **Validation**:
 - IQ: Verify Terraform installs correctly and modules are accessible
 - OQ: Verify `terraform plan` and `terraform apply` work correctly
 - PQ: Verify infrastructure provisions in < 1 hour
 
-*End* *Infrastructure as Code for Cloud Resources* | **Hash**: fa6aaa33
+*End* *Infrastructure as Code for Cloud Resources* | **Hash**: e42cc806
 ---
 
 # REQ-o00042: Infrastructure Change Control
@@ -69,12 +71,32 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 infrastructure/
 ├── terraform/
 │   ├── modules/
-│   │   ├── supabase-project/
+│   │   ├── gcp-project/
 │   │   │   ├── main.tf
 │   │   │   ├── variables.tf
 │   │   │   ├── outputs.tf
 │   │   │   └── README.md
-│   │   ├── storage/
+│   │   ├── cloud-sql/
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── README.md
+│   │   ├── cloud-run/
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── README.md
+│   │   ├── identity-platform/
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── README.md
+│   │   ├── vpc-networking/
+│   │   │   ├── main.tf
+│   │   │   ├── variables.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── README.md
+│   │   ├── artifact-registry/
 │   │   │   ├── main.tf
 │   │   │   ├── variables.tf
 │   │   │   ├── outputs.tf
@@ -97,6 +119,17 @@ infrastructure/
 │   │       ├── main.tf
 │   │       ├── terraform.tfvars
 │   │       └── README.md
+│   ├── sponsors/
+│   │   ├── orion/
+│   │   │   ├── staging/
+│   │   │   │   └── main.tf
+│   │   │   └── production/
+│   │   │       └── main.tf
+│   │   └── andromeda/
+│   │       ├── staging/
+│   │       │   └── main.tf
+│   │       └── production/
+│   │           └── main.tf
 │   └── shared/
 │       ├── backend.tf
 │       └── variables.tf
@@ -114,8 +147,8 @@ infrastructure/
 
 **Core Tools**:
 - **Terraform** v1.6+: Infrastructure as code
-- **Terraform Cloud** (free tier) or **S3**: State backend
-- **Supabase Terraform Provider**: Manage Supabase resources
+- **Google Cloud Storage**: State backend
+- **Google Cloud Provider**: Manage GCP resources
 
 **Providers**:
 ```hcl
@@ -123,12 +156,12 @@ terraform {
   required_version = ">= 1.6"
 
   required_providers {
-    supabase = {
-      source  = "supabase/supabase"
-      version = "~> 1.0"
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
     }
-    aws = {
-      source  = "hashicorp/aws"
+    google-beta = {
+      source  = "hashicorp/google-beta"
       version = "~> 5.0"
     }
   }
@@ -139,91 +172,314 @@ terraform {
 
 ## Infrastructure Components
 
-### 1. Supabase Projects
+### 1. GCP Projects (Per Sponsor)
 
-**Per Environment**:
-- Development: `clinical-diary-dev`
-- Staging: `clinical-diary-staging`
-- Production: `clinical-diary-prod`
+Each sponsor gets a dedicated GCP project:
 
-**Configuration**:
 ```hcl
-module "supabase" {
-  source = "../../modules/supabase-project"
+module "sponsor_project" {
+  source = "../../modules/gcp-project"
 
-  project_name     = "clinical-diary-${var.environment}"
-  organization_id  = var.supabase_org_id
-  database_password = var.database_password  # From Doppler
-  region           = "us-west-1"
+  project_id      = "clinical-diary-${var.sponsor}-${var.environment}"
+  project_name    = "Clinical Diary ${title(var.sponsor)} ${title(var.environment)}"
+  billing_account = var.billing_account_id
+  org_id          = var.org_id  # Optional, for org-managed projects
 
-  # Tier
-  tier = var.environment == "production" ? "pro" : "free"
+  # Enable required APIs
+  activate_apis = [
+    "sqladmin.googleapis.com",
+    "run.googleapis.com",
+    "secretmanager.googleapis.com",
+    "identitytoolkit.googleapis.com",
+    "compute.googleapis.com",
+    "vpcaccess.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "cloudscheduler.googleapis.com",
+    "logging.googleapis.com",
+    "monitoring.googleapis.com",
+    "cloudtrace.googleapis.com",
+  ]
 
-  # Backups
-  enable_backups        = true
-  backup_retention_days = var.environment == "production" ? 30 : 7
-
-  tags = {
-    Environment = var.environment
-    Project     = "clinical-diary"
-    ManagedBy   = "terraform"
+  labels = {
+    sponsor     = var.sponsor
+    environment = var.environment
+    managed_by  = "terraform"
+    compliance  = "hipaa-fda"
   }
 }
 ```
 
-### 2. Storage (S3)
+### 2. Cloud SQL Instance
 
-**Artifact Storage**:
 ```hcl
-module "artifact_storage" {
-  source = "../../modules/storage"
+module "cloud_sql" {
+  source = "../../modules/cloud-sql"
 
-  bucket_name = "clinical-diary-artifacts-${var.environment}"
+  project_id = module.sponsor_project.project_id
+  region     = var.region
 
-  # 7-year retention for compliance
-  lifecycle_rules = [
+  instance_name = "${var.sponsor}-db"
+  database_name = "clinical_diary"
+
+  # Instance sizing based on environment
+  tier = var.environment == "production" ? "db-custom-2-8192" : "db-custom-1-3840"
+
+  # High availability for production
+  availability_type = var.environment == "production" ? "REGIONAL" : "ZONAL"
+
+  # Backup configuration
+  backup_enabled                = true
+  backup_start_time             = "02:00"
+  point_in_time_recovery_enabled = true
+  backup_retained_backups       = var.environment == "production" ? 30 : 7
+
+  # Networking
+  private_network = module.vpc.network_self_link
+  require_ssl     = true
+
+  # Database flags for audit
+  database_flags = [
     {
-      id      = "archive-old-artifacts"
-      enabled = true
+      name  = "cloudsql.enable_pgaudit"
+      value = "on"
+    },
+    {
+      name  = "log_checkpoints"
+      value = "on"
+    },
+    {
+      name  = "log_connections"
+      value = "on"
+    },
+    {
+      name  = "log_disconnections"
+      value = "on"
+    }
+  ]
 
-      transition = [
-        {
-          days          = 90
-          storage_class = "GLACIER"
-        }
-      ]
+  # Maintenance window
+  maintenance_window_day  = 7  # Sunday
+  maintenance_window_hour = 3  # 3 AM
 
-      expiration = {
-        days = 2555  # 7 years
+  labels = {
+    sponsor     = var.sponsor
+    environment = var.environment
+    managed_by  = "terraform"
+  }
+}
+
+# Database user (password from Doppler/Secret Manager)
+resource "google_sql_user" "app_user" {
+  project  = module.sponsor_project.project_id
+  name     = "app_user"
+  instance = module.cloud_sql.instance_name
+  password = var.database_password  # From Doppler
+}
+```
+
+### 3. Cloud Run Service
+
+```hcl
+module "cloud_run" {
+  source = "../../modules/cloud-run"
+
+  project_id = module.sponsor_project.project_id
+  region     = var.region
+
+  service_name = "clinical-diary-api"
+  image        = "${var.region}-docker.pkg.dev/${module.sponsor_project.project_id}/clinical-diary/api:${var.image_tag}"
+
+  # Service account
+  service_account_email = google_service_account.cloud_run.email
+
+  # VPC connector for Cloud SQL access
+  vpc_connector = module.vpc.serverless_connector_id
+  vpc_egress    = "private-ranges-only"
+
+  # Cloud SQL connection
+  cloudsql_instances = [module.cloud_sql.connection_name]
+
+  # Environment variables
+  env_vars = {
+    ENVIRONMENT      = var.environment
+    SPONSOR_ID       = var.sponsor
+    GCP_PROJECT_ID   = module.sponsor_project.project_id
+    DATABASE_INSTANCE = module.cloud_sql.connection_name
+  }
+
+  # Secrets from Secret Manager
+  secrets = {
+    DATABASE_URL = {
+      secret_id = google_secret_manager_secret.database_url.secret_id
+      version   = "latest"
+    }
+  }
+
+  # Scaling
+  min_instances = var.environment == "production" ? 1 : 0
+  max_instances = var.environment == "production" ? 10 : 3
+
+  # Resources
+  cpu    = "1000m"
+  memory = "512Mi"
+
+  # Allow unauthenticated (API handles auth via Identity Platform)
+  allow_unauthenticated = true
+
+  labels = {
+    sponsor     = var.sponsor
+    environment = var.environment
+    managed_by  = "terraform"
+  }
+}
+```
+
+### 4. VPC and Networking
+
+```hcl
+module "vpc" {
+  source = "../../modules/vpc-networking"
+
+  project_id = module.sponsor_project.project_id
+  region     = var.region
+
+  network_name = "clinical-diary-vpc"
+
+  # Private Service Access for Cloud SQL
+  enable_private_service_access = true
+
+  # Serverless VPC Connector for Cloud Run
+  connector_name      = "cloud-run-connector"
+  connector_subnet    = "10.8.0.0/28"
+  connector_min_instances = 2
+  connector_max_instances = var.environment == "production" ? 10 : 3
+}
+```
+
+### 5. Identity Platform
+
+```hcl
+module "identity_platform" {
+  source = "../../modules/identity-platform"
+
+  project_id = module.sponsor_project.project_id
+
+  # Sign-in providers
+  enable_email_password = true
+  enable_google_oauth   = true
+  enable_apple_oauth    = var.enable_apple_auth
+  enable_microsoft_oauth = true
+
+  # Password policy
+  password_policy = {
+    min_length            = 12
+    require_uppercase     = true
+    require_lowercase     = true
+    require_numeric       = true
+    require_special_char  = true
+  }
+
+  # MFA configuration
+  mfa_enabled = var.environment == "production"
+
+  # Authorized domains
+  authorized_domains = [
+    "clinical-diary-${var.sponsor}-${var.environment}.web.app",
+    var.custom_domain
+  ]
+}
+```
+
+### 6. Artifact Registry
+
+```hcl
+module "artifact_registry" {
+  source = "../../modules/artifact-registry"
+
+  project_id = module.sponsor_project.project_id
+  region     = var.region
+
+  repository_id = "clinical-diary"
+  description   = "Container images for Clinical Diary ${var.sponsor}"
+  format        = "DOCKER"
+
+  # Cleanup policy
+  cleanup_policies = [
+    {
+      id     = "keep-minimum-versions"
+      action = "KEEP"
+      most_recent_versions = {
+        keep_count = 10
+      }
+    },
+    {
+      id     = "delete-old-images"
+      action = "DELETE"
+      condition = {
+        older_than = "2592000s"  # 30 days
       }
     }
   ]
 
-  versioning_enabled = true
-  encryption_enabled = true
+  # Vulnerability scanning
+  enable_vulnerability_scanning = true
+
+  labels = {
+    sponsor     = var.sponsor
+    environment = var.environment
+    managed_by  = "terraform"
+  }
 }
 ```
 
-### 3. Monitoring Resources
+### 7. Monitoring
 
-**Optional** (if using Prometheus/Grafana):
 ```hcl
 module "monitoring" {
   source = "../../modules/monitoring"
 
-  environment = var.environment
+  project_id = module.sponsor_project.project_id
 
-  # Sentry DSN from Doppler
-  sentry_dsn = var.sentry_dsn
-
-  # Better Uptime checks
+  # Uptime checks
   uptime_checks = [
     {
-      name = "api-health"
-      url  = "https://api.clinical-diary-${var.environment}.com/health"
-      interval = 60  # seconds
+      display_name = "API Health"
+      host         = module.cloud_run.service_url
+      path         = "/health"
+      period       = "60s"
+      timeout      = "10s"
+      regions      = ["usa-oregon", "usa-virginia", "europe-belgium"]
     }
   ]
+
+  # Alert policies
+  alert_policies = [
+    {
+      display_name = "High Error Rate"
+      condition_type = "threshold"
+      filter        = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/log_entry_count\" AND metric.labels.severity=\"ERROR\""
+      threshold     = 10
+      duration      = "300s"
+    },
+    {
+      display_name = "High API Latency"
+      condition_type = "threshold"
+      filter        = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_latencies\""
+      threshold     = 2000
+      duration      = "300s"
+      aggregation   = "ALIGN_PERCENTILE_95"
+    },
+    {
+      display_name = "Database High CPU"
+      condition_type = "threshold"
+      filter        = "resource.type=\"cloudsql_database\" AND metric.type=\"cloudsql.googleapis.com/database/cpu/utilization\""
+      threshold     = 0.8
+      duration      = "300s"
+    }
+  ]
+
+  # Notification channels
+  notification_channels = var.notification_channels
 }
 ```
 
@@ -233,40 +489,49 @@ module "monitoring" {
 
 ### Backend Configuration
 
-**Terraform Cloud** (Recommended):
+**GCS Backend** (Recommended for GCP):
 ```hcl
 terraform {
-  cloud {
-    organization = "clinical-diary"
-
-    workspaces {
-      tags = ["clinical-diary", "dev"]
-    }
+  backend "gcs" {
+    bucket = "clinical-diary-terraform-state"
+    prefix = "sponsors/${var.sponsor}/${var.environment}"
   }
 }
 ```
 
-**S3 Backend** (Alternative):
-```hcl
-terraform {
-  backend "s3" {
-    bucket         = "clinical-diary-terraform-state"
-    key            = "environments/dev/terraform.tfstate"
-    region         = "us-west-1"
-    encrypt        = true
-    dynamodb_table = "terraform-state-lock"
+### State Bucket Setup
+
+```bash
+# Create state bucket (one-time setup)
+gsutil mb -l us-central1 -b on gs://clinical-diary-terraform-state
+
+# Enable versioning for state recovery
+gsutil versioning set on gs://clinical-diary-terraform-state
+
+# Set lifecycle for old versions
+cat > lifecycle.json << EOF
+{
+  "lifecycle": {
+    "rule": [
+      {
+        "action": {"type": "Delete"},
+        "condition": {"numNewerVersions": 10}
+      }
+    ]
   }
 }
+EOF
+gsutil lifecycle set lifecycle.json gs://clinical-diary-terraform-state
 ```
 
 ### State Security
 
 **MUST**:
-- Encrypt state at rest
-- Use locking (DynamoDB for S3, built-in for Terraform Cloud)
-- Restrict access to state (IAM policies or Terraform Cloud permissions)
+- Encrypt state at rest (GCS default)
+- Use object versioning for recovery
+- Restrict access via IAM (bucket-level permissions)
 - Never commit state files to Git
-- Backup state regularly
+- Use state locking (GCS provides automatic locking)
 
 ---
 
@@ -276,13 +541,13 @@ terraform {
 
 1. **Make Infrastructure Changes**:
    ```bash
-   cd infrastructure/terraform/environments/dev
+   cd infrastructure/terraform/sponsors/${SPONSOR}/${ENV}
    # Edit main.tf or terraform.tfvars
    ```
 
 2. **Plan Changes**:
    ```bash
-   terraform plan -out=tfplan
+   doppler run -- terraform plan -out=tfplan
    # Review output carefully
    ```
 
@@ -290,7 +555,9 @@ terraform {
    ```bash
    git checkout -b infra/add-monitoring
    git add .
-   git commit -m "[INFRA] Add monitoring resources"
+   git commit -m "[INFRA] Add monitoring resources
+
+   Implements: REQ-o00045"
    git push origin infra/add-monitoring
    gh pr create
    ```
@@ -300,6 +567,7 @@ terraform {
    - `terraform validate` (syntax)
    - `terraform plan` (preview changes)
    - `tflint` (linting)
+   - Security scanning
 
 5. **Review & Approval**:
    - Reviewer examines `terraform plan` output
@@ -309,7 +577,7 @@ terraform {
 6. **Apply Changes**:
    ```bash
    # After merge to main
-   terraform apply tfplan
+   doppler run -- terraform apply tfplan
    ```
 
 ### Production Deployment
@@ -327,7 +595,7 @@ terraform {
 
 ### Automated Drift Detection
 
-**Daily Cron**:
+**GitHub Actions Workflow**:
 ```yaml
 # .github/workflows/terraform-drift-detection.yml
 name: Terraform Drift Detection
@@ -342,37 +610,50 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [dev, staging, production]
+        sponsor: [orion, andromeda]
+        environment: [staging, production]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.TERRAFORM_SA }}
 
       - name: Terraform Init
         run: terraform init
-        working-directory: infrastructure/terraform/environments/${{ matrix.environment }}
+        working-directory: infrastructure/terraform/sponsors/${{ matrix.sponsor }}/${{ matrix.environment }}
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -detailed-exitcode
-        working-directory: infrastructure/terraform/environments/${{ matrix.environment }}
+        run: terraform plan -detailed-exitcode -no-color
+        working-directory: infrastructure/terraform/sponsors/${{ matrix.sponsor }}/${{ matrix.environment }}
         continue-on-error: true
 
       - name: Alert on Drift
         if: steps.plan.outputs.exitcode == 2
-        run: |
-          echo "Drift detected in ${{ matrix.environment }}!"
-          # Send alert (Slack, email, etc.)
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ vars.SLACK_CHANNEL }}
+          payload: |
+            {
+              "text": "Terraform drift detected in ${{ matrix.sponsor }}-${{ matrix.environment }}!"
+            }
 ```
 
 ### Manual Drift Check
 
 ```bash
 # Check for drift
-cd infrastructure/terraform/environments/production
-terraform plan -detailed-exitcode
+cd infrastructure/terraform/sponsors/${SPONSOR}/${ENV}
+doppler run -- terraform plan -detailed-exitcode
 
 # Exit codes:
 # 0 = no changes
@@ -388,8 +669,8 @@ terraform plan -detailed-exitcode
 
 **Verify**:
 - [ ] Terraform v1.6+ installed
-- [ ] Required providers available
-- [ ] Backend configured correctly
+- [ ] Google Cloud provider available
+- [ ] GCS backend configured correctly
 - [ ] Modules are accessible
 - [ ] Documentation complete
 
@@ -414,8 +695,8 @@ terraform validate
 # Create test resource
 terraform apply
 
-# Manually modify resource in console
-# (e.g., change Supabase project name)
+# Manually modify resource in GCP Console
+# (e.g., change Cloud Run environment variable)
 
 # Detect drift
 terraform plan
@@ -444,7 +725,7 @@ terraform apply
 - API keys
 - Service tokens
 
-**USE** Doppler or Terraform Cloud variables:
+**USE** Doppler or GCP Secret Manager:
 ```hcl
 variable "database_password" {
   description = "Database password from Doppler"
@@ -452,10 +733,19 @@ variable "database_password" {
   sensitive   = true
 }
 
-variable "supabase_service_token" {
-  description = "Supabase service role token"
-  type        = string
-  sensitive   = true
+# Reference Secret Manager secrets in Cloud Run
+resource "google_secret_manager_secret" "db_password" {
+  project   = var.project_id
+  secret_id = "database-password"
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "db_password" {
+  secret      = google_secret_manager_secret.db_password.id
+  secret_data = var.database_password
 }
 ```
 
@@ -466,16 +756,58 @@ doppler run -- terraform apply
 
 ### Access Control
 
-**Terraform Cloud**:
-- Use team-based permissions
-- Development team: Read/write on dev workspace
-- DevOps team: Read/write on staging/production
-- Management: Read-only on all
+**IAM Roles for Terraform**:
+```hcl
+# Service account for Terraform
+resource "google_service_account" "terraform" {
+  account_id   = "terraform"
+  display_name = "Terraform Service Account"
+}
 
-**S3 Backend**:
-- Use IAM policies to restrict state access
-- Separate IAM roles for dev/staging/production
-- Enable CloudTrail for audit logging
+# Required roles
+locals {
+  terraform_roles = [
+    "roles/cloudsql.admin",
+    "roles/run.admin",
+    "roles/iam.serviceAccountAdmin",
+    "roles/secretmanager.admin",
+    "roles/compute.networkAdmin",
+    "roles/artifactregistry.admin",
+    "roles/monitoring.admin",
+  ]
+}
+
+resource "google_project_iam_member" "terraform_roles" {
+  for_each = toset(local.terraform_roles)
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.terraform.email}"
+}
+```
+
+**Workload Identity Federation** (for GitHub Actions):
+```hcl
+resource "google_iam_workload_identity_pool" "github" {
+  workload_identity_pool_id = "github-pool"
+  display_name              = "GitHub Actions Pool"
+}
+
+resource "google_iam_workload_identity_pool_provider" "github" {
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  workload_identity_pool_provider_id = "github-provider"
+
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"
+    "attribute.actor"      = "assertion.actor"
+    "attribute.repository" = "assertion.repository"
+  }
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+```
 
 ---
 
@@ -483,29 +815,26 @@ doppler run -- terraform apply
 
 ### Rollback Infrastructure Changes
 
-**Using Terraform**:
+**Using Git**:
 ```bash
 # Revert to previous commit
 git revert <commit-hash>
 
-# Or check out previous state
-git checkout <previous-commit> -- infrastructure/
-
 # Apply reverted configuration
-terraform plan
-terraform apply
+doppler run -- terraform plan
+doppler run -- terraform apply
 ```
 
 **Using Terraform State**:
 ```bash
-# List state versions (Terraform Cloud)
-terraform state list
+# List state versions in GCS
+gsutil ls -la gs://clinical-diary-terraform-state/sponsors/${SPONSOR}/${ENV}/
 
-# Pull specific version
-terraform state pull > previous-state.json
+# Download previous state
+gsutil cp gs://clinical-diary-terraform-state/sponsors/${SPONSOR}/${ENV}/default.tfstate#<version> ./previous-state.tfstate
 
-# Push previous state (DANGEROUS - last resort)
-terraform state push previous-state.json
+# Import previous state (DANGEROUS - last resort)
+terraform state push previous-state.tfstate
 ```
 
 **Best Practice**: Use Git to revert infrastructure code, not state manipulation.
@@ -524,7 +853,7 @@ terraform state push previous-state.json
 **Terraform Logs**:
 - `terraform plan` output saved in CI/CD
 - `terraform apply` output saved
-- State changes logged
+- State changes logged via GCS versioning
 
 **Change Control**:
 - Pull requests document changes
@@ -539,6 +868,51 @@ terraform state push previous-state.json
 3. Terraform plan/apply logs
 4. Drift detection reports
 5. Validation documentation (IQ/OQ/PQ)
+6. GCS state version history
+
+---
+
+## Multi-Sponsor Management
+
+### Adding a New Sponsor
+
+1. **Create Sponsor Directory**:
+   ```bash
+   mkdir -p infrastructure/terraform/sponsors/${NEW_SPONSOR}/{staging,production}
+   ```
+
+2. **Create Configuration**:
+   ```hcl
+   # infrastructure/terraform/sponsors/${NEW_SPONSOR}/staging/main.tf
+   module "clinical_diary" {
+     source = "../../../modules/clinical-diary-stack"
+
+     sponsor      = "new-sponsor"
+     environment  = "staging"
+     region       = "us-central1"
+
+     # Sponsor-specific configuration
+     billing_account_id = var.billing_account_id
+     custom_domain      = "new-sponsor-staging.clinical-diary.com"
+   }
+   ```
+
+3. **Initialize and Apply**:
+   ```bash
+   cd infrastructure/terraform/sponsors/${NEW_SPONSOR}/staging
+   doppler run --config staging -- terraform init
+   doppler run --config staging -- terraform plan
+   doppler run --config staging -- terraform apply
+   ```
+
+### Sponsor Isolation
+
+Each sponsor's infrastructure is completely isolated:
+- Separate GCP project
+- Separate Cloud SQL instance
+- Separate Identity Platform tenant
+- Separate VPC
+- Separate Terraform state
 
 ---
 
@@ -547,6 +921,9 @@ terraform state push previous-state.json
 ### State Lock Issues
 
 ```bash
+# View lock info
+gsutil stat gs://clinical-diary-terraform-state/sponsors/${SPONSOR}/${ENV}/default.tflock
+
 # Force unlock (DANGEROUS - use with caution)
 terraform force-unlock <lock-id>
 
@@ -557,12 +934,16 @@ terraform show
 ### Provider Authentication Failures
 
 ```bash
-# Check provider credentials
-echo $SUPABASE_ACCESS_TOKEN
-echo $AWS_ACCESS_KEY_ID
+# Check gcloud authentication
+gcloud auth application-default print-access-token
 
 # Re-authenticate
-doppler run -- terraform init
+gcloud auth application-default login
+
+# For CI/CD, verify Workload Identity
+gcloud iam workload-identity-pools providers describe github-provider \
+  --workload-identity-pool=github-pool \
+  --location=global
 ```
 
 ### Drift Detected
@@ -590,7 +971,7 @@ terraform apply
 - Review drift reports
 
 **Weekly**:
-- Review Terraform Cloud/S3 costs
+- Review GCP billing
 - Review state file size
 
 **Monthly**:
@@ -610,12 +991,21 @@ terraform apply
 **Internal**:
 - `infrastructure/README.md` - Getting started
 - `docs/terraform-setup.md` - Detailed setup guide
-- `INFRASTRUCTURE_GAP_ANALYSIS.md` - Original analysis
 
 **External**:
-- Terraform Documentation: https://www.terraform.io/docs
-- Supabase Terraform Provider: https://registry.terraform.io/providers/supabase/supabase
-- HashiCorp Best Practices: https://www.terraform.io/docs/cloud/guides/recommended-practices
+- [Terraform Documentation](https://www.terraform.io/docs)
+- [Google Cloud Provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
+- [GCP Cloud SQL Terraform](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_database_instance)
+- [GCP Cloud Run Terraform](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service)
+
+---
+
+## Change History
+
+| Date | Version | Author | Changes |
+| --- | --- | --- | --- |
+| 2025-10-27 | 1.0.0 | Dev Team | Initial specification (Supabase) |
+| 2025-11-24 | 2.0.0 | Claude | Migration to GCP (Cloud SQL, Cloud Run, IAM) |
 
 ---
 

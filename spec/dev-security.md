@@ -1,36 +1,30 @@
-
-
----
-
-# Security Details (from prd-security.md)
-
-# Security Architecture: Authentication & Authorization
+# Security Implementation Guide
 
 **Version**: 2.0
-**Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Audience**: Software Developers
+**Last Updated**: 2025-11-24
 **Status**: Active
 
-> **Scope**: Authentication and authorization ONLY - who can access what and how access is verified
+> **Scope**: GCP security implementation, Identity Platform integration, IAM patterns
 >
+> **See**: prd-security.md for authentication and authorization requirements
 > **See**: prd-security-RBAC.md for complete role definitions and permissions
 > **See**: prd-security-RLS.md for database row-level security policies
 > **See**: prd-security-data-classification.md for encryption and data privacy
-> **See**: prd-clinical-trials.md for audit trail and compliance requirements
-> **See**: prd-database.md for audit trail implementation
-> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
+> **See**: ops-security.md for security operations
+> **See**: ops-security-authentication.md for Identity Platform setup
 
 ---
 
 ## Executive Summary
 
-This document specifies how the system **authenticates users** (verifies identity) and **authorizes access** (controls what authenticated users can do). The system implements defense-in-depth with multiple authorization layers across a multi-sponsor architecture.
+This document specifies how to **implement security** in the Clinical Trial Diary Platform using Google Cloud Platform services. The system implements defense-in-depth with multiple authorization layers across a multi-sponsor architecture.
 
-**Authentication**: Supabase Auth (per sponsor)
+**Authentication**: Google Identity Platform (Firebase Auth)
 **Authorization Layers**:
 1. Role-Based Access Control (RBAC)
 2. Row-Level Security (RLS) at database
-3. Multi-sponsor infrastructure isolation
+3. Multi-sponsor GCP project isolation
 
 ---
 
@@ -38,15 +32,16 @@ This document specifies how the system **authenticates users** (verifies identit
 
 ### Infrastructure-Level Separation
 
-Each sponsor operates a completely isolated Supabase instance, providing **infrastructure-level access isolation**:
+Each sponsor operates in a completely isolated GCP project, providing **infrastructure-level access isolation**:
 
 ```
 Sponsor A Environment           Sponsor B Environment
 ┌─────────────────────────┐    ┌─────────────────────────┐
-│ Supabase Project A      │    │ Supabase Project B      │
-│ ├─ PostgreSQL Database  │    │ ├─ PostgreSQL Database  │
-│ ├─ Supabase Auth        │    │ ├─ Supabase Auth        │
-│ └─ Separate JWT secrets │    │ └─ Separate JWT secrets │
+│ GCP Project A           │    │ GCP Project B           │
+│ ├─ Cloud SQL            │    │ ├─ Cloud SQL            │
+│ ├─ Identity Platform    │    │ ├─ Identity Platform    │
+│ ├─ Cloud Run            │    │ ├─ Cloud Run            │
+│ └─ Separate IAM         │    │ └─ Separate IAM         │
 └─────────────────────────┘    └─────────────────────────┘
          ↑                              ↑
          │                              │
@@ -55,11 +50,11 @@ Sponsor A Environment           Sponsor B Environment
 ```
 
 **Access Isolation Guarantees**:
+- No shared GCP projects
 - No shared database instances
 - No shared authentication systems
-- No shared JWT secrets
 - Users authenticated in Sponsor A cannot access Sponsor B data
-- JWTs from Sponsor A invalid for Sponsor B
+- Firebase tokens from Sponsor A invalid for Sponsor B
 - Complete authentication/authorization independence
 
 ### Code Repository Access Control
@@ -72,7 +67,8 @@ Sponsor A Environment           Sponsor B Environment
 **Private Sponsor Repositories** (`clinical-diary-{sponsor}`):
 - Access restricted via GitHub private repos
 - Contains sponsor-specific:
-  - Supabase URL and anon key
+  - Firebase configuration
+  - GCP project ID
   - Custom authentication configurations
   - Site assignments
   - Role mappings
@@ -81,37 +77,37 @@ Sponsor A Environment           Sponsor B Environment
 
 ## Authentication Layer
 
-# REQ-d00003: Supabase Auth Configuration Per Sponsor
+# REQ-d00003: Identity Platform Configuration Per Sponsor
 
 **Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
 
-The application SHALL integrate with Supabase Auth for user authentication, with each sponsor using their dedicated Supabase Auth instance configured for their specific requirements.
+The application SHALL integrate with Google Identity Platform for user authentication, with each sponsor using their dedicated Identity Platform instance in their GCP project configured for their specific requirements.
 
 Authentication integration SHALL include:
-- Initialize Supabase client with sponsor-specific project URL and anon key
-- Configure JWT verification using sponsor's Supabase project secrets
+- Initialize Firebase Auth client with sponsor-specific project configuration
+- Configure JWT verification using Google's public keys
 - Implement MFA enrollment and verification flows
 - Handle authentication state changes (login, logout, session refresh)
 - Store authentication tokens securely on device
 
-**Rationale**: Implements MFA requirement (p00002) and project isolation (o00003) at the application code level. Each sponsor's Supabase project has independent authentication configuration, ensuring complete user isolation between sponsors.
+**Rationale**: Implements MFA requirement (p00002) and project isolation (o00003) at the application code level. Each sponsor's GCP project has independent Identity Platform configuration, ensuring complete user isolation between sponsors.
 
 **Acceptance Criteria**:
-- App initializes Supabase client from sponsor-specific config file
+- App initializes Firebase Auth from sponsor-specific config file
 - MFA can be enabled/required based on user role
 - Authentication tokens scoped to single sponsor project
 - Session refresh handled automatically
 - Logout clears all authentication state
 - Auth errors handled gracefully with user feedback
 
-*End* *Supabase Auth Configuration Per Sponsor* | **Hash**: 67ec9c94
+*End* *Identity Platform Configuration Per Sponsor* | **Hash**: 27095b5c
 ---
 
-### Supabase Auth (Per Sponsor)
+### Identity Platform (Per Sponsor)
 
-**Each sponsor** has dedicated Supabase Auth instance providing:
+**Each sponsor** has dedicated Identity Platform instance providing:
 - User registration and login
-- JWT token generation
+- Firebase ID token generation
 - Session management
 - Password policies
 - Multi-factor authentication (2FA)
@@ -122,19 +118,277 @@ Authentication integration SHALL include:
 - OAuth providers (Google, Apple, Microsoft)
 - SAML/SSO (enterprise sponsors)
 
-**Configuration Example** (Sponsor-specific):
+### Flutter Firebase Integration
+
+**pubspec.yaml dependencies**:
+```yaml
+dependencies:
+  firebase_core: ^2.24.0
+  firebase_auth: ^4.16.0
+```
+
+**Initialize Firebase** (lib/config/firebase_config.dart):
+
+```dart
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class FirebaseConfig {
+  static late FirebaseApp _app;
+  static late FirebaseAuth _auth;
+
+  /// Initialize Firebase with sponsor-specific configuration
+  static Future<void> initialize({
+    required String projectId,
+    required String apiKey,
+    required String appId,
+    String? messagingSenderId,
+  }) async {
+    _app = await Firebase.initializeApp(
+      options: FirebaseOptions(
+        projectId: projectId,
+        apiKey: apiKey,
+        appId: appId,
+        messagingSenderId: messagingSenderId ?? '',
+      ),
+    );
+    _auth = FirebaseAuth.instanceFor(app: _app);
+  }
+
+  static FirebaseAuth get auth => _auth;
+
+  /// Get current user's ID token for API calls
+  static Future<String?> getIdToken({bool forceRefresh = false}) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    return user.getIdToken(forceRefresh);
+  }
+
+  /// Sign out and clear session
+  static Future<void> signOut() async {
+    await _auth.signOut();
+  }
+}
+```
 
 ### JWT Token Structure
 
-**Claims in JWT** (custom claims added via Supabase Auth hook):
+**Claims in Firebase ID Token** (custom claims set via Cloud Functions):
+
+```json
+{
+  "sub": "user_firebase_uid",
+  "email": "user@example.com",
+  "role": "INVESTIGATOR",
+  "sponsor_id": "sponsor_abc",
+  "site_id": "site_001",
+  "site_assignments": ["site_001", "site_002"],
+  "mfa_verified": true,
+  "iss": "https://securetoken.google.com/project-id",
+  "aud": "project-id",
+  "exp": 1700000000,
+  "iat": 1699996400
+}
+```
 
 **JWT Usage**:
 - Generated on login
-- Included in all database requests
-- Validated by PostgreSQL RLS policies
+- Included in all API requests (Authorization header)
+- Validated by Dart server middleware
+- Custom claims set session variables for RLS
 - Scoped to single sponsor (cannot cross sponsors)
 
-**See**: ops-security-authentication.md for authentication configuration procedures
+---
+
+### Token Verification in Dart Server
+
+**Firebase Admin SDK verification** (lib/auth/token_verifier.dart):
+
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class FirebaseTokenVerifier {
+  final String projectId;
+  Map<String, dynamic>? _publicKeys;
+  DateTime? _keysExpiry;
+
+  FirebaseTokenVerifier({required this.projectId});
+
+  /// Verify Firebase ID token
+  Future<Map<String, dynamic>> verifyIdToken(String idToken) async {
+    // Decode token without verification first
+    final parts = idToken.split('.');
+    if (parts.length != 3) {
+      throw AuthException('Invalid token format');
+    }
+
+    final header = _decodeBase64(parts[0]);
+    final payload = _decodeBase64(parts[1]);
+
+    // Verify token claims
+    _verifyTokenClaims(payload);
+
+    // Verify signature with Google's public keys
+    await _verifySignature(idToken, header['kid'] as String);
+
+    return payload;
+  }
+
+  void _verifyTokenClaims(Map<String, dynamic> payload) {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    // Check expiration
+    final exp = payload['exp'] as int?;
+    if (exp == null || exp < now) {
+      throw AuthException('Token expired');
+    }
+
+    // Check issued at
+    final iat = payload['iat'] as int?;
+    if (iat == null || iat > now) {
+      throw AuthException('Token issued in future');
+    }
+
+    // Check audience
+    final aud = payload['aud'] as String?;
+    if (aud != projectId) {
+      throw AuthException('Invalid audience');
+    }
+
+    // Check issuer
+    final iss = payload['iss'] as String?;
+    if (iss != 'https://securetoken.google.com/$projectId') {
+      throw AuthException('Invalid issuer');
+    }
+
+    // Check subject exists
+    final sub = payload['sub'] as String?;
+    if (sub == null || sub.isEmpty) {
+      throw AuthException('Missing subject');
+    }
+  }
+
+  Future<void> _verifySignature(String token, String keyId) async {
+    // Fetch and cache Google's public keys
+    if (_publicKeys == null || _keysExpiry?.isBefore(DateTime.now()) == true) {
+      await _fetchPublicKeys();
+    }
+
+    final publicKey = _publicKeys![keyId];
+    if (publicKey == null) {
+      throw AuthException('Unknown key ID');
+    }
+
+    // Verify RS256 signature
+    // Implementation depends on crypto library (e.g., pointycastle)
+    // For production, use firebase_admin package or verify with Google API
+  }
+
+  Future<void> _fetchPublicKeys() async {
+    final response = await http.get(Uri.parse(
+      'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com',
+    ));
+
+    if (response.statusCode != 200) {
+      throw AuthException('Failed to fetch public keys');
+    }
+
+    _publicKeys = jsonDecode(response.body) as Map<String, dynamic>;
+
+    // Parse cache-control header for expiry
+    final cacheControl = response.headers['cache-control'];
+    if (cacheControl != null) {
+      final maxAge = RegExp(r'max-age=(\d+)').firstMatch(cacheControl);
+      if (maxAge != null) {
+        final seconds = int.parse(maxAge.group(1)!);
+        _keysExpiry = DateTime.now().add(Duration(seconds: seconds));
+      }
+    }
+  }
+
+  Map<String, dynamic> _decodeBase64(String str) {
+    var normalized = str.replaceAll('-', '+').replaceAll('_', '/');
+    while (normalized.length % 4 != 0) {
+      normalized += '=';
+    }
+    final decoded = base64.decode(normalized);
+    return jsonDecode(utf8.decode(decoded)) as Map<String, dynamic>;
+  }
+}
+
+class AuthException implements Exception {
+  final String message;
+  AuthException(this.message);
+
+  @override
+  String toString() => 'AuthException: $message';
+}
+```
+
+### Auth Middleware for Shelf Server
+
+```dart
+import 'package:shelf/shelf.dart';
+import 'token_verifier.dart';
+import '../database/rls_context.dart';
+
+/// Middleware that verifies Firebase ID tokens and sets RLS context
+Middleware firebaseAuthMiddleware(FirebaseTokenVerifier verifier) {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      // Skip auth for health checks
+      if (request.url.path == 'health' || request.url.path == 'ready') {
+        return innerHandler(request);
+      }
+
+      final authHeader = request.headers['authorization'];
+      if (authHeader == null || !authHeader.startsWith('Bearer ')) {
+        return Response.forbidden(
+          jsonEncode({'error': 'Missing authorization header'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
+      final token = authHeader.substring(7);
+
+      try {
+        final claims = await verifier.verifyIdToken(token);
+
+        // Create RLS context from token claims
+        final rlsContext = RlsContext(
+          userId: claims['sub'] as String,
+          role: claims['role'] as String? ?? 'USER',
+          siteId: claims['site_id'] as String?,
+          sponsorId: claims['sponsor_id'] as String,
+        );
+
+        // Add to request context for downstream handlers
+        final updatedRequest = request.change(
+          context: {
+            ...request.context,
+            'claims': claims,
+            'rlsContext': rlsContext,
+            'userId': claims['sub'],
+          },
+        );
+
+        return innerHandler(updatedRequest);
+      } on AuthException catch (e) {
+        return Response.forbidden(
+          jsonEncode({'error': e.message}),
+          headers: {'content-type': 'application/json'},
+        );
+      } catch (e) {
+        return Response.internalServerError(
+          body: jsonEncode({'error': 'Authentication failed'}),
+          headers: {'content-type': 'application/json'},
+        );
+      }
+    };
+  };
+}
+```
 
 ---
 
@@ -156,7 +410,7 @@ Authentication integration SHALL include:
 
 **Level**: Dev | **Implements**: o00006 | **Status**: Active
 
-The application SHALL implement multi-factor authentication enrollment and verification flows using Supabase Auth's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
+The application SHALL implement multi-factor authentication enrollment and verification flows using Identity Platform's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
 
 Implementation SHALL include:
 - MFA enrollment UI displaying QR code for TOTP authenticator app registration
@@ -168,7 +422,7 @@ Implementation SHALL include:
 Implementation MAY include:
 - Backup code generation and secure storage (for lost passwords)
 
-**Rationale**: Implements MFA configuration (o00006) at the application code level. Supabase Auth provides TOTP-based MFA capabilities that require application integration for enrollment and verification flows.
+**Rationale**: Implements MFA configuration (o00006) at the application code level. Identity Platform provides TOTP-based MFA capabilities that require application integration for enrollment and verification flows.
 
 **Acceptance Criteria**:
 - MFA enrollment flow displays QR code and verifies first code
@@ -178,43 +432,155 @@ Implementation MAY include:
 - Invalid code attempts rate limited (max 5 per minute)
 - MFA events logged in authentication audit trail
 
-*End* *MFA Enrollment and Verification Implementation* | **Hash**: 7bfb1abf
+*End* *MFA Enrollment and Verification Implementation* | **Hash**: e179439d
 ---
 
-**Required for**:
-- Investigators
-- Sponsors
-- Auditors
-- Administrators
-- Developer Admins
+**MFA Implementation in Flutter**:
 
-**Implementation**: TOTP (Time-based One-Time Password)
-- QR code enrollment
-- 6-digit codes via authenticator app
-- Backup codes provided
+```dart
+import 'package:firebase_auth/firebase_auth.dart';
 
-**Enforcement**: Cannot access system without 2FA enabled (after grace period)
+class MfaService {
+  final FirebaseAuth _auth;
+
+  MfaService(this._auth);
+
+  /// Enroll user in TOTP MFA
+  Future<TotpEnrollment> startTotpEnrollment() async {
+    final user = _auth.currentUser;
+    if (user == null) throw AuthException('Not authenticated');
+
+    // Start multi-factor enrollment
+    final session = await user.multiFactor.getSession();
+
+    // Generate TOTP secret for authenticator app
+    final totpSecret = await TotpMultiFactorGenerator.generateSecret(session);
+
+    return TotpEnrollment(
+      secretKey: totpSecret.secretKey,
+      qrCodeUrl: totpSecret.generateQrCodeUrl(
+        user.email ?? 'user',
+        'ClinicalDiary',
+      ),
+    );
+  }
+
+  /// Complete TOTP enrollment with verification code
+  Future<void> completeTotpEnrollment(
+    String verificationCode,
+    TotpSecret totpSecret,
+  ) async {
+    final user = _auth.currentUser;
+    if (user == null) throw AuthException('Not authenticated');
+
+    final assertion = await TotpMultiFactorGenerator.getAssertionForEnrollment(
+      totpSecret,
+      verificationCode,
+    );
+
+    await user.multiFactor.enroll(
+      assertion,
+      displayName: 'Authenticator App',
+    );
+  }
+
+  /// Verify MFA code during sign-in
+  Future<UserCredential> verifyMfaCode(
+    MultiFactorResolver resolver,
+    String verificationCode,
+  ) async {
+    final hint = resolver.hints.first;
+
+    if (hint is TotpMultiFactorInfo) {
+      final assertion = await TotpMultiFactorGenerator.getAssertionForSignIn(
+        hint.uid,
+        verificationCode,
+      );
+      return resolver.resolveSignIn(assertion);
+    }
+
+    throw AuthException('Unsupported MFA type');
+  }
+
+  /// Check if MFA is required for user role
+  bool isMfaRequired(String role) {
+    const mfaRequiredRoles = [
+      'INVESTIGATOR',
+      'SPONSOR',
+      'AUDITOR',
+      'ADMINISTRATOR',
+      'DEVELOPER_ADMIN',
+    ];
+    return mfaRequiredRoles.contains(role);
+  }
+
+  /// Check if user has MFA enabled
+  Future<bool> hasMfaEnabled() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    final factors = await user.multiFactor.getEnrolledFactors();
+    return factors.isNotEmpty;
+  }
+}
+
+class TotpEnrollment {
+  final String secretKey;
+  final String qrCodeUrl;
+
+  TotpEnrollment({required this.secretKey, required this.qrCodeUrl});
+}
+```
 
 ---
 
 ### Session Management
 
 **Session Properties**:
-- JWT-based (stateless)
-- Configurable timeout (default: 1 hour for privileged, 24 hours for patients)
-- Automatic refresh when active
-- Explicit logout clears session
+- Firebase ID token based (stateless)
+- Token expiry: 1 hour (auto-refreshed)
+- Refresh token: Long-lived (managed by Firebase SDK)
+- Explicit logout clears all tokens
 
 **Session Security**:
-- Secure, HttpOnly cookies (web)
-- Secure storage (mobile - flutter_secure_storage)
+- Secure storage on mobile (flutter_secure_storage)
+- Token refresh handled by Firebase SDK
 - Session invalidation on password change
-- Concurrent session limits (configurable)
+- Concurrent session limits via Cloud Functions
 
-**Inactivity Timeout**:
-- Privileged users: 60 minutes
-- Patients: 24 hours
-- Configurable per sponsor
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class SecureSessionManager {
+  static const _storage = FlutterSecureStorage();
+  static const _tokenKey = 'firebase_id_token';
+  static const _refreshKey = 'firebase_refresh_token';
+
+  /// Store tokens securely
+  static Future<void> storeTokens(User user) async {
+    final idToken = await user.getIdToken();
+    await _storage.write(key: _tokenKey, value: idToken);
+    // Note: refresh token is managed by Firebase SDK internally
+  }
+
+  /// Clear all stored tokens
+  static Future<void> clearTokens() async {
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _refreshKey);
+    await FirebaseAuth.instance.signOut();
+  }
+
+  /// Get current ID token (refreshes if needed)
+  static Future<String?> getIdToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    // This automatically refreshes if token is expired
+    return user.getIdToken();
+  }
+}
+```
 
 ---
 
@@ -224,7 +590,7 @@ Implementation MAY include:
 
 **Level**: Dev | **Implements**: o00007 | **Status**: Active
 
-The application SHALL implement role-based permission enforcement by reading user roles from JWT claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
+The application SHALL implement role-based permission enforcement by reading user roles from Firebase ID token claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
 
 Implementation SHALL include:
 - Role extraction from JWT claims after authentication
@@ -246,7 +612,7 @@ Implementation SHALL include:
 - Role changes reflected immediately in UI
 - Unauthorized navigation routes redirect to role-appropriate screen
 
-*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 17e50d39
+*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 32cf086a
 ---
 
 ### Role Hierarchy
@@ -263,23 +629,135 @@ The system defines **7 roles** with specific permissions:
 
 **See**: prd-security-RBAC.md for complete role definitions, permissions matrix, and user stories
 
-### Single Active Role Context
+### Permission Service Implementation
 
-**Principle**: Users with multiple roles must select **one active role** per session.
+```dart
+enum Permission {
+  readOwnData,
+  writeOwnData,
+  readSiteData,
+  writeSiteData,
+  readAllData,
+  writeAllData,
+  manageUsers,
+  manageRoles,
+  viewAuditLogs,
+  manageSites,
+  exportData,
+}
 
-**Why**: Ensures all actions are clearly attributed to specific role for audit purposes.
+class PermissionService {
+  static const Map<String, Set<Permission>> rolePermissions = {
+    'USER': {
+      Permission.readOwnData,
+      Permission.writeOwnData,
+    },
+    'INVESTIGATOR': {
+      Permission.readOwnData,
+      Permission.readSiteData,
+      Permission.viewAuditLogs,
+    },
+    'ANALYST': {
+      Permission.readSiteData,
+      Permission.exportData,
+    },
+    'SPONSOR': {
+      Permission.readAllData,
+      Permission.viewAuditLogs,
+      Permission.manageUsers,
+    },
+    'AUDITOR': {
+      Permission.readAllData,
+      Permission.viewAuditLogs,
+    },
+    'ADMINISTRATOR': {
+      Permission.readAllData,
+      Permission.writeAllData,
+      Permission.manageUsers,
+      Permission.manageRoles,
+      Permission.viewAuditLogs,
+      Permission.manageSites,
+    },
+    'DEVELOPER_ADMIN': {
+      Permission.readAllData,
+      Permission.writeAllData,
+      Permission.manageUsers,
+      Permission.manageRoles,
+      Permission.viewAuditLogs,
+      Permission.manageSites,
+      Permission.exportData,
+    },
+  };
 
-**Implementation**:
+  final String currentRole;
 
-### Single Active Site Context (Site-Scoped Roles)
+  PermissionService(this.currentRole);
 
-**Applies to**: Investigators, Analysts
+  bool hasPermission(Permission permission) {
+    return rolePermissions[currentRole]?.contains(permission) ?? false;
+  }
 
-**Principle**: Users assigned to multiple sites must select **one active site** for current session.
+  bool canAccessSite(String siteId, List<String> assignedSites) {
+    if (hasPermission(Permission.readAllData)) return true;
+    return assignedSites.contains(siteId);
+  }
+}
+```
 
-**Why**: Prevents accidental cross-site actions, simplifies audit trail.
+### UI Permission Guards in Flutter
 
-**Implementation**:
+```dart
+import 'package:flutter/material.dart';
+
+class PermissionGuard extends StatelessWidget {
+  final Permission required;
+  final Widget child;
+  final Widget? fallback;
+
+  const PermissionGuard({
+    super.key,
+    required this.required,
+    required this.child,
+    this.fallback,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final permissionService = context.watch<PermissionService>();
+
+    if (permissionService.hasPermission(required)) {
+      return child;
+    }
+
+    return fallback ?? const SizedBox.shrink();
+  }
+}
+
+// Usage example
+class DiaryScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Always visible
+        DiaryEntryList(),
+
+        // Only visible to users who can write
+        PermissionGuard(
+          required: Permission.writeOwnData,
+          child: AddEntryButton(),
+        ),
+
+        // Only visible to investigators
+        PermissionGuard(
+          required: Permission.readSiteData,
+          child: SiteDataSection(),
+        ),
+      ],
+    );
+  }
+}
+```
 
 ---
 
@@ -290,410 +768,162 @@ The system defines **7 roles** with specific permissions:
 **PostgreSQL RLS** policies enforce access control **at the database level**, ensuring application code cannot bypass restrictions.
 
 **Key Features**:
-- Automatic query filtering based on JWT claims
+- Automatic query filtering based on session variables
 - Cannot be disabled by application
 - Policies evaluated on every database operation
 - Independent of application logic
 
-### RLS Policy Categories
+### Setting RLS Context from JWT Claims
 
-**1. User Data Isolation**:
+The Dart server extracts claims from the verified Firebase token and sets PostgreSQL session variables:
 
-**2. Site-Scoped Access**:
+```dart
+class RlsContext {
+  final String userId;
+  final String role;
+  final String? siteId;
+  final String sponsorId;
 
-**3. Role-Based Permissions**:
+  RlsContext({
+    required this.userId,
+    required this.role,
+    this.siteId,
+    required this.sponsorId,
+  });
+
+  /// Set RLS context for database session
+  Future<void> apply(Connection connection) async {
+    await connection.execute(
+      Sql.named('''
+        SELECT set_config('app.user_id', @userId, true),
+               set_config('app.role', @role, true),
+               set_config('app.site_id', @siteId, true),
+               set_config('app.sponsor_id', @sponsorId, true)
+      '''),
+      parameters: {
+        'userId': userId,
+        'role': role,
+        'siteId': siteId ?? '',
+        'sponsorId': sponsorId,
+      },
+    );
+  }
+
+  /// Create from verified Firebase token claims
+  factory RlsContext.fromClaims(Map<String, dynamic> claims) {
+    return RlsContext(
+      userId: claims['sub'] as String,
+      role: claims['role'] as String? ?? 'USER',
+      siteId: claims['site_id'] as String?,
+      sponsorId: claims['sponsor_id'] as String,
+    );
+  }
+}
+```
+
+### RLS Policy Examples
+
+**User Data Isolation**:
+```sql
+CREATE POLICY user_select_own ON record_state
+  FOR SELECT
+  USING (patient_id = current_setting('app.user_id', true));
+
+CREATE POLICY user_insert_own ON record_audit
+  FOR INSERT
+  WITH CHECK (patient_id = current_setting('app.user_id', true));
+```
+
+**Site-Scoped Access**:
+```sql
+CREATE POLICY investigator_select_site ON record_state
+  FOR SELECT
+  USING (
+    current_setting('app.role', true) = 'INVESTIGATOR'
+    AND site_id = current_setting('app.site_id', true)
+  );
+```
 
 **See**: prd-security-RLS.md for complete RLS policy specifications
 
 ---
 
-## Access Control Matrix
-
-| Resource | Patient | Investigator | Analyst | Sponsor | Auditor | Admin |
-| --- | --- | --- | --- | --- | --- | --- |
-| Own diary entries | Read/Write | Read-only (site) | - | - | Read-only | Read/Write |
-| Other patient entries | - | Read-only (site) | Read-only (site) | Read-only (de-ID) | Read-only | Read/Write |
-| Annotations | View own | Create (site) | - | - | View all | Create |
-| Site configuration | - | View (site) | View (site) | View all | View all | Full |
-| User management | View own | - | - | Create Investigators/Analysts | - | Full |
-| Audit trail | View own | View (site) | View (site) | View all (de-ID) | View all | View all |
-
-**Legend**:
-- **Read/Write**: Full CRUD operations
-- **Read-only**: SELECT only
-- **site**: Limited to assigned sites
-- **de-ID**: De-identified data only
-- **-**: No access
-
----
-
-## Break-Glass Access
-
-### Emergency Access for Administrators
-
-**Use Case**: Administrator needs temporary elevated access for emergency troubleshooting.
-
-**Requirements**:
-1. Must create **elevation ticket** with justification
-2. Access granted with **time-to-live (TTL)** (e.g., 2 hours)
-3. All actions logged with ticket reference
-4. Cannot access PHI by default (even with break-glass)
-
-**Process**:
-
-**Monitoring**: All break-glass access logged and reviewed weekly.
-
-**See**: ops-security.md for break-glass monitoring procedures
-
----
-
-## Threat Model: Unauthorized Access
-
-### Threat 1: Credential Compromise
-
-**Risk**: Attacker obtains user credentials (phishing, brute force, credential stuffing)
-
-**Mitigations**:
-- ✅ MFA required for privileged users
-- ✅ Strong password requirements
-- ✅ Account lockout after failed attempts
-- ✅ Session timeout
-- ✅ Failed login monitoring and alerts
-
-### Threat 2: Session Hijacking
-
-**Risk**: Attacker steals session token (XSS, man-in-the-middle, physical access)
-
-**Mitigations**:
-- ✅ JWT tokens with short expiration
-- ✅ TLS 1.3 for all connections
-- ✅ Secure, HttpOnly cookies
-- ✅ Automatic logout on inactivity
-- ✅ Session invalidation on suspicious activity
-
-### Threat 3: Privilege Escalation
-
-**Risk**: User gains access beyond their authorized role/scope
-
-**Mitigations**:
-- ✅ RLS policies enforce authorization at database level
-- ✅ Cannot be bypassed by application code
-- ✅ Role changes logged and audited
-- ✅ Single active role prevents role confusion
-- ✅ Site assignments enforced by RLS
-
-### Threat 4: Insider Threat
-
-**Risk**: Authorized user abuses legitimate access
-
-**Mitigations**:
-- ✅ Principle of least privilege (minimal necessary access)
-- ✅ Separation of duties (no single user has all permissions)
-- ✅ All actions logged with user attribution
-- ✅ Regular access reviews
-- ✅ Break-glass requires justification and TTL
-- ✅ Anomaly detection for unusual access patterns
-
-### Threat 5: Cross-Sponsor Access
-
-**Risk**: User from Sponsor A tries to access Sponsor B data
-
-**Mitigations**:
-- ✅ Complete infrastructure isolation (separate Supabase instances)
-- ✅ Separate JWT secrets per sponsor
-- ✅ JWTs cannot cross sponsor boundaries
-- ✅ No shared authentication system
-- ✅ Mobile app connects to single sponsor per enrollment
-
----
-
-## Authentication & Authorization Testing
-
-### Test Categories
-
-**1. Authentication Tests**:
-- Login with valid credentials succeeds
-- Login with invalid credentials fails
-- Account lockout after N failed attempts
-- MFA required for privileged users
-- Password reset workflow secure
-- Session expires after timeout
-
-**2. Authorization Tests**:
-- User can access own data only
-- User cannot access other users' data
-- Investigator limited to assigned sites
-- Investigator cannot access unassigned sites
-- Analyst has read-only access (write operations fail)
-- Admin actions logged
-
-**3. RLS Policy Tests**:
-
-**See**: ops-security.md for testing procedures
-
----
-
-## Access Review Procedures
-
-### Quarterly Access Reviews
-
-**Process**:
-1. Generate report of all users and their roles
-2. For each user, verify:
-   - Current role assignment is correct
-   - Site assignments are correct (for site-scoped roles)
-   - MFA enabled (for privileged users)
-   - Last login date (flag inactive accounts)
-3. Review elevation tickets from past quarter
-4. Document review and any changes made
-
-### Role Change Process
-
-**Requirements**:
-1. Request submitted by authorized personnel
-2. Justification documented
-3. Approval from appropriate authority
-4. Change logged in role_change_log table
-5. User notified of role change
-
-**Logging**:
-
----
-
-## Security Monitoring
-
-### Real-Time Alerts
-
-**Immediate notification for**:
-- Multiple failed login attempts (>5 in 15 minutes)
-- MFA disabled for privileged user
-- Role change without approval ticket
-- Break-glass access requested
-- Suspicious access patterns (e.g., access from unusual location)
-
-### Daily Reports
-
-**Generated each morning**:
-- Failed authentication attempts (previous 24 hours)
-- New user registrations
-- Role changes
-- Active elevation tickets
-
-### Weekly Digest
-
-**Sent to security team**:
-- Summary of access reviews completed
-- Elevation tickets summary
-- Failed login trends
-- Inactive accounts (>90 days)
-
-**See**: ops-operations.md for operational monitoring procedures
-
----
-
-## Developer Responsibilities
-
-### Secure Authentication Implementation
-
-**Required**:
-- ✅ Always use Supabase Auth for authentication (never custom auth)
-- ✅ Never bypass RLS policies with service role key in client code
-- ✅ Validate JWT on every request
-- ✅ Use parameterized queries (no SQL injection)
-- ✅ Never log authentication tokens
-
-**Forbidden**:
-- ❌ Storing passwords in plain text
-- ❌ Custom authentication schemes
-- ❌ Client-side only authorization checks
-- ❌ Disabling RLS for convenience
-- ❌ Using service role key in client applications
-
-**See**: dev-core-practices.md for development standards
-
----
-
-## References
-
-- **Role Definitions**: prd-security-RBAC.md
-- **RLS Policies**: prd-security-RLS.md
-- **Data Privacy**: prd-security-data-classification.md
-- **Audit Requirements**: prd-clinical-trials.md
-- **Audit Implementation**: prd-database.md
-- **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
-- **Security Operations**: ops-security.md
-- **Authentication Setup**: ops-security-authentication.md
-
----
-
-## Revision History
-
-| Version | Date | Changes | Author |
-| --- | --- | --- | --- |
-| 2.0 | 2025-01-24 | Scope revision: Authentication & authorization only | Development Team |
-| 1.0 | 2025-01-24 | Initial security architecture (superseded) | Development Team |
-
----
-
-**Document Classification**: Internal Use - Security Architecture
-**Review Frequency**: Quarterly or after security incidents
-**Owner**: Security Team / Technical Lead
-
-
----
-
-# Data Classification (from prd-security-data-classification.md)
-
-# TODO: Review if this file contains information redundant to other files.
-# TODO: Mark redundant information with TODO: replace with reference to other file.section.paragraph reference
-# TODO: Implement replacement of references noted in other TODOs
-
-# Data Classification and Privacy Architecture
-
-> **Purpose**: Document data classification and justify encryption strategy for compliance audits
->
-> **Audience**: Compliance officers, auditors, security reviewers, developers
->
-> **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
-> **See**: prd-security.md for authentication and authorization
-
-**Version**: 1.1.0 | **Date**: 2025-01-24
-
----
-
-## Executive Summary
-
-This clinical trial diary database implements a **privacy-by-design** architecture that **separates patient identity from clinical data**. The database contains **de-identified clinical observations only** and does not store protected health information (PHI) or personally identifiable information (PII).
-
-**Key Principle**: Patient identity is managed by the authentication system (Supabase Auth). The database uses de-identified study participant IDs to link clinical data without exposing patient identity.
-
----
-
-## Multi-Sponsor Privacy Architecture
-
-### Infrastructure-Level Isolation
-
-**Deployment Model**: Each sponsor has a dedicated Supabase instance, providing complete data isolation:
-
-```
-Sponsor A Environment          Sponsor B Environment
-┌─────────────────────────┐   ┌─────────────────────────┐
-│ Supabase Project A      │   │ Supabase Project B      │
-│ ├─ PostgreSQL Database  │   │ ├─ PostgreSQL Database  │
-│ ├─ Supabase Auth        │   │ ├─ Supabase Auth        │
-│ └─ Separate encryption  │   │ └─ Separate encryption  │
-└─────────────────────────┘   └─────────────────────────┘
+## GCP IAM Integration
+
+### Service Account Configuration
+
+Each Cloud Run service uses a dedicated service account with minimal permissions:
+
+```dart
+// Environment configuration for Cloud Run
+class GcpConfig {
+  /// Project ID from metadata server or environment
+  static Future<String> getProjectId() async {
+    // Try environment first
+    final envProject = Platform.environment['GCP_PROJECT_ID'];
+    if (envProject != null) return envProject;
+
+    // Fall back to metadata server (in Cloud Run)
+    final response = await http.get(
+      Uri.parse('http://metadata.google.internal/computeMetadata/v1/project/project-id'),
+      headers: {'Metadata-Flavor': 'Google'},
+    );
+    return response.body;
+  }
+
+  /// Service account email from metadata server
+  static Future<String> getServiceAccountEmail() async {
+    final response = await http.get(
+      Uri.parse('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email'),
+      headers: {'Metadata-Flavor': 'Google'},
+    );
+    return response.body;
+  }
+}
 ```
 
-**Privacy Benefits**:
-- **Physical Separation**: No shared database infrastructure
-- **Independent Encryption**: Each sponsor has separate encryption keys
-- **Isolated Auth**: No shared authentication system or user database
-- **Breach Containment**: Compromise of Sponsor A data cannot expose Sponsor B data
-- **Independent Compliance**: Each sponsor can implement their own privacy policies
+### Workload Identity for GKE/Cloud Run
 
-**See**: prd-architecture-multi-sponsor.md for complete architecture
+Cloud Run automatically provides identity through the service account attached to the service. No key files needed:
 
----
+```dart
+import 'package:googleapis_auth/auth_io.dart';
 
-## Data Classification
+class GcpAuth {
+  /// Get authenticated client using Application Default Credentials
+  static Future<AutoRefreshingAuthClient> getAuthenticatedClient(
+    List<String> scopes,
+  ) async {
+    // Uses service account attached to Cloud Run or local ADC
+    return clientViaApplicationDefaultCredentials(scopes: scopes);
+  }
 
-### De-Identified Data (Stored in Database)
+  /// Access Secret Manager
+  static Future<String> getSecret(String secretId) async {
+    final client = await getAuthenticatedClient([
+      'https://www.googleapis.com/auth/cloud-platform',
+    ]);
 
-#### Clinical Trial Data
-**Location**: `record_audit.data` (JSONB), `record_state.current_data` (JSONB)
+    final projectId = await GcpConfig.getProjectId();
+    final url = 'https://secretmanager.googleapis.com/v1/'
+        'projects/$projectId/secrets/$secretId/versions/latest:access';
 
-**Contains**:
-- Diary entries (symptom logs, activity data)
-- Clinical observations
-- Non-identifying health metrics
-- Timestamps of events
+    final response = await client.get(Uri.parse(url));
 
-**Does NOT contain**:
-- Patient names
-- Dates of birth
-- Social security numbers
-- Medical record numbers
-- Any direct identifiers
+    if (response.statusCode != 200) {
+      throw Exception('Failed to access secret: ${response.body}');
+    }
 
-**Classification**: De-identified clinical data
-**Encryption**: At-rest (database level), In-transit (TLS)
-**Justification**: No PHI/PII present; suitable for regulatory review
-
-#### Study Participant Identifiers
-**Location**: `record_audit.patient_id`, `user_site_assignments.patient_id`, `user_site_assignments.study_patient_id`
-
-**Contains**:
-- Randomized study participant IDs
-- Site-specific enrollment identifiers
-
-**Does NOT contain**:
-- Real names or contact information
-- Any re-identification keys in same database
-
-**Classification**: De-identified research identifiers
-**Encryption**: At-rest (database level), In-transit (TLS)
-**Justification**: Random IDs cannot re-identify patients without external key
-
-#### Site Information
-**Location**: `sites` table
-
-**Contains**:
-- Clinical site names (e.g., "Memorial Hospital Clinical Research")
-- Site addresses (business locations)
-- Site contact information (business phone/email)
-
-**Classification**: Public or business information
-**Encryption**: At-rest (database level), In-transit (TLS)
-**Justification**: Business contact information, not personal health information
-
-#### Investigator Information
-**Location**: `investigator_site_assignments`, `user_profiles`
-
-**Contains**:
-- Investigator user IDs (references to auth system)
-- Role assignments
-- Email addresses (business/professional)
-
-**Does NOT contain**:
-- Personal contact information
-- Home addresses
-- Personal identification numbers
-
-**Classification**: Professional contact information
-**Encryption**: At-rest (database level), In-transit (TLS)
-**Justification**: Business email addresses and role assignments
+    final data = jsonDecode(response.body);
+    final payload = data['payload']['data'] as String;
+    return utf8.decode(base64.decode(payload));
+  }
+}
+```
 
 ---
 
-### Identified Data (NOT Stored in Database)
-
-#### Patient Identity
-**Location**: Supabase Auth system (separate from application database)
-
-**Contains**:
-- Real names
-- Email addresses
-- Phone numbers (if provided)
-- Authentication credentials
-
-**Classification**: Personally Identifiable Information (PII)
-**Encryption**: Managed by Supabase Auth
-**Access**: Strictly controlled, separate from clinical data
-
-#### Re-Identification Key
-**Location**: Secure key management system (outside database scope)
-
-**Contains**:
-- Mapping between real patient identities and study participant IDs
-
-**Classification**: Critical security asset
-**Storage**: NOT in this database
-**Access**: Restricted to authorized study personnel only
-
----
-
-## Encryption Strategy
+## Encryption Implementation
 
 # REQ-d00010: Data Encryption Implementation
 
@@ -702,14 +932,14 @@ Sponsor A Environment          Sponsor B Environment
 The application SHALL implement data encryption at rest and in transit using platform-provided encryption capabilities, ensuring all clinical trial data is protected from unauthorized access during storage and transmission.
 
 Implementation SHALL include:
-- TLS/SSL configuration for all HTTP connections to Supabase (HTTPS enforced)
+- TLS/SSL configuration for all HTTP connections (HTTPS enforced)
 - Secure local storage encryption for SQLite database on mobile devices
 - Platform keychain/keystore usage for authentication token storage
 - TLS certificate validation preventing man-in-the-middle attacks
 - Encrypted backup files for local data
 - No plaintext storage of sensitive configuration values
 
-**Rationale**: Implements data encryption requirement (p00017) at the application code level. Supabase provides database-level encryption at rest, while application must ensure encrypted transit (TLS) and secure local storage on mobile devices.
+**Rationale**: Implements data encryption requirement (p00017) at the application code level. Cloud SQL provides database-level encryption at rest, while application must ensure encrypted transit (TLS) and secure local storage on mobile devices.
 
 **Acceptance Criteria**:
 - All API requests use HTTPS (TLS 1.2 or higher)
@@ -719,259 +949,269 @@ Implementation SHALL include:
 - Local backups encrypted with device encryption key
 - No sensitive data logged in plaintext
 
-*End* *Data Encryption Implementation* | **Hash**: d5034b3a
+*End* *Data Encryption Implementation* | **Hash**: d2d03aa8
 ---
 
-### 1. Encryption at Rest
+### Transport Security
 
-**Provider**: Supabase (PostgreSQL)
-**Algorithm**: AES-256
-**Scope**: Entire database
+```dart
+import 'package:http/http.dart' as http;
+import 'dart:io';
 
-**Purpose**:
-- Protect data integrity
-- Prevent unauthorized physical access to storage
-- Compliance with data security requirements
+class SecureHttpClient {
+  static http.Client create() {
+    // Create client with certificate validation
+    final httpClient = HttpClient()
+      ..badCertificateCallback = (cert, host, port) {
+        // In production, always return false to reject bad certs
+        // Only allow exceptions in development
+        assert(() {
+          print('Certificate error for $host: ${cert.issuer}');
+          return true;
+        }());
+        return false;
+      };
 
-**What is encrypted**:
-✅ All tables and indexes
-✅ Database backups
-✅ Write-ahead logs (WAL)
-✅ Temporary files
+    return IOClient(httpClient);
+  }
 
-**Key Management**: Managed by Supabase infrastructure with automatic key rotation
+  /// Make authenticated request with ID token
+  static Future<http.Response> authenticatedGet(
+    String url, {
+    required String idToken,
+  }) async {
+    final client = create();
 
-### 2. Encryption in Transit
-
-**Protocol**: TLS 1.3 / TLS 1.2
-**Scope**: All database connections
-
-**Purpose**:
-- Prevent network eavesdropping
-- Ensure data integrity during transmission
-- Authenticate server identity
-
-**Required for**:
-✅ Application-to-database connections
-✅ Admin database access
-✅ Backup/replication traffic
-
-**Certificate Management**: Managed by Supabase
-
-### 3. Field-Level Encryption
-
-**Status**: NOT IMPLEMENTED
-
-**Justification**:
-1. **No PHI/PII in Database**: Data is de-identified; no personal health information or personally identifiable information stored
-2. **Regulatory Compliance**: Auditors and regulators need to read clinical trial data; field-level encryption would obstruct legitimate audit activities
-3. **Data Utility**: Clinical researchers need queryable data; encryption prevents SQL operations
-4. **Separation of Concerns**: Patient identity managed by separate authentication system
-5. **Risk Assessment**: Risk of database compromise mitigated by database-level encryption, access controls, and audit trails
-
-**When field-level encryption WOULD be required**:
-- ❌ If database stored patient names → Not applicable (uses study IDs)
-- ❌ If database stored SSNs or MRNs → Not applicable (none stored)
-- ❌ If database stored re-identification keys → Not applicable (keys stored separately)
-- ❌ If single breach exposed identity + clinical data → Not applicable (separated by design)
-
----
-
-## Privacy-by-Design Architecture
-
-### Separation of Identity and Clinical Data
-
-```
-┌─────────────────────────────────┐
-│   Supabase Auth (Identity)      │
-│                                  │
-│  - Real names                    │
-│  - Email addresses               │
-│  - Authentication                │
-└────────────┬────────────────────┘
-             │
-             │ Authentication only
-             │ (JWT with study_id)
-             ▼
-┌─────────────────────────────────┐
-│   Application Database           │
-│   (Clinical Data)                │
-│                                  │
-│  - Study participant IDs         │
-│  - De-identified diary entries   │
-│  - Clinical observations         │
-│  - Audit trail                   │
-└─────────────────────────────────┘
-
-         No link in database
-              between
-         identity and data
+    return client.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+    );
+  }
+}
 ```
 
-### Re-Identification Protection
+### Secure Local Storage
 
-**Requirement**: Re-identify patient for medical emergency or study conclusion
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 
-**Implementation**:
-1. Secure key management system (outside database) maintains mapping
-2. Access to re-identification key requires:
-   - Multi-factor authentication
-   - Authorization by principal investigator
-   - Logged and audited access
-   - Business justification
-3. Re-identification process documented in study protocol
+class SecureStorage {
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
+  );
 
-**Database role**: Stores only de-identified data; no re-identification capability
+  /// Store sensitive value
+  static Future<void> write(String key, String value) async {
+    await _storage.write(key: key, value: value);
+  }
 
----
+  /// Read sensitive value
+  static Future<String?> read(String key) async {
+    return _storage.read(key: key);
+  }
 
-## Compliance Justification
+  /// Delete sensitive value
+  static Future<void> delete(String key) async {
+    await _storage.delete(key: key);
+  }
+}
 
-### FDA 21 CFR Part 11
+class EncryptedDatabase {
+  static Database? _database;
 
-**Requirement**: "Electronic records shall be accurate, reliable, and tamper-evident"
+  /// Initialize encrypted SQLite database
+  static Future<Database> getDatabase() async {
+    if (_database != null) return _database!;
 
-**Compliance**:
-- ✅ Encryption at rest protects data integrity
-- ✅ Audit trail captures all modifications
-- ✅ Cryptographic hashing ensures tamper-evidence
-- ✅ Access controls prevent unauthorized changes
+    // Get or generate encryption key
+    var key = await SecureStorage.read('db_encryption_key');
+    if (key == null) {
+      key = _generateEncryptionKey();
+      await SecureStorage.write('db_encryption_key', key);
+    }
 
-**Field-level encryption**: Not required for de-identified research data
+    _database = await openDatabase(
+      'clinical_diary.db',
+      password: key,
+      version: 1,
+      onCreate: (db, version) async {
+        // Create tables
+        await db.execute('''
+          CREATE TABLE diary_entries (
+            id TEXT PRIMARY KEY,
+            data TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            synced INTEGER DEFAULT 0
+          )
+        ''');
+      },
+    );
 
-### HIPAA
+    return _database!;
+  }
 
-**Requirement**: Protect PHI through encryption or alternative security measures
-
-**Compliance**:
-- ✅ No PHI stored in database (de-identified data only)
-- ✅ Safe Harbor method: All 18 HIPAA identifiers removed
-- ✅ Patient identity managed separately
-- ✅ Re-identification keys secured outside database
-
-**Field-level encryption**: Not applicable (no PHI in database)
-
-### GDPR (if applicable)
-
-**Requirement**: Pseudonymization and encryption
-
-**Compliance**:
-- ✅ Pseudonymization: Study participant IDs used
-- ✅ Encryption: At-rest and in-transit
-- ✅ Right to be forgotten: Supported via soft delete
-- ✅ Data minimization: Only clinical data stored
-
-**Field-level encryption**: Not required for pseudonymized data with proper access controls
-
----
-
-## Security Controls (Beyond Encryption)
-
-### Access Controls
-- Row-level security (RLS) policies
-- Role-based access control (RBAC)
-- Multi-factor authentication for investigators/admins
-- Session management and timeout
-
-### Audit Trail
-- Immutable audit log (append-only)
-- Cryptographic tamper detection
-- Complete change history
-- User attribution for all actions
-
-### Network Security
-- TLS 1.2+ for all connections
-- Certificate validation
-- No mixed content (all resources over HTTPS)
-- Firewall rules restricting database access
-
-### Operational Security
-- Regular security audits
-- Vulnerability scanning
-- Penetration testing
-- Incident response procedures
+  static String _generateEncryptionKey() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64Encode(bytes);
+  }
+}
+```
 
 ---
 
-## Risk Assessment
+## Security Testing
 
-### Threat: Database Compromise
+### Authentication Tests
 
-**Scenario**: Attacker gains unauthorized access to database
+```dart
+import 'package:test/test.dart';
 
-**Impact with current architecture**:
-- ⚠️ Clinical diary data exposed
-- ✅ Patient identities NOT exposed (stored separately)
-- ✅ Cannot re-identify patients without external key
-- ✅ Audit trail detects unauthorized access
-- ✅ Encryption at rest limits physical storage compromise
+void main() {
+  group('Firebase Token Verification', () {
+    late FirebaseTokenVerifier verifier;
 
-**Mitigation**:
-- Defense in depth: Multiple layers of security
-- Monitoring and alerting for suspicious access
-- Regular security reviews
-- Incident response plan
+    setUp(() {
+      verifier = FirebaseTokenVerifier(projectId: 'test-project');
+    });
 
-### Threat: Network Eavesdropping
+    test('rejects expired token', () async {
+      final expiredToken = createTestToken(
+        exp: DateTime.now().subtract(Duration(hours: 1)),
+      );
 
-**Scenario**: Attacker intercepts network traffic
+      expect(
+        () => verifier.verifyIdToken(expiredToken),
+        throwsA(isA<AuthException>()),
+      );
+    });
 
-**Impact with current architecture**:
-- ✅ TLS encryption prevents reading data in transit
-- ✅ Certificate validation prevents man-in-the-middle
-- ✅ No sensitive data exposed
+    test('rejects wrong audience', () async {
+      final wrongAudToken = createTestToken(aud: 'wrong-project');
 
-### Threat: Insider Abuse
+      expect(
+        () => verifier.verifyIdToken(wrongAudToken),
+        throwsA(isA<AuthException>()),
+      );
+    });
 
-**Scenario**: Authorized user attempts unauthorized data access
+    test('accepts valid token', () async {
+      final validToken = createTestToken(
+        sub: 'user123',
+        role: 'USER',
+        sponsorId: 'sponsor-abc',
+      );
 
-**Impact with current architecture**:
-- ✅ RLS policies limit data visibility by role
-- ✅ Audit trail logs all access attempts
-- ✅ Cannot re-identify patients without external key access
-- ✅ Regular access reviews detect anomalies
+      final claims = await verifier.verifyIdToken(validToken);
+
+      expect(claims['sub'], equals('user123'));
+      expect(claims['role'], equals('USER'));
+    });
+  });
+
+  group('Permission Service', () {
+    test('USER has read/write own data', () {
+      final service = PermissionService('USER');
+
+      expect(service.hasPermission(Permission.readOwnData), isTrue);
+      expect(service.hasPermission(Permission.writeOwnData), isTrue);
+      expect(service.hasPermission(Permission.readSiteData), isFalse);
+    });
+
+    test('INVESTIGATOR has site-scoped access', () {
+      final service = PermissionService('INVESTIGATOR');
+
+      expect(service.hasPermission(Permission.readSiteData), isTrue);
+      expect(service.hasPermission(Permission.writeAllData), isFalse);
+    });
+
+    test('ADMINISTRATOR has full access', () {
+      final service = PermissionService('ADMINISTRATOR');
+
+      expect(service.hasPermission(Permission.readAllData), isTrue);
+      expect(service.hasPermission(Permission.writeAllData), isTrue);
+      expect(service.hasPermission(Permission.manageUsers), isTrue);
+    });
+  });
+}
+```
+
+### RLS Policy Tests
+
+```sql
+-- Test user isolation
+DO $$
+DECLARE
+  test_uuid UUID := gen_random_uuid();
+BEGIN
+  -- Set context as user1
+  PERFORM set_config('app.user_id', 'user1', true);
+  PERFORM set_config('app.role', 'USER', true);
+
+  -- Insert as user1
+  INSERT INTO record_audit (event_uuid, patient_id, site_id, operation, data, created_by, role, client_timestamp, change_reason)
+  VALUES (test_uuid, 'user1', 'site1', 'CREATE', '{"test": true}'::jsonb, 'user1', 'USER', now(), 'Test');
+
+  -- Verify user1 can read
+  IF NOT EXISTS (SELECT 1 FROM record_state WHERE patient_id = 'user1') THEN
+    RAISE EXCEPTION 'User cannot read own data';
+  END IF;
+
+  -- Switch to user2
+  PERFORM set_config('app.user_id', 'user2', true);
+
+  -- Verify user2 cannot see user1's data
+  IF EXISTS (SELECT 1 FROM record_state WHERE patient_id = 'user1') THEN
+    RAISE EXCEPTION 'User can see other user data - RLS failure!';
+  END IF;
+
+  RAISE NOTICE 'RLS test passed';
+END $$;
+```
 
 ---
 
-## Developer Guidelines
+## Developer Responsibilities
 
-### DO:
-✅ Use parameterized queries to prevent SQL injection
-✅ Validate all user input
-✅ Use HTTPS for all application connections
-✅ Implement certificate pinning in mobile apps
-✅ Log security events for monitoring
-✅ Follow least privilege principle
-✅ Use study participant IDs, never request real names
-✅ Treat all diary data as confidential (even though de-identified)
+### Secure Implementation Checklist
 
-### DON'T:
-❌ Store patient names, SSNs, or direct identifiers in database
-❌ Store re-identification keys in application database
-❌ Bypass RLS policies
-❌ Log sensitive data in application logs
-❌ Share database credentials
-❌ Implement custom encryption (use platform-provided)
-❌ Store unvalidated user input
+**Required**:
+- ✅ Always use Firebase Auth / Identity Platform for authentication
+- ✅ Never bypass RLS policies
+- ✅ Validate Firebase ID token on every API request
+- ✅ Use parameterized queries (no SQL injection)
+- ✅ Never log authentication tokens
+- ✅ Use TLS for all connections
+- ✅ Store tokens in secure storage only
+
+**Forbidden**:
+- ❌ Storing passwords in plain text
+- ❌ Custom authentication schemes
+- ❌ Client-side only authorization checks
+- ❌ Disabling RLS for convenience
+- ❌ Storing service account keys in code
+- ❌ Logging sensitive data (tokens, PHI)
 
 ---
 
-## Audit Checklist
+## References
 
-For compliance audits, verify:
-
-- [ ] Database encryption at rest enabled
-- [ ] TLS 1.2+ enforced for all connections
-- [ ] No PHI/PII in database tables
-- [ ] Study participant IDs are de-identified
-- [ ] Patient identity managed separately (Supabase Auth)
-- [ ] Re-identification keys stored securely outside database
-- [ ] RLS policies enforced on all tables
-- [ ] Audit trail immutable and tamper-evident
-- [ ] Access controls follow least privilege
-- [ ] Multi-factor authentication enabled for privileged users
-- [ ] Regular security audits conducted
-- [ ] Incident response procedures documented
+- **Role Definitions**: prd-security-RBAC.md
+- **RLS Policies**: prd-security-RLS.md
+- **Data Privacy**: prd-security-data-classification.md
+- **Security Operations**: ops-security.md
+- **Authentication Setup**: ops-security-authentication.md
+- **Identity Platform Docs**: https://cloud.google.com/identity-platform/docs
+- **Firebase Auth Flutter**: https://firebase.google.com/docs/auth/flutter/start
 
 ---
 
@@ -979,20 +1219,11 @@ For compliance audits, verify:
 
 | Version | Date | Changes | Author |
 | --- | --- | --- | --- |
-| 1.0.0 | 2025-10-14 | Initial documentation | Development Team |
+| 2.0 | 2025-11-24 | Migration to GCP Identity Platform | Development Team |
+| 1.0 | 2025-01-24 | Initial security implementation guide | Development Team |
 
 ---
 
-## References
-
-- FDA 21 CFR Part 11: Electronic Records and Electronic Signatures
-- HIPAA Privacy Rule: De-identification Standards (45 CFR 164.514)
-- GDPR Article 32: Security of Processing
-- NIST SP 800-122: Guide to Protecting PII
-- ICH E6(R2): Good Clinical Practice Guidelines
-
----
-
-**Document Classification**: Internal Use - Security Documentation
-**Review Frequency**: Annually or when architecture changes
-**Owner**: Technical Lead / Security Team
+**Document Classification**: Internal Use - Security Implementation
+**Review Frequency**: Quarterly or after security incidents
+**Owner**: Security Team / Technical Lead

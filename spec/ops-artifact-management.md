@@ -2,7 +2,9 @@
 
 **Audience**: Operations team, Compliance team
 **Purpose**: Define artifact retention, archival, and lifecycle management for FDA compliance
-**Status**: Ready to activate (workflows created, archival configured but not activated)
+**Status**: Active
+**Version**: 2.0.0
+**Last Updated**: 2025-11-24
 
 ---
 
@@ -36,19 +38,19 @@ The system SHALL implement artifact retention and archival that:
 3. **Storage Tiers**:
    - **Production Storage** (7-year retention):
      - **Hot Storage** (frequent access): Last 90 days
-       - S3 Standard
+       - Cloud Storage Standard
        - Immediate retrieval
-       - Higher cost (~$0.023/GB/month)
+       - Higher cost (~$0.020/GB/month)
      - **Cold Storage** (infrequent access): 91 days to 7 years
-       - S3 Glacier Deep Archive
-       - 12-hour retrieval time
-       - Lower cost (~$0.00099/GB/month)
+       - Cloud Storage Coldline/Archive
+       - Retrieval time: seconds to hours
+       - Lower cost (~$0.004/GB/month for Coldline)
    - **Staging Storage** (30-day retention):
-     - S3 Standard-IA (after 7 days)
+     - Cloud Storage Nearline (after 7 days)
      - Automatic deletion after 30 days
      - For pre-production validation
    - **Development Storage** (7-day retention):
-     - S3 Standard
+     - Cloud Storage Standard
      - Automatic deletion after 7 days
      - For workflow testing only
 
@@ -57,35 +59,35 @@ The system SHALL implement artifact retention and archival that:
      - Automatic transition from hot to cold storage after 90 days
      - Automatic deletion after 7 years
      - Manual retention extension for regulatory holds
-     - Object Lock enabled (immutable)
+     - Object retention policy enabled (immutable)
    - **Staging**:
-     - Transition to Standard-IA after 7 days
+     - Transition to Nearline after 7 days
      - Automatic deletion after 30 days
-     - No Object Lock (testing only)
+     - No retention lock (testing only)
    - **Development**:
      - Automatic deletion after 7 days
      - No lifecycle transitions
-     - No Object Lock (testing only)
+     - No retention lock (testing only)
    - **All tiers**: Verification of archival integrity (monthly checksums)
 
 5. **Retrieval Procedures**:
-   - Standard retrieval: 12 hours (Glacier Deep Archive)
-   - Expedited retrieval: Not available for Deep Archive
+   - Standard retrieval: Immediate to minutes (Coldline)
+   - Archive retrieval: Minutes to hours (Archive class)
    - Bulk retrieval: For regulatory audits (all artifacts)
 
 **Validation**:
-- **IQ**: Verify S3 buckets configured with lifecycle policies
+- **IQ**: Verify Cloud Storage buckets configured with lifecycle policies
 - **OQ**: Verify artifacts transition to cold storage after 90 days
-- **PQ**: Verify retrieval within 12 hours for cold storage artifacts
+- **PQ**: Verify retrieval within SLA for each storage class
 
 **Acceptance Criteria**:
-- ✅ S3 buckets created with encryption
+- ✅ Cloud Storage buckets created with encryption
 - ✅ Lifecycle policies configured
 - ✅ Automated archival workflows deployed
 - ✅ Retrieval procedures documented
 - ✅ Monthly integrity verification automated
 
-*End* *Artifact Retention and Archival* | **Hash**: 83f459da
+*End* *Artifact Retention and Archival* | **Hash**: 2ad38e10
 ---
 
 # REQ-o00050: Environment Parity and Separation
@@ -97,9 +99,9 @@ The system SHALL implement artifact retention and archival that:
 The system SHALL maintain environment separation with:
 
 1. **Isolated Environments**:
-   - Development: Separate Supabase project, separate database
-   - Staging: Separate Supabase project, production-like configuration
-   - Production: Isolated, no cross-environment access
+   - Development: Separate GCP project, separate Cloud SQL instance
+   - Staging: Separate GCP project, production-like configuration
+   - Production: Isolated GCP project, no cross-environment access
 
 2. **Configuration Management**:
    - Environment-specific secrets (stored in Doppler)
@@ -118,17 +120,17 @@ The system SHALL maintain environment separation with:
    - Independent rollback capabilities
 
 **Validation**:
-- **IQ**: Verify separate Supabase projects for each environment
+- **IQ**: Verify separate GCP projects for each environment
 - **OQ**: Verify no data leakage between environments
 - **PQ**: Verify deployments are independent
 
 **Acceptance Criteria**:
-- ✅ Three separate Supabase projects provisioned
+- ✅ Three separate GCP projects provisioned (per sponsor)
 - ✅ Environment-specific Doppler configurations
 - ✅ Terraform workspaces for each environment
 - ✅ No production data in non-production environments
 
-*End* *Environment Parity and Separation* | **Hash**: 50e126da
+*End* *Environment Parity and Separation* | **Hash**: 7ccde026
 ---
 
 # REQ-o00051: Change Control and Audit Trail
@@ -141,7 +143,7 @@ The system SHALL maintain change control audit trail with:
 
 1. **Infrastructure Changes**:
    - All Terraform changes logged with author, timestamp, reason
-   - Terraform state versions retained for 7 years
+   - Terraform state versions retained for 7 years (GCS backend)
    - Infrastructure drift detection and alerts
    - Approval required for production changes
 
@@ -170,12 +172,12 @@ The system SHALL maintain change control audit trail with:
 - **PQ**: Verify 7-year retention for audit records
 
 **Acceptance Criteria**:
-- ✅ Terraform state versioning enabled
+- ✅ Terraform state versioning enabled (GCS)
 - ✅ Git commit signing enforced
 - ✅ Doppler audit trail enabled
 - ✅ Deployment logs archived for 7 years
 
-*End* *Change Control and Audit Trail* | **Hash**: abb65c22
+*End* *Change Control and Audit Trail* | **Hash**: f9d8ca86
 ---
 
 ## Architecture
@@ -189,9 +191,9 @@ The system SHALL maintain change control audit trail with:
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │ Git Commits  │  │ CI/CD Runs   │  │ Database     │          │
-│  │ (GitHub)     │  │ (GitHub)     │  │ Backups      │          │
+│  │ (GitHub)     │  │ (GitHub +    │  │ Backups      │          │
+│  │              │  │  Cloud Build)│  │ (Cloud SQL)  │          │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
-│         │                 │                 │                  │
 │         │                 │                 │                  │
 └─────────┼─────────────────┼─────────────────┼──────────────────┘
           │                 │                 │
@@ -199,18 +201,19 @@ The system SHALL maintain change control audit trail with:
                    │                 │
                    ▼                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Hot Storage (0-90 days) - S3 Standard                           │
+│ Hot Storage (0-90 days) - Cloud Storage Standard                │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────────────────────────────────┐                  │
-│  │ Bucket: clinical-diary-artifacts         │                  │
+│  │ Bucket: clinical-diary-artifacts-{env}   │                  │
 │  │ • Source code snapshots                  │                  │
 │  │ • Build artifacts (APK, iOS bundles)     │                  │
+│  │ • Container images (Artifact Registry)   │                  │
 │  │ • Deployment logs                        │                  │
 │  │ • Test results                           │                  │
 │  │ • Database backups                       │                  │
 │  │                                           │                  │
-│  │ Encryption: AES-256                      │                  │
+│  │ Encryption: Google-managed or CMEK       │                  │
 │  │ Versioning: Enabled                      │                  │
 │  │ Access: IAM roles only                   │                  │
 │  └──────────────────────────────────────────┘                  │
@@ -222,19 +225,19 @@ The system SHALL maintain change control audit trail with:
 
 
 ┌─────────────────────────────────────────────────────────────────┐
-│ Cold Storage (91 days - 7 years) - S3 Glacier Deep Archive     │
+│ Cold Storage (91 days - 7 years) - Cloud Storage Coldline       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────────────────────────────────┐                  │
-│  │ Bucket: clinical-diary-archive-cold      │                  │
+│  │ Bucket: clinical-diary-archive-{env}     │                  │
 │  │ • All artifacts automatically transitioned                  │
-│  │ • Immutable (delete protection enabled) │                  │
-│  │ • Retrieval time: 12 hours standard      │                  │
-│  │ • Cost: ~$1/TB/month                     │                  │
+│  │ • Retention policy enabled (immutable)   │                  │
+│  │ • Retrieval time: seconds to minutes     │                  │
+│  │ • Cost: ~$4/TB/month                     │                  │
 │  │                                           │                  │
 │  │ Lifecycle:                               │                  │
-│  │ • 0-90 days: S3 Standard                 │                  │
-│  │ • 91 days - 7 years: Glacier Deep Archive│                  │
+│  │ • 0-90 days: Standard                    │                  │
+│  │ • 91 days - 7 years: Coldline            │                  │
 │  │ • After 7 years: Automatic deletion      │                  │
 │  └──────────────────────────────────────────┘                  │
 │                                                                 │
@@ -242,20 +245,40 @@ The system SHALL maintain change control audit trail with:
 
 
 ┌─────────────────────────────────────────────────────────────────┐
-│ Audit Trail (7-year retention) - PostgreSQL + S3 Glacier       │
+│ Container Registry - Artifact Registry                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────────────────────────────────┐                  │
-│  │ Primary: PostgreSQL (Supabase)           │                  │
+│  │ Repository: clinical-diary               │                  │
+│  │ • Docker images for Cloud Run            │                  │
+│  │ • Vulnerability scanning enabled         │                  │
+│  │ • Cleanup policies configured            │                  │
+│  │ • Signed images (optional)               │                  │
+│  │                                           │                  │
+│  │ Retention:                               │                  │
+│  │ • Keep last 10 versions per tag          │                  │
+│  │ • Delete untagged after 30 days          │                  │
+│  │ • Production tags: 7 year retention      │                  │
+│  └──────────────────────────────────────────┘                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────┐
+│ Audit Trail (7-year retention) - PostgreSQL + Cloud Storage     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────┐                  │
+│  │ Primary: Cloud SQL PostgreSQL            │                  │
 │  │ • Real-time audit records                │                  │
 │  │ • Last 90 days online                    │                  │
-│  │ • Daily backup to S3                     │                  │
+│  │ • Daily backup to Cloud Storage          │                  │
 │  └────────────┬─────────────────────────────┘                  │
 │               │                                                 │
 │               │ Daily export                                    │
 │               ▼                                                 │
 │  ┌──────────────────────────────────────────┐                  │
-│  │ Backup: S3 Glacier                       │                  │
+│  │ Backup: Cloud Storage Coldline           │                  │
 │  │ • Daily audit trail snapshots            │                  │
 │  │ • Compressed and encrypted               │                  │
 │  │ • 7-year retention                       │                  │
@@ -269,68 +292,116 @@ The system SHALL maintain change control audit trail with:
 
 ## Technology Stack
 
-| Component | Technology | Cost (monthly) | Purpose |
-| --- | --- | --- | --- |
-| **Hot Storage** | AWS S3 Standard | ~$5 | Recent artifacts (0-90 days) |
-| **Cold Storage** | AWS S3 Glacier Deep Archive | ~$1 | Long-term retention (7 years) |
-| **Version Control** | GitHub (included) | $0 | Source code retention |
-| **CI/CD Artifacts** | GitHub Actions | $0 | Build logs, test results |
-| **Database Backups** | Supabase + S3 | ~$2 | Daily backups archived |
-| **Audit Trail** | PostgreSQL + S3 Glacier | ~$1 | 7-year audit compliance |
+ | Component | Technology | Cost (monthly) | Purpose |
+ | --- | --- | --- | --- |
+ | **Hot Storage** | Cloud Storage Standard | ~$20/TB | Recent artifacts (0-90 days) |
+ | **Cold Storage** | Cloud Storage Coldline | ~$4/TB | Long-term retention (7 years) |
+ | **Container Registry** | Artifact Registry | ~$0.10/GB | Docker images |
+ | **Version Control** | GitHub (included) | $0 | Source code retention |
+ | **CI/CD Artifacts** | GitHub Actions + Cloud Build | Varies | Build logs, test results |
+ | **Database Backups** | Cloud SQL + Cloud Storage | ~$2 | Daily backups archived |
+ | **Audit Trail** | PostgreSQL + Cloud Storage | ~$1 | 7-year audit compliance |
 
-**Total Cost**: ~$9/month
+**Total Cost**: ~$10-30/month (varies by volume)
 
 ---
 
-## S3 Bucket Configuration
+## GCP Artifact Registry
 
-### Create S3 Buckets (One-Time Setup)
+### Why Artifact Registry over GitHub Packages?
+
+| Feature | GitHub Packages | GCP Artifact Registry |
+| --- | --- | --- |
+| **GCP Integration** | Manual setup | Native (IAM, Cloud Build, Cloud Run) |
+| **Vulnerability Scanning** | Dependabot (limited) | Container Analysis API |
+| **Compliance** | Standard | Healthcare-specific certifications |
+| **Access Control** | GitHub tokens | GCP IAM |
+| **Cost** | Included in GitHub | ~$0.10/GB stored |
+| **Region Control** | Limited | Full control |
+| **Audit Logging** | Limited | Cloud Audit Logs |
+
+**Recommendation**: Use Artifact Registry for GCP-deployed containers.
+
+### Create Artifact Registry Repository
+
+```bash
+# Create repository
+gcloud artifacts repositories create clinical-diary \
+  --repository-format=docker \
+  --location=$REGION \
+  --description="Clinical Diary container images"
+
+# Configure Docker auth
+gcloud auth configure-docker $REGION-docker.pkg.dev
+
+# Tag and push image
+docker tag clinical-diary:latest \
+  $REGION-docker.pkg.dev/$PROJECT_ID/clinical-diary/api:v1.0.0
+
+docker push $REGION-docker.pkg.dev/$PROJECT_ID/clinical-diary/api:v1.0.0
+```
+
+### Vulnerability Scanning
+
+```bash
+# Enable vulnerability scanning
+gcloud services enable containerscanning.googleapis.com
+
+# View vulnerabilities
+gcloud artifacts docker images list-vulnerabilities \
+  $REGION-docker.pkg.dev/$PROJECT_ID/clinical-diary/api:v1.0.0
+```
+
+### Cleanup Policies
+
+```bash
+# Via Terraform (recommended)
+resource "google_artifact_registry_repository" "clinical_diary" {
+  repository_id = "clinical-diary"
+  format        = "DOCKER"
+  location      = var.region
+
+  cleanup_policies {
+    id     = "keep-minimum-versions"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 10
+    }
+  }
+
+  cleanup_policies {
+    id     = "delete-old-untagged"
+    action = "DELETE"
+    condition {
+      older_than = "2592000s"  # 30 days
+      tag_state  = "UNTAGGED"
+    }
+  }
+}
+```
+
+---
+
+## Cloud Storage Configuration
+
+### Create Storage Buckets
 
 ```bash
 # Create hot storage bucket
-aws s3 mb s3://clinical-diary-artifacts --region us-west-1
+gsutil mb -l $REGION -c STANDARD gs://${PROJECT_ID}-artifacts
 
 # Create cold storage bucket
-aws s3 mb s3://clinical-diary-archive-cold --region us-west-1
+gsutil mb -l $REGION -c COLDLINE gs://${PROJECT_ID}-archive
 
 # Enable versioning (hot storage)
-aws s3api put-bucket-versioning \
-  --bucket clinical-diary-artifacts \
-  --versioning-configuration Status=Enabled
+gsutil versioning set on gs://${PROJECT_ID}-artifacts
 
-# Enable encryption
-aws s3api put-bucket-encryption \
-  --bucket clinical-diary-artifacts \
-  --server-side-encryption-configuration '{
-    "Rules": [{
-      "ApplyServerSideEncryptionByDefault": {
-        "SSEAlgorithm": "AES256"
-      }
-    }]
-  }'
+# Enable uniform bucket-level access
+gsutil uniformbucketlevelaccess set on gs://${PROJECT_ID}-artifacts
+gsutil uniformbucketlevelaccess set on gs://${PROJECT_ID}-archive
 
-aws s3api put-bucket-encryption \
-  --bucket clinical-diary-archive-cold \
-  --server-side-encryption-configuration '{
-    "Rules": [{
-      "ApplyServerSideEncryptionByDefault": {
-        "SSEAlgorithm": "AES256"
-      }
-    }]
-  }'
-
-# Enable object lock (immutability) for cold storage
-aws s3api put-object-lock-configuration \
-  --bucket clinical-diary-archive-cold \
-  --object-lock-configuration '{
-    "ObjectLockEnabled": "Enabled",
-    "Rule": {
-      "DefaultRetention": {
-        "Mode": "GOVERNANCE",
-        "Years": 7
-      }
-    }
-  }'
+# Set retention policy (7 years) on archive bucket
+gsutil retention set 7y gs://${PROJECT_ID}-archive
 ```
 
 ---
@@ -339,71 +410,94 @@ aws s3api put-object-lock-configuration \
 
 ### Hot Storage Lifecycle Policy
 
-Create file `lifecycle-hot.json`:
-
-```json
-{
-  "Rules": [
-    {
-      "Id": "TransitionToColdStorage",
-      "Status": "Enabled",
-      "Transitions": [
-        {
-          "Days": 90,
-          "StorageClass": "DEEP_ARCHIVE"
-        }
-      ],
-      "NoncurrentVersionTransitions": [
-        {
-          "NoncurrentDays": 90,
-          "StorageClass": "DEEP_ARCHIVE"
-        }
-      ]
-    }
-  ]
-}
-```
-
-Apply lifecycle policy:
-
 ```bash
-aws s3api put-bucket-lifecycle-configuration \
-  --bucket clinical-diary-artifacts \
-  --lifecycle-configuration file://lifecycle-hot.json
-```
-
----
-
-### Cold Storage Lifecycle Policy
-
-Create file `lifecycle-cold.json`:
-
-```json
+# Create lifecycle configuration
+cat > lifecycle-hot.json << 'EOF'
 {
-  "Rules": [
-    {
-      "Id": "DeleteAfter7Years",
-      "Status": "Enabled",
-      "Expiration": {
-        "Days": 2555
+  "lifecycle": {
+    "rule": [
+      {
+        "action": {
+          "type": "SetStorageClass",
+          "storageClass": "COLDLINE"
+        },
+        "condition": {
+          "age": 90
+        }
       },
-      "NoncurrentVersionExpiration": {
-        "NoncurrentDays": 2555
+      {
+        "action": {
+          "type": "Delete"
+        },
+        "condition": {
+          "age": 2555
+        }
       }
+    ]
+  }
+}
+EOF
+
+# Apply lifecycle policy
+gsutil lifecycle set lifecycle-hot.json gs://${PROJECT_ID}-artifacts
+```
+
+### Terraform Configuration (Recommended)
+
+```hcl
+resource "google_storage_bucket" "artifacts" {
+  name     = "${var.project_id}-artifacts"
+  location = var.region
+
+  uniform_bucket_level_access = true
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    condition {
+      age = 90
     }
-  ]
+    action {
+      type          = "SetStorageClass"
+      storage_class = "COLDLINE"
+    }
+  }
+
+  lifecycle_rule {
+    condition {
+      age = 2555  # 7 years
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  labels = {
+    environment = var.environment
+    managed_by  = "terraform"
+  }
+}
+
+resource "google_storage_bucket" "archive" {
+  name     = "${var.project_id}-archive"
+  location = var.region
+  storage_class = "COLDLINE"
+
+  uniform_bucket_level_access = true
+
+  retention_policy {
+    retention_period = 220752000  # 7 years in seconds
+    is_locked        = true       # Immutable after lock
+  }
+
+  labels = {
+    environment = var.environment
+    compliance  = "fda-7year"
+    managed_by  = "terraform"
+  }
 }
 ```
-
-Apply lifecycle policy:
-
-```bash
-aws s3api put-bucket-lifecycle-configuration \
-  --bucket clinical-diary-archive-cold \
-  --lifecycle-configuration file://lifecycle-cold.json
-```
-
-**Note**: 2555 days = ~7 years
 
 ---
 
@@ -426,12 +520,22 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.ARCHIVE_SA }}
+
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: ./artifacts
@@ -453,81 +557,70 @@ jobs:
         run: |
           ARCHIVE_NAME="artifacts-prod-$(date +%Y%m%d-%H%M%S).tar.gz"
           tar -czf $ARCHIVE_NAME artifacts/ metadata.json
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
-      - name: Upload to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Upload to Cloud Storage
         run: |
-          aws s3 cp $ARCHIVE_NAME s3://clinical-diary-artifacts/builds/ \
-            --metadata "version=$(git describe --tags --always),environment=production"
+          gcloud storage cp ${{ env.ARCHIVE_NAME }} \
+            gs://${{ vars.ARTIFACTS_BUCKET }}/builds/ \
+            --content-type="application/gzip"
 
       - name: Generate checksum
         run: |
-          sha256sum $ARCHIVE_NAME > $ARCHIVE_NAME.sha256
-          aws s3 cp $ARCHIVE_NAME.sha256 s3://clinical-diary-artifacts/builds/
+          sha256sum ${{ env.ARCHIVE_NAME }} > ${{ env.ARCHIVE_NAME }}.sha256
+          gcloud storage cp ${{ env.ARCHIVE_NAME }}.sha256 \
+            gs://${{ vars.ARTIFACTS_BUCKET }}/builds/
 
       - name: Log archival
         run: |
-          echo "✅ Artifacts archived to S3"
-          echo "Archive: $ARCHIVE_NAME"
-          echo "Location: s3://clinical-diary-artifacts/builds/$ARCHIVE_NAME"
+          echo "✅ Artifacts archived to Cloud Storage"
+          echo "Archive: ${{ env.ARCHIVE_NAME }}"
+          echo "Location: gs://${{ vars.ARTIFACTS_BUCKET }}/builds/${{ env.ARCHIVE_NAME }}"
 ```
 
 ---
 
-### GitHub Actions: Archive Deployment Logs
+### Cloud Build: Container Image Archive
 
-File: `.github/workflows/archive-deployment-logs.yml`
+File: `cloudbuild.yaml`
 
 ```yaml
-name: Archive Deployment Logs
+steps:
+  # Build container
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${TAG_NAME}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:latest'
+      - '.'
 
-on:
-  workflow_run:
-    workflows: ["Deploy to Production", "Rollback Deployment"]
-    types: [completed]
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api'
 
-jobs:
-  archive-logs:
-    runs-on: ubuntu-latest
+  # Scan for vulnerabilities
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'artifacts'
+      - 'docker'
+      - 'images'
+      - 'scan'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${TAG_NAME}'
 
-    steps:
-      - name: Fetch deployment logs
-        run: |
-          # Get workflow run logs
-          gh run view ${{ github.event.workflow_run.id }} --log > deployment-log.txt
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${TAG_NAME}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:latest'
 
-      - name: Create deployment record
-        run: |
-          cat > deployment-record.json <<EOF
-          {
-            "workflow_id": "${{ github.event.workflow_run.id }}",
-            "workflow_name": "${{ github.event.workflow_run.name }}",
-            "commit_sha": "${{ github.event.workflow_run.head_sha }}",
-            "timestamp": "${{ github.event.workflow_run.created_at }}",
-            "outcome": "${{ github.event.workflow_run.conclusion }}",
-            "deployer": "${{ github.event.workflow_run.actor.login }}"
-          }
-          EOF
+substitutions:
+  _REGION: us-central1
 
-      - name: Package deployment record
-        run: |
-          RECORD_NAME="deployment-${{ github.event.workflow_run.id }}.tar.gz"
-          tar -czf $RECORD_NAME deployment-log.txt deployment-record.json
-
-      - name: Upload to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          aws s3 cp $RECORD_NAME s3://clinical-diary-artifacts/deployments/ \
-            --metadata "workflow_id=${{ github.event.workflow_run.id }},environment=production"
-
-      - name: Generate checksum
-        run: |
-          sha256sum $RECORD_NAME > $RECORD_NAME.sha256
-          aws s3 cp $RECORD_NAME.sha256 s3://clinical-diary-artifacts/deployments/
+options:
+  logging: CLOUD_LOGGING_ONLY
 ```
 
 ---
@@ -542,69 +635,71 @@ name: Archive Audit Trail (Nightly)
 on:
   schedule:
     - cron: '0 2 * * *'  # 2 AM UTC daily
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   archive-audit-trail:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
-      - name: Install Supabase CLI
-        run: brew install supabase/tap/supabase
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.ARCHIVE_SA }}
 
       - name: Load secrets from Doppler
         uses: dopplerhq/cli-action@v3
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_PROD }}
 
+      - name: Start Cloud SQL Proxy
+        run: |
+          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+          chmod +x cloud_sql_proxy
+          ./cloud_sql_proxy -instances=${{ vars.CLOUD_SQL_INSTANCE }}=tcp:5432 &
+          sleep 5
+
       - name: Export audit trail
         run: |
           EXPORT_DATE=$(date +%Y-%m-%d)
-          EXPORT_FILE="audit-trail-$EXPORT_DATE.sql"
+          EXPORT_FILE="audit-trail-$EXPORT_DATE.csv"
 
           # Export yesterday's audit records
-          doppler run -- psql $DATABASE_URL -c "
-            COPY (
-              SELECT * FROM audit_trail
-              WHERE created_at >= CURRENT_DATE - INTERVAL '1 day'
-                AND created_at < CURRENT_DATE
-              ORDER BY created_at
-            ) TO STDOUT WITH CSV HEADER
-          " > $EXPORT_FILE
+          PGPASSWORD=$DATABASE_PASSWORD psql \
+            -h 127.0.0.1 -p 5432 \
+            -U $DATABASE_USER -d $DATABASE_NAME \
+            -c "COPY (
+              SELECT * FROM record_audit
+              WHERE server_timestamp >= CURRENT_DATE - INTERVAL '1 day'
+                AND server_timestamp < CURRENT_DATE
+              ORDER BY audit_id
+            ) TO STDOUT WITH CSV HEADER" > $EXPORT_FILE
 
           # Compress
           gzip $EXPORT_FILE
+          echo "EXPORT_FILE=$EXPORT_FILE.gz" >> $GITHUB_ENV
 
-      - name: Verify integrity
+      - name: Generate checksum
         run: |
-          # Generate checksum
-          sha256sum $EXPORT_FILE.gz > $EXPORT_FILE.gz.sha256
+          sha256sum ${{ env.EXPORT_FILE }} > ${{ env.EXPORT_FILE }}.sha256
 
-          # Verify audit trail hashes
-          doppler run -- psql $DATABASE_URL -c "
-            SELECT check_audit_trail_integrity();
-          "
-
-      - name: Upload to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Upload to Cloud Storage
         run: |
-          aws s3 cp $EXPORT_FILE.gz s3://clinical-diary-artifacts/audit-trail/ \
-            --metadata "date=$(date +%Y-%m-%d),environment=production"
+          gcloud storage cp ${{ env.EXPORT_FILE }} \
+            gs://${{ vars.ARCHIVE_BUCKET }}/audit-trail/
 
-          aws s3 cp $EXPORT_FILE.gz.sha256 s3://clinical-diary-artifacts/audit-trail/
+          gcloud storage cp ${{ env.EXPORT_FILE }}.sha256 \
+            gs://${{ vars.ARCHIVE_BUCKET }}/audit-trail/
 
       - name: Verify upload
         run: |
-          aws s3 ls s3://clinical-diary-artifacts/audit-trail/$EXPORT_FILE.gz
+          gcloud storage ls gs://${{ vars.ARCHIVE_BUCKET }}/audit-trail/${{ env.EXPORT_FILE }}
           echo "✅ Audit trail archived successfully"
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "❌ Audit trail archival failed"
-          # TODO: Send alert to ops team
 ```
 
 ---
@@ -617,13 +712,13 @@ Immediate access:
 
 ```bash
 # List artifacts
-aws s3 ls s3://clinical-diary-artifacts/builds/ --recursive
+gcloud storage ls gs://${PROJECT_ID}-artifacts/builds/ --recursive
 
 # Download specific artifact
-aws s3 cp s3://clinical-diary-artifacts/builds/artifacts-prod-20250127-120000.tar.gz .
+gcloud storage cp gs://${PROJECT_ID}-artifacts/builds/artifacts-prod-20250127-120000.tar.gz .
 
 # Verify checksum
-aws s3 cp s3://clinical-diary-artifacts/builds/artifacts-prod-20250127-120000.tar.gz.sha256 .
+gcloud storage cp gs://${PROJECT_ID}-artifacts/builds/artifacts-prod-20250127-120000.tar.gz.sha256 .
 sha256sum -c artifacts-prod-20250127-120000.tar.gz.sha256
 ```
 
@@ -631,40 +726,25 @@ sha256sum -c artifacts-prod-20250127-120000.tar.gz.sha256
 
 ### Retrieve from Cold Storage (91 days - 7 years)
 
-Requires 12-hour retrieval:
+Cloud Storage Coldline provides immediate access (no restore required):
 
 ```bash
-# Step 1: Initiate retrieval
-aws s3api restore-object \
-  --bucket clinical-diary-archive-cold \
-  --key builds/artifacts-prod-20240501-120000.tar.gz \
-  --restore-request Days=7,GlacierJobParameters={Tier=Standard}
+# Download from Coldline (same as Standard)
+gcloud storage cp gs://${PROJECT_ID}-archive/builds/artifacts-prod-20240501-120000.tar.gz .
 
-# Step 2: Check restoration status
-aws s3api head-object \
-  --bucket clinical-diary-archive-cold \
-  --key builds/artifacts-prod-20240501-120000.tar.gz
-
-# Step 3: Download after restoration complete (12 hours)
-aws s3 cp s3://clinical-diary-archive-cold/builds/artifacts-prod-20240501-120000.tar.gz .
+# Note: First-byte retrieval may take slightly longer than Standard
+# but no explicit restore operation needed
 ```
 
-**Bulk Retrieval** (for audits):
+**Archive Class** (if using for very old data):
 
 ```bash
-# List all artifacts in cold storage
-aws s3api list-objects-v2 --bucket clinical-diary-archive-cold --query 'Contents[*].[Key]' --output text > cold-storage-list.txt
+# Check object storage class
+gcloud storage objects describe gs://${PROJECT_ID}-archive/builds/old-artifact.tar.gz \
+  --format="get(storageClass)"
 
-# Restore all (scripted)
-while read key; do
-  aws s3api restore-object \
-    --bucket clinical-diary-archive-cold \
-    --key "$key" \
-    --restore-request Days=30,GlacierJobParameters={Tier=Bulk}
-done < cold-storage-list.txt
+# If Archive class, there may be retrieval latency but no restore needed
 ```
-
-**Note**: Bulk retrieval is cheaper but slower (12-48 hours)
 
 ---
 
@@ -686,39 +766,48 @@ jobs:
   verify-integrity:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
-      - name: List hot storage artifacts
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.ARCHIVE_SA }}
+
+      - name: List artifacts with checksums
         run: |
-          # Get list of all artifacts with checksums
-          aws s3 ls s3://clinical-diary-artifacts/ --recursive | grep '.sha256$' > checksums.txt
+          gcloud storage ls gs://${PROJECT_ID}-artifacts/ --recursive \
+            | grep '.sha256$' > checksums.txt
 
       - name: Verify checksums
         run: |
           FAILED=0
 
-          while read line; do
-            CHECKSUM_FILE=$(echo $line | awk '{print $4}')
-            ARTIFACT_FILE="${CHECKSUM_FILE%.sha256}"
+          while read checksum_path; do
+            ARTIFACT_PATH="${checksum_path%.sha256}"
 
-            echo "Verifying: $ARTIFACT_FILE"
+            echo "Verifying: $ARTIFACT_PATH"
 
             # Download artifact and checksum
-            aws s3 cp "s3://clinical-diary-artifacts/$ARTIFACT_FILE" .
-            aws s3 cp "s3://clinical-diary-artifacts/$CHECKSUM_FILE" .
+            gcloud storage cp "$ARTIFACT_PATH" .
+            gcloud storage cp "$checksum_path" .
+
+            ARTIFACT_NAME=$(basename "$ARTIFACT_PATH")
+            CHECKSUM_NAME=$(basename "$checksum_path")
 
             # Verify
-            if sha256sum -c "$(basename $CHECKSUM_FILE)"; then
-              echo "✅ Verified: $ARTIFACT_FILE"
+            if sha256sum -c "$CHECKSUM_NAME"; then
+              echo "✅ Verified: $ARTIFACT_NAME"
             else
-              echo "❌ FAILED: $ARTIFACT_FILE"
+              echo "❌ FAILED: $ARTIFACT_NAME"
               FAILED=$((FAILED + 1))
             fi
 
             # Cleanup
-            rm "$(basename $ARTIFACT_FILE)" "$(basename $CHECKSUM_FILE)"
+            rm "$ARTIFACT_NAME" "$CHECKSUM_NAME"
           done < checksums.txt
 
           if [ $FAILED -gt 0 ]; then
@@ -732,45 +821,7 @@ jobs:
         run: |
           echo "Integrity verification complete"
           echo "Date: $(date -u +%Y-%m-%d)"
-          # TODO: Log to compliance dashboard
 ```
-
----
-
-## Activation Instructions
-
-To activate artifact management:
-
-1. **Create S3 buckets**:
-   ```bash
-   # Run bucket creation commands (see above)
-   ```
-
-2. **Configure lifecycle policies**:
-   ```bash
-   # Apply lifecycle policies (see above)
-   ```
-
-3. **Set up GitHub secrets**:
-   ```bash
-   gh secret set AWS_ACCESS_KEY_ID --body "<key-id>"
-   gh secret set AWS_SECRET_ACCESS_KEY --body "<secret-key>"
-   ```
-
-4. **Enable workflows**:
-   - Workflows are ready but won't run until S3 buckets exist
-   - Test archival workflow manually first:
-     ```bash
-     gh workflow run archive-artifacts.yml
-     ```
-
-5. **Verify archival**:
-   ```bash
-   # Check artifacts in S3
-   aws s3 ls s3://clinical-diary-artifacts/ --recursive
-   ```
-
-See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 ---
 
@@ -785,11 +836,12 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 **Calculation**:
 
-| Storage Type | Size | Duration | Cost/GB/month | Total |
-| --- | --- | --- | --- | --- |
-| Hot (0-90 days) | 12 GB | 90 days | $0.023 | $0.28 |
-| Cold (7 years) | 336 GB | 7 years | $0.00099 | $0.33 |
-| **Total** | | | | **~$9/month** |
+ | Storage Type | Size | Duration | Cost/GB/month | Total |
+ | --- | --- | --- | --- | --- |
+ | Hot (0-90 days) | 12 GB | 90 days | $0.020 | $0.24 |
+ | Cold (7 years) | 336 GB | 7 years | $0.004 | $1.34 |
+ | Artifact Registry | 10 GB | Ongoing | $0.10 | $1.00 |
+ | **Total** | | | | **~$10/month** |
 
 **Note**: Costs scale linearly with artifact size and deployment frequency.
 
@@ -797,15 +849,18 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 
 ## References
 
-- [AWS S3 Lifecycle Configuration](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html)
-- [AWS Glacier Deep Archive](https://aws.amazon.com/s3/storage-classes/glacier/)
+- [Cloud Storage Documentation](https://cloud.google.com/storage/docs)
+- [Cloud Storage Lifecycle](https://cloud.google.com/storage/docs/lifecycle)
+- [Artifact Registry Documentation](https://cloud.google.com/artifact-registry/docs)
+- [Cloud Build Documentation](https://cloud.google.com/build/docs)
 - spec/ops-monitoring-observability.md - Monitoring specification
-- INFRASTRUCTURE_GAP_ANALYSIS.md - Phase 1 implementation plan
+- spec/ops-infrastructure-as-code.md - Terraform configuration
 
 ---
 
 ## Change History
 
-| Date | Version | Author | Changes |
-| --- | --- | --- | --- |
-| 2025-01-27 | 1.0 | Claude | Initial specification (ready to activate) |
+ | Date | Version | Author | Changes |
+ | --- | --- | --- | --- |
+ | 2025-01-27 | 1.0 | Claude | Initial specification (AWS S3) |
+ | 2025-11-24 | 2.0 | Claude | Migration to GCP (Cloud Storage, Artifact Registry) |

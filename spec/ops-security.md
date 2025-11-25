@@ -4,7 +4,7 @@
 >
 > **Compliance**: FDA 21 CFR Part 11, HIPAA, GDPR
 
-**Version**: 1.0.0 | **Date**: 2025-10-14
+**Version**: 2.0.0 | **Date**: 2025-11-24
 
 ---
 
@@ -13,10 +13,10 @@
 This database implements a **defense-in-depth** security architecture with multiple layers of protection:
 
 1. **Encryption** (at-rest and in-transit)
-2. **Access Controls** (RLS, RBAC)
+2. **Access Controls** (RLS, RBAC, IAM)
 3. **Audit Trails** (immutable, tamper-evident)
 4. **Privacy-by-Design** (data de-identification)
-5. **Network Security** (TLS, firewalls)
+5. **Network Security** (TLS, VPC, firewall)
 
 ---
 
@@ -24,9 +24,9 @@ This database implements a **defense-in-depth** security architecture with multi
 
 ### Encryption at Rest
 
-**Provider**: Supabase (PostgreSQL with transparent data encryption)
+**Provider**: Google Cloud SQL (PostgreSQL with Customer-Managed Encryption Keys)
 **Algorithm**: AES-256
-**Key Management**: Automatic rotation managed by Supabase
+**Key Management**: Cloud KMS with automatic rotation (configurable)
 
 **What is encrypted**:
 - All database tables and indexes
@@ -35,52 +35,75 @@ This database implements a **defense-in-depth** security architecture with multi
 - Temporary files and sort operations
 
 **Verification**:
-```sql
--- Verify encryption is enabled (Supabase admin only)
-SHOW ssl;
-SHOW data_encryption_version;
+```bash
+# Verify encryption is enabled on Cloud SQL instance
+gcloud sql instances describe ${INSTANCE_NAME} \
+  --format="get(settings.dataDiskEncryptionKey)"
 ```
 
-**Configuration**: Managed by Supabase, no manual configuration required
+**Configuration**: Automatic encryption by default; CMEK optional for enhanced control
+
+### Customer-Managed Encryption Keys (CMEK)
+
+For enhanced compliance, use Cloud KMS for key management:
+
+```bash
+# Create KMS keyring
+gcloud kms keyrings create clinical-diary-keyring \
+  --location=us-central1
+
+# Create encryption key
+gcloud kms keys create cloudsql-key \
+  --keyring=clinical-diary-keyring \
+  --location=us-central1 \
+  --purpose=encryption
+
+# Create Cloud SQL instance with CMEK
+gcloud sql instances create ${INSTANCE_NAME} \
+  --database-version=POSTGRES_15 \
+  --disk-encryption-key=projects/${PROJECT_ID}/locations/us-central1/keyRings/clinical-diary-keyring/cryptoKeys/cloudsql-key
+```
 
 ### Encryption in Transit
 
 **Protocol**: TLS 1.3 / TLS 1.2
-**Certificate**: Managed by Supabase with automatic renewal
+**Certificate**: Managed by GCP with automatic renewal
 
 **Requirements**:
-- ✅ All client connections MUST use TLS
+- ✅ All client connections MUST use TLS (enforced by Cloud SQL)
 - ✅ Certificate validation MUST be enabled
 - ✅ Minimum TLS version: 1.2
 - ✅ Mobile apps SHOULD implement certificate pinning
 
 **Connection String Example**:
 ```
-postgresql://user:pass@host:5432/db?sslmode=require
+postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance
 ```
 
-**Supabase Connection**:
-```javascript
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  'https://your-project.supabase.co',
-  'your-anon-key',
-  {
-    db: {
-      schema: 'public',
-    },
-    auth: {
-      persistSession: true,
-    },
-    global: {
-      headers: { 'x-client-info': 'clinical-trial-diary' },
-    },
-  }
-)
+**Cloud Run Connection** (automatic TLS via Unix socket):
+```dart
+// Cloud Run connects via Unix socket - TLS not needed for socket
+final conn = await Connection.open(
+  Endpoint(
+    host: '/cloudsql/${instanceConnectionName}',
+    database: 'clinical_diary',
+    username: 'app_user',
+    password: databasePassword,
+  ),
+  settings: ConnectionSettings(
+    sslMode: SslMode.disable, // Unix socket doesn't use SSL
+  ),
+);
 ```
 
-All Supabase connections use HTTPS/TLS by default.
+**External Connection** (via Cloud SQL Proxy):
+```bash
+# Cloud SQL Proxy handles TLS automatically
+cloud_sql_proxy -instances=project:region:instance=tcp:5432
+
+# Connect via localhost (proxy handles encryption)
+psql -h 127.0.0.1 -U app_user -d clinical_diary
+```
 
 ---
 
@@ -90,18 +113,36 @@ All Supabase connections use HTTPS/TLS by default.
 
 **Status**: Enabled on all tables
 
-**Enforcement**: PostgreSQL RLS policies filter data based on user JWT claims
+**Enforcement**: PostgreSQL RLS policies filter data based on application-set session variables
+
+**Session Variable Setup** (set by application before queries):
+```sql
+-- Application sets these variables from authenticated user's JWT claims
+SET app.current_user_id = 'user_123';
+SET app.current_user_role = 'USER';
+SET app.current_site_id = 'site_001';
+```
 
 **Example Policies**:
 ```sql
+-- Helper function to get current user ID from session
+CREATE OR REPLACE FUNCTION current_user_id() RETURNS TEXT AS $$
+  SELECT current_setting('app.current_user_id', true);
+$$ LANGUAGE SQL STABLE;
+
+-- Helper function to get current user role
+CREATE OR REPLACE FUNCTION current_user_role() RETURNS TEXT AS $$
+  SELECT current_setting('app.current_user_role', true);
+$$ LANGUAGE SQL STABLE;
+
 -- Users can only see their own data
 CREATE POLICY user_select_own ON record_state
-    FOR SELECT TO authenticated
+    FOR SELECT
     USING (patient_id = current_user_id());
 
 -- Investigators see data at their assigned sites
 CREATE POLICY investigator_select_site ON record_state
-    FOR SELECT TO authenticated
+    FOR SELECT
     USING (
         current_user_role() = 'INVESTIGATOR'
         AND site_id IN (
@@ -114,11 +155,12 @@ CREATE POLICY investigator_select_site ON record_state
 
 **Testing RLS**:
 ```sql
--- Test as different users
-SET request.jwt.claims = '{"sub": "user_123", "role": "USER"}';
+-- Test as different users (via session variables)
+SET app.current_user_id = 'user_123';
+SET app.current_user_role = 'USER';
 SELECT COUNT(*) FROM record_state; -- Should only see own data
 
-SET request.jwt.claims = '{"sub": "admin_1", "role": "ADMIN"}';
+SET app.current_user_role = 'ADMIN';
 SELECT COUNT(*) FROM record_state; -- Should see all data
 ```
 
@@ -131,20 +173,21 @@ User roles and permissions SHALL be configured in the database and authenticatio
 Permission configuration SHALL include:
 - Role definitions stored in database (USER, INVESTIGATOR, ANALYST, ADMIN)
 - Role assignment tracked with audit trail
-- JWT claims include user role for database RLS enforcement
+- JWT claims include user role for application-level checks
+- Application sets session variables for database RLS enforcement
 - Permission matrix documented and enforced
 - Role changes require administrator approval
 
-**Rationale**: Implements RBAC (p00005), least privilege (p00014), and database-level enforcement (p00015) through operational configuration. Roles must be consistently configured across authentication system and database.
+**Rationale**: Implements RBAC (p00005), least privilege (p00014), and database-level enforcement (p00015) through operational configuration. Roles must be consistently configured across Identity Platform and database.
 
 **Acceptance Criteria**:
-- Roles defined in both Supabase Auth and database tables
-- JWT tokens include role claim
-- Database RLS policies reference role claim
+- Roles defined in both Identity Platform (custom claims) and database tables
+- Application extracts role from JWT and sets session variables
+- Database RLS policies reference session variables
 - Role assignment changes logged in audit trail
 - Permission matrix matches specification exactly
 
-*End* *Role-Based Permission Configuration* | **Hash**: 9921779b
+*End* *Role-Based Permission Configuration* | **Hash**: d77cbde8
 ---
 
 ### Role-Based Access Control (RBAC)
@@ -157,29 +200,29 @@ Permission configuration SHALL include:
 
 **Role Assignment**:
 - Stored in `user_profiles.role`
-- Included in JWT claims by Supabase Auth
+- Included in JWT custom claims via Identity Platform
 - Changes logged in `role_change_log` (audit trail)
 
 **Permission Matrix**:
 
-| Action | USER | INVESTIGATOR | ANALYST | ADMIN |
-| --- | --- | --- | --- | --- |
-| Create own diary entry | ✅ | ❌ | ❌ | ✅ |
-| Edit own diary entry | ✅ | ❌ | ❌ | ✅ |
-| View own data | ✅ | ❌ | ❌ | ✅ |
-| View site data | ❌ | ✅ (assigned sites) | ✅ (assigned sites) | ✅ |
-| Add annotations | ❌ | ✅ | ❌ | ✅ |
-| Assign users to sites | ❌ | ❌ | ❌ | ✅ |
-| Modify roles | ❌ | ❌ | ❌ | ✅ |
-| View audit trail | Own | Assigned sites | Assigned sites | ✅ |
+ | Action | USER | INVESTIGATOR | ANALYST | ADMIN |
+ | --- | --- | --- | --- | --- |
+ | Create own diary entry | ✅ | ❌ | ❌ | ✅ |
+ | Edit own diary entry | ✅ | ❌ | ❌ | ✅ |
+ | View own data | ✅ | ❌ | ❌ | ✅ |
+ | View site data | ❌ | ✅ (assigned sites) | ✅ (assigned sites) | ✅ |
+ | Add annotations | ❌ | ✅ | ❌ | ✅ |
+ | Assign users to sites | ❌ | ❌ | ❌ | ✅ |
+ | Modify roles | ❌ | ❌ | ❌ | ✅ |
+ | View audit trail | Own | Assigned sites | Assigned sites | ✅ |
 
 ---
 
 ## Authentication
 
-### Supabase Auth Integration
+### Identity Platform Integration
 
-**Provider**: Supabase Auth (separate from application database)
+**Provider**: Google Identity Platform (Firebase Auth)
 
 **Features**:
 - Email/password authentication
@@ -192,6 +235,23 @@ Permission configuration SHALL include:
 - ✅ Multi-factor authentication (2FA)
 - ✅ Strong password policy (12+ characters, complexity)
 - ✅ Session timeout (configurable, default 1 hour)
+
+**Custom Claims Setup** (Cloud Function):
+```javascript
+// functions/customClaims/index.js
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+
+admin.initializeApp();
+
+exports.addCustomClaims = functions.auth.user().onCreate(async (user) => {
+  // Default role for new users
+  await admin.auth().setCustomUserClaims(user.uid, {
+    role: 'USER',
+    sponsorId: process.env.SPONSOR_ID,
+  });
+});
+```
 
 **Session Management**:
 ```sql
@@ -213,7 +273,52 @@ AND expires_at > now();
 - No common passwords (dictionary check)
 - Password expiry: 90 days (configurable)
 
-**Configured in**: Supabase Auth settings
+**Configured in**: Identity Platform Console > Settings > Password Policy
+
+---
+
+## GCP IAM Security
+
+### Service Account Principles
+
+**Principle of Least Privilege**:
+```bash
+# Create service account with minimal permissions
+gcloud iam service-accounts create clinical-diary-server \
+  --display-name="Clinical Diary Server"
+
+# Grant only required roles
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/cloudsql.client"
+
+# DO NOT grant roles/owner or roles/editor
+```
+
+### IAM Roles for Clinical Diary
+
+| Role | GCP IAM Role | Purpose |
+| --- | --- | --- |
+| Cloud SQL Access | `roles/cloudsql.client` | Connect to Cloud SQL |
+| Secret Access | `roles/secretmanager.secretAccessor` | Read secrets |
+| Logging | `roles/logging.logWriter` | Write logs |
+| Monitoring | `roles/monitoring.metricWriter` | Write metrics |
+
+### Workload Identity (Recommended)
+
+Instead of service account keys, use Workload Identity for Cloud Run:
+
+```bash
+# Enable Workload Identity
+gcloud iam service-accounts add-iam-policy-binding \
+  clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="serviceAccount:${PROJECT_ID}.svc.id.goog[default/clinical-diary]"
+
+# Deploy Cloud Run with service account
+gcloud run deploy clinical-diary \
+  --service-account=clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com
+```
 
 ---
 
@@ -253,46 +358,96 @@ SELECT * FROM generate_integrity_report();
 SELECT * FROM detect_tampered_records();
 ```
 
-**Automated Checks**: Should be run weekly as part of compliance monitoring
+**Automated Checks**: Scheduled via Cloud Scheduler + Cloud Functions
 
 ---
 
 ## Network Security
 
-### Firewall Rules
+### VPC Configuration
 
 **Database Access**:
-- Restricted to application servers only
-- No direct public database access
-- IP whitelisting for admin access
-- VPC isolation (if using cloud infrastructure)
+- Cloud SQL uses Private IP within VPC
+- No public IP exposed
+- VPC Connector for Cloud Run access
+- Authorized networks for admin access only
 
-**Supabase Configuration**:
-- API Gateway handles all requests
-- Database not directly exposed to internet
-- Rate limiting enabled
-- DDoS protection included
+**VPC Setup**:
+```bash
+# Create VPC Connector for Cloud Run
+gcloud compute networks vpc-access connectors create clinical-diary-connector \
+  --region=$REGION \
+  --subnet=default \
+  --min-instances=2 \
+  --max-instances=10
+
+# Deploy Cloud Run with VPC Connector
+gcloud run deploy clinical-diary \
+  --vpc-connector=clinical-diary-connector \
+  --vpc-egress=private-ranges-only
+```
+
+### Cloud SQL Security
+
+**Network Configuration**:
+```bash
+# Remove public IP (private IP only)
+gcloud sql instances patch ${INSTANCE_NAME} \
+  --no-assign-ip
+
+# Authorize specific networks (if needed for admin)
+gcloud sql instances patch ${INSTANCE_NAME} \
+  --authorized-networks=10.0.0.0/8
+```
 
 ### API Security
 
-**Supabase API**:
-- All requests authenticated via JWT
-- Row-level security enforced
-- Rate limiting per client
-- Request logging enabled
+**Cloud Run**:
+- All requests authenticated via Identity Platform JWT
+- Row-level security enforced at database layer
+- Rate limiting via Cloud Armor (optional)
+- Request logging via Cloud Logging
 
 **Best Practices**:
-```javascript
-// Always use authenticated client
-const { data, error } = await supabase
-  .from('record_state')
-  .select('*')
-  .eq('patient_id', user.id); // RLS ensures user can only see own data
+```dart
+// Verify JWT and set session variables
+Future<void> handleRequest(Request request) async {
+  // Verify Firebase ID token
+  final idToken = request.headers['Authorization']?.replaceFirst('Bearer ', '');
+  final decodedToken = await FirebaseAuth.instance.verifyIdToken(idToken);
+
+  // Get user claims
+  final userId = decodedToken.uid;
+  final role = decodedToken.claims['role'] ?? 'USER';
+
+  // Set session variables for RLS
+  await db.execute('''
+    SET app.current_user_id = '$userId';
+    SET app.current_user_role = '$role';
+  ''');
+
+  // Now execute query - RLS automatically filters
+  final result = await db.query('SELECT * FROM record_state');
+}
 ```
 
 ---
 
 ## Security Monitoring
+
+### Cloud Audit Logs
+
+GCP automatically logs all administrative actions:
+
+```bash
+# View Cloud SQL admin activity
+gcloud logging read 'resource.type="cloudsql_database" AND protoPayload.methodName:"cloudsql"' \
+  --limit=50
+
+# View authentication events (Identity Platform)
+gcloud logging read 'resource.type="identitytoolkit.googleapis.com/Project"' \
+  --limit=50
+```
 
 ### Real-Time Monitoring
 
@@ -335,7 +490,7 @@ SELECT * FROM check_audit_sequence_gaps();
 - Session timeout spikes
 - Unusual access patterns
 
-**Configuration**: Set up via monitoring platform (e.g., Sentry, Datadog)
+**Configuration**: Set up via Cloud Monitoring alert policies
 
 ---
 
@@ -383,16 +538,24 @@ ORDER BY timestamp DESC;
 
 ### Backup Strategy
 
-**Frequency**:
-- Continuous: Write-ahead logs (WAL)
-- Hourly: Incremental backups
-- Daily: Full database backups
-- Weekly: Long-term retention
+**Cloud SQL Automated Backups**:
+- Daily automated backups
+- Point-in-time recovery (PITR) enabled
+- Configurable retention (7-365 days)
+
+**Configuration**:
+```bash
+# Configure backups
+gcloud sql instances patch ${INSTANCE_NAME} \
+  --backup-start-time=02:00 \
+  --enable-point-in-time-recovery \
+  --retained-backups-count=30
+```
 
 **Retention**:
 - Daily backups: 30 days
-- Weekly backups: 1 year
-- Annual backups: Permanent (compliance requirement)
+- Weekly exports: 1 year (Cloud Storage)
+- Annual exports: Permanent (Cloud Storage Coldline)
 
 **Encryption**: All backups encrypted with AES-256
 
@@ -401,26 +564,27 @@ ORDER BY timestamp DESC;
 ### Disaster Recovery
 
 **Recovery Time Objective (RTO)**: < 4 hours
-**Recovery Point Objective (RPO)**: < 1 hour
+**Recovery Point Objective (RPO)**: < 5 minutes (PITR)
 
 **Procedures**:
-1. Restore from most recent backup
-2. Replay WAL to latest transaction
-3. Verify audit trail integrity
-4. Validate tamper detection hashes
+1. Create new instance from backup or PITR
+2. Verify audit trail integrity
+3. Validate tamper detection hashes
+4. Update connection strings
 5. Resume operations with monitoring
 
 ---
 
 ## Compliance Certifications
 
-### Current Compliance
+### GCP Compliance
 
 - ✅ **FDA 21 CFR Part 11** - Electronic records and signatures
-- ✅ **HIPAA** - De-identified data, no PHI stored
-- ✅ **GDPR** - Pseudonymization, encryption, right to deletion
-- ✅ **SOC 2 Type II** - Via Supabase infrastructure
+- ✅ **HIPAA** - BAA available, de-identified data, no PHI stored
+- ✅ **GDPR** - EU data residency, encryption, right to deletion
+- ✅ **SOC 2 Type II** - Native GCP certification
 - ✅ **ISO 27001** - Information security management
+- ✅ **FedRAMP** - Available for government workloads
 
 ### Audit Preparation
 
@@ -453,11 +617,12 @@ WHERE timestamp > now() - interval '90 days';
 
 ### Database Configuration
 
-- [x] Encryption at rest enabled (Supabase default)
+- [x] Encryption at rest enabled (Cloud SQL default)
 - [x] TLS 1.2+ enforced for connections
 - [x] Row-level security enabled on all tables
 - [x] Audit trail immutability enforced
 - [x] Cryptographic tamper detection implemented
+- [x] Private IP only (no public access)
 - [ ] Regular security audits scheduled
 - [ ] Vulnerability scanning automated
 - [ ] Backup testing monthly
@@ -497,9 +662,10 @@ WHERE timestamp > now() - interval '90 days';
 
 ## Revision History
 
-| Version | Date | Changes | Author |
-| --- | --- | --- | --- |
-| 1.0.0 | 2025-10-14 | Initial security documentation | Development Team |
+ | Version | Date | Changes | Author |
+ | --- | --- | --- | --- |
+ | 1.0.0 | 2025-10-14 | Initial security documentation | Development Team |
+ | 2.0.0 | 2025-11-24 | Migration to GCP (Cloud SQL, Identity Platform, IAM) | Claude |
 
 ---
 

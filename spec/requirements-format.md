@@ -296,26 +296,26 @@ cross-sponsor access. Critical for regulatory compliance and sponsor trust.
 ### Ops Requirement Implementing PRD
 
 ```markdown
-# REQ-o00056: Separate Supabase Projects Per Sponsor
+# REQ-o00056: Separate GCP Projects Per Sponsor
 
 **Level**: Ops | **Implements**: p00001 | **Status**: Active
 
-Each sponsor SHALL be provisioned with a dedicated Supabase project containing:
-- Isolated PostgreSQL database
-- Separate API endpoints (unique URL)
-- Independent authentication configuration
-- Isolated storage buckets
+Each sponsor SHALL be provisioned with a dedicated GCP project containing:
+- Isolated Cloud SQL PostgreSQL database
+- Separate Cloud Run API endpoints (unique URL)
+- Independent Identity Platform authentication
+- Isolated Cloud Storage buckets
 
 **Rationale**: Implements multi-sponsor isolation at the infrastructure level
-using Supabase's project isolation guarantees.
+using GCP project isolation guarantees.
 
 **Acceptance Criteria**:
-- Each sponsor has unique Supabase project URL
+- Each sponsor has unique GCP project ID
 - Database connections do not span projects
-- API keys are project-specific
+- Service accounts are project-specific
 - No shared configuration files
 
-*End* *Separate Supabase Projects Per Sponsor* | **Hash**: TBD
+*End* *Separate GCP Projects Per Sponsor* | **Hash**: TBD
 ```
 
 ### Dev Requirement Implementing Ops
@@ -327,14 +327,14 @@ using Supabase's project isolation guarantees.
 
 
 The application SHALL load sponsor-specific configuration from environment files
-that specify Supabase connection parameters.
+that specify GCP connection parameters.
 
 Configuration files SHALL follow the naming pattern:
-`environments/{sponsor_code}/supabase_config.dart`
+`environments/{sponsor_code}/gcp_config.dart`
 
 Each file MUST contain:
-- `supabaseUrl`: Unique project URL
-- `supabaseAnonKey`: Project-specific anonymous key
+- `gcpProjectId`: Unique GCP project ID
+- `apiBaseUrl`: Cloud Run API endpoint
 - `sponsorId`: Unique sponsor identifier
 
 **Rationale**: Enables build-time composition while maintaining runtime isolation.
@@ -343,7 +343,7 @@ Each file MUST contain:
 - Configuration files exist for each sponsor in version control
 - Build process validates all required fields present
 - No hardcoded credentials in source code
-- URL patterns match expected Supabase format
+- GCP project IDs follow valid format
 
 *End* *Environment-Specific Configuration Files* | **Hash**: 22cd37a6
 ```
@@ -354,7 +354,7 @@ Each file MUST contain:
 ### Code Comments
 
 ```dart
-// REQ-d00012: Load sponsor-specific Supabase configuration
+// REQ-d00012: Load sponsor-specific GCP configuration
 final config = await loadSponsorConfig(sponsorCode);
 ```
 
@@ -363,7 +363,7 @@ final config = await loadSponsorConfig(sponsorCode);
 ```
 [p00001] Add multi-sponsor database isolation
 
-Implements REQ-p00001 by creating separate Supabase projects for
+Implements REQ-p00001 by creating separate GCP projects for
 each sponsor with isolated databases and authentication.
 
 Related: o00001, o00002
@@ -388,7 +388,7 @@ Implements multi-sponsor isolation requirements
 
 **Requirements Addressed**:
 - REQ-p00001: Multi-Sponsor Data Isolation
-- REQ-o00001: Separate Supabase Projects Per Sponsor
+- REQ-o00001: Separate GCP Projects Per Sponsor
 - REQ-d00012: Environment-Specific Configuration Files
 
 ## Changes

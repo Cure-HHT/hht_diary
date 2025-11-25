@@ -283,7 +283,7 @@ Role colors SHALL be:
 
 ## Architecture Overview
 
-The portal connects to the sponsor-specific Supabase database with role-based access control enforced both at the application and database levels:
+The portal connects to the sponsor-specific Cloud SQL database with role-based access control enforced both at the application and database levels:
 
 ```
 ┌──────────────────────────────────────────────────────────┐

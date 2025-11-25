@@ -211,10 +211,10 @@ Complexity MUST be justified with documented rationale.
   - EDC integration (if proxy mode)
   - Custom portal pages and reports
 - Sponsor database extensions (`database/extensions.sql`)
-- Edge Functions (Deno/TypeScript)
+- Cloud Run services (Dart server extensions)
 - Sponsor branding (logos, themes, colors)
 - Site configurations and initial data
-- Supabase project configuration
+- GCP project configuration (Cloud SQL, Identity Platform)
 
 **Must NOT contain**:
 - Modifications to core schema (use extensions)
@@ -225,7 +225,7 @@ Complexity MUST be justified with documented rationale.
 - Import core from GitHub Package Registry
 - Pass all core contract tests before deployment
 - TDD for sponsor-specific logic
-- Integration testing with real Supabase instance
+- Integration testing with real Cloud SQL instance
 
 ### Contract Testing (Core ↔ Sponsor)
 
@@ -233,10 +233,10 @@ Complexity MUST be justified with documented rationale.
 ```dart
 // In core repository: packages/contracts/test/sponsor_config_test.dart
 void main() {
-  test('SponsorConfig must provide valid Supabase URL', () {
+  test('SponsorConfig must provide valid GCP project ID', () {
     final config = getSponsorConfig(); // Implemented by sponsor
-    expect(config.supabaseUrl, startsWith('https://'));
-    expect(config.supabaseUrl, endsWith('.supabase.co'));
+    expect(config.gcpProjectId, isNotEmpty);
+    expect(config.gcpProjectId, matches(RegExp(r'^[a-z][a-z0-9-]*[a-z0-9]$')));
   });
 
   test('SponsorConfig must provide theme colors', () {
@@ -280,9 +280,9 @@ npm test  # MUST pass before build
 # 3. Build with sponsor implementation
 dart run build_runner build
 
-# 4. Deploy to Supabase
-supabase db push
-supabase functions deploy
+# 4. Deploy to GCP
+gcloud sql connect prod-instance --project=$PROJECT_ID < database/schema.sql
+gcloud run deploy server --project=$PROJECT_ID --image=$IMAGE
 ```
 
 ### Code Review Requirements

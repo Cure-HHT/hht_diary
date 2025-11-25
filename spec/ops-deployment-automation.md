@@ -24,7 +24,7 @@ The system SHALL provide automated deployment pipelines that:
 2. **Deployment Steps**:
    - Build validation (lint, type check, tests)
    - Database migration execution with rollback plan
-   - Application deployment to Supabase
+   - Application deployment to Cloud Run
    - Smoke test execution
    - Automated rollback on failure
 
@@ -54,7 +54,7 @@ The system SHALL provide automated deployment pipelines that:
 - ✅ Smoke tests execute post-deployment
 - ✅ Deployment windows enforced for production
 
-*End* *Automated Deployment Pipeline* | **Hash**: e82a4842
+*End* *Automated Deployment Pipeline* | **Hash**: 96f57f47
 ---
 
 # REQ-o00044: Database Migration Automation
@@ -95,14 +95,14 @@ The system SHALL automate database migrations with the following capabilities:
 - **PQ**: Verify migration performance (< 5 minutes for typical migration)
 
 **Acceptance Criteria**:
-- ✅ Migration framework integrated (Supabase migrations)
+- ✅ Migration framework integrated (Cloud SQL migrations via pgmigrate)
 - ✅ Rollback scripts required for all migrations
 - ✅ Automated backup before production migrations
 - ✅ Migration audit trail maintained
 - ✅ Dry-run capability implemented
 - ✅ Alert on migration duration >5 minutes
 
-*End* *Database Migration Automation* | **Hash**: 10291b2e
+*End* *Database Migration Automation* | **Hash**: ba7cbea5
 ---
 
 ## Architecture
@@ -250,10 +250,10 @@ The system SHALL automate database migrations with the following capabilities:
 | Component | Technology | Purpose |
 | --- | --- | --- |
 | **CI/CD Platform** | GitHub Actions | Workflow orchestration |
-| **Migration Tool** | Supabase CLI | Database migrations |
-| **Secrets Management** | Doppler | Secure credential injection |
-| **State Management** | Terraform | Infrastructure provisioning |
-| **Container Registry** | GitHub Container Registry | Docker image storage |
+| **Migration Tool** | pgmigrate + Cloud SQL Proxy | Database migrations |
+| **Secrets Management** | Doppler + GCP Secret Manager | Secure credential injection |
+| **State Management** | Terraform (GCP Provider) | Infrastructure provisioning |
+| **Container Registry** | GCP Artifact Registry | Docker image storage |
 | **Approval System** | GitHub Environments | Manual approval gates |
 
 ---
@@ -269,14 +269,16 @@ The system SHALL automate database migrations with the following capabilities:
 
 **Steps**:
 1. Checkout code
-2. Set up environment (Node.js, Dart, Supabase CLI)
-3. Inject secrets from Doppler
-4. Run linting and type checking
-5. Run unit tests
-6. Execute database migrations (with rollback on failure)
-7. Deploy application to Supabase
-8. Run smoke tests
-9. Notify team (Slack/email)
+2. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy)
+3. Authenticate to GCP via Workload Identity Federation
+4. Inject secrets from Doppler
+5. Run linting and type checking
+6. Run unit tests
+7. Execute database migrations via Cloud SQL Proxy (with rollback on failure)
+8. Build and push container to Artifact Registry
+9. Deploy to Cloud Run
+10. Run smoke tests
+11. Notify team (Slack/email)
 
 **Rollback**: Automatic on any step failure
 
@@ -294,14 +296,16 @@ The system SHALL automate database migrations with the following capabilities:
 **Steps**:
 1. Await manual approval
 2. Checkout code
-3. Set up environment
-4. Inject secrets from Doppler
-5. Run full test suite
-6. Execute database migrations (with backup and rollback)
-7. Deploy application to Supabase
-8. Run smoke tests
-9. Run integration tests
-10. Notify QA team
+3. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy)
+4. Authenticate to GCP via Workload Identity Federation
+5. Inject secrets from Doppler
+6. Run full test suite
+7. Execute database migrations via Cloud SQL Proxy (with backup and rollback)
+8. Build and push container to Artifact Registry
+9. Deploy to Cloud Run
+10. Run smoke tests
+11. Run integration tests
+12. Notify QA team
 
 **Rollback**: Automatic on any step failure
 
@@ -326,15 +330,17 @@ The system SHALL automate database migrations with the following capabilities:
 1. Await manual approval (2 reviewers required)
 2. Verify pre-deployment checks
 3. Checkout code
-4. Set up environment
-5. Inject secrets from Doppler
-6. Create database backup (7-year retention)
-7. Execute database migrations (with rollback plan)
-8. Deploy application to Supabase
-9. Run smoke tests
-10. Run health checks
-11. Monitor for 15 minutes post-deployment
-12. Notify team
+4. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy)
+5. Authenticate to GCP via Workload Identity Federation
+6. Inject secrets from Doppler
+7. Create database backup via Cloud SQL (7-year retention)
+8. Execute database migrations via Cloud SQL Proxy (with rollback plan)
+9. Build and push container to Artifact Registry
+10. Deploy to Cloud Run with traffic management
+11. Run smoke tests
+12. Run health checks
+13. Monitor for 15 minutes post-deployment
+14. Notify team
 
 **Rollback**: Automatic on any step failure, triggers incident response
 
@@ -464,7 +470,7 @@ Every deployment SHALL log:
    - Health check results
    - Any failures or warnings
 
-**Storage**: Deployment logs stored in S3 Glacier with 7-year retention
+**Storage**: Deployment logs stored in Cloud Storage (Archive class) with 7-year retention
 
 **Access**: Auditors can query deployment history via GitHub Actions UI or CLI
 
@@ -482,13 +488,18 @@ To activate deployment automation:
    # - production (manual trigger + 2 approvals, deployment window)
    ```
 
-2. **Set up Secrets**:
+2. **Set up Secrets and Workload Identity**:
    ```bash
+   # Configure Workload Identity Federation for GitHub Actions
+   # (see ops-infrastructure-as-code.md for Terraform setup)
+
    # Add to GitHub repository secrets:
    gh secret set DOPPLER_TOKEN_DEV --body "<dev-token>"
    gh secret set DOPPLER_TOKEN_STAGING --body "<staging-token>"
    gh secret set DOPPLER_TOKEN_PROD --body "<prod-token>"
-   gh secret set SUPABASE_ACCESS_TOKEN --body "<access-token>"
+   gh secret set GCP_PROJECT_ID --body "<project-id>"
+   gh secret set GCP_WORKLOAD_IDENTITY_PROVIDER --body "<provider>"
+   gh secret set GCP_SERVICE_ACCOUNT --body "<service-account-email>"
    ```
 
 3. **Enable Workflows**:
