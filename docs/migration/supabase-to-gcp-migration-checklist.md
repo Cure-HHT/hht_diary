@@ -98,11 +98,11 @@ These files define WHAT the system does and should NOT contain code examples. Th
 | Document | Status | Purpose |
 | --- | --- | --- |
 | `docs/migration/doppler-vs-secret-manager.md` | [x] **DONE** | Compare Doppler to GCP Secret Manager |
-| `docs/gcp/project-structure.md` | [ ] Pending | GCP project organization |
-| `docs/gcp/cloud-sql-setup.md` | [ ] Pending | Cloud SQL provisioning guide |
-| `docs/gcp/cloud-run-deployment.md` | [ ] Pending | Dart server deployment |
-| `docs/gcp/identity-platform-setup.md` | [ ] Pending | Authentication setup |
-| `infrastructure/terraform/modules/gcp-project/` | [ ] Pending | Terraform GCP modules |
+| `docs/gcp/project-structure.md` | [x] **DONE** | GCP project organization |
+| `docs/gcp/cloud-sql-setup.md` | [x] **DONE** | Cloud SQL provisioning guide |
+| `docs/gcp/cloud-run-deployment.md` | [x] **DONE** | Dart server deployment |
+| `docs/gcp/identity-platform-setup.md` | [x] **DONE** | Authentication setup |
+| `infrastructure/terraform/modules/gcp-sponsor-project/` | [x] **DONE** | Terraform GCP modules |
 
 ---
 
@@ -191,20 +191,25 @@ These files define WHAT the system does and should NOT contain code examples. Th
 - `doppler run -- <command>` pattern
 - Environment isolation via Doppler projects
 
-**Decision Needed**: Keep Doppler, migrate to Secret Manager, or hybrid?
+**Decision**: ✅ **Hybrid Approach** (decided 2025-11-25)
+- **Dev/Test/UAT**: Continue using Doppler (excellent developer experience)
+- **Production**: Use Google Secret Manager (GCP-native, IAM integration)
 
 **Comparison Document**: See `docs/migration/doppler-vs-secret-manager.md`
 
-**Options**:
-1. **Keep Doppler**: Works well, no migration needed
-2. **Full Secret Manager**: Native GCP integration
-3. **Hybrid**: Doppler for dev/CI, Secret Manager for production
+**Implementation**:
+1. Development uses `doppler run -- <command>` (unchanged)
+2. CI/CD syncs Doppler → Secret Manager for production secrets
+3. Cloud Run reads secrets from Secret Manager via IAM
+4. Terraform manages Secret Manager resources
 
 **Migration Tasks**:
-- [ ] Write comparison document
-- [ ] Make decision on approach
+- [x] Write comparison document
+- [x] Make decision on approach (Hybrid)
+- [ ] Create Secret Manager secrets via Terraform
+- [ ] Update CI/CD to sync Doppler → Secret Manager
+- [ ] Configure Cloud Run to use Secret Manager
 - [ ] Update secret management documentation
-- [ ] Implement chosen solution
 
 ### 5. Monitoring: Sentry/Better Uptime → Cloud Operations
 
@@ -361,3 +366,4 @@ If critical issues arise during migration:
 | 2025-11-24 | 1.6 | Completed RLS files, prd-security-RBAC.md, ops-github-access-control.md, ops-security-tamper-proofing.md, INDEX.md, requirements-format.md | Claude |
 | 2025-11-24 | 1.7 | Completed dev-portal.md - comprehensive rewrite (Firebase Auth, Cloud Run deployment, application-set RLS policies) | Claude |
 | 2025-11-24 | 1.8 | **Phase 1 Complete**: All PRD, DEV, and OPS spec files verified - no remaining Supabase references (except historical changelog entries) | Claude |
+| 2025-11-25 | 2.0 | **Phase 2 Complete**: Created GCP documentation (project-structure, cloud-sql-setup, cloud-run-deployment, identity-platform-setup) and Terraform gcp-sponsor-project module. Secrets decision: Hybrid (Doppler dev/test/uat, Secret Manager prod) | Claude |

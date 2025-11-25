@@ -46,7 +46,7 @@ We will use **Docker Compose with multi-service architecture** for development e
 **Four Docker Services** (one per role):
 - `dev-container`: Full development environment (Flutter, Android SDK, Node, Python)
 - `qa-container`: Testing environment (Playwright, Flutter tests, report generation)
-- `ops-container`: Infrastructure environment (Terraform, Supabase CLI, deployment tools)
+- `ops-container`: Infrastructure environment (Terraform, gcloud CLI, deployment tools)
 - `mgmt-container`: Read-only environment (Git, GitHub CLI, audit log viewers)
 
 **Base Image**: Ubuntu 24.04 LTS (official Docker image)
