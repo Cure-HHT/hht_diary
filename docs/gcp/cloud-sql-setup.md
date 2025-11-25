@@ -49,7 +49,7 @@ Before starting, ensure:
 export SPONSOR="orion"
 export ENV="prod"
 export PROJECT_ID="hht-diary-${SPONSOR}-${ENV}"
-export REGION="us-central1"
+export REGION="europe-west1"  # EU region for GDPR compliance
 
 # Instance naming
 export INSTANCE_NAME="${SPONSOR}-db-${ENV}"
@@ -529,7 +529,7 @@ module "cloud_sql" {
   sponsor     = "orion"
   environment = "prod"
   project_id  = "hht-diary-orion-prod"
-  region      = "us-central1"
+  region      = "europe-west1"  # EU region for GDPR
 
   db_tier              = "db-custom-2-8192"
   disk_size            = 100

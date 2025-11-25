@@ -54,13 +54,13 @@ The Clinical Diary Platform requires several core tools and optional utilities d
 **Minimum requirements**:
 - Git
 - Docker Desktop
-- kubectl (for Kubernetes deployments)
+- gcloud CLI (for GCP deployments)
 - Doppler CLI (for secret management)
 
 **Recommended additions**:
 - yq (for YAML manipulation)
 - jq (for JSON processing)
-- aws-cli (if using AWS)
+- Terraform (for infrastructure as code)
 
 ## Core Tools
 
@@ -483,6 +483,138 @@ doppler login
 # Follow prompts to authenticate with Doppler
 ```
 
+### Google Cloud CLI (gcloud)
+
+**Purpose**: GCP resource management and deployment
+
+**Minimum version**: 450.0+
+
+Used for:
+- Cloud SQL database management
+- Cloud Run deployments
+- IAM and secret management
+- Artifact Registry operations
+- Identity Platform configuration
+
+**Installation**:
+
+**macOS**:
+```bash
+# Using Homebrew
+brew install google-cloud-sdk
+
+# Or download installer
+curl https://sdk.cloud.google.com | bash
+exec -l $SHELL
+```
+
+**Ubuntu/Debian**:
+```bash
+# Add Cloud SDK repo
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+  sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+  sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+
+sudo apt-get update
+sudo apt-get install -y google-cloud-cli
+```
+
+**Windows (WSL2)**:
+```bash
+# Same as Ubuntu/Debian above
+```
+
+**Verification**:
+```bash
+gcloud --version
+gcloud components list
+```
+
+#### gcloud Configuration Management
+
+The Clinical Diary Platform uses multiple GCP projects (one per sponsor per environment). Use gcloud configurations to switch between them easily.
+
+**Create configurations for each project**:
+
+```bash
+# Create configuration for CureHHT development
+gcloud config configurations create curehht-dev
+gcloud config set project hht-diary-curehht-dev
+gcloud config set compute/region europe-west1
+gcloud auth login
+
+# Create configuration for CureHHT production
+gcloud config configurations create curehht-prod
+gcloud config set project hht-diary-curehht-prod
+gcloud config set compute/region europe-west1
+gcloud auth login
+
+# Create configuration for another sponsor (e.g., Orion)
+gcloud config configurations create orion-prod
+gcloud config set project hht-diary-orion-prod
+gcloud config set compute/region europe-west1
+gcloud auth login
+```
+
+**Switch between configurations**:
+```bash
+# List all configurations
+gcloud config configurations list
+
+# Switch to a different configuration
+gcloud config configurations activate curehht-dev
+
+# Verify current configuration
+gcloud config list
+```
+
+**Important**: All production projects use **EU regions** (europe-west1, europe-west4) for GDPR compliance.
+
+**Application Default Credentials (for local development)**:
+```bash
+# Authenticate for local development
+gcloud auth application-default login
+
+# This creates credentials at:
+# ~/.config/gcloud/application_default_credentials.json
+
+# Verify authentication
+gcloud auth list
+```
+
+**Service Account Key (for CI/CD)**:
+```bash
+# Download service account key (only for CI/CD pipelines)
+gcloud iam service-accounts keys create key.json \
+  --iam-account=cicd-deployer@PROJECT_ID.iam.gserviceaccount.com
+
+# NEVER commit key.json to git
+# Store in Doppler or GitHub Secrets
+```
+
+**Common gcloud commands**:
+```bash
+# List Cloud SQL instances
+gcloud sql instances list
+
+# Connect to Cloud SQL
+gcloud sql connect INSTANCE_NAME --user=app_user --database=clinical_diary
+
+# List Cloud Run services
+gcloud run services list --region=europe-west1
+
+# View Cloud Run logs
+gcloud run services logs read SERVICE_NAME --region=europe-west1
+
+# List secrets
+gcloud secrets list
+
+# Access a secret value
+gcloud secrets versions access latest --secret=SECRET_NAME
+```
+
 ## Installation Instructions by OS
 
 ### macOS (Intel & Apple Silicon)
@@ -494,7 +626,7 @@ doppler login
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install core tools
-brew install git python@3.12 node@20 jq yq gh doppler gitleaks
+brew install git python@3.12 node@20 jq yq gh doppler gitleaks google-cloud-sdk
 
 # Verify installations
 git --version
@@ -506,6 +638,7 @@ yq --version
 gh --version
 doppler --version
 gitleaks --version
+gcloud --version
 ```
 
 #### Manual Setup
@@ -548,6 +681,14 @@ wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks-lin
 chmod +x gitleaks-linux-x64
 sudo mv gitleaks-linux-x64 /usr/local/bin/gitleaks
 
+# Install gcloud CLI
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+  sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+  sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+sudo apt-get update
+sudo apt-get install -y google-cloud-cli
+
 # Verify installations
 git --version
 python3 --version
@@ -557,6 +698,7 @@ jq --version
 yq --version
 gh --version
 gitleaks --version
+gcloud --version
 ```
 
 ### Windows (WSL2 - Ubuntu 22.04 / 24.04)
@@ -777,6 +919,7 @@ optional_tools=(
   "yq:YAML query tool"
   "doppler:Doppler CLI"
   "gitleaks:Secret scanner"
+  "gcloud:Google Cloud CLI"
 )
 
 echo
@@ -832,6 +975,11 @@ linear --version                # If installed
 yq --version                    # If installed
 doppler --version               # If installed
 gitleaks --version              # Should be 8.18.0+
+gcloud --version                # Should be 450.0+
+
+# Verify gcloud configuration (if using GCP)
+gcloud config configurations list
+gcloud auth list
 ```
 
 ### Testing Requirement Tools

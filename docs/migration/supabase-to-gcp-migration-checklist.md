@@ -287,12 +287,28 @@ These files define WHAT the system does and should NOT contain code examples. Th
 
 ---
 
+## Data Residency Decision
+
+**Decision**: ✅ **EU Regions Only** (decided 2025-11-25)
+
+All Clinical Trial Diary deployments use EU regions exclusively for GDPR compliance:
+
+| Region | Location | Use Case |
+| --- | --- | --- |
+| `europe-west1` | Belgium | **Primary** - Default for all services |
+| `europe-west4` | Netherlands | **Secondary** - HA failover, backup storage |
+| `europe-west3` | Frankfurt | Alternative if German data residency required |
+
+**Important**: US regions are NOT used for any production workloads containing EU user data.
+
+---
+
 ## GCP Compliance Advantages
 
 | Requirement | Supabase | GCP |
 | --- | --- | --- |
 | HIPAA BAA | Limited support | Full BAA available |
-| GDPR | Compliant | Compliant + data residency |
+| GDPR | Compliant | Compliant + **EU-only data residency** |
 | FDA 21 CFR Part 11 | Self-managed | Managed + certifications |
 | SOC 2 Type II | Via AWS | Native GCP certification |
 | ISO 27001 | Via AWS | Native GCP certification |
@@ -367,3 +383,4 @@ If critical issues arise during migration:
 | 2025-11-24 | 1.7 | Completed dev-portal.md - comprehensive rewrite (Firebase Auth, Cloud Run deployment, application-set RLS policies) | Claude |
 | 2025-11-24 | 1.8 | **Phase 1 Complete**: All PRD, DEV, and OPS spec files verified - no remaining Supabase references (except historical changelog entries) | Claude |
 | 2025-11-25 | 2.0 | **Phase 2 Complete**: Created GCP documentation (project-structure, cloud-sql-setup, cloud-run-deployment, identity-platform-setup) and Terraform gcp-sponsor-project module. Secrets decision: Hybrid (Doppler dev/test/uat, Secret Manager prod) | Claude |
+| 2025-11-25 | 2.1 | Added EU-only regions requirement for GDPR compliance. Updated all GCP docs and Terraform to use europe-west1 as default. Updated development-prerequisites.md with gcloud CLI setup and configuration management. | Claude |

@@ -270,7 +270,7 @@ Per-project budget alerts:
 export SPONSOR="newsponsor"
 export ENV="prod"
 export PROJECT_ID="hht-diary-${SPONSOR}-${ENV}"
-export REGION="us-central1"
+export REGION="europe-west1"  # EU region for GDPR compliance
 export BILLING_ACCOUNT="XXXXXX-XXXXXX-XXXXXX"
 
 # 2. Create project
@@ -307,7 +307,7 @@ module "sponsor_project" {
 
   sponsor     = var.sponsor
   environment = "prod"
-  region      = "us-central1"
+  region      = "europe-west1"  # EU region for GDPR compliance
 
   # Database configuration
   db_tier     = "db-custom-2-8192"
@@ -354,15 +354,17 @@ Some resources are shared across sponsors:
 - No cross-project IAM bindings
 - Separate encryption keys per project (optional CMEK)
 
-### Data Residency
+### Data Residency (GDPR Compliance)
 
-Configure project location based on sponsor requirements:
+**All Clinical Trial Diary deployments use EU regions exclusively** for GDPR compliance and EU user data protection.
 
-| Requirement | Region Selection |
-| --- | --- |
-| US data residency | `us-central1`, `us-east1` |
-| EU data residency | `europe-west1`, `europe-west4` |
-| Multi-region HA | `us` or `eu` multi-region |
+| Region | Location | Use Case |
+| --- | --- | --- |
+| `europe-west1` | Belgium | **Primary** - Default for all services |
+| `europe-west4` | Netherlands | **Secondary** - HA failover, backup storage |
+| `europe-west3` | Frankfurt | Alternative if German data residency required |
+
+**Important**: US regions are NOT used for any production workloads containing EU user data.
 
 ### Compliance
 

@@ -32,9 +32,14 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "GCP region for resources"
+  description = "GCP region for resources (EU regions only for GDPR compliance)"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west1"
+
+  validation {
+    condition     = can(regex("^europe-", var.region))
+    error_message = "Region must be an EU region (europe-*) for GDPR compliance."
+  }
 }
 
 variable "db_app_password" {

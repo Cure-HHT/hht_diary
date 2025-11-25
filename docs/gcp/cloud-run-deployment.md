@@ -121,7 +121,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 ### Create Repository
 
 ```bash
-export REGION="us-central1"
+export REGION="europe-west1"  # EU region for GDPR compliance
 
 gcloud artifacts repositories create ${SPONSOR}-images \
   --repository-format=docker \
@@ -396,7 +396,7 @@ on:
           - prod
 
 env:
-  REGION: us-central1
+  REGION: europe-west1  # EU region for GDPR compliance
 
 jobs:
   deploy-api:
