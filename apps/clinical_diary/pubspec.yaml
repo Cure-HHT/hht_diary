@@ -37,6 +37,9 @@ dependencies:
   intl: ^0.20.2
   collection: ^1.19.1
 
+  # Calendar widget
+  table_calendar: ^3.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
