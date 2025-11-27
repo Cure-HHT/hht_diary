@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User enrollment documents
+    // Token is the document ID (e.g., "word1-word2-word3")
+    match /users/{token} {
+      // Allow creating if authenticated and document doesn't exist
+      allow create: if request.auth != null
+        && request.resource.data.firebaseUid == request.auth.uid
+        && request.resource.data.token == token
+        && token.matches('^[a-z]+-[a-z]+-[a-z]+$');
+
+      // Allow reading/updating only your own document
+      allow read, update: if request.auth != null
+        && resource.data.firebaseUid == request.auth.uid;
+
+      // Subcollection for nosebleed records
+      match /records/{recordId} {
+        allow read, write: if request.auth != null
+          && get(/databases/$(database)/documents/users/$(token)).data.firebaseUid == request.auth.uid;
+      }
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -112,7 +112,7 @@ cd tools/dev-env
 **Supported Roles**:
 - **dev**: Full development environment (Flutter, Android SDK, Node.js, Python)
 - **qa**: Testing environment (Playwright, Flutter tests, report generation)
-- **ops**: DevOps environment (Terraform, Supabase CLI, Cosign, Syft)
+- **ops**: DevOps environment (Terraform, gcloud CLI, Cosign, Syft)
 - **mgmt**: Read-only management environment (Git viewing, report access)
 
 ### Database Files

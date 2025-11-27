@@ -49,6 +49,7 @@ This project supports two development approaches:
 - **Docker Desktop** (Windows/Mac): https://www.docker.com/products/docker-desktop
 - **Docker Engine** (Linux): https://docs.docker.com/engine/install/
 - **VS Code** (optional, recommended): With Dev Containers extension (ms-vscode-remote.remote-containers)
+- **gcloud CLI** : https://docs.cloud.google.com/sdk/docs/install
 
 **Platform-Specific Notes**:
 - **Windows WSL2**: Use WSL2 terminal for better performance. Files in `/home/ubuntu/repos` are faster than Windows filesystem.
@@ -81,7 +82,7 @@ This project supports two development approaches:
 
 - **GitHub**: Access to project repository
 - **Linear**: Project management and issue tracking
-- **Supabase**: Database access (provided per sponsor)
+- **Google Cloud Platform**: Cloud Run, Cloud SQL, IAM, etc. (provided per sponsor)
 - **Doppler**: Secrets management (team access required)
 
 ---

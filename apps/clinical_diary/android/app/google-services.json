@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "681337116402",
+    "project_id": "hht-diary-mvp",
+    "storage_bucket": "hht-diary-mvp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:681337116402:android:bf70f4aaf5ebdddbf5626b",
+        "android_client_info": {
+          "package_name": "org.curehht.clinical_diary"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3HU6MSI_iC6PMG-LzmddmchdjvwgeieA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

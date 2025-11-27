@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "dart": {
+      "command": "/Users/mbushe/dev/flutter/bin/dart",
+      "args": [
+        "mcp-server"
+      ],
+      "env": {
+        "DART_SDK": "/Users/mbushe/dev/flutter/bin/cache/dart-sdk",
+        "FLUTTER_SDK": "/Users/mbushe/dev/flutter"
+      }
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {}
+    },
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "gcloud": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/gcloud-mcp"
+      ],
+      "env": {}
+    }
+  }
+}
