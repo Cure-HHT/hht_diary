@@ -108,9 +108,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
-    _nosebleedService = NosebleedService(
-      enrollmentService: _enrollmentService,
-    );
+    _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
     _checkEnrollment();
   }
 
@@ -131,11 +129,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (!_isEnrolled) {
@@ -147,6 +141,7 @@ class _AppRootState extends State<AppRoot> {
 
     return HomeScreen(
       nosebleedService: _nosebleedService,
+      enrollmentService: _enrollmentService,
     );
   }
 }

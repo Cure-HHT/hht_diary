@@ -3,9 +3,11 @@ import 'package:intl/intl.dart';
 
 /// Banner asking about yesterday's nosebleed status
 class YesterdayBanner extends StatelessWidget {
-
   const YesterdayBanner({
-    required this.onNoNosebleeds, required this.onHadNosebleeds, required this.onDontRemember, super.key,
+    required this.onNoNosebleeds,
+    required this.onHadNosebleeds,
+    required this.onDontRemember,
+    super.key,
   });
   final VoidCallback onNoNosebleeds;
   final VoidCallback onHadNosebleeds;
@@ -29,9 +31,9 @@ class YesterdayBanner extends StatelessWidget {
           Text(
             'Confirm Yesterday - $dateStr',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.yellow.shade900,
-                ),
+              fontWeight: FontWeight.w500,
+              color: Colors.yellow.shade900,
+            ),
           ),
           const SizedBox(height: 4),
           Text(

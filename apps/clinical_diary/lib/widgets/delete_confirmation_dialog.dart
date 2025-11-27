@@ -9,6 +9,18 @@ class DeleteConfirmationDialog extends StatefulWidget {
 
   final ValueChanged<String> onConfirmDelete;
 
+  /// Show the delete confirmation dialog
+  static Future<void> show({
+    required BuildContext context,
+    required ValueChanged<String> onConfirmDelete,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) =>
+          DeleteConfirmationDialog(onConfirmDelete: onConfirmDelete),
+    );
+  }
+
   @override
   State<DeleteConfirmationDialog> createState() =>
       _DeleteConfirmationDialogState();
@@ -41,17 +53,29 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
         children: [
           const Text('Please select a reason for deleting this record:'),
           const SizedBox(height: 16),
-          ...(_reasons.map(
-            (reason) => RadioListTile<String>(
-              title: Text(reason),
-              value: reason,
-              groupValue: _selectedReason,
-              onChanged: (value) {
-                setState(() => _selectedReason = value);
-              },
-              contentPadding: EdgeInsets.zero,
+          // Using RadioGroup ancestor to manage radio selection
+          RadioGroup<String>(
+            groupValue: _selectedReason,
+            onChanged: (value) => setState(() => _selectedReason = value),
+            child: Column(
+              children: _reasons
+                  .map(
+                    (reason) => InkWell(
+                      onTap: () => setState(() => _selectedReason = reason),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Radio<String>(value: reason),
+                            Expanded(child: Text(reason)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
-          )),
+          ),
           if (_selectedReason == 'Other') ...[
             const SizedBox(height: 8),
             TextField(
@@ -89,18 +113,6 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
           child: const Text('Delete'),
         ),
       ],
-    );
-  }
-
-  /// Show the delete confirmation dialog
-  static Future<void> show({
-    required BuildContext context,
-    required ValueChanged<String> onConfirmDelete,
-  }) async {
-    await showDialog(
-      context: context,
-      builder: (context) =>
-          DeleteConfirmationDialog(onConfirmDelete: onConfirmDelete),
     );
   }
 }

@@ -49,8 +49,9 @@ void main() {
         expect(uuid, isNotEmpty);
         // UUID v4 format check
         expect(
-          RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
-              .hasMatch(uuid),
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ).hasMatch(uuid),
           true,
         );
       });
@@ -102,8 +103,9 @@ void main() {
         final id = service.generateRecordId();
 
         expect(
-          RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
-              .hasMatch(id),
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ).hasMatch(id),
           true,
         );
       });
@@ -128,7 +130,9 @@ void main() {
       test('creates record with required fields', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -144,7 +148,9 @@ void main() {
       test('creates record with all optional fields', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -170,7 +176,9 @@ void main() {
       test('marks record as incomplete when missing required fields', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -186,7 +194,9 @@ void main() {
       test('saves record to local storage', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -199,7 +209,9 @@ void main() {
       test('appends to existing records', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -216,7 +228,9 @@ void main() {
       test('creates no-nosebleed event', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -232,7 +246,9 @@ void main() {
       test('creates unknown event', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -260,7 +276,9 @@ void main() {
       test('returns records for specific date', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -277,14 +295,18 @@ void main() {
       test('ignores time portion of date', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
         await service.addRecord(date: DateTime(2024, 1, 15, 0, 0));
         await service.addRecord(date: DateTime(2024, 1, 15, 23, 59));
 
-        final records = await service.getRecordsForDate(DateTime(2024, 1, 15, 12, 0));
+        final records = await service.getRecordsForDate(
+          DateTime(2024, 1, 15, 12, 0),
+        );
 
         expect(records.length, 2);
       });
@@ -294,7 +316,9 @@ void main() {
       test('returns only incomplete records', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -327,7 +351,9 @@ void main() {
       test('returns count of records without syncedAt', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -345,7 +371,9 @@ void main() {
       test('clears device UUID', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -507,7 +535,9 @@ void main() {
       test('returns true for valid chain', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
-          httpClient: MockClient((_) async => http.Response('{"success": true}', 200)),
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
           repository: mockRepository,
         );
 
@@ -553,10 +583,8 @@ class MockEnrollmentService implements EnrollmentService {
 /// Mock EventRepository using in-memory Sembast database for testing.
 class MockEventRepository extends EventRepository {
   MockEventRepository()
-      : _dbName = 'test_${DateTime.now().microsecondsSinceEpoch}.db',
-        super(
-          databaseProvider: _MockDatabaseProvider(),
-        );
+    : _dbName = 'test_${DateTime.now().microsecondsSinceEpoch}.db',
+      super(databaseProvider: _MockDatabaseProvider());
 
   final String _dbName;
   Database? _database;
@@ -581,12 +609,12 @@ class MockEventRepository extends EventRepository {
 /// Mock DatabaseProvider that accepts an injected database.
 class _MockDatabaseProvider extends DatabaseProvider {
   _MockDatabaseProvider()
-      : super(
-          config: DatastoreConfig.development(
-            deviceId: 'test-device',
-            userId: 'test-user',
-          ),
-        );
+    : super(
+        config: DatastoreConfig.development(
+          deviceId: 'test-device',
+          userId: 'test-user',
+        ),
+      );
 
   Database? _database;
 

@@ -5,17 +5,22 @@ import 'dart:async';
 
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({required this.nosebleedService, super.key});
+  const HomeScreen({
+    required this.nosebleedService,
+    required this.enrollmentService,
+    super.key,
+  });
   final NosebleedService nosebleedService;
+  final EnrollmentService enrollmentService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -56,8 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            RecordingScreen(nosebleedService: widget.nosebleedService),
+        builder: (context) => RecordingScreen(
+          nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
+        ),
       ),
     );
 
@@ -79,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (context) => RecordingScreen(
           nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
           initialDate: yesterday,
         ),
       ),
@@ -105,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (context) => RecordingScreen(
           nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
           initialDate: firstIncomplete.date,
           existingRecord: firstIncomplete,
         ),
@@ -606,6 +615,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(
                       builder: (context) => RecordingScreen(
                         nosebleedService: widget.nosebleedService,
+                        enrollmentService: widget.enrollmentService,
                         initialDate: record.date,
                         existingRecord: record,
                       ),

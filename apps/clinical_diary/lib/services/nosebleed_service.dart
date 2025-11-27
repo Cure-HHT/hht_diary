@@ -26,9 +26,9 @@ class NosebleedService {
     required EnrollmentService enrollmentService,
     http.Client? httpClient,
     EventRepository? repository,
-  })  : _enrollmentService = enrollmentService,
-        _httpClient = httpClient ?? http.Client(),
-        _repository = repository;
+  }) : _enrollmentService = enrollmentService,
+       _httpClient = httpClient ?? http.Client(),
+       _repository = repository;
 
   static const _deviceUuidKey = 'device_uuid';
 
@@ -111,7 +111,8 @@ class NosebleedService {
     final deviceUuid = await getDeviceUuid();
     final userId = await _enrollmentService.getUserId() ?? 'anonymous';
 
-    final isIncomplete = !isNoNosebleedsEvent &&
+    final isIncomplete =
+        !isNoNosebleedsEvent &&
         !isUnknownEvent &&
         (startTime == null || endTime == null || severity == null);
 
@@ -148,20 +149,12 @@ class NosebleedService {
 
   /// Mark a day as having no nosebleeds
   Future<NosebleedRecord> markNoNosebleeds(DateTime date) async {
-    return addRecord(
-      date: date,
-      startTime: date,
-      isNoNosebleedsEvent: true,
-    );
+    return addRecord(date: date, startTime: date, isNoNosebleedsEvent: true);
   }
 
   /// Mark a day as unknown (don't remember)
   Future<NosebleedRecord> markUnknown(DateTime date) async {
-    return addRecord(
-      date: date,
-      startTime: date,
-      isUnknownEvent: true,
-    );
+    return addRecord(date: date, startTime: date, isUnknownEvent: true);
   }
 
   /// Complete an incomplete record by adding a new complete version
@@ -203,7 +196,8 @@ class NosebleedService {
         .where((r) => r.startTime?.isAfter(yesterday) ?? false)
         .toList()
       ..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
+        (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
+      );
   }
 
   /// Get incomplete records
@@ -269,15 +263,14 @@ class NosebleedService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwtToken',
         },
-        body: jsonEncode({
-          'records': unsynced.map((r) => r.toJson()).toList(),
-        }),
+        body: jsonEncode({'records': unsynced.map((r) => r.toJson()).toList()}),
       );
 
       if (response.statusCode == 200) {
         // Mark all events as synced
-        await _eventRepository
-            .markEventsSynced(unsynced.map((r) => r.id).toList());
+        await _eventRepository.markEventsSynced(
+          unsynced.map((r) => r.id).toList(),
+        );
         debugPrint('Synced ${unsynced.length} records');
       } else {
         debugPrint('Bulk sync failed: ${response.statusCode}');
@@ -303,11 +296,11 @@ class NosebleedService {
       );
 
       if (response.statusCode == 200) {
-        final responseBody =
-            jsonDecode(response.body) as Map<String, dynamic>;
+        final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
         final cloudRecords = (responseBody['records'] as List<dynamic>)
-            .map((json) =>
-                NosebleedRecord.fromJson(json as Map<String, dynamic>))
+            .map(
+              (json) => NosebleedRecord.fromJson(json as Map<String, dynamic>),
+            )
             .toList();
 
         // Get existing event IDs

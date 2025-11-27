@@ -4,11 +4,7 @@ import 'package:intl/intl.dart';
 
 /// List item widget for displaying a nosebleed event
 class EventListItem extends StatelessWidget {
-
-  const EventListItem({
-    required this.record, super.key,
-    this.onTap,
-  });
+  const EventListItem({required this.record, super.key, this.onTap});
   final NosebleedRecord record;
   final VoidCallback? onTap;
 
@@ -84,9 +80,8 @@ class EventListItem extends StatelessWidget {
                       children: [
                         Text(
                           _timeRange,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w500),
                         ),
                         if (_duration.isNotEmpty) ...[
                           const SizedBox(width: 8),
@@ -96,9 +91,9 @@ class EventListItem extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -114,11 +109,10 @@ class EventListItem extends StatelessWidget {
                       Text(
                         record.severity!.displayName,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.7),
-                            ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ],
                   ],
@@ -128,7 +122,10 @@ class EventListItem extends StatelessWidget {
               // Status indicators
               if (record.isIncomplete)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.shade100,
                     borderRadius: BorderRadius.circular(4),
@@ -159,7 +156,9 @@ class EventListItem extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ],
             ],

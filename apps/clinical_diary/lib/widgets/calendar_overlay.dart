@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../models/nosebleed_record.dart';
 
 /// Status types for date classification in the calendar
 enum DateStatus {
@@ -18,10 +18,10 @@ enum DateStatus {
 /// Calendar overlay for selecting dates to add or edit nosebleed events
 class CalendarOverlay extends StatefulWidget {
   const CalendarOverlay({
-    super.key,
     required this.isOpen,
     required this.onClose,
     required this.onDateSelect,
+    super.key,
     this.selectedDate,
     this.records = const [],
     this.incompleteRecords = const [],
@@ -177,7 +177,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     if (!widget.isOpen) return const SizedBox.shrink();
 
     return Material(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: GestureDetector(
         onTap: widget.onClose,
         child: Center(
@@ -253,7 +253,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      calendarBuilders: CalendarBuilders(
+                      calendarBuilders: CalendarBuilders<dynamic>(
                         defaultBuilder: (context, day, focusedDay) {
                           return _buildDateCell(context, day, false);
                         },
@@ -336,7 +336,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                           textAlign: TextAlign.center,
                         ),
@@ -361,11 +361,11 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     bool isOutside = false,
   }) {
     final color = isDisabled || isOutside
-        ? const Color(0xFF6B7280).withOpacity(0.5)
+        ? const Color(0xFF6B7280).withValues(alpha: 0.5)
         : _getDateColor(day);
 
     final textColor = isDisabled || isOutside
-        ? Colors.white.withOpacity(0.5)
+        ? Colors.white.withValues(alpha: 0.5)
         : (color.computeLuminance() > 0.5 ? Colors.black : Colors.white);
 
     return Container(

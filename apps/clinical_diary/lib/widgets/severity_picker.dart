@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 
 /// Severity selection widget with visual icons
 class SeverityPicker extends StatelessWidget {
-
   const SeverityPicker({
-    required this.onSelect, super.key,
+    required this.onSelect,
+    super.key,
     this.selectedSeverity,
   });
   final NosebleedSeverity? selectedSeverity;
@@ -19,16 +19,18 @@ class SeverityPicker extends StatelessWidget {
         children: [
           Text(
             'How severe is the nosebleed?',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Select the option that best describes the bleeding',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -54,7 +56,6 @@ class SeverityPicker extends StatelessWidget {
 }
 
 class _SeverityOption extends StatelessWidget {
-
   const _SeverityOption({
     required this.severity,
     required this.isSelected,
@@ -127,11 +128,7 @@ class _SeverityOption extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                _icon,
-                size: 48,
-                color: _getIconColor(context),
-              ),
+              Icon(_icon, size: 48, color: _getIconColor(context)),
               const SizedBox(height: 8),
               Text(
                 severity.displayName,

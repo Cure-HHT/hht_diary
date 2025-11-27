@@ -149,7 +149,9 @@ void main() {
       expect(called, true);
     });
 
-    testWidgets('calls onDontRemember when Dont remember is tapped', (tester) async {
+    testWidgets('calls onDontRemember when Dont remember is tapped', (
+      tester,
+    ) async {
       var called = false;
 
       await tester.pumpWidget(
@@ -215,9 +217,7 @@ void main() {
         ),
       );
 
-      final container = tester.widget<Container>(
-        find.byType(Container).first,
-      );
+      final container = tester.widget<Container>(find.byType(Container).first);
       final decoration = container.decoration as BoxDecoration;
       expect(decoration.color, Colors.yellow.shade50);
     });

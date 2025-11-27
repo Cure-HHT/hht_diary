@@ -84,10 +84,7 @@ void main() {
           'enrolledAt': '2024-01-15T10:30:00.000',
         };
 
-        expect(
-          () => UserEnrollment.fromJson(json),
-          throwsA(isA<TypeError>()),
-        );
+        expect(() => UserEnrollment.fromJson(json), throwsA(isA<TypeError>()));
       });
 
       test('throws on missing jwtToken', () {
@@ -96,22 +93,13 @@ void main() {
           'enrolledAt': '2024-01-15T10:30:00.000',
         };
 
-        expect(
-          () => UserEnrollment.fromJson(json),
-          throwsA(isA<TypeError>()),
-        );
+        expect(() => UserEnrollment.fromJson(json), throwsA(isA<TypeError>()));
       });
 
       test('throws on missing enrolledAt', () {
-        final json = {
-          'userId': 'user-123',
-          'jwtToken': 'jwt-token',
-        };
+        final json = {'userId': 'user-123', 'jwtToken': 'jwt-token'};
 
-        expect(
-          () => UserEnrollment.fromJson(json),
-          throwsA(isA<TypeError>()),
-        );
+        expect(() => UserEnrollment.fromJson(json), throwsA(isA<TypeError>()));
       });
 
       test('throws on invalid date format', () {
@@ -134,10 +122,7 @@ void main() {
           'enrolledAt': '2024-01-15T10:30:00.000',
         };
 
-        expect(
-          () => UserEnrollment.fromJson(json),
-          throwsA(isA<TypeError>()),
-        );
+        expect(() => UserEnrollment.fromJson(json), throwsA(isA<TypeError>()));
       });
     });
 
@@ -224,7 +209,8 @@ void main() {
       });
 
       test('special characters in token are preserved', () {
-        const specialToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+        const specialToken =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
             'eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.'
             'SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 

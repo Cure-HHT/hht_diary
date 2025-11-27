@@ -10,7 +10,9 @@ void main() {
   group('EventListItem', () {
     final testDate = DateTime(2024, 1, 15);
 
-    testWidgets('displays time range when both start and end time provided', (tester) async {
+    testWidgets('displays time range when both start and end time provided', (
+      tester,
+    ) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -21,9 +23,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -31,7 +31,9 @@ void main() {
       expect(find.textContaining('10:45 AM'), findsOneWidget);
     });
 
-    testWidgets('displays only start time when end time is missing', (tester) async {
+    testWidgets('displays only start time when end time is missing', (
+      tester,
+    ) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -41,9 +43,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -51,16 +51,11 @@ void main() {
     });
 
     testWidgets('displays -- when no times provided', (tester) async {
-      final record = NosebleedRecord(
-        id: 'test-1',
-        date: testDate,
-      );
+      final record = NosebleedRecord(id: 'test-1', date: testDate);
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -78,9 +73,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -96,9 +89,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -118,9 +109,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -138,16 +127,16 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
       expect(find.text('1h 30m'), findsOneWidget);
     });
 
-    testWidgets('displays duration in hours only when no remaining minutes', (tester) async {
+    testWidgets('displays duration in hours only when no remaining minutes', (
+      tester,
+    ) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -158,16 +147,16 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
       expect(find.text('2h'), findsOneWidget);
     });
 
-    testWidgets('shows Incomplete badge for incomplete records', (tester) async {
+    testWidgets('shows Incomplete badge for incomplete records', (
+      tester,
+    ) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -177,9 +166,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -187,7 +174,9 @@ void main() {
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     });
 
-    testWidgets('does not show Incomplete badge for complete records', (tester) async {
+    testWidgets('does not show Incomplete badge for complete records', (
+      tester,
+    ) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -199,9 +188,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -218,10 +205,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: EventListItem(
-              record: record,
-              onTap: () {},
-            ),
+            body: EventListItem(record: record, onTap: () {}),
           ),
         ),
       );
@@ -229,7 +213,9 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
-    testWidgets('does not show chevron icon when onTap is null', (tester) async {
+    testWidgets('does not show chevron icon when onTap is null', (
+      tester,
+    ) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -238,9 +224,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -258,10 +242,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: EventListItem(
-              record: record,
-              onTap: () => tapped = true,
-            ),
+            body: EventListItem(record: record, onTap: () => tapped = true),
           ),
         ),
       );
@@ -273,16 +254,11 @@ void main() {
     });
 
     testWidgets('renders as a Card', (tester) async {
-      final record = NosebleedRecord(
-        id: 'test-1',
-        date: testDate,
-      );
+      final record = NosebleedRecord(id: 'test-1', date: testDate);
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 
@@ -298,9 +274,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record),
-          ),
+          home: Scaffold(body: EventListItem(record: record)),
         ),
       );
 

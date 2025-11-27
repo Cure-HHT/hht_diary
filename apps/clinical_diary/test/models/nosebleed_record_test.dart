@@ -56,10 +56,7 @@ void main() {
 
     group('constructor', () {
       test('creates record with required fields', () {
-        final record = NosebleedRecord(
-          id: 'test-123',
-          date: testDate,
-        );
+        final record = NosebleedRecord(id: 'test-123', date: testDate);
 
         expect(record.id, 'test-123');
         expect(record.date, testDate);
@@ -91,23 +88,23 @@ void main() {
 
       test('sets createdAt to now if not provided', () {
         final before = DateTime.now();
-        final record = NosebleedRecord(
-          id: 'test-123',
-          date: testDate,
-        );
+        final record = NosebleedRecord(id: 'test-123', date: testDate);
         final after = DateTime.now();
 
-        expect(record.createdAt.isAfter(before.subtract(const Duration(seconds: 1))), true);
-        expect(record.createdAt.isBefore(after.add(const Duration(seconds: 1))), true);
+        expect(
+          record.createdAt.isAfter(before.subtract(const Duration(seconds: 1))),
+          true,
+        );
+        expect(
+          record.createdAt.isBefore(after.add(const Duration(seconds: 1))),
+          true,
+        );
       });
     });
 
     group('fromJson', () {
       test('parses minimal JSON', () {
-        final json = {
-          'id': 'test-123',
-          'date': '2024-01-15T00:00:00.000',
-        };
+        final json = {'id': 'test-123', 'date': '2024-01-15T00:00:00.000'};
 
         final record = NosebleedRecord.fromJson(json);
 
@@ -163,10 +160,7 @@ void main() {
       });
 
       test('defaults boolean fields to false', () {
-        final json = {
-          'id': 'test-123',
-          'date': '2024-01-15T00:00:00.000',
-        };
+        final json = {'id': 'test-123', 'date': '2024-01-15T00:00:00.000'};
 
         final record = NosebleedRecord.fromJson(json);
 
@@ -203,10 +197,7 @@ void main() {
       });
 
       test('handles null optional fields', () {
-        final record = NosebleedRecord(
-          id: 'test-123',
-          date: testDate,
-        );
+        final record = NosebleedRecord(id: 'test-123', date: testDate);
 
         final json = record.toJson();
 
@@ -243,10 +234,7 @@ void main() {
 
     group('computed properties', () {
       test('isRealEvent returns true for normal events', () {
-        final record = NosebleedRecord(
-          id: 'test-123',
-          date: testDate,
-        );
+        final record = NosebleedRecord(id: 'test-123', date: testDate);
 
         expect(record.isRealEvent, true);
       });
@@ -348,10 +336,7 @@ void main() {
       });
 
       test('durationMinutes returns null when times are missing', () {
-        final record = NosebleedRecord(
-          id: 'test-123',
-          date: testDate,
-        );
+        final record = NosebleedRecord(id: 'test-123', date: testDate);
 
         expect(record.durationMinutes, isNull);
       });
