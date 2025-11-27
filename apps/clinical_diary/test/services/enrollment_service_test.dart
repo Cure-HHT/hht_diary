@@ -453,22 +453,22 @@ class MockSecureStorage implements FlutterSecureStorage {
   }
 
   @override
-  IOSOptions get iOptions => const IOSOptions();
+  IOSOptions get iOptions => IOSOptions.defaultOptions;
 
   @override
-  AndroidOptions get aOptions => const AndroidOptions();
+  AndroidOptions get aOptions => AndroidOptions.defaultOptions;
 
   @override
-  LinuxOptions get lOptions => const LinuxOptions();
+  LinuxOptions get lOptions => LinuxOptions.defaultOptions;
 
   @override
-  WebOptions get webOptions => const WebOptions();
+  WebOptions get webOptions => WebOptions.defaultOptions;
 
   @override
-  MacOsOptions get mOptions => const MacOsOptions();
+  MacOsOptions get mOptions => MacOsOptions.defaultOptions;
 
   @override
-  WindowsOptions get wOptions => const WindowsOptions();
+  WindowsOptions get wOptions => WindowsOptions.defaultOptions;
 
   @override
   Future<bool?> isCupertinoProtectedDataAvailable() async => true;
@@ -490,7 +490,7 @@ class MockSecureStorage implements FlutterSecureStorage {
   }) {}
 
   @override
-  void unregisterAllListeners({required String key}) {}
+  void unregisterAllListeners() {}
 
   @override
   void unregisterAllListenersForKey({required String key}) {}

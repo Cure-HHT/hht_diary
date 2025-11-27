@@ -5,10 +5,11 @@
 ///
 /// ## Features
 ///
-/// - ✅ SQLite-based append-only event storage
+/// - ✅ Sembast-based append-only event storage (cross-platform including web)
 /// - ✅ Offline queue with automatic sync
 /// - ✅ Conflict detection using version vectors
 /// - ✅ FDA 21 CFR Part 11 compliance (immutable audit trail)
+/// - ✅ Cryptographic hash chain for tamper detection
 /// - ✅ OpenTelemetry integration
 /// - ✅ Reactive state with Signals
 ///
@@ -22,24 +23,29 @@
 ///   config: DatastoreConfig.development(
 ///     deviceId: 'device-123',
 ///     userId: 'user-456',
-///     encryptionKey: await getSecureKey(), // SQLCipher encryption
 ///   ),
 /// );
 ///
-/// // Append an event (TODO: Phase 1 - Day 6)
-/// // await Datastore.instance.repository.append(myEvent);
+/// // Append an event
+/// final event = await Datastore.instance.repository.append(
+///   aggregateId: 'diary-entry-123',
+///   eventType: 'NosebleedRecorded',
+///   data: {'severity': 'mild', 'duration': 10},
+///   userId: 'user-456',
+///   deviceId: 'device-789',
+/// );
 ///
-/// // Query events (TODO: Phase 1 - Day 12)
-/// // final events = await Datastore.instance.queryService.getEvents();
+/// // Query events
+/// final events = await Datastore.instance.repository.getAllEvents();
 ///
-/// // Manual sync (TODO: Phase 1 - Day 14)
-/// // await Datastore.instance.syncService.syncNow();
+/// // Get unsynced events for sync
+/// final unsynced = await Datastore.instance.repository.getUnsyncedEvents();
 ///
 /// // Watch sync status in UI
-/// // Watch((context) {
-/// //   final status = Datastore.instance.syncStatus.value;
-/// //   return Text(status.message);
-/// // });
+/// Watch((context) {
+///   final depth = Datastore.instance.queueDepth.value;
+///   return Text('$depth events pending sync');
+/// });
 /// ```
 ///
 /// ## Architecture
@@ -52,8 +58,8 @@
 ///    - Value objects
 ///
 /// 2. **Infrastructure Layer** (this package)
-///    - SQLite storage
-///    - Event repository
+///    - Sembast storage (cross-platform: iOS, Android, Web, Desktop)
+///    - Event repository with append-only semantics
 ///    - Sync engine
 ///
 /// 3. **Application Layer** (clinical_diary app)
@@ -61,44 +67,54 @@
 ///    - Business logic
 ///    - UI presentation
 ///
+/// ## Platform Support
+///
+/// - iOS (sembast_io)
+/// - Android (sembast_io)
+/// - macOS (sembast_io)
+/// - Windows (sembast_io)
+/// - Linux (sembast_io)
+/// - Web (sembast_web with IndexedDB)
+///
 /// ## FDA Compliance
 ///
 /// This datastore implements FDA 21 CFR Part 11 requirements:
 ///
-/// - §11.10(e): Immutable audit trail (database triggers)
-/// - §11.10(c): Sequence of operations (sequence numbers)
-/// - §11.50: Signature manifestations (cryptographic signatures)
+/// - §11.10(e): Immutable audit trail (append-only storage)
+/// - §11.10(c): Sequence of operations (monotonic sequence numbers)
+/// - §11.50: Signature manifestations (SHA-256 hash chain)
 /// - §11.10(a): Validation (comprehensive testing)
 ///
-/// ## Phase 1 MVP Status
+/// ## Implementation Status
 ///
 /// ✅ Configuration and DI setup
-/// ⏳ Database layer (Day 4-5)
-/// ⏳ Event storage (Day 6-7)
-/// ⏳ Offline queue (Day 8-9)
-/// ⏳ Conflict detection (Day 10-11)
-/// ⏳ Query service (Day 12-13)
-/// ⏳ Sync engine (Day 14-15)
+/// ✅ Database layer (Sembast cross-platform)
+/// ✅ Event storage (append-only with hash chain)
+/// ⏳ Offline queue manager
+/// ⏳ Conflict detection (version vectors)
+/// ⏳ Query service
+/// ⏳ Sync engine
 ///
 library;
 
 // Core configuration
 export 'src/core/config/datastore_config.dart';
 
-// Datastore Singletonz
+// Datastore singleton
 export 'src/core/di/datastore.dart';
 
 // Exceptions
 export 'src/core/errors/datastore_exception.dart';
 export 'src/core/errors/sync_exception.dart';
 
-// TODO: Export infrastructure (Phase 1)
-// export 'src/infrastructure/database/database_provider.dart';
-// export 'src/infrastructure/repositories/event_repository.dart';
-// export 'src/infrastructure/sync/sync_service.dart';
+// Infrastructure - Database
+export 'src/infrastructure/database/database_provider.dart';
 
-// TODO: Export application services (Phase 1)
+// Infrastructure - Repositories
+export 'src/infrastructure/repositories/event_repository.dart';
+
+// TODO: Export additional services as implemented
+// export 'src/infrastructure/sync/sync_service.dart';
 // export 'src/application/services/query_service.dart';
 // export 'src/application/services/conflict_resolver.dart';
-// export 'src/application/models/sync_status.dart';
 // export 'src/application/models/version_vector.dart';

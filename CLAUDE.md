@@ -155,7 +155,7 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Results: Uploaded to GitHub Security → Code scanning
 
 3. **Flutter Analyze** (Dart/Flutter Static Analysis)
-   - Runs: CI/CD only
+   - Runs: CI/CD and locally
    - Purpose: Static analysis for Dart/Flutter code (CodeQL alternative)
    - Checks: Type safety, unused code, potential nulls, security patterns
    - Exit behavior: BLOCKS PR if errors detected
