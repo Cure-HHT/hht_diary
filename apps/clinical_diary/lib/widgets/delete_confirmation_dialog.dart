@@ -115,4 +115,16 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
       ],
     );
   }
+
+  /// Show the delete confirmation dialog
+  static Future<void> show({
+    required BuildContext context,
+    required ValueChanged<String> onConfirmDelete,
+  }) async {
+    await showDialog(
+      context: context,
+      builder: (context) =>
+          DeleteConfirmationDialog(onConfirmDelete: onConfirmDelete),
+    );
+  }
 }

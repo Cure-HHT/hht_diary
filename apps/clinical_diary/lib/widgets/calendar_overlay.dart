@@ -4,6 +4,7 @@
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../models/nosebleed_record.dart';
 
 /// Status types for date classification in the calendar
 enum DateStatus {
@@ -18,10 +19,10 @@ enum DateStatus {
 /// Calendar overlay for selecting dates to add or edit nosebleed events
 class CalendarOverlay extends StatefulWidget {
   const CalendarOverlay({
+    super.key,
     required this.isOpen,
     required this.onClose,
     required this.onDateSelect,
-    super.key,
     this.selectedDate,
     this.records = const [],
     this.incompleteRecords = const [],
