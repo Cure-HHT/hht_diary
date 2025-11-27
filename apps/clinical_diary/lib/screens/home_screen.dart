@@ -17,7 +17,6 @@ import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// Main home screen showing recent events and recording button
@@ -136,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (context) => RecordingScreen(
           nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
           initialDate: firstIncomplete.date,
           existingRecord: firstIncomplete,
         ),

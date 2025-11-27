@@ -277,7 +277,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Future<void> _handleDelete() async {
     await DeleteConfirmationDialog.show(
       context: context,
-      onConfirmDelete: (reason) {
+      onConfirmDelete: (String reason) {
         if (widget.onDelete != null) {
           widget.onDelete!(reason);
           Navigator.pop(context);
@@ -595,12 +595,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     onTap: () =>
                         setState(() => _currentStep = RecordingStep.notes),
                     child: Text(
-                      _notes?.isNotEmpty == true
+                      (_notes?.isNotEmpty ?? false)
                           ? _notes!
                           : 'Tap to add notes (required)',
                       style: TextStyle(
                         fontSize: 14,
-                        color: _notes?.isNotEmpty == true
+                        color: (_notes?.isNotEmpty ?? false)
                             ? Theme.of(context).colorScheme.onSurface
                             : Theme.of(context).colorScheme.primary,
                       ),

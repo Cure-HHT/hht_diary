@@ -167,9 +167,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
-    _nosebleedService = NosebleedService(
-      enrollmentService: _enrollmentService,
-    );
+    _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
     _checkEnrollment();
   }
 

@@ -31,15 +31,14 @@ enum NosebleedSeverity {
   static NosebleedSeverity? fromString(String? value) {
     if (value == null) return null;
     return NosebleedSeverity.values.cast<NosebleedSeverity?>().firstWhere(
-          (e) => e?.displayName == value || e?.name == value,
-          orElse: () => null,
-        );
+      (e) => e?.displayName == value || e?.name == value,
+      orElse: () => null,
+    );
   }
 }
 
 /// Represents a nosebleed event record
 class NosebleedRecord {
-
   NosebleedRecord({
     required this.id,
     required this.date,
