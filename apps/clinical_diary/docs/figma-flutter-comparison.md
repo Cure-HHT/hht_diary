@@ -18,6 +18,67 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ---
 
+## Implementation Checklist
+
+### High Priority (Core Functionality)
+
+- [ ] **1. Questionnaire System**
+  - [ ] Create questionnaire data model
+  - [ ] Build QuestionnaireFlowScreen
+  - [ ] Add SurveyViewScreen
+  - [ ] Store completed surveys locally
+  - [ ] Display survey events in timeline
+
+- [x] **2. Day Selection Screen** ✅ DONE
+  - [x] Create DaySelectionScreen widget
+  - [x] Three-option interface (Add nosebleed, No nosebleeds, Unknown)
+  - [x] Integrate with calendar flow
+  - [x] Tests written (13 tests)
+
+- [ ] **3. Survey Event Types**
+  - [ ] Add survey event type to model
+  - [ ] Blue survey event card in EventListItem
+  - [ ] "View Only" label and clipboard icon
+
+- [x] **4. Color-coded Calendar** ✅ DONE (was already implemented)
+  - [x] Status-based date colors (red/green/yellow/black/grey)
+  - [x] Legend component
+  - [x] Missing data highlighting
+
+### Medium Priority (UX Enhancement)
+
+- [ ] **5. Date Records Screen**
+  - [ ] Create DateRecordsScreen widget
+  - [ ] List of events for selected date
+  - [ ] "Add new event" button
+  - [ ] Edit capability for each event
+
+- [ ] **6. Logo Menu Implementation**
+  - [ ] Make header logo tappable
+  - [ ] Data Management popup menu
+  - [ ] Questionnaire triggers
+  - [ ] End Clinical Trial option
+
+- [x] **7. Special Event Card Styling** ✅ DONE
+  - [x] Green "No nosebleeds" card with checkmark
+  - [x] Yellow "Unknown" card with question mark
+  - [x] Tests written (8 tests)
+
+### Low Priority (Visual Polish)
+
+- [ ] **8. Custom Severity Icons**
+  - [ ] Download/create droplet illustration assets
+  - [ ] Replace Material Icons in SeverityPicker
+  - [ ] Update severity colors (green→yellow→red)
+
+- [ ] **9. Animated Enrollment Dialog**
+  - [ ] Add transition animation (Pending → Success)
+
+- [ ] **10. Multi-day Event Indicator**
+  - [ ] Show "(+1 day)" for events crossing midnight
+
+---
+
 ## Missing Features (Critical)
 
 ### 1. Questionnaire System - NOT IMPLEMENTED
@@ -42,7 +103,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ---
 
-### 2. Day Selection Screen - NOT IMPLEMENTED
+### 2. Day Selection Screen - ✅ IMPLEMENTED
 
 **Figma Component**: `DaySelectionScreen.tsx`
 
@@ -54,7 +115,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
   - "No nosebleed events" (green)
   - "I don't recall / unknown" (outline)
 
-**Flutter Status**: Missing this intermediate screen. Calendar selection likely jumps directly to recording.
+**Flutter Status**: ✅ Implemented in `lib/screens/day_selection_screen.dart`
+- Integrated with calendar flow in `calendar_screen.dart`
+- 13 passing tests in `test/screens/day_selection_screen_test.dart`
 
 ---
 
@@ -72,7 +135,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ---
 
-### 4. Missing Data Calendar - PARTIALLY IMPLEMENTED
+### 4. Missing Data Calendar - ✅ IMPLEMENTED
 
 **Figma Component**: `MissingDataCalendar.tsx`
 
@@ -88,10 +151,10 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 - Only allows selection of missing data days
 - "Tap a highlighted date to add data for that day"
 
-**Flutter Status**: `calendar_screen.dart` exists but lacks:
+**Flutter Status**: ✅ Implemented in `lib/screens/calendar_screen.dart`
 - Color-coded status indicators
-- Legend
-- Missing data highlighting
+- Legend with all status types
+- Day selection screen for dates without records
 
 ---
 
@@ -132,7 +195,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ---
 
-### 7. Special Event Type Cards - NOT IMPLEMENTED
+### 7. Special Event Type Cards - ✅ IMPLEMENTED
 
 **Figma Component**: `EventListItem.tsx` (special event types)
 
@@ -146,7 +209,10 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
   - Question mark icon (?)
   - "Unable to recall events for this day"
 
-**Flutter Status**: `EventListItem` renders all records similarly without special styling for these event types.
+**Flutter Status**: ✅ Implemented in `lib/widgets/event_list_item.dart`
+- Green "No nosebleed events" card with check_circle icon
+- Yellow "Unknown" card with help_outline icon
+- 8 additional tests (23 total for EventListItem)
 
 ---
 
@@ -224,9 +290,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 | Severity Selection | ✅ | ✅ | Different UI (icons) |
 | Time Picker | ✅ | ✅ | Complete |
 | Notes Input | ✅ | ✅ | Complete |
-| Calendar | ✅ | ✅ | Basic (no colors) |
-| Missing Data Calendar | ✅ | ⚠️ | Partial |
-| Day Selection Screen | ✅ | ❌ | Missing |
+| Calendar | ✅ | ✅ | ✅ Complete with colors |
+| Missing Data Calendar | ✅ | ✅ | ✅ Complete |
+| Day Selection Screen | ✅ | ✅ | ✅ Complete |
 | Date Records Screen | ✅ | ❌ | Missing |
 | Profile Screen | ✅ | ✅ | Complete |
 | Settings Screen | ✅ | ✅ | Complete (+ i18n) |
@@ -234,7 +300,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 | Questionnaire Flow | ✅ | ❌ | Missing |
 | Survey View Screen | ✅ | ❌ | Missing |
 | Survey Events | ✅ | ❌ | Missing |
-| Special Event Cards | ✅ | ❌ | Missing |
+| Special Event Cards | ✅ | ✅ | ✅ Complete |
 | Logo Menu | ✅ | ❌ | Missing |
 | Yesterday Banner | ✅ | ✅ | Complete |
 | Delete Confirmation | ✅ | ✅ | Complete |
@@ -247,50 +313,50 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ### High Priority (Core Functionality)
 
-1. **Implement Questionnaire System**
+1. **Implement Questionnaire System** - TODO
    - Create questionnaire data model
    - Build questionnaire flow screen
    - Add survey view screen
    - Store completed surveys
    - Display in event timeline
 
-2. **Add Day Selection Screen**
-   - Create intermediate screen for calendar date selection
-   - Three-option interface for date without records
+2. ~~**Add Day Selection Screen**~~ - ✅ DONE
+   - ~~Create intermediate screen for calendar date selection~~
+   - ~~Three-option interface for date without records~~
 
-3. **Implement Survey Event Types**
+3. **Implement Survey Event Types** - TODO
    - Update NosebleedRecord model to support survey events
    - Update EventListItem to render survey cards
 
-4. **Add Color-coded Calendar**
-   - Implement status-based date colors
-   - Add legend component
-   - Highlight missing data days
+4. ~~**Add Color-coded Calendar**~~ - ✅ DONE (was already implemented)
+   - ~~Implement status-based date colors~~
+   - ~~Add legend component~~
+   - ~~Highlight missing data days~~
 
 ### Medium Priority (UX Enhancement)
 
-5. **Date Records Screen**
+5. **Date Records Screen** - TODO (NEXT)
    - Create screen showing all events for selected date
 
-6. **Logo Menu Implementation**
+6. **Logo Menu Implementation** - TODO
    - Make header logo tappable
    - Add data management popup menu
    - Include questionnaire triggers
 
-7. **Special Event Card Styling**
-   - Style "No nosebleeds" events (green)
-   - Style "Unknown" events (yellow)
+7. ~~**Special Event Card Styling**~~ - ✅ DONE
+   - ~~Style "No nosebleeds" events (green)~~
+   - ~~Style "Unknown" events (yellow)~~
 
 ### Low Priority (Visual Polish)
 
-8. **Custom Severity Icons**
+8. **Custom Severity Icons** - TODO
    - Replace Material Icons with design assets
    - Match Figma severity illustrations
 
-9. **Animated Enrollment Dialog**
+9. **Animated Enrollment Dialog** - TODO
    - Add transition animation (Pending → Success)
 
-10. **Multi-day Event Indicator**
+10. **Multi-day Event Indicator** - TODO
     - Show "(+1 day)" for events crossing midnight
 
 ---
