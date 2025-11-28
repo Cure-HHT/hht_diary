@@ -67,7 +67,16 @@ class _TimePickerDialState extends State<TimePickerDial> {
       );
       // Don't allow future times unless explicitly permitted
       if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
-        newTime = DateTime.now();
+        // Show feedback that future time was rejected
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cannot select a time in the future'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
       }
       setState(() {
         _selectedTime = newTime;

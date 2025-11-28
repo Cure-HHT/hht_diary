@@ -452,7 +452,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           initialTime: _endTime ?? DateTime.now(),
           onConfirm: _handleEndTimeConfirm,
           confirmLabel: 'Nosebleed Ended',
-          allowFutureTimes: true,
         );
 
       case RecordingStep.notes:
