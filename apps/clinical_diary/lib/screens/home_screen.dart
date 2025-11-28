@@ -329,7 +329,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Logo menu
                   LogoMenu(
@@ -338,11 +337,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     onEndClinicalTrial: _isEnrolled ? _handleEndClinicalTrial : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                   ),
-                  Text(
-                    AppLocalizations.of(context).appTitle,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context).appTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.person_outline),
