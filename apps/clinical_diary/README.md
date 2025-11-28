@@ -369,17 +369,60 @@ dart format .
            ↓ uses
 ┌─────────────────────────────────┐
 │ append_only_datastore           │
-│   - Commands (RecordEventCommand)
-│   - Queries (GetEventsQuery)   │
-│   - ViewModels                  │
+│   - EventRepository             │
+│   - Hash chain integrity        │
+│   - Cross-platform storage      │
 └─────────────────────────────────┘
            ↓ uses
 ┌─────────────────────────────────┐
-│   trial_data_types              │
-│   - Events (NosebleedEvent)     │
-│   - Entities (Participant)      │
+│   Sembast Database              │
+│   - Native: sembast_io          │
+│   - Web: sembast_web (IndexedDB)│
 └─────────────────────────────────┘
 ```
+
+### Append-Only Datastore Integration
+
+The app uses the `append_only_datastore` package for offline-first event sourcing with FDA 21 CFR Part 11 compliance.
+
+**Benefits of Integration:**
+
+| Benefit | Description |
+| ------- | ----------- |
+| **Tamper Detection** | SHA-256 hash chain links each event to its predecessor. Any modification breaks the chain and is immediately detectable. |
+| **FDA Compliance** | Immutable audit trail with sequence numbers, timestamps, and user/device attribution. Events cannot be updated or deleted—only new events can be appended. |
+| **Cross-Platform** | Uses Sembast database with platform-specific storage: `sembast_io` for iOS/Android/macOS/Windows/Linux, `sembast_web` for browser (IndexedDB). |
+| **Offline-First** | All data is stored locally first. Cloud sync is tracked per-event with `syncedAt` timestamps. |
+| **Testable** | Repository injection allows easy mocking. Tests use in-memory Sembast databases for fast, isolated execution. |
+
+**How It Works:**
+
+1. **Initialization** (main.dart):
+   ```dart
+   await Datastore.initialize(
+     config: DatastoreConfig.development(
+       deviceId: deviceId,
+       userId: 'anonymous',
+     ),
+   );
+   ```
+
+2. **Recording Events** (NosebleedService):
+   ```dart
+   final storedEvent = await _eventRepository.append(
+     aggregateId: 'diary-2024-01-15',
+     eventType: 'NosebleedRecorded',
+     data: eventData,
+     userId: userId,
+     deviceId: deviceUuid,
+     clientTimestamp: DateTime.now(),
+   );
+   ```
+
+3. **Integrity Verification**:
+   ```dart
+   final isValid = await _eventRepository.verifyIntegrity();
+   ```
 
 ## 🚀 Phase 1 Status
 
@@ -423,14 +466,15 @@ dart format .
 
 This app implements:
 - **Secure authentication** - Multi-factor where available
-- **Audit trail** - Every action tracked
+- **Audit trail** - Every action tracked via append-only event store
 - **Electronic signatures** - Cryptographic signatures on events
-- **Data integrity** - Tamper detection
+- **Data integrity** - SHA-256 hash chain for tamper detection (see [Append-Only Datastore Integration](#append-only-datastore-integration))
 - **Encryption** - At rest and in transit
+- **Immutability** - Events cannot be updated or deleted, only appended
 
 ### Data Protection
 
-- **Local Storage**: AES-256 encrypted via SQLCipher
+- **Local Storage**: Sembast database with platform-specific storage (native or IndexedDB for web)
 - **Network**: TLS 1.3+ only
 - **Secrets**: Never in code, always in Doppler
 - **Backup**: Encrypted cloud backups only

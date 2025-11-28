@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 
 /// Enrollment screen with 8-character code input
 class EnrollmentScreen extends StatefulWidget {
-
   const EnrollmentScreen({
     required this.enrollmentService,
     required this.onEnrolled,
@@ -98,8 +97,8 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               Text(
                 'Welcome to\nNosebleed Diary',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -109,8 +108,10 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               Text(
                 'Enter your enrollment code to get started.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
                 textAlign: TextAlign.center,
               ),
 
@@ -124,21 +125,25 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                 textCapitalization: TextCapitalization.characters,
                 maxLength: 8,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      letterSpacing: 4,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  letterSpacing: 4,
+                  fontWeight: FontWeight.bold,
+                ),
                 decoration: InputDecoration(
                   hintText: 'CUREHHT#',
                   hintStyle: TextStyle(
                     letterSpacing: 4,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                   counterText: '',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
                 ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
@@ -175,7 +180,9 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                         child: Text(
                           _errorMessage!,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
                           ),
                         ),
                       ),
@@ -203,10 +210,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Get Started',
-                        style: TextStyle(fontSize: 18),
-                      ),
+                    : const Text('Get Started', style: TextStyle(fontSize: 18)),
               ),
 
               const Spacer(flex: 3),

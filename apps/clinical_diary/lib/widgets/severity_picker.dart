@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 
 /// Severity selection widget with visual icons
 class SeverityPicker extends StatelessWidget {
-
   const SeverityPicker({
-    required this.onSelect, super.key,
+    required this.onSelect,
+    super.key,
     this.selectedSeverity,
   });
   final NosebleedSeverity? selectedSeverity;
@@ -19,16 +19,18 @@ class SeverityPicker extends StatelessWidget {
         children: [
           Text(
             'How severe is the nosebleed?',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Select the option that best describes the bleeding',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -54,7 +56,6 @@ class SeverityPicker extends StatelessWidget {
 }
 
 class _SeverityOption extends StatelessWidget {
-
   const _SeverityOption({
     required this.severity,
     required this.isSelected,
@@ -64,20 +65,20 @@ class _SeverityOption extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  IconData get _icon {
+  String get _imagePath {
     switch (severity) {
       case NosebleedSeverity.spotting:
-        return Icons.water_drop_outlined;
+        return 'assets/images/severity_spotting.png';
       case NosebleedSeverity.dripping:
-        return Icons.water_drop;
+        return 'assets/images/severity_dripping.png';
       case NosebleedSeverity.drippingQuickly:
-        return Icons.opacity;
+        return 'assets/images/severity_dripping_quickly.png';
       case NosebleedSeverity.steadyStream:
-        return Icons.stream;
+        return 'assets/images/severity_steady_stream.png';
       case NosebleedSeverity.pouring:
-        return Icons.water;
+        return 'assets/images/severity_pouring.png';
       case NosebleedSeverity.gushing:
-        return Icons.waves;
+        return 'assets/images/severity_gushing.png';
     }
   }
 
@@ -86,24 +87,6 @@ class _SeverityOption extends StatelessWidget {
       return Theme.of(context).colorScheme.primaryContainer;
     }
     return Theme.of(context).colorScheme.surfaceContainerHighest;
-  }
-
-  Color _getIconColor(BuildContext context) {
-    // Use a neutral blue-grey scale instead of alarming red
-    switch (severity) {
-      case NosebleedSeverity.spotting:
-        return Colors.blueGrey.shade200;
-      case NosebleedSeverity.dripping:
-        return Colors.blueGrey.shade300;
-      case NosebleedSeverity.drippingQuickly:
-        return Colors.blueGrey.shade400;
-      case NosebleedSeverity.steadyStream:
-        return Colors.blueGrey.shade500;
-      case NosebleedSeverity.pouring:
-        return Colors.blueGrey.shade600;
-      case NosebleedSeverity.gushing:
-        return Colors.blueGrey.shade700;
-    }
   }
 
   @override
@@ -127,10 +110,11 @@ class _SeverityOption extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                _icon,
-                size: 48,
-                color: _getIconColor(context),
+              Image.asset(
+                _imagePath,
+                width: 56,
+                height: 56,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 8),
               Text(

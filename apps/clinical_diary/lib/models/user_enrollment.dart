@@ -3,7 +3,6 @@
 
 /// Represents a user's enrollment with an enrollment code
 class UserEnrollment {
-
   UserEnrollment({
     required this.userId,
     required this.jwtToken,

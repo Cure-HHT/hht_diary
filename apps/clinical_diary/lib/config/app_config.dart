@@ -16,5 +16,8 @@ class AppConfig {
   static const String appName = 'Nosebleed Diary';
 
   /// Whether we're in debug mode
-  static const bool isDebug = bool.fromEnvironment('DEBUG', defaultValue: false);
+  static const bool isDebug = bool.fromEnvironment(
+    'DEBUG',
+    defaultValue: false,
+  );
 }

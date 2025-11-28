@@ -4,12 +4,24 @@ FDA 21 CFR Part 11 compliant, offline-first event sourcing for Flutter applicati
 
 ## Features
 
-- ✅ SQLite + SQLCipher encrypted storage
+- ✅ **Cross-platform storage** using Sembast (iOS, Android, macOS, Windows, Linux, Web)
+- ✅ **Append-only event storage** with cryptographic hash chain
 - ✅ Offline queue with automatic synchronization
 - ✅ Conflict detection using version vectors
-- ✅ Immutable audit trail
+- ✅ Immutable audit trail for FDA compliance
 - ✅ OpenTelemetry integration
 - ✅ Reactive state with Signals
+
+## Platform Support
+
+| Platform  | Storage Backend         |
+|-----------|-------------------------|
+| iOS       | sembast_io (file)       |
+| Android   | sembast_io (file)       |
+| macOS     | sembast_io (file)       |
+| Windows   | sembast_io (file)       |
+| Linux     | sembast_io (file)       |
+| **Web**   | sembast_web (IndexedDB) |
 
 ## Quick Start
 
@@ -21,8 +33,6 @@ Add to your `pubspec.yaml`:
 dependencies:
   append_only_datastore:
     path: ../common-dart/append_only_datastore
-  trial_data_types:
-    path: ../common-dart/trial_data_types
 ```
 
 ### Basic Usage
@@ -30,77 +40,100 @@ dependencies:
 ```dart
 import 'package:append_only_datastore/append_only_datastore.dart';
 
-// Initialize with encryption
+// Initialize the datastore
+await Datastore.initialize(
+  config: DatastoreConfig.development(
+    deviceId: 'device-123',
+    userId: 'user-456',
+  ),
+);
+
+// Append an event (immutable once written)
+final event = await Datastore.instance.repository.append(
+  aggregateId: 'diary-entry-123',
+  eventType: 'NosebleedRecorded',
+  data: {'severity': 'mild', 'duration': 10},
+  userId: 'user-456',
+  deviceId: 'device-789',
+);
+
+// Query all events
+final events = await Datastore.instance.repository.getAllEvents();
+
+// Get events for a specific aggregate
+final diaryEvents = await Datastore.instance.repository
+    .getEventsForAggregate('diary-entry-123');
+
+// Get unsynced events (for sync to server)
+final unsynced = await Datastore.instance.repository.getUnsyncedEvents();
+
+// Mark events as synced after successful server upload
+await Datastore.instance.repository.markEventsSynced(
+  unsynced.map((e) => e.eventId).toList(),
+);
+
+// Verify data integrity (checks hash chain)
+final isValid = await Datastore.instance.repository.verifyIntegrity();
+```
+
+### Production Configuration
+
+```dart
 await Datastore.initialize(
   config: DatastoreConfig.production(
     deviceId: await getDeviceId(),
     userId: currentUser.id,
     syncServerUrl: 'https://api.example.com',
-    encryptionKey: await getEncryptionKey(), // From Doppler
   ),
 );
-
-// Use in your app
-final events = await Datastore.instance.queryService.getEvents();
 ```
 
-## 🔐 Encryption Setup
+### Reactive UI with Signals
 
-This package uses **SQLCipher** for database encryption. Encryption is **enabled by default** for medical software security.
+```dart
+// Watch queue depth in your UI
+Watch((context) {
+  final depth = Datastore.instance.queueDepth.value;
+  return Text('$depth events pending sync');
+});
 
-### Using Doppler for Key Management
+// Watch sync status
+Watch((context) {
+  final status = Datastore.instance.syncStatus.value;
+  return Text(status.message); // "Ready to sync", "Syncing...", etc.
+});
+```
 
-1. **Install Doppler CLI**:
+## 🔐 Data Security
 
-   ```bash
-   # Mac
-   brew install dopplerhq/cli/doppler
-   
-   # Linux
-   curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
-   ```
+### Storage Security
 
-2. **Login to Doppler**:
+Sembast stores data as JSON files (native) or in IndexedDB (web). For sensitive medical data:
 
-   ```bash
-   doppler login
-   ```
+- **Native platforms**: Data is stored in the app's private documents directory, protected by OS-level sandboxing
+- **Web**: Data is stored in IndexedDB, tied to the origin (domain) and protected by browser security policies
 
-3. **Setup Project**:
+### Tamper Detection
 
-   ```bash
-   cd apps/common-dart/append_only_datastore
-   doppler setup
-   ```
+Every event includes:
 
-4. **Set Encryption Key** (generate strong 32-byte key):
+- **SHA-256 hash**: Computed from event data for integrity verification
+- **Hash chain**: Each event references the previous event's hash, forming a blockchain-like structure
+- **Sequence numbers**: Monotonically increasing to detect gaps or insertions
 
-   ```bash
-   # Generate a secure key
-   openssl rand -base64 32
-   
-   # Store in Doppler
-   doppler secrets set DATASTORE_ENCRYPTION_KEY="<your-generated-key>"
-   ```
-
-5. **Access in Development**:
-
-   ```bash
-   # Run with Doppler
-   doppler run -- flutter run
-   
-   # Or get key programmatically
-   final encryptionKey = Platform.environment['DATASTORE_ENCRYPTION_KEY'];
-   ```
+```dart
+// Verify the integrity of all stored events
+final isValid = await Datastore.instance.repository.verifyIntegrity();
+if (!isValid) {
+  // Data tampering detected!
+}
+```
 
 ### Environment Variables
 
 Required secrets in Doppler:
 
 ```bash
-# Database encryption
-DATASTORE_ENCRYPTION_KEY=<base64-encoded-32-byte-key>
-
 # Sync server
 SYNC_SERVER_URL=https://api.example.com
 SYNC_API_KEY=<your-api-key>
@@ -110,19 +143,9 @@ OTEL_ENDPOINT=https://otel.example.com
 OTEL_API_KEY=<your-otel-key>
 ```
 
-### Development vs Production Keys
+### Future: Application-Level Encryption (TODO)
 
-**Development** (less strict, can be shared):
-
-```bash
-doppler secrets set DATASTORE_ENCRYPTION_KEY="dev-key-not-for-production" --config dev
-```
-
-**Production** (strict, never commit):
-
-```bash
-doppler secrets set DATASTORE_ENCRYPTION_KEY="$(openssl rand -base64 32)" --config prd
-```
+For enhanced security, application-level encryption can be added to encrypt sensitive fields before storage. This is planned for a future release.
 
 ## 🧪 Testing
 
@@ -183,16 +206,17 @@ Coverage is automatically run on every push to `main`. View reports:
 lib/
 ├── src/
 │   ├── core/
-│   │   ├── config/          # Configuration
-│   │   ├── errors/          # Exceptions
+│   │   ├── config/          # DatastoreConfig
+│   │   ├── di/              # Datastore singleton
+│   │   └── errors/          # Exceptions
 │   ├── infrastructure/
-│   │   ├── database/        # SQLite + SQLCipher
-│   │   ├── repositories/    # Event repository
-│   │   └── sync/            # Sync engine
+│   │   ├── database/        # Sembast DatabaseProvider
+│   │   ├── repositories/    # EventRepository (append-only)
+│   │   └── sync/            # Sync engine (planned)
 │   └── application/
-│       ├── commands/        # Business commands
-│       ├── queries/         # Query services
-│       └── viewmodels/      # View models
+│       ├── commands/        # Business commands (planned)
+│       ├── queries/         # Query services (planned)
+│       └── viewmodels/      # View models (planned)
 └── append_only_datastore.dart
 ```
 
@@ -232,38 +256,38 @@ flutter pub get
 
 This datastore implements:
 
-- **§11.10(e)**: Immutable audit trail (database triggers)
-- **§11.10(c)**: Sequence of operations (sequence numbers)
-- **§11.50**: Signature manifestations (cryptographic signatures)
-- **§11.10(a)**: Validation (comprehensive testing)
+- **§11.10(e)**: Immutable audit trail (append-only storage, no updates/deletes)
+- **§11.10(c)**: Sequence of operations (monotonic sequence numbers)
+- **§11.50**: Signature manifestations (SHA-256 hash chain)
+- **§11.10(a)**: Validation (comprehensive testing with 30+ unit tests)
 
-### Encryption Details
+### Data Integrity Features
 
-- **Algorithm**: AES-256 via SQLCipher
-- **Key Storage**: Doppler (never in code or config files)
-- **Key Rotation**: Manual via Doppler (recommended: quarterly)
-- **Backup**: Encrypted backups only
+- **Append-only**: Events cannot be modified or deleted after creation
+- **Hash chain**: Each event includes a SHA-256 hash of its data and a reference to the previous event's hash
+- **Sequence numbers**: Monotonically increasing numbers detect gaps or insertions
+- **Integrity verification**: `verifyIntegrity()` method validates the entire hash chain
 
 ### Security Best Practices
 
-1. ✅ **Never commit encryption keys** to version control
+1. ✅ **Never commit secrets** to version control
 2. ✅ **Use Doppler** for all secrets management
-3. ✅ **Rotate keys regularly** (quarterly recommended)
-4. ✅ **Different keys** for dev/staging/production
-5. ✅ **Audit key access** via Doppler logs
+3. ✅ **Verify integrity** periodically using `verifyIntegrity()`
+4. ✅ **Sync regularly** to ensure server-side backup
+5. ✅ **Monitor sync status** using reactive signals
 
-## 🚀 Phase 1 MVP Status
+## 🚀 Implementation Status
 
 - ✅ Configuration and DI setup
 - ✅ Exception handling
-- ✅ Testing infrastructure
+- ✅ Testing infrastructure (30+ tests)
 - ✅ CI/CD pipelines
-- ⏳ Database layer (Days 4-5)
-- ⏳ Event storage (Days 6-7)
-- ⏳ Offline queue (Days 8-9)
-- ⏳ Conflict detection (Days 10-11)
-- ⏳ Query service (Days 12-13)
-- ⏳ Sync engine (Days 14-15)
+- ✅ **Database layer** (Sembast cross-platform)
+- ✅ **Event storage** (append-only with hash chain)
+- ⏳ Offline queue manager
+- ⏳ Conflict detection (version vectors)
+- ⏳ Query service
+- ⏳ Sync engine
 
 ## 📝 License
 

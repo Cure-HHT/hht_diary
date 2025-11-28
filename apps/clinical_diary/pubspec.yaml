@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # Firebase (core only - no auth, using custom JWT)
   firebase_core: ^4.2.1
@@ -32,6 +34,12 @@ dependencies:
   # Utilities
   intl: ^0.20.2
   collection: ^1.19.1
+
+  # Calendar
+  table_calendar: ^3.1.2
+
+  # URL launching (for external links)
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

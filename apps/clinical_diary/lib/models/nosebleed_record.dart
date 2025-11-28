@@ -50,6 +50,9 @@ class NosebleedRecord {
     this.isNoNosebleedsEvent = false,
     this.isUnknownEvent = false,
     this.isIncomplete = false,
+    this.isDeleted = false,
+    this.deleteReason,
+    this.parentRecordId,
     this.deviceUuid,
     DateTime? createdAt,
     this.syncedAt,
@@ -71,6 +74,9 @@ class NosebleedRecord {
       isNoNosebleedsEvent: json['isNoNosebleedsEvent'] as bool? ?? false,
       isUnknownEvent: json['isUnknownEvent'] as bool? ?? false,
       isIncomplete: json['isIncomplete'] as bool? ?? false,
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      deleteReason: json['deleteReason'] as String?,
+      parentRecordId: json['parentRecordId'] as String?,
       deviceUuid: json['deviceUuid'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
@@ -90,6 +96,9 @@ class NosebleedRecord {
   final bool isNoNosebleedsEvent;
   final bool isUnknownEvent;
   final bool isIncomplete;
+  final bool isDeleted;
+  final String? deleteReason;
+  final String? parentRecordId;
   final String? deviceUuid;
   final DateTime createdAt;
   final DateTime? syncedAt;
@@ -120,6 +129,9 @@ class NosebleedRecord {
     bool? isNoNosebleedsEvent,
     bool? isUnknownEvent,
     bool? isIncomplete,
+    bool? isDeleted,
+    String? deleteReason,
+    String? parentRecordId,
     String? deviceUuid,
     DateTime? createdAt,
     DateTime? syncedAt,
@@ -134,6 +146,9 @@ class NosebleedRecord {
       isNoNosebleedsEvent: isNoNosebleedsEvent ?? this.isNoNosebleedsEvent,
       isUnknownEvent: isUnknownEvent ?? this.isUnknownEvent,
       isIncomplete: isIncomplete ?? this.isIncomplete,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deleteReason: deleteReason ?? this.deleteReason,
+      parentRecordId: parentRecordId ?? this.parentRecordId,
       deviceUuid: deviceUuid ?? this.deviceUuid,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,
@@ -152,6 +167,9 @@ class NosebleedRecord {
       'isNoNosebleedsEvent': isNoNosebleedsEvent,
       'isUnknownEvent': isUnknownEvent,
       'isIncomplete': isIncomplete,
+      'isDeleted': isDeleted,
+      'deleteReason': deleteReason,
+      'parentRecordId': parentRecordId,
       'deviceUuid': deviceUuid,
       'createdAt': createdAt.toIso8601String(),
       'syncedAt': syncedAt?.toIso8601String(),

@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:append_only_datastore/src/core/config/datastore_config.dart';
+import 'package:append_only_datastore/src/infrastructure/database/database_provider.dart';
+import 'package:append_only_datastore/src/infrastructure/repositories/event_repository.dart';
 import 'package:signals/signals.dart';
 
 /// Service locator for the append-only datastore.
 ///
 /// This provides a simple singleton pattern for accessing datastore services.
-/// No external dependencies required - just pure Dart.
+/// Uses Sembast for cross-platform local storage (including Flutter web).
 ///
 /// ## Usage
 ///
@@ -18,8 +22,16 @@ import 'package:signals/signals.dart';
 /// );
 ///
 /// // Access anywhere in your app
-/// await Datastore.instance.repository.append(event);
-/// final events = await Datastore.instance.queryService.getEvents();
+/// await Datastore.instance.repository.append(
+///   aggregateId: 'entry-123',
+///   eventType: 'NosebleedRecorded',
+///   data: {'severity': 'mild'},
+///   userId: 'user-456',
+///   deviceId: 'device-123',
+/// );
+///
+/// // Query events
+/// final events = await Datastore.instance.repository.getAllEvents();
 /// ```
 ///
 /// ## Testing
@@ -35,23 +47,14 @@ import 'package:signals/signals.dart';
 /// ```
 class Datastore {
   /// Private constructor.
-  Datastore._(this.config)
-    : syncStatus = signal(SyncStatus.idle),
-      queueDepth = signal(0),
-      lastSyncTime = signal(null) {
-    // TODO: Initialize services (Phase 1)
-    // database = DatabaseProvider(config: config);
-    // repository = SQLiteEventRepository(database: database);
-    // queue = OfflineQueueManager(repository: repository);
-    // syncService = SyncService(
-    //   queue: queue,
-    //   repository: repository,
-    //   config: config,
-    //   statusSignal: syncStatus,
-    // );
-    // queryService = QueryService(repository: repository);
-    // conflictResolver = ConflictResolver();
-  }
+  Datastore._({
+    required this.config,
+    required this.databaseProvider,
+    required this.repository,
+  })  : syncStatus = signal(SyncStatus.idle),
+        queueDepth = signal(0),
+        lastSyncTime = signal(null);
+
   static Datastore? _instance;
 
   /// Get the initialized datastore instance.
@@ -72,9 +75,13 @@ class Datastore {
   /// Configuration used to initialize the datastore.
   final DatastoreConfig config;
 
-  // TODO: Add services as they're implemented
-  // final DatabaseProvider database;
-  // final EventRepository repository;
+  /// The database provider for low-level database access.
+  final DatabaseProvider databaseProvider;
+
+  /// The event repository for append-only event storage.
+  final EventRepository repository;
+
+  // TODO: Add additional services as they're implemented
   // final OfflineQueueManager queue;
   // final SyncService syncService;
   // final QueryService queryService;
@@ -108,12 +115,32 @@ class Datastore {
       await _instance!.reset();
     }
 
-    _instance = Datastore._(config);
+    // Create and initialize database provider
+    final databaseProvider = DatabaseProvider(config: config);
+    await databaseProvider.initialize();
 
-    // TODO: Initialize database (Phase 1 - Day 4)
-    // await _instance!.database.initialize();
+    // Create event repository
+    final repository = EventRepository(databaseProvider: databaseProvider);
+
+    _instance = Datastore._(
+      config: config,
+      databaseProvider: databaseProvider,
+      repository: repository,
+    );
+
+    // Update queue depth signal (fire and forget)
+    unawaited(_instance!._updateQueueDepth());
 
     return _instance!;
+  }
+
+  /// Update the queue depth signal from the repository.
+  Future<void> _updateQueueDepth() async {
+    try {
+      queueDepth.value = await repository.getUnsyncedCount();
+    } catch (_) {
+      // Ignore errors during signal update
+    }
   }
 
   /// Reset the datastore, closing all connections and clearing state.
@@ -123,8 +150,23 @@ class Datastore {
   /// - When switching users
   /// - Before re-initializing with different config
   Future<void> reset() async {
-    // TODO: Close database connection (Phase 1 - Day 4)
-    // await database.close();
+    // Close database connection
+    await databaseProvider.close();
+
+    // Reset signals
+    syncStatus.value = SyncStatus.idle;
+    queueDepth.value = 0;
+    lastSyncTime.value = null;
+
+    _instance = null;
+  }
+
+  /// Delete the database and reset. Use with caution.
+  ///
+  /// This permanently removes all local data.
+  /// Primarily intended for testing.
+  Future<void> deleteAndReset() async {
+    await databaseProvider.deleteDatabase();
 
     // Reset signals
     syncStatus.value = SyncStatus.idle;

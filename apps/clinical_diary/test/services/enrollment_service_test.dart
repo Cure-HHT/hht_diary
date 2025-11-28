@@ -113,10 +113,7 @@ void main() {
           expect(body['code'], 'CUREHHT1');
 
           return http.Response(
-            jsonEncode({
-              'jwt': 'new-jwt-token',
-              'userId': 'new-user-id',
-            }),
+            jsonEncode({'jwt': 'new-jwt-token', 'userId': 'new-user-id'}),
             200,
           );
         });
@@ -144,10 +141,7 @@ void main() {
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           capturedCode = body['code'] as String?;
           return http.Response(
-            jsonEncode({
-              'jwt': 'token',
-              'userId': 'user',
-            }),
+            jsonEncode({'jwt': 'token', 'userId': 'user'}),
             200,
           );
         });
@@ -168,10 +162,7 @@ void main() {
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           capturedCode = body['code'] as String?;
           return http.Response(
-            jsonEncode({
-              'jwt': 'token',
-              'userId': 'user',
-            }),
+            jsonEncode({'jwt': 'token', 'userId': 'user'}),
             200,
           );
         });
@@ -255,29 +246,31 @@ void main() {
         );
       });
 
-      test('throws EnrollmentException with networkError on ClientException',
-          () async {
-        final mockClient = MockClient((request) async {
-          throw http.ClientException('Network error');
-        });
+      test(
+        'throws EnrollmentException with networkError on ClientException',
+        () async {
+          final mockClient = MockClient((request) async {
+            throw http.ClientException('Network error');
+          });
 
-        service = EnrollmentService(
-          secureStorage: mockStorage,
-          httpClient: mockClient,
-        );
+          service = EnrollmentService(
+            secureStorage: mockStorage,
+            httpClient: mockClient,
+          );
 
-        expect(
-          () => service.enroll('CUREHHT1'),
-          throwsA(
-            allOf(
-              isA<EnrollmentException>(),
-              predicate<EnrollmentException>(
-                (e) => e.type == EnrollmentErrorType.networkError,
+          expect(
+            () => service.enroll('CUREHHT1'),
+            throwsA(
+              allOf(
+                isA<EnrollmentException>(),
+                predicate<EnrollmentException>(
+                  (e) => e.type == EnrollmentErrorType.networkError,
+                ),
               ),
             ),
-          ),
-        );
-      });
+          );
+        },
+      );
     });
 
     group('clearEnrollment', () {
@@ -359,10 +352,22 @@ void main() {
 
   group('EnrollmentErrorType', () {
     test('has all expected values', () {
-      expect(EnrollmentErrorType.values, contains(EnrollmentErrorType.invalidCode));
-      expect(EnrollmentErrorType.values, contains(EnrollmentErrorType.codeAlreadyUsed));
-      expect(EnrollmentErrorType.values, contains(EnrollmentErrorType.serverError));
-      expect(EnrollmentErrorType.values, contains(EnrollmentErrorType.networkError));
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.invalidCode),
+      );
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.codeAlreadyUsed),
+      );
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.serverError),
+      );
+      expect(
+        EnrollmentErrorType.values,
+        contains(EnrollmentErrorType.networkError),
+      );
     });
   });
 }
@@ -453,22 +458,22 @@ class MockSecureStorage implements FlutterSecureStorage {
   }
 
   @override
-  IOSOptions get iOptions => const IOSOptions();
+  IOSOptions get iOptions => IOSOptions.defaultOptions;
 
   @override
-  AndroidOptions get aOptions => const AndroidOptions();
+  AndroidOptions get aOptions => AndroidOptions.defaultOptions;
 
   @override
-  LinuxOptions get lOptions => const LinuxOptions();
+  LinuxOptions get lOptions => LinuxOptions.defaultOptions;
 
   @override
-  WebOptions get webOptions => const WebOptions();
+  WebOptions get webOptions => WebOptions.defaultOptions;
 
   @override
-  MacOsOptions get mOptions => const MacOsOptions();
+  MacOsOptions get mOptions => MacOsOptions.defaultOptions;
 
   @override
-  WindowsOptions get wOptions => const WindowsOptions();
+  WindowsOptions get wOptions => WindowsOptions.defaultOptions;
 
   @override
   Future<bool?> isCupertinoProtectedDataAvailable() async => true;
@@ -490,7 +495,7 @@ class MockSecureStorage implements FlutterSecureStorage {
   }) {}
 
   @override
-  void unregisterAllListeners({required String key}) {}
+  void unregisterAllListeners() {}
 
   @override
   void unregisterAllListenersForKey({required String key}) {}

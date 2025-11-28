@@ -3,9 +3,11 @@ import 'package:intl/intl.dart';
 
 /// Time picker widget with a dial-style interface
 class TimePickerDial extends StatefulWidget {
-
   const TimePickerDial({
-    required this.title, required this.initialTime, required this.onConfirm, super.key,
+    required this.title,
+    required this.initialTime,
+    required this.onConfirm,
+    super.key,
     this.confirmLabel = 'Confirm',
   });
   final String title;
@@ -70,9 +72,9 @@ class _TimePickerDialState extends State<TimePickerDial> {
         children: [
           Text(
             widget.title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
 
           const Spacer(),
@@ -88,16 +90,16 @@ class _TimePickerDialState extends State<TimePickerDial> {
                 Text(
                   timeFormat.format(_selectedTime),
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontWeight: FontWeight.w300,
-                        fontSize: 72,
-                      ),
+                    fontWeight: FontWeight.w300,
+                    fontSize: 72,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   periodFormat.format(_selectedTime),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w400,
-                      ),
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
             ),
@@ -109,35 +111,17 @@ class _TimePickerDialState extends State<TimePickerDial> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _AdjustButton(
-                label: '-15',
-                onPressed: () => _adjustMinutes(-15),
-              ),
+              _AdjustButton(label: '-15', onPressed: () => _adjustMinutes(-15)),
               const SizedBox(width: 12),
-              _AdjustButton(
-                label: '-5',
-                onPressed: () => _adjustMinutes(-5),
-              ),
+              _AdjustButton(label: '-5', onPressed: () => _adjustMinutes(-5)),
               const SizedBox(width: 12),
-              _AdjustButton(
-                label: '-1',
-                onPressed: () => _adjustMinutes(-1),
-              ),
+              _AdjustButton(label: '-1', onPressed: () => _adjustMinutes(-1)),
               const SizedBox(width: 24),
-              _AdjustButton(
-                label: '+1',
-                onPressed: () => _adjustMinutes(1),
-              ),
+              _AdjustButton(label: '+1', onPressed: () => _adjustMinutes(1)),
               const SizedBox(width: 12),
-              _AdjustButton(
-                label: '+5',
-                onPressed: () => _adjustMinutes(5),
-              ),
+              _AdjustButton(label: '+5', onPressed: () => _adjustMinutes(5)),
               const SizedBox(width: 12),
-              _AdjustButton(
-                label: '+15',
-                onPressed: () => _adjustMinutes(15),
-              ),
+              _AdjustButton(label: '+15', onPressed: () => _adjustMinutes(15)),
             ],
           ),
 
@@ -164,11 +148,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
 }
 
 class _AdjustButton extends StatelessWidget {
-
-  const _AdjustButton({
-    required this.label,
-    required this.onPressed,
-  });
+  const _AdjustButton({required this.label, required this.onPressed});
   final String label;
   final VoidCallback onPressed;
 
@@ -184,9 +164,9 @@ class _AdjustButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ),
       ),

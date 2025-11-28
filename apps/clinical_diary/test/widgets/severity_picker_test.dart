@@ -11,11 +11,7 @@ void main() {
     testWidgets('displays title text', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: SeverityPicker(
-              onSelect: (_) {},
-            ),
-          ),
+          home: Scaffold(body: SeverityPicker(onSelect: (_) {})),
         ),
       );
 
@@ -25,11 +21,7 @@ void main() {
     testWidgets('displays subtitle text', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: SeverityPicker(
-              onSelect: (_) {},
-            ),
-          ),
+          home: Scaffold(body: SeverityPicker(onSelect: (_) {})),
         ),
       );
 
@@ -39,15 +31,15 @@ void main() {
       );
     });
 
-    testWidgets('displays severity options (first visible ones)', (tester) async {
+    testWidgets('displays severity options (first visible ones)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(
-                onSelect: (_) {},
-              ),
+              child: SeverityPicker(onSelect: (_) {}),
             ),
           ),
         ),
@@ -64,9 +56,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SeverityPicker(
-              onSelect: (severity) => selected = severity,
-            ),
+            body: SeverityPicker(onSelect: (severity) => selected = severity),
           ),
         ),
       );
@@ -85,9 +75,7 @@ void main() {
           home: Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(
-                onSelect: selections.add,
-              ),
+              child: SeverityPicker(onSelect: selections.add),
             ),
           ),
         ),
@@ -99,7 +87,10 @@ void main() {
       await tester.tap(find.text('Dripping'));
       await tester.pump();
 
-      expect(selections, [NosebleedSeverity.spotting, NosebleedSeverity.dripping]);
+      expect(selections, [
+        NosebleedSeverity.spotting,
+        NosebleedSeverity.dripping,
+      ]);
     });
 
     testWidgets('highlights selected severity', (tester) async {
@@ -115,13 +106,13 @@ void main() {
       );
 
       // The selected severity should show with bold font
-      final textWidget = tester.widget<Text>(
-        find.text('Steady stream'),
-      );
+      final textWidget = tester.widget<Text>(find.text('Steady stream'));
       expect(textWidget.style?.fontWeight, FontWeight.bold);
     });
 
-    testWidgets('non-selected severities have normal font weight', (tester) async {
+    testWidgets('non-selected severities have normal font weight', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -134,38 +125,30 @@ void main() {
       );
 
       // Non-selected severity should not be bold
-      final textWidget = tester.widget<Text>(
-        find.text('Spotting'),
-      );
+      final textWidget = tester.widget<Text>(find.text('Spotting'));
       expect(textWidget.style?.fontWeight, FontWeight.w500);
     });
 
-    testWidgets('displays icons for visible severities', (tester) async {
+    testWidgets('displays images for visible severities', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(
-                onSelect: (_) {},
-              ),
+              child: SeverityPicker(onSelect: (_) {}),
             ),
           ),
         ),
       );
 
-      // Should have at least some icons (one for each visible severity)
-      expect(find.byType(Icon), findsWidgets);
+      // Should have custom severity images (one for each visible severity)
+      expect(find.byType(Image), findsWidgets);
     });
 
     testWidgets('renders as a grid', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: SeverityPicker(
-              onSelect: (_) {},
-            ),
-          ),
+          home: Scaffold(body: SeverityPicker(onSelect: (_) {})),
         ),
       );
 
@@ -178,24 +161,17 @@ void main() {
           home: Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(
-                selectedSeverity: null,
-                onSelect: (_) {},
-              ),
+              child: SeverityPicker(selectedSeverity: null, onSelect: (_) {}),
             ),
           ),
         ),
       );
 
       // Check visible severities have non-bold weight when nothing is selected
-      final spottingText = tester.widget<Text>(
-        find.text('Spotting'),
-      );
+      final spottingText = tester.widget<Text>(find.text('Spotting'));
       expect(spottingText.style?.fontWeight, FontWeight.w500);
 
-      final drippingText = tester.widget<Text>(
-        find.text('Dripping'),
-      );
+      final drippingText = tester.widget<Text>(find.text('Dripping'));
       expect(drippingText.style?.fontWeight, FontWeight.w500);
     });
   });
