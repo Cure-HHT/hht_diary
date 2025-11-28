@@ -4,7 +4,6 @@
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_memory.dart';
 
 void main() {
@@ -50,10 +49,7 @@ void main() {
 
     group('database getter', () {
       test('throws StateError when not initialized', () {
-        expect(
-          () => provider.database,
-          throwsStateError,
-        );
+        expect(() => provider.database, throwsStateError);
       });
 
       test('returns database after initialization', () async {
@@ -120,13 +116,13 @@ void main() {
 /// Test database provider that uses in-memory Sembast database.
 class _TestDatabaseProvider extends DatabaseProvider {
   _TestDatabaseProvider()
-      : _dbName = 'test_${DateTime.now().microsecondsSinceEpoch}.db',
-        super(
-          config: DatastoreConfig.development(
-            deviceId: 'test-device',
-            userId: 'test-user',
-          ),
-        );
+    : _dbName = 'test_${DateTime.now().microsecondsSinceEpoch}.db',
+      super(
+        config: DatastoreConfig.development(
+          deviceId: 'test-device',
+          userId: 'test-user',
+        ),
+      );
 
   final String _dbName;
   Database? _testDatabase;

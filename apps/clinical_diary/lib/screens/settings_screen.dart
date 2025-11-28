@@ -112,7 +112,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             context,
                             icon: Icons.light_mode,
                             title: AppLocalizations.of(context).lightMode,
-                            subtitle: AppLocalizations.of(context).lightModeDescription,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            ).lightModeDescription,
                             isSelected: !_isDarkMode,
                             onTap: () {
                               setState(() => _isDarkMode = false);
@@ -125,7 +127,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             context,
                             icon: Icons.dark_mode,
                             title: AppLocalizations.of(context).darkMode,
-                            subtitle: AppLocalizations.of(context).darkModeDescription,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            ).darkModeDescription,
                             isSelected: _isDarkMode,
                             onTap: () {
                               setState(() => _isDarkMode = true);
@@ -140,14 +144,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _buildSectionHeader(
                             context,
                             AppLocalizations.of(context).accessibility,
-                            AppLocalizations.of(context).accessibilityDescription,
+                            AppLocalizations.of(
+                              context,
+                            ).accessibilityDescription,
                           ),
                           const SizedBox(height: 16),
                           _buildAccessibilityOption(
                             context,
-                            title: AppLocalizations.of(context).dyslexiaFriendlyFont,
-                            subtitle: AppLocalizations.of(context).dyslexiaFontDescription,
-                            linkText: AppLocalizations.of(context).learnMoreOpenDyslexic,
+                            title: AppLocalizations.of(
+                              context,
+                            ).dyslexiaFriendlyFont,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            ).dyslexiaFontDescription,
+                            linkText: AppLocalizations.of(
+                              context,
+                            ).learnMoreOpenDyslexic,
                             onLinkTap: _launchOpenDyslexicUrl,
                             value: _dyslexiaFriendlyFont,
                             onChanged: (value) {
@@ -158,8 +170,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(height: 12),
                           _buildAccessibilityOption(
                             context,
-                            title: AppLocalizations.of(context).largerTextAndControls,
-                            subtitle: AppLocalizations.of(context).largerTextDescription,
+                            title: AppLocalizations.of(
+                              context,
+                            ).largerTextAndControls,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            ).largerTextDescription,
                             value: _largerTextAndControls,
                             onChanged: (value) {
                               setState(() => _largerTextAndControls = value);
@@ -231,16 +247,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
       ],
     );
@@ -282,18 +300,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                 ],
               ),
@@ -306,10 +323,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 border: Border.all(
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
                   width: 2,
                 ),
-                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
               ),
               child: isSelected
                   ? const Icon(Icons.check, size: 14, color: Colors.white)
@@ -358,18 +379,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                   if (linkText != null) ...[
                     const SizedBox(height: 4),
@@ -378,9 +398,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Text(
                         linkText,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              decoration: TextDecoration.underline,
-                            ),
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ],
@@ -424,9 +444,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(
               child: Text(
                 name,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
             Container(
@@ -437,10 +457,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 border: Border.all(
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
                   width: 2,
                 ),
-                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
               ),
               child: isSelected
                   ? const Icon(Icons.check, size: 14, color: Colors.white)

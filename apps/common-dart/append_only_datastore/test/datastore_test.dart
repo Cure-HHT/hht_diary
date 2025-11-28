@@ -92,10 +92,7 @@ void main() {
     });
 
     test('instance throws StateError when not initialized', () {
-      expect(
-        () => Datastore.instance,
-        throwsStateError,
-      );
+      expect(() => Datastore.instance, throwsStateError);
     });
   });
 }

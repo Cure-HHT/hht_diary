@@ -82,10 +82,7 @@ void main() {
     group('instance', () {
       testWidgets('throws StateError when not initialized', (tester) async {
         expect(Datastore.isInitialized, isFalse);
-        expect(
-          () => Datastore.instance,
-          throwsStateError,
-        );
+        expect(() => Datastore.instance, throwsStateError);
       });
 
       testWidgets('returns same instance after initialization', (tester) async {

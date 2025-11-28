@@ -12,6 +12,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  # Append-only datastore for FDA 21 CFR Part 11 compliant event sourcing
+  append_only_datastore:
+    path: ../common-dart/append_only_datastore
+
   # Firebase (core only - no auth, using custom JWT)
   firebase_core: ^4.2.1
 

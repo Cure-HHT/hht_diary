@@ -136,356 +136,364 @@ class _ClinicalTrialEnrollmentScreenState
         Scaffold(
           body: SafeArea(
             child: Column(
-          children: [
-            // Header with back button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed:
-                        _isLoading ? null : () => Navigator.of(context).pop(),
+              children: [
+                // Header with back button
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Clinical Trial Enrollment',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Clinical Trial Enrollment',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ],
-              ),
-            ),
+                ),
 
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-
-                    // Title
-                    Text(
-                      'Enter Enrollment Code',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Description
-                    Text(
-                      'Please enter the 10-digit enrollment code provided by your research coordinator.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.7),
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Code input fields (XXXXX - XXXXX)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // First 5 characters
-                        Expanded(
-                          child: TextField(
-                            controller: _code1Controller,
-                            focusNode: _code1FocusNode,
-                            enabled: !_isLoading,
-                            textAlign: TextAlign.center,
-                            textCapitalization: TextCapitalization.characters,
-                            maxLength: 5,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  letterSpacing: 4,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'monospace',
-                                ),
-                            decoration: InputDecoration(
-                              hintText: 'XXXXX',
-                              hintStyle: TextStyle(
-                                letterSpacing: 4,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.3),
-                              ),
-                              counterText: '',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              filled: true,
-                              fillColor: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp('[a-zA-Z0-9]'),
-                              ),
-                              UpperCaseTextFormatter(),
-                            ],
-                            onChanged: _onCode1Changed,
-                          ),
+                        const SizedBox(height: 24),
+
+                        // Title
+                        Text(
+                          'Enter Enrollment Code',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
                         ),
 
-                        // Dash separator
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            '-',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.5),
-                                ),
-                          ),
-                        ),
+                        const SizedBox(height: 12),
 
-                        // Second 5 characters
-                        Expanded(
-                          child: KeyboardListener(
-                            focusNode: FocusNode(),
-                            onKeyEvent: _onCode2KeyDown,
-                            child: TextField(
-                              controller: _code2Controller,
-                              focusNode: _code2FocusNode,
-                              enabled: !_isLoading,
-                              textAlign: TextAlign.center,
-                              textCapitalization: TextCapitalization.characters,
-                              maxLength: 5,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    letterSpacing: 4,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'monospace',
-                                  ),
-                              decoration: InputDecoration(
-                                hintText: 'XXXXX',
-                                hintStyle: TextStyle(
-                                  letterSpacing: 4,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.3),
-                                ),
-                                counterText: '',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
+                        // Description
+                        Text(
+                          'Please enter the 10-digit enrollment code provided by your research coordinator.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
                               ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp('[a-zA-Z0-9]'),
-                                ),
-                                UpperCaseTextFormatter(),
-                              ],
-                              onChanged: _onCode2Changed,
-                              onSubmitted: (_) => _enroll(),
-                            ),
-                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 8),
+                        const SizedBox(height: 32),
 
-                    // Code format hint
-                    Text(
-                      'Code format: XXXXX-XXXXX (letters and numbers)',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Sharing agreement checkboxes
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        border: Border.all(color: Colors.blue.shade200),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          // Optional: Share data prior to enrollment
-                          InkWell(
-                            onTap: _isLoading
-                                ? null
-                                : () => setState(() =>
-                                    _shareDataPriorToEnrollment =
-                                        !_shareDataPriorToEnrollment),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: _shareDataPriorToEnrollment,
-                                  onChanged: _isLoading
-                                      ? null
-                                      : (value) => setState(() =>
-                                          _shareDataPriorToEnrollment =
-                                              value ?? false),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text(
-                                      'Share data prior to enrollment (optional)',
-                                      style: TextStyle(
-                                        color: Colors.blue.shade800,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // Required: Consent to sharing agreement
-                          InkWell(
-                            onTap: _isLoading
-                                ? null
-                                : () => setState(() =>
-                                    _hasAgreedToSharing = !_hasAgreedToSharing),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: _hasAgreedToSharing,
-                                  onChanged: _isLoading
-                                      ? null
-                                      : (value) => setState(
-                                          () => _hasAgreedToSharing = value ?? false),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text(
-                                      'I have read, understand, and consent to the sharing agreement for this clinical trial',
-                                      style: TextStyle(
-                                        color: Colors.blue.shade800,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Error message
-                    if (_errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
+                        // Code input fields (XXXXX - XXXXX)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer,
-                            ),
-                            const SizedBox(width: 12),
+                            // First 5 characters
                             Expanded(
+                              child: TextField(
+                                controller: _code1Controller,
+                                focusNode: _code1FocusNode,
+                                enabled: !_isLoading,
+                                textAlign: TextAlign.center,
+                                textCapitalization:
+                                    TextCapitalization.characters,
+                                maxLength: 5,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      letterSpacing: 4,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: 'monospace',
+                                    ),
+                                decoration: InputDecoration(
+                                  hintText: 'XXXXX',
+                                  hintStyle: TextStyle(
+                                    letterSpacing: 4,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.3),
+                                  ),
+                                  counterText: '',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp('[a-zA-Z0-9]'),
+                                  ),
+                                  UpperCaseTextFormatter(),
+                                ],
+                                onChanged: _onCode1Changed,
+                              ),
+                            ),
+
+                            // Dash separator
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                               child: Text(
-                                _errorMessage!,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onErrorContainer,
+                                '-',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.5),
+                                    ),
+                              ),
+                            ),
+
+                            // Second 5 characters
+                            Expanded(
+                              child: KeyboardListener(
+                                focusNode: FocusNode(),
+                                onKeyEvent: _onCode2KeyDown,
+                                child: TextField(
+                                  controller: _code2Controller,
+                                  focusNode: _code2FocusNode,
+                                  enabled: !_isLoading,
+                                  textAlign: TextAlign.center,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  maxLength: 5,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        letterSpacing: 4,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                  decoration: InputDecoration(
+                                    hintText: 'XXXXX',
+                                    hintStyle: TextStyle(
+                                      letterSpacing: 4,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                    counterText: '',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp('[a-zA-Z0-9]'),
+                                    ),
+                                    UpperCaseTextFormatter(),
+                                  ],
+                                  onChanged: _onCode2Changed,
+                                  onSubmitted: (_) => _enroll(),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
 
-                    // Enroll button
-                    FilledButton(
-                      onPressed: _isLoading || !_isComplete ? null : _enroll,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                        const SizedBox(height: 8),
+
+                        // Code format hint
+                        Text(
+                          'Code format: XXXXX-XXXXX (letters and numbers)',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.5),
                               ),
-                            )
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Sharing agreement checkboxes
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            border: Border.all(color: Colors.blue.shade200),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              // Optional: Share data prior to enrollment
+                              InkWell(
+                                onTap: _isLoading
+                                    ? null
+                                    : () => setState(
+                                        () => _shareDataPriorToEnrollment =
+                                            !_shareDataPriorToEnrollment,
+                                      ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Checkbox(
+                                      value: _shareDataPriorToEnrollment,
+                                      onChanged: _isLoading
+                                          ? null
+                                          : (value) => setState(
+                                              () =>
+                                                  _shareDataPriorToEnrollment =
+                                                      value ?? false,
+                                            ),
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 12),
+                                        child: Text(
+                                          'Share data prior to enrollment (optional)',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade800,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              // Required: Consent to sharing agreement
+                              InkWell(
+                                onTap: _isLoading
+                                    ? null
+                                    : () => setState(
+                                        () => _hasAgreedToSharing =
+                                            !_hasAgreedToSharing,
+                                      ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Checkbox(
+                                      value: _hasAgreedToSharing,
+                                      onChanged: _isLoading
+                                          ? null
+                                          : (value) => setState(
+                                              () => _hasAgreedToSharing =
+                                                  value ?? false,
+                                            ),
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 12),
+                                        child: Text(
+                                          'I have read, understand, and consent to the sharing agreement for this clinical trial',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade800,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Error message
+                        if (_errorMessage != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
                               children: [
-                                Icon(Icons.check, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Enroll in Clinical Trial',
-                                  style: TextStyle(fontSize: 16),
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onErrorContainer,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Enroll button
+                        FilledButton(
+                          onPressed: _isLoading || !_isComplete
+                              ? null
+                              : _enroll,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.check, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Enroll in Clinical Trial',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
         ),
         // Success dialog overlay
         if (_showSuccessDialog)
-          Container(
+          const ColoredBox(
             color: Colors.black54,
-            child: const Center(
-              child: EnrollmentSuccessDialog(),
-            ),
+            child: Center(child: EnrollmentSuccessDialog()),
           ),
       ],
     );

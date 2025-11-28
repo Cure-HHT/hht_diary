@@ -9,11 +9,7 @@ void main() {
   group('EnrollmentSuccessDialog', () {
     testWidgets('displays processing state initially', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: EnrollmentSuccessDialog(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
 
       // Should show processing indicator initially
@@ -27,11 +23,7 @@ void main() {
 
     testWidgets('transitions to success state after delay', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: EnrollmentSuccessDialog(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
 
       // Initially shows processing
@@ -48,11 +40,7 @@ void main() {
 
     testWidgets('shows checkmark icon in success state', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: EnrollmentSuccessDialog(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
 
       // Wait for transition
@@ -64,11 +52,7 @@ void main() {
 
     testWidgets('hides progress indicator in success state', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: EnrollmentSuccessDialog(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
 
       // Wait for transition
@@ -80,11 +64,7 @@ void main() {
 
     testWidgets('displays enrollment confirmed message', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: EnrollmentSuccessDialog(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
 
       // Wait for transition
@@ -96,11 +76,7 @@ void main() {
 
     testWidgets('is contained in a Card widget', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: EnrollmentSuccessDialog(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: EnrollmentSuccessDialog())),
       );
 
       expect(find.byType(Card), findsOneWidget);

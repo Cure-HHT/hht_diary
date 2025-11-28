@@ -47,11 +47,10 @@ class DateRecordsScreen extends StatelessWidget {
               Text(
                 _eventCountText,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
               ),
           ],
         ),
@@ -92,20 +91,18 @@ class DateRecordsScreen extends StatelessWidget {
             Icon(
               Icons.event_busy,
               size: 64,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
               'No events recorded for this day',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6),
-                  ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -121,10 +118,7 @@ class DateRecordsScreen extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final record = records[index];
-        return EventListItem(
-          record: record,
-          onTap: () => onEditEvent(record),
-        );
+        return EventListItem(record: record, onTap: () => onEditEvent(record));
       },
     );
   }

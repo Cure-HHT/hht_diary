@@ -70,36 +70,42 @@ Anspar Organization (or Customer Org)
 Each sponsor project contains isolated instances of:
 
 ### Compute & Hosting
+
 | Resource | Purpose | Naming |
 | --- | --- | --- |
 | Cloud Run (API) | Dart backend server | `api-{sponsor}-{env}` |
 | Cloud Run (Portal) | Flutter web portal | `portal-{sponsor}-{env}` |
 
 ### Database
+
 | Resource | Purpose | Naming |
 | --- | --- | --- |
 | Cloud SQL | PostgreSQL database | `{sponsor}-db-{env}` |
 | VPC Connector | Private DB access | `{sponsor}-vpc-connector` |
 
 ### Authentication
+
 | Resource | Purpose | Naming |
 | --- | --- | --- |
 | Identity Platform | User authentication | Per-project (automatic) |
 | Custom Claims Function | RBAC claims | `custom-claims-{env}` |
 
 ### Secrets & Config
+
 | Resource | Purpose | Naming |
 | --- | --- | --- |
 | Secret Manager | Production secrets | `{secret-name}` |
 | Runtime Config | Feature flags | `{sponsor}-config` |
 
 ### Storage
+
 | Resource | Purpose | Naming |
 | --- | --- | --- |
 | Cloud Storage | Backups, exports | `{project-id}-backups` |
 | Artifact Registry | Container images | `{sponsor}-images` |
 
 ### Monitoring
+
 | Resource | Purpose | Naming |
 | --- | --- | --- |
 | Cloud Logging | Centralized logs | Automatic |

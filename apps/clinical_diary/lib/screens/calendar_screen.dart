@@ -78,7 +78,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    final normalizedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+    // Navigate to recording screen for the selected date
+    final normalizedDay = DateTime(
+      selectedDay.year,
+      selectedDay.month,
+      selectedDay.day,
+    );
     final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
 
     // If no records exist for this day, show the day selection screen
@@ -92,7 +97,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
     // Fetch records for the selected day
-    final records = await widget.nosebleedService.getRecordsForDate(selectedDay);
+    final records = await widget.nosebleedService.getRecordsForDate(
+      selectedDay,
+    );
 
     if (!mounted) return;
 
@@ -108,7 +115,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
           },
           onEditEvent: (record) async {
             Navigator.pop(context);
-            await _navigateToRecordingScreen(selectedDay, existingRecord: record);
+            await _navigateToRecordingScreen(
+              selectedDay,
+              existingRecord: record,
+            );
           },
         ),
       ),
@@ -226,13 +236,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     titleTextFormatter: (date, locale) =>
                         DateFormat('MMMM yyyy').format(date),
                   ),
-                  calendarStyle: const CalendarStyle(
-                    outsideDaysVisible: true,
-                  ),
+                  calendarStyle: const CalendarStyle(outsideDaysVisible: true),
                   calendarBuilders: CalendarBuilders<void>(
                     defaultBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(day.year, day.month, day.day);
-                      final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                      final normalizedDay = DateTime(
+                        day.year,
+                        day.month,
+                        day.day,
+                      );
+                      final status =
+                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                       final color = _getColorForStatus(status);
 
                       return Container(
@@ -254,8 +267,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       );
                     },
                     outsideBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(day.year, day.month, day.day);
-                      final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                      final normalizedDay = DateTime(
+                        day.year,
+                        day.month,
+                        day.day,
+                      );
+                      final status =
+                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                       final color = _getColorForStatus(status);
 
                       return Container(
@@ -267,16 +285,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         child: Center(
                           child: Text(
                             '${day.day}',
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                            ),
+                            style: TextStyle(color: Colors.grey.shade600),
                           ),
                         ),
                       );
                     },
                     todayBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(day.year, day.month, day.day);
-                      final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                      final normalizedDay = DateTime(
+                        day.year,
+                        day.month,
+                        day.day,
+                      );
+                      final status =
+                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                       final color = _getColorForStatus(status);
 
                       return Container(
@@ -303,8 +324,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       );
                     },
                     selectedBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(day.year, day.month, day.day);
-                      final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                      final normalizedDay = DateTime(
+                        day.year,
+                        day.month,
+                        day.day,
+                      );
+                      final status =
+                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
                       final color = _getColorForStatus(status);
                       final isToday = isSameDay(day, todayNormalized);
 
@@ -345,16 +371,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildLegendItem(
-                          Colors.red,
-                          'Nosebleed events',
-                        ),
+                        child: _buildLegendItem(Colors.red, 'Nosebleed events'),
                       ),
                       Expanded(
-                        child: _buildLegendItem(
-                          Colors.green,
-                          'No nosebleeds',
-                        ),
+                        child: _buildLegendItem(Colors.green, 'No nosebleeds'),
                       ),
                     ],
                   ),
@@ -362,10 +382,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildLegendItem(
-                          Colors.orange,
-                          'Unknown',
-                        ),
+                        child: _buildLegendItem(Colors.orange, 'Unknown'),
                       ),
                       Expanded(
                         child: _buildLegendItem(
@@ -384,22 +401,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           'Not recorded',
                         ),
                       ),
-                      Expanded(
-                        child: _buildLegendItemWithBorder(
-                          'Today',
-                        ),
-                      ),
+                      Expanded(child: _buildLegendItemWithBorder('Today')),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Tap a date to add or edit events',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                 ],
               ),
@@ -423,10 +435,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );
@@ -448,10 +457,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );

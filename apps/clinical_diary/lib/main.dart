@@ -2,9 +2,11 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-d00006: Mobile App Build and Release Process
+//   REQ-p00006: Offline-First Data Entry
 
 import 'dart:async';
 
+import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
@@ -16,6 +18,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:uuid/uuid.dart';
 
 void main() async {
   // Catch all errors in the Flutter framework
@@ -44,6 +47,24 @@ void main() async {
         debugPrint('Firebase initialized successfully');
       } catch (e, stack) {
         debugPrint('Firebase initialization error: $e');
+        debugPrint('Stack trace:\n$stack');
+      }
+
+      // Initialize append-only datastore for offline-first event storage
+      try {
+        // Generate a stable device ID (this would normally be persisted)
+        const uuid = Uuid();
+        final deviceId = uuid.v4();
+
+        await Datastore.initialize(
+          config: DatastoreConfig.development(
+            deviceId: deviceId,
+            userId: 'anonymous', // Will be updated after enrollment
+          ),
+        );
+        debugPrint('Datastore initialized successfully');
+      } catch (e, stack) {
+        debugPrint('Datastore initialization error: $e');
         debugPrint('Stack trace:\n$stack');
       }
 
@@ -142,9 +163,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
-    _nosebleedService = NosebleedService(
-      enrollmentService: _enrollmentService,
-    );
+    _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
   }
 
   @override
