@@ -13,7 +13,9 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
+import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -41,11 +43,20 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NosebleedRecord> _records = [];
   bool _hasYesterdayRecords = false;
   bool _isLoading = true;
+  bool _isEnrolled = false;
 
   @override
   void initState() {
     super.initState();
     _loadRecords();
+    _checkEnrollmentStatus();
+  }
+
+  Future<void> _checkEnrollmentStatus() async {
+    final isEnrolled = await widget.enrollmentService.isEnrolled();
+    if (mounted) {
+      setState(() => _isEnrolled = isEnrolled);
+    }
   }
 
   Future<void> _loadRecords() async {
@@ -105,6 +116,127 @@ class _HomeScreenState extends State<HomeScreen> {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     await widget.nosebleedService.markUnknown(yesterday);
     unawaited(_loadRecords());
+  }
+
+  Future<void> _handleAddExampleData() async {
+    // Add some example nosebleed records for demonstration
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+    final twoDaysAgo = now.subtract(const Duration(days: 2));
+
+    await widget.nosebleedService.addRecord(
+      date: twoDaysAgo,
+      startTime: DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day, 9, 30),
+      endTime: DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day, 9, 45),
+      severity: NosebleedSeverity.dripping,
+      notes: 'Example morning nosebleed',
+    );
+
+    await widget.nosebleedService.addRecord(
+      date: yesterday,
+      startTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 0),
+      endTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 30),
+      severity: NosebleedSeverity.steadyStream,
+      notes: 'Example afternoon nosebleed',
+    );
+
+    unawaited(_loadRecords());
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Example data added'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleResetAllData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset All Data?'),
+        content: const Text(
+          'This will permanently delete all your recorded data. '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed ?? false) {
+      await widget.nosebleedService.clearLocalData();
+      unawaited(_loadRecords());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All data has been reset'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleEndClinicalTrial() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('End Clinical Trial?'),
+        content: const Text(
+          'Are you sure you want to end your participation in the clinical trial? '
+          'Your data will be retained but no longer synced.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('End Trial'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed ?? false) {
+      await widget.enrollmentService.clearEnrollment();
+      unawaited(_checkEnrollmentStatus());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You have left the clinical trial'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleInstructionsAndFeedback() async {
+    final url = Uri.parse('https://curehht.org/app-support');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _navigateToEditRecord(NosebleedRecord record) async {
@@ -199,8 +331,13 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Logo placeholder
-                  const Icon(Icons.medical_services_outlined, size: 28),
+                  // Logo menu
+                  LogoMenu(
+                    onAddExampleData: _handleAddExampleData,
+                    onResetAllData: _handleResetAllData,
+                    onEndClinicalTrial: _isEnrolled ? _handleEndClinicalTrial : null,
+                    onInstructionsAndFeedback: _handleInstructionsAndFeedback,
+                  ),
                   Text(
                     AppLocalizations.of(context).appTitle,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(

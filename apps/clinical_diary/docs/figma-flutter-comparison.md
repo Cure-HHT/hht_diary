@@ -12,10 +12,10 @@
 This document compares the Flutter implementation of the Clinical Diary mobile app against the Figma Make design prototype. The analysis identifies missing features, visual differences, and implementation gaps that should be addressed for design fidelity.
 
 **Key Findings**:
-- **3 Major Missing Features** - Questionnaire system, Logo Menu, Survey Events
-- **4 Visual Differences** - Icons, calendar styling, event cards
+- **2 Major Missing Features** - Questionnaire system, Survey Events
+- **3 Visual Differences** - Custom severity icons, event list layout, multi-day indicator
 - **1 Flutter Addition** - Internationalization (EN/ES/FR) not in design
-- **4 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards
+- **5 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu
 
 ---
 
@@ -55,11 +55,13 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
   - [x] Edit capability for each event
   - [x] Tests written (11 tests)
 
-- [ ] **6. Logo Menu Implementation**
-  - [ ] Make header logo tappable
-  - [ ] Data Management popup menu
-  - [ ] Questionnaire triggers
-  - [ ] End Clinical Trial option
+- [x] **6. Logo Menu Implementation** ✅ DONE
+  - [x] Make header logo tappable
+  - [x] Data Management popup menu (Add Example Data, Reset All Data)
+  - [ ] Questionnaire triggers (deferred - questionnaire system not implemented)
+  - [x] End Clinical Trial option
+  - [x] Instructions & Feedback external link
+  - [x] Tests written (14 tests)
 
 - [x] **7. Special Event Card Styling** ✅ DONE
   - [x] Green "No nosebleeds" card with checkmark
@@ -162,7 +164,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ---
 
-### 5. Logo Menu (Data Management) - NOT IMPLEMENTED
+### 5. Logo Menu (Data Management) - ✅ IMPLEMENTED
 
 **Figma Location**: `HomeScreen.tsx` - Tappable logo in header
 
@@ -178,7 +180,13 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 - External link:
   - Instructions and Feedback
 
-**Flutter Status**: Logo is static `Icon(Icons.medical_services_outlined)` - not interactive.
+**Flutter Status**: ✅ Implemented in `lib/widgets/logo_menu.dart`
+- Integrated with home screen header
+- Data Management options (Add Example Data, Reset All Data with confirmation)
+- End Clinical Trial option (shown only when enrolled)
+- Instructions & Feedback external link
+- Questionnaire triggers deferred until questionnaire system is implemented
+- 14 passing tests in `test/widgets/logo_menu_test.dart`
 
 ---
 
@@ -305,7 +313,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 | Survey View Screen | ✅ | ❌ | Missing |
 | Survey Events | ✅ | ❌ | Missing |
 | Special Event Cards | ✅ | ✅ | ✅ Complete |
-| Logo Menu | ✅ | ❌ | Missing |
+| Logo Menu | ✅ | ✅ | ✅ Complete (minus questionnaires) |
 | Yesterday Banner | ✅ | ✅ | Complete |
 | Delete Confirmation | ✅ | ✅ | Complete |
 | Overlap Warning | ✅ | ✅ | Complete |
@@ -342,10 +350,10 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 5. ~~**Date Records Screen**~~ - ✅ DONE
    - ~~Create screen showing all events for selected date~~
 
-6. **Logo Menu Implementation** - TODO
-   - Make header logo tappable
-   - Add data management popup menu
-   - Include questionnaire triggers
+6. ~~**Logo Menu Implementation**~~ - ✅ DONE
+   - ~~Make header logo tappable~~
+   - ~~Add data management popup menu~~
+   - Questionnaire triggers deferred
 
 7. ~~**Special Event Card Styling**~~ - ✅ DONE
    - ~~Style "No nosebleeds" events (green)~~
