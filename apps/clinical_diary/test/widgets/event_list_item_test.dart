@@ -358,6 +358,80 @@ void main() {
       });
     });
 
+    group('Multi-day event indicator', () {
+      testWidgets('shows (+1 day) when event crosses midnight', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
+          endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day
+          severity: NosebleedSeverity.dripping,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('(+1 day)'), findsOneWidget);
+      });
+
+      testWidgets('does not show (+1 day) for same-day events', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          startTime: DateTime(2024, 1, 15, 10, 30),
+          endTime: DateTime(2024, 1, 15, 10, 45),
+          severity: NosebleedSeverity.dripping,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('(+1 day)'), findsNothing);
+      });
+
+      testWidgets('does not show (+1 day) when end time is missing',
+          (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          startTime: DateTime(2024, 1, 15, 23, 30),
+          severity: NosebleedSeverity.dripping,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('(+1 day)'), findsNothing);
+      });
+
+      testWidgets('shows correct duration for multi-day events', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
+          endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day = 45 min
+          severity: NosebleedSeverity.dripping,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('45m'), findsOneWidget);
+      });
+    });
+
     group('Unknown event card', () {
       testWidgets('displays yellow question mark icon', (tester) async {
         final record = NosebleedRecord(

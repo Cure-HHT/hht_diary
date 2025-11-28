@@ -22,6 +22,24 @@ class EventListItem extends StatelessWidget {
     return '$startStr - $endStr';
   }
 
+  /// Check if the event crosses midnight (ends on a different day)
+  bool get _isMultiDay {
+    if (record.startTime == null || record.endTime == null) return false;
+
+    final startDay = DateTime(
+      record.startTime!.year,
+      record.startTime!.month,
+      record.startTime!.day,
+    );
+    final endDay = DateTime(
+      record.endTime!.year,
+      record.endTime!.month,
+      record.endTime!.day,
+    );
+
+    return endDay.isAfter(startDay);
+  }
+
   String get _duration {
     final minutes = record.durationMinutes;
     if (minutes == null) return '';
@@ -204,6 +222,16 @@ class EventListItem extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(fontWeight: FontWeight.w500),
                         ),
+                        if (_isMultiDay) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '(+1 day)',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ],
                         if (_duration.isNotEmpty) ...[
                           const SizedBox(width: 8),
                           Container(

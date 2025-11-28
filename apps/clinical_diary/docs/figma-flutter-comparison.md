@@ -13,9 +13,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 **Key Findings**:
 - **2 Major Missing Features** - Questionnaire system, Survey Events
-- **3 Visual Differences** - Custom severity icons, event list layout, multi-day indicator
+- **2 Visual Differences** - Custom severity icons, event list layout
 - **1 Flutter Addition** - Internationalization (EN/ES/FR) not in design
-- **5 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu
+- **6 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator
 
 ---
 
@@ -78,8 +78,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 - [ ] **9. Animated Enrollment Dialog**
   - [ ] Add transition animation (Pending → Success)
 
-- [ ] **10. Multi-day Event Indicator**
-  - [ ] Show "(+1 day)" for events crossing midnight
+- [x] **10. Multi-day Event Indicator** ✅ DONE
+  - [x] Show "(+1 day)" for events crossing midnight
+  - [x] Tests written (4 tests)
 
 ---
 
@@ -270,11 +271,13 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ---
 
-### 11. Multi-day Event Indicator
+### 11. Multi-day Event Indicator - ✅ IMPLEMENTED
 
 **Figma**: End time shows "(+1 day)" when event crosses midnight
 
-**Flutter**: Not implemented - no visual indicator for events spanning multiple days
+**Flutter Status**: ✅ Implemented in `lib/widgets/event_list_item.dart`
+- Shows "(+1 day)" indicator when event end time is on a different day
+- 4 tests for multi-day events
 
 ---
 
@@ -368,8 +371,8 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 9. **Animated Enrollment Dialog** - TODO
    - Add transition animation (Pending → Success)
 
-10. **Multi-day Event Indicator** - TODO
-    - Show "(+1 day)" for events crossing midnight
+10. ~~**Multi-day Event Indicator**~~ - ✅ DONE
+    - ~~Show "(+1 day)" for events crossing midnight~~
 
 ---
 
