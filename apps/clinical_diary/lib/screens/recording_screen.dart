@@ -82,9 +82,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final record = widget.existingRecord!;
     if (record.severity == null) return RecordingStep.severity;
     if (record.endTime == null) return RecordingStep.endTime;
-    if (_shouldRequireNotes(record) && record.notes == null) {
-      return RecordingStep.notes;
-    }
+    // For editing existing records, go to complete step
     return RecordingStep.complete;
   }
 
@@ -112,21 +110,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     return widget.allRecords.where((record) {
       // Skip the current record if editing
-      if (widget.existingRecord != null &&
-          record.id == widget.existingRecord!.id) {
+      if (widget.existingRecord != null && record.id == widget.existingRecord!.id) {
         return false;
       }
 
       // Only check real events with both start and end times
-      if (!record.isRealEvent ||
-          record.startTime == null ||
-          record.endTime == null) {
+      if (!record.isRealEvent || record.startTime == null || record.endTime == null) {
         return false;
       }
 
       // Check if events overlap
-      return _startTime!.isBefore(record.endTime!) &&
-          _endTime!.isAfter(record.startTime!);
+      return _startTime!.isBefore(record.endTime!) && _endTime!.isAfter(record.startTime!);
     }).toList();
   }
 
@@ -143,12 +137,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
       notes: _notes,
     );
 
-    if (_shouldRequireNotes(currentRecord) &&
-        (_notes == null || _notes!.trim().isEmpty)) {
+    if (_shouldRequireNotes(currentRecord) && (_notes == null || _notes!.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notes are required for clinical trial participants'),
-        ),
+        const SnackBar(content: Text('Notes are required for clinical trial participants')),
       );
       return;
     }
@@ -169,9 +160,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -227,21 +218,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     setState(() {
       _endTime = time;
-
-      // Check if notes are required
-      final currentRecord = NosebleedRecord(
-        id: widget.existingRecord?.id ?? '',
-        date: _date,
-        startTime: _startTime,
-        endTime: _endTime,
-        severity: _severity,
-      );
-
-      if (_shouldRequireNotes(currentRecord)) {
-        _currentStep = RecordingStep.notes;
-      } else {
-        _currentStep = RecordingStep.complete;
-      }
+      // Always show notes step, it will be optional for non-enrolled users
+      _currentStep = RecordingStep.notes;
     });
   }
 
@@ -307,7 +285,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ),
 
             // Date header (tappable)
-            DateHeader(date: _date, onChange: _handleDateChange),
+            DateHeader(
+              date: _date,
+              onChange: _handleDateChange,
+            ),
 
             const SizedBox(height: 16),
 
@@ -320,15 +301,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
             if (overlappingEvents.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: OverlapWarning(
-                  overlappingCount: overlappingEvents.length,
-                ),
+                child: OverlapWarning(overlappingCount: overlappingEvents.length),
               ),
 
             if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
 
             // Main content area
-            Expanded(child: _buildCurrentStep()),
+            Expanded(
+              child: _buildCurrentStep(),
+            ),
           ],
         ),
       ),
@@ -396,9 +377,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 4),
@@ -464,8 +443,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Widget _buildCompleteStep() {
-    final isExistingComplete =
-        widget.existingRecord != null &&
+    final isExistingComplete = widget.existingRecord != null &&
         widget.existingRecord!.severity != null &&
         widget.existingRecord!.endTime != null;
 
@@ -500,11 +478,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
             widget.existingRecord != null && !isExistingComplete
                 ? 'Complete Record'
                 : widget.existingRecord != null
-                ? 'Edit Record'
-                : 'Record Complete',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ? 'Edit Record'
+                    : 'Record Complete',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
 
           const SizedBox(height: 8),
@@ -514,10 +492,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 ? 'Review the information and save when ready'
                 : 'Tap any field above to edit it',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
           ),
 
           if (_durationMinutes != null) ...[
@@ -542,14 +518,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
@@ -559,19 +531,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     'Notes',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _currentStep = RecordingStep.notes),
+                    onTap: () => setState(() => _currentStep = RecordingStep.notes),
                     child: Text(
-                      (_notes?.isNotEmpty ?? false)
-                          ? _notes!
-                          : 'Tap to add notes (required)',
+                      (_notes?.isNotEmpty ?? false) ? _notes! : 'Tap to add notes (required)',
                       style: TextStyle(
                         fontSize: 14,
                         color: (_notes?.isNotEmpty ?? false)
@@ -590,10 +557,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed:
-                  (_isSaving ||
-                      (needsNotes &&
-                          (_notes == null || _notes!.trim().isEmpty)))
+              onPressed: (_isSaving || (needsNotes && (_notes == null || _notes!.trim().isEmpty)))
                   ? null
                   : _saveRecord,
               style: FilledButton.styleFrom(
@@ -608,7 +572,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(buttonText, style: const TextStyle(fontSize: 18)),
+                  : Text(
+                      buttonText,
+                      style: const TextStyle(fontSize: 18),
+                    ),
             ),
           ),
         ],
