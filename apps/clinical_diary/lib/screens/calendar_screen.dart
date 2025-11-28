@@ -78,6 +78,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
+    // Navigate to recording screen for the selected date
     final normalizedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
     final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
 

@@ -147,6 +147,58 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+
+  Future<void> _navigateToEditRecord(NosebleedRecord record) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecordingScreen(
+          nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
+          initialDate: record.date,
+          existingRecord: record,
+          allRecords: _records,
+          onDelete: (reason) async {
+            await widget.nosebleedService.deleteRecord(
+              recordId: record.id,
+              reason: reason,
+            );
+            unawaited(_loadRecords());
+          },
+        ),
+      ),
+    );
+
+    if (result ?? false) {
+      unawaited(_loadRecords());
+    }
+  }
+  Future<void> _navigateToEditRecord(NosebleedRecord record) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecordingScreen(
+          nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
+          initialDate: record.date,
+          existingRecord: record,
+          allRecords: _records,
+          onDelete: (reason) async {
+            await widget.nosebleedService.deleteRecord(
+              recordId: record.id,
+              reason: reason,
+            );
+            unawaited(_loadRecords());
+          },
+        ),
+      ),
+    );
+
+    if (result ?? false) {
+      unawaited(_loadRecords());
+    }
+  }
+
   void _showLogoMenu(BuildContext context) {
     // TODO: Implement logo menu with:
     // - Add Example Data
@@ -326,6 +378,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final groups = <_GroupedRecords>[];
 
+    // Get incomplete records first
+    final incompleteRecords = _records
+        .where((r) => r.isIncomplete && r.isRealEvent)
+        .toList();
+
     // Get incomplete records that are older than yesterday
     final olderIncompleteRecords =
         _records.where((r) {
@@ -369,13 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     // Today's records
-    final todayRecords =
-        _records.where((r) {
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr == todayStr && r.isRealEvent;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    final todayRecords = _records.where((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
+    }).toList()
+      ..sort((a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
 
     // Check if there are ANY records for today (including special events)
     final hasAnyTodayRecords = _records.any((r) {
@@ -460,7 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                     },
                     itemBuilder: (context) => [
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'accessibility',
                         child: Row(
                           children: [
@@ -583,30 +638,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Main record button - large red button
                   SizedBox(
                     width: double.infinity,
-                    height: 140,
-                    child: FilledButton(
-                      onPressed: _navigateToRecording,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add, size: 48),
-                          const SizedBox(height: 8),
-                          Text(
-                            AppLocalizations.of(context).recordNosebleed,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Get screen height
+                        final screenHeight = MediaQuery.of(context).size.height;
+                        // Calculate 25vh (25% of viewport height)
+                        final buttonHeight = screenHeight * 0.25;
+                        // Ensure minimum height of 160px
+                        final finalHeight = buttonHeight < 160
+                            ? 160.0
+                            : buttonHeight;
+
+                        return SizedBox(
+                          height: finalHeight,
+                          child: FilledButton(
+                            onPressed: _navigateToRecording,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              elevation: 4,
+                              shadowColor: Colors.black.withValues(alpha: 0.3),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add, size: 48),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Record Nosebleed',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
 
@@ -703,12 +775,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
         // Records or empty state
-        if (group.isEmpty || (group.records.isEmpty && !group.isIncomplete))
+        if (group.records.isEmpty && !group.isIncomplete)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Center(
               child: Text(
-                'no events ${group.label}',
+                'no events ${group.label.toLowerCase()}',
                 style: TextStyle(
                   color: Theme.of(
                     context,
@@ -733,10 +805,10 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _GroupedRecords {
+
   _GroupedRecords({
     required this.label,
-    required this.records,
-    this.date,
+    required this.records, this.date,
     this.isIncomplete = false,
     this.isEmpty = false,
   });

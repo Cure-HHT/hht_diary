@@ -34,11 +34,9 @@ class NosebleedService {
   NosebleedService({
     required EnrollmentService enrollmentService,
     http.Client? httpClient,
-    EventRepository? repository,
-  }) : _enrollmentService = enrollmentService,
-       _httpClient = httpClient ?? http.Client(),
-       _repository = repository;
-
+  })  : _enrollmentService = enrollmentService,
+        _httpClient = httpClient ?? http.Client();
+  static const _localRecordsKey = 'nosebleed_records';
   static const _deviceUuidKey = 'device_uuid';
 
   final EnrollmentService _enrollmentService;
@@ -64,8 +62,12 @@ class NosebleedService {
   /// Generate a new record ID
   String generateRecordId() => _uuid.v4();
 
-  /// Get all local records by querying the event repository
-  Future<List<NosebleedRecord>> getLocalRecords() async {
+  /// Get all local records (raw event log - includes all versions)
+  Future<List<NosebleedRecord>> getAllLocalRecords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_localRecordsKey);
+    if (data == null) return [];
+
     try {
 
       final events = await _eventRepository.getAllEvents();
@@ -152,12 +154,22 @@ class NosebleedService {
     String? parentRecordId,
   }) async {
     final deviceUuid = await getDeviceUuid();
-    final userId = await _enrollmentService.getUserId() ?? 'anonymous';
-
-    final isIncomplete =
-        !isNoNosebleedsEvent &&
-        !isUnknownEvent &&
-        (startTime == null || endTime == null || severity == null);
+    final record = NosebleedRecord(
+      id: generateRecordId(),
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      severity: severity,
+      notes: notes,
+      isNoNosebleedsEvent: isNoNosebleedsEvent,
+      isUnknownEvent: isUnknownEvent,
+      isIncomplete: !isNoNosebleedsEvent &&
+          !isUnknownEvent &&
+          (startTime == null || endTime == null || severity == null),
+      parentRecordId: parentRecordId,
+      deviceUuid: deviceUuid,
+      createdAt: DateTime.now(),
+    );
 
     final record = NosebleedRecord(
       id: generateRecordId(),
@@ -176,18 +188,57 @@ class NosebleedService {
       createdAt: DateTime.now(),
     );
 
-    // Append to the datastore (creates hash chain for tamper detection)
-    final storedEvent = await _eventRepository.append(
-      aggregateId: 'diary-${date.year}-${date.month}-${date.day}',
-      eventType: 'NosebleedRecorded',
-      data: eventData,
-      userId: userId,
-      deviceId: deviceUuid,
-      clientTimestamp: DateTime.now(),
+    // Try to sync to cloud (non-blocking)
+    unawaited(_syncRecordToCloud(record));
+
+    return record;
+  }
+
+  /// Update an existing record (append-only pattern)
+  /// Creates a new record that supersedes the original
+  Future<NosebleedRecord> updateRecord({
+    required String originalRecordId,
+    required DateTime date,
+    DateTime? startTime,
+    DateTime? endTime,
+    NosebleedSeverity? severity,
+    String? notes,
+    bool isNoNosebleedsEvent = false,
+    bool isUnknownEvent = false,
+  }) async {
+    return addRecord(
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      severity: severity,
+      notes: notes,
+      isNoNosebleedsEvent: isNoNosebleedsEvent,
+      isUnknownEvent: isUnknownEvent,
+      parentRecordId: originalRecordId,
+    );
+  }
+
+  /// Delete a record (append-only pattern)
+  /// Creates a deletion marker that supersedes the original
+  Future<NosebleedRecord> deleteRecord({
+    required String recordId,
+    required String reason,
+  }) async {
+    final deviceUuid = await getDeviceUuid();
+    final record = NosebleedRecord(
+      id: generateRecordId(),
+      date: DateTime.now(),
+      isDeleted: true,
+      deleteReason: reason,
+      parentRecordId: recordId,
+      deviceUuid: deviceUuid,
+      createdAt: DateTime.now(),
     );
 
-    // Convert to NosebleedRecord for return
-    final record = _eventToNosebleedRecord(storedEvent);
+    // Save locally first (offline-first) - use raw records
+    final records = await getAllLocalRecords();
+    records.add(record);
+    await _saveLocalRecords(records);
 
     // Try to sync to cloud (non-blocking)
     unawaited(_syncRecordToCloud(record));
@@ -197,12 +248,20 @@ class NosebleedService {
 
   /// Mark a day as having no nosebleeds
   Future<NosebleedRecord> markNoNosebleeds(DateTime date) async {
-    return addRecord(date: date, startTime: date, isNoNosebleedsEvent: true);
+    return addRecord(
+      date: date,
+      startTime: date,
+      isNoNosebleedsEvent: true,
+    );
   }
 
   /// Mark a day as unknown (don't remember)
   Future<NosebleedRecord> markUnknown(DateTime date) async {
-    return addRecord(date: date, startTime: date, isUnknownEvent: true);
+    return addRecord(
+      date: date,
+      startTime: date,
+      isUnknownEvent: true,
+    );
   }
 
   /// Complete an incomplete record by adding a new complete version
@@ -243,9 +302,7 @@ class NosebleedService {
     return records
         .where((r) => r.startTime?.isAfter(yesterday) ?? false)
         .toList()
-      ..sort(
-        (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-      );
+      ..sort((a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
   }
 
   /// Get incomplete records
@@ -387,6 +444,7 @@ class NosebleedService {
           }
         }
 
+        await _saveLocalRecords(localRecords);
         debugPrint('Fetched ${cloudRecords.length} records from cloud');
       } else {
         debugPrint('Fetch failed: ${response.statusCode}');
@@ -400,6 +458,63 @@ class NosebleedService {
   Future<int> getUnsyncedCount() async {
     return _eventRepository.getUnsyncedCount();
   }
+
+  /// Get status for a specific date (for calendar view)
+  Future<DayStatus> getDayStatus(DateTime date) async {
+    final records = await getRecordsForDate(date);
+    if (records.isEmpty) return DayStatus.notRecorded;
+
+    final hasNosebleed = records.any((r) => r.isRealEvent && !r.isIncomplete);
+    final hasNoNosebleed = records.any((r) => r.isNoNosebleedsEvent);
+    final hasUnknown = records.any((r) => r.isUnknownEvent);
+    final hasIncomplete = records.any((r) => r.isIncomplete);
+
+    if (hasNosebleed) return DayStatus.nosebleed;
+    if (hasNoNosebleed) return DayStatus.noNosebleed;
+    if (hasUnknown) return DayStatus.unknown;
+    if (hasIncomplete) return DayStatus.incomplete;
+    return DayStatus.notRecorded;
+  }
+
+  /// Get status for a range of dates (for calendar view)
+  Future<Map<DateTime, DayStatus>> getDayStatusRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final result = <DateTime, DayStatus>{};
+    final records = await getLocalRecords();
+
+    for (var date = start;
+        date.isBefore(end) || date.isAtSameMomentAs(end);
+        date = date.add(const Duration(days: 1))) {
+      final dayRecords = records.where((r) {
+        return r.date.year == date.year &&
+            r.date.month == date.month &&
+            r.date.day == date.day;
+      }).toList();
+
+      if (dayRecords.isEmpty) {
+        result[DateTime(date.year, date.month, date.day)] = DayStatus.notRecorded;
+        continue;
+      }
+
+      final hasNosebleed = dayRecords.any((r) => r.isRealEvent && !r.isIncomplete);
+      final hasNoNosebleed = dayRecords.any((r) => r.isNoNosebleedsEvent);
+      final hasUnknown = dayRecords.any((r) => r.isUnknownEvent);
+      final hasIncomplete = dayRecords.any((r) => r.isIncomplete);
+
+      if (hasNosebleed) {
+        result[DateTime(date.year, date.month, date.day)] = DayStatus.nosebleed;
+      } else if (hasNoNosebleed) {
+        result[DateTime(date.year, date.month, date.day)] = DayStatus.noNosebleed;
+      } else if (hasUnknown) {
+        result[DateTime(date.year, date.month, date.day)] = DayStatus.unknown;
+      } else if (hasIncomplete) {
+        result[DateTime(date.year, date.month, date.day)] = DayStatus.incomplete;
+      } else {
+        result[DateTime(date.year, date.month, date.day)] = DayStatus.notRecorded;
+      }
+    }
 
   /// Verify data integrity (check hash chain)
   Future<bool> verifyDataIntegrity() async {
