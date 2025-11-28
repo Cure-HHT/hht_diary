@@ -2,6 +2,8 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00008: Mobile App Diary Entry
 
+import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -83,8 +85,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (status == DayStatus.notRecorded) {
       await _showDaySelectionScreen(selectedDay);
     } else {
-      // Navigate directly to recording screen for editing/adding
-      await _navigateToRecordingScreen(selectedDay);
+      // Show date records screen with existing events
+      await _showDateRecordsScreen(selectedDay);
+    }
+  }
+
+  Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
+    // Fetch records for the selected day
+    final records = await widget.nosebleedService.getRecordsForDate(selectedDay);
+
+    if (!mounted) return;
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DateRecordsScreen(
+          date: selectedDay,
+          records: records,
+          onAddEvent: () async {
+            Navigator.pop(context);
+            await _navigateToRecordingScreen(selectedDay);
+          },
+          onEditEvent: (record) async {
+            Navigator.pop(context);
+            await _navigateToRecordingScreen(selectedDay, existingRecord: record);
+          },
+        ),
+      ),
+    );
+
+    if (result ?? false) {
+      await _loadDayStatuses();
     }
   }
 
@@ -119,7 +150,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  Future<void> _navigateToRecordingScreen(DateTime selectedDay) async {
+  Future<void> _navigateToRecordingScreen(
+    DateTime selectedDay, {
+    NosebleedRecord? existingRecord,
+  }) async {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -127,6 +161,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           initialDate: selectedDay,
+          existingRecord: existingRecord,
         ),
       ),
     );
