@@ -2,6 +2,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/widgets/enrollment_success_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -130,9 +131,11 @@ class _ClinicalTrialEnrollmentScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
+    return Stack(
+      children: [
+        Scaffold(
+          body: SafeArea(
+            child: Column(
           children: [
             // Header with back button
             Padding(
@@ -475,6 +478,16 @@ class _ClinicalTrialEnrollmentScreenState
           ],
         ),
       ),
+        ),
+        // Success dialog overlay
+        if (_showSuccessDialog)
+          Container(
+            color: Colors.black54,
+            child: const Center(
+              child: EnrollmentSuccessDialog(),
+            ),
+          ),
+      ],
     );
   }
 }

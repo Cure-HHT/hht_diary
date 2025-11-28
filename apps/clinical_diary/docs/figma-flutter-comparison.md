@@ -13,9 +13,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 **Key Findings**:
 - **2 Major Missing Features** - Questionnaire system, Survey Events
-- **2 Visual Differences** - Custom severity icons, event list layout
+- **1 Visual Difference** - Custom severity icons
 - **1 Flutter Addition** - Internationalization (EN/ES/FR) not in design
-- **6 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator
+- **7 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator, Animated Enrollment Dialog
 
 ---
 
@@ -75,8 +75,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
   - [ ] Replace Material Icons in SeverityPicker
   - [ ] Update severity colors (green→yellow→red)
 
-- [ ] **9. Animated Enrollment Dialog**
-  - [ ] Add transition animation (Pending → Success)
+- [x] **9. Animated Enrollment Dialog** ✅ DONE
+  - [x] Add transition animation (Pending → Success)
+  - [x] Tests written (6 tests)
 
 - [x] **10. Multi-day Event Indicator** ✅ DONE
   - [x] Show "(+1 day)" for events crossing midnight
@@ -368,8 +369,8 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
    - Replace Material Icons with design assets
    - Match Figma severity illustrations
 
-9. **Animated Enrollment Dialog** - TODO
-   - Add transition animation (Pending → Success)
+9. ~~**Animated Enrollment Dialog**~~ - ✅ DONE
+   - ~~Add transition animation (Pending → Success)~~
 
 10. ~~**Multi-day Event Indicator**~~ - ✅ DONE
     - ~~Show "(+1 day)" for events crossing midnight~~
