@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-p00008: Mobile App Diary Entry
 
+import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
@@ -74,7 +76,50 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    // Navigate to recording screen for the selected date
+    final normalizedDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+    final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+
+    // If no records exist for this day, show the day selection screen
+    if (status == DayStatus.notRecorded) {
+      await _showDaySelectionScreen(selectedDay);
+    } else {
+      // Navigate directly to recording screen for editing/adding
+      await _navigateToRecordingScreen(selectedDay);
+    }
+  }
+
+  Future<void> _showDaySelectionScreen(DateTime selectedDay) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DaySelectionScreen(
+          date: selectedDay,
+          onAddNosebleed: () async {
+            Navigator.pop(context);
+            await _navigateToRecordingScreen(selectedDay);
+          },
+          onNoNosebleeds: () async {
+            await widget.nosebleedService.markNoNosebleeds(selectedDay);
+            if (context.mounted) {
+              Navigator.pop(context, true);
+            }
+          },
+          onUnknown: () async {
+            await widget.nosebleedService.markUnknown(selectedDay);
+            if (context.mounted) {
+              Navigator.pop(context, true);
+            }
+          },
+        ),
+      ),
+    );
+
+    if (result ?? false) {
+      await _loadDayStatuses();
+    }
+  }
+
+  Future<void> _navigateToRecordingScreen(DateTime selectedDay) async {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(

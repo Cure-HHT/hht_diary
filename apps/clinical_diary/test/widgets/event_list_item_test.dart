@@ -290,5 +290,139 @@ void main() {
 
       expect(hasIndicator, true);
     });
+
+    group('No Nosebleeds event card', () {
+      testWidgets('displays green checkmark icon', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isNoNosebleedsEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      });
+
+      testWidgets('displays "No nosebleed events" title', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isNoNosebleedsEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('No nosebleed events'), findsOneWidget);
+      });
+
+      testWidgets('displays confirmation subtitle', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isNoNosebleedsEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('Confirmed no events for this day'), findsOneWidget);
+      });
+
+      testWidgets('has green background', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isNoNosebleedsEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        final card = tester.widget<Card>(find.byType(Card));
+        expect(card.color, Colors.green.shade50);
+      });
+    });
+
+    group('Unknown event card', () {
+      testWidgets('displays yellow question mark icon', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isUnknownEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.byIcon(Icons.help_outline), findsOneWidget);
+      });
+
+      testWidgets('displays "Unknown" title', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isUnknownEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('Unknown'), findsOneWidget);
+      });
+
+      testWidgets('displays unable to recall subtitle', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isUnknownEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        expect(find.text('Unable to recall events for this day'), findsOneWidget);
+      });
+
+      testWidgets('has yellow background', (tester) async {
+        final record = NosebleedRecord(
+          id: 'test-1',
+          date: testDate,
+          isUnknownEvent: true,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: EventListItem(record: record)),
+          ),
+        );
+
+        final card = tester.widget<Card>(find.byType(Card));
+        expect(card.color, Colors.yellow.shade50);
+      });
+    });
   });
 }

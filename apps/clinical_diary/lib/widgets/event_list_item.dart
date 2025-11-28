@@ -1,3 +1,7 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-p00008: Mobile App Diary Entry
+
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -50,6 +54,123 @@ class EventListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Handle special event types with custom styling
+    if (record.isNoNosebleedsEvent) {
+      return _buildNoNosebleedsCard(context);
+    }
+
+    if (record.isUnknownEvent) {
+      return _buildUnknownCard(context);
+    }
+
+    // Regular nosebleed event card
+    return _buildNosebleedCard(context);
+  }
+
+  /// Build card for "No nosebleed events" type
+  Widget _buildNoNosebleedsCard(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Colors.green.shade50,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green.shade700,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No nosebleed events',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.green.shade800,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Confirmed no events for this day',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.green.shade700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.green.shade400,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build card for "Unknown" event type
+  Widget _buildUnknownCard(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      color: Colors.yellow.shade50,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Icon(
+                Icons.help_outline,
+                color: Colors.orange.shade700,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Unknown',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.orange.shade800,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Unable to recall events for this day',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.orange.shade700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.orange.shade400,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Build card for regular nosebleed events
+  Widget _buildNosebleedCard(BuildContext context) {
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
