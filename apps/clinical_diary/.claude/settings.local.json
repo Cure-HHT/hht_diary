@@ -53,7 +53,8 @@
       "Bash(npm run test:coverage:*)",
       "mcp__figma-desktop__get_metadata",
       "mcp__figma-desktop__get_design_context",
-      "Bash(node /Users/mbushe/dev/anspar/hht_diary/tools/anspar-cc-plugins/plugins/linear-api/scripts/fetch-tickets.js:*)"
+      "Bash(node /Users/mbushe/dev/anspar/hht_diary/tools/anspar-cc-plugins/plugins/linear-api/scripts/fetch-tickets.js:*)",
+      "mcp__figma-desktop__get_screenshot"
     ],
     "deny": [],
     "ask": []

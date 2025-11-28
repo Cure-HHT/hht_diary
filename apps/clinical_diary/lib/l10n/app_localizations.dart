@@ -20,12 +20,14 @@ class AppLocalizations {
     Locale('en'),
     Locale('es'),
     Locale('fr'),
+    Locale('de'),
   ];
 
   static const Map<String, String> _languageNames = {
     'en': 'English',
     'es': 'Espanol',
     'fr': 'Francais',
+    'de': 'Deutsch',
   };
 
   static String getLanguageName(String code) {
@@ -272,8 +274,7 @@ class AppLocalizations {
       'whenDidItStop': "Quand le saignement de nez s'est-il arrete?",
       'howSevere': 'Quelle etait la gravite?',
       'anyNotes': 'Des notes supplementaires?',
-      'notesPlaceholder':
-          'Notes optionnelles sur ce saignement de nez...',
+      'notesPlaceholder': 'Notes optionnelles sur ce saignement de nez...',
 
       // Severity
       'spotting': 'Taches',
@@ -307,6 +308,98 @@ class AppLocalizations {
       'incorrectInformation': 'Information incorrecte',
       'other': 'Autre',
       'pleaseSpecify': 'Veuillez preciser',
+    },
+    'de': {
+      // General
+      'appTitle': 'Nasenbluten-Tagebuch',
+      'back': 'Zuruck',
+      'cancel': 'Abbrechen',
+      'save': 'Speichern',
+      'delete': 'Loschen',
+      'close': 'Schliessen',
+      'today': 'Heute',
+      'yesterday': 'Gestern',
+      'calendar': 'Kalender',
+
+      // Home Screen
+      'recordNosebleed': 'Nasenbluten erfassen',
+      'noEventsToday': 'keine Ereignisse heute',
+      'noEventsYesterday': 'keine Ereignisse gestern',
+      'incompleteRecords': 'Unvollstandige Einträge',
+
+      // Settings
+      'settings': 'Einstellungen',
+      'colorScheme': 'Farbschema',
+      'chooseAppearance': 'Wahlen Sie Ihr bevorzugtes Erscheinungsbild',
+      'lightMode': 'Heller Modus',
+      'lightModeDescription': 'Helle Darstellung mit hellen Hintergrunden',
+      'darkMode': 'Dunkler Modus',
+      'darkModeDescription': 'Reduzierte Helligkeit mit dunklen Hintergrunden',
+      'accessibility': 'Barrierefreiheit',
+      'accessibilityDescription':
+          'Passen Sie die App fur bessere Lesbarkeit und Benutzerfreundlichkeit an',
+      'dyslexiaFriendlyFont': 'Legasthenie-freundliche Schrift',
+      'dyslexiaFontDescription':
+          'Verwenden Sie die OpenDyslexic-Schrift fur verbesserte Lesbarkeit.',
+      'learnMoreOpenDyslexic': 'Mehr erfahren auf opendyslexic.org',
+      'largerTextAndControls': 'Grosserer Text und Steuerelemente',
+      'largerTextDescription':
+          'Vergrossern Sie Text und interaktive Elemente fur einfacheres Lesen und Navigieren',
+      'language': 'Sprache',
+      'languageDescription': 'Wahlen Sie Ihre bevorzugte Sprache',
+      'accessibilityAndPreferences': 'Barrierefreiheit & Einstellungen',
+      'privacy': 'Datenschutz',
+      'enrollInClinicalTrial': 'An klinischer Studie teilnehmen',
+
+      // Calendar
+      'selectDate': 'Datum auswahlen',
+      'nosebleedEvents': 'Nasenbluten-Ereignisse',
+      'noNosebleeds': 'Kein Nasenbluten',
+      'unknown': 'Unbekannt',
+      'incompleteMissing': 'Unvollstandig/Fehlend',
+      'notRecorded': 'Nicht erfasst',
+      'tapToAddOrEdit':
+          'Tippen Sie auf ein Datum, um Ereignisse hinzuzufugen oder zu bearbeiten',
+
+      // Recording
+      'whenDidItStart': 'Wann hat das Nasenbluten begonnen?',
+      'whenDidItStop': 'Wann hat das Nasenbluten aufgehort?',
+      'howSevere': 'Wie stark war es?',
+      'anyNotes': 'Zusatzliche Anmerkungen?',
+      'notesPlaceholder': 'Optionale Notizen zu diesem Nasenbluten...',
+
+      // Severity
+      'spotting': 'Leicht',
+      'dripping': 'Tropfend',
+      'drippingQuickly': 'Schnell tropfend',
+      'steadyStream': 'Stetiger Fluss',
+      'pouring': 'Strömend',
+      'gushing': 'Stark strömend',
+
+      // Yesterday banner
+      'confirmYesterday': 'Gestern bestatigen',
+      'didYouHaveNosebleeds': 'Hatten Sie Nasenbluten?',
+      'noNosebleedsYesterday': 'Kein Nasenbluten',
+      'hadNosebleeds': 'Hatte Nasenbluten',
+      'dontRemember': 'Ich erinnere mich nicht',
+
+      // Enrollment
+      'enrollmentTitle': 'An klinischer Studie teilnehmen',
+      'enterEnrollmentCode': 'Geben Sie Ihren Anmeldecode ein',
+      'enrollmentCodeHint': 'XXXXX-XXXXX',
+      'enroll': 'Anmelden',
+      'enrollmentSuccess': 'Erfolgreich angemeldet!',
+      'enrollmentError': 'Anmeldung fehlgeschlagen',
+
+      // Delete confirmation
+      'deleteRecord': 'Eintrag loschen',
+      'selectDeleteReason':
+          'Bitte wahlen Sie einen Grund fur das Loschen dieses Eintrags:',
+      'enteredByMistake': 'Versehentlich eingegeben',
+      'duplicateEntry': 'Doppelter Eintrag',
+      'incorrectInformation': 'Falsche Informationen',
+      'other': 'Sonstiges',
+      'pleaseSpecify': 'Bitte angeben',
     },
   };
 
@@ -365,7 +458,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) {
-    return ['en', 'es', 'fr'].contains(locale.languageCode);
+    return ['en', 'es', 'fr', 'de'].contains(locale.languageCode);
   }
 
   @override

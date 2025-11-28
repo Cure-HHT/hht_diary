@@ -133,15 +133,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await widget.nosebleedService.addRecord(
       date: twoDaysAgo,
-      startTime: DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day, 9, 30),
-      endTime: DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day, 9, 45),
+      startTime: DateTime(
+        twoDaysAgo.year,
+        twoDaysAgo.month,
+        twoDaysAgo.day,
+        9,
+        30,
+      ),
+      endTime: DateTime(
+        twoDaysAgo.year,
+        twoDaysAgo.month,
+        twoDaysAgo.day,
+        9,
+        45,
+      ),
       severity: NosebleedSeverity.dripping,
       notes: 'Example morning nosebleed',
     );
 
     await widget.nosebleedService.addRecord(
       date: yesterday,
-      startTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 0),
+      startTime: DateTime(
+        yesterday.year,
+        yesterday.month,
+        yesterday.day,
+        14,
+        0,
+      ),
       endTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 30),
       severity: NosebleedSeverity.steadyStream,
       notes: 'Example afternoon nosebleed',
@@ -268,7 +286,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   Future<void> _navigateToEditRecord(NosebleedRecord record) async {
     final result = await Navigator.push<bool>(
       context,
@@ -316,11 +333,13 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
     if (olderIncompleteRecords.isNotEmpty) {
-      groups.add(_GroupedRecords(
-        label: l10n.incompleteRecords,
-        records: olderIncompleteRecords,
-        isIncomplete: true,
-      ));
+      groups.add(
+        _GroupedRecords(
+          label: l10n.incompleteRecords,
+          records: olderIncompleteRecords,
+          isIncomplete: true,
+        ),
+      );
     }
 
     // Yesterday's records (excluding incomplete ones shown above)
@@ -348,11 +367,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     // Today's records
-    final todayRecords = _records.where((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-      return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
-    }).toList()
-      ..sort((a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
+    final todayRecords =
+        _records.where((r) {
+          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+          return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
+        }).toList()..sort(
+          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
+        );
 
     // Check if there are ANY records for today (including special events)
     final hasAnyTodayRecords = _records.any((r) {
@@ -388,19 +409,27 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Row(
                 children: [
-                  // Logo menu
+                  // Logo menu on the left
                   LogoMenu(
                     onAddExampleData: _handleAddExampleData,
                     onResetAllData: _handleResetAllData,
-                    onEndClinicalTrial: _isEnrolled ? _handleEndClinicalTrial : null,
+                    onEndClinicalTrial: _isEnrolled
+                        ? _handleEndClinicalTrial
+                        : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                   ),
-                  Text(
-                    AppLocalizations.of(context).appTitle,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
+                  // Centered title
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context).appTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  // Profile menu on the right
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.person_outline),
                     tooltip: 'User menu',
@@ -442,7 +471,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const Icon(Icons.settings, size: 20),
                             const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).accessibilityAndPreferences),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              ).accessibilityAndPreferences,
+                            ),
                           ],
                         ),
                       ),
@@ -463,7 +496,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const Icon(Icons.group_add, size: 20),
                             const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).enrollInClinicalTrial),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              ).enrollInClinicalTrial,
+                            ),
                           ],
                         ),
                       ),
@@ -726,10 +763,10 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _GroupedRecords {
-
   _GroupedRecords({
     required this.label,
-    required this.records, this.date,
+    required this.records,
+    this.date,
     this.isIncomplete = false,
     this.isEmpty = false,
   });

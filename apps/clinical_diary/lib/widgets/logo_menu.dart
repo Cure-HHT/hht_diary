@@ -21,8 +21,22 @@ class LogoMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.medical_services_outlined, size: 28),
       tooltip: 'App menu',
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            Colors.grey.withValues(alpha: 0.5),
+            BlendMode.srcATop,
+          ),
+          child: Image.asset(
+            'assets/images/cure-hht-grey.png',
+            width: 100,
+            height: 40,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
       onSelected: (value) {
         switch (value) {
           case 'add_example_data':
@@ -42,9 +56,9 @@ class LogoMenu extends StatelessWidget {
           child: Text(
             'Data Management',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         PopupMenuItem<String>(
@@ -89,9 +103,9 @@ class LogoMenu extends StatelessWidget {
             child: Text(
               'Clinical Trial',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           PopupMenuItem<String>(

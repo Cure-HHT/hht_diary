@@ -16,13 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 /// Status of a day for calendar display
-enum DayStatus {
-  nosebleed,
-  noNosebleed,
-  unknown,
-  incomplete,
-  notRecorded,
-}
+enum DayStatus { nosebleed, noNosebleed, unknown, incomplete, notRecorded }
 
 /// Service for managing nosebleed records with offline-first architecture.
 ///
@@ -35,9 +29,9 @@ class NosebleedService {
     required EnrollmentService enrollmentService,
     http.Client? httpClient,
     EventRepository? repository,
-  })  : _enrollmentService = enrollmentService,
-        _httpClient = httpClient ?? http.Client(),
-        _repository = repository;
+  }) : _enrollmentService = enrollmentService,
+       _httpClient = httpClient ?? http.Client(),
+       _repository = repository;
 
   static const _deviceUuidKey = 'device_uuid';
 
@@ -69,7 +63,11 @@ class NosebleedService {
     try {
       final events = await _eventRepository.getAllEvents();
       return events
-          .where((e) => e.eventType == 'NosebleedRecorded')
+          .where(
+            (e) =>
+                e.eventType == 'NosebleedRecorded' ||
+                e.eventType == 'NosebleedDeleted',
+          )
           .map(_eventToNosebleedRecord)
           .toList();
     } catch (e) {
@@ -100,6 +98,9 @@ class NosebleedService {
       isNoNosebleedsEvent: data['isNoNosebleedsEvent'] as bool? ?? false,
       isUnknownEvent: data['isUnknownEvent'] as bool? ?? false,
       isIncomplete: data['isIncomplete'] as bool? ?? false,
+      isDeleted: data['isDeleted'] as bool? ?? false,
+      deleteReason: data['deleteReason'] as String?,
+      parentRecordId: data['parentRecordId'] as String?,
       deviceUuid: event.deviceId,
       createdAt: event.clientTimestamp,
       syncedAt: event.syncedAt,
@@ -155,7 +156,8 @@ class NosebleedService {
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
       isUnknownEvent: isUnknownEvent,
-      isIncomplete: !isNoNosebleedsEvent &&
+      isIncomplete:
+          !isNoNosebleedsEvent &&
           !isUnknownEvent &&
           (startTime == null || endTime == null || severity == null),
       parentRecordId: parentRecordId,
@@ -179,7 +181,8 @@ class NosebleedService {
         'isNoNosebleedsEvent': record.isNoNosebleedsEvent,
         'isUnknownEvent': record.isUnknownEvent,
         'isIncomplete': record.isIncomplete,
-        if (record.parentRecordId != null) 'parentRecordId': record.parentRecordId,
+        if (record.parentRecordId != null)
+          'parentRecordId': record.parentRecordId,
       },
       userId: userId,
       deviceId: deviceUuid,
@@ -257,20 +260,12 @@ class NosebleedService {
 
   /// Mark a day as having no nosebleeds
   Future<NosebleedRecord> markNoNosebleeds(DateTime date) async {
-    return addRecord(
-      date: date,
-      startTime: date,
-      isNoNosebleedsEvent: true,
-    );
+    return addRecord(date: date, startTime: date, isNoNosebleedsEvent: true);
   }
 
   /// Mark a day as unknown (don't remember)
   Future<NosebleedRecord> markUnknown(DateTime date) async {
-    return addRecord(
-      date: date,
-      startTime: date,
-      isUnknownEvent: true,
-    );
+    return addRecord(date: date, startTime: date, isUnknownEvent: true);
   }
 
   /// Complete an incomplete record by adding a new complete version
@@ -311,7 +306,9 @@ class NosebleedService {
     return records
         .where((r) => r.startTime?.isAfter(yesterday) ?? false)
         .toList()
-      ..sort((a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
+      ..sort(
+        (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
+      );
   }
 
   /// Get incomplete records
@@ -492,9 +489,11 @@ class NosebleedService {
     final result = <DateTime, DayStatus>{};
     final records = await getLocalRecords();
 
-    for (var date = start;
-        date.isBefore(end) || date.isAtSameMomentAs(end);
-        date = date.add(const Duration(days: 1))) {
+    for (
+      var date = start;
+      date.isBefore(end) || date.isAtSameMomentAs(end);
+      date = date.add(const Duration(days: 1))
+    ) {
       final dayRecords = records.where((r) {
         return r.date.year == date.year &&
             r.date.month == date.month &&
@@ -502,11 +501,14 @@ class NosebleedService {
       }).toList();
 
       if (dayRecords.isEmpty) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.notRecorded;
+        result[DateTime(date.year, date.month, date.day)] =
+            DayStatus.notRecorded;
         continue;
       }
 
-      final hasNosebleed = dayRecords.any((r) => r.isRealEvent && !r.isIncomplete);
+      final hasNosebleed = dayRecords.any(
+        (r) => r.isRealEvent && !r.isIncomplete,
+      );
       final hasNoNosebleed = dayRecords.any((r) => r.isNoNosebleedsEvent);
       final hasUnknown = dayRecords.any((r) => r.isUnknownEvent);
       final hasIncomplete = dayRecords.any((r) => r.isIncomplete);
@@ -514,13 +516,16 @@ class NosebleedService {
       if (hasNosebleed) {
         result[DateTime(date.year, date.month, date.day)] = DayStatus.nosebleed;
       } else if (hasNoNosebleed) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.noNosebleed;
+        result[DateTime(date.year, date.month, date.day)] =
+            DayStatus.noNosebleed;
       } else if (hasUnknown) {
         result[DateTime(date.year, date.month, date.day)] = DayStatus.unknown;
       } else if (hasIncomplete) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.incomplete;
+        result[DateTime(date.year, date.month, date.day)] =
+            DayStatus.incomplete;
       } else {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.notRecorded;
+        result[DateTime(date.year, date.month, date.day)] =
+            DayStatus.notRecorded;
       }
     }
 
