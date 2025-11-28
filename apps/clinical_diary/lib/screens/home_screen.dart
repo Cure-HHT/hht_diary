@@ -586,7 +586,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 vertical: 12.0,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Logo menu
                   LogoMenu(

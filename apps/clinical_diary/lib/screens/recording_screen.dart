@@ -431,6 +431,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     switch (_currentStep) {
       case RecordingStep.startTime:
         return TimePickerDial(
+          key: const ValueKey('start_time_picker'),
           title: 'Nosebleed Start',
           initialTime: _startTime ?? DateTime.now(),
           onConfirm: _handleStartTimeConfirm,
@@ -439,20 +440,24 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
       case RecordingStep.severity:
         return SeverityPicker(
+          key: const ValueKey('severity_picker'),
           selectedSeverity: _severity,
           onSelect: _handleSeveritySelect,
         );
 
       case RecordingStep.endTime:
         return TimePickerDial(
+          key: const ValueKey('end_time_picker'),
           title: 'Nosebleed End Time',
           initialTime: _endTime ?? DateTime.now(),
           onConfirm: _handleEndTimeConfirm,
           confirmLabel: 'Nosebleed Ended',
+          allowFutureTimes: true,
         );
 
       case RecordingStep.notes:
         return NotesInput(
+          key: const ValueKey('notes_input'),
           notes: _notes ?? '',
           onNotesChange: _handleNotesChange,
           onBack: _handleNotesBack,
