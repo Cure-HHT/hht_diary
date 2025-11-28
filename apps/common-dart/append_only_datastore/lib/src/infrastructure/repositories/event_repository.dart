@@ -53,12 +53,13 @@ class EventRepository {
   final DatabaseProvider databaseProvider;
 
   /// The Sembast store for events.
-  final StoreRef<int, Map<String, Object?>> _eventStore =
-      intMapStoreFactory.store('events');
+  final StoreRef<int, Map<String, Object?>> _eventStore = intMapStoreFactory
+      .store('events');
 
   /// The Sembast store for metadata (sequence counter, etc).
-  final StoreRef<String, Object?> _metaStore =
-      StoreRef<String, Object?>('metadata');
+  final StoreRef<String, Object?> _metaStore = StoreRef<String, Object?>(
+    'metadata',
+  );
 
   /// UUID generator.
   static const _uuid = Uuid();
@@ -155,9 +156,7 @@ class EventRepository {
 
       final records = await _eventStore.find(db, finder: finder);
 
-      return records
-          .map((r) => StoredEvent.fromMap(r.value, r.key))
-          .toList();
+      return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
     } catch (e, stackTrace) {
       throw errors.DatabaseException(
         'Failed to query events for aggregate $aggregateId: $e',
@@ -181,9 +180,7 @@ class EventRepository {
 
       final records = await _eventStore.find(db, finder: finder);
 
-      return records
-          .map((r) => StoredEvent.fromMap(r.value, r.key))
-          .toList();
+      return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
     } catch (e, stackTrace) {
       throw errors.DatabaseException(
         'Failed to query unsynced events: $e',
@@ -252,9 +249,7 @@ class EventRepository {
       final finder = Finder(sortOrders: [SortOrder('sequence_number')]);
       final records = await _eventStore.find(db, finder: finder);
 
-      return records
-          .map((r) => StoredEvent.fromMap(r.value, r.key))
-          .toList();
+      return records.map((r) => StoredEvent.fromMap(r.value, r.key)).toList();
     } catch (e, stackTrace) {
       throw errors.DatabaseException(
         'Failed to query all events: $e',

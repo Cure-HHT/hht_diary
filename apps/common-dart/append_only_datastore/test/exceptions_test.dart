@@ -25,7 +25,10 @@ void main() {
 
       test('contains stackTrace when provided', () {
         final stackTrace = StackTrace.current;
-        final exception = DatabaseException('Test error', stackTrace: stackTrace);
+        final exception = DatabaseException(
+          'Test error',
+          stackTrace: stackTrace,
+        );
 
         expect(exception.stackTrace, equals(stackTrace));
       });
@@ -142,10 +145,7 @@ void main() {
       });
 
       test('toString includes event ID when present', () {
-        const exception = SignatureException(
-          'Tampering',
-          eventId: 'event-123',
-        );
+        const exception = SignatureException('Tampering', eventId: 'event-123');
 
         expect(exception.toString(), contains('Event ID: event-123'));
       });
@@ -269,19 +269,13 @@ void main() {
       });
 
       test('includes status code when present', () {
-        const exception = SyncException(
-          'Server error',
-          statusCode: 500,
-        );
+        const exception = SyncException('Server error', statusCode: 500);
 
         expect(exception.toString(), contains('HTTP Status: 500'));
       });
 
       test('includes failed event count when present', () {
-        const exception = SyncException(
-          'Sync error',
-          failedEventCount: 7,
-        );
+        const exception = SyncException('Sync error', failedEventCount: 7);
 
         expect(exception.toString(), contains('Failed events: 7'));
       });

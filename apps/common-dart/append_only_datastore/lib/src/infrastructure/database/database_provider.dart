@@ -3,7 +3,8 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:append_only_datastore/src/core/config/datastore_config.dart';
-import 'package:append_only_datastore/src/core/errors/datastore_exception.dart' as errors;
+import 'package:append_only_datastore/src/core/errors/datastore_exception.dart'
+    as errors;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';

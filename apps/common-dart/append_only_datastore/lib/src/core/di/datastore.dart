@@ -51,9 +51,9 @@ class Datastore {
     required this.config,
     required this.databaseProvider,
     required this.repository,
-  })  : syncStatus = signal(SyncStatus.idle),
-        queueDepth = signal(0),
-        lastSyncTime = signal(null);
+  }) : syncStatus = signal(SyncStatus.idle),
+       queueDepth = signal(0),
+       lastSyncTime = signal(null);
 
   static Datastore? _instance;
 
