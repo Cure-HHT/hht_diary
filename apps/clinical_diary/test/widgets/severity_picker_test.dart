@@ -129,7 +129,7 @@ void main() {
       expect(textWidget.style?.fontWeight, FontWeight.w500);
     });
 
-    testWidgets('displays icons for visible severities', (tester) async {
+    testWidgets('displays images for visible severities', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -141,8 +141,8 @@ void main() {
         ),
       );
 
-      // Should have at least some icons (one for each visible severity)
-      expect(find.byType(Icon), findsWidgets);
+      // Should have custom severity images (one for each visible severity)
+      expect(find.byType(Image), findsWidgets);
     });
 
     testWidgets('renders as a grid', (tester) async {

@@ -13,9 +13,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 **Key Findings**:
 - **2 Major Missing Features** - Questionnaire system, Survey Events
-- **1 Visual Difference** - Custom severity icons
+- **0 Visual Differences** - All visual elements now match Figma design
 - **1 Flutter Addition** - Internationalization (EN/ES/FR) not in design
-- **7 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator, Animated Enrollment Dialog
+- **8 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator, Animated Enrollment Dialog, Custom Severity Icons
 
 ---
 
@@ -70,10 +70,10 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ### Low Priority (Visual Polish)
 
-- [ ] **8. Custom Severity Icons**
-  - [ ] Download/create droplet illustration assets
-  - [ ] Replace Material Icons in SeverityPicker
-  - [ ] Update severity colors (green→yellow→red)
+- [x] **8. Custom Severity Icons** ✅ DONE
+  - [x] Download/create droplet illustration assets
+  - [x] Replace Material Icons in SeverityPicker
+  - [x] Custom nose/droplet images from Figma
 
 - [x] **9. Animated Enrollment Dialog** ✅ DONE
   - [x] Add transition animation (Pending → Success)
@@ -365,9 +365,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ### Low Priority (Visual Polish)
 
-8. **Custom Severity Icons** - TODO
-   - Replace Material Icons with design assets
-   - Match Figma severity illustrations
+8. ~~**Custom Severity Icons**~~ - ✅ DONE
+   - ~~Replace Material Icons with design assets~~
+   - ~~Match Figma severity illustrations~~
 
 9. ~~**Animated Enrollment Dialog**~~ - ✅ DONE
    - ~~Add transition animation (Pending → Success)~~
