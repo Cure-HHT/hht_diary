@@ -59,7 +59,7 @@ Implementation SHALL include:
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
 
-*End* *Sponsor Configuration Detection Implementation* | **Hash**: 5fc971c4
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: 37465932
 ---
 
 ### Single App, Multiple Sponsors
