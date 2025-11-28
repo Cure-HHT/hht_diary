@@ -44,7 +44,7 @@ This document explains how the Firebase Cloud Functions work in this project and
 ### API Endpoints
 
 | Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
+| -------- | ------ | ---- | ----------- |
 | `/api/health` | GET | None | Health check |
 | `/api/enroll` | POST | None | Enroll with code, get JWT |
 | `/api/sync` | POST | JWT | Sync records to Firestore |
@@ -206,7 +206,7 @@ firebase deploy --only hosting
 ## Files Reference
 
 | File | Purpose |
-|------|---------|
+| ---- | ------- |
 | `functions/src/index.ts` | Cloud Functions implementation |
 | `functions/src/cors.ts` | CORS configuration |
 | `firebase.json` | Firebase config including hosting rewrites |
