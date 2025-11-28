@@ -22,7 +22,8 @@ class SeverityPicker extends StatelessWidget {
           // We need 3 rows of boxes to fit
           const headerHeight = 80.0;
           const gridSpacing = 16.0; // 2 gaps * 8px each
-          final availableHeight = constraints.maxHeight - headerHeight - gridSpacing;
+          final availableHeight =
+              constraints.maxHeight - headerHeight - gridSpacing;
           final boxHeight = (availableHeight / 3).clamp(60.0, 110.0);
 
           // Icon should be ~55% of box height, leaving room for text

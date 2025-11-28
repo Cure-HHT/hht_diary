@@ -136,17 +136,41 @@ class _TimePickerDialState extends State<TimePickerDial> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _AdjustButton(label: '-15', onPressed: () => _adjustMinutes(-15), showError: _errorButtonDelta == -15),
+              _AdjustButton(
+                label: '-15',
+                onPressed: () => _adjustMinutes(-15),
+                showError: _errorButtonDelta == -15,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '-5', onPressed: () => _adjustMinutes(-5), showError: _errorButtonDelta == -5),
+              _AdjustButton(
+                label: '-5',
+                onPressed: () => _adjustMinutes(-5),
+                showError: _errorButtonDelta == -5,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '-1', onPressed: () => _adjustMinutes(-1), showError: _errorButtonDelta == -1),
+              _AdjustButton(
+                label: '-1',
+                onPressed: () => _adjustMinutes(-1),
+                showError: _errorButtonDelta == -1,
+              ),
               const SizedBox(width: 24),
-              _AdjustButton(label: '+1', onPressed: () => _adjustMinutes(1), showError: _errorButtonDelta == 1),
+              _AdjustButton(
+                label: '+1',
+                onPressed: () => _adjustMinutes(1),
+                showError: _errorButtonDelta == 1,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '+5', onPressed: () => _adjustMinutes(5), showError: _errorButtonDelta == 5),
+              _AdjustButton(
+                label: '+5',
+                onPressed: () => _adjustMinutes(5),
+                showError: _errorButtonDelta == 5,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '+15', onPressed: () => _adjustMinutes(15), showError: _errorButtonDelta == 15),
+              _AdjustButton(
+                label: '+15',
+                onPressed: () => _adjustMinutes(15),
+                showError: _errorButtonDelta == 15,
+              ),
             ],
           ),
 

@@ -9,7 +9,8 @@ class EnrollmentSuccessDialog extends StatefulWidget {
   const EnrollmentSuccessDialog({super.key});
 
   @override
-  State<EnrollmentSuccessDialog> createState() => _EnrollmentSuccessDialogState();
+  State<EnrollmentSuccessDialog> createState() =>
+      _EnrollmentSuccessDialogState();
 }
 
 class _EnrollmentSuccessDialogState extends State<EnrollmentSuccessDialog> {
@@ -47,18 +48,14 @@ class _EnrollmentSuccessDialogState extends State<EnrollmentSuccessDialog> {
               ),
             ] else ...[
               // Success state
-              Icon(
-                Icons.check_circle,
-                size: 64,
-                color: Colors.green.shade600,
-              ),
+              Icon(Icons.check_circle, size: 64, color: Colors.green.shade600),
               const SizedBox(height: 16),
               Text(
                 'Success!',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade700,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

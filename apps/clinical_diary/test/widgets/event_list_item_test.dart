@@ -395,8 +395,9 @@ void main() {
         expect(find.text('(+1 day)'), findsNothing);
       });
 
-      testWidgets('does not show (+1 day) when end time is missing',
-          (tester) async {
+      testWidgets('does not show (+1 day) when end time is missing', (
+        tester,
+      ) async {
         final record = NosebleedRecord(
           id: 'test-1',
           date: testDate,
@@ -413,7 +414,9 @@ void main() {
         expect(find.text('(+1 day)'), findsNothing);
       });
 
-      testWidgets('shows correct duration for multi-day events', (tester) async {
+      testWidgets('shows correct duration for multi-day events', (
+        tester,
+      ) async {
         final record = NosebleedRecord(
           id: 'test-1',
           date: testDate,
@@ -478,7 +481,10 @@ void main() {
           ),
         );
 
-        expect(find.text('Unable to recall events for this day'), findsOneWidget);
+        expect(
+          find.text('Unable to recall events for this day'),
+          findsOneWidget,
+        );
       });
 
       testWidgets('has yellow background', (tester) async {
