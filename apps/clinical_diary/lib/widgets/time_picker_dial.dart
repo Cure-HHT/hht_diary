@@ -58,7 +58,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
     );
 
     if (picked != null) {
-      var newTime = DateTime(
+      final newTime = DateTime(
         _selectedTime.year,
         _selectedTime.month,
         _selectedTime.day,

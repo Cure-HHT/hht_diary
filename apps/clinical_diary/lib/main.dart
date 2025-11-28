@@ -8,7 +8,6 @@ import 'dart:async';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/firebase_options.dart';
-import 'package:clinical_diary/screens/enrollment_screen.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -18,8 +17,8 @@ import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:uuid/uuid.dart';
 
 void main() async {
   // Catch all errors in the Flutter framework
@@ -161,28 +160,10 @@ class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
   late final NosebleedService _nosebleedService;
 
-  bool _isLoading = true;
-  bool _isEnrolled = false;
-
   @override
   void initState() {
     super.initState();
     _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
-    _checkEnrollment();
-  }
-
-  Future<void> _checkEnrollment() async {
-    final isEnrolled = await _enrollmentService.isEnrolled();
-    setState(() {
-      _isEnrolled = isEnrolled;
-      _isLoading = false;
-    });
-  }
-
-  void _handleEnrolled() {
-    setState(() {
-      _isEnrolled = true;
-    });
   }
 
   @override

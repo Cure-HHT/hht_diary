@@ -481,9 +481,9 @@ class _ClinicalTrialEnrollmentScreenState
         ),
         // Success dialog overlay
         if (_showSuccessDialog)
-          Container(
+          const ColoredBox(
             color: Colors.black54,
-            child: const Center(
+            child: Center(
               child: EnrollmentSuccessDialog(),
             ),
           ),

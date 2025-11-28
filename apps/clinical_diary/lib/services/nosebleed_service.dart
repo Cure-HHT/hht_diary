@@ -34,9 +34,11 @@ class NosebleedService {
   NosebleedService({
     required EnrollmentService enrollmentService,
     http.Client? httpClient,
+    EventRepository? repository,
   })  : _enrollmentService = enrollmentService,
-        _httpClient = httpClient ?? http.Client();
-  static const _localRecordsKey = 'nosebleed_records';
+        _httpClient = httpClient ?? http.Client(),
+        _repository = repository;
+
   static const _deviceUuidKey = 'device_uuid';
 
   final EnrollmentService _enrollmentService;
@@ -64,12 +66,7 @@ class NosebleedService {
 
   /// Get all local records (raw event log - includes all versions)
   Future<List<NosebleedRecord>> getAllLocalRecords() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_localRecordsKey);
-    if (data == null) return [];
-
     try {
-
       final events = await _eventRepository.getAllEvents();
       return events
           .where((e) => e.eventType == 'NosebleedRecorded')
@@ -107,6 +104,8 @@ class NosebleedService {
       createdAt: event.clientTimestamp,
       syncedAt: event.syncedAt,
     );
+  }
+
   /// Get local records with materialized view (latest version of each record)
   /// This "crunches" the append-only log to show only the current state
   Future<List<NosebleedRecord>> getLocalRecords() async {
@@ -132,13 +131,6 @@ class NosebleedService {
         .where((r) => !supersededIds.contains(r.id) && !r.isDeleted)
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }
-
-  /// Save records to local storage
-  Future<void> _saveLocalRecords(List<NosebleedRecord> records) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = records.map((r) => r.toJson()).toList();
-    await prefs.setString(_localRecordsKey, jsonEncode(jsonList));
   }
 
   /// Add a new nosebleed record (append-only)
@@ -171,21 +163,27 @@ class NosebleedService {
       createdAt: DateTime.now(),
     );
 
-    final record = NosebleedRecord(
-      id: generateRecordId(),
-      date: date,
-      startTime: startTime,
-      endTime: endTime,
-      severity: severity,
-      notes: notes,
-      isNoNosebleedsEvent: isNoNosebleedsEvent,
-      isUnknownEvent: isUnknownEvent,
-      isIncomplete: !isNoNosebleedsEvent &&
-          !isUnknownEvent &&
-          (startTime == null || endTime == null || severity == null),
-      parentRecordId: parentRecordId,
-      deviceUuid: deviceUuid,
-      createdAt: DateTime.now(),
+    // Save to append-only datastore
+    final userId = await _enrollmentService.getUserId() ?? 'anonymous';
+    await _eventRepository.append(
+      aggregateId: 'diary-${date.year}-${date.month}-${date.day}',
+      eventType: 'NosebleedRecorded',
+      data: {
+        'date': record.date.toIso8601String(),
+        if (record.startTime != null)
+          'startTime': record.startTime!.toIso8601String(),
+        if (record.endTime != null)
+          'endTime': record.endTime!.toIso8601String(),
+        if (record.severity != null) 'severity': record.severity!.name,
+        if (record.notes != null) 'notes': record.notes,
+        'isNoNosebleedsEvent': record.isNoNosebleedsEvent,
+        'isUnknownEvent': record.isUnknownEvent,
+        'isIncomplete': record.isIncomplete,
+        if (record.parentRecordId != null) 'parentRecordId': record.parentRecordId,
+      },
+      userId: userId,
+      deviceId: deviceUuid,
+      clientTimestamp: record.createdAt,
     );
 
     // Try to sync to cloud (non-blocking)
@@ -235,10 +233,21 @@ class NosebleedService {
       createdAt: DateTime.now(),
     );
 
-    // Save locally first (offline-first) - use raw records
-    final records = await getAllLocalRecords();
-    records.add(record);
-    await _saveLocalRecords(records);
+    // Save to append-only datastore
+    final userId = await _enrollmentService.getUserId() ?? 'anonymous';
+    await _eventRepository.append(
+      aggregateId: 'diary-deletion-${record.id}',
+      eventType: 'NosebleedDeleted',
+      data: {
+        'date': record.date.toIso8601String(),
+        'isDeleted': true,
+        'deleteReason': reason,
+        'parentRecordId': recordId,
+      },
+      userId: userId,
+      deviceId: deviceUuid,
+      clientTimestamp: record.createdAt,
+    );
 
     // Try to sync to cloud (non-blocking)
     unawaited(_syncRecordToCloud(record));
@@ -444,7 +453,6 @@ class NosebleedService {
           }
         }
 
-        await _saveLocalRecords(localRecords);
         debugPrint('Fetched ${cloudRecords.length} records from cloud');
       } else {
         debugPrint('Fetch failed: ${response.statusCode}');
@@ -516,69 +524,12 @@ class NosebleedService {
       }
     }
 
+    return result;
+  }
+
   /// Verify data integrity (check hash chain)
   Future<bool> verifyDataIntegrity() async {
     return _eventRepository.verifyIntegrity();
-  }
-
-  /// Get status for a specific date (for calendar view)
-  Future<DayStatus> getDayStatus(DateTime date) async {
-    final records = await getRecordsForDate(date);
-    if (records.isEmpty) return DayStatus.notRecorded;
-
-    final hasNosebleed = records.any((r) => r.isRealEvent && !r.isIncomplete);
-    final hasNoNosebleed = records.any((r) => r.isNoNosebleedsEvent);
-    final hasUnknown = records.any((r) => r.isUnknownEvent);
-    final hasIncomplete = records.any((r) => r.isIncomplete);
-
-    if (hasNosebleed) return DayStatus.nosebleed;
-    if (hasNoNosebleed) return DayStatus.noNosebleed;
-    if (hasUnknown) return DayStatus.unknown;
-    if (hasIncomplete) return DayStatus.incomplete;
-    return DayStatus.notRecorded;
-  }
-
-  /// Get status for a range of dates (for calendar view)
-  Future<Map<DateTime, DayStatus>> getDayStatusRange(
-    DateTime start,
-    DateTime end,
-  ) async {
-    final result = <DateTime, DayStatus>{};
-    final records = await getLocalRecords();
-
-    for (var date = start;
-        date.isBefore(end) || date.isAtSameMomentAs(end);
-        date = date.add(const Duration(days: 1))) {
-      final dayRecords = records.where((r) {
-        return r.date.year == date.year &&
-            r.date.month == date.month &&
-            r.date.day == date.day;
-      }).toList();
-
-      if (dayRecords.isEmpty) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.notRecorded;
-        continue;
-      }
-
-      final hasNosebleed = dayRecords.any((r) => r.isRealEvent && !r.isIncomplete);
-      final hasNoNosebleed = dayRecords.any((r) => r.isNoNosebleedsEvent);
-      final hasUnknown = dayRecords.any((r) => r.isUnknownEvent);
-      final hasIncomplete = dayRecords.any((r) => r.isIncomplete);
-
-      if (hasNosebleed) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.nosebleed;
-      } else if (hasNoNosebleed) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.noNosebleed;
-      } else if (hasUnknown) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.unknown;
-      } else if (hasIncomplete) {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.incomplete;
-      } else {
-        result[DateTime(date.year, date.month, date.day)] = DayStatus.notRecorded;
-      }
-    }
-
-    return result;
   }
 
   /// Clear all local data (for testing)

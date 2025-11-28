@@ -7,6 +7,9 @@ environment:
   sdk: ^3.10.1
   flutter: ">=3.38.3"
 
+integration_test:
+    sdk: flutter
+
 dependencies:
   crypto: ^3.0.7
   dartastic_opentelemetry: ^0.9.3

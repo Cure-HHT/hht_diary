@@ -135,6 +135,12 @@ class EnrollmentService {
     return enrollment?.jwtToken;
   }
 
+  /// Get user ID from enrollment
+  Future<String?> getUserId() async {
+    final enrollment = await getEnrollment();
+    return enrollment?.userId;
+  }
+
   /// Dispose resources
   void dispose() {
     _httpClient.close();

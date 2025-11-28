@@ -16,10 +16,11 @@ import 'package:intl/intl.dart';
 /// Recording flow screen for creating new nosebleed records
 class RecordingScreen extends StatefulWidget {
   const RecordingScreen({
+    required this.nosebleedService,
+    required this.enrollmentService,
     super.key,
     this.initialDate,
     this.existingRecord,
-    required this.nosebleedService,
     this.allRecords = const [],
     this.onDelete,
   });
@@ -238,30 +239,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     setState(() {
       _currentStep = RecordingStep.complete;
     });
-  }
-
-  void _handleNotesBack() {
-    setState(() {
-      _currentStep = RecordingStep.endTime;
-    });
-  }
-
-  void _handleNotesNext() {
-    setState(() {
-      _currentStep = RecordingStep.complete;
-    });
-  }
-
-  Future<void> _handleDelete() async {
-    await DeleteConfirmationDialog.show(
-      context: context,
-      onConfirmDelete: (String reason) {
-        if (widget.onDelete != null) {
-          widget.onDelete!(reason);
-          Navigator.pop(context);
-        }
-      },
-    );
   }
 
   Future<void> _handleDelete() async {

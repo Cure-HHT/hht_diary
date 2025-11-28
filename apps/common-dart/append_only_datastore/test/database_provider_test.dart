@@ -4,7 +4,6 @@
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_memory.dart';
 
 void main() {
