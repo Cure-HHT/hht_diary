@@ -1,0 +1,203 @@
+# HHT Epistaxis Data Capture Terminology
+
+**Version**: 1.0
+**Audience**: Product Requirements
+**Last Updated**: 2025-11-28
+**Status**: Active
+
+> **Scope**: Standard terminology for epistaxis (nosebleed) data capture in HHT clinical studies
+>
+> **See**: prd-clinical-trials.md for FDA compliance requirements
+> **See**: prd-standards.md for CDISC standards compliance
+> **See**: dev-CDISC.md for CDISC field mapping implementation
+
+---
+
+## Executive Summary
+
+This document defines the **standard terminology and data capture format** for epistaxis events in HHT (Hereditary Hemorrhagic Telangiectasia) clinical studies. The terminology was developed specifically for HHT patient populations and uses descriptive, patient-friendly language that accurately captures the clinical severity of nosebleed events.
+
+**Key Principles**:
+- Patient-friendly descriptive terminology for intensity/severity
+- Precise temporal data with timezone awareness
+- Sponsor-configurable notes to prevent unblinding and PII exposure
+- ALCOA+ compliant data capture
+
+---
+
+## Epistaxis Event Data Model
+
+# REQ-p00042: HHT Epistaxis Data Capture Standard
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+The system SHALL capture epistaxis (nosebleed) events using the HHT-specific terminology standard defined in this specification, ensuring consistent data collection across all HHT clinical studies.
+
+### Required Data Fields
+
+#### 1. Nosebleed Date
+
+**Field**: `bleed_date`
+**Format**: `YYYY-MM-DD` (ISO 8601)
+**Description**: The calendar date on which the nosebleed started, as experienced by the patient in their local timezone.
+
+**Validation Rules**:
+- Must not be a future date
+- Must match the date component of `start_time` when timezone is applied
+
+#### 2. Bleed Today Indicator
+
+**Field**: `bleed_today`
+**Format**: Boolean (`Y` or `N`)
+**Description**: Indicates whether the patient experienced a nosebleed on the reporting date.
+
+**Behavior**:
+- If `N` (No), the form submission ends immediately
+- If `Y` (Yes), remaining fields are presented for data entry
+- This field enables "no event" reporting for study compliance
+
+#### 3. Start Time
+
+**Field**: `start_time`
+**Format**: ISO 8601 with timezone: `YYYY-MM-DDTHH:MM:SS±HH:MM`
+**Display Format**: `HH:MM AM/PM` with timezone indicator
+**Description**: The time when the nosebleed began, as experienced by the patient.
+
+**Requirements**:
+- Time displayed to user in 12-hour format with AM/PM
+- Stored internally in ISO 8601 with explicit timezone offset
+- Timezone reflects the patient's location at event start
+
+#### 4. End Time
+
+**Field**: `end_time`
+**Format**: ISO 8601 with timezone: `YYYY-MM-DDTHH:MM:SS±HH:MM`
+**Display Format**: `HH:MM AM/PM` with timezone indicator
+**Description**: The time when the nosebleed stopped, as experienced by the patient.
+
+**Requirements**:
+- Time displayed to user in 12-hour format with AM/PM
+- Stored internally in ISO 8601 with explicit timezone offset
+- Timezone reflects the patient's location at event end
+- Must be after `start_time` (accounting for timezone differences)
+
+#### 5. Intensity (Speed of Flow)
+
+**Field**: `intensity`
+**Format**: Enumerated string value
+**Description**: Patient-reported intensity of blood flow during the nosebleed.
+
+**Standard Values** (in order of increasing severity):
+
+| Value | Display Text | Clinical Description |
+| ----- | ------------ | -------------------- |
+| `spotting` | Spotting | Minimal blood, occasional drops |
+| `dripping_slowly` | Dripping slowly | Slow, intermittent drips |
+| `dripping_quickly` | Dripping quickly | Frequent, rapid drips |
+| `steady_stream` | Steady stream | Continuous flow without gushing |
+| `pouring` | Pouring | Heavy continuous flow |
+| `gushing` | Gushing | Severe, uncontrolled flow |
+
+**UI Presentation**:
+- Display with accompanying graphic/visual aid
+- Graphics help patients accurately self-assess intensity
+- Order from least to most severe (top to bottom or left to right)
+
+#### 6. Notes
+
+**Field**: `notes`
+**Format**: Text (selected from predefined list)
+**Description**: Additional contextual information about the nosebleed event.
+
+**Requirements**:
+- Text options are sponsor-configurable per study protocol
+- Free text entry MAY be prohibited to prevent:
+  - Inadvertent unblinding of study treatment
+  - Exposure of Protected Health Information (PHI)
+  - Exposure of Personally Identifiable Information (PII)
+- When free text is prohibited, user selects from predefined options only
+- Predefined options are maintained in sponsor configuration
+
+### Timezone Handling
+
+**Requirement**: The system SHALL correctly handle timezone changes during events.
+
+**Scenario**: Patient starts nosebleed in one timezone and ends in another (e.g., during travel).
+
+**Solution**:
+1. Start time and end time each store their own timezone offset
+2. Duration is calculated as a derived value: `end_time - start_time`
+3. User can verify correct timezone by checking calculated duration
+4. If duration appears incorrect (off by whole hours), user can adjust:
+   - The time value, OR
+   - The timezone selection
+5. System recalculates duration after any adjustment
+
+**Example**:
+```
+Start: 2025-03-15T14:30:00-05:00 (EST)
+End:   2025-03-15T16:45:00-04:00 (EDT, after DST change)
+Duration: 1 hour 15 minutes (correctly calculated across TZ change)
+```
+
+### Derived Fields
+
+The following fields are calculated, not entered:
+
+| Field | Calculation | Purpose |
+| ----- | ----------- | ------- |
+| `duration_minutes` | `end_time - start_time` | Clinical analysis, patient verification |
+| `date_recorded` | System timestamp (UTC) | Audit trail |
+| `device_timezone` | Device setting at entry | Context for time interpretation |
+
+**Rationale**: This terminology standard was developed specifically for HHT clinical studies. The six-level intensity scale ("Spotting" to "Gushing") uses patient-friendly language that accurately maps to clinical severity while being intuitive for self-reporting. The descriptive terms reduce inter-patient variability compared to numeric scales. Timezone-aware timestamps ensure accurate duration calculation for patients who travel or experience DST changes during events.
+
+**Acceptance Criteria**:
+- All six intensity levels available in data capture UI
+- Intensity selection includes visual/graphic aids
+- Times stored with explicit timezone offsets
+- Duration calculated correctly across timezone boundaries
+- Notes field respects sponsor free-text configuration
+- Bleed date matches start time date in local timezone
+- "No nosebleed" reporting supported via bleed_today=N
+
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: a07344f3
+
+---
+
+## Mapping to Existing Systems
+
+### Mapping to Current Severity Scale
+
+The existing `EpistaxisSeverity` enum in `database/dart/models.dart` uses clinical terminology. The following mapping applies:
+
+| HHT Intensity | Current Enum Value | Notes |
+| ------------- | ------------------ | ----- |
+| Spotting | `minimal` | Direct mapping |
+| Dripping slowly | `mild` | Direct mapping |
+| Dripping quickly | `moderate` | Direct mapping |
+| Steady stream | `severe` | Direct mapping |
+| Pouring | `very_severe` | Direct mapping |
+| Gushing | `extreme` | Direct mapping |
+
+**Implementation Note**: The system should support both terminology sets:
+- Patient-facing UI uses HHT descriptive terms
+- Database storage uses enumerated values
+- CDISC export maps to controlled terminology codes
+
+### CDISC Mapping
+
+See `dev-CDISC.md` REQ-d00074 for CDISC Controlled Terminology mapping.
+
+---
+
+## References
+
+- **CDISC Standards**: prd-standards.md (REQ-p00041)
+- **FDA Compliance**: prd-clinical-trials.md
+- **Implementation**: database/dart/models.dart
+- **CDISC Mapping**: dev-CDISC.md
+
+---
+
+*End of Document*

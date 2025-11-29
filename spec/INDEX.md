@@ -156,6 +156,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail | e8a3d480 |
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection | 0e94f5cf |
 | REQ-p00041 | prd-standards.md | CDISC Standards Compliance | bd86de7e |
+| REQ-p00042 | prd-epistaxis-terminology.md | HHT Epistaxis Data Capture Standard | a07344f3 |
 | REQ-p01000 | prd-event-sourcing-system.md | Event Sourcing Client Interface | c3f9c7d2 |
 | REQ-p01001 | prd-event-sourcing-system.md | Offline Event Queue with Automatic Synchronization | 9a8601c2 |
 | REQ-p01002 | prd-event-sourcing-system.md | Optimistic Concurrency Control | 21a2772e |
