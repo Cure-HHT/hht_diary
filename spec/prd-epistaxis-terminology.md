@@ -48,13 +48,32 @@ The system SHALL capture epistaxis (nosebleed) events using the HHT-specific ter
 #### 2. Bleed Today Indicator
 
 **Field**: `bleed_today`
-**Format**: Boolean (`Y` or `N`)
-**Description**: Indicates whether the patient experienced a nosebleed on the reporting date.
+**Format**: Enumerated value
+**Description**: Indicates the patient's nosebleed status for the reporting date.
+
+**Standard Values**:
+
+| Value | Display Text | Description |
+| ----- | ------------ | ----------- |
+| `had_nosebleed` | Yes, I had a nosebleed | Patient experienced one or more nosebleeds |
+| `no_nosebleed` | No nosebleeds today | Patient confirms no nosebleeds occurred |
+| `dont_remember` | I don't remember | Patient cannot recall events for this date |
 
 **Behavior**:
-- If `N` (No), the form submission ends immediately
-- If `Y` (Yes), remaining fields are presented for data entry
-- This field enables "no event" reporting for study compliance
+- If `had_nosebleed`: Remaining fields (time, intensity, notes) are presented for data entry
+- If `no_nosebleed`: Form submission ends; records explicit confirmation of no events
+- If `dont_remember`: Form submission ends; records honest uncertainty
+
+**Implicit Status Setting**:
+The `had_nosebleed` status MAY be inferred rather than explicitly selected when the patient enters nosebleed event details directly. This supports UX flows where asking "did you have a nosebleed?" is not the most intuitive interaction pattern (e.g., when patient taps "Add nosebleed" or starts entering event data).
+
+**Rationale for "I don't remember"**:
+- Enables honest data capture when patient cannot recall
+- Prevents arbitrary/fabricated event data for compliance
+- Distinguishes between "confirmed no events" and "uncertain recall"
+- Supports ALCOA+ principle of accuracy over completeness
+
+**Mutual Exclusivity**: A diary entry can only have ONE of these states. The data model enforces this constraint.
 
 #### 3. Start Time
 
@@ -159,9 +178,11 @@ The following fields are calculated, not entered:
 - Duration calculated correctly across timezone boundaries
 - Notes field respects sponsor free-text configuration
 - Bleed date matches start time date in local timezone
-- "No nosebleed" reporting supported via bleed_today=N
+- All three daily status options available: nosebleed, no nosebleed, don't remember
+- "No nosebleed" and "Don't remember" entries do not require time/intensity fields
+- Data model enforces mutual exclusivity of daily status states
 
-*End* *HHT Epistaxis Data Capture Standard* | **Hash**: a07344f3
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: e2501d13
 
 ---
 
