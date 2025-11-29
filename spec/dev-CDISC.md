@@ -98,7 +98,7 @@ Implementation SHALL include:
 - Controlled terminology codes applied to categorical fields
 - Validation warns when data values don't match controlled terminology
 
-*End* *CDASH Field Mapping Implementation* | **Hash**: TBD
+*End* *CDASH Field Mapping Implementation* | **Hash**: 74e28e6f
 
 ---
 
@@ -137,7 +137,7 @@ Implementation SHALL include:
 - Sponsor can extend code lists for study-specific terms
 - Validation identifies non-standard values
 
-*End* *CDISC Controlled Terminology Implementation* | **Hash**: TBD
+*End* *CDISC Controlled Terminology Implementation* | **Hash**: 6ae00b3f
 
 ---
 
@@ -183,7 +183,7 @@ HHT001   CE      HHT001-001-101  1      Epistaxis  2025-10-15T14:30:00  2025-10-
 - Transformation is reversible (audit trail linkage preserved)
 - Output validated against SDTM Implementation Guide rules
 
-*End* *SDTM Domain Transformation Implementation* | **Hash**: TBD
+*End* *SDTM Domain Transformation Implementation* | **Hash**: 173f66f4
 
 ---
 
@@ -250,7 +250,7 @@ Implementation SHALL include:
 - Incremental export tracks last sync position
 - Large exports handled efficiently (streaming/chunking)
 
-*End* *ODM-XML Export Implementation* | **Hash**: TBD
+*End* *ODM-XML Export Implementation* | **Hash**: f1b48f69
 
 ---
 
@@ -288,7 +288,7 @@ Implementation SHALL include:
 - Document validates against Define-XML schema
 - Generated alongside SDTM/ODM exports
 
-*End* *Define-XML Metadata Generation* | **Hash**: TBD
+*End* *Define-XML Metadata Generation* | **Hash**: 4a4d28cd
 
 ---
 
@@ -326,7 +326,7 @@ Implementation SHALL include:
 - SAS XPORT validated for FDA compatibility
 - Format documentation provided for each export type
 
-*End* *Clinical Data Export Formats* | **Hash**: TBD
+*End* *Clinical Data Export Formats* | **Hash**: 718bd3af
 
 ---
 
@@ -398,7 +398,7 @@ Sync to EDC API
 - Error messages identify specific transformation failures
 - Sponsor can override default mappings
 
-*End* *EDC Data Transformation Specification* | **Hash**: TBD
+*End* *EDC Data Transformation Specification* | **Hash**: cd5b72f1
 
 ---
 
