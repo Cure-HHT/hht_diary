@@ -74,11 +74,11 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
-| REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 2b4ef287 |
+| REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 7ff9716c |
 | REQ-d00071 | dev-CDISC.md | SDTM Domain Transformation Implementation | 1286bfd8 |
 | REQ-d00072 | dev-CDISC.md | ODM-XML Export Implementation | f1b48f69 |
 | REQ-d00073 | dev-CDISC.md | Define-XML Metadata Generation | 4a4d28cd |
-| REQ-d00074 | dev-CDISC.md | CDISC Controlled Terminology Implementation | 5a0ddce0 |
+| REQ-d00074 | dev-CDISC.md | CDISC Controlled Terminology Implementation | 772bf977 |
 | REQ-d00075 | dev-CDISC.md | EDC Data Transformation Specification | cd5b72f1 |
 | REQ-d00076 | dev-CDISC.md | Clinical Data Export Formats | 718bd3af |
 | REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |

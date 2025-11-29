@@ -71,7 +71,7 @@ Internal diary data fields SHALL be mapped to CDASH (Clinical Data Acquisition S
 Implementation SHALL include:
 - Mapping document linking internal field names to CDASH variable names
 - CDASH-compliant variable naming in export transformations
-- Controlled terminology codes for categorical fields (severity, response types)
+- Controlled terminology codes for categorical fields (intensity, response types)
 - Sponsor-configurable mapping overrides for study-specific requirements
 - Validation rules based on CDASH implementation guides
 
@@ -81,7 +81,7 @@ Implementation SHALL include:
 | -------------- | -------------- | ------------ | ---------------------------------- |
 | `startTime`    | `CESTDTC`      | CE           | Clinical Event Start Date/Time     |
 | `endTime`      | `CEENDTC`      | CE           | Clinical Event End Date/Time       |
-| `severity`     | `CESEV`        | CE           | Clinical Event Severity            |
+| `intensity`    | `CESEV`        | CE           | Clinical Event Severity/Intensity  |
 | `user_notes`   | `CETERM`       | CE           | Reported Term for Clinical Event   |
 | `completedAt`  | `QSDTC`        | QS           | Date/Time of Survey                |
 | `response`     | `QSORRES`      | QS           | Original Survey Response           |
@@ -98,7 +98,7 @@ Implementation SHALL include:
 - Controlled terminology codes applied to categorical fields
 - Validation warns when data values don't match controlled terminology
 
-*End* *CDASH Field Mapping Implementation* | **Hash**: 2b4ef287
+*End* *CDASH Field Mapping Implementation* | **Hash**: 7ff9716c
 
 ---
 
@@ -110,25 +110,25 @@ The system SHALL implement CDISC Controlled Terminology for categorical data fie
 
 Implementation SHALL include:
 - Terminology mapping from internal values to CDISC code list values
-- Severity mapping to CDISC Severity/Intensity Scale (C66769) - applicable to CE domain
+- Intensity mapping to CDISC Severity/Intensity Scale (C66769) - applicable to CE domain
 - Response type mapping to applicable CDISC code lists
 - Version tracking for controlled terminology (CDISC publishes quarterly updates)
 - Extensible code list support for sponsor-specific terminology
 
-**Severity Mapping Example** (for CE domain epistaxis events):
+**Intensity Mapping Example** (for CE domain epistaxis events):
 
-**Note**: The actual mapping is given in the Sponsor-specific requirements.
+**Note**: The actual mapping is provided in the Sponsor-specific requirements.
 
-| Internal Value | CDISC Code | CDISC Preferred Term | Code List | Notes                     |
-| -------------- | ---------- | -------------------- | --------- | ------------------------- |
-| `minimal`      | C41338     | MILD                 | C66769    | Trace blood only          |
-| `mild`         | C41338     | MILD                 | C66769    | Brief, self-limiting      |
-| `moderate`     | C41339     | MODERATE             | C66769    | Requires intervention     |
-| `severe`       | C41340     | SEVERE               | C66769    | Difficult to control      |
-| `very_severe`  | C41340     | SEVERE               | C66769    | Medical attention needed  |
-| `extreme`      | C48275     | LIFE THREATENING     | C66769    | Emergency intervention    |
+| Internal Value     | CDISC Code | CDISC Preferred Term | Code List | HHT Description             |
+| ------------------ | ---------- | -------------------- | --------- | --------------------------- |
+| `spotting`         | C41338     | MILD                 | C66769    | Minimal blood, occasional   |
+| `dripping_slowly`  | C41338     | MILD                 | C66769    | Slow, intermittent drips    |
+| `dripping_quickly` | C41339     | MODERATE             | C66769    | Frequent, rapid drips       |
+| `steady_stream`    | C41339     | MODERATE             | C66769    | Continuous flow             |
+| `pouring`          | C41340     | SEVERE               | C66769    | Heavy continuous flow       |
+| `gushing`          | C41340     | SEVERE               | C66769    | Severe, uncontrolled flow   |
 
-**Note**: The Severity/Intensity Scale (C66769) is used for both AE and CE domains. The internal granularity (6 levels) maps to CDISC's 4-level scale.
+**Note**: The Severity/Intensity Scale (C66769) is used for both AE and CE domains. The HHT-specific 6-level intensity scale (see prd-epistaxis-terminology.md, REQ-p00042) maps to CDISC's 3-level scale (MILD, MODERATE, SEVERE).
 
 **Rationale**: CDISC Controlled Terminology ensures consistent vocabulary across studies and sponsors. Regulators expect standardized terms in submissions. Mapping internal values to CDISC codes enables automated validation and comparison.
 
@@ -139,7 +139,7 @@ Implementation SHALL include:
 - Sponsor can extend code lists for study-specific terms
 - Validation identifies non-standard values
 
-*End* *CDISC Controlled Terminology Implementation* | **Hash**: 5a0ddce0
+*End* *CDISC Controlled Terminology Implementation* | **Hash**: 772bf977
 
 ---
 
