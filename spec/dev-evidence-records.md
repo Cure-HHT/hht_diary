@@ -1,12 +1,13 @@
 # Evidence Records Implementation Guide
 
-**Version**: 1.0
+**Version**: 2.0
 **Audience**: Software Developers
-**Last Updated**: 2025-11-28
+**Last Updated**: 2025-11-29
 **Status**: Draft
 
-> **Scope**: Implementation of RFC 4998 (ASN.1 ERS) and RFC 6283 (XMLERS) using Dart Pointy Castle
+> **Scope**: Third-party timestamp attestation for clinical trial diary data
 >
+> **See**: docs/adr/ADR-008-timestamp-attestation.md for architecture decision
 > **See**: prd-event-sourcing-system.md for event sourcing architecture
 > **See**: prd-database.md for audit trail requirements
 > **See**: prd-clinical-trials.md for FDA 21 CFR Part 11 compliance requirements
@@ -16,19 +17,32 @@
 
 ## Executive Summary
 
-This document specifies the implementation of **Evidence Record Syntax (ERS)** per [RFC 4998](https://datatracker.ietf.org/doc/html/rfc4998) and **XML Evidence Record Syntax (XMLERS)** per [RFC 6283](https://datatracker.ietf.org/doc/html/rfc6283) using the Dart [Pointy Castle](https://pub.dev/packages/pointycastle) cryptographic library.
+This document specifies the implementation of **third-party timestamp attestation** for clinical trial diary data. Per [ADR-008](../docs/adr/ADR-008-timestamp-attestation.md), the recommended approach is **Bitcoin blockchain via OpenTimestamps**, with RFC 3161 TSA as a deprecated fallback for regulatory compliance only.
+
+### Recommended Approach: Bitcoin/OpenTimestamps
 
 Evidence Records provide **long-term non-repudiation** of data existence and integrity, essential for:
 - FDA 21 CFR Part 11 audit trail tamper-evidence
-- Clinical trial data archival (7+ year retention)
-- Cryptographic algorithm agility (algorithm renewal before obsolescence)
+- Clinical trial data archival (15-25 year retention)
 - Third-party verifiable proof of data integrity
 
-**Key Benefit**: Evidence Records extend our current hash chain approach with:
-1. **Time-Stamp Authority (TSA) integration** - independent third-party proof of time
-2. **Merkle tree efficiency** - timestamp multiple records with single TSA request
-3. **Algorithm renewal** - structured approach to cryptographic algorithm updates
-4. **Standard format** - interoperable with other systems implementing ERS
+**Key Benefits of Bitcoin/OpenTimestamps**:
+1. **Superior security** - Zero successful attacks in 16-year history
+2. **Infeasible attack economics** - $5-20B attack cost exceeds any clinical trial value
+3. **No backdating possible** - Mathematical impossibility, not policy enforcement
+4. **Zero cost** - Aggregation makes unlimited timestamps free
+5. **Public failure mode** - Any attack attempt visible to entire network
+6. **Highest longevity** - Most likely to exist in 2040 (nation-state adoption)
+
+### Deprecated Approach: RFC 3161 TSA
+
+The traditional RFC 3161 Time-Stamp Authority approach is **deprecated** due to:
+- Proven track record of compromise (DigiNotar, Comodo, NIC India)
+- Silent failure mode (breaches undetectable until discovered)
+- Backdating capability if compromised
+- Lower attack cost (~$100K vs $5-20B for Bitcoin)
+
+**Use only when**: Regulators explicitly require RFC 3161 format.
 
 ---
 
@@ -64,6 +78,252 @@ class Event {
 - **No Merkle tree** - each event requires individual hash
 - **Not standard format** - proprietary structure, not interoperable
 - **No TSA integration** - no third-party attestation
+
+---
+
+## Recommended Implementation: Bitcoin/OpenTimestamps
+
+> **REQ-d00028**: Third-party timestamp attestation using Bitcoin blockchain via OpenTimestamps protocol
+
+### Overview
+
+OpenTimestamps is a free, open-source protocol that aggregates hash commitments into Bitcoin transactions. It provides cryptographically-secure timestamps with zero marginal cost.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Clinical Diary App                            │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │              append_only_datastore                          │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │ │
+│  │  │ Event Store  │  │ Hash Chain   │  │ Sync Engine      │  │ │
+│  │  │ (Sembast)    │  │ (SHA-256)    │  │ (REST API)       │  │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │           OpenTimestamps Service (NEW)                      │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │ │
+│  │  │ Daily Hash   │  │ OTS Client   │  │ Proof Storage    │  │ │
+│  │  │ Aggregator   │  │ (HTTP API)   │  │ (.ots files)     │  │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                   ┌──────────────────┐
+                   │ OpenTimestamps   │
+                   │ Calendar Servers │
+                   │ + Bitcoin        │
+                   └──────────────────┘
+```
+
+### How OpenTimestamps Works
+
+1. **Submit**: Hash is submitted to OpenTimestamps calendar servers
+2. **Aggregate**: Calendar server aggregates multiple hashes into a Merkle tree
+3. **Commit**: Root hash is embedded in a Bitcoin transaction (OP_RETURN)
+4. **Confirm**: Bitcoin network confirms the transaction (~60 minutes)
+5. **Upgrade**: Proof file (.ots) is upgraded with Bitcoin block information
+
+### Implementation
+
+#### Dart/Flutter Client
+
+```dart
+import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
+
+/// OpenTimestamps client for Bitcoin timestamping
+/// REQ-d00028
+class OpenTimestampsClient {
+  static const List<String> calendarUrls = [
+    'https://a.pool.opentimestamps.org',
+    'https://b.pool.opentimestamps.org',
+    'https://a.pool.eternitywall.com',
+  ];
+
+  final http.Client httpClient;
+
+  OpenTimestampsClient({http.Client? client})
+      : httpClient = client ?? http.Client();
+
+  /// Submit hash to OpenTimestamps calendars
+  /// Returns incomplete proof (pending Bitcoin confirmation)
+  Future<Uint8List> stamp(Uint8List hash) async {
+    final futures = calendarUrls.map((url) => _submitToCalendar(url, hash));
+    final results = await Future.wait(futures, eagerError: false);
+
+    // Return first successful result
+    for (final result in results) {
+      if (result != null) return result;
+    }
+
+    throw Exception('All calendar servers failed');
+  }
+
+  Future<Uint8List?> _submitToCalendar(String url, Uint8List hash) async {
+    try {
+      final response = await httpClient.post(
+        Uri.parse('$url/digest'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: hash,
+      );
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+    } catch (e) {
+      // Log but continue to next calendar
+    }
+    return null;
+  }
+
+  /// Upgrade incomplete proof to complete Bitcoin-attested proof
+  Future<Uint8List?> upgrade(Uint8List incompleteProof) async {
+    // Parse proof to get pending attestation URL
+    // Submit to URL to get upgraded proof with Bitcoin block
+    // Returns null if not yet confirmed (retry later)
+  }
+
+  /// Verify a complete OpenTimestamps proof
+  Future<VerificationResult> verify(Uint8List data, Uint8List proof) async {
+    // Parse proof structure
+    // Verify Merkle path to Bitcoin commitment
+    // Verify Bitcoin block contains expected transaction
+    // Return verification result with timestamp
+  }
+}
+
+/// Verification result for OpenTimestamps proof
+class VerificationResult {
+  final bool isValid;
+  final DateTime? attestedTime;
+  final int? bitcoinBlockHeight;
+  final String? bitcoinTxId;
+  final List<String> errors;
+
+  VerificationResult({
+    required this.isValid,
+    this.attestedTime,
+    this.bitcoinBlockHeight,
+    this.bitcoinTxId,
+    this.errors = const [],
+  });
+}
+```
+
+#### Daily Aggregation Strategy
+
+Given our operational constraints (<10 entries/user/day, day-level precision sufficient):
+
+```dart
+/// Daily hash aggregation for efficient timestamping
+/// REQ-d00028
+class DailyTimestampService {
+  final OpenTimestampsClient otsClient;
+  final LocalStorage storage;
+
+  /// Called daily (e.g., by background scheduler)
+  Future<void> createDailyTimestamp() async {
+    // 1. Get all events from today
+    final todayEvents = await storage.getEventsForDate(DateTime.now());
+    if (todayEvents.isEmpty) return;
+
+    // 2. Compute aggregate hash of all event hashes
+    final eventHashes = todayEvents.map((e) => e.hash).toList();
+    final aggregateHash = _computeAggregateHash(eventHashes);
+
+    // 3. Submit to OpenTimestamps
+    final incompleteProof = await otsClient.stamp(aggregateHash);
+
+    // 4. Store incomplete proof locally
+    await storage.storePendingProof(
+      date: DateTime.now(),
+      aggregateHash: aggregateHash,
+      eventIds: todayEvents.map((e) => e.id).toList(),
+      incompleteProof: incompleteProof,
+    );
+
+    // 5. Schedule upgrade check (proof completes after ~60 min)
+    await _scheduleUpgradeCheck();
+  }
+
+  Uint8List _computeAggregateHash(List<Uint8List> hashes) {
+    // Simple concatenation + hash (sufficient for small volumes)
+    // No Merkle tree needed for <10 entries
+    final combined = hashes.expand((h) => h).toList();
+    return Uint8List.fromList(sha256.convert(combined).bytes);
+  }
+}
+```
+
+### Proof Storage
+
+Each device stores:
+
+```
+/data/timestamps/
+  2025-11-28.ots          # Complete Bitcoin-attested proof
+  2025-11-28.json         # Metadata: event IDs covered by proof
+  2025-11-29.pending.ots  # Incomplete proof (awaiting Bitcoin)
+```
+
+### Verification Procedure
+
+To verify any diary entry was recorded on or before a specific date:
+
+1. Load the .ots proof file for that date
+2. Compute the aggregate hash of all events for that date
+3. Verify the OpenTimestamps proof against the aggregate hash
+4. The Bitcoin block timestamp proves data existed at that time
+
+### Cost Analysis
+
+| Item | Cost |
+| ---- | ---- |
+| OpenTimestamps submission | Free |
+| Proof storage | ~1KB per day |
+| Bitcoin transaction fees | Paid by calendar operators |
+| **Annual cost per user** | **$0** |
+
+### Security Properties
+
+| Property | Bitcoin/OpenTimestamps |
+| -------- | ---------------------- |
+| Attack cost | $5-20 billion (51% attack) |
+| Backdating possible | No (mathematically impossible) |
+| Failure mode | Public (chain fork visible) |
+| Historical breaches | Zero in 16 years |
+| Single point of failure | None |
+
+### Limitations
+
+| Limitation | Impact | Mitigation |
+| ---------- | ------ | ---------- |
+| ±2 hour time precision | Acceptable for day-level entries | Combine with internal timestamps |
+| ~60 minute finality | Acceptable for diary use case | Queue proofs for later completion |
+| Requires internet | Cannot timestamp offline | Queue for when connectivity returns |
+
+---
+
+## Deprecated: RFC 3161 TSA Implementation
+
+> **⚠️ DEPRECATED**: This approach is deprecated per [ADR-008](../docs/adr/ADR-008-timestamp-attestation.md). Use only when regulators explicitly require RFC 3161 format.
+>
+> **REQ-d00029** (DEPRECATED): RFC 3161 TSA-based timestamp attestation
+
+The following sections document the RFC 3161/RFC 4998 approach for regulatory compliance scenarios where traditional TSA format is mandated.
+
+**Deprecation reasons**:
+- Proven track record of compromise (DigiNotar, Comodo, NIC India)
+- Silent failure mode (breaches undetectable until discovered)
+- Backdating capability if compromised
+- Lower attack cost (~$100K vs $5-20B for Bitcoin)
+- Ongoing per-timestamp costs ($0.02-0.40 each)
 
 ---
 
@@ -995,7 +1255,8 @@ void main() {
 ## Revision History
 
 | Version | Date | Changes | Author |
-| --------- | ------ | --------- | -------- |
+| ------- | ---------- | ----------------------------------------- | ---------------- |
+| 2.0 | 2025-11-29 | Added Bitcoin/OpenTimestamps (REQ-d00028), deprecated TSA (REQ-d00029) | Development Team |
 | 1.0 | 2025-11-28 | Initial draft - gap analysis | Development Team |
 
 ---
