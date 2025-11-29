@@ -118,13 +118,14 @@ jobs:
           done <<< "$COMMITS"
 
           if [ ${#MISSING_TICKET[@]} -gt 0 ]; then
-            echo "::warning::The following commits are missing Linear ticket references:"
+            echo "::error::The following commits are missing Linear ticket references (CUR-XXX):"
             for commit in "${MISSING_TICKET[@]}"; do
               echo "  • $commit"
             done
             echo ""
-            echo "Note: This is a warning. Commits should include [CUR-XXX] prefix."
-            echo "The pre-commit hook enforces this locally."
+            echo "Each commit must include [CUR-XXX] prefix for traceability."
+            echo "See CLAUDE.md for commit message format details."
+            exit 1
           else
             echo "✅ All commits contain Linear ticket references"
           fi
