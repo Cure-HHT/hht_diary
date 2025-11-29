@@ -33,7 +33,7 @@ class DiaryEventCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
-        leading: _buildSeverityIcon(epistaxis.severity),
+        leading: _buildIntensityIcon(epistaxis.intensity),
         title: Text(_formatTime(epistaxis.startTime)),
         subtitle: epistaxis.userNotes != null
             ? Text(epistaxis.userNotes!)
@@ -46,25 +46,25 @@ class DiaryEventCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSeverityIcon(EpistaxisSeverity? severity) {
-    if (severity == null) return Icon(Icons.info_outline);
+  Widget _buildIntensityIcon(EpistaxisIntensity? intensity) {
+    if (intensity == null) return Icon(Icons.info_outline);
 
     Color color;
     IconData icon;
 
-    switch (severity) {
-      case EpistaxisSeverity.minimal:
-      case EpistaxisSeverity.mild:
+    switch (intensity) {
+      case EpistaxisIntensity.spotting:
+      case EpistaxisIntensity.drippingSlowly:
         color = Colors.green;
         icon = Icons.water_drop;
         break;
-      case EpistaxisSeverity.moderate:
+      case EpistaxisIntensity.drippingQuickly:
         color = Colors.orange;
         icon = Icons.water_drop;
         break;
-      case EpistaxisSeverity.severe:
-      case EpistaxisSeverity.verySevere:
-      case EpistaxisSeverity.extreme:
+      case EpistaxisIntensity.steadyStream:
+      case EpistaxisIntensity.pouring:
+      case EpistaxisIntensity.gushing:
         color = Colors.red;
         icon = Icons.warning;
         break;

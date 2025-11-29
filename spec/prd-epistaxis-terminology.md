@@ -165,25 +165,20 @@ The following fields are calculated, not entered:
 
 ---
 
-## Mapping to Existing Systems
+## Implementation Reference
 
-### Mapping to Current Severity Scale
+### Data Model
 
-The existing `EpistaxisSeverity` enum in `database/dart/models.dart` uses clinical terminology. The following mapping applies:
+The `EpistaxisIntensity` enum in `database/dart/models.dart` implements this terminology standard directly:
 
-| HHT Intensity | Current Enum Value | Notes |
-| ------------- | ------------------ | ----- |
-| Spotting | `minimal` | Direct mapping |
-| Dripping slowly | `mild` | Direct mapping |
-| Dripping quickly | `moderate` | Direct mapping |
-| Steady stream | `severe` | Direct mapping |
-| Pouring | `very_severe` | Direct mapping |
-| Gushing | `extreme` | Direct mapping |
-
-**Implementation Note**: The system should support both terminology sets:
-- Patient-facing UI uses HHT descriptive terms
-- Database storage uses enumerated values
-- CDISC export maps to controlled terminology codes
+| HHT Intensity    | Enum Value           | Display Text       |
+| ---------------- | -------------------- | ------------------ |
+| Spotting         | `spotting`           | Spotting           |
+| Dripping slowly  | `dripping_slowly`    | Dripping slowly    |
+| Dripping quickly | `dripping_quickly`   | Dripping quickly   |
+| Steady stream    | `steady_stream`      | Steady stream      |
+| Pouring          | `pouring`            | Pouring            |
+| Gushing          | `gushing`            | Gushing            |
 
 ### CDISC Mapping
 
