@@ -66,7 +66,7 @@ CDISC compliance SHALL include:
 - **Audit findings**: Inspectors may cite lack of industry-standard data handling
 
 **Acceptance Criteria**:
-- Diary event types mapped to appropriate SDTM domains (e.g., epistaxis → AE/CM)
+- Diary event types mapped to appropriate SDTM domains (e.g., epistaxis → CE/CM)
 - ODM-XML export capability available for clinical data
 - Define-XML metadata generated describing data structure
 - CDISC controlled terminology used where applicable

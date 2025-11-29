@@ -77,15 +77,17 @@ Implementation SHALL include:
 
 **Field Mapping Examples**:
 
-| Internal Field | CDASH Variable | CDASH Domain | Description                   |
-| -------------- | -------------- | ------------ | ----------------------------- |
-| `startTime`    | `AESTDTC`      | AE           | Adverse Event Start Date/Time |
-| `endTime`      | `AEENDTC`      | AE           | Adverse Event End Date/Time   |
-| `severity`     | `AESEV`        | AE           | Adverse Event Severity        |
-| `user_notes`   | `AETERM`       | AE           | Reported Term for AE          |
-| `completedAt`  | `QSDTC`        | QS           | Date/Time of Survey           |
-| `response`     | `QSORRES`      | QS           | Original Survey Response      |
-| `score.total`  | `QSSTRESN`     | QS           | Numeric Survey Result         |
+| Internal Field | CDASH Variable | CDASH Domain | Description                        |
+| -------------- | -------------- | ------------ | ---------------------------------- |
+| `startTime`    | `CESTDTC`      | CE           | Clinical Event Start Date/Time     |
+| `endTime`      | `CEENDTC`      | CE           | Clinical Event End Date/Time       |
+| `severity`     | `CESEV`        | CE           | Clinical Event Severity            |
+| `user_notes`   | `CETERM`       | CE           | Reported Term for Clinical Event   |
+| `completedAt`  | `QSDTC`        | QS           | Date/Time of Survey                |
+| `response`     | `QSORRES`      | QS           | Original Survey Response           |
+| `score.total`  | `QSSTRESN`     | QS           | Numeric Survey Result              |
+
+**Note**: Epistaxis events use CE (Clinical Events) domain, NOT AE (Adverse Events), because nosebleeds are the disease manifestation being tracked as study endpoints in HHT trials, not unintended adverse reactions to treatment.
 
 **Rationale**: CDASH provides standardized variable names and definitions for clinical data collection. Mapping internal fields to CDASH ensures data is captured in a form that can be easily transformed to SDTM for regulatory submission.
 
@@ -108,21 +110,23 @@ The system SHALL implement CDISC Controlled Terminology for categorical data fie
 
 Implementation SHALL include:
 - Terminology mapping from internal values to CDISC code list values
-- Severity mapping to CDISC Severity/Intensity Scale for Adverse Events (C66769)
+- Severity mapping to CDISC Severity/Intensity Scale (C66769) - applicable to CE domain
 - Response type mapping to applicable CDISC code lists
 - Version tracking for controlled terminology (CDISC publishes quarterly updates)
 - Extensible code list support for sponsor-specific terminology
 
-**Severity Mapping Example**:
+**Severity Mapping Example** (for CE domain epistaxis events):
 
-| Internal Value | CDISC Code | CDISC Preferred Term | Code List |
-| -------------- | ---------- | -------------------- | --------- |
-| `minimal`      | C41338     | MILD                 | C66769    |
-| `mild`         | C41338     | MILD                 | C66769    |
-| `moderate`     | C41339     | MODERATE             | C66769    |
-| `severe`       | C41340     | SEVERE               | C66769    |
-| `very_severe`  | C41340     | SEVERE               | C66769    |
-| `extreme`      | C48275     | LIFE THREATENING     | C66769    |
+| Internal Value | CDISC Code | CDISC Preferred Term | Code List | Notes                     |
+| -------------- | ---------- | -------------------- | --------- | ------------------------- |
+| `minimal`      | C41338     | MILD                 | C66769    | Trace blood only          |
+| `mild`         | C41338     | MILD                 | C66769    | Brief, self-limiting      |
+| `moderate`     | C41339     | MODERATE             | C66769    | Requires intervention     |
+| `severe`       | C41340     | SEVERE               | C66769    | Difficult to control      |
+| `very_severe`  | C41340     | SEVERE               | C66769    | Medical attention needed  |
+| `extreme`      | C48275     | LIFE THREATENING     | C66769    | Emergency intervention    |
+
+**Note**: The Severity/Intensity Scale (C66769) is used for both AE and CE domains. The internal granularity (6 levels) maps to CDISC's 4-level scale.
 
 **Rationale**: CDISC Controlled Terminology ensures consistent vocabulary across studies and sponsors. Regulators expect standardized terms in submissions. Mapping internal values to CDISC codes enables automated validation and comparison.
 
@@ -154,18 +158,20 @@ Implementation SHALL include:
 
 **Domain Mapping**:
 
-| Event Type      | Primary SDTM Domain   | Secondary Domains     | Rationale                                                          |
-| --------------- | --------------------- | --------------------- | ------------------------------------------------------------------ |
-| epistaxis-v1.0  | AE (Adverse Events)   | CM (Concomitant Meds) | Nosebleeds are adverse events; treatment is concomitant medication |
-| survey-v1.0     | QS (Questionnaires)   | -                     | Surveys map to QS domain per SDTM-IG                               |
-| medication-v1.0 | CM (Concomitant Meds) | -                     | Medication tracking                                                |
-| symptom-v1.0    | FA (Findings About)   | -                     | General symptom observations                                       |
+| Event Type      | Primary SDTM Domain   | Secondary Domains     | Rationale                                                                                    |
+| --------------- | --------------------- | --------------------- | -------------------------------------------------------------------------------------------- |
+| epistaxis-v1.0  | CE (Clinical Events)  | CM (Concomitant Meds) | Nosebleeds are disease manifestations/efficacy endpoints in HHT studies, NOT adverse events |
+| survey-v1.0     | QS (Questionnaires)   | -                     | Surveys map to QS domain per SDTM-IG                                                         |
+| medication-v1.0 | CM (Concomitant Meds) | -                     | Medication tracking                                                                          |
+| symptom-v1.0    | FA (Findings About)   | -                     | General symptom observations                                                                 |
 
-**SDTM AE Domain Example** (for epistaxis):
+**Important**: The CE (Clinical Events) domain is specifically designed for "clinical events of interest other than adverse events." In HHT trials, epistaxis is the primary disease symptom being measured as an efficacy endpoint, not an unintended adverse reaction. Only treatment-related worsening of epistaxis would be classified as AE.
+
+**SDTM CE Domain Example** (for epistaxis):
 
 ```
-STUDYID  DOMAIN  USUBJID         AESEQ  AETERM     AESTDTC              AEENDTC              AESEV
-HHT001   AE      HHT001-001-101  1      Epistaxis  2025-10-15T14:30:00  2025-10-15T14:45:00  MODERATE
+STUDYID  DOMAIN  USUBJID         CESEQ  CETERM     CESTDTC              CEENDTC              CESEV
+HHT001   CE      HHT001-001-101  1      Epistaxis  2025-10-15T14:30:00  2025-10-15T14:45:00  MODERATE
 ```
 
 **Rationale**: SDTM is the FDA-required format for clinical data submissions. Transformation logic must accurately convert diary events to appropriate SDTM domains while preserving data integrity and audit trail linkage.
