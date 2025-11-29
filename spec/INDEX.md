@@ -74,11 +74,11 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
-| REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 74e28e6f |
-| REQ-d00071 | dev-CDISC.md | SDTM Domain Transformation Implementation | 173f66f4 |
+| REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 2b4ef287 |
+| REQ-d00071 | dev-CDISC.md | SDTM Domain Transformation Implementation | 1286bfd8 |
 | REQ-d00072 | dev-CDISC.md | ODM-XML Export Implementation | f1b48f69 |
 | REQ-d00073 | dev-CDISC.md | Define-XML Metadata Generation | 4a4d28cd |
-| REQ-d00074 | dev-CDISC.md | CDISC Controlled Terminology Implementation | 6ae00b3f |
+| REQ-d00074 | dev-CDISC.md | CDISC Controlled Terminology Implementation | 5a0ddce0 |
 | REQ-d00075 | dev-CDISC.md | EDC Data Transformation Specification | cd5b72f1 |
 | REQ-d00076 | dev-CDISC.md | Clinical Data Export Formats | 718bd3af |
 | REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |
@@ -155,7 +155,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00038 | prd-security-RLS.md | Auditor Compliance Access | 6324bf04 |
 | REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail | e8a3d480 |
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection | 0e94f5cf |
-| REQ-p00041 | prd-standards.md | CDISC Standards Compliance | 2488aaab |
+| REQ-p00041 | prd-standards.md | CDISC Standards Compliance | bd86de7e |
 | REQ-p01000 | prd-event-sourcing-system.md | Event Sourcing Client Interface | c3f9c7d2 |
 | REQ-p01001 | prd-event-sourcing-system.md | Offline Event Queue with Automatic Synchronization | 9a8601c2 |
 | REQ-p01002 | prd-event-sourcing-system.md | Optimistic Concurrency Control | 21a2772e |

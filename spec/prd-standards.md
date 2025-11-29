@@ -73,7 +73,7 @@ CDISC compliance SHALL include:
 - EDC synchronization (proxy mode) transforms data to sponsor-required format
 - Documentation of CDISC mapping decisions maintained
 
-*End* *CDISC Standards Compliance* | **Hash**: 2488aaab
+*End* *CDISC Standards Compliance* | **Hash**: bd86de7e
 
 ---
 

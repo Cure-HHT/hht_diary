@@ -98,7 +98,7 @@ Implementation SHALL include:
 - Controlled terminology codes applied to categorical fields
 - Validation warns when data values don't match controlled terminology
 
-*End* *CDASH Field Mapping Implementation* | **Hash**: 74e28e6f
+*End* *CDASH Field Mapping Implementation* | **Hash**: 2b4ef287
 
 ---
 
@@ -137,7 +137,7 @@ Implementation SHALL include:
 - Sponsor can extend code lists for study-specific terms
 - Validation identifies non-standard values
 
-*End* *CDISC Controlled Terminology Implementation* | **Hash**: 6ae00b3f
+*End* *CDISC Controlled Terminology Implementation* | **Hash**: 5a0ddce0
 
 ---
 
@@ -158,12 +158,12 @@ Implementation SHALL include:
 
 **Domain Mapping**:
 
-| Event Type      | Primary SDTM Domain   | Secondary Domains     | Rationale                                                                                    |
-| --------------- | --------------------- | --------------------- | -------------------------------------------------------------------------------------------- |
+| Event Type      | Primary SDTM Domain   | Secondary Domains     | Rationale                                                                                   |
+| --------------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
 | epistaxis-v1.0  | CE (Clinical Events)  | CM (Concomitant Meds) | Nosebleeds are disease manifestations/efficacy endpoints in HHT studies, NOT adverse events |
-| survey-v1.0     | QS (Questionnaires)   | -                     | Surveys map to QS domain per SDTM-IG                                                         |
-| medication-v1.0 | CM (Concomitant Meds) | -                     | Medication tracking                                                                          |
-| symptom-v1.0    | FA (Findings About)   | -                     | General symptom observations                                                                 |
+| survey-v1.0     | QS (Questionnaires)   | -                     | Surveys map to QS domain per SDTM-IG                                                        |
+| medication-v1.0 | CM (Concomitant Meds) | -                     | Medication tracking                                                                         |
+| symptom-v1.0    | FA (Findings About)   | -                     | General symptom observations                                                                |
 
 **Important**: The CE (Clinical Events) domain is specifically designed for "clinical events of interest other than adverse events." In HHT trials, epistaxis is the primary disease symptom being measured as an efficacy endpoint, not an unintended adverse reaction. Only treatment-related worsening of epistaxis would be classified as AE.
 
@@ -183,7 +183,7 @@ HHT001   CE      HHT001-001-101  1      Epistaxis  2025-10-15T14:30:00  2025-10-
 - Transformation is reversible (audit trail linkage preserved)
 - Output validated against SDTM Implementation Guide rules
 
-*End* *SDTM Domain Transformation Implementation* | **Hash**: 173f66f4
+*End* *SDTM Domain Transformation Implementation* | **Hash**: 1286bfd8
 
 ---
 
