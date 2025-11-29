@@ -15,6 +15,7 @@
 #   - validate_index.py: INDEX.md accuracy
 #   - markdownlint: Markdown formatting
 #   - gitleaks: Secret detection
+#   - ./tool/test.sh: Dart and TypeScript tests (per app)
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -228,8 +229,10 @@ if command -v gitleaks &> /dev/null; then
         fi
     fi
 else
-    echo -e "${YELLOW}WARNING: gitleaks not installed - skipping secret detection${NC}"
-    echo -e "${YELLOW}         Install: https://github.com/gitleaks/gitleaks#installing${NC}"
+    echo -e "${RED}ERROR: gitleaks not installed - secret detection is required${NC}"
+    echo -e "${RED}       Install: https://github.com/gitleaks/gitleaks#installing${NC}"
+    echo ""
+    VALIDATION_FAILED=true
 fi
 
 echo ""
@@ -261,7 +264,68 @@ if [ -d "$PLUGIN_DIR" ]; then
 fi
 
 # =====================================================
-# 6. Handle Validation Results
+# 6. Run Test Suites (./tool/test.sh)
+# =====================================================
+#
+# Runs ./tool/test.sh in any app directory that has code changes.
+# Each app should have its own tool/test.sh script.
+
+echo -e "${BLUE}Running test suites...${NC}"
+echo ""
+
+# Find changed files and determine which app directories are affected
+if [ -n "$REMOTE_BRANCH" ]; then
+    CHANGED_FILES=$(git diff --name-only "$REMOTE_BRANCH"...HEAD 2>/dev/null || true)
+else
+    CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+fi
+
+# Find unique app directories with test.sh scripts
+TEST_DIRS=""
+while IFS= read -r changed_file; do
+    # Check if file is in an app directory
+    if [[ "$changed_file" == apps/* ]]; then
+        # Extract the app directory (e.g., apps/clinical_diary)
+        APP_DIR=$(echo "$changed_file" | cut -d'/' -f1-2)
+        TEST_SCRIPT="$REPO_ROOT/$APP_DIR/tool/test.sh"
+
+        if [ -f "$TEST_SCRIPT" ] && [ -x "$TEST_SCRIPT" ]; then
+            # Add to list if not already present
+            if ! echo "$TEST_DIRS" | grep -q "^$APP_DIR$"; then
+                TEST_DIRS="$TEST_DIRS
+$APP_DIR"
+            fi
+        fi
+    fi
+done <<< "$CHANGED_FILES"
+
+# Remove leading newline
+TEST_DIRS=$(echo "$TEST_DIRS" | sed '/^$/d')
+
+if [ -n "$TEST_DIRS" ]; then
+    while IFS= read -r app_dir; do
+        TEST_SCRIPT="$REPO_ROOT/$app_dir/tool/test.sh"
+        echo -e "${BLUE}Running tests for: $app_dir${NC}"
+        echo ""
+
+        if ! "$TEST_SCRIPT"; then
+            VALIDATION_FAILED=true
+            echo ""
+            echo -e "${RED}Tests failed in $app_dir${NC}"
+            echo ""
+        else
+            echo ""
+            echo -e "${GREEN}Tests passed in $app_dir${NC}"
+            echo ""
+        fi
+    done <<< "$TEST_DIRS"
+else
+    echo -e "${BLUE}No app directories with test.sh affected by changes${NC}"
+    echo ""
+fi
+
+# =====================================================
+# 7. Handle Validation Results
 # =====================================================
 
 echo ""
