@@ -73,7 +73,7 @@ CDISC compliance SHALL include:
 - EDC synchronization (proxy mode) transforms data to sponsor-required format
 - Documentation of CDISC mapping decisions maintained
 
-*End* *CDISC Standards Compliance* | **Hash**: PENDING
+*End* *CDISC Standards Compliance* | **Hash**: TBD
 
 ---
 
@@ -81,11 +81,11 @@ CDISC compliance SHALL include:
 
 The following standards may be added as requirements evolve:
 
-| Standard | Description | Status |
-|----------|-------------|--------|
-| HL7 FHIR | Healthcare interoperability for EHR integration | Planned |
-| ADaM | Analysis Data Model for statistical analysis | Planned |
-| ICH E6(R3) | Good Clinical Practice guidelines | Under review |
+| Standard   | Description                                     | Status       |
+| ---------- | ----------------------------------------------- | ------------ |
+| HL7 FHIR   | Healthcare interoperability for EHR integration | Planned      |
+| ADaM       | Analysis Data Model for statistical analysis    | Planned      |
+| ICH E6(R3) | Good Clinical Practice guidelines               | Under review |
 
 ---
 

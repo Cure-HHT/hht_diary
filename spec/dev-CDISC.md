@@ -29,13 +29,13 @@ This guide covers **how to implement CDISC standards** for the Clinical Diary Pl
 
 ## CDISC Standards Overview
 
-| Standard | Purpose | Implementation Priority |
-|----------|---------|------------------------|
-| CDASH | Data collection field naming | HIGH - Affects data capture |
-| SDTM | Data tabulation for submission | HIGH - Required for FDA |
-| ODM | XML interchange format | HIGH - Required for EDC sync |
-| Define-XML | Metadata definitions | MEDIUM - Required for submission |
-| Controlled Terminology | Standardized code lists | HIGH - Ensures consistency |
+| Standard               | Purpose                        | Implementation Priority          |
+| ---------------------- | ------------------------------ | -------------------------------- |
+| CDASH                  | Data collection field naming   | HIGH - Affects data capture      |
+| SDTM                   | Data tabulation for submission | HIGH - Required for FDA          |
+| ODM                    | XML interchange format         | HIGH - Required for EDC sync     |
+| Define-XML             | Metadata definitions           | MEDIUM - Required for submission |
+| Controlled Terminology | Standardized code lists        | HIGH - Ensures consistency       |
 
 ---
 
@@ -45,14 +45,14 @@ This guide covers **how to implement CDISC standards** for the Clinical Diary Pl
 
 The following CDISC-related needs are **already satisfied** by existing platform requirements:
 
-| CDISC Need | Satisfied By | Notes |
-|------------|--------------|-------|
-| Audit Trail | REQ-p00004, REQ-p01003 | Immutable event sourcing provides complete audit trail |
-| Data Integrity (ALCOA+) | REQ-p00011 | ALCOA+ principles embedded in data model |
-| Schema Versioning | REQ-p01004 | Versioned event types support schema evolution |
-| Data Retention | REQ-p00012 | 7+ year retention meets regulatory requirements |
-| Access Control | REQ-p00005, REQ-p00015 | RBAC and RLS enforce proper data access |
-| Data Export Architecture | REQ-p00029 | Portal export capability (requires format implementation) |
+| CDISC Need               | Satisfied By             | Notes                                                     |
+| ------------------------ | ------------------------ | --------------------------------------------------------- |
+| Audit Trail              | REQ-p00004, REQ-p01003   | Immutable event sourcing provides complete audit trail    |
+| Data Integrity (ALCOA+)  | REQ-p00011               | ALCOA+ principles embedded in data model                  |
+| Schema Versioning        | REQ-p01004               | Versioned event types support schema evolution            |
+| Data Retention           | REQ-p00012               | 7+ year retention meets regulatory requirements           |
+| Access Control           | REQ-p00005, REQ-p00015   | RBAC and RLS enforce proper data access                   |
+| Data Export Architecture | REQ-p00029               | Portal export capability (requires format implementation) |
 
 ### Gap Requirements
 
@@ -64,7 +64,7 @@ The following requirements address CDISC gaps identified in the platform:
 
 # REQ-d00070: CDASH Field Mapping Implementation
 
-**Level**: Dev | **Implements**: p00041 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041 | **Status**: Draft
 
 Internal diary data fields SHALL be mapped to CDASH (Clinical Data Acquisition Standards Harmonization) variable names and definitions to ensure data collection aligns with industry standards.
 
@@ -77,15 +77,15 @@ Implementation SHALL include:
 
 **Field Mapping Examples**:
 
-| Internal Field | CDASH Variable | CDASH Domain | Description |
-|---------------|----------------|--------------|-------------|
-| `startTime` | `AESTDTC` | AE | Adverse Event Start Date/Time |
-| `endTime` | `AEENDTC` | AE | Adverse Event End Date/Time |
-| `severity` | `AESEV` | AE | Adverse Event Severity |
-| `user_notes` | `AETERM` | AE | Reported Term for AE |
-| `completedAt` | `QSDTC` | QS | Date/Time of Survey |
-| `response` | `QSORRES` | QS | Original Survey Response |
-| `score.total` | `QSSTRESN` | QS | Numeric Survey Result |
+| Internal Field | CDASH Variable | CDASH Domain | Description                   |
+| -------------- | -------------- | ------------ | ----------------------------- |
+| `startTime`    | `AESTDTC`      | AE           | Adverse Event Start Date/Time |
+| `endTime`      | `AEENDTC`      | AE           | Adverse Event End Date/Time   |
+| `severity`     | `AESEV`        | AE           | Adverse Event Severity        |
+| `user_notes`   | `AETERM`       | AE           | Reported Term for AE          |
+| `completedAt`  | `QSDTC`        | QS           | Date/Time of Survey           |
+| `response`     | `QSORRES`      | QS           | Original Survey Response      |
+| `score.total`  | `QSSTRESN`     | QS           | Numeric Survey Result         |
 
 **Rationale**: CDASH provides standardized variable names and definitions for clinical data collection. Mapping internal fields to CDASH ensures data is captured in a form that can be easily transformed to SDTM for regulatory submission.
 
@@ -96,13 +96,13 @@ Implementation SHALL include:
 - Controlled terminology codes applied to categorical fields
 - Validation warns when data values don't match controlled terminology
 
-*End* *CDASH Field Mapping Implementation* | **Hash**: PENDING
+*End* *CDASH Field Mapping Implementation* | **Hash**: TBD
 
 ---
 
 # REQ-d00074: CDISC Controlled Terminology Implementation
 
-**Level**: Dev | **Implements**: p00041 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041 | **Status**: Draft
 
 The system SHALL implement CDISC Controlled Terminology for categorical data fields to ensure standardized vocabulary across the platform.
 
@@ -116,13 +116,13 @@ Implementation SHALL include:
 **Severity Mapping Example**:
 
 | Internal Value | CDISC Code | CDISC Preferred Term | Code List |
-|---------------|------------|---------------------|-----------|
-| `minimal` | C41338 | MILD | C66769 |
-| `mild` | C41338 | MILD | C66769 |
-| `moderate` | C41339 | MODERATE | C66769 |
-| `severe` | C41340 | SEVERE | C66769 |
-| `very_severe` | C41340 | SEVERE | C66769 |
-| `extreme` | C48275 | LIFE THREATENING | C66769 |
+| -------------- | ---------- | -------------------- | --------- |
+| `minimal`      | C41338     | MILD                 | C66769    |
+| `mild`         | C41338     | MILD                 | C66769    |
+| `moderate`     | C41339     | MODERATE             | C66769    |
+| `severe`       | C41340     | SEVERE               | C66769    |
+| `very_severe`  | C41340     | SEVERE               | C66769    |
+| `extreme`      | C48275     | LIFE THREATENING     | C66769    |
 
 **Rationale**: CDISC Controlled Terminology ensures consistent vocabulary across studies and sponsors. Regulators expect standardized terms in submissions. Mapping internal values to CDISC codes enables automated validation and comparison.
 
@@ -133,7 +133,7 @@ Implementation SHALL include:
 - Sponsor can extend code lists for study-specific terms
 - Validation identifies non-standard values
 
-*End* *CDISC Controlled Terminology Implementation* | **Hash**: PENDING
+*End* *CDISC Controlled Terminology Implementation* | **Hash**: TBD
 
 ---
 
@@ -141,7 +141,7 @@ Implementation SHALL include:
 
 # REQ-d00071: SDTM Domain Transformation Implementation
 
-**Level**: Dev | **Implements**: p00041 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041 | **Status**: Draft
 
 The system SHALL implement transformation logic to convert internal diary data to SDTM (Study Data Tabulation Model) domain format for regulatory submission.
 
@@ -154,12 +154,12 @@ Implementation SHALL include:
 
 **Domain Mapping**:
 
-| Event Type | Primary SDTM Domain | Secondary Domains | Rationale |
-|------------|--------------------|--------------------|-----------|
-| epistaxis-v1.0 | AE (Adverse Events) | CM (Concomitant Meds) | Nosebleeds are adverse events; treatment is concomitant medication |
-| survey-v1.0 | QS (Questionnaires) | - | Surveys map to QS domain per SDTM-IG |
-| medication-v1.0 | CM (Concomitant Meds) | - | Medication tracking |
-| symptom-v1.0 | FA (Findings About) | - | General symptom observations |
+| Event Type      | Primary SDTM Domain   | Secondary Domains     | Rationale                                                          |
+| --------------- | --------------------- | --------------------- | ------------------------------------------------------------------ |
+| epistaxis-v1.0  | AE (Adverse Events)   | CM (Concomitant Meds) | Nosebleeds are adverse events; treatment is concomitant medication |
+| survey-v1.0     | QS (Questionnaires)   | -                     | Surveys map to QS domain per SDTM-IG                               |
+| medication-v1.0 | CM (Concomitant Meds) | -                     | Medication tracking                                                |
+| symptom-v1.0    | FA (Findings About)   | -                     | General symptom observations                                       |
 
 **SDTM AE Domain Example** (for epistaxis):
 
@@ -177,7 +177,7 @@ HHT001   AE      HHT001-001-101  1      Epistaxis  2025-10-15T14:30:00  2025-10-
 - Transformation is reversible (audit trail linkage preserved)
 - Output validated against SDTM Implementation Guide rules
 
-*End* *SDTM Domain Transformation Implementation* | **Hash**: PENDING
+*End* *SDTM Domain Transformation Implementation* | **Hash**: TBD
 
 ---
 
@@ -185,7 +185,7 @@ HHT001   AE      HHT001-001-101  1      Epistaxis  2025-10-15T14:30:00  2025-10-
 
 # REQ-d00072: ODM-XML Export Implementation
 
-**Level**: Dev | **Implements**: p00041 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041 | **Status**: Draft
 
 The system SHALL implement ODM (Operational Data Model) XML export capability for data interchange with EDC systems and regulatory authorities.
 
@@ -244,13 +244,13 @@ Implementation SHALL include:
 - Incremental export tracks last sync position
 - Large exports handled efficiently (streaming/chunking)
 
-*End* *ODM-XML Export Implementation* | **Hash**: PENDING
+*End* *ODM-XML Export Implementation* | **Hash**: TBD
 
 ---
 
 # REQ-d00073: Define-XML Metadata Generation
 
-**Level**: Dev | **Implements**: p00041 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041 | **Status**: Draft
 
 The system SHALL generate Define-XML metadata documents describing dataset structure, variables, controlled terminology, and derivation methods.
 
@@ -264,13 +264,13 @@ Implementation SHALL include:
 
 **Define-XML Elements**:
 
-| Element | Purpose | Content |
-|---------|---------|---------|
-| ItemDef | Variable definition | Name, label, data type, length |
-| CodeList | Controlled terminology | Code values with decodes |
-| ValueListDef | Value-level metadata | Conditional variable definitions |
-| MethodDef | Derivation method | Algorithm for derived variables |
-| WhereClauseDef | Conditional logic | When variables apply |
+| Element        | Purpose                | Content                          |
+| -------------- | ---------------------- | -------------------------------- |
+| ItemDef        | Variable definition    | Name, label, data type, length   |
+| CodeList       | Controlled terminology | Code values with decodes         |
+| ValueListDef   | Value-level metadata   | Conditional variable definitions |
+| MethodDef      | Derivation method      | Algorithm for derived variables  |
+| WhereClauseDef | Conditional logic      | When variables apply             |
 
 **Rationale**: Define-XML provides machine-readable metadata required for regulatory submissions. It describes what the data contains, enabling automated validation and review by regulators.
 
@@ -282,13 +282,13 @@ Implementation SHALL include:
 - Document validates against Define-XML schema
 - Generated alongside SDTM/ODM exports
 
-*End* *Define-XML Metadata Generation* | **Hash**: PENDING
+*End* *Define-XML Metadata Generation* | **Hash**: TBD
 
 ---
 
 # REQ-d00076: Clinical Data Export Formats
 
-**Level**: Dev | **Implements**: p00041, p00029 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041, p00029 | **Status**: Draft
 
 The portal export functionality SHALL support multiple output formats for clinical data including CDISC-compliant formats.
 
@@ -302,13 +302,13 @@ Implementation SHALL include:
 
 **Export Options**:
 
-| Format | Use Case | CDISC Compliance |
-|--------|----------|------------------|
-| CSV | General analysis | Variable names follow CDASH |
-| SAS XPORT | FDA submission | Required format for submission |
-| ODM-XML | EDC integration | Full CDISC compliance |
-| JSON | API/programmatic | Internal format with CDISC metadata |
-| Excel | Investigator review | Human-readable with labels |
+| Format    | Use Case            | CDISC Compliance                     |
+| --------- | ------------------- | ------------------------------------ |
+| CSV       | General analysis    | Variable names follow CDASH          |
+| SAS XPORT | FDA submission      | Required format for submission       |
+| ODM-XML   | EDC integration     | Full CDISC compliance                |
+| JSON      | API/programmatic    | Internal format with CDISC metadata  |
+| Excel     | Investigator review | Human-readable with labels           |
 
 **Rationale**: Different stakeholders require data in different formats. Regulatory submission requires specific formats (SAS XPORT). EDC integration requires ODM. Investigators need human-readable formats.
 
@@ -320,7 +320,7 @@ Implementation SHALL include:
 - SAS XPORT validated for FDA compatibility
 - Format documentation provided for each export type
 
-*End* *Clinical Data Export Formats* | **Hash**: PENDING
+*End* *Clinical Data Export Formats* | **Hash**: TBD
 
 ---
 
@@ -328,7 +328,7 @@ Implementation SHALL include:
 
 # REQ-d00075: EDC Data Transformation Specification
 
-**Level**: Dev | **Implements**: p00041 | **Status**: Planned
+**Level**: Dev | **Implements**: p00041 | **Status**: Draft
 
 The EdcSync.transformEvent() method SHALL implement documented transformation logic converting internal diary events to EDC-compatible format for proxy mode synchronization.
 
@@ -376,11 +376,11 @@ Sync to EDC API
 
 **Vendor-Specific Considerations**:
 
-| EDC Platform | API Format | Authentication | Notes |
-|--------------|------------|----------------|-------|
-| Medidata Rave | ODM-XML | OAuth 2.0 | Uses RWS (Rave Web Services) |
-| Oracle InForm | REST/JSON | API Key | InForm Cloud API |
-| Veeva Vault | REST/JSON | OAuth 2.0 | Vault CDMS API |
+| EDC Platform  | API Format | Authentication | Notes                        |
+| ------------- | ---------- | -------------- | ---------------------------- |
+| Medidata Rave | ODM-XML    | OAuth 2.0      | Uses RWS (Rave Web Services) |
+| Oracle InForm | REST/JSON  | API Key        | InForm Cloud API             |
+| Veeva Vault   | REST/JSON  | OAuth 2.0      | Vault CDMS API               |
 
 **Rationale**: EdcSync is currently an abstract interface without implementation guidance. Documenting the transformation specification enables consistent implementation across sponsors and EDC platforms.
 
@@ -392,7 +392,7 @@ Sync to EDC API
 - Error messages identify specific transformation failures
 - Sponsor can override default mappings
 
-*End* *EDC Data Transformation Specification* | **Hash**: PENDING
+*End* *EDC Data Transformation Specification* | **Hash**: TBD
 
 ---
 
@@ -449,15 +449,15 @@ The following CDISC-related needs are already addressed by existing platform req
 
 ## Implementation Roadmap
 
-| Phase | Requirements | Priority | Dependencies |
-|-------|-------------|----------|--------------|
-| 1 | REQ-d00074 (Terminology) | HIGH | None |
-| 2 | REQ-d00070 (CDASH Mapping) | HIGH | REQ-d00074 |
-| 3 | REQ-d00071 (SDTM Transform) | HIGH | REQ-d00070 |
-| 4 | REQ-d00072 (ODM Export) | HIGH | REQ-d00071 |
-| 5 | REQ-d00073 (Define-XML) | MEDIUM | REQ-d00071 |
-| 6 | REQ-d00076 (Export Formats) | MEDIUM | REQ-d00072 |
-| 7 | REQ-d00075 (EDC Transform) | HIGH | REQ-d00072 |
+| Phase | Requirements                | Priority | Dependencies |
+| ----- | --------------------------- | -------- | ------------ |
+| 1     | REQ-d00074 (Terminology)    | HIGH     | None         |
+| 2     | REQ-d00070 (CDASH Mapping)  | HIGH     | REQ-d00074   |
+| 3     | REQ-d00071 (SDTM Transform) | HIGH     | REQ-d00070   |
+| 4     | REQ-d00072 (ODM Export)     | HIGH     | REQ-d00071   |
+| 5     | REQ-d00073 (Define-XML)     | MEDIUM   | REQ-d00071   |
+| 6     | REQ-d00076 (Export Formats) | MEDIUM   | REQ-d00072   |
+| 7     | REQ-d00075 (EDC Transform)  | HIGH     | REQ-d00072   |
 
 ---
 

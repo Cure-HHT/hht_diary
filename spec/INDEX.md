@@ -18,7 +18,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | b551cfb0 |
 | REQ-d00003 | dev-security.md | Identity Platform Auth Configuration Per Sponsor | 27095b5c |
 | REQ-d00004 | dev-app.md | Local-First Data Entry Implementation | 843d0664 |
-| REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | 5fc971c4 |
+| REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | 37465932 |
 | REQ-d00006 | dev-app.md | Mobile App Build and Release Process | 6dfe9c2d |
 | REQ-d00007 | dev-database.md | Database Schema Implementation and Deployment | 18df4bc0 |
 | REQ-d00008 | dev-security.md | MFA Enrollment and Verification Implementation | e179439d |
