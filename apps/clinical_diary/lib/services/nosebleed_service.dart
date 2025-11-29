@@ -80,7 +80,8 @@ class NosebleedService {
   NosebleedRecord _eventToNosebleedRecord(StoredEvent event) {
     final data = event.data;
     return NosebleedRecord(
-      id: event.eventId,
+      // Use stored recordId if available, fallback to eventId for backwards compatibility
+      id: data['recordId'] as String? ?? event.eventId,
       date: DateTime.parse(data['date'] as String),
       startTime: data['startTime'] != null
           ? DateTime.parse(data['startTime'] as String)
@@ -171,6 +172,8 @@ class NosebleedService {
       aggregateId: 'diary-${date.year}-${date.month}-${date.day}',
       eventType: 'NosebleedRecorded',
       data: {
+        'recordId':
+            record.id, // Store user-visible record ID for materialization
         'date': record.date.toIso8601String(),
         if (record.startTime != null)
           'startTime': record.startTime!.toIso8601String(),
@@ -242,6 +245,8 @@ class NosebleedService {
       aggregateId: 'diary-deletion-${record.id}',
       eventType: 'NosebleedDeleted',
       data: {
+        'recordId':
+            record.id, // Store user-visible record ID for materialization
         'date': record.date.toIso8601String(),
         'isDeleted': true,
         'deleteReason': reason,
@@ -430,6 +435,7 @@ class NosebleedService {
                   'diary-${cloudRecord.date.year}-${cloudRecord.date.month}-${cloudRecord.date.day}',
               eventType: 'NosebleedRecorded',
               data: {
+                'recordId': cloudRecord.id, // Preserve cloud record ID
                 'date': cloudRecord.date.toIso8601String(),
                 if (cloudRecord.startTime != null)
                   'startTime': cloudRecord.startTime!.toIso8601String(),
