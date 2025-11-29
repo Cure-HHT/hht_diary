@@ -117,6 +117,8 @@ Implementation SHALL include:
 
 **Severity Mapping Example** (for CE domain epistaxis events):
 
+**Note**: The actual mapping is given in the Sponsor-specific requirements.
+
 | Internal Value | CDISC Code | CDISC Preferred Term | Code List | Notes                     |
 | -------------- | ---------- | -------------------- | --------- | ------------------------- |
 | `minimal`      | C41338     | MILD                 | C66769    | Trace blood only          |
