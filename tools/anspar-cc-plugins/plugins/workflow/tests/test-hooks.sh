@@ -124,6 +124,27 @@ test_precommit_blocks_commits_to_master() {
 # Commit-Msg Hook Tests
 # =====================================================
 
+test_commitmsg_blocks_without_cur_reference() {
+    echo ""
+    echo "=== Commit-Msg: CUR Reference Validation Tests ==="
+    echo ""
+
+    setup_test_repo "no-cur"
+
+    create_workflow_state "CUR-123" '["REQ-d00001"]'
+    create_test_file "feature.txt" "New feature"
+
+    # Commit message with REQ but without CUR reference
+    assert_failure \
+        "git commit -m 'Add feature without ticket
+
+Implements: REQ-d00001'" \
+        "Should block commit without Linear ticket reference" \
+        "Missing Linear ticket reference\|CUR-"
+
+    cleanup_test_repo
+}
+
 test_commitmsg_blocks_without_req_reference() {
     echo ""
     echo "=== Commit-Msg: REQ Reference Validation Tests ==="
@@ -134,11 +155,11 @@ test_commitmsg_blocks_without_req_reference() {
     create_workflow_state "CUR-123"
     create_test_file "feature.txt" "New feature"
 
-    # Commit message without REQ reference
+    # Commit message with CUR but without REQ reference
     assert_failure \
-        "git commit -m 'Add feature without REQ'" \
+        "git commit -m '[CUR-123] Add feature without REQ'" \
         "Should block commit without REQ reference" \
-        "REQ.*reference\|Implements:\|Fixes:"
+        "Missing requirement reference\|REQ-"
 
     cleanup_test_repo
 }
@@ -164,9 +185,9 @@ Implements: REQ-123'" \
     cleanup_test_repo
 }
 
-test_commitmsg_allows_valid_req_implements() {
+test_commitmsg_allows_valid_cur_and_req() {
     echo ""
-    echo "=== Commit-Msg: Valid REQ Implements Tests ==="
+    echo "=== Commit-Msg: Valid CUR and REQ References Tests ==="
     echo ""
 
     setup_test_repo "valid-implements"
@@ -174,19 +195,19 @@ test_commitmsg_allows_valid_req_implements() {
     create_workflow_state "CUR-123" '["REQ-d00001"]'
     create_test_file "feature.txt" "New feature"
 
-    # Valid commit with Implements: REQ-d00001
+    # Valid commit with both CUR and REQ references
     assert_success \
-        "git commit -m 'Add feature
+        "git commit -m '[CUR-123] Add feature
 
 Implements: REQ-d00001'" \
-        "Should allow commit with valid Implements: REQ reference"
+        "Should allow commit with valid CUR and REQ references"
 
     cleanup_test_repo
 }
 
-test_commitmsg_allows_valid_req_fixes() {
+test_commitmsg_allows_valid_fixes_with_cur() {
     echo ""
-    echo "=== Commit-Msg: Valid REQ Fixes Tests ==="
+    echo "=== Commit-Msg: Valid CUR with Fixes Tests ==="
     echo ""
 
     setup_test_repo "valid-fixes"
@@ -194,19 +215,19 @@ test_commitmsg_allows_valid_req_fixes() {
     create_workflow_state "CUR-123" '["REQ-d00002"]'
     create_test_file "fix.txt" "Bug fix"
 
-    # Valid commit with Fixes: REQ-d00002
+    # Valid commit with CUR and Fixes: REQ-d00002
     assert_success \
-        "git commit -m 'Fix bug
+        "git commit -m '[CUR-123] Fix bug
 
 Fixes: REQ-d00002'" \
-        "Should allow commit with valid Fixes: REQ reference"
+        "Should allow commit with valid CUR and Fixes: REQ reference"
 
     cleanup_test_repo
 }
 
-test_commitmsg_allows_multiple_req_references() {
+test_commitmsg_allows_multiple_req_with_cur() {
     echo ""
-    echo "=== Commit-Msg: Multiple REQ References Tests ==="
+    echo "=== Commit-Msg: CUR with Multiple REQ References Tests ==="
     echo ""
 
     setup_test_repo "multiple-reqs"
@@ -214,12 +235,12 @@ test_commitmsg_allows_multiple_req_references() {
     create_workflow_state "CUR-123" '["REQ-d00001", "REQ-p00042"]'
     create_test_file "feature.txt" "Complex feature"
 
-    # Valid commit with multiple REQ references
+    # Valid commit with CUR and multiple REQ references
     assert_success \
-        "git commit -m 'Add complex feature
+        "git commit -m '[CUR-123] Add complex feature
 
 Implements: REQ-d00001, REQ-p00042'" \
-        "Should allow commit with multiple REQ references"
+        "Should allow commit with CUR and multiple REQ references"
 
     cleanup_test_repo
 }
@@ -357,11 +378,12 @@ main() {
     test_precommit_blocks_commits_to_master
 
     # Commit-msg tests
+    test_commitmsg_blocks_without_cur_reference
     test_commitmsg_blocks_without_req_reference
     test_commitmsg_blocks_invalid_req_format
-    test_commitmsg_allows_valid_req_implements
-    test_commitmsg_allows_valid_req_fixes
-    test_commitmsg_allows_multiple_req_references
+    test_commitmsg_allows_valid_cur_and_req
+    test_commitmsg_allows_valid_fixes_with_cur
+    test_commitmsg_allows_multiple_req_with_cur
 
     # Post-commit tests
     test_postcommit_records_workflow_history
