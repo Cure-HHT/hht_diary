@@ -175,7 +175,7 @@ XMLERS provides XML syntax equivalent to ASN.1 ERS:
 ### Key Differences from ASN.1 ERS
 
 | Aspect | RFC 4998 (ASN.1) | RFC 6283 (XML) |
-|--------|-----------------|----------------|
+| -------- | ----------------- | ---------------- |
 | Encoding | DER binary | XML text |
 | Size | Compact | Larger |
 | Human-readable | No | Yes |
@@ -193,7 +193,7 @@ For XML data objects, XMLERS requires **Exclusive XML Canonicalization** (exc-c1
 ### Available Packages
 
 | Package | Purpose | Capabilities | Gaps |
-|---------|---------|--------------|------|
+| --------- | --------- | -------------- | ------ |
 | [pointycastle](https://pub.dev/packages/pointycastle) | Cryptography | SHA-256/384/512, RSA, ECDSA | No TSP client, no Merkle tree |
 | [asn1lib](https://pub.dev/packages/asn1lib) | ASN.1 encoding | BER/DER encode/decode | Minimal complex type support |
 | [x509](https://pub.dev/packages/x509) | X.509 certificates | Certificate parsing, EC keys | No TSP, no CMS |
@@ -710,7 +710,7 @@ class BatchEvidenceRecordService {
 **Goal**: Basic Evidence Record creation with TSA integration
 
 | Component | Priority | Effort | Dependencies |
-|-----------|----------|--------|--------------|
+| ----------- | ---------- | -------- | -------------- |
 | Merkle Tree | P0 | Medium | Pointy Castle |
 | TSA Client (HTTP) | P0 | High | asn1lib, http |
 | ArchiveTimeStamp codec | P0 | High | asn1lib |
@@ -726,7 +726,7 @@ class BatchEvidenceRecordService {
 **Goal**: Robust, automated Evidence Record management
 
 | Component | Priority | Effort | Dependencies |
-|-----------|----------|--------|--------------|
+| ----------- | ---------- | -------- | -------------- |
 | CMS SignedData parser | P1 | High | asn1lib, x509 |
 | TSA certificate validation | P1 | Medium | x509 |
 | Renewal scheduler | P1 | Medium | Phase 1 |
@@ -742,7 +742,7 @@ class BatchEvidenceRecordService {
 **Goal**: Enterprise-ready Evidence Record system
 
 | Component | Priority | Effort | Dependencies |
-|-----------|----------|--------|--------------|
+| ----------- | ---------- | -------- | -------------- |
 | XMLERS support (RFC 6283) | P2 | High | xml, Phase 2 |
 | XML canonicalization | P2 | Medium | xml |
 | Algorithm renewal | P2 | Medium | Phase 2 |
@@ -760,7 +760,7 @@ class BatchEvidenceRecordService {
 ### Public TSA Services
 
 | Provider | URL | Algorithms | Notes |
-|----------|-----|------------|-------|
+| ---------- | ----- | ------------ | ------- |
 | FreeTSA | http://freetsa.org/tsr | SHA-256 | Free, for testing |
 | DigiCert | https://timestamp.digicert.com | SHA-256/384/512 | Production |
 | Sectigo | http://timestamp.sectigo.com | SHA-256/384/512 | Production |
@@ -845,7 +845,7 @@ class EvidenceRecordVerifier {
 ### Cryptographic Algorithm Selection
 
 | Algorithm | Status | Recommendation |
-|-----------|--------|----------------|
+| ----------- | -------- | ---------------- |
 | SHA-1 | Deprecated | Do not use |
 | SHA-256 | Current | Acceptable for new ERs |
 | SHA-384 | Current | Recommended |
@@ -872,7 +872,7 @@ class EvidenceRecordVerifier {
 ### FDA 21 CFR Part 11 Requirements
 
 | Requirement | Section | Evidence Record Support |
-|-------------|---------|------------------------|
+| ------------- | --------- | ------------------------ |
 | Audit Trail | §11.10(e) | ERS provides independent timestamp proof |
 | Tamper Detection | §11.10(c) | Merkle tree + TSA signature |
 | Record Integrity | §11.10(e) | Hash chain with third-party attestation |
@@ -881,7 +881,7 @@ class EvidenceRecordVerifier {
 ### ALCOA+ Mapping
 
 | Principle | Evidence Record Contribution |
-|-----------|----------------------------|
+| ----------- | ---------------------------- |
 | Attributable | Timestamp includes TSA identity |
 | Legible | Standard format (RFC 4998) |
 | Contemporaneous | TSA timestamp at time of creation |
@@ -995,7 +995,7 @@ void main() {
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --------- | ------ | --------- | -------- |
 | 1.0 | 2025-11-28 | Initial draft - gap analysis | Development Team |
 
 ---

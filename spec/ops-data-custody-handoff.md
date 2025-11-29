@@ -71,7 +71,7 @@ Given the multi-sponsor model, we adopt a **handoff model** where Evidence Recor
 This handoff model simplifies our implementation scope:
 
 | Component | Our Responsibility | Sponsor's Responsibility |
-|-----------|-------------------|-------------------------|
+| ----------- | ------------------- | ------------------------- |
 | Merkle tree implementation | ✅ Build and use | Verify at handoff |
 | TSA client (RFC 3161) | ✅ Integrate and use | N/A |
 | ArchiveTimeStamp codec | ✅ Generate | Consume/verify |
@@ -88,7 +88,7 @@ This handoff model simplifies our implementation scope:
 ### Applicable Standards
 
 | Standard | Relevance | Key Requirements |
-|----------|-----------|-----------------|
+| ---------- | ----------- | ----------------- |
 | [FDA 21 CFR Part 11](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/part-11-electronic-records-electronic-signatures-scope-and-application) | Electronic records | Audit trail for deletions; authorized personnel only |
 | [ICH E6(R3) GCP](https://ichgcp.net/4-data-governance-investigator-and-sponsor-ich-e6-r3) | Clinical trials | Written transfer agreements; sponsor retains ultimate responsibility |
 | [NIST 800-88 Rev. 1](https://csrc.nist.gov/pubs/sp/800/88/r1/final) | Data sanitization | Clear/Purge/Destroy methods; Certificate of Destruction |
@@ -113,7 +113,7 @@ This handoff model simplifies our implementation scope:
 ### Our Initial Proposal
 
 | Phase | Description |
-|-------|-------------|
+| ------- | ------------- |
 | **1. Trial Completion** | Conclude involvement in study |
 | **2. Data Transfer** | Transfer custody of data to sponsor |
 | **3. Receipt Verification** | Sponsor verifies receipt |
@@ -173,7 +173,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 1: Certified Copy Validation
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Copy validation** | "Verify receipt" | [Certified copy](https://www.octalsoft.com/certified-copies-a-guide-to-fda-ema-and-more/) with dated signature or validated process |
 | **What's verified** | Unspecified | Context, content, structure, ALCOA attributes |
 | **Evidence** | Unspecified | Certification documentation per ICH GCP |
@@ -192,7 +192,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 2: NIST 800-88 Data Sanitization
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Destruction method** | "Permanently and irrevocably delete" | [NIST 800-88](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-88r1.pdf) Clear/Purge/Destroy |
 | **Verification** | Unspecified | Verification per media type |
 | **Certificate** | Unspecified | Certificate of Destruction/Disposition required |
@@ -207,7 +207,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 3: Destruction Audit Trail Retention
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Audit trail** | Not mentioned | [21 CFR 11.10(e)](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/part-11-electronic-records-electronic-signatures-scope-and-application): retained as long as original records |
 | **Retention** | Not specified | Same as regulatory retention period |
 | **Access** | Not specified | Available for agency review and copying |
@@ -226,7 +226,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 4: Validation Period Definition
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Duration** | "Pre-specified period" | Per contractual agreement; typically 30-90 days |
 | **Criteria** | "Verify functionality" | Defined acceptance criteria |
 | **Dispute resolution** | Not mentioned | Should be specified |
@@ -245,7 +245,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 5: Post-Destruction Regulatory Response
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Inspection support** | Not addressed | Sponsor may need CRO assistance |
 | **Access to personnel** | Not addressed | May need access to personnel with system knowledge |
 | **Documentation** | Not addressed | System documentation should be transferred |
@@ -264,7 +264,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 6: Real-Time Sync as Primary vs. Handoff Copy
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Assumption** | Sponsor "already has full copy" via real-time sync | Real-time sync ≠ certified copy |
 | **Certification** | Not specified | Real-time sync should produce certified copies |
 | **Discrepancy handling** | Not addressed | What if handoff differs from real-time? |
@@ -282,7 +282,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Gap 7: Sponsor Responsibility Acknowledgment
 
 | Aspect | Our Proposal | Industry Standard |
-|--------|--------------|-------------------|
+| -------- | -------------- | ------------------- |
 | **Ongoing responsibility** | Implied by handoff | [ICH GCP 5.2.1](https://ichgcp.net/5-sponsor): Sponsor retains ultimate responsibility |
 | **Written acknowledgment** | "Data-destruction order" | Should include responsibility transfer |
 | **Future renewals** | Not addressed | Evidence Record maintenance becomes sponsor's duty |
@@ -302,7 +302,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Risks of Original Proposal
 
 | Risk | Severity | Likelihood | Mitigation |
-|------|----------|------------|------------|
+| ------ | ---------- | ------------ | ------------ |
 | Incomplete destruction proven | High | Low | NIST 800-88 certification |
 | Sponsor claims data corruption | High | Medium | Certified copy validation |
 | Regulatory inspection post-destruction | Medium | Medium | Retain audit trail + docs |
@@ -312,7 +312,7 @@ Per [ICH GCP](https://ichgcp.net/3-sponsor-ich-e6-r3) and [FDA guidance](https:/
 ### Advantages of Original Proposal
 
 | Advantage | Benefit |
-|-----------|---------|
+| ----------- | --------- |
 | Clean separation | Clear end of data stewardship responsibility |
 | Reduced liability | No ongoing data breach exposure |
 | Cost reduction | No ongoing storage costs post-handoff |
@@ -516,7 +516,7 @@ trial_archive_<sponsor>_<trial_id>_<date>/
 ### Sanitization Methods by Media Type
 
 | Media Type | Location | NIST Method | Procedure | Verification |
-|------------|----------|-------------|-----------|--------------|
+| ------------ | ---------- | ------------- | ----------- | -------------- |
 | **PostgreSQL Database** | Cloud SQL | Purge | Cryptographic erasure via key rotation | Query returns no data |
 | **Cloud Object Storage** | GCS/S3 | Purge | Delete objects + delete encryption keys | List returns empty |
 | **AWS Glacier** | AWS | Purge | Delete archives + vault + encryption keys | Vault deletion confirmed |
@@ -562,7 +562,7 @@ For cloud-hosted encrypted data, cryptographic erasure is the recommended method
 For managed services where we don't control physical media:
 
 | Provider | Attestation Type | How to Obtain |
-|----------|-----------------|---------------|
+| ---------- | ----------------- | --------------- |
 | GCP | Data deletion confirmation | Cloud Console audit logs |
 | AWS | S3 deletion markers, Glacier vault deletion | CloudTrail logs |
 | Azure | Soft-delete disabled, purge confirmed | Activity logs |
@@ -648,7 +648,7 @@ CRO:     _________________________ Date: _____________
 ## Package Contents
 
 | Item | File Count | Total Size | SHA-256 (manifest) |
-|------|------------|------------|-------------------|
+| ------ | ------------ | ------------ | ------------------- |
 | Events | ___ | ___ GB | _________________________ |
 | Evidence Records | ___ | ___ MB | _________________________ |
 | Certificates | ___ | ___ KB | _________________________ |
@@ -659,7 +659,7 @@ CRO:     _________________________ Date: _____________
 ## Chain of Custody
 
 | Step | Timestamp | Personnel | Action |
-|------|-----------|-----------|--------|
+| ------ | ----------- | ----------- | -------- |
 | 1 | ___ | ___ | Package created |
 | 2 | ___ | ___ | Transfer initiated |
 | 3 | ___ | ___ | Transfer completed |
@@ -689,7 +689,7 @@ CRO:     _________________________ Date: _____________
 ## Validation Results
 
 | Check | Result | Notes |
-|-------|--------|-------|
+| ------- | -------- | ------- |
 | Data import successful | [  ] Pass [  ] Fail | |
 | Hash verification | [  ] Pass [  ] Fail | |
 | Evidence Record verification | [  ] Pass [  ] Fail | |
@@ -791,7 +791,7 @@ Title:     _________________________
 ## Destruction Summary
 
 | Media Type | Location | Method | Verification | Completed |
-|------------|----------|--------|--------------|-----------|
+| ------------ | ---------- | -------- | -------------- | ----------- |
 | PostgreSQL Database | Cloud SQL | Cryptographic Erasure | Query test | [  ] |
 | Object Storage | GCS | Delete + Key Destruction | List test | [  ] |
 | Glacier Archives | AWS | Vault Deletion | API confirmation | [  ] |
@@ -802,7 +802,7 @@ Title:     _________________________
 ## Encryption Key Destruction
 
 | Key ID | Key Type | Destruction Method | Confirmed |
-|--------|----------|-------------------|-----------|
+| -------- | ---------- | ------------------- | ----------- |
 | ___ | Database encryption | KMS scheduled destruction | [  ] |
 | ___ | Storage encryption | KMS scheduled destruction | [  ] |
 | ___ | Backup encryption | KMS scheduled destruction | [  ] |
@@ -972,7 +972,7 @@ Sponsors may choose to use commercial solutions for long-term archival and Evide
 ### Long-Term Digital Preservation Platforms
 
 | Solution | Focus | ERS Support | Notes |
-|----------|-------|-------------|-------|
+| ---------- | ------- | ------------- | ------- |
 | [Preservica](https://preservica.com) | Enterprise archival | Built-in | Used by pharma, government |
 | [Arkivum](https://arkivum.com) | Regulated industries | Yes | Life sciences focus |
 | [Veeva Vault](https://veeva.com) | Life sciences | Retention policies | eTMF, regulatory submissions |
@@ -980,7 +980,7 @@ Sponsors may choose to use commercial solutions for long-term archival and Evide
 ### Qualified Trust Service Providers (eIDAS)
 
 | Provider | Services | Region |
-|----------|----------|--------|
+| ---------- | ---------- | -------- |
 | [Swisscom Trust Services](https://trustservices.swisscom.com) | Qualified preservation | EU/CH |
 | [InfoCert](https://infocert.it) | QTSP, long-term preservation | EU |
 | [Entrust](https://entrust.com) | Timestamps, preservation | Global |
@@ -994,7 +994,7 @@ This custody transfer protocol integrates with the Evidence Records implementati
 ### Evidence Records in Handoff
 
 | ERS Component | Handoff Treatment |
-|---------------|-------------------|
+| --------------- | ------------------- |
 | Merkle trees | Fully included in .ers files |
 | TimeStampTokens | Included with full TSA response |
 | TSA certificates | Included in certificates/ directory |
@@ -1037,7 +1037,7 @@ Sponsors may fulfill this through:
 ## Revision History
 
 | Version | Date | Changes | Author |
-|---------|------|---------|--------|
+| --------- | ------ | --------- | -------- |
 | 1.0 | 2025-11-28 | Initial draft | Development Team |
 
 ---
