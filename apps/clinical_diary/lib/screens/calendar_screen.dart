@@ -31,6 +31,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
+  List<NosebleedRecord> _allRecords = [];
   bool _isLoading = true;
 
   @override
@@ -51,8 +52,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       lastDay,
     );
 
+    // Also load all records for overlap checking
+    final allRecords = await widget.nosebleedService.getLocalRecords();
+
     setState(() {
       _dayStatuses = statuses;
+      _allRecords = allRecords;
       _isLoading = false;
     });
   }
@@ -172,6 +177,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           enrollmentService: widget.enrollmentService,
           initialDate: selectedDay,
           existingRecord: existingRecord,
+          allRecords: _allRecords,
         ),
       ),
     );

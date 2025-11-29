@@ -138,6 +138,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Future<void> _saveRecord() async {
     if (_startTime == null || _endTime == null || _severity == null) return;
 
+    // Check for overlapping events - block save if any exist
+    final overlaps = _getOverlappingEvents();
+    if (overlaps.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot save: This event overlaps with ${overlaps.length} existing ${overlaps.length == 1 ? 'event' : 'events'}',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     // Check if notes are required
     final currentRecord = NosebleedRecord(
       id: widget.existingRecord?.id ?? '',
@@ -515,6 +529,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
 
     final needsNotes = _shouldRequireNotes(currentRecord);
+    final hasOverlaps = _getOverlappingEvents().isNotEmpty;
     final buttonText = widget.existingRecord != null
         ? (isExistingComplete ? 'Save Changes' : 'Complete Record')
         : 'Finished';
@@ -623,11 +638,42 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           const Spacer(),
 
+          // Show overlap error message if overlaps exist
+          if (hasOverlaps) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Cannot save: This event overlaps with existing events. Please adjust the time.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed:
                   (_isSaving ||
+                      hasOverlaps ||
                       (needsNotes &&
                           (_notes == null || _notes!.trim().isEmpty)))
                   ? null

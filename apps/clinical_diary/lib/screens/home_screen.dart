@@ -86,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => RecordingScreen(
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
+          allRecords: _records,
         ),
       ),
     );
@@ -110,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           initialDate: yesterday,
+          allRecords: _records,
         ),
       ),
     );
@@ -277,6 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
           enrollmentService: widget.enrollmentService,
           initialDate: firstIncomplete.date,
           existingRecord: firstIncomplete,
+          allRecords: _records,
         ),
       ),
     );
