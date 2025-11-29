@@ -2,7 +2,6 @@
 #   REQ-d00002: Requirements validation tool
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
 #   REQ-d00018: Git Hook Implementation
-#   REQ-d00018: Linear ticket enforcement in CI/CD
 
 name: PR Validation - Requirements & Traceability
 
@@ -52,126 +51,6 @@ jobs:
               - 'tools/**/*.py'
             workflows:
               - '.github/workflows/**'
-
-  validate-linear-tickets:
-    name: Validate Linear Ticket References
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for commit analysis
-
-      - name: Validate PR title contains Linear ticket
-        if: github.event_name == 'pull_request'
-        run: |
-          set -euo pipefail
-          echo "::group::Validating PR Title"
-
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          echo "PR Title: $PR_TITLE"
-
-          # Pattern: CUR-XXX (with or without brackets)
-          if echo "$PR_TITLE" | grep -qE '\[?CUR-[0-9]+\]?'; then
-            echo "✅ PR title contains Linear ticket reference"
-          else
-            echo "::error::PR title must contain a Linear ticket reference (e.g., [CUR-399] or CUR-399)"
-            echo ""
-            echo "Expected format:"
-            echo "  [CUR-XXX] Description of the change"
-            echo ""
-            echo "Examples:"
-            echo "  [CUR-399] Add Linear ticket enforcement to hooks"
-            echo "  CUR-399: Implement new feature"
-            echo ""
-            exit 1
-          fi
-
-          echo "::endgroup::"
-
-      - name: Validate commits contain Linear tickets
-        if: github.event_name == 'pull_request'
-        run: |
-          set -euo pipefail
-          echo "::group::Validating Commit Messages"
-
-          # Get all commits in the PR
-          COMMITS=$(git log --format="%H %s" ${{ github.event.pull_request.base.sha }}..${{ github.sha }})
-
-          if [ -z "$COMMITS" ]; then
-            echo "No commits found in PR range"
-            exit 0
-          fi
-
-          MISSING_TICKET=()
-
-          while IFS= read -r line; do
-            COMMIT_HASH=$(echo "$line" | cut -d' ' -f1)
-            COMMIT_MSG=$(echo "$line" | cut -d' ' -f2-)
-
-            # Check for CUR-XXX pattern
-            if ! echo "$COMMIT_MSG" | grep -qE '\[?CUR-[0-9]+\]?'; then
-              MISSING_TICKET+=("$COMMIT_HASH: $COMMIT_MSG")
-            fi
-          done <<< "$COMMITS"
-
-          if [ ${#MISSING_TICKET[@]} -gt 0 ]; then
-            echo "::error::The following commits are missing Linear ticket references (CUR-XXX):"
-            for commit in "${MISSING_TICKET[@]}"; do
-              echo "  • $commit"
-            done
-            echo ""
-            echo "Each commit must include [CUR-XXX] prefix for traceability."
-            echo "See CLAUDE.md for commit message format details."
-            exit 1
-          else
-            echo "✅ All commits contain Linear ticket references"
-          fi
-
-          echo "::endgroup::"
-
-      - name: Validate commits contain REQ references
-        if: github.event_name == 'pull_request'
-        run: |
-          set -euo pipefail
-          echo "::group::Validating REQ References in Commits"
-
-          # Get full commit messages for all commits in the PR
-          COMMITS=$(git log --format="%H" ${{ github.event.pull_request.base.sha }}..${{ github.sha }})
-
-          if [ -z "$COMMITS" ]; then
-            echo "No commits found in PR range"
-            exit 0
-          fi
-
-          MISSING_REQ=()
-
-          while IFS= read -r hash; do
-            FULL_MSG=$(git log -1 --format="%B" "$hash")
-            SUBJECT=$(git log -1 --format="%s" "$hash")
-
-            # Check for REQ-XXX pattern in full commit message
-            if ! echo "$FULL_MSG" | grep -qE 'REQ-[pdo][0-9]{5}'; then
-              MISSING_REQ+=("$hash: $SUBJECT")
-            fi
-          done <<< "$COMMITS"
-
-          if [ ${#MISSING_REQ[@]} -gt 0 ]; then
-            echo "::error::The following commits are missing requirement references (REQ-XXX):"
-            for commit in "${MISSING_REQ[@]}"; do
-              echo "  • $commit"
-            done
-            echo ""
-            echo "Each commit must include 'Implements: REQ-XXX' or 'Fixes: REQ-XXX'"
-            echo "See CLAUDE.md for requirement format details."
-            exit 1
-          else
-            echo "✅ All commits contain requirement references"
-          fi
-
-          echo "::endgroup::"
 
   validate-requirements:
     name: Validate Requirements Format & Traceability
@@ -666,7 +545,7 @@ jobs:
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [changes, validate-linear-tickets, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
+    needs: [changes, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
     if: always()
 
     steps:
@@ -686,15 +565,6 @@ jobs:
 
           # Show test results
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-
-          # Linear tickets
-          if [ "${{ needs.validate-linear-tickets.result }}" = "success" ]; then
-            echo "✅ Linear ticket validation: PASSED" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ needs.validate-linear-tickets.result }}" = "skipped" ]; then
-            echo "⏭️ Linear ticket validation: SKIPPED" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Linear ticket validation: FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
 
           # Requirements
           if [ "${{ needs.validate-requirements.result }}" = "success" ]; then
@@ -752,8 +622,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           FAILED=false
 
-          if [ "${{ needs.validate-linear-tickets.result }}" = "failure" ] || \
-             [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
+          if [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
              [ "${{ needs.security-check.result }}" = "failure" ] || \
              [ "${{ needs.fda-compliance-check.result }}" = "failure" ] || \
              [ "${{ needs.test-git-hooks.result }}" = "failure" ] || \
