@@ -7,7 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('LogoMenu', () {
-    testWidgets('displays medical services icon', (tester) async {
+    testWidgets('displays logo image with correct size and grey filter', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -21,7 +23,13 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.medical_services_outlined), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.byType(ColorFiltered), findsOneWidget);
+
+      // Verify logo size is 100x40
+      final image = tester.widget<Image>(find.byType(Image));
+      expect(image.width, 100);
+      expect(image.height, 40);
     });
 
     testWidgets('icon is tappable', (tester) async {
@@ -38,8 +46,8 @@ void main() {
         ),
       );
 
-      // Find the icon button and tap it
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      // Find the logo image and tap it
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       // Menu should be visible
@@ -60,7 +68,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('Data Management'), findsOneWidget);
@@ -80,7 +88,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('Add Example Data'), findsOneWidget);
@@ -100,7 +108,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('Reset All Data'), findsOneWidget);
@@ -122,7 +130,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Add Example Data'));
@@ -147,7 +155,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Reset All Data'));
@@ -170,7 +178,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('Instructions & Feedback'), findsOneWidget);
@@ -192,7 +200,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Instructions & Feedback'));
@@ -215,7 +223,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('End Clinical Trial'), findsOneWidget);
@@ -235,7 +243,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('End Clinical Trial'), findsNothing);
@@ -257,7 +265,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('End Clinical Trial'));
@@ -280,14 +288,15 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.text('Clinical Trial'), findsOneWidget);
     });
 
-    testWidgets('shows external link icon for Instructions & Feedback',
-        (tester) async {
+    testWidgets('shows external link icon for Instructions & Feedback', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -301,7 +310,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.medical_services_outlined));
+      await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.open_in_new), findsOneWidget);

@@ -52,6 +52,8 @@ setup_test_repo() {
     git init -q --initial-branch=main
     git config user.email "test@example.com"
     git config user.name "Test User"
+    # Disable commit signing for tests
+    git config commit.gpgsign false
 
     # Copy hooks from project
     mkdir -p .githooks

@@ -12,7 +12,6 @@ import 'package:http/http.dart' as http;
 /// Service for handling user enrollment with 8-character codes
 /// Uses HTTP calls to Firebase Functions for enrollment
 class EnrollmentService {
-
   EnrollmentService({
     FlutterSecureStorage? secureStorage,
     http.Client? httpClient,
@@ -51,12 +50,8 @@ class EnrollmentService {
       // Call the enroll function via HTTP
       final response = await _httpClient.post(
         Uri.parse(AppConfig.enrollUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'code': normalizedCode,
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': normalizedCode}),
       );
 
       debugPrint('Enroll response status: ${response.statusCode}');
@@ -109,10 +104,7 @@ class EnrollmentService {
 
       debugPrint('Enrollment error: $e');
       debugPrint('Stack trace:\n$stack');
-      throw EnrollmentException(
-        'Error: $e',
-        EnrollmentErrorType.networkError,
-      );
+      throw EnrollmentException('Error: $e', EnrollmentErrorType.networkError);
     }
   }
 
@@ -135,6 +127,12 @@ class EnrollmentService {
     return enrollment?.jwtToken;
   }
 
+  /// Get user ID from enrollment
+  Future<String?> getUserId() async {
+    final enrollment = await getEnrollment();
+    return enrollment?.userId;
+  }
+
   /// Dispose resources
   void dispose() {
     _httpClient.close();
@@ -151,7 +149,6 @@ enum EnrollmentErrorType {
 
 /// Exception thrown during enrollment
 class EnrollmentException implements Exception {
-
   EnrollmentException(this.message, this.type);
   final String message;
   final EnrollmentErrorType type;

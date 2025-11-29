@@ -97,11 +97,7 @@ class EventListItem extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              Icon(
-                Icons.check_circle,
-                color: Colors.green.shade700,
-                size: 32,
-              ),
+              Icon(Icons.check_circle, color: Colors.green.shade700, size: 32),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -110,25 +106,22 @@ class EventListItem extends StatelessWidget {
                     Text(
                       'No nosebleed events',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.green.shade800,
-                          ),
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green.shade800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Confirmed no events for this day',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.green.shade700,
-                          ),
+                        color: Colors.green.shade700,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (onTap != null)
-                Icon(
-                  Icons.chevron_right,
-                  color: Colors.green.shade400,
-                ),
+                Icon(Icons.chevron_right, color: Colors.green.shade400),
             ],
           ),
         ),
@@ -148,11 +141,7 @@ class EventListItem extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              Icon(
-                Icons.help_outline,
-                color: Colors.orange.shade700,
-                size: 32,
-              ),
+              Icon(Icons.help_outline, color: Colors.orange.shade700, size: 32),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -161,25 +150,22 @@ class EventListItem extends StatelessWidget {
                     Text(
                       'Unknown',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.orange.shade800,
-                          ),
+                        fontWeight: FontWeight.w500,
+                        color: Colors.orange.shade800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Unable to recall events for this day',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.orange.shade700,
-                          ),
+                        color: Colors.orange.shade700,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (onTap != null)
-                Icon(
-                  Icons.chevron_right,
-                  color: Colors.orange.shade400,
-                ),
+                Icon(Icons.chevron_right, color: Colors.orange.shade400),
             ],
           ),
         ),
@@ -226,7 +212,8 @@ class EventListItem extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '(+1 day)',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w500,
                                 ),

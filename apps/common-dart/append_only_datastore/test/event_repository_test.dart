@@ -181,8 +181,9 @@ void main() {
       });
 
       test('returns empty list for non-existent aggregate', () async {
-        final events =
-            await repository.getEventsForAggregate('non-existent-aggregate');
+        final events = await repository.getEventsForAggregate(
+          'non-existent-aggregate',
+        );
         expect(events, isEmpty);
       });
     });
@@ -494,13 +495,13 @@ void main() {
 /// Test database provider that uses in-memory Sembast database.
 class _TestDatabaseProvider extends DatabaseProvider {
   _TestDatabaseProvider()
-      : _dbName = 'test_${DateTime.now().microsecondsSinceEpoch}.db',
-        super(
-          config: DatastoreConfig.development(
-            deviceId: 'test-device',
-            userId: 'test-user',
-          ),
-        );
+    : _dbName = 'test_${DateTime.now().microsecondsSinceEpoch}.db',
+      super(
+        config: DatastoreConfig.development(
+          deviceId: 'test-device',
+          userId: 'test-user',
+        ),
+      );
 
   final String _dbName;
   Database? _testDatabase;

@@ -36,7 +36,7 @@ class UserPreferences {
 /// Service for managing user preferences
 class PreferencesService {
   PreferencesService({SharedPreferences? sharedPreferences})
-      : _sharedPreferences = sharedPreferences;
+    : _sharedPreferences = sharedPreferences;
 
   static const _keyDarkMode = 'pref_dark_mode';
   static const _keyDyslexiaFont = 'pref_dyslexia_font';

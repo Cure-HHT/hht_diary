@@ -15,9 +15,9 @@ import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NosebleedRecord> _records = [];
   bool _hasYesterdayRecords = false;
   bool _isLoading = true;
+  List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
 
   @override
@@ -65,9 +66,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final records = await widget.nosebleedService.getLocalRecords();
     final hasYesterday = await widget.nosebleedService.hasRecordsForYesterday();
 
+    // Get incomplete records
+    final incomplete = records
+        .where((r) => r.isIncomplete && r.isRealEvent)
+        .toList();
+
     setState(() {
       _records = records;
       _hasYesterdayRecords = hasYesterday;
+      _incompleteRecords = incomplete;
       _isLoading = false;
     });
   }
@@ -126,15 +133,33 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await widget.nosebleedService.addRecord(
       date: twoDaysAgo,
-      startTime: DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day, 9, 30),
-      endTime: DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day, 9, 45),
+      startTime: DateTime(
+        twoDaysAgo.year,
+        twoDaysAgo.month,
+        twoDaysAgo.day,
+        9,
+        30,
+      ),
+      endTime: DateTime(
+        twoDaysAgo.year,
+        twoDaysAgo.month,
+        twoDaysAgo.day,
+        9,
+        45,
+      ),
       severity: NosebleedSeverity.dripping,
       notes: 'Example morning nosebleed',
     );
 
     await widget.nosebleedService.addRecord(
       date: yesterday,
-      startTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 0),
+      startTime: DateTime(
+        yesterday.year,
+        yesterday.month,
+        yesterday.day,
+        14,
+        0,
+      ),
       endTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 30),
       severity: NosebleedSeverity.steadyStream,
       notes: 'Example afternoon nosebleed',
@@ -239,6 +264,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _handleIncompleteRecordsClick() async {
+    if (_incompleteRecords.isEmpty) return;
+
+    // Navigate to edit the first incomplete record
+    final firstIncomplete = _incompleteRecords.first;
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecordingScreen(
+          nosebleedService: widget.nosebleedService,
+          enrollmentService: widget.enrollmentService,
+          initialDate: firstIncomplete.date,
+          existingRecord: firstIncomplete,
+        ),
+      ),
+    );
+
+    if (result ?? false) {
+      unawaited(_loadRecords());
+    }
+  }
+
   Future<void> _navigateToEditRecord(NosebleedRecord record) async {
     final result = await Navigator.push<bool>(
       context,
@@ -275,44 +322,73 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final groups = <_GroupedRecords>[];
 
-    // Get incomplete records first
-    final incompleteRecords = _records
-        .where((r) => r.isIncomplete && r.isRealEvent)
-        .toList();
+    // Get incomplete records that are older than yesterday
+    final olderIncompleteRecords =
+        _records.where((r) {
+          if (!r.isIncomplete || !r.isRealEvent) return false;
+          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+          return dateStr != todayStr && dateStr != yesterdayStr;
+        }).toList()..sort(
+          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
+        );
 
-    if (incompleteRecords.isNotEmpty) {
-      groups.add(_GroupedRecords(
-        label: l10n.incompleteRecords,
-        records: incompleteRecords,
-        isIncomplete: true,
-      ));
+    if (olderIncompleteRecords.isNotEmpty) {
+      groups.add(
+        _GroupedRecords(
+          label: l10n.incompleteRecords,
+          records: olderIncompleteRecords,
+          isIncomplete: true,
+        ),
+      );
     }
 
-    // Yesterday's records
-    final yesterdayRecords = _records.where((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-      return dateStr == yesterdayStr && r.isRealEvent && !r.isIncomplete;
-    }).toList()
-      ..sort((a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
+    // Yesterday's records (excluding incomplete ones shown above)
+    final yesterdayRecords =
+        _records.where((r) {
+          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+          return dateStr == yesterdayStr && r.isRealEvent;
+        }).toList()..sort(
+          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
+        );
 
-    groups.add(_GroupedRecords(
-      label: l10n.yesterday,
-      date: yesterday,
-      records: yesterdayRecords,
-    ));
+    // Check if there are ANY records for yesterday (including special events)
+    final hasAnyYesterdayRecords = _records.any((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      return dateStr == yesterdayStr;
+    });
+
+    groups.add(
+      _GroupedRecords(
+        label: l10n.yesterday,
+        date: yesterday,
+        records: yesterdayRecords,
+        isEmpty: !hasAnyYesterdayRecords,
+      ),
+    );
 
     // Today's records
-    final todayRecords = _records.where((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-      return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
-    }).toList()
-      ..sort((a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date));
+    final todayRecords =
+        _records.where((r) {
+          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+          return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
+        }).toList()..sort(
+          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
+        );
 
-    groups.add(_GroupedRecords(
-      label: l10n.today,
-      date: today,
-      records: todayRecords,
-    ));
+    // Check if there are ANY records for today (including special events)
+    final hasAnyTodayRecords = _records.any((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      return dateStr == todayStr;
+    });
+
+    groups.add(
+      _GroupedRecords(
+        label: l10n.today,
+        date: today,
+        records: todayRecords,
+        isEmpty: !hasAnyTodayRecords,
+      ),
+    );
 
     return groups;
   }
@@ -325,25 +401,35 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Header with interactive logo and user menu
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Logo menu
+                  // Logo menu on the left
                   LogoMenu(
                     onAddExampleData: _handleAddExampleData,
                     onResetAllData: _handleResetAllData,
-                    onEndClinicalTrial: _isEnrolled ? _handleEndClinicalTrial : null,
+                    onEndClinicalTrial: _isEnrolled
+                        ? _handleEndClinicalTrial
+                        : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                   ),
-                  Text(
-                    AppLocalizations.of(context).appTitle,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                  // Centered title
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context).appTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  // Profile menu on the right
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.person_outline),
                     tooltip: 'User menu',
@@ -385,7 +471,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const Icon(Icons.settings, size: 20),
                             const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).accessibilityAndPreferences),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              ).accessibilityAndPreferences,
+                            ),
                           ],
                         ),
                       ),
@@ -406,7 +496,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const Icon(Icons.group_add, size: 20),
                             const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).enrollInClinicalTrial),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              ).enrollInClinicalTrial,
+                            ),
                           ],
                         ),
                       ),
@@ -416,13 +510,62 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Yesterday banner if no records
-            if (!_hasYesterdayRecords && !_isLoading)
-              YesterdayBanner(
-                onNoNosebleeds: _handleYesterdayNoNosebleeds,
-                onHadNosebleeds: _handleYesterdayHadNosebleeds,
-                onDontRemember: _handleYesterdayDontRemember,
-              ),
+            // Banners section
+            if (!_isLoading) ...[
+              // Incomplete records banner (orange)
+              if (_incompleteRecords.isNotEmpty)
+                InkWell(
+                  onTap: _handleIncompleteRecordsClick,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange.shade800,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${_incompleteRecords.length} incomplete record${_incompleteRecords.length > 1 ? 's' : ''}',
+                            style: TextStyle(
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Tap to complete →',
+                          style: TextStyle(
+                            color: Colors.orange.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Active questionnaire banner (blue) - placeholder
+              // TODO: Add questionnaire functionality
+
+              // Yesterday confirmation banner (yellow)
+              if (!_hasYesterdayRecords)
+                YesterdayBanner(
+                  onNoNosebleeds: _handleYesterdayNoNosebleeds,
+                  onHadNosebleeds: _handleYesterdayHadNosebleeds,
+                  onDontRemember: _handleYesterdayDontRemember,
+                ),
+            ],
 
             // Records list
             Expanded(
@@ -445,34 +588,55 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Main record button
+                  // Missing data button (placeholder)
+                  // TODO: Add missing data functionality
+
+                  // Main record button - large red button
                   SizedBox(
                     width: double.infinity,
-                    height: 140,
-                    child: FilledButton(
-                      onPressed: _navigateToRecording,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add, size: 48),
-                          const SizedBox(height: 8),
-                          Text(
-                            AppLocalizations.of(context).recordNosebleed,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Get screen height
+                        final screenHeight = MediaQuery.of(context).size.height;
+                        // Calculate 25vh (25% of viewport height)
+                        final buttonHeight = screenHeight * 0.25;
+                        // Ensure minimum height of 160px
+                        final finalHeight = buttonHeight < 160
+                            ? 160.0
+                            : buttonHeight;
+
+                        return SizedBox(
+                          height: finalHeight,
+                          child: FilledButton(
+                            onPressed: _navigateToRecording,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              elevation: 4,
+                              shadowColor: Colors.black.withValues(alpha: 0.3),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add, size: 48),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Record Nosebleed',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
 
@@ -509,41 +673,62 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Divider with label
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  group.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: group.isIncomplete ? FontWeight.bold : FontWeight.normal,
-                    color: group.isIncomplete
-                        ? Colors.orange.shade700
-                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        // Divider with label (only show for incomplete records section)
+        if (group.isIncomplete)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    group.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange.shade700,
+                    ),
                   ),
                 ),
-              ),
-              const Expanded(child: Divider()),
-            ],
+                const Expanded(child: Divider()),
+              ],
+            ),
           ),
-        ),
 
-        // Date display
-        if (group.date != null)
+        // Date display for today and yesterday
+        if (group.date != null && !group.isIncomplete)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Center(
-              child: Text(
-                DateFormat('EEEE, MMMM d, y').format(group.date!),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-              ),
+            padding: const EdgeInsets.only(top: 8, bottom: 8),
+            child: Column(
+              children: [
+                if (group.label != 'incomplete records')
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          group.label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  DateFormat('EEEE, MMMM d, y').format(group.date!),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
           ),
 
@@ -555,7 +740,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 'no events ${group.label.toLowerCase()}',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -576,14 +763,16 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _GroupedRecords {
-
   _GroupedRecords({
     required this.label,
-    required this.records, this.date,
+    required this.records,
+    this.date,
     this.isIncomplete = false,
+    this.isEmpty = false,
   });
   final String label;
   final DateTime? date;
   final List<NosebleedRecord> records;
   final bool isIncomplete;
+  final bool isEmpty;
 }

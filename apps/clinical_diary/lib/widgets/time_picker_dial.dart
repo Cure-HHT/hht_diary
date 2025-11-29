@@ -9,11 +9,13 @@ class TimePickerDial extends StatefulWidget {
     required this.onConfirm,
     super.key,
     this.confirmLabel = 'Confirm',
+    this.allowFutureTimes = false,
   });
   final String title;
   final DateTime initialTime;
   final ValueChanged<DateTime> onConfirm;
   final String confirmLabel;
+  final bool allowFutureTimes;
 
   @override
   State<TimePickerDial> createState() => _TimePickerDialState();
@@ -28,13 +30,24 @@ class _TimePickerDialState extends State<TimePickerDial> {
     _selectedTime = widget.initialTime;
   }
 
+  // Track which button should show error flash
+  int? _errorButtonDelta;
+
   void _adjustMinutes(int delta) {
+    final newTime = _selectedTime.add(Duration(minutes: delta));
+
+    // Check if this would go into the future
+    if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+      // Show error flash on the button
+      setState(() => _errorButtonDelta = delta);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) setState(() => _errorButtonDelta = null);
+      });
+      return;
+    }
+
     setState(() {
-      _selectedTime = _selectedTime.add(Duration(minutes: delta));
-      // Don't allow future times
-      if (_selectedTime.isAfter(DateTime.now())) {
-        _selectedTime = DateTime.now();
-      }
+      _selectedTime = newTime;
     });
   }
 
@@ -45,19 +58,31 @@ class _TimePickerDialState extends State<TimePickerDial> {
     );
 
     if (picked != null) {
-      setState(() {
-        _selectedTime = DateTime(
-          _selectedTime.year,
-          _selectedTime.month,
-          _selectedTime.day,
-          picked.hour,
-          picked.minute,
-        );
-        // Don't allow future times
-        if (_selectedTime.isAfter(DateTime.now())) {
-          _selectedTime = DateTime.now();
+      final newTime = DateTime(
+        _selectedTime.year,
+        _selectedTime.month,
+        _selectedTime.day,
+        picked.hour,
+        picked.minute,
+      );
+      // Don't allow future times unless explicitly permitted
+      if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+        // Show feedback that future time was rejected
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cannot select a time in the future'),
+              duration: Duration(seconds: 2),
+            ),
+          );
         }
+        return;
+      }
+      setState(() {
+        _selectedTime = newTime;
       });
+      // Auto-confirm when user selects from native time picker
+      widget.onConfirm(newTime);
     }
   }
 
@@ -111,17 +136,41 @@ class _TimePickerDialState extends State<TimePickerDial> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _AdjustButton(label: '-15', onPressed: () => _adjustMinutes(-15)),
+              _AdjustButton(
+                label: '-15',
+                onPressed: () => _adjustMinutes(-15),
+                showError: _errorButtonDelta == -15,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '-5', onPressed: () => _adjustMinutes(-5)),
+              _AdjustButton(
+                label: '-5',
+                onPressed: () => _adjustMinutes(-5),
+                showError: _errorButtonDelta == -5,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '-1', onPressed: () => _adjustMinutes(-1)),
+              _AdjustButton(
+                label: '-1',
+                onPressed: () => _adjustMinutes(-1),
+                showError: _errorButtonDelta == -1,
+              ),
               const SizedBox(width: 24),
-              _AdjustButton(label: '+1', onPressed: () => _adjustMinutes(1)),
+              _AdjustButton(
+                label: '+1',
+                onPressed: () => _adjustMinutes(1),
+                showError: _errorButtonDelta == 1,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '+5', onPressed: () => _adjustMinutes(5)),
+              _AdjustButton(
+                label: '+5',
+                onPressed: () => _adjustMinutes(5),
+                showError: _errorButtonDelta == 5,
+              ),
               const SizedBox(width: 12),
-              _AdjustButton(label: '+15', onPressed: () => _adjustMinutes(15)),
+              _AdjustButton(
+                label: '+15',
+                onPressed: () => _adjustMinutes(15),
+                showError: _errorButtonDelta == 15,
+              ),
             ],
           ),
 
@@ -148,25 +197,42 @@ class _TimePickerDialState extends State<TimePickerDial> {
 }
 
 class _AdjustButton extends StatelessWidget {
-  const _AdjustButton({required this.label, required this.onPressed});
+  const _AdjustButton({
+    required this.label,
+    required this.onPressed,
+    this.showError = false,
+  });
   final String label;
   final VoidCallback onPressed;
+  final bool showError;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onPressed,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+        color: showError
+            ? Theme.of(context).colorScheme.errorContainer
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: showError
+                    ? Theme.of(context).colorScheme.onErrorContainer
+                    : null,
+              ),
+            ),
           ),
         ),
       ),
