@@ -16,7 +16,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | --- | --- | --- | --- |
 | REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | cf4bce54 |
 | REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | b551cfb0 |
-| REQ-d00003 | dev-security.md | Identity Platform Auth Configuration Per Sponsor | 27095b5c |
+| REQ-d00003 | dev-security.md | Identity Platform Configuration Per Sponsor | 27095b5c |
 | REQ-d00004 | dev-app.md | Local-First Data Entry Implementation | 843d0664 |
 | REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | 37465932 |
 | REQ-d00006 | dev-app.md | Mobile App Build and Release Process | 6dfe9c2d |
@@ -55,7 +55,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00040 | dev-portal.md | User Site Access Table Schema | 9ce60fc6 |
 | REQ-d00041 | dev-portal.md | Patients Table Extensions for Portal | 4662cd2a |
 | REQ-d00042 | dev-portal.md | Questionnaires Table Schema | 166c9e74 |
-| REQ-d00043 | dev-portal.md | Netlify Deployment Configuration | da14653c |
+| REQ-d00043 | dev-portal.md | Cloud Run Deployment Configuration | da14653c |
 | REQ-d00051 | dev-portal.md | Auditor Dashboard Implementation | 1c02e54a |
 | REQ-d00052 | dev-portal.md | Role-Based Banner Component | 40c44430 |
 | REQ-d00053 | dev-requirements-management.md | Development Environment and Tooling Setup | 404b139b |
@@ -76,7 +76,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
 | REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | c6ed3379 |
-| REQ-o00003 | ops-database-setup.md | Cloud SQL Provisioning Per Sponsor | 5c8ec50e |
+| REQ-o00003 | ops-database-setup.md | GCP Project Provisioning Per Sponsor | 5c8ec50e |
 | REQ-o00004 | ops-database-setup.md | Database Schema Deployment | b9f6a0b5 |
 | REQ-o00005 | ops-operations.md | Audit Trail Monitoring | f48b8b6b |
 | REQ-o00006 | ops-security-authentication.md | MFA Configuration for Staff Accounts | b8739ec1 |
