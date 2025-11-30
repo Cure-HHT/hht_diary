@@ -48,7 +48,8 @@ Finder findDateCellInCurrentMonth(WidgetTester tester, int day) {
     matching: find.byWidgetPredicate((widget) {
       if (widget is Container) {
         final decoration = widget.decoration;
-        if (decoration is BoxDecoration && decoration.shape == BoxShape.circle) {
+        if (decoration is BoxDecoration &&
+            decoration.shape == BoxShape.circle) {
           return true;
         }
       }
@@ -232,8 +233,11 @@ void main() {
 
       // Find date cells for today's day number
       final dateCells = findDateCellInCurrentMonth(tester, today.day);
-      expect(dateCells, findsWidgets,
-          reason: 'Should find date cells for day ${today.day}');
+      expect(
+        dateCells,
+        findsWidgets,
+        reason: 'Should find date cells for day ${today.day}',
+      );
 
       // Tap the first matching cell
       await tester.tap(dateCells.first);
@@ -270,8 +274,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Past/present dates should be selectable
-        expect(selectedDate, isNotNull,
-            reason: 'Day 15 should be selectable');
+        expect(selectedDate, isNotNull, reason: 'Day 15 should be selectable');
       }
     });
 
@@ -316,8 +319,9 @@ void main() {
       }
     });
 
-    testWidgets('calendar uses enabledDayPredicate to block future dates',
-        (tester) async {
+    testWidgets('calendar uses enabledDayPredicate to block future dates', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildCalendarOverlay(
           isOpen: true,
@@ -340,7 +344,9 @@ void main() {
       // 2. Behavioral: tapping future dates does nothing
     });
 
-    testWidgets('allows historical data entry (middle of month)', (tester) async {
+    testWidgets('allows historical data entry (middle of month)', (
+      tester,
+    ) async {
       DateTime? selectedDate;
 
       await tester.pumpWidget(
@@ -360,8 +366,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // Historical dates should be selectable for data backfill
-        expect(selectedDate, isNotNull,
-            reason: 'Day 10 should be selectable for data backfill');
+        expect(
+          selectedDate,
+          isNotNull,
+          reason: 'Day 10 should be selectable for data backfill',
+        );
       }
     });
 
@@ -388,8 +397,11 @@ void main() {
         await tester.tap(dateCells.first);
         await tester.pumpAndSettle();
 
-        expect(callbackFired, isTrue,
-            reason: 'onDateSelect should be called for valid dates');
+        expect(
+          callbackFired,
+          isTrue,
+          reason: 'onDateSelect should be called for valid dates',
+        );
         expect(receivedDate, isNotNull);
         expect(receivedDate!.day, 5);
       }

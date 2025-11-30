@@ -269,9 +269,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         child: Center(
                           child: Text(
                             '${day.day}',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                            ),
+                            style: TextStyle(color: Colors.grey.shade500),
                           ),
                         ),
                       );

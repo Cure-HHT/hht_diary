@@ -818,12 +818,13 @@ void main() {
         });
 
         // Set up enrolled user
-        mockEnrollment.enrollment = UserEnrollment(
-          userId: 'enrolled-user',
-          jwtToken: 'test-token',
-          enrolledAt: DateTime(2024, 1, 1), // Enrolled before event date
-        );
-        mockEnrollment.jwtToken = 'test-token';
+        mockEnrollment
+          ..enrollment = UserEnrollment(
+            userId: 'enrolled-user',
+            jwtToken: 'test-token',
+            enrolledAt: DateTime(2024, 1, 1), // Enrolled before event date
+          )
+          ..jwtToken = 'test-token';
 
         await tester.pumpWidget(
           MaterialApp(
@@ -868,8 +869,9 @@ void main() {
         });
 
         // Not enrolled
-        mockEnrollment.enrollment = null;
-        mockEnrollment.jwtToken = null;
+        mockEnrollment
+          ..enrollment = null
+          ..jwtToken = null;
 
         await tester.pumpWidget(
           MaterialApp(
