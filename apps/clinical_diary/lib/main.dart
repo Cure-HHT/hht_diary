@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-d00006: Mobile App Build and Release Process
 //   REQ-p00006: Offline-First Data Entry
+//   REQ-d00006: Mobile App Build and Release Process
 
 import 'dart:async';
 

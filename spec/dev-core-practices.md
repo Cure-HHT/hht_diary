@@ -324,11 +324,12 @@ gcloud run deploy server --project=$PROJECT_ID --image=$IMAGE
    - Format: `[TICKET-XXX] Brief description of change`
    - Include "why" in commit body, not just "what"
    - Commit frequently with logical units of work
+   - Commits must be formatted (dart format ., tslint)
 
 4. **Code Review Requirements**
    - All code must be reviewed before merge
    - Self-review your own PR first
-   - Run all tests locally before creating PR
+   - All tests must pass before creating PR
    - Address all review comments or explain why not
 
 ## Implementation Standards
