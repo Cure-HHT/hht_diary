@@ -137,6 +137,21 @@ if [ -n "$DART_FILES_CHANGED" ]; then
     echo "🎯 Checking Dart code quality..."
     echo ""
 
+    # Check if dart is available
+    if ! command -v dart &> /dev/null; then
+        echo "❌ ERROR: dart is not installed but Dart files are being committed!"
+        echo ""
+        echo "Dart files changed:"
+        echo "$DART_FILES_CHANGED" | sed 's/^/  - /'
+        echo ""
+        echo "Please install Flutter/Dart to commit Dart files."
+        echo "See: https://docs.flutter.dev/get-started/install"
+        echo ""
+        echo "To bypass this check (NOT RECOMMENDED):"
+        echo "  git commit --no-verify"
+        exit 1
+    fi
+
     # Find all unique Dart project directories affected
     DART_PROJECTS=""
     while IFS= read -r dart_file; do

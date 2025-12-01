@@ -259,8 +259,8 @@ test_postcommit_records_workflow_history() {
     create_workflow_state "CUR-123" '["REQ-d00001"]'
     create_test_file "feature.txt" "New feature"
 
-    # Make a valid commit
-    git commit -m "Add feature
+    # Make a valid commit (needs both CUR and REQ references to pass commit-msg hook)
+    git commit -m "[CUR-123] Add feature
 
 Implements: REQ-d00001" > /dev/null 2>&1 || true
 
