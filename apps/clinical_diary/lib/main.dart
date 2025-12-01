@@ -135,9 +135,7 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
       ],
       // Wrap all routes with ResponsiveWebFrame to constrain width on web
       builder: (context, child) {
-        return ResponsiveWebFrame(
-          child: child ?? const SizedBox.shrink(),
-        );
+        return ResponsiveWebFrame(child: child ?? const SizedBox.shrink());
       },
       home: AppRoot(
         onLocaleChanged: _setLocale,

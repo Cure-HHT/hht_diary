@@ -238,7 +238,58 @@ fi
 echo ""
 
 # =====================================================
-# 5. Auto-Discover and Execute Plugin Pre-Push Hooks
+# 5. Dart Format Check
+# =====================================================
+# Verify ALL dart files in apps/ are properly formatted
+
+echo -e "${BLUE}Checking Dart formatting...${NC}"
+echo ""
+
+# Check if dart is available
+if command -v dart &> /dev/null; then
+    DART_FORMAT_FAILED=false
+
+    # Check each app directory with a pubspec.yaml
+    for pubspec in "$REPO_ROOT"/apps/*/pubspec.yaml; do
+        if [ -f "$pubspec" ]; then
+            APP_DIR=$(dirname "$pubspec")
+            APP_NAME=$(basename "$APP_DIR")
+
+            echo "  Checking $APP_NAME..."
+
+            # Run dart format check on the entire app
+            if ! (cd "$APP_DIR" && dart format --output=none --set-exit-if-changed . 2>&1); then
+                DART_FORMAT_FAILED=true
+                echo ""
+                echo -e "${RED}  ❌ $APP_NAME has unformatted Dart files${NC}"
+                echo ""
+            else
+                echo -e "${GREEN}  ✅ $APP_NAME formatting OK${NC}"
+            fi
+        fi
+    done
+
+    if [ "$DART_FORMAT_FAILED" = true ]; then
+        VALIDATION_FAILED=true
+        echo ""
+        echo -e "${RED}Dart format check failed!${NC}"
+        echo -e "${RED}Run 'dart format .' in the affected app directories.${NC}"
+        echo ""
+    else
+        echo ""
+        echo -e "${GREEN}Dart format check passed!${NC}"
+    fi
+else
+    echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
+    echo -e "${RED}       Install Flutter/Dart: https://docs.flutter.dev/get-started/install${NC}"
+    echo ""
+    VALIDATION_FAILED=true
+fi
+
+echo ""
+
+# =====================================================
+# 6. Auto-Discover and Execute Plugin Pre-Push Hooks
 # =====================================================
 
 PLUGIN_DIR="$REPO_ROOT/tools/anspar-cc-plugins/plugins"
@@ -264,7 +315,7 @@ if [ -d "$PLUGIN_DIR" ]; then
 fi
 
 # =====================================================
-# 6. Run Test Suites (./tool/test.sh)
+# 7. Run Test Suites (./tool/test.sh)
 # =====================================================
 #
 # Runs ./tool/test.sh in any app directory that has code changes.
@@ -325,7 +376,7 @@ else
 fi
 
 # =====================================================
-# 7. Handle Validation Results
+# 8. Handle Validation Results
 # =====================================================
 
 echo ""
