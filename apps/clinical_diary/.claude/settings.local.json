@@ -55,7 +55,12 @@
       "mcp__figma-desktop__get_design_context",
       "Bash(node /Users/mbushe/dev/anspar/hht_diary/tools/anspar-cc-plugins/plugins/linear-api/scripts/fetch-tickets.js:*)",
       "mcp__figma-desktop__get_screenshot",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "WebFetch(domain:linear.app)",
+      "Bash(DEBUG_GRAPHQL=true node:*)",
+      "Bash(echo:*)",
+      "Bash(/Users/mbushe/dev/anspar/hht_diary/tools/anspar-cc-plugins/plugins/workflow/scripts/switch-ticket.sh:*)",
+      "Bash(/Users/mbushe/dev/anspar/hht_diary/tools/anspar-cc-plugins/plugins/workflow/scripts/get-active-ticket.sh)"
     ],
     "deny": [],
     "ask": []

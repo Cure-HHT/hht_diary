@@ -11,6 +11,7 @@ import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -164,6 +165,7 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
+  final AuthService _authService = AuthService();
   late final NosebleedService _nosebleedService;
 
   @override
@@ -179,6 +181,7 @@ class _AppRootState extends State<AppRoot> {
     return HomeScreen(
       nosebleedService: _nosebleedService,
       enrollmentService: _enrollmentService,
+      authService: _authService,
       onLocaleChanged: widget.onLocaleChanged,
       onThemeModeChanged: widget.onThemeModeChanged,
       preferencesService: widget.preferencesService,
