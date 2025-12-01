@@ -15,6 +15,7 @@ void main() {
     late MockSecureStorage mockStorage;
     late FakeFirebaseFirestore fakeFirestore;
     late AuthService authService;
+
     setUp(() {
       mockStorage = MockSecureStorage();
       fakeFirestore = FakeFirebaseFirestore();
@@ -24,12 +25,30 @@ void main() {
       );
     });
 
-    Widget buildTestWidget({Size? surfaceSize}) {
+    Widget buildTestWidget() {
       return MaterialApp(
-        home: Material(
-          child: LoginScreen(authService: authService, onLoginSuccess: () {}),
-        ),
+        home: LoginScreen(authService: authService, onLoginSuccess: () {}),
       );
+    }
+
+    // Helper to scroll to and tap a widget
+    Future<void> scrollAndTap(WidgetTester tester, Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    // Helper to scroll to and enter text
+    Future<void> scrollAndEnterText(
+      WidgetTester tester,
+      Finder finder,
+      String text,
+    ) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.enterText(finder, text);
+      await tester.pumpAndSettle();
     }
 
     group('UI Elements', () {
@@ -66,7 +85,11 @@ void main() {
       testWidgets('displays create account toggle text', (tester) async {
         await tester.pumpWidget(buildTestWidget());
 
-        expect(find.textContaining("Don't have an account?"), findsOneWidget);
+        final finder = find.textContaining("Don't have an account?");
+        await tester.ensureVisible(finder);
+        await tester.pumpAndSettle();
+
+        expect(finder, findsOneWidget);
       });
     });
 
@@ -76,6 +99,389 @@ void main() {
 
         // Find visibility_off icon (password hidden by default)
         expect(find.byIcon(Icons.visibility_off), findsWidgets);
+      });
+
+      testWidgets('toggles password visibility when icon tapped', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Find the password field's visibility toggle
+        final visibilityOff = find.byIcon(Icons.visibility_off);
+        expect(visibilityOff, findsOneWidget);
+
+        // Tap the visibility toggle
+        await scrollAndTap(tester, visibilityOff);
+
+        // Now password is visible (visibility icon shown)
+        expect(find.byIcon(Icons.visibility), findsOneWidget);
+
+        // Tap again to hide
+        await scrollAndTap(tester, find.byIcon(Icons.visibility));
+
+        expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+      });
+    });
+
+    group('Mode Toggle', () {
+      testWidgets('toggles to register mode when create account tapped', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Initially in login mode
+        expect(find.text('Login'), findsWidgets);
+
+        // Scroll to and tap the toggle button
+        final toggleButton = find.textContaining("Don't have an account?");
+        await scrollAndTap(tester, toggleButton);
+
+        // Now in register mode - app bar title should change
+        expect(find.text('Create Account'), findsWidgets);
+      });
+
+      testWidgets('shows confirm password field in register mode', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Initially no confirm password field
+        expect(find.text('Confirm Password'), findsNothing);
+
+        // Switch to register mode
+        await scrollAndTap(
+          tester,
+          find.textContaining("Don't have an account?"),
+        );
+
+        // Now confirm password field is visible
+        final confirmField = find.text('Confirm Password');
+        await tester.ensureVisible(confirmField);
+        expect(confirmField, findsOneWidget);
+      });
+
+      testWidgets('toggles back to login mode', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Switch to register mode
+        await scrollAndTap(
+          tester,
+          find.textContaining("Don't have an account?"),
+        );
+
+        expect(find.text('Create Account'), findsWidgets);
+
+        // Switch back to login mode
+        await scrollAndTap(
+          tester,
+          find.textContaining('Already have an account?'),
+        );
+
+        expect(find.text('Login'), findsWidgets);
+        expect(find.text('Confirm Password'), findsNothing);
+      });
+    });
+
+    group('Form Validation', () {
+      testWidgets('shows error when username is empty', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Enter only password
+        final usernameField = find.widgetWithText(TextFormField, 'Username');
+        await scrollAndEnterText(tester, usernameField, '');
+
+        final passwordField = find.widgetWithText(TextFormField, 'Password');
+        await scrollAndEnterText(tester, passwordField, 'password123');
+
+        // Tap login button
+        final loginButton = find.widgetWithText(FilledButton, 'Login');
+        await scrollAndTap(tester, loginButton);
+
+        expect(find.text('Username is required'), findsOneWidget);
+      });
+
+      testWidgets('shows error when username is too short', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'abc',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.textContaining('at least'), findsOneWidget);
+      });
+
+      testWidgets('shows error when username contains @', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'user@test',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.text('Username cannot contain @ symbol'), findsOneWidget);
+      });
+
+      testWidgets('shows error when username has invalid characters', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'user name',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.textContaining('letters, numbers'), findsOneWidget);
+      });
+
+      testWidgets('shows error when password is empty', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'validuser',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          '',
+        );
+
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.text('Password is required'), findsOneWidget);
+      });
+
+      testWidgets('shows error when password is too short', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'validuser',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'short',
+        );
+
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.textContaining('at least'), findsWidgets);
+      });
+
+      testWidgets('shows error when passwords do not match in register mode', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Switch to register mode
+        await scrollAndTap(
+          tester,
+          find.textContaining("Don't have an account?"),
+        );
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'newuser123',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Confirm Password'),
+          'different12',
+        );
+
+        await scrollAndTap(
+          tester,
+          find.widgetWithText(FilledButton, 'Create Account'),
+        );
+
+        expect(find.text('Passwords do not match'), findsOneWidget);
+      });
+    });
+
+    group('Form Submission', () {
+      testWidgets('shows error message on login failure', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'nonexistent',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        // Should show error message
+        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+        expect(find.textContaining('Invalid'), findsOneWidget);
+      });
+
+      testWidgets('clears error message when username text changes', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Trigger login failure
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'nonexistent',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+
+        // Type in username field - error should clear
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'newtext123',
+        );
+
+        // Error should be cleared
+        expect(find.byIcon(Icons.error_outline), findsNothing);
+      });
+
+      testWidgets('clears error message when password text changes', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Trigger login failure
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'nonexistent',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+        await scrollAndTap(tester, find.widgetWithText(FilledButton, 'Login'));
+
+        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+
+        // Type in password field - error should clear
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'newpassword',
+        );
+
+        // Error should be cleared
+        expect(find.byIcon(Icons.error_outline), findsNothing);
+      });
+
+      testWidgets('shows error for taken username in register mode', (
+        tester,
+      ) async {
+        // Create existing user
+        await fakeFirestore.collection('users').doc('existinguser').set({
+          'username': 'existinguser',
+          'passwordHash': 'somehash',
+        });
+
+        await tester.pumpWidget(buildTestWidget());
+
+        // Switch to register mode
+        await scrollAndTap(
+          tester,
+          find.textContaining("Don't have an account?"),
+        );
+
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Username'),
+          'existinguser',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Password'),
+          'password123',
+        );
+        await scrollAndEnterText(
+          tester,
+          find.widgetWithText(TextFormField, 'Confirm Password'),
+          'password123',
+        );
+
+        await scrollAndTap(
+          tester,
+          find.widgetWithText(FilledButton, 'Create Account'),
+        );
+
+        expect(find.textContaining('already taken'), findsOneWidget);
+      });
+    });
+
+    group('Confirm Password Visibility', () {
+      testWidgets('toggles confirm password visibility', (tester) async {
+        await tester.pumpWidget(buildTestWidget());
+
+        // Switch to register mode
+        await scrollAndTap(
+          tester,
+          find.textContaining("Don't have an account?"),
+        );
+
+        // Find all visibility_off icons (password has one, confirm has one)
+        expect(find.byIcon(Icons.visibility_off), findsNWidgets(2));
+
+        // Tap the second visibility_off icon (confirm password)
+        final icons = find.byIcon(Icons.visibility_off);
+        await tester.ensureVisible(icons.last);
+        await tester.pumpAndSettle();
+        await tester.tap(icons.last);
+        await tester.pumpAndSettle();
+
+        // Now there should be one visibility_off (password) and one visibility (confirm)
+        expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+        expect(find.byIcon(Icons.visibility), findsOneWidget);
       });
     });
 
