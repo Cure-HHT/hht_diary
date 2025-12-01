@@ -39,9 +39,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   DateTime? _startTime;
   DateTime? _endTime;
   NosebleedSeverity? _severity;
-  String? _notes;
-  bool _isEnrolledInTrial = false;
-  DateTime? _enrollmentDateTime;
   bool _isSaving = false;
 
   // Track which fields the user has explicitly set (vs default values)
@@ -57,13 +54,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   void initState() {
     super.initState();
     _date = widget.initialDate ?? DateTime.now();
-    _loadEnrollmentStatus();
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
       _severity = widget.existingRecord!.severity;
-      _notes = widget.existingRecord!.notes;
       // Existing record means all present fields were "set"
       _userSetStart = _startTime != null;
       _userSetEnd = _endTime != null;
@@ -81,25 +76,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       // Default end time
       _endTime = _startTime!.add(const Duration(minutes: 15));
     }
-  }
-
-  Future<void> _loadEnrollmentStatus() async {
-    final enrollment = await widget.enrollmentService.getEnrollment();
-    if (mounted) {
-      setState(() {
-        _isEnrolledInTrial = enrollment != null;
-        _enrollmentDateTime = enrollment?.enrolledAt;
-      });
-    }
-  }
-
-  bool _shouldRequireNotes(NosebleedRecord? record) {
-    if (!_isEnrolledInTrial || _enrollmentDateTime == null) return false;
-    if (record == null) return false;
-
-    final recordStartTime = record.startTime ?? record.date;
-    return recordStartTime.isAfter(_enrollmentDateTime!) ||
-        recordStartTime.isAtSameMomentAs(_enrollmentDateTime!);
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
@@ -165,22 +141,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       return false;
     }
 
-    // Check notes requirement for complete records
-    if (_userSetStart && _userSetEnd && _userSetSeverity) {
-      final currentRecord = NosebleedRecord(
-        id: widget.existingRecord?.id ?? '',
-        date: _date,
-        startTime: _startTime,
-        endTime: _endTime,
-        severity: _severity,
-        notes: _notes,
-      );
-      if (_shouldRequireNotes(currentRecord) &&
-          (_notes == null || _notes!.trim().isEmpty)) {
-        return false;
-      }
-    }
-
     return true;
   }
 
@@ -201,28 +161,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       return;
     }
 
-    // Check if notes are required for complete records
-    if (_startTime != null && _endTime != null && _severity != null) {
-      final currentRecord = NosebleedRecord(
-        id: widget.existingRecord?.id ?? '',
-        date: _date,
-        startTime: _startTime,
-        endTime: _endTime,
-        severity: _severity,
-        notes: _notes,
-      );
-
-      if (_shouldRequireNotes(currentRecord) &&
-          (_notes == null || _notes!.trim().isEmpty)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notes are required for clinical trial participants'),
-          ),
-        );
-        return;
-      }
-    }
-
     setState(() => _isSaving = true);
 
     try {
@@ -234,7 +172,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           startTime: _startTime,
           endTime: _endTime,
           severity: _severity,
-          notes: _notes,
         );
       } else {
         // Create new record (isIncomplete is calculated automatically by service)
@@ -243,7 +180,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           startTime: _startTime,
           endTime: _endTime,
           severity: _severity,
-          notes: _notes,
         );
       }
 
@@ -452,35 +388,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       allowFutureTimes: false,
                       minTime: _startTime,
                     ),
-
-                    // Notes section for enrolled users
-                    if (_isEnrolledInTrial) ...[
-                      const SizedBox(height: 24),
-                      Text(
-                        'Notes',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: 'Add notes about this nosebleed...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                        ),
-                        onChanged: (value) {
-                          setState(() => _notes = value);
-                        },
-                        controller: TextEditingController(text: _notes),
-                      ),
-                    ],
 
                     const SizedBox(height: 24),
                   ],
