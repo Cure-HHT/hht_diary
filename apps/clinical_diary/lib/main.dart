@@ -3,6 +3,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00006: Mobile App Build and Release Process
+//   REQ-p00008: Single App Architecture
 
 import 'dart:async';
 
@@ -14,6 +15,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
+import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -131,6 +133,12 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Wrap all routes with ResponsiveWebFrame to constrain width on web
+      builder: (context, child) {
+        return ResponsiveWebFrame(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: AppRoot(
         onLocaleChanged: _setLocale,
         onThemeModeChanged: _setThemeMode,
