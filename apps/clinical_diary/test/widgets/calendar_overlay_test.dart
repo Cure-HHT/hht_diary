@@ -58,6 +58,24 @@ Finder findDateCellInCurrentMonth(WidgetTester tester, int day) {
   );
 }
 
+/// Helper to get a day number that is guaranteed to be in the past or today.
+/// This ensures tests work regardless of when they run in the month.
+int getPastOrTodayDay() {
+  final today = DateTime.now().day;
+  // If we're past day 5, use day 5 (a day in the past)
+  // Otherwise, use today (which is always selectable)
+  return today > 5 ? 5 : today;
+}
+
+/// Helper to tap the left chevron to go to previous month
+Future<void> navigateToPreviousMonth(WidgetTester tester) async {
+  final leftChevron = find.byIcon(Icons.chevron_left);
+  if (leftChevron.evaluate().isNotEmpty) {
+    await tester.tap(leftChevron);
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   group('CalendarOverlay', () {
     testWidgets('returns empty widget when not open', (tester) async {
@@ -265,15 +283,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find a date cell - any date that's visible in current month
-      // Use day 15 which is always in the middle of the month
+      // Navigate to previous month to ensure we have past dates available
+      await navigateToPreviousMonth(tester);
+
+      // Find a date cell - use day 15 which is always in the middle of the month
+      // In previous month, all dates are guaranteed to be in the past
       final dateCells = findDateCellInCurrentMonth(tester, 15);
 
       if (dateCells.evaluate().isNotEmpty) {
         await tester.tap(dateCells.first);
         await tester.pumpAndSettle();
 
-        // Past/present dates should be selectable
+        // Past dates should be selectable
         expect(selectedDate, isNotNull, reason: 'Day 15 should be selectable');
       }
     });
@@ -358,7 +379,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Navigate to previous month to ensure we have past dates available
+      await navigateToPreviousMonth(tester);
+
       // Find a date in the middle of the month (always visible)
+      // In previous month, all dates are guaranteed to be in the past
       final dateCells = findDateCellInCurrentMonth(tester, 10);
 
       if (dateCells.evaluate().isNotEmpty) {
@@ -390,7 +415,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap a date that's definitely in the past (day 5)
+      // Navigate to previous month to ensure we have past dates available
+      await navigateToPreviousMonth(tester);
+
+      // Tap a date that's definitely in the past (day 5 in previous month)
       final dateCells = findDateCellInCurrentMonth(tester, 5);
 
       if (dateCells.evaluate().isNotEmpty) {
