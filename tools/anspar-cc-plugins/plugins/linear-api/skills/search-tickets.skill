@@ -9,4 +9,8 @@
 #   --format=FORMAT  Output format: summary (default) or json
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
+
+# Check Node.js version (requires 18+ for fetch())
+"$SCRIPT_DIR/check-node-version.sh" || exit 1
+
 node "$SCRIPT_DIR/search-tickets.js" "$@"

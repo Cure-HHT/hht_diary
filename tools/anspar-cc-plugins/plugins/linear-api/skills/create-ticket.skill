@@ -14,4 +14,8 @@
 #   --assignee=ID           Assignee ID or email
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
+
+# Check Node.js version (requires 18+ for fetch())
+"$SCRIPT_DIR/check-node-version.sh" || exit 1
+
 node "$SCRIPT_DIR/create-ticket.js" "$@"
