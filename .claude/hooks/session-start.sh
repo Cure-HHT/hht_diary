@@ -1,9 +1,77 @@
 #!/bin/bash
-# SessionStart hook for Claude Code on the web
-# Installs Flutter SDK and project dependencies
+# SessionStart hook for Claude Code
+# Sets up environment variables and installs dependencies
 set -euo pipefail
 
-# Only run in remote (web) environment
+# =============================================================================
+# LINEAR ENVIRONMENT SETUP (runs for all environments)
+# =============================================================================
+
+# Setup LINEAR_API_TOKEN from Doppler if not already set
+setup_linear_token() {
+  if [ -n "${LINEAR_API_TOKEN:-}" ]; then
+    return 0
+  fi
+
+  if command -v doppler &> /dev/null; then
+    local token
+    token=$(doppler secrets get LINEAR_API_TOKEN --plain 2>/dev/null || true)
+    if [ -n "$token" ]; then
+      echo "export LINEAR_API_TOKEN=\"$token\"" >> "$CLAUDE_ENV_FILE"
+      export LINEAR_API_TOKEN="$token"
+      echo "✓ LINEAR_API_TOKEN loaded from Doppler"
+      return 0
+    fi
+  fi
+
+  echo "⚠️  LINEAR_API_TOKEN not set. Linear API plugin will not work."
+  echo "   Run with: doppler run -- claude"
+}
+
+# Auto-discover LINEAR_TEAM_ID if not set
+setup_linear_team_id() {
+  if [ -n "${LINEAR_TEAM_ID:-}" ]; then
+    return 0
+  fi
+
+  # Need token to discover team ID
+  if [ -z "${LINEAR_API_TOKEN:-}" ]; then
+    return 1
+  fi
+
+  # Query Linear API for teams
+  local response
+  response=$(curl -s -H "Authorization: $LINEAR_API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -X POST https://api.linear.app/graphql \
+    -d '{"query": "query { teams { nodes { id name key } }}"}' 2>/dev/null || true)
+
+  if [ -z "$response" ]; then
+    return 1
+  fi
+
+  # Extract team ID (assumes single team or first team)
+  local team_id
+  team_id=$(echo "$response" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+  if [ -n "$team_id" ]; then
+    echo "export LINEAR_TEAM_ID=\"$team_id\"" >> "$CLAUDE_ENV_FILE"
+    export LINEAR_TEAM_ID="$team_id"
+    echo "✓ LINEAR_TEAM_ID auto-discovered: $team_id"
+    return 0
+  fi
+
+  return 1
+}
+
+# Run Linear setup
+setup_linear_token
+setup_linear_team_id
+
+# =============================================================================
+# FLUTTER SETUP (remote/web environment only)
+# =============================================================================
+# Only run Flutter setup in remote (web) environment
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
