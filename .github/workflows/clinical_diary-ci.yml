@@ -32,6 +32,7 @@ jobs:
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -60,6 +61,7 @@ jobs:
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -101,12 +103,12 @@ jobs:
       - name: Run Jest tests
         run: npm test
 
-  deploy-web:
-    name: Deploy Web to Firebase
+  bump-version:
+    name: Bump Version
     runs-on: ubuntu-latest
     needs: [analyze, test-flutter, test-functions]
-    # Only deploy on push to main (not on PRs)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Only bump on PR (not on push to main)
+    if: github.event_name == 'pull_request'
     permissions:
       contents: write
     defaults:
@@ -117,6 +119,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Flutter
@@ -124,6 +127,7 @@ jobs:
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -132,7 +136,7 @@ jobs:
         run: |
           # Skip if last commit was a version bump
           LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$LAST_COMMIT_MSG" == *"[skip ci]"* ]]; then
+          if [[ "$LAST_COMMIT_MSG" == *"[skip ci]"* ]] || [[ "$LAST_COMMIT_MSG" == *"chore: bump version"* ]]; then
             echo "Skipping version bump - last commit was a version bump"
             exit 0
           fi
@@ -158,8 +162,34 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pubspec.yaml
           NEW_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git commit -m "chore: bump version to $NEW_VERSION"
           git push
+
+  deploy-web:
+    name: Deploy Web to Firebase
+    runs-on: ubuntu-latest
+    needs: [analyze, test-flutter, test-functions]
+    # Only deploy on push to main (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/clinical_diary
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Build web
         run: flutter build web --release
