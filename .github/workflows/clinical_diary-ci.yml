@@ -32,6 +32,7 @@ jobs:
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -51,10 +52,6 @@ jobs:
       run:
         working-directory: apps/clinical_diary
 
-    strategy:
-      matrix:
-        flutter-version: ['stable', 'beta']
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,7 +59,9 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: ${{ matrix.flutter-version }}
+          flutter-version: '3.38.3'
+          channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -103,3 +102,43 @@ jobs:
 
       - name: Run Jest tests
         run: npm test
+
+  deploy-web:
+    name: Deploy Web to Firebase
+    runs-on: ubuntu-latest
+    needs: [analyze, test-flutter, test-functions]
+    # Only deploy on push to main (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/clinical_diary
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release
+
+      - name: Setup Node.js for Firebase CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        run: firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}"

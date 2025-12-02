@@ -52,3 +52,5 @@ functions/node_modules/
 functions/lib/
 functions/coverage/
 /.firebase/
+/macos/Podfile.lock
+/.claude/setting.local.json

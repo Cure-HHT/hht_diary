@@ -146,16 +146,12 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     }
   }
 
-  /// Check if a date should be disabled (before yesterday)
+  /// Check if a date should be disabled (future dates are not allowed)
   bool _isDisabled(DateTime date) {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final yesterdayOnly = DateTime(
-      yesterday.year,
-      yesterday.month,
-      yesterday.day,
-    );
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final dateOnly = DateTime(date.year, date.month, date.day);
-    return dateOnly.isBefore(yesterdayOnly);
+    return dateOnly.isAfter(today);
   }
 
   /// Handle date selection

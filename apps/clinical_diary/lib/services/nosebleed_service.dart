@@ -80,7 +80,8 @@ class NosebleedService {
   NosebleedRecord _eventToNosebleedRecord(StoredEvent event) {
     final data = event.data;
     return NosebleedRecord(
-      id: event.eventId,
+      // Use stored recordId if available, fallback to eventId for backwards compatibility
+      id: data['recordId'] as String? ?? event.eventId,
       date: DateTime.parse(data['date'] as String),
       startTime: data['startTime'] != null
           ? DateTime.parse(data['startTime'] as String)
@@ -171,6 +172,8 @@ class NosebleedService {
       aggregateId: 'diary-${date.year}-${date.month}-${date.day}',
       eventType: 'NosebleedRecorded',
       data: {
+        'recordId':
+            record.id, // Store user-visible record ID for materialization
         'date': record.date.toIso8601String(),
         if (record.startTime != null)
           'startTime': record.startTime!.toIso8601String(),
@@ -242,6 +245,8 @@ class NosebleedService {
       aggregateId: 'diary-deletion-${record.id}',
       eventType: 'NosebleedDeleted',
       data: {
+        'recordId':
+            record.id, // Store user-visible record ID for materialization
         'date': record.date.toIso8601String(),
         'isDeleted': true,
         'deleteReason': reason,
@@ -356,17 +361,27 @@ class NosebleedService {
 
   /// Sync all unsynced records to cloud
   Future<void> syncAllRecords() async {
+    await syncAllRecordsWithResult();
+  }
+
+  /// Sync all unsynced records to cloud and return result
+  /// Returns [SyncResult] indicating success or failure with details
+  Future<SyncResult> syncAllRecordsWithResult() async {
     final unsyncedEvents = await _eventRepository.getUnsyncedEvents();
     final unsynced = unsyncedEvents
         .where((e) => e.eventType == 'NosebleedRecorded')
         .map(_eventToNosebleedRecord)
         .toList();
 
-    if (unsynced.isEmpty) return;
+    if (unsynced.isEmpty) {
+      return SyncResult.success(syncedCount: 0);
+    }
 
     try {
       final jwtToken = await _enrollmentService.getJwtToken();
-      if (jwtToken == null) return;
+      if (jwtToken == null) {
+        return SyncResult.success(syncedCount: 0); // No auth, nothing to sync
+      }
 
       final response = await _httpClient.post(
         Uri.parse(AppConfig.syncUrl),
@@ -383,11 +398,20 @@ class NosebleedService {
           unsynced.map((r) => r.id).toList(),
         );
         debugPrint('Synced ${unsynced.length} records');
+        return SyncResult.success(syncedCount: unsynced.length);
       } else {
         debugPrint('Bulk sync failed: ${response.statusCode}');
+        return SyncResult.failure(
+          'Server error: ${response.statusCode}',
+          failedCount: unsynced.length,
+        );
       }
     } catch (e) {
       debugPrint('Bulk sync error: $e');
+      return SyncResult.failure(
+        'Network error: $e',
+        failedCount: unsynced.length,
+      );
     }
   }
 
@@ -430,6 +454,7 @@ class NosebleedService {
                   'diary-${cloudRecord.date.year}-${cloudRecord.date.month}-${cloudRecord.date.day}',
               eventType: 'NosebleedRecorded',
               data: {
+                'recordId': cloudRecord.id, // Preserve cloud record ID
                 'date': cloudRecord.date.toIso8601String(),
                 if (cloudRecord.startTime != null)
                   'startTime': cloudRecord.startTime!.toIso8601String(),
@@ -549,4 +574,29 @@ class NosebleedService {
   void dispose() {
     _httpClient.close();
   }
+}
+
+/// Result of a sync operation
+class SyncResult {
+  const SyncResult._({
+    required this.isSuccess,
+    this.errorMessage,
+    this.syncedCount = 0,
+    this.failedCount = 0,
+  });
+
+  factory SyncResult.success({required int syncedCount}) =>
+      SyncResult._(isSuccess: true, syncedCount: syncedCount);
+
+  factory SyncResult.failure(String message, {required int failedCount}) =>
+      SyncResult._(
+        isSuccess: false,
+        errorMessage: message,
+        failedCount: failedCount,
+      );
+
+  final bool isSuccess;
+  final String? errorMessage;
+  final int syncedCount;
+  final int failedCount;
 }

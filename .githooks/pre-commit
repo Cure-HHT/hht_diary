@@ -13,6 +13,9 @@
 # Built-in Checks:
 #   - Branch protection (blocks commits to main/master)
 #   - Dockerfile linting (if hadolint available)
+#   - Dart code quality (dart format + dart analyze)
+#   - TypeScript code quality (ESLint)
+#   - Markdown linting (if markdownlint available)
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -122,7 +125,176 @@ if [ -n "$DOCKERFILES_CHANGED" ]; then
 fi
 
 # =====================================================
-# 3. Markdown Linting (Built-in)
+# 3. Dart Code Quality (Format + Analyze)
+# =====================================================
+# For Dart code changes in apps/ directory:
+#   - Run dart format on changed files
+#   - Run dart analyze and reject commit if it fails
+
+DART_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^apps/.*\.dart$' || true)
+
+if [ -n "$DART_FILES_CHANGED" ]; then
+    echo "🎯 Checking Dart code quality..."
+    echo ""
+
+    # Check if dart is available
+    if ! command -v dart &> /dev/null; then
+        echo "❌ ERROR: dart is not installed but Dart files are being committed!"
+        echo ""
+        echo "Dart files changed:"
+        echo "$DART_FILES_CHANGED" | sed 's/^/  - /'
+        echo ""
+        echo "Please install Flutter/Dart to commit Dart files."
+        echo "See: https://docs.flutter.dev/get-started/install"
+        echo ""
+        echo "To bypass this check (NOT RECOMMENDED):"
+        echo "  git commit --no-verify"
+        exit 1
+    fi
+
+    # Find all unique Dart project directories affected
+    DART_PROJECTS=""
+    while IFS= read -r dart_file; do
+        # Walk up to find pubspec.yaml
+        DIR=$(dirname "$dart_file")
+        while [ "$DIR" != "." ] && [ "$DIR" != "/" ]; do
+            if [ -f "$DIR/pubspec.yaml" ]; then
+                # Add to list if not already present
+                if ! echo "$DART_PROJECTS" | grep -q "^$DIR$"; then
+                    DART_PROJECTS="$DART_PROJECTS
+$DIR"
+                fi
+                break
+            fi
+            DIR=$(dirname "$DIR")
+        done
+    done <<< "$DART_FILES_CHANGED"
+
+    # Remove leading newline
+    DART_PROJECTS=$(echo "$DART_PROJECTS" | sed '/^$/d')
+
+    if [ -n "$DART_PROJECTS" ]; then
+        DART_FAILED=0
+
+        while IFS= read -r project; do
+            echo "  📁 Project: $project"
+
+            # Run dart format
+            echo "     Running dart format..."
+            if ! (cd "$project" && dart format . --set-exit-if-changed > /dev/null 2>&1); then
+                echo "     ⚠️  Files need formatting. Applying fixes..."
+                (cd "$project" && dart format .)
+                # Re-stage formatted files
+                git diff --name-only "$project" | xargs -I {} git add "{}" 2>/dev/null || true
+                echo "     ✅ Formatted files have been staged"
+            else
+                echo "     ✅ Format OK"
+            fi
+
+            # Run dart analyze
+            echo "     Running dart analyze..."
+            if ! (cd "$project" && dart analyze --fatal-infos 2>&1); then
+                echo ""
+                echo "❌ Dart analyze failed in $project"
+                DART_FAILED=1
+            else
+                echo "     ✅ Analyze OK"
+            fi
+            echo ""
+        done <<< "$DART_PROJECTS"
+
+        if [ $DART_FAILED -eq 1 ]; then
+            echo "❌ Dart code quality checks failed!"
+            echo ""
+            echo "Fix the analysis errors above before committing."
+            echo ""
+            echo "To bypass this check (NOT RECOMMENDED):"
+            echo "  git commit --no-verify"
+            exit 1
+        fi
+
+        echo "✅ Dart code quality checks passed!"
+        echo ""
+    fi
+fi
+
+# =====================================================
+# 4. TypeScript Code Quality (ESLint)
+# =====================================================
+# For TypeScript code changes in apps/ directory:
+#   - Run ESLint and reject commit if it fails
+
+TS_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^apps/.*\.(ts|tsx)$' || true)
+
+if [ -n "$TS_FILES_CHANGED" ]; then
+    echo "📘 Checking TypeScript code quality..."
+    echo ""
+
+    # Find all unique TS project directories affected (containing package.json)
+    TS_PROJECTS=""
+    while IFS= read -r ts_file; do
+        # Walk up to find package.json
+        DIR=$(dirname "$ts_file")
+        while [ "$DIR" != "." ] && [ "$DIR" != "/" ]; do
+            if [ -f "$DIR/package.json" ]; then
+                # Check if package.json has a lint script
+                if grep -q '"lint"' "$DIR/package.json" 2>/dev/null; then
+                    # Add to list if not already present
+                    if ! echo "$TS_PROJECTS" | grep -q "^$DIR$"; then
+                        TS_PROJECTS="$TS_PROJECTS
+$DIR"
+                    fi
+                fi
+                break
+            fi
+            DIR=$(dirname "$DIR")
+        done
+    done <<< "$TS_FILES_CHANGED"
+
+    # Remove leading newline
+    TS_PROJECTS=$(echo "$TS_PROJECTS" | sed '/^$/d')
+
+    if [ -n "$TS_PROJECTS" ]; then
+        TS_FAILED=0
+
+        while IFS= read -r project; do
+            echo "  📁 Project: $project"
+
+            # Ensure node_modules exists
+            if [ ! -d "$project/node_modules" ]; then
+                echo "     Installing dependencies..."
+                (cd "$project" && npm install --silent)
+            fi
+
+            # Run ESLint
+            echo "     Running ESLint..."
+            if ! (cd "$project" && npm run lint 2>&1); then
+                echo ""
+                echo "❌ ESLint failed in $project"
+                TS_FAILED=1
+            else
+                echo "     ✅ ESLint OK"
+            fi
+            echo ""
+        done <<< "$TS_PROJECTS"
+
+        if [ $TS_FAILED -eq 1 ]; then
+            echo "❌ TypeScript code quality checks failed!"
+            echo ""
+            echo "Fix the lint errors above before committing."
+            echo ""
+            echo "To bypass this check (NOT RECOMMENDED):"
+            echo "  git commit --no-verify"
+            exit 1
+        fi
+
+        echo "✅ TypeScript code quality checks passed!"
+        echo ""
+    fi
+fi
+
+# =====================================================
+# 5. Markdown Linting (Built-in)
 # =====================================================
 
 # Load central version pinning

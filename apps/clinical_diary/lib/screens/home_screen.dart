@@ -5,10 +5,14 @@ import 'dart:async';
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
+import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
+import 'package:clinical_diary/screens/simple_recording_screen.dart';
+import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -24,6 +28,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     required this.nosebleedService,
     required this.enrollmentService,
+    required this.authService,
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
     required this.preferencesService,
@@ -31,6 +36,7 @@ class HomeScreen extends StatefulWidget {
   });
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
+  final AuthService authService;
   final ValueChanged<String> onLocaleChanged;
   final ValueChanged<bool> onThemeModeChanged;
   final PreferencesService preferencesService;
@@ -45,12 +51,28 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
+  bool _isLoggedIn = false;
+  bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
 
   @override
   void initState() {
     super.initState();
     _loadRecords();
     _checkEnrollmentStatus();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final isLoggedIn = await widget.authService.isLoggedIn();
+    if (mounted) {
+      setState(() => _isLoggedIn = isLoggedIn);
+    }
+  }
+
+  /// Sync records from cloud and reload local records
+  Future<void> _syncFromCloudAndReload() async {
+    await widget.nosebleedService.fetchRecordsFromCloud();
+    await _loadRecords();
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -83,10 +105,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                allRecords: _records,
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                allRecords: _records,
+              ),
       ),
     );
 
@@ -106,11 +135,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-          initialDate: yesterday,
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: yesterday,
+                allRecords: _records,
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: yesterday,
+                allRecords: _records,
+              ),
       ),
     );
 
@@ -264,6 +301,160 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _handleLogin() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => LoginScreen(
+          authService: widget.authService,
+          onLoginSuccess: () {
+            unawaited(_checkLoginStatus());
+            // Fetch user's synced data from cloud after login
+            unawaited(_syncFromCloudAndReload());
+          },
+        ),
+      ),
+    );
+    unawaited(_checkLoginStatus());
+  }
+
+  Future<void> _handleLogout() async {
+    // Check if user has stored credentials to remind them
+    final hasCredentials = await widget.authService.hasStoredCredentials();
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Have you saved your username and password?'),
+            const SizedBox(height: 16),
+            if (hasCredentials)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "If you didn't save your credentials, they are available in the Account page.",
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed ?? false) {
+      // Show syncing progress dialog (fire-and-forget, closed after sync)
+      if (mounted) {
+        unawaited(
+          showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 24),
+                  Text('Syncing your data...'),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Sync records before logout
+      final syncResult = await widget.nosebleedService
+          .syncAllRecordsWithResult();
+
+      // Close progress dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!syncResult.isSuccess) {
+        // Sync failed - show error and don't logout
+        if (mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Sync Failed'),
+              content: Text(
+                'Could not sync your data to the server. '
+                'Please check your internet connection and try again.\n\n'
+                'Error: ${syncResult.errorMessage}',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return; // Don't logout
+      }
+
+      // Sync succeeded - proceed with logout
+      await widget.authService.logout();
+      unawaited(_checkLoginStatus());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You have been logged out'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleShowAccountProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            AccountProfileScreen(authService: widget.authService),
+      ),
+    );
+  }
+
   Future<void> _handleIncompleteRecordsClick() async {
     if (_incompleteRecords.isEmpty) return;
 
@@ -272,12 +463,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-          initialDate: firstIncomplete.date,
-          existingRecord: firstIncomplete,
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: firstIncomplete.date,
+                existingRecord: firstIncomplete,
+                allRecords: _records,
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: firstIncomplete.date,
+                existingRecord: firstIncomplete,
+                allRecords: _records,
+              ),
       ),
     );
 
@@ -290,20 +490,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-          initialDate: record.date,
-          existingRecord: record,
-          allRecords: _records,
-          onDelete: (reason) async {
-            await widget.nosebleedService.deleteRecord(
-              recordId: record.id,
-              reason: reason,
-            );
-            unawaited(_loadRecords());
-          },
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: record.date,
+                existingRecord: record,
+                allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: record.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: record.date,
+                existingRecord: record,
+                allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: record.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
+              ),
       ),
     );
 
@@ -434,7 +649,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: const Icon(Icons.person_outline),
                     tooltip: 'User menu',
                     onSelected: (value) async {
-                      if (value == 'accessibility') {
+                      if (value == 'login') {
+                        await _handleLogin();
+                      } else if (value == 'logout') {
+                        await _handleLogout();
+                      } else if (value == 'account') {
+                        await _handleShowAccountProfile();
+                      } else if (value == 'accessibility') {
                         await Navigator.push(
                           context,
                           MaterialPageRoute<void>(
@@ -465,6 +686,40 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                     },
                     itemBuilder: (context) => [
+                      // Login/Logout button
+                      if (_isLoggedIn) ...[
+                        const PopupMenuItem(
+                          value: 'account',
+                          child: Row(
+                            children: [
+                              Icon(Icons.account_circle, size: 20),
+                              SizedBox(width: 12),
+                              Text('Account'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout, size: 20),
+                              SizedBox(width: 12),
+                              Text('Logout'),
+                            ],
+                          ),
+                        ),
+                      ] else
+                        const PopupMenuItem(
+                          value: 'login',
+                          child: Row(
+                            children: [
+                              Icon(Icons.login, size: 20),
+                              SizedBox(width: 12),
+                              Text('Login'),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuDivider(),
                       PopupMenuItem(
                         value: 'accessibility',
                         child: Row(
@@ -642,23 +897,67 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Calendar button
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await showDialog<void>(
-                        context: context,
-                        builder: (context) => CalendarScreen(
-                          nosebleedService: widget.nosebleedService,
-                          enrollmentService: widget.enrollmentService,
+                  // Calendar button with demo toggle
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await showDialog<void>(
+                              context: context,
+                              builder: (context) => CalendarScreen(
+                                nosebleedService: widget.nosebleedService,
+                                enrollmentService: widget.enrollmentService,
+                              ),
+                            );
+                            unawaited(_loadRecords());
+                          },
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(AppLocalizations.of(context).calendar),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
                         ),
-                      );
-                      unawaited(_loadRecords());
-                    },
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(AppLocalizations.of(context).calendar),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Demo toggle for simple recording screen
+                      Tooltip(
+                        message: _useSimpleRecordingScreen
+                            ? 'Using simple UI (tap to switch)'
+                            : 'Using classic UI (tap for simple)',
+                        child: IconButton.outlined(
+                          onPressed: () {
+                            setState(() {
+                              _useSimpleRecordingScreen =
+                                  !_useSimpleRecordingScreen;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _useSimpleRecordingScreen
+                                      ? 'Switched to simple recording UI'
+                                      : 'Switched to classic recording UI',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          icon: Icon(
+                            _useSimpleRecordingScreen
+                                ? Icons.view_agenda
+                                : Icons.dashboard,
+                          ),
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            side: BorderSide(
+                              color: _useSimpleRecordingScreen
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -123,19 +123,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                           const SizedBox(height: 12),
+                          // Dark mode disabled for alpha release
                           _buildColorSchemeOption(
                             context,
                             icon: Icons.dark_mode,
                             title: AppLocalizations.of(context).darkMode,
-                            subtitle: AppLocalizations.of(
-                              context,
-                            ).darkModeDescription,
-                            isSelected: _isDarkMode,
-                            onTap: () {
-                              setState(() => _isDarkMode = true);
-                              _savePreferences();
-                              widget.onThemeModeChanged?.call(true);
-                            },
+                            subtitle: 'Coming soon',
+                            isSelected: false,
+                            onTap: null,
+                            isDisabled: true,
                           ),
 
                           const SizedBox(height: 32),
@@ -185,47 +181,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                           const SizedBox(height: 32),
 
-                          // Language Section
+                          // Language Section - disabled for alpha release
                           _buildSectionHeader(
                             context,
                             AppLocalizations.of(context).language,
-                            AppLocalizations.of(context).languageDescription,
+                            'Coming soon - English only for now',
                           ),
                           const SizedBox(height: 16),
                           _buildLanguageOption(
                             context,
                             code: 'en',
                             name: 'English',
-                            isSelected: _languageCode == 'en',
-                            onTap: () {
-                              setState(() => _languageCode = 'en');
-                              _savePreferences();
-                              widget.onLanguageChanged?.call('en');
-                            },
+                            isSelected: true,
+                            onTap: null,
+                            isDisabled: true,
                           ),
                           const SizedBox(height: 12),
                           _buildLanguageOption(
                             context,
                             code: 'es',
-                            name: 'Espanol',
-                            isSelected: _languageCode == 'es',
-                            onTap: () {
-                              setState(() => _languageCode = 'es');
-                              _savePreferences();
-                              widget.onLanguageChanged?.call('es');
-                            },
+                            name: 'Español',
+                            isSelected: false,
+                            onTap: null,
+                            isDisabled: true,
                           ),
                           const SizedBox(height: 12),
                           _buildLanguageOption(
                             context,
                             code: 'fr',
-                            name: 'Francais',
-                            isSelected: _languageCode == 'fr',
-                            onTap: () {
-                              setState(() => _languageCode = 'fr');
-                              _savePreferences();
-                              widget.onLanguageChanged?.call('fr');
-                            },
+                            name: 'Français',
+                            isSelected: false,
+                            onTap: null,
+                            isDisabled: true,
                           ),
                         ],
                       ),
@@ -270,73 +257,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required String subtitle,
     required bool isSelected,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    bool isDisabled = false,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-              : null,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
+    final effectiveOpacity = isDisabled ? 0.5 : 1.0;
+
+    return Opacity(
+      opacity: effectiveOpacity,
+      child: InkWell(
+        onTap: isDisabled ? null : onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+              width: isSelected ? 2 : 1,
             ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
+            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    width: 2,
+                  ),
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.4),
-                  width: 2,
+                      : null,
                 ),
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
+                child: isSelected
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
                     : null,
               ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -418,59 +413,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String code,
     required String name,
     required bool isSelected,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    bool isDisabled = false,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-              : null,
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.language, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                name,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-              ),
+    final effectiveOpacity = isDisabled ? 0.5 : 1.0;
+
+    return Opacity(
+      opacity: effectiveOpacity,
+      child: InkWell(
+        onTap: isDisabled ? null : onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+              width: isSelected ? 2 : 1,
             ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
+            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                : null,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.language, size: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  name,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                ),
+              ),
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    width: 2,
+                  ),
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.4),
-                  width: 2,
+                      : null,
                 ),
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
+                child: isSelected
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
                     : null,
               ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
