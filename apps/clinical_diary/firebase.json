@@ -44,6 +44,21 @@
         "region": "europe-west1"
       },
       {
+        "source": "/api/register",
+        "function": "register",
+        "region": "europe-west1"
+      },
+      {
+        "source": "/api/login",
+        "function": "login",
+        "region": "europe-west1"
+      },
+      {
+        "source": "/api/changePassword",
+        "function": "changePassword",
+        "region": "europe-west1"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
