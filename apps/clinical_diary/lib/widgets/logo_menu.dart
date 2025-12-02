@@ -1,7 +1,11 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
 
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
@@ -33,11 +37,40 @@ class _LogoMenuState extends State<LogoMenu> {
   }
 
   Future<void> _loadVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _version = packageInfo.version;
-      });
+    // On web, fetch version.json directly (more reliable than package_info_plus)
+    if (kIsWeb) {
+      await _loadVersionFromJson();
+      return;
+    }
+
+    // On native platforms, use package_info_plus
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = packageInfo.version;
+        });
+      }
+    } catch (e) {
+      debugPrint('PackageInfo error: $e');
+    }
+  }
+
+  Future<void> _loadVersionFromJson() async {
+    try {
+      // Use Uri.base to resolve the correct absolute URL on web
+      final versionUrl = Uri.base.resolve('version.json');
+      final response = await http.get(versionUrl);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _version = data['version'] as String? ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('version.json fetch error: $e');
     }
   }
 
@@ -173,7 +206,7 @@ class _LogoMenuState extends State<LogoMenu> {
             child: Text(
               _version.isNotEmpty ? 'v$_version' : '',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
