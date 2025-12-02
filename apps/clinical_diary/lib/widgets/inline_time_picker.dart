@@ -6,16 +6,18 @@ import 'package:intl/intl.dart';
 
 /// Inline time picker widget with time display and adjustment buttons
 /// Designed to be used within a form layout without requiring a separate screen
+/// Supports null/unset state displaying "--:--"
 class InlineTimePicker extends StatefulWidget {
   const InlineTimePicker({
-    required this.initialTime,
     required this.onTimeChanged,
     super.key,
+    this.initialTime,
     this.allowFutureTimes = false,
     this.minTime,
   });
 
-  final DateTime initialTime;
+  /// Initial time, or null to show unset state (--:--)
+  final DateTime? initialTime;
   final ValueChanged<DateTime> onTimeChanged;
   final bool allowFutureTimes;
   final DateTime? minTime;
@@ -25,21 +27,35 @@ class InlineTimePicker extends StatefulWidget {
 }
 
 class _InlineTimePickerState extends State<InlineTimePicker> {
-  late DateTime _selectedTime;
+  DateTime? _selectedTime;
 
   @override
   void initState() {
     super.initState();
-    _selectedTime = widget.initialTime;
+    _selectedTime = _clampToNowIfNeeded(widget.initialTime);
+  }
+
+  /// Clamps the given time to now if future times are not allowed
+  DateTime? _clampToNowIfNeeded(DateTime? time) {
+    if (time == null) return null;
+    if (!widget.allowFutureTimes && time.isAfter(DateTime.now())) {
+      return DateTime.now();
+    }
+    return time;
   }
 
   @override
   void didUpdateWidget(InlineTimePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Update if initial time changed significantly (not just minor adjustments)
-    if (widget.initialTime.difference(oldWidget.initialTime).inMinutes.abs() >
-        1) {
-      _selectedTime = widget.initialTime;
+    final oldTime = oldWidget.initialTime;
+    final newTime = widget.initialTime;
+    if (oldTime == null && newTime != null) {
+      _selectedTime = _clampToNowIfNeeded(newTime);
+    } else if (oldTime != null &&
+        newTime != null &&
+        newTime.difference(oldTime).inMinutes.abs() > 1) {
+      _selectedTime = _clampToNowIfNeeded(newTime);
     }
   }
 
@@ -47,7 +63,9 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   int? _errorButtonDelta;
 
   void _adjustMinutes(int delta) {
-    final newTime = _selectedTime.add(Duration(minutes: delta));
+    // If no time is set, start from now (clamped)
+    final baseTime = _selectedTime ?? DateTime.now();
+    final newTime = baseTime.add(Duration(minutes: delta));
 
     // Check if this would go into the future
     if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
@@ -74,16 +92,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   }
 
   Future<void> _showTimePicker() async {
+    // Use current time as base if no time is set
+    final baseTime = _selectedTime ?? DateTime.now();
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedTime),
+      initialTime: TimeOfDay.fromDateTime(baseTime),
     );
 
     if (picked != null) {
       final newTime = DateTime(
-        _selectedTime.year,
-        _selectedTime.month,
-        _selectedTime.day,
+        baseTime.year,
+        baseTime.month,
+        baseTime.day,
         picked.hour,
         picked.minute,
       );
@@ -125,6 +145,7 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   Widget build(BuildContext context) {
     final timeFormat = DateFormat('h:mm');
     final periodFormat = DateFormat('a');
+    final isUnset = _selectedTime == null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -143,17 +164,23 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  timeFormat.format(_selectedTime),
+                  isUnset ? '--:--' : timeFormat.format(_selectedTime!),
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     fontWeight: FontWeight.w300,
+                    color: isUnset
+                        ? Theme.of(context).colorScheme.outline
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  periodFormat.format(_selectedTime),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
+                  isUnset ? '--' : periodFormat.format(_selectedTime!),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: isUnset
+                        ? Theme.of(context).colorScheme.outline
+                        : null,
+                  ),
                 ),
               ],
             ),

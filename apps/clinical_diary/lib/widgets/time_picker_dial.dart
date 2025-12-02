@@ -27,7 +27,16 @@ class _TimePickerDialState extends State<TimePickerDial> {
   @override
   void initState() {
     super.initState();
-    _selectedTime = widget.initialTime;
+    // Clamp initial time to now if future times are not allowed
+    _selectedTime = _clampToNowIfNeeded(widget.initialTime);
+  }
+
+  /// Clamps the given time to now if future times are not allowed
+  DateTime _clampToNowIfNeeded(DateTime time) {
+    if (!widget.allowFutureTimes && time.isAfter(DateTime.now())) {
+      return DateTime.now();
+    }
+    return time;
   }
 
   // Track which button should show error flash
@@ -180,7 +189,11 @@ class _TimePickerDialState extends State<TimePickerDial> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => widget.onConfirm(_selectedTime),
+              onPressed: () {
+                // Final validation: clamp to now if future times not allowed
+                final timeToConfirm = _clampToNowIfNeeded(_selectedTime);
+                widget.onConfirm(timeToConfirm);
+              },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

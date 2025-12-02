@@ -73,8 +73,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         DateTime.now().hour,
         DateTime.now().minute,
       );
-      // Default end time
-      _endTime = _startTime!.add(const Duration(minutes: 15));
+      // End time is null (unset) by default - user must explicitly set it
+      // This prevents end time from being in the future
+      _endTime = null;
     }
   }
 
@@ -229,9 +230,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() {
       _startTime = time;
       _userSetStart = true;
-      // If end time is before start time, adjust it
+      // If end time is before start time, clear it (user must re-set)
+      // This prevents automatically setting a potentially future time
       if (_endTime != null && _endTime!.isBefore(time)) {
-        _endTime = time.add(const Duration(minutes: 15));
+        _endTime = null;
+        _userSetEnd = false;
       }
     });
   }
@@ -374,16 +377,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                     const SizedBox(height: 8),
                     InlineTimePicker(
                       key: _endTimePickerKey,
-                      initialTime:
-                          _endTime ??
-                          (_startTime?.add(const Duration(minutes: 15)) ??
-                              DateTime(
-                                _date.year,
-                                _date.month,
-                                _date.day,
-                                DateTime.now().hour,
-                                DateTime.now().minute + 15,
-                              )),
+                      initialTime: _endTime,
                       onTimeChanged: _handleEndTimeChange,
                       allowFutureTimes: false,
                       minTime: _startTime,
