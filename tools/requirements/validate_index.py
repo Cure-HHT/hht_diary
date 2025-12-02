@@ -36,12 +36,14 @@ def get_paths(repo_root: Path = None):
 REPO_ROOT, SPEC_DIR, INDEX_FILE = get_paths()
 
 # Pattern to match requirement headers in spec files
-# Matches: # REQ-p00001: Title (levels 1-6)
-REQ_HEADER_PATTERN = re.compile(r'^#{1,6}\s+(REQ-[pod]\d{5}):\s*(.+)$', re.MULTILINE)
+# Matches: # REQ-p00001: Title or # REQ-CAL-d00001: Title (levels 1-6)
+# Supports both core REQs and sponsor-specific REQs
+REQ_HEADER_PATTERN = re.compile(r'^#{1,6}\s+(REQ-(?:[A-Z]{2,4}-)?[pod]\d{5}):\s*(.+)$', re.MULTILINE)
 
 # Pattern to match INDEX.md rows
-# Matches: | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | c27350bb |
-INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|\s*([a-f0-9]{8}|TBD)\s*\|$', re.MULTILINE)
+# Matches: | REQ-p00001 | ... | or | REQ-CAL-d00001 | ... |
+# Supports both core REQs and sponsor-specific REQs
+INDEX_ROW_PATTERN = re.compile(r'^\|\s*(REQ-(?:[A-Z]{2,4}-)?[pod]\d{5})\s*\|\s*([^\|]+?)\s*\|\s*([^\|]*?)\s*\|\s*([a-f0-9]{8}|TBD)\s*\|$', re.MULTILINE)
 
 
 def scan_spec_files() -> Tuple[Dict[str, Tuple[str, str]], list]:

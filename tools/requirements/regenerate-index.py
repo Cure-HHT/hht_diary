@@ -25,7 +25,8 @@ def parse_requirements_from_file(file_path: Path) -> List[Tuple[str, str, str, s
     requirements = []
 
     # Pattern to find REQ headers (any level)
-    req_pattern = re.compile(r'^(#{1,6})\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
+    # Supports both core REQs (REQ-d00001) and sponsor-specific REQs (REQ-CAL-d00001)
+    req_pattern = re.compile(r'^(#{1,6})\s+REQ-(?:([A-Z]{2,4})-)?([pod]\d{5}):\s+(.+)$', re.MULTILINE)
 
     # Pattern to find status line
     status_pattern = re.compile(
@@ -42,8 +43,11 @@ def parse_requirements_from_file(file_path: Path) -> List[Tuple[str, str, str, s
     )
 
     for header_match in req_pattern.finditer(content):
-        req_id = header_match.group(2)
-        title = header_match.group(3).strip()
+        sponsor_prefix = header_match.group(2)  # Optional, e.g., "CAL"
+        base_id = header_match.group(3)  # e.g., "d00001"
+        title = header_match.group(4).strip()
+        # Construct full req_id
+        req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
 
         # Extract content after header
         req_start = header_match.end()

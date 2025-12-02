@@ -36,7 +36,8 @@ def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str =
     updates = {}
 
     # Pattern to find REQ headers
-    req_pattern = re.compile(r'^(#{1,6})\s+REQ-([pod]\d{5}):\s+(.+)$')
+    # Supports both core REQs (REQ-d00001) and sponsor-specific REQs (REQ-CAL-d00001)
+    req_pattern = re.compile(r'^(#{1,6})\s+REQ-(?:([A-Z]{2,4})-)?([pod]\d{5}):\s+(.+)$')
 
     # Pattern to find status line
     status_pattern = re.compile(
@@ -55,11 +56,15 @@ def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str =
             i += 1
             continue
 
-        req_id = req_match.group(2)
-        title = req_match.group(3).strip()
+        sponsor_prefix = req_match.group(2)  # Optional, e.g., "CAL"
+        base_id = req_match.group(3)  # e.g., "d00001"
+        title = req_match.group(4).strip()
+        # Construct full req_id
+        req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
 
         # Skip if specific_req set and doesn't match
-        if specific_req and req_id != specific_req:
+        # Handle both full ID (CAL-d00001) or base ID (d00001)
+        if specific_req and req_id != specific_req and base_id != specific_req:
             i += 1
             continue
 
