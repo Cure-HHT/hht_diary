@@ -41,7 +41,7 @@ dependencies:
 final nosebleed = EpistaxisRecord.createNosebleed(
   startTime: DateTime.now(),
   endTime: DateTime.now().add(Duration(minutes: 15)),
-  severity: EpistaxisSeverity.moderate,
+  intensity: EpistaxisIntensity.drippingQuickly,
   userNotes: 'Occurred during exercise',
 );
 
@@ -79,7 +79,7 @@ final incomplete = EpistaxisRecord.createNosebleed(
 // Later, user completes the entry
 final completed = incomplete.copyWith(
   endTime: DateTime.now().add(Duration(minutes: 20)),
-  severity: EpistaxisSeverity.mild,
+  intensity: EpistaxisIntensity.drippingSlowly,
   isIncomplete: false,
 );
 ```
@@ -177,12 +177,12 @@ try {
 }
 
 try {
-  // This will throw an error - severity not allowed for special events
+  // This will throw an error - intensity not allowed for special events
   final invalid = EpistaxisRecord(
     id: EventRecord.generateUuid(),
     startTime: DateTime.now(),
     isNoNosebleedsEvent: true,
-    severity: EpistaxisSeverity.moderate,  // ❌ Not allowed
+    intensity: EpistaxisIntensity.drippingQuickly,  // ❌ Not allowed
     lastModified: DateTime.now(),
   );
 } catch (e) {
@@ -218,10 +218,10 @@ Always use meaningful strings:
 
 ```dart
 // ✅ Correct
-severity: EpistaxisSeverity.moderate  // Stores as "moderate"
+intensity: EpistaxisIntensity.drippingQuickly  // Stores as "dripping_quickly"
 
 // ❌ Wrong (from old design)
-severity: 2  // Numbers are not allowed
+intensity: 2  // Numbers are not allowed
 ```
 
 ### Timestamps
@@ -256,11 +256,11 @@ void main() {
     test('creates valid nosebleed event', () {
       final event = EpistaxisRecord.createNosebleed(
         startTime: DateTime(2025, 10, 15, 14, 30),
-        severity: EpistaxisSeverity.moderate,
+        intensity: EpistaxisIntensity.drippingQuickly,
       );
 
       expect(event.startTime, isNotNull);
-      expect(event.severity, EpistaxisSeverity.moderate);
+      expect(event.intensity, EpistaxisIntensity.drippingQuickly);
       expect(event.isNoNosebleedsEvent, false);
     });
 
@@ -280,14 +280,14 @@ void main() {
     test('converts to/from JSON', () {
       final original = EpistaxisRecord.createNosebleed(
         startTime: DateTime(2025, 10, 15, 14, 30),
-        severity: EpistaxisSeverity.moderate,
+        intensity: EpistaxisIntensity.drippingQuickly,
       );
 
       final json = original.toJson();
       final restored = EpistaxisRecord.fromJson(json);
 
       expect(restored.id, original.id);
-      expect(restored.severity, original.severity);
+      expect(restored.intensity, original.intensity);
     });
   });
 
@@ -385,7 +385,7 @@ await repository.createEvent(
 await repository.updateEvent(
   eventUuid: event.id,
   eventData: updatedEpistaxisRecord,
-  changeReason: 'Corrected severity level',
+  changeReason: 'Corrected intensity level',
 );
 
 // Soft delete event
