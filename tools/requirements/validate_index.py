@@ -16,15 +16,24 @@ Exit codes:
   1 - Validation errors found
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
 from typing import Dict, Set, Tuple
 
-# Paths
-REPO_ROOT = Path(__file__).parent.parent.parent
-SPEC_DIR = REPO_ROOT / "spec"
-INDEX_FILE = SPEC_DIR / "INDEX.md"
+
+def get_paths(repo_root: Path = None):
+    """Get paths based on repo root. If not provided, auto-detect from script location."""
+    if repo_root is None:
+        repo_root = Path(__file__).parent.parent.parent
+    spec_dir = repo_root / "spec"
+    index_file = spec_dir / "INDEX.md"
+    return repo_root, spec_dir, index_file
+
+
+# Default paths (can be overridden via --path argument)
+REPO_ROOT, SPEC_DIR, INDEX_FILE = get_paths()
 
 # Pattern to match requirement headers in spec files
 # Matches: # REQ-p00001: Title (levels 1-6)
@@ -244,5 +253,35 @@ def validate_index():
         sys.exit(0)
 
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser(
+        description='Validate INDEX.md against spec files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Validate current repo
+  python validate_index.py
+
+  # Validate a different repo
+  python validate_index.py --path /path/to/other/repo
+
+  # Validate sibling repo
+  python validate_index.py --path ../sibling-repo
+'''
+    )
+    parser.add_argument(
+        '--path',
+        type=Path,
+        help='Path to repository root (default: auto-detect from script location)'
+    )
+    args = parser.parse_args()
+
+    if args.path:
+        global REPO_ROOT, SPEC_DIR, INDEX_FILE
+        REPO_ROOT, SPEC_DIR, INDEX_FILE = get_paths(args.path.resolve())
+
     validate_index()
+
+
+if __name__ == "__main__":
+    main()

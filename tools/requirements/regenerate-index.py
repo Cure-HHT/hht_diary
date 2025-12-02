@@ -8,6 +8,7 @@ This script:
 3. Generates a completely new INDEX.md with sorted requirements
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -105,8 +106,30 @@ This file provides a complete index of all formal requirements across the spec/ 
 
 
 def main():
-    script_dir = Path(__file__).parent
-    spec_dir = script_dir.parent.parent / 'spec'
+    parser = argparse.ArgumentParser(
+        description='Regenerate INDEX.md from spec files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Regenerate INDEX.md in current repo
+  python regenerate-index.py
+
+  # Regenerate INDEX.md in a different repo
+  python regenerate-index.py --path /path/to/other/repo
+
+  # Regenerate INDEX.md in sibling repo
+  python regenerate-index.py --path ../sibling-repo
+'''
+    )
+    parser.add_argument('--path', type=Path, help='Path to repository root (default: auto-detect from script location)')
+    args = parser.parse_args()
+
+    if args.path:
+        repo_root = args.path.resolve()
+        spec_dir = repo_root / 'spec'
+    else:
+        script_dir = Path(__file__).parent
+        spec_dir = script_dir.parent.parent / 'spec'
     index_path = spec_dir / 'INDEX.md'
 
     if not spec_dir.exists():

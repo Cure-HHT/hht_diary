@@ -11,6 +11,7 @@ Validates requirement format with hash at end:
 - Whitespace-only between title and status
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -375,8 +376,34 @@ class RequirementValidator:
 
 
 def main():
-    script_dir = Path(__file__).parent
-    spec_dir = script_dir.parent.parent / "spec"
+    parser = argparse.ArgumentParser(
+        description='Validate requirements format and consistency',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Validate current repo
+  python validate_requirements.py
+
+  # Validate a different repo
+  python validate_requirements.py --path /path/to/other/repo
+
+  # Validate sibling repo
+  python validate_requirements.py --path ../sibling-repo
+'''
+    )
+    parser.add_argument(
+        '--path',
+        type=Path,
+        help='Path to repository root (default: auto-detect from script location)'
+    )
+    args = parser.parse_args()
+
+    if args.path:
+        repo_root = args.path.resolve()
+        spec_dir = repo_root / "spec"
+    else:
+        script_dir = Path(__file__).parent
+        spec_dir = script_dir.parent.parent / "spec"
 
     if not spec_dir.exists():
         print(f"❌ Error: Spec directory not found: {spec_dir}")
