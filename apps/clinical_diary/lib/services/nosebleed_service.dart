@@ -361,17 +361,27 @@ class NosebleedService {
 
   /// Sync all unsynced records to cloud
   Future<void> syncAllRecords() async {
+    await syncAllRecordsWithResult();
+  }
+
+  /// Sync all unsynced records to cloud and return result
+  /// Returns [SyncResult] indicating success or failure with details
+  Future<SyncResult> syncAllRecordsWithResult() async {
     final unsyncedEvents = await _eventRepository.getUnsyncedEvents();
     final unsynced = unsyncedEvents
         .where((e) => e.eventType == 'NosebleedRecorded')
         .map(_eventToNosebleedRecord)
         .toList();
 
-    if (unsynced.isEmpty) return;
+    if (unsynced.isEmpty) {
+      return SyncResult.success(syncedCount: 0);
+    }
 
     try {
       final jwtToken = await _enrollmentService.getJwtToken();
-      if (jwtToken == null) return;
+      if (jwtToken == null) {
+        return SyncResult.success(syncedCount: 0); // No auth, nothing to sync
+      }
 
       final response = await _httpClient.post(
         Uri.parse(AppConfig.syncUrl),
@@ -388,11 +398,20 @@ class NosebleedService {
           unsynced.map((r) => r.id).toList(),
         );
         debugPrint('Synced ${unsynced.length} records');
+        return SyncResult.success(syncedCount: unsynced.length);
       } else {
         debugPrint('Bulk sync failed: ${response.statusCode}');
+        return SyncResult.failure(
+          'Server error: ${response.statusCode}',
+          failedCount: unsynced.length,
+        );
       }
     } catch (e) {
       debugPrint('Bulk sync error: $e');
+      return SyncResult.failure(
+        'Network error: $e',
+        failedCount: unsynced.length,
+      );
     }
   }
 
@@ -555,4 +574,29 @@ class NosebleedService {
   void dispose() {
     _httpClient.close();
   }
+}
+
+/// Result of a sync operation
+class SyncResult {
+  const SyncResult._({
+    required this.isSuccess,
+    this.errorMessage,
+    this.syncedCount = 0,
+    this.failedCount = 0,
+  });
+
+  factory SyncResult.success({required int syncedCount}) =>
+      SyncResult._(isSuccess: true, syncedCount: syncedCount);
+
+  factory SyncResult.failure(String message, {required int failedCount}) =>
+      SyncResult._(
+        isSuccess: false,
+        errorMessage: message,
+        failedCount: failedCount,
+      );
+
+  final bool isSuccess;
+  final String? errorMessage;
+  final int syncedCount;
+  final int failedCount;
 }

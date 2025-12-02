@@ -11,6 +11,9 @@ class AppConfig {
   static const String healthUrl = '$_apiBase/health';
   static const String syncUrl = '$_apiBase/sync';
   static const String getRecordsUrl = '$_apiBase/getRecords';
+  static const String registerUrl = '$_apiBase/register';
+  static const String loginUrl = '$_apiBase/login';
+  static const String changePasswordUrl = '$_apiBase/changePassword';
 
   /// App name displayed in UI
   static const String appName = 'Nosebleed Diary';
