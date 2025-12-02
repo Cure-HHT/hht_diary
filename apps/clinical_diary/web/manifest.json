@@ -1,11 +1,11 @@
 {
-    "name": "clinical_diary",
-    "short_name": "clinical_diary",
+    "name": "Nosebleed Diary",
+    "short_name": "Diary",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process",
+    "background_color": "#FFFFFF",
+    "theme_color": "#C8323D",
+    "description": "Track and manage nosebleed events for HHT clinical trials",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
