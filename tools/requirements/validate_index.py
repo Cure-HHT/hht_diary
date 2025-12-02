@@ -170,7 +170,7 @@ def validate_index():
         print("   ✅ All file references match")
     print()
 
-    # Check 4: Titles should match (warning only, as titles may be updated)
+    # Check 4: Titles must match (INDEX.md must be kept in sync with spec files)
     print("🔍 Checking: Titles match...")
     title_mismatches = []
     for req_id in spec_requirements:
@@ -182,11 +182,11 @@ def validate_index():
                 title_mismatches.append((req_id, spec_title, index_title))
 
     if title_mismatches:
-        warnings.append("Title mismatches between spec files and INDEX.md:")
+        errors.append("Title mismatches between spec files and INDEX.md:")
         for req_id, spec_title, index_title in sorted(title_mismatches):
-            warnings.append(f"  - {req_id}:")
-            warnings.append(f"      Spec:  {spec_title}")
-            warnings.append(f"      INDEX: {index_title}")
+            errors.append(f"  - {req_id}:")
+            errors.append(f"      Spec:  {spec_title}")
+            errors.append(f"      INDEX: {index_title}")
     else:
         print("   ✅ All titles match")
     print()

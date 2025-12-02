@@ -31,6 +31,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
+  List<NosebleedRecord> _allRecords = [];
   bool _isLoading = true;
 
   @override
@@ -51,8 +52,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       lastDay,
     );
 
+    // Also load all records for overlap checking
+    final allRecords = await widget.nosebleedService.getLocalRecords();
+
     setState(() {
       _dayStatuses = statuses;
+      _allRecords = allRecords;
       _isLoading = false;
     });
   }
@@ -72,7 +77,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  /// Check if a date should be disabled (future dates are not allowed)
+  bool _isFutureDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    return dateOnly.isAfter(today);
+  }
+
   Future<void> _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+    // Don't allow selection of future dates (CUR-407)
+    if (_isFutureDate(selectedDay)) {
+      return;
+    }
+
     setState(() {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
@@ -172,6 +190,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           enrollmentService: widget.enrollmentService,
           initialDate: selectedDay,
           existingRecord: existingRecord,
+          allRecords: _allRecords,
         ),
       ),
     );
@@ -225,6 +244,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   lastDay: DateTime.now().add(const Duration(days: 365)),
                   focusedDay: _focusedDay,
                   selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  enabledDayPredicate: (day) => !_isFutureDate(day),
                   onDaySelected: _onDaySelected,
                   onPageChanged: (focusedDay) {
                     _focusedDay = focusedDay;
@@ -238,6 +258,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                   calendarStyle: const CalendarStyle(outsideDaysVisible: true),
                   calendarBuilders: CalendarBuilders<void>(
+                    disabledBuilder: (context, day, focusedDay) {
+                      // Disabled future dates appear grayed out
+                      return Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        ),
+                      );
+                    },
                     defaultBuilder: (context, day, focusedDay) {
                       final normalizedDay = DateTime(
                         day.year,
