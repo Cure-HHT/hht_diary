@@ -1,7 +1,7 @@
 name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
-version: 0.7.4
+version: 0.7.5
 
 environment:
   sdk: ^3.10.1
@@ -57,9 +57,45 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
+    - assets/icons/
+
+# App Icon Configuration (flutter_launcher_icons)
+# Run: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#C8323D"
+  macos:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    icon_size: 48
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+
+# Native Splash Screen Configuration (flutter_native_splash)
+# Run: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/icons/app_icon.png"
+  android_12:
+    color: "#FFFFFF"
+    image: "assets/icons/app_icon.png"
+  web: true
+  ios: true
+  android: true
