@@ -69,6 +69,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Sync records from cloud and reload local records
+  Future<void> _syncFromCloudAndReload() async {
+    await widget.nosebleedService.fetchRecordsFromCloud();
+    await _loadRecords();
+  }
+
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
     if (mounted) {
@@ -303,6 +309,8 @@ class _HomeScreenState extends State<HomeScreen> {
           authService: widget.authService,
           onLoginSuccess: () {
             unawaited(_checkLoginStatus());
+            // Fetch user's synced data from cloud after login
+            unawaited(_syncFromCloudAndReload());
           },
         ),
       ),
@@ -370,6 +378,59 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed ?? false) {
+      // Show syncing progress dialog (fire-and-forget, closed after sync)
+      if (mounted) {
+        unawaited(
+          showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 24),
+                  Text('Syncing your data...'),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Sync records before logout
+      final syncResult = await widget.nosebleedService
+          .syncAllRecordsWithResult();
+
+      // Close progress dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!syncResult.isSuccess) {
+        // Sync failed - show error and don't logout
+        if (mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Sync Failed'),
+              content: Text(
+                'Could not sync your data to the server. '
+                'Please check your internet connection and try again.\n\n'
+                'Error: ${syncResult.errorMessage}',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return; // Don't logout
+      }
+
+      // Sync succeeded - proceed with logout
       await widget.authService.logout();
       unawaited(_checkLoginStatus());
 

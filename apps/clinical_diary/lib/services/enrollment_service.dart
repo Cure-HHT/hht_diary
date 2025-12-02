@@ -122,15 +122,27 @@ class EnrollmentService {
   }
 
   /// Get JWT token for API calls
+  /// Checks enrollment first, then falls back to auth_jwt (for username/password login)
   Future<String?> getJwtToken() async {
+    // First check enrollment (CUREHHT code flow)
     final enrollment = await getEnrollment();
-    return enrollment?.jwtToken;
+    if (enrollment?.jwtToken != null) {
+      return enrollment!.jwtToken;
+    }
+    // Fall back to auth service JWT (username/password login flow)
+    return _secureStorage.read(key: 'auth_jwt');
   }
 
-  /// Get user ID from enrollment
+  /// Get user ID from enrollment or auth service
+  /// Checks enrollment first, then falls back to auth_username (for username/password login)
   Future<String?> getUserId() async {
+    // First check enrollment (CUREHHT code flow)
     final enrollment = await getEnrollment();
-    return enrollment?.userId;
+    if (enrollment?.userId != null) {
+      return enrollment!.userId;
+    }
+    // Fall back to auth service username (username/password login flow)
+    return _secureStorage.read(key: 'auth_username');
   }
 
   /// Dispose resources

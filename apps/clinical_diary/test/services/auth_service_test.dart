@@ -1,26 +1,74 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: User Account Management
 
+import 'dart:convert';
+
 import 'package:clinical_diary/services/auth_service.dart';
-import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AuthService', () {
     late MockSecureStorage mockStorage;
-    late FakeFirebaseFirestore fakeFirestore;
     late AuthService authService;
+
+    /// Creates a mock HTTP client with configurable responses
+    MockClient createMockClient({
+      int registerStatus = 200,
+      Map<String, dynamic>? registerResponse,
+      int loginStatus = 200,
+      Map<String, dynamic>? loginResponse,
+      int changePasswordStatus = 200,
+      Map<String, dynamic>? changePasswordResponse,
+    }) {
+      return MockClient((request) async {
+        final uri = request.url.toString();
+
+        if (uri.contains('/register')) {
+          return http.Response(
+            jsonEncode(
+              registerResponse ??
+                  {
+                    'jwt': 'test-jwt-token',
+                    'userId': 'test-user-id',
+                    'username': 'testuser',
+                  },
+            ),
+            registerStatus,
+          );
+        } else if (uri.contains('/login')) {
+          return http.Response(
+            jsonEncode(
+              loginResponse ??
+                  {
+                    'jwt': 'test-jwt-token',
+                    'userId': 'test-user-id',
+                    'username': 'testuser',
+                  },
+            ),
+            loginStatus,
+          );
+        } else if (uri.contains('/changePassword')) {
+          return http.Response(
+            jsonEncode(changePasswordResponse ?? {'success': true}),
+            changePasswordStatus,
+          );
+        }
+
+        return http.Response('Not found', 404);
+      });
+    }
 
     setUp(() {
       mockStorage = MockSecureStorage();
-      fakeFirestore = FakeFirebaseFirestore();
       authService = AuthService(
         secureStorage: mockStorage,
-        firestore: fakeFirestore,
+        httpClient: createMockClient(),
       );
     });
 
@@ -135,37 +183,6 @@ void main() {
       });
     });
 
-    group('isUsernameTaken', () {
-      test('returns false when username does not exist', () async {
-        final result = await authService.isUsernameTaken('newuser123');
-
-        expect(result, false);
-      });
-
-      test('returns true when username exists', () async {
-        // Create existing user in Firestore
-        await fakeFirestore.collection('users').doc('existinguser').set({
-          'username': 'existinguser',
-          'passwordHash': 'somehash',
-        });
-
-        final result = await authService.isUsernameTaken('existinguser');
-
-        expect(result, true);
-      });
-
-      test('is case-insensitive', () async {
-        await fakeFirestore.collection('users').doc('testuser').set({
-          'username': 'testuser',
-          'passwordHash': 'somehash',
-        });
-
-        final result = await authService.isUsernameTaken('TESTUSER');
-
-        expect(result, true);
-      });
-    });
-
     group('register', () {
       test('successfully registers with valid credentials', () async {
         final result = await authService.register(
@@ -188,23 +205,7 @@ void main() {
         expect(mockStorage.data['auth_username'], 'newuser123');
         expect(mockStorage.data['auth_password'], 'password123');
         expect(mockStorage.data['auth_is_logged_in'], 'true');
-      });
-
-      test('creates user document in Firestore', () async {
-        await authService.register(
-          username: 'firestoreuser',
-          password: 'password123',
-        );
-
-        final doc = await fakeFirestore
-            .collection('users')
-            .doc('firestoreuser')
-            .get();
-
-        expect(doc.exists, true);
-        expect(doc.data()!['username'], 'firestoreuser');
-        expect(doc.data()!['passwordHash'], isNotEmpty);
-        expect(doc.data()!['appUuid'], isNotEmpty);
+        expect(mockStorage.data['auth_jwt'], 'test-jwt-token');
       });
 
       test('fails for invalid username', () async {
@@ -227,11 +228,14 @@ void main() {
         expect(result.errorMessage, contains('8'));
       });
 
-      test('fails when username is already taken', () async {
-        await fakeFirestore.collection('users').doc('existinguser').set({
-          'username': 'existinguser',
-          'passwordHash': 'somehash',
-        });
+      test('fails when username is already taken (409)', () async {
+        authService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            registerStatus: 409,
+            registerResponse: {'error': 'Username is already taken'},
+          ),
+        );
 
         final result = await authService.register(
           username: 'existinguser',
@@ -242,35 +246,35 @@ void main() {
         expect(result.errorMessage, contains('already taken'));
       });
 
-      test('stores password hash (not plaintext) in Firestore', () async {
+      test('handles server error', () async {
+        authService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            registerStatus: 500,
+            registerResponse: {'error': 'Internal server error'},
+          ),
+        );
+
+        final result = await authService.register(
+          username: 'newuser123',
+          password: 'password123',
+        );
+
+        expect(result.success, false);
+        expect(result.errorMessage, isNotEmpty);
+      });
+
+      test('converts username to lowercase', () async {
         await authService.register(
-          username: 'hashtest',
-          password: 'mySecretPassword',
+          username: 'MyUserName',
+          password: 'password123',
         );
 
-        final doc = await fakeFirestore
-            .collection('users')
-            .doc('hashtest')
-            .get();
-
-        expect(doc.data()!['passwordHash'], isNot('mySecretPassword'));
-        expect(
-          doc.data()!['passwordHash'],
-          authService.hashPassword('mySecretPassword'),
-        );
+        expect(mockStorage.data['auth_username'], 'myusername');
       });
     });
 
     group('login', () {
-      setUp(() async {
-        // Create a test user
-        await fakeFirestore.collection('users').doc('testlogin').set({
-          'username': 'testlogin',
-          'passwordHash': authService.hashPassword('correctpassword'),
-          'appUuid': 'test-uuid',
-        });
-      });
-
       test('successfully logs in with correct credentials', () async {
         final result = await authService.login(
           username: 'testlogin',
@@ -292,22 +296,21 @@ void main() {
         expect(mockStorage.data['auth_username'], 'testlogin');
         expect(mockStorage.data['auth_password'], 'correctpassword');
         expect(mockStorage.data['auth_is_logged_in'], 'true');
+        expect(mockStorage.data['auth_jwt'], 'test-jwt-token');
       });
 
-      test('fails with incorrect password', () async {
+      test('fails with incorrect password (401)', () async {
+        authService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            loginStatus: 401,
+            loginResponse: {'error': 'Invalid username or password'},
+          ),
+        );
+
         final result = await authService.login(
           username: 'testlogin',
           password: 'wrongpassword',
-        );
-
-        expect(result.success, false);
-        expect(result.errorMessage, contains('Invalid'));
-      });
-
-      test('fails with non-existent username', () async {
-        final result = await authService.login(
-          username: 'nonexistent',
-          password: 'password123',
         );
 
         expect(result.success, false);
@@ -335,12 +338,30 @@ void main() {
       });
 
       test('is case-insensitive for username', () async {
-        final result = await authService.login(
+        await authService.login(
           username: 'TESTLOGIN',
           password: 'correctpassword',
         );
 
-        expect(result.success, true);
+        expect(mockStorage.data['auth_username'], 'testlogin');
+      });
+
+      test('handles server error', () async {
+        authService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            loginStatus: 500,
+            loginResponse: {'error': 'Internal server error'},
+          ),
+        );
+
+        final result = await authService.login(
+          username: 'testlogin',
+          password: 'password123',
+        );
+
+        expect(result.success, false);
+        expect(result.errorMessage, isNotEmpty);
       });
     });
 
@@ -439,18 +460,29 @@ void main() {
       });
     });
 
+    group('getStoredJwt', () {
+      test('returns null when no JWT stored', () async {
+        final result = await authService.getStoredJwt();
+
+        expect(result, isNull);
+      });
+
+      test('returns JWT when stored', () async {
+        mockStorage.data['auth_jwt'] = 'stored-jwt-token';
+
+        final result = await authService.getStoredJwt();
+
+        expect(result, 'stored-jwt-token');
+      });
+    });
+
     group('changePassword', () {
-      setUp(() async {
+      setUp(() {
         // Create user and login state
         mockStorage.data['auth_username'] = 'changeuser';
         mockStorage.data['auth_password'] = 'oldpassword';
         mockStorage.data['auth_is_logged_in'] = 'true';
-
-        await fakeFirestore.collection('users').doc('changeuser').set({
-          'username': 'changeuser',
-          'passwordHash': authService.hashPassword('oldpassword'),
-          'appUuid': 'test-uuid',
-        });
+        mockStorage.data['auth_jwt'] = 'valid-jwt-token';
       });
 
       test(
@@ -464,23 +496,6 @@ void main() {
           expect(result.success, true);
         },
       );
-
-      test('updates password hash in Firestore', () async {
-        await authService.changePassword(
-          currentPassword: 'oldpassword',
-          newPassword: 'newpassword123',
-        );
-
-        final doc = await fakeFirestore
-            .collection('users')
-            .doc('changeuser')
-            .get();
-
-        expect(
-          doc.data()!['passwordHash'],
-          authService.hashPassword('newpassword123'),
-        );
-      });
 
       test('updates locally stored password', () async {
         await authService.changePassword(
@@ -521,6 +536,54 @@ void main() {
 
         expect(result.success, false);
         expect(result.errorMessage, contains('No account'));
+      });
+
+      test('fails when no JWT stored', () async {
+        mockStorage.data.remove('auth_jwt');
+
+        final result = await authService.changePassword(
+          currentPassword: 'oldpassword',
+          newPassword: 'newpassword123',
+        );
+
+        expect(result.success, false);
+        expect(result.errorMessage, contains('authenticated'));
+      });
+
+      test('handles server authentication error (401)', () async {
+        authService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            changePasswordStatus: 401,
+            changePasswordResponse: {'error': 'Current password is incorrect'},
+          ),
+        );
+
+        final result = await authService.changePassword(
+          currentPassword: 'oldpassword',
+          newPassword: 'newpassword123',
+        );
+
+        expect(result.success, false);
+        expect(result.errorMessage, isNotEmpty);
+      });
+
+      test('handles server error', () async {
+        authService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            changePasswordStatus: 500,
+            changePasswordResponse: {'error': 'Internal server error'},
+          ),
+        );
+
+        final result = await authService.changePassword(
+          currentPassword: 'oldpassword',
+          newPassword: 'newpassword123',
+        );
+
+        expect(result.success, false);
+        expect(result.errorMessage, isNotEmpty);
       });
     });
 

@@ -3,11 +3,13 @@
 
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+
+import '../config/app_config.dart';
 
 /// User account data model
 class UserAccount {
@@ -40,29 +42,24 @@ class AuthResult {
 /// Service for managing user authentication
 ///
 /// Handles:
-/// - Username/password registration and login
+/// - Username/password registration and login via Cloud Functions
 /// - Password hashing (SHA-256) before network transmission
 /// - Secure local storage of credentials
-/// - Firestore user document management
 /// - App UUID generation and persistence
 class AuthService {
-  AuthService({
-    FlutterSecureStorage? secureStorage,
-    FirebaseFirestore? firestore,
-  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
-       _firestore = firestore ?? FirebaseFirestore.instance;
+  AuthService({FlutterSecureStorage? secureStorage, http.Client? httpClient})
+    : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+      _httpClient = httpClient ?? http.Client();
 
   final FlutterSecureStorage _secureStorage;
-  final FirebaseFirestore _firestore;
+  final http.Client _httpClient;
 
   // Secure storage keys
   static const _keyAppUuid = 'app_uuid';
   static const _keyUsername = 'auth_username';
   static const _keyPassword = 'auth_password';
   static const _keyIsLoggedIn = 'auth_is_logged_in';
-
-  // Firestore collection
-  static const _usersCollection = 'users';
+  static const _keyJwt = 'auth_jwt';
 
   // Validation constants
   static const minUsernameLength = 6;
@@ -116,23 +113,7 @@ class AuthService {
     return null;
   }
 
-  /// Check if a username is already taken
-  Future<bool> isUsernameTaken(String username) async {
-    try {
-      final lowercaseUsername = username.toLowerCase();
-      final doc = await _firestore
-          .collection(_usersCollection)
-          .doc(lowercaseUsername)
-          .get();
-      return doc.exists;
-    } catch (e) {
-      debugPrint('Error checking username: $e');
-      // Assume taken on error to be safe
-      return true;
-    }
-  }
-
-  /// Register a new user
+  /// Register a new user via Cloud Function
   Future<AuthResult> register({
     required String username,
     required String password,
@@ -149,44 +130,52 @@ class AuthService {
       return AuthResult.failure(passwordError);
     }
 
-    // Check if username is taken
-    if (await isUsernameTaken(username)) {
-      return AuthResult.failure('Username is already taken');
-    }
-
     try {
       final appUuid = await getAppUuid();
       final passwordHash = hashPassword(password);
       final lowercaseUsername = username.toLowerCase();
 
-      // Create user document in Firestore
-      await _firestore.collection(_usersCollection).doc(lowercaseUsername).set({
-        'username': lowercaseUsername,
-        'passwordHash': passwordHash,
-        'appUuid': appUuid,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Store credentials locally
-      await _secureStorage.write(key: _keyUsername, value: lowercaseUsername);
-      await _secureStorage.write(key: _keyPassword, value: password);
-      await _secureStorage.write(key: _keyIsLoggedIn, value: 'true');
-
-      return AuthResult.success(
-        UserAccount(
-          username: lowercaseUsername,
-          appUuid: appUuid,
-          isLoggedIn: true,
-        ),
+      final response = await _httpClient.post(
+        Uri.parse(AppConfig.registerUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': lowercaseUsername,
+          'passwordHash': passwordHash,
+          'appUuid': appUuid,
+        }),
       );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final jwt = data['jwt'] as String;
+
+        // Store credentials locally
+        await _secureStorage.write(key: _keyUsername, value: lowercaseUsername);
+        await _secureStorage.write(key: _keyPassword, value: password);
+        await _secureStorage.write(key: _keyIsLoggedIn, value: 'true');
+        await _secureStorage.write(key: _keyJwt, value: jwt);
+
+        return AuthResult.success(
+          UserAccount(
+            username: lowercaseUsername,
+            appUuid: appUuid,
+            isLoggedIn: true,
+          ),
+        );
+      } else if (response.statusCode == 409) {
+        return AuthResult.failure('Username is already taken');
+      } else {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final error = data['error'] as String? ?? 'Registration failed';
+        return AuthResult.failure(error);
+      }
     } catch (e) {
       debugPrint('Registration error: $e');
       return AuthResult.failure('Failed to create account. Please try again.');
     }
   }
 
-  /// Login with existing credentials
+  /// Login with existing credentials via Cloud Function
   Future<AuthResult> login({
     required String username,
     required String password,
@@ -203,37 +192,41 @@ class AuthService {
       final lowercaseUsername = username.toLowerCase();
       final passwordHash = hashPassword(password);
 
-      // Fetch user document from Firestore
-      final doc = await _firestore
-          .collection(_usersCollection)
-          .doc(lowercaseUsername)
-          .get();
-
-      if (!doc.exists) {
-        return AuthResult.failure('Invalid username or password');
-      }
-
-      final data = doc.data()!;
-      final storedHash = data['passwordHash'] as String?;
-
-      if (storedHash != passwordHash) {
-        return AuthResult.failure('Invalid username or password');
-      }
-
-      final appUuid = await getAppUuid();
-
-      // Store credentials locally
-      await _secureStorage.write(key: _keyUsername, value: lowercaseUsername);
-      await _secureStorage.write(key: _keyPassword, value: password);
-      await _secureStorage.write(key: _keyIsLoggedIn, value: 'true');
-
-      return AuthResult.success(
-        UserAccount(
-          username: lowercaseUsername,
-          appUuid: appUuid,
-          isLoggedIn: true,
-        ),
+      final response = await _httpClient.post(
+        Uri.parse(AppConfig.loginUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': lowercaseUsername,
+          'passwordHash': passwordHash,
+        }),
       );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final jwt = data['jwt'] as String;
+
+        final appUuid = await getAppUuid();
+
+        // Store credentials locally
+        await _secureStorage.write(key: _keyUsername, value: lowercaseUsername);
+        await _secureStorage.write(key: _keyPassword, value: password);
+        await _secureStorage.write(key: _keyIsLoggedIn, value: 'true');
+        await _secureStorage.write(key: _keyJwt, value: jwt);
+
+        return AuthResult.success(
+          UserAccount(
+            username: lowercaseUsername,
+            appUuid: appUuid,
+            isLoggedIn: true,
+          ),
+        );
+      } else if (response.statusCode == 401) {
+        return AuthResult.failure('Invalid username or password');
+      } else {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final error = data['error'] as String? ?? 'Login failed';
+        return AuthResult.failure(error);
+      }
     } catch (e) {
       debugPrint('Login error: $e');
       return AuthResult.failure('Login failed. Please try again.');
@@ -274,7 +267,12 @@ class AuthService {
     return _secureStorage.read(key: _keyPassword);
   }
 
-  /// Change the user's password
+  /// Get stored JWT token
+  Future<String?> getStoredJwt() async {
+    return _secureStorage.read(key: _keyJwt);
+  }
+
+  /// Change the user's password via Cloud Function
   Future<AuthResult> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -295,23 +293,45 @@ class AuthService {
       return AuthResult.failure('Current password is incorrect');
     }
 
+    final jwt = await _secureStorage.read(key: _keyJwt);
+    if (jwt == null) {
+      return AuthResult.failure('Not authenticated');
+    }
+
     try {
+      final currentPasswordHash = hashPassword(currentPassword);
       final newPasswordHash = hashPassword(newPassword);
 
-      // Update password hash in Firestore
-      await _firestore.collection(_usersCollection).doc(username).update({
-        'passwordHash': newPasswordHash,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Update locally stored password
-      await _secureStorage.write(key: _keyPassword, value: newPassword);
-
-      final appUuid = await getAppUuid();
-
-      return AuthResult.success(
-        UserAccount(username: username, appUuid: appUuid, isLoggedIn: true),
+      final response = await _httpClient.post(
+        Uri.parse(AppConfig.changePasswordUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $jwt',
+        },
+        body: jsonEncode({
+          'currentPasswordHash': currentPasswordHash,
+          'newPasswordHash': newPasswordHash,
+        }),
       );
+
+      if (response.statusCode == 200) {
+        // Update locally stored password
+        await _secureStorage.write(key: _keyPassword, value: newPassword);
+
+        final appUuid = await getAppUuid();
+
+        return AuthResult.success(
+          UserAccount(username: username, appUuid: appUuid, isLoggedIn: true),
+        );
+      } else if (response.statusCode == 401) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final error = data['error'] as String? ?? 'Authentication failed';
+        return AuthResult.failure(error);
+      } else {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final error = data['error'] as String? ?? 'Failed to change password';
+        return AuthResult.failure(error);
+      }
     } catch (e) {
       debugPrint('Change password error: $e');
       return AuthResult.failure('Failed to change password. Please try again.');

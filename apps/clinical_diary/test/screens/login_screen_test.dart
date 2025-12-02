@@ -1,33 +1,77 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: User Account Management
 
+import 'dart:convert';
+
 import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
-import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('LoginScreen', () {
     late MockSecureStorage mockStorage;
-    late FakeFirebaseFirestore fakeFirestore;
     late AuthService authService;
+
+    /// Creates a mock HTTP client with configurable responses
+    MockClient createMockClient({
+      int registerStatus = 200,
+      Map<String, dynamic>? registerResponse,
+      int loginStatus = 200,
+      Map<String, dynamic>? loginResponse,
+    }) {
+      return MockClient((request) async {
+        final uri = request.url.toString();
+
+        if (uri.contains('/register')) {
+          return http.Response(
+            jsonEncode(
+              registerResponse ??
+                  {
+                    'jwt': 'test-jwt-token',
+                    'userId': 'test-user-id',
+                    'username': 'testuser',
+                  },
+            ),
+            registerStatus,
+          );
+        } else if (uri.contains('/login')) {
+          return http.Response(
+            jsonEncode(
+              loginResponse ??
+                  {
+                    'jwt': 'test-jwt-token',
+                    'userId': 'test-user-id',
+                    'username': 'testuser',
+                  },
+            ),
+            loginStatus,
+          );
+        }
+
+        return http.Response('Not found', 404);
+      });
+    }
 
     setUp(() {
       mockStorage = MockSecureStorage();
-      fakeFirestore = FakeFirebaseFirestore();
       authService = AuthService(
         secureStorage: mockStorage,
-        firestore: fakeFirestore,
+        httpClient: createMockClient(),
       );
     });
 
-    Widget buildTestWidget() {
+    Widget buildTestWidget({AuthService? customAuthService}) {
       return MaterialApp(
-        home: LoginScreen(authService: authService, onLoginSuccess: () {}),
+        home: LoginScreen(
+          authService: customAuthService ?? authService,
+          onLoginSuccess: () {},
+        ),
       );
     }
 
@@ -335,7 +379,18 @@ void main() {
 
     group('Form Submission', () {
       testWidgets('shows error message on login failure', (tester) async {
-        await tester.pumpWidget(buildTestWidget());
+        // Create auth service with mock client that fails login
+        final failingAuthService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            loginStatus: 401,
+            loginResponse: {'error': 'Invalid username or password'},
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(customAuthService: failingAuthService),
+        );
 
         await scrollAndEnterText(
           tester,
@@ -358,7 +413,18 @@ void main() {
       testWidgets('clears error message when username text changes', (
         tester,
       ) async {
-        await tester.pumpWidget(buildTestWidget());
+        // Create auth service with mock client that fails login
+        final failingAuthService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            loginStatus: 401,
+            loginResponse: {'error': 'Invalid username or password'},
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(customAuthService: failingAuthService),
+        );
 
         // Trigger login failure
         await scrollAndEnterText(
@@ -389,7 +455,18 @@ void main() {
       testWidgets('clears error message when password text changes', (
         tester,
       ) async {
-        await tester.pumpWidget(buildTestWidget());
+        // Create auth service with mock client that fails login
+        final failingAuthService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            loginStatus: 401,
+            loginResponse: {'error': 'Invalid username or password'},
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestWidget(customAuthService: failingAuthService),
+        );
 
         // Trigger login failure
         await scrollAndEnterText(
@@ -420,13 +497,18 @@ void main() {
       testWidgets('shows error for taken username in register mode', (
         tester,
       ) async {
-        // Create existing user
-        await fakeFirestore.collection('users').doc('existinguser').set({
-          'username': 'existinguser',
-          'passwordHash': 'somehash',
-        });
+        // Create auth service with mock client that returns 409 for register
+        final conflictAuthService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            registerStatus: 409,
+            registerResponse: {'error': 'Username is already taken'},
+          ),
+        );
 
-        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpWidget(
+          buildTestWidget(customAuthService: conflictAuthService),
+        );
 
         // Switch to register mode
         await scrollAndTap(
@@ -499,8 +581,16 @@ void main() {
         expect(authService.validatePassword('password123'), isNull);
       });
 
-      test('login fails with non-existent user', () async {
-        final result = await authService.login(
+      test('login fails with 401 response', () async {
+        final failingAuthService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            loginStatus: 401,
+            loginResponse: {'error': 'Invalid username or password'},
+          ),
+        );
+
+        final result = await failingAuthService.login(
           username: 'nonexistent',
           password: 'password123',
         );
@@ -508,14 +598,7 @@ void main() {
         expect(result.errorMessage, contains('Invalid'));
       });
 
-      test('login succeeds with valid credentials', () async {
-        // Create test user
-        await fakeFirestore.collection('users').doc('testuser').set({
-          'username': 'testuser',
-          'passwordHash': authService.hashPassword('password123'),
-          'appUuid': 'test-uuid',
-        });
-
+      test('login succeeds with 200 response', () async {
         final result = await authService.login(
           username: 'testuser',
           password: 'password123',
@@ -524,29 +607,27 @@ void main() {
         expect(result.user?.username, 'testuser');
       });
 
-      test('registration creates user in Firestore', () async {
+      test('registration succeeds with 200 response', () async {
         final result = await authService.register(
           username: 'newuser123',
           password: 'password123',
         );
 
         expect(result.success, true);
-
-        final doc = await fakeFirestore
-            .collection('users')
-            .doc('newuser123')
-            .get();
-        expect(doc.exists, true);
-        expect(doc.data()!['username'], 'newuser123');
+        expect(result.user?.username, 'newuser123');
+        expect(mockStorage.data['auth_jwt'], 'test-jwt-token');
       });
 
-      test('registration fails for taken username', () async {
-        await fakeFirestore.collection('users').doc('existinguser').set({
-          'username': 'existinguser',
-          'passwordHash': 'somehash',
-        });
+      test('registration fails for taken username (409)', () async {
+        final conflictAuthService = AuthService(
+          secureStorage: mockStorage,
+          httpClient: createMockClient(
+            registerStatus: 409,
+            registerResponse: {'error': 'Username is already taken'},
+          ),
+        );
 
-        final result = await authService.register(
+        final result = await conflictAuthService.register(
           username: 'existinguser',
           password: 'password123',
         );

@@ -1,27 +1,47 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: User Account Management
 
+import 'dart:convert';
+
 import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
-import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AccountProfileScreen', () {
     late MockSecureStorage mockStorage;
-    late FakeFirebaseFirestore fakeFirestore;
     late AuthService authService;
+
+    /// Creates a mock HTTP client with configurable responses
+    MockClient createMockClient({
+      int changePasswordStatus = 200,
+      Map<String, dynamic>? changePasswordResponse,
+    }) {
+      return MockClient((request) async {
+        final uri = request.url.toString();
+
+        if (uri.contains('/changePassword')) {
+          return http.Response(
+            jsonEncode(changePasswordResponse ?? {'success': true}),
+            changePasswordStatus,
+          );
+        }
+
+        return http.Response('Not found', 404);
+      });
+    }
 
     setUp(() {
       mockStorage = MockSecureStorage();
-      fakeFirestore = FakeFirebaseFirestore();
       authService = AuthService(
         secureStorage: mockStorage,
-        firestore: fakeFirestore,
+        httpClient: createMockClient(),
       );
     });
 
@@ -171,16 +191,11 @@ void main() {
     });
 
     group('Change Password', () {
-      setUp(() async {
+      setUp(() {
         mockStorage.data['auth_username'] = 'changeuser';
         mockStorage.data['auth_password'] = 'oldpassword';
         mockStorage.data['auth_is_logged_in'] = 'true';
-
-        await fakeFirestore.collection('users').doc('changeuser').set({
-          'username': 'changeuser',
-          'passwordHash': authService.hashPassword('oldpassword'),
-          'appUuid': 'test-uuid',
-        });
+        mockStorage.data['auth_jwt'] = 'valid-jwt-token';
       });
 
       testWidgets('opens change password dialog', (tester) async {
