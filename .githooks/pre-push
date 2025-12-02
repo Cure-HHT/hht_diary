@@ -376,7 +376,40 @@ else
 fi
 
 # =====================================================
-# 8. Handle Validation Results
+# 8. Auto-Bump Clinical Diary Version
+# =====================================================
+# If clinical_diary files changed, bump patch version and amend commit
+
+if echo "$CHANGED_FILES" | grep -q "^apps/clinical_diary/"; then
+    echo -e "${BLUE}Bumping clinical_diary version...${NC}"
+
+    PUBSPEC="$REPO_ROOT/apps/clinical_diary/pubspec.yaml"
+
+    if [ -f "$PUBSPEC" ]; then
+        # Get current version
+        CURRENT_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
+        echo "  Current version: $CURRENT_VERSION"
+
+        # Bump patch version
+        (cd "$REPO_ROOT/apps/clinical_diary" && dart pub bump patch)
+
+        # Get new version
+        NEW_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')
+        echo "  New version: $NEW_VERSION"
+
+        # Stage the updated pubspec.yaml
+        git add "$PUBSPEC"
+
+        # Amend the last commit to include the version bump
+        git commit --amend --no-edit --no-verify
+
+        echo -e "${GREEN}Version bumped and commit amended${NC}"
+    fi
+    echo ""
+fi
+
+# =====================================================
+# 9. Handle Validation Results
 # =====================================================
 
 echo ""

@@ -32,6 +32,7 @@ jobs:
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -60,6 +61,7 @@ jobs:
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -108,7 +110,7 @@ jobs:
     # Only deploy on push to main (not on PRs)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
-      contents: write
+      contents: read
     defaults:
       run:
         working-directory: apps/clinical_diary
@@ -116,50 +118,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Bump patch version
-        run: |
-          # Skip if last commit was a version bump
-          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$LAST_COMMIT_MSG" == *"[skip ci]"* ]]; then
-            echo "Skipping version bump - last commit was a version bump"
-            exit 0
-          fi
-
-          echo "Current version:"
-          grep '^version:' pubspec.yaml
-
-          # Bump patch version
-          dart pub bump patch
-
-          echo "New version:"
-          grep '^version:' pubspec.yaml
-
-      - name: Commit version bump
-        run: |
-          # Check if there are changes to commit
-          if git diff --quiet pubspec.yaml; then
-            echo "No version changes to commit"
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pubspec.yaml
-          NEW_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
-          git push
 
       - name: Build web
         run: flutter build web --release
