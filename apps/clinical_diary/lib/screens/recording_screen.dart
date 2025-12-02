@@ -6,7 +6,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
-import 'package:clinical_diary/widgets/notes_input.dart';
+// CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/severity_picker.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
@@ -36,16 +36,15 @@ class RecordingScreen extends StatefulWidget {
   State<RecordingScreen> createState() => _RecordingScreenState();
 }
 
-enum RecordingStep { startTime, severity, endTime, notes, complete }
+// CUR-408: Removed notes step from recording flow
+enum RecordingStep { startTime, severity, endTime, complete }
 
 class _RecordingScreenState extends State<RecordingScreen> {
   late DateTime _date;
   DateTime? _startTime;
   DateTime? _endTime;
   NosebleedSeverity? _severity;
-  String? _notes;
-  bool _isEnrolledInTrial = false;
-  DateTime? _enrollmentDateTime;
+  // CUR-408: Notes field removed from recording flow
 
   RecordingStep _currentStep = RecordingStep.startTime;
   bool _isSaving = false;
@@ -54,13 +53,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     _date = widget.initialDate ?? DateTime.now();
-    _loadEnrollmentStatus();
+    // CUR-408: Removed _loadEnrollmentStatus call - notes step removed
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
       _severity = widget.existingRecord!.severity;
-      _notes = widget.existingRecord!.notes;
+      // CUR-408: Notes field no longer loaded from existing record
       _currentStep = _getInitialStepForExisting();
     } else {
       // Default start time to the selected date with current time of day
@@ -75,15 +74,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  Future<void> _loadEnrollmentStatus() async {
-    final enrollment = await widget.enrollmentService.getEnrollment();
-    if (mounted) {
-      setState(() {
-        _isEnrolledInTrial = enrollment != null;
-        _enrollmentDateTime = enrollment?.enrolledAt;
-      });
-    }
-  }
+  // CUR-408: _loadEnrollmentStatus removed - notes step removed from recording flow
 
   RecordingStep _getInitialStepForExisting() {
     final record = widget.existingRecord!;
@@ -93,14 +84,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return RecordingStep.complete;
   }
 
-  bool _shouldRequireNotes(NosebleedRecord? record) {
-    if (!_isEnrolledInTrial || _enrollmentDateTime == null) return false;
-    if (record == null) return false;
-
-    final recordStartTime = record.startTime ?? record.date;
-    return recordStartTime.isAfter(_enrollmentDateTime!) ||
-        recordStartTime.isAtSameMomentAs(_enrollmentDateTime!);
-  }
+  // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow
 
   String _formatTime(DateTime? time) {
     if (time == null) return '--:--';
@@ -152,25 +136,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return;
     }
 
-    // Check if notes are required
-    final currentRecord = NosebleedRecord(
-      id: widget.existingRecord?.id ?? '',
-      date: _date,
-      startTime: _startTime,
-      endTime: _endTime,
-      severity: _severity,
-      notes: _notes,
-    );
-
-    if (_shouldRequireNotes(currentRecord) &&
-        (_notes == null || _notes!.trim().isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notes are required for clinical trial participants'),
-        ),
-      );
-      return;
-    }
+    // CUR-408: Notes validation removed - notes step removed from recording flow
 
     setState(() => _isSaving = true);
 
@@ -183,7 +149,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           startTime: _startTime,
           endTime: _endTime,
           severity: _severity,
-          notes: _notes,
+          // CUR-408: notes parameter removed
         );
       } else {
         // Create new record
@@ -192,7 +158,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           startTime: _startTime,
           endTime: _endTime,
           severity: _severity,
-          notes: _notes,
+          // CUR-408: notes parameter removed
         );
       }
 
@@ -262,28 +228,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     setState(() {
       _endTime = time;
-      // Always show notes step, it will be optional for non-enrolled users
-      _currentStep = RecordingStep.notes;
-    });
-  }
-
-  void _handleNotesChange(String notes) {
-    setState(() {
-      _notes = notes;
-    });
-  }
-
-  void _handleNotesBack() {
-    setState(() {
-      _currentStep = RecordingStep.endTime;
-    });
-  }
-
-  void _handleNotesNext() {
-    setState(() {
+      // CUR-408: Go directly to complete step, notes step removed
       _currentStep = RecordingStep.complete;
     });
   }
+
+  // CUR-408: _handleNotesChange, _handleNotesBack, _handleNotesNext removed
 
   Future<void> _handleDelete() async {
     await DeleteConfirmationDialog.show(
@@ -498,15 +448,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           confirmLabel: 'Nosebleed Ended',
         );
 
-      case RecordingStep.notes:
-        return NotesInput(
-          key: const ValueKey('notes_input'),
-          notes: _notes ?? '',
-          onNotesChange: _handleNotesChange,
-          onBack: _handleNotesBack,
-          onNext: _handleNotesNext,
-          isRequired: _isEnrolledInTrial,
-        );
+      // CUR-408: Notes case removed from recording flow
 
       case RecordingStep.complete:
         return _buildCompleteStep();
@@ -519,16 +461,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
         widget.existingRecord!.severity != null &&
         widget.existingRecord!.endTime != null;
 
-    final currentRecord = NosebleedRecord(
-      id: widget.existingRecord?.id ?? '',
-      date: _date,
-      startTime: _startTime,
-      endTime: _endTime,
-      severity: _severity,
-      notes: _notes,
-    );
+    // CUR-408: Notes-related currentRecord and needsNotes removed
 
-    final needsNotes = _shouldRequireNotes(currentRecord);
     final hasOverlaps = _getOverlappingEvents().isNotEmpty;
     final buttonText = widget.existingRecord != null
         ? (isExistingComplete ? 'Save Changes' : 'Complete Record')
@@ -586,56 +520,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ),
           ],
 
-          // Show notes if required
-          if (needsNotes) ...[
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Notes',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () =>
-                        setState(() => _currentStep = RecordingStep.notes),
-                    child: Text(
-                      (_notes?.isNotEmpty ?? false)
-                          ? _notes!
-                          : 'Tap to add notes (required)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: (_notes?.isNotEmpty ?? false)
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
+          // CUR-408: Notes display section removed from complete step
           const Spacer(),
 
           // Show overlap error message if overlaps exist
@@ -671,13 +556,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed:
-                  (_isSaving ||
-                      hasOverlaps ||
-                      (needsNotes &&
-                          (_notes == null || _notes!.trim().isEmpty)))
-                  ? null
-                  : _saveRecord,
+              // CUR-408: Simplified - notes validation removed
+              onPressed: (_isSaving || hasOverlaps) ? null : _saveRecord,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
