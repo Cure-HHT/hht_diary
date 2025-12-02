@@ -9,6 +9,7 @@ import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
+import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
+  bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
 
   @override
   void initState() {
@@ -83,10 +85,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                allRecords: _records,
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                allRecords: _records,
+              ),
       ),
     );
 
@@ -106,11 +115,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-          initialDate: yesterday,
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: yesterday,
+                allRecords: _records,
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: yesterday,
+                allRecords: _records,
+              ),
       ),
     );
 
@@ -272,12 +289,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-          initialDate: firstIncomplete.date,
-          existingRecord: firstIncomplete,
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: firstIncomplete.date,
+                existingRecord: firstIncomplete,
+                allRecords: _records,
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: firstIncomplete.date,
+                existingRecord: firstIncomplete,
+                allRecords: _records,
+              ),
       ),
     );
 
@@ -290,20 +316,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => RecordingScreen(
-          nosebleedService: widget.nosebleedService,
-          enrollmentService: widget.enrollmentService,
-          initialDate: record.date,
-          existingRecord: record,
-          allRecords: _records,
-          onDelete: (reason) async {
-            await widget.nosebleedService.deleteRecord(
-              recordId: record.id,
-              reason: reason,
-            );
-            unawaited(_loadRecords());
-          },
-        ),
+        builder: (context) => _useSimpleRecordingScreen
+            ? SimpleRecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: record.date,
+                existingRecord: record,
+                allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: record.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
+              )
+            : RecordingScreen(
+                nosebleedService: widget.nosebleedService,
+                enrollmentService: widget.enrollmentService,
+                initialDate: record.date,
+                existingRecord: record,
+                allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: record.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
+              ),
       ),
     );
 
@@ -642,23 +683,67 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Calendar button
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await showDialog<void>(
-                        context: context,
-                        builder: (context) => CalendarScreen(
-                          nosebleedService: widget.nosebleedService,
-                          enrollmentService: widget.enrollmentService,
+                  // Calendar button with demo toggle
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await showDialog<void>(
+                              context: context,
+                              builder: (context) => CalendarScreen(
+                                nosebleedService: widget.nosebleedService,
+                                enrollmentService: widget.enrollmentService,
+                              ),
+                            );
+                            unawaited(_loadRecords());
+                          },
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(AppLocalizations.of(context).calendar),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
                         ),
-                      );
-                      unawaited(_loadRecords());
-                    },
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(AppLocalizations.of(context).calendar),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Demo toggle for simple recording screen
+                      Tooltip(
+                        message: _useSimpleRecordingScreen
+                            ? 'Using simple UI (tap to switch)'
+                            : 'Using classic UI (tap for simple)',
+                        child: IconButton.outlined(
+                          onPressed: () {
+                            setState(() {
+                              _useSimpleRecordingScreen =
+                                  !_useSimpleRecordingScreen;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _useSimpleRecordingScreen
+                                      ? 'Switched to simple recording UI'
+                                      : 'Switched to classic recording UI',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          icon: Icon(
+                            _useSimpleRecordingScreen
+                                ? Icons.view_agenda
+                                : Icons.dashboard,
+                          ),
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            side: BorderSide(
+                              color: _useSimpleRecordingScreen
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

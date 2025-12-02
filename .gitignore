@@ -173,3 +173,4 @@ sponsor/*/.flutter-plugins
 sponsor/*/.flutter-plugins-dependencies
 
 untracked-notes/
+/apps/clinical_diary/.firebase/
