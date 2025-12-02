@@ -28,7 +28,8 @@ const db = admin.firestore();
 const JWT_SECRET = process.env.JWT_SECRET ||
   "mvp-development-secret-change-in-production";
 
-//TODO - change maybe 'C' or 'H' starter Valid enrollment code pattern: CUREHHT followed by a digit (0-9)
+// TODO: Valid enrollment code pattern: CUREHHT followed by a digit (0-9)
+// Consider changing to 'C' or 'H' starter in future
 const ENROLLMENT_CODE_PATTERN = /^CUREHHT[0-9]$/i;
 
 /**
@@ -322,7 +323,9 @@ const MIN_PASSWORD_LENGTH = 8;
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
 
 /**
- * Validate username format
+ * Validate username format.
+ * @param {string} username - The username to validate
+ * @return {string | null} Error message if invalid, null if valid
  */
 function validateUsername(username: string): string | null {
   if (!username || username.length < MIN_USERNAME_LENGTH) {
@@ -338,7 +341,9 @@ function validateUsername(username: string): string | null {
 }
 
 /**
- * Validate password hash format (should be SHA-256 hex string)
+ * Validate password hash format (should be SHA-256 hex string).
+ * @param {string} passwordHash - The password hash to validate
+ * @return {string | null} Error message if invalid, null if valid
  */
 function validatePasswordHash(passwordHash: string): string | null {
   if (!passwordHash || passwordHash.length !== 64) {
@@ -514,10 +519,12 @@ export const login = functions
 
       const {username, passwordHash} = req.body;
 
+      const hashPreview = passwordHash ?
+        passwordHash.substring(0, 8) + "..." : "MISSING";
       console.info("[LOGIN] Parsed body", {
         username: username || "MISSING",
         passwordHashLength: passwordHash ? passwordHash.length : "MISSING",
-        passwordHashPreview: passwordHash ? passwordHash.substring(0, 8) + "..." : "MISSING",
+        passwordHashPreview: hashPreview,
       });
 
       if (!username || typeof username !== "string") {
@@ -548,13 +555,19 @@ export const login = functions
         return;
       }
 
-      const userData = userDoc.data()!;
+      const userData = userDoc.data();
+      if (!userData) {
+        res.status(401).json({error: "Invalid username or password"});
+        return;
+      }
       const storedHash = userData.passwordHash as string;
+      const storedPreview = storedHash ?
+        storedHash.substring(0, 8) + "..." : "MISSING";
 
       console.info("[LOGIN] User found, comparing password hashes", {
         normalizedUsername,
         storedHashLength: storedHash ? storedHash.length : "MISSING",
-        storedHashPreview: storedHash ? storedHash.substring(0, 8) + "..." : "MISSING",
+        storedHashPreview: storedPreview,
         providedHashLength: passwordHash.length,
         providedHashPreview: passwordHash.substring(0, 8) + "...",
         hashesMatch: storedHash === passwordHash,
@@ -632,7 +645,9 @@ export const changePassword = functions
       });
 
       if (req.method !== "POST") {
-        console.warn("[CHANGE_PASSWORD] Method not allowed", {method: req.method});
+        console.warn("[CHANGE_PASSWORD] Method not allowed", {
+          method: req.method,
+        });
         res.status(405).json({error: "Method not allowed"});
         return;
       }
@@ -656,9 +671,12 @@ export const changePassword = functions
 
       const {currentPasswordHash, newPasswordHash} = req.body;
 
+      const currLen = currentPasswordHash ?
+        currentPasswordHash.length : "MISSING";
+      const newLen = newPasswordHash ? newPasswordHash.length : "MISSING";
       console.info("[CHANGE_PASSWORD] Parsed body", {
-        currentHashLength: currentPasswordHash ? currentPasswordHash.length : "MISSING",
-        newHashLength: newPasswordHash ? newPasswordHash.length : "MISSING",
+        currentHashLength: currLen,
+        newHashLength: newLen,
       });
 
       // Validate new password hash
@@ -688,20 +706,29 @@ export const changePassword = functions
 
       // Get current password hash
       const userDoc = await user.userRef.get();
-      const userData = userDoc.data()!;
+      const userData = userDoc.data();
+      if (!userData) {
+        res.status(401).json({error: "User data not found"});
+        return;
+      }
       const storedHash = userData.passwordHash as string;
+      const storedLen = storedHash ? storedHash.length : "MISSING";
+      const providedLen = currentPasswordHash ?
+        currentPasswordHash.length : "MISSING";
 
       console.info("[CHANGE_PASSWORD] Comparing current password hashes", {
-        storedHashLength: storedHash ? storedHash.length : "MISSING",
-        providedHashLength: currentPasswordHash ? currentPasswordHash.length : "MISSING",
+        storedHashLength: storedLen,
+        providedHashLength: providedLen,
         hashesMatch: storedHash === currentPasswordHash,
       });
 
       // Verify current password
       if (storedHash !== currentPasswordHash) {
+        const currProvidedLen = currentPasswordHash ?
+          currentPasswordHash.length : 0;
         console.warn("[CHANGE_PASSWORD] Current password mismatch", {
           storedHashLength: storedHash ? storedHash.length : 0,
-          providedHashLength: currentPasswordHash ? currentPasswordHash.length : 0,
+          providedHashLength: currProvidedLen,
         });
         res.status(401).json({error: "Current password is incorrect"});
         return;

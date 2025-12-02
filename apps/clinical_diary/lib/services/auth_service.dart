@@ -3,13 +3,12 @@
 
 import 'dart:convert';
 
+import 'package:clinical_diary/config/app_config.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-
-import '../config/app_config.dart';
 
 /// User account data model
 class UserAccount {
