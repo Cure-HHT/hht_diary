@@ -2,9 +2,10 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
-class LogoMenu extends StatelessWidget {
+class LogoMenu extends StatefulWidget {
   const LogoMenu({
     required this.onAddExampleData,
     required this.onResetAllData,
@@ -17,6 +18,28 @@ class LogoMenu extends StatelessWidget {
   final VoidCallback onResetAllData;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+
+  @override
+  State<LogoMenu> createState() => _LogoMenuState();
+}
+
+class _LogoMenuState extends State<LogoMenu> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _version = packageInfo.version;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +63,13 @@ class LogoMenu extends StatelessWidget {
       onSelected: (value) {
         switch (value) {
           case 'add_example_data':
-            onAddExampleData();
+            widget.onAddExampleData();
           case 'reset_all_data':
-            onResetAllData();
+            widget.onResetAllData();
           case 'end_clinical_trial':
-            onEndClinicalTrial?.call();
+            widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
-            onInstructionsAndFeedback();
+            widget.onInstructionsAndFeedback();
         }
       },
       itemBuilder: (context) => [
@@ -96,7 +119,7 @@ class LogoMenu extends StatelessWidget {
         ),
 
         // Clinical Trial section (only if enrolled)
-        if (onEndClinicalTrial != null) ...[
+        if (widget.onEndClinicalTrial != null) ...[
           const PopupMenuDivider(),
           PopupMenuItem<String>(
             enabled: false,
@@ -138,6 +161,21 @@ class LogoMenu extends StatelessWidget {
               const SizedBox(width: 12),
               const Flexible(child: Text('Instructions & Feedback')),
             ],
+          ),
+        ),
+
+        // Version info at bottom
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          enabled: false,
+          height: 32,
+          child: Center(
+            child: Text(
+              _version.isNotEmpty ? 'v$_version' : '',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
           ),
         ),
       ],
