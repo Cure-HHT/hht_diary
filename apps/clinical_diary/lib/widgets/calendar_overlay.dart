@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -196,7 +197,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Select Date',
+                          AppLocalizations.of(context).selectDate,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         IconButton(

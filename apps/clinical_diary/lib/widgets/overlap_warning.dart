@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Warning widget for overlapping events
@@ -12,6 +13,8 @@ class OverlapWarning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (overlappingCount == 0) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -33,7 +36,7 @@ class OverlapWarning extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Overlapping Events Detected',
+                  l10n.overlappingEventsDetected,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Colors.amber.shade900,
@@ -42,7 +45,7 @@ class OverlapWarning extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'This event overlaps with $overlappingCount existing event${overlappingCount > 1 ? 's' : ''}',
+                  l10n.overlappingEventsCount(overlappingCount),
                   style: TextStyle(color: Colors.amber.shade800, fontSize: 12),
                 ),
               ],

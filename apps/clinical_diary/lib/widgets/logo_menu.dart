@@ -3,6 +3,7 @@
 
 import 'dart:convert';
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -76,8 +77,9 @@ class _LogoMenuState extends State<LogoMenu> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopupMenuButton<String>(
-      tooltip: 'App menu',
+      tooltip: l10n.appMenu,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ColorFiltered(
@@ -110,7 +112,7 @@ class _LogoMenuState extends State<LogoMenu> {
         PopupMenuItem<String>(
           enabled: false,
           child: Text(
-            'Data Management',
+            l10n.dataManagement,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -127,7 +129,7 @@ class _LogoMenuState extends State<LogoMenu> {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Flexible(child: Text('Add Example Data')),
+              Flexible(child: Text(l10n.addExampleData)),
             ],
           ),
         ),
@@ -143,7 +145,7 @@ class _LogoMenuState extends State<LogoMenu> {
               const SizedBox(width: 12),
               Flexible(
                 child: Text(
-                  'Reset All Data',
+                  l10n.resetAllData,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
@@ -157,7 +159,7 @@ class _LogoMenuState extends State<LogoMenu> {
           PopupMenuItem<String>(
             enabled: false,
             child: Text(
-              'Clinical Trial',
+              l10n.clinicalTrialLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -174,7 +176,7 @@ class _LogoMenuState extends State<LogoMenu> {
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 12),
-                const Flexible(child: Text('End Clinical Trial')),
+                Flexible(child: Text(l10n.endClinicalTrial)),
               ],
             ),
           ),
@@ -192,7 +194,7 @@ class _LogoMenuState extends State<LogoMenu> {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Flexible(child: Text('Instructions & Feedback')),
+              Flexible(child: Text(l10n.instructionsAndFeedback)),
             ],
           ),
         ),

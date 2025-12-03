@@ -206,34 +206,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Example data added'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).exampleDataAdded),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
   }
 
   Future<void> _handleResetAllData() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset All Data?'),
-        content: const Text(
-          'This will permanently delete all your recorded data. '
-          'This action cannot be undone.',
-        ),
+        title: Text(l10n.resetAllData),
+        content: Text(l10n.resetAllDataMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Reset'),
+            child: Text(l10n.reset),
           ),
         ],
       ),
@@ -245,9 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All data has been reset'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).allDataReset),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -255,25 +253,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleEndClinicalTrial() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('End Clinical Trial?'),
-        content: const Text(
-          'Are you sure you want to end your participation in the clinical trial? '
-          'Your data will be retained but no longer synced.',
-        ),
+        title: Text(l10n.endClinicalTrial),
+        content: Text(l10n.endClinicalTrialMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('End Trial'),
+            child: Text(l10n.endTrial),
           ),
         ],
       ),
@@ -285,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have left the clinical trial'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).leftClinicalTrial),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -324,15 +320,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
+        title: Text(l10n.logout),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Have you saved your username and password?'),
+            Text(l10n.savedCredentialsQuestion),
             const SizedBox(height: 16),
             if (hasCredentials)
               Container(
@@ -352,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "If you didn't save your credentials, they are available in the Account page.",
+                        l10n.credentialsAvailableInAccount,
                         style: TextStyle(
                           color: Colors.orange.shade900,
                           fontSize: 13,
@@ -367,11 +364,11 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes, Logout'),
+            child: Text(l10n.yesLogout),
           ),
         ],
       ),
@@ -384,12 +381,12 @@ class _HomeScreenState extends State<HomeScreen> {
           showDialog<void>(
             context: context,
             barrierDismissible: false,
-            builder: (context) => const AlertDialog(
+            builder: (context) => AlertDialog(
               content: Row(
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 24),
-                  Text('Syncing your data...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 24),
+                  Text(AppLocalizations.of(context).syncingData),
                 ],
               ),
             ),
@@ -409,19 +406,19 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!syncResult.isSuccess) {
         // Sync failed - show error and don't logout
         if (mounted) {
+          final l10nError = AppLocalizations.of(context);
           await showDialog<void>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Sync Failed'),
+              title: Text(l10nError.syncFailed),
               content: Text(
-                'Could not sync your data to the server. '
-                'Please check your internet connection and try again.\n\n'
+                '${l10nError.syncFailedMessage}\n\n'
                 'Error: ${syncResult.errorMessage}',
               ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
+                  child: Text(l10nError.ok),
                 ),
               ],
             ),
@@ -436,9 +433,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have been logged out'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).loggedOut),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
