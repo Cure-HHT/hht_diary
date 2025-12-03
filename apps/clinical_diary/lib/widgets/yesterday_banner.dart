@@ -1,3 +1,4 @@
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -15,6 +16,7 @@ class YesterdayBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     final dateStr = DateFormat('MMM d').format(yesterday);
 
@@ -29,7 +31,7 @@ class YesterdayBanner extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Confirm Yesterday - $dateStr',
+            l10n.confirmYesterdayDate(dateStr),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
               color: Colors.yellow.shade900,
@@ -37,7 +39,7 @@ class YesterdayBanner extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Did you have nosebleeds?',
+            l10n.didYouHaveNosebleeds,
             style: TextStyle(color: Colors.yellow.shade900),
           ),
           const SizedBox(height: 12),
@@ -51,7 +53,7 @@ class YesterdayBanner extends StatelessWidget {
                     side: BorderSide(color: Colors.yellow.shade300),
                     backgroundColor: Colors.white,
                   ),
-                  child: const Text('Yes'),
+                  child: Text(l10n.yes),
                 ),
               ),
               const SizedBox(width: 8),
@@ -63,12 +65,12 @@ class YesterdayBanner extends StatelessWidget {
                     side: BorderSide(color: Colors.yellow.shade300),
                     backgroundColor: Colors.white,
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('No'),
-                      SizedBox(width: 4),
-                      Icon(Icons.check, size: 16),
+                      Text(l10n.no),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check, size: 16),
                     ],
                   ),
                 ),
@@ -83,9 +85,9 @@ class YesterdayBanner extends StatelessWidget {
                     backgroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                   ),
-                  child: const Text(
-                    "Don't remember",
-                    style: TextStyle(fontSize: 11),
+                  child: Text(
+                    l10n.dontRemember,
+                    style: const TextStyle(fontSize: 11),
                     textAlign: TextAlign.center,
                   ),
                 ),

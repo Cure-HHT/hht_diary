@@ -2,8 +2,9 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../helpers/test_helpers.dart';
 
 void main() {
   group('TimePickerDial', () {
@@ -16,17 +17,16 @@ void main() {
 
           DateTime? confirmedTime;
           await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: TimePickerDial(
-                  title: 'Test',
-                  initialTime: futureTime,
-                  onConfirm: (time) => confirmedTime = time,
-                  allowFutureTimes: false,
-                ),
+            wrapWithScaffold(
+              TimePickerDial(
+                title: 'Test',
+                initialTime: futureTime,
+                onConfirm: (time) => confirmedTime = time,
+                allowFutureTimes: false,
               ),
             ),
           );
+          await tester.pumpAndSettle();
 
           // Tap confirm immediately
           await tester.tap(find.text('Confirm'));
@@ -49,17 +49,16 @@ void main() {
 
         DateTime? confirmedTime;
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: now,
-                onConfirm: (time) => confirmedTime = time,
-                allowFutureTimes: false,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: now,
+              onConfirm: (time) => confirmedTime = time,
+              allowFutureTimes: false,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         // Try to add 1 minute - should show error flash
         await tester.tap(find.text('+1'));
@@ -85,17 +84,16 @@ void main() {
 
         DateTime? confirmedTime;
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: futureTime,
-                onConfirm: (time) => confirmedTime = time,
-                allowFutureTimes: true,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: futureTime,
+              onConfirm: (time) => confirmedTime = time,
+              allowFutureTimes: true,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         await tester.tap(find.text('Confirm'));
         await tester.pump();
@@ -131,18 +129,17 @@ void main() {
 
           DateTime? confirmedTime;
           await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: TimePickerDial(
-                  title: 'Test',
-                  initialTime: pastDayLateTime,
-                  onConfirm: (time) => confirmedTime = time,
-                  allowFutureTimes: false,
-                  maxDateTime: endOfYesterday,
-                ),
+            wrapWithScaffold(
+              TimePickerDial(
+                title: 'Test',
+                initialTime: pastDayLateTime,
+                onConfirm: (time) => confirmedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
               ),
             ),
           );
+          await tester.pumpAndSettle();
 
           // Confirm the time - it should be allowed even though 11 PM might be
           // "later" than the current time of day
@@ -178,18 +175,17 @@ void main() {
 
         DateTime? confirmedTime;
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: tooLateTime,
-                onConfirm: (time) => confirmedTime = time,
-                allowFutureTimes: false,
-                maxDateTime: endOfYesterday,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: tooLateTime,
+              onConfirm: (time) => confirmedTime = time,
+              allowFutureTimes: false,
+              maxDateTime: endOfYesterday,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         await tester.tap(find.text('Confirm'));
         await tester.pump();
@@ -226,18 +222,17 @@ void main() {
 
         DateTime? confirmedTime;
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: pastTime,
-                onConfirm: (time) => confirmedTime = time,
-                allowFutureTimes: false,
-                maxDateTime: endOfYesterday,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: pastTime,
+              onConfirm: (time) => confirmedTime = time,
+              allowFutureTimes: false,
+              maxDateTime: endOfYesterday,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         // Try to add 15 minutes - this would exceed maxDateTime (12:05 AM > 11:59:59 PM)
         await tester.tap(find.text('+15'));
@@ -275,18 +270,17 @@ void main() {
 
         DateTime? confirmedTime;
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: pastTime,
-                onConfirm: (time) => confirmedTime = time,
-                allowFutureTimes: false,
-                maxDateTime: endOfYesterday,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: pastTime,
+              onConfirm: (time) => confirmedTime = time,
+              allowFutureTimes: false,
+              maxDateTime: endOfYesterday,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         // Add 5 minutes - should work since 11:05 PM < 11:59:59 PM
         await tester.tap(find.text('+5'));
@@ -305,52 +299,49 @@ void main() {
     group('UI elements', () {
       testWidgets('displays title', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Select Start Time',
-                initialTime: DateTime(2024, 1, 15, 14, 30),
-                onConfirm: (_) {},
-                allowFutureTimes: true,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Select Start Time',
+              initialTime: DateTime(2024, 1, 15, 14, 30),
+              onConfirm: (_) {},
+              allowFutureTimes: true,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('Select Start Time'), findsOneWidget);
       });
 
       testWidgets('displays custom confirm label', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: DateTime(2024, 1, 15, 14, 30),
-                onConfirm: (_) {},
-                confirmLabel: 'Save Time',
-                allowFutureTimes: true,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: DateTime(2024, 1, 15, 14, 30),
+              onConfirm: (_) {},
+              confirmLabel: 'Save Time',
+              allowFutureTimes: true,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('Save Time'), findsOneWidget);
       });
 
       testWidgets('displays all adjustment buttons', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: DateTime.now().subtract(const Duration(hours: 1)),
-                onConfirm: (_) {},
-                allowFutureTimes: true,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: DateTime.now().subtract(const Duration(hours: 1)),
+              onConfirm: (_) {},
+              allowFutureTimes: true,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('-15'), findsOneWidget);
         expect(find.text('-5'), findsOneWidget);
@@ -367,17 +358,16 @@ void main() {
 
         DateTime? confirmedTime;
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: TimePickerDial(
-                title: 'Test',
-                initialTime: initialTime,
-                onConfirm: (time) => confirmedTime = time,
-                allowFutureTimes: true,
-              ),
+          wrapWithScaffold(
+            TimePickerDial(
+              title: 'Test',
+              initialTime: initialTime,
+              onConfirm: (time) => confirmedTime = time,
+              allowFutureTimes: true,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         await tester.tap(find.text('-5'));
         await tester.pump();

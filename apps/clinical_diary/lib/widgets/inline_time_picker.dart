@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -123,10 +124,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
       // Don't allow times past the max unless explicitly permitted
       if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot select a time in the future'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l10n.cannotSelectFutureTime),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -136,10 +138,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
       // Don't allow times before min time
       if (widget.minTime != null && newTime.isBefore(widget.minTime!)) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('End time must be after start time'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l10n.endTimeAfterStart),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -155,8 +158,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final timeFormat = DateFormat('h:mm');
-    final periodFormat = DateFormat('a');
+    final locale = Localizations.localeOf(context).languageCode;
+    final timeFormat = DateFormat('H:mm', locale);
+    final periodFormat = DateFormat('a', locale);
+    // Check if locale uses 24-hour format
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
     final isUnset = _selectedTime == null;
 
     return Container(
@@ -176,7 +182,14 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  isUnset ? '--:--' : timeFormat.format(_selectedTime!),
+                  isUnset
+                      ? '--:--'
+                      : (use24Hour
+                            ? timeFormat.format(_selectedTime!)
+                            : DateFormat(
+                                'h:mm',
+                                locale,
+                              ).format(_selectedTime!)),
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     fontWeight: FontWeight.w300,
                     color: isUnset
@@ -184,16 +197,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
                         : null,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  isUnset ? '--' : periodFormat.format(_selectedTime!),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w400,
-                    color: isUnset
-                        ? Theme.of(context).colorScheme.outline
-                        : null,
+                if (!use24Hour) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    isUnset ? '--' : periodFormat.format(_selectedTime!),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w400,
+                      color: isUnset
+                          ? Theme.of(context).colorScheme.outline
+                          : null,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

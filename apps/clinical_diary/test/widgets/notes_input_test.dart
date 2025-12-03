@@ -5,21 +5,22 @@ import 'package:clinical_diary/widgets/notes_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('NotesInput', () {
     testWidgets('displays title text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Notes'), findsOneWidget);
     });
@@ -28,18 +29,17 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-              isRequired: true,
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
+            isRequired: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(
         find.text('Required for clinical trial participants'),
@@ -51,18 +51,17 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-              isRequired: false,
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
+            isRequired: false,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(
         find.text('Required for clinical trial participants'),
@@ -72,17 +71,16 @@ void main() {
 
     testWidgets('displays hint text in text field', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(
         find.text('Add any additional details about this nosebleed...'),
@@ -92,17 +90,16 @@ void main() {
 
     testWidgets('displays initial notes value', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: 'Initial note content',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: 'Initial note content',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Initial note content'), findsOneWidget);
     });
@@ -111,17 +108,16 @@ void main() {
       String? changedNotes;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (value) => changedNotes = value,
-              onBack: () {},
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (value) => changedNotes = value,
+            onBack: () {},
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'New note text');
       await tester.pump();
@@ -133,17 +129,16 @@ void main() {
       var backPressed = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () => backPressed = true,
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () => backPressed = true,
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Back'));
       await tester.pump();
@@ -157,18 +152,17 @@ void main() {
       var nextPressed = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: 'Some notes',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () => nextPressed = true,
-              isRequired: true,
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: 'Some notes',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () => nextPressed = true,
+            isRequired: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Next'));
       await tester.pump();
@@ -182,18 +176,17 @@ void main() {
       var nextPressed = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () => nextPressed = true,
-              isRequired: true,
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () => nextPressed = true,
+            isRequired: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Next'));
       await tester.pump();
@@ -207,18 +200,17 @@ void main() {
         var nextPressed = false;
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: NotesInput(
-                notes: '',
-                onNotesChange: (_) {},
-                onBack: () {},
-                onNext: () => nextPressed = true,
-                isRequired: false,
-              ),
+          wrapWithScaffold(
+            NotesInput(
+              notes: '',
+              onNotesChange: (_) {},
+              onBack: () {},
+              onNext: () => nextPressed = true,
+              isRequired: false,
             ),
           ),
         );
+        await tester.pumpAndSettle();
 
         await tester.tap(find.text('Next'));
         await tester.pump();
@@ -229,17 +221,16 @@ void main() {
 
     testWidgets('displays Back and Next buttons', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Back'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
@@ -247,17 +238,16 @@ void main() {
 
     testWidgets('text field expands to fill available space', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NotesInput(
-              notes: '',
-              onNotesChange: (_) {},
-              onBack: () {},
-              onNext: () {},
-            ),
+        wrapWithScaffold(
+          NotesInput(
+            notes: '',
+            onNotesChange: (_) {},
+            onBack: () {},
+            onNext: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final textField = tester.widget<TextField>(find.byType(TextField));
       expect(textField.expands, true);

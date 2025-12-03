@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Notes input widget for recording additional information
@@ -41,13 +42,14 @@ class _NotesInputState extends State<NotesInput> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Notes',
+            l10n.notes,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -55,7 +57,7 @@ class _NotesInputState extends State<NotesInput> {
           const SizedBox(height: 8),
           if (widget.isRequired)
             Text(
-              'Required for clinical trial participants',
+              l10n.notesRequired,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
@@ -66,9 +68,9 @@ class _NotesInputState extends State<NotesInput> {
           Expanded(
             child: TextField(
               controller: _controller,
-              decoration: const InputDecoration(
-                hintText: 'Add any additional details about this nosebleed...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: l10n.notesHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: null,
               expands: true,
@@ -85,7 +87,7 @@ class _NotesInputState extends State<NotesInput> {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Back', style: TextStyle(fontSize: 18)),
+                  child: Text(l10n.back, style: const TextStyle(fontSize: 18)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -98,7 +100,7 @@ class _NotesInputState extends State<NotesInput> {
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Next', style: TextStyle(fontSize: 18)),
+                  child: Text(l10n.next, style: const TextStyle(fontSize: 18)),
                 ),
               ),
             ],

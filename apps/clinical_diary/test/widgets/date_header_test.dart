@@ -5,34 +5,32 @@ import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('DateHeader', () {
     testWidgets('displays formatted date', (tester) async {
       final testDate = DateTime(2024, 1, 15); // Monday, January 15
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(date: testDate, onChange: (_) {}),
-          ),
-        ),
+        wrapWithScaffold(DateHeader(date: testDate, onChange: (_) {})),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Monday, January 15'), findsOneWidget);
     });
 
     testWidgets('displays calendar icon when editable', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(
-              date: DateTime(2024, 1, 15),
-              onChange: (_) {},
-              editable: true,
-            ),
+        wrapWithScaffold(
+          DateHeader(
+            date: DateTime(2024, 1, 15),
+            onChange: (_) {},
+            editable: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.calendar_today), findsOneWidget);
     });
@@ -41,32 +39,30 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(
-              date: DateTime(2024, 1, 15),
-              onChange: (_) {},
-              editable: false,
-            ),
+        wrapWithScaffold(
+          DateHeader(
+            date: DateTime(2024, 1, 15),
+            onChange: (_) {},
+            editable: false,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.calendar_today), findsNothing);
     });
 
     testWidgets('opens date picker when tapped and editable', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(
-              date: DateTime(2024, 1, 15),
-              onChange: (_) {},
-              editable: true,
-            ),
+        wrapWithScaffold(
+          DateHeader(
+            date: DateTime(2024, 1, 15),
+            onChange: (_) {},
+            editable: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Monday, January 15'));
       await tester.pumpAndSettle();
@@ -79,16 +75,15 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(
-              date: DateTime(2024, 1, 15),
-              onChange: (_) {},
-              editable: false,
-            ),
+        wrapWithScaffold(
+          DateHeader(
+            date: DateTime(2024, 1, 15),
+            onChange: (_) {},
+            editable: false,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Monday, January 15'));
       await tester.pumpAndSettle();
@@ -99,16 +94,15 @@ void main() {
 
     testWidgets('has background color when editable', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(
-              date: DateTime(2024, 1, 15),
-              onChange: (_) {},
-              editable: true,
-            ),
+        wrapWithScaffold(
+          DateHeader(
+            date: DateTime(2024, 1, 15),
+            onChange: (_) {},
+            editable: true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final container = tester.widget<Container>(
         find.descendant(
@@ -123,16 +117,15 @@ void main() {
 
     testWidgets('has transparent background when not editable', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(
-              date: DateTime(2024, 1, 15),
-              onChange: (_) {},
-              editable: false,
-            ),
+        wrapWithScaffold(
+          DateHeader(
+            date: DateTime(2024, 1, 15),
+            onChange: (_) {},
+            editable: false,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final container = tester.widget<Container>(
         find.descendant(
@@ -150,24 +143,20 @@ void main() {
       final testDate = DateTime(2024, 12, 25); // Wednesday, December 25
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(date: testDate, onChange: (_) {}),
-          ),
-        ),
+        wrapWithScaffold(DateHeader(date: testDate, onChange: (_) {})),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Wednesday, December 25'), findsOneWidget);
     });
 
     testWidgets('is wrapped in GestureDetector', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DateHeader(date: DateTime(2024, 1, 15), onChange: (_) {}),
-          ),
+        wrapWithScaffold(
+          DateHeader(date: DateTime(2024, 1, 15), onChange: (_) {}),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(GestureDetector), findsOneWidget);
     });

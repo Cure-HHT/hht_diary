@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: User Account Management
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
@@ -44,7 +45,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     return '*' * _password!.length;
   }
 
-  Future<void> _showChangePasswordDialog() async {
+  Future<void> _showChangePasswordDialog(AppLocalizations l10n) async {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -59,7 +60,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Change Password'),
+          title: Text(l10n.changePassword),
           content: SingleChildScrollView(
             child: Form(
               key: formKey,
@@ -101,7 +102,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                   TextFormField(
                     controller: currentPasswordController,
                     decoration: InputDecoration(
-                      labelText: 'Current Password',
+                      labelText: l10n.currentPassword,
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -119,7 +120,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                     obscureText: obscureCurrent,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Current password is required';
+                        return l10n.currentPasswordRequired;
                       }
                       return null;
                     },
@@ -128,10 +129,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                   TextFormField(
                     controller: newPasswordController,
                     decoration: InputDecoration(
-                      labelText: 'New Password',
+                      labelText: l10n.newPassword,
                       border: const OutlineInputBorder(),
-                      helperText:
-                          'Minimum ${AuthService.minPasswordLength} characters',
+                      helperText: l10n.minimumCharacters(
+                        AuthService.minPasswordLength,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           obscureNew ? Icons.visibility_off : Icons.visibility,
@@ -144,10 +146,12 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                     obscureText: obscureNew,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'New password is required';
+                        return l10n.newPasswordRequired;
                       }
                       if (value.length < AuthService.minPasswordLength) {
-                        return 'Password must be at least ${AuthService.minPasswordLength} characters';
+                        return l10n.passwordTooShort(
+                          AuthService.minPasswordLength,
+                        );
                       }
                       return null;
                     },
@@ -156,7 +160,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                   TextFormField(
                     controller: confirmPasswordController,
                     decoration: InputDecoration(
-                      labelText: 'Confirm New Password',
+                      labelText: l10n.confirmNewPassword,
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -174,7 +178,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                     obscureText: obscureConfirm,
                     validator: (value) {
                       if (value != newPasswordController.text) {
-                        return 'Passwords do not match';
+                        return l10n.passwordsDoNotMatch;
                       }
                       return null;
                     },
@@ -186,7 +190,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           actions: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: isLoading
@@ -225,7 +229,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Change Password'),
+                  : Text(l10n.changePassword),
             ),
           ],
         ),
@@ -236,8 +240,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       await _loadCredentials();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password changed successfully'),
+          SnackBar(
+            content: Text(l10n.passwordChangedSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -249,16 +253,17 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Account')),
+        appBar: AppBar(title: Text(l10n.account)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Account')),
+      appBar: AppBar(title: Text(l10n.account)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -292,14 +297,14 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Your Credentials',
+                        l10n.yourCredentials,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Keep these safe - there is no password recovery.',
+                        l10n.keepCredentialsSafe,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.orange.shade700,
                         ),
@@ -308,7 +313,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
 
                       // Username field
                       Text(
-                        'Username',
+                        l10n.username,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -322,7 +327,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          _username ?? 'Unknown',
+                          _username ?? l10n.unknown,
                           style: theme.textTheme.bodyLarge?.copyWith(
                             fontFamily: 'monospace',
                           ),
@@ -333,7 +338,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
 
                       // Password field
                       Text(
-                        'Password',
+                        l10n.password,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -372,8 +377,8 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                                 setState(() => _showPassword = !_showPassword);
                               },
                               tooltip: _showPassword
-                                  ? 'Hide password'
-                                  : 'Show password',
+                                  ? l10n.hidePassword
+                                  : l10n.showPassword,
                             ),
                           ],
                         ),
@@ -387,9 +392,9 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
 
               // Change password button
               OutlinedButton.icon(
-                onPressed: _showChangePasswordDialog,
+                onPressed: () => _showChangePasswordDialog(l10n),
                 icon: const Icon(Icons.lock_reset),
-                label: const Text('Change Password'),
+                label: Text(l10n.changePassword),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),
                 ),
@@ -414,7 +419,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Security Reminder',
+                            l10n.securityReminder,
                             style: theme.textTheme.titleSmall?.copyWith(
                               color: Colors.blue.shade800,
                               fontWeight: FontWeight.bold,
@@ -424,8 +429,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Write down your username and password and store them in a safe place. '
-                        'If you lose these credentials, you will not be able to recover your account.',
+                        l10n.securityReminderText,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.blue.shade900,
                         ),

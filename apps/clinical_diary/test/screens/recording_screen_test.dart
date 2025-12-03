@@ -16,6 +16,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -68,8 +70,8 @@ void main() {
     group('New Record Mode', () {
       testWidgets('displays start time picker as initial step', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -85,8 +87,8 @@ void main() {
 
       testWidgets('displays back button', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -101,8 +103,8 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -115,8 +117,8 @@ void main() {
 
       testWidgets('displays summary bar with all fields', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -142,8 +144,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -169,8 +171,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -197,8 +199,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -225,8 +227,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -252,8 +254,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -275,8 +277,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -312,8 +314,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -348,8 +350,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -403,8 +405,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -433,8 +435,8 @@ void main() {
         final allRecords = [existingRecord];
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -476,8 +478,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -532,8 +534,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -574,8 +576,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -616,8 +618,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -657,8 +659,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -711,8 +713,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -758,13 +760,11 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RecordingScreen(
-                nosebleedService: failingService,
-                enrollmentService: mockEnrollment,
-                initialDate: DateTime(2024, 1, 15),
-              ),
+          wrapWithScaffold(
+            RecordingScreen(
+              nosebleedService: failingService,
+              enrollmentService: mockEnrollment,
+              initialDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -802,8 +802,8 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -846,13 +846,11 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RecordingScreen(
-                nosebleedService: nosebleedService,
-                enrollmentService: mockEnrollment,
-                existingRecord: existingRecord,
-              ),
+          wrapWithScaffold(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              existingRecord: existingRecord,
             ),
           ),
         );
@@ -897,8 +895,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -929,8 +927,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),

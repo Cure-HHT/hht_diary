@@ -6,14 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('DaySelectionScreen', () {
     final testDate = DateTime(2025, 11, 28);
 
     testWidgets('displays the formatted date', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -21,6 +23,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final dateStr = DateFormat('EEEE, MMMM d, y').format(testDate);
       expect(find.text(dateStr), findsOneWidget);
@@ -30,8 +33,8 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -39,14 +42,15 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('What happened on this day?'), findsOneWidget);
     });
 
     testWidgets('displays Add nosebleed event button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -54,14 +58,15 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Add nosebleed event'), findsOneWidget);
     });
 
     testWidgets('displays No nosebleed events button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -69,14 +74,15 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('No nosebleed events'), findsOneWidget);
     });
 
     testWidgets('displays I dont recall button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -84,6 +90,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text("I don't recall / unknown"), findsOneWidget);
     });
@@ -94,8 +101,8 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () => called = true,
             onNoNosebleeds: () {},
@@ -103,6 +110,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Add nosebleed event'));
       await tester.pump();
@@ -116,8 +124,8 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () => called = true,
@@ -125,6 +133,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('No nosebleed events'));
       await tester.pump();
@@ -136,8 +145,8 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -145,6 +154,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text("I don't recall / unknown"));
       await tester.pump();
@@ -154,18 +164,19 @@ void main() {
 
     testWidgets('Add nosebleed button has add icon', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          ),
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
             onUnknown: () {},
           ),
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Verify the add icon is present with the button
       expect(find.byIcon(Icons.add), findsOneWidget);
@@ -173,8 +184,8 @@ void main() {
 
     testWidgets('No nosebleed events button has check icon', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -182,14 +193,15 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
     });
 
     testWidgets('displays back button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -197,14 +209,15 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     });
 
     testWidgets('back button is tappable', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -212,6 +225,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Verify the back button exists and is an IconButton
       final backButtonFinder = find.byIcon(Icons.arrow_back);
@@ -226,8 +240,8 @@ void main() {
 
     testWidgets('has three action buttons with correct text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DaySelectionScreen(
+        wrapWithMaterialApp(
+          DaySelectionScreen(
             date: testDate,
             onAddNosebleed: () {},
             onNoNosebleeds: () {},
@@ -235,6 +249,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Verify all three buttons exist by their text
       expect(find.text('Add nosebleed event'), findsOneWidget);
