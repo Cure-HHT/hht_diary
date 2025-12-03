@@ -158,8 +158,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final timeFormat = DateFormat('h:mm');
-    final periodFormat = DateFormat('a');
+    final locale = Localizations.localeOf(context).languageCode;
+    final timeFormat = DateFormat('H:mm', locale);
+    final periodFormat = DateFormat('a', locale);
+    // Check if locale uses 24-hour format
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
     final isUnset = _selectedTime == null;
 
     return Container(
@@ -179,7 +182,14 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  isUnset ? '--:--' : timeFormat.format(_selectedTime!),
+                  isUnset
+                      ? '--:--'
+                      : (use24Hour
+                            ? timeFormat.format(_selectedTime!)
+                            : DateFormat(
+                                'h:mm',
+                                locale,
+                              ).format(_selectedTime!)),
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     fontWeight: FontWeight.w300,
                     color: isUnset
@@ -187,16 +197,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
                         : null,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  isUnset ? '--' : periodFormat.format(_selectedTime!),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w400,
-                    color: isUnset
-                        ? Theme.of(context).colorScheme.outline
-                        : null,
+                if (!use24Hour) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    isUnset ? '--' : periodFormat.format(_selectedTime!),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w400,
+                      color: isUnset
+                          ? Theme.of(context).colorScheme.outline
+                          : null,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -87,9 +87,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow
 
-  String _formatTime(DateTime? time) {
+  String _formatTime(DateTime? time, String locale) {
     if (time == null) return '--:--';
-    return DateFormat('h:mm a').format(time);
+    return DateFormat.jm(locale).format(time);
   }
 
   int? get _durationMinutes {
@@ -393,6 +393,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Widget _buildSummaryBar(AppLocalizations l10n) {
+    final locale = Localizations.localeOf(context).languageCode;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -406,7 +407,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // Start time
           _buildSummaryItem(
             label: l10n.start,
-            value: _formatTime(_startTime),
+            value: _formatTime(_startTime, locale),
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
           ),
@@ -416,7 +417,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // Severity
           _buildSummaryItem(
             label: l10n.severity,
-            value: _severity?.displayName ?? l10n.selectSeverity,
+            value: _severity != null
+                ? l10n.severityName(_severity!.name)
+                : l10n.selectSeverity,
             isActive: _currentStep == RecordingStep.severity,
             onTap: _startTime != null
                 ? () => _goToStep(RecordingStep.severity)
@@ -428,7 +431,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // End time
           _buildSummaryItem(
             label: l10n.end,
-            value: _formatTime(_endTime),
+            value: _formatTime(_endTime, locale),
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _severity != null
                 ? () => _goToStep(RecordingStep.endTime)
