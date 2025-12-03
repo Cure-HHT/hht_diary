@@ -1030,7 +1030,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 const SizedBox(height: 8),
                 Text(
-                  DateFormat('EEEE, MMMM d, y').format(group.date!),
+                  DateFormat(
+                    'EEEE, MMMM d, y',
+                    Localizations.localeOf(context).languageCode,
+                  ).format(group.date!),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),

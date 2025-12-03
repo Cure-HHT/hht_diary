@@ -94,7 +94,7 @@ class _IntensityItem extends StatelessWidget {
     // Icon should be about 50% of the container size to leave room for text
     final iconSize = size * 0.5;
     // Font size scales with container
-    final fontSize = (size * 0.14).clamp(8.0, 11.0);
+    final fontSize = (size * 0.18).clamp(9.0, 13.0);
 
     return Tooltip(
       message: label,
