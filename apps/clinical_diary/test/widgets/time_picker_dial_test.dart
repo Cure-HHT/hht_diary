@@ -205,16 +205,16 @@ void main() {
       );
 
       testWidgets(
-        'allows +15 button on past date when within maxDateTime',
+        'blocks +15 button when it would exceed maxDateTime',
         (tester) async {
           final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          // Start at 11:30 PM yesterday
+          // Start at 11:50 PM yesterday - adding 15 would exceed max
           final pastTime = DateTime(
             yesterday.year,
             yesterday.month,
             yesterday.day,
             23,
-            30,
+            50,
           );
           final endOfYesterday = DateTime(
             yesterday.year,
@@ -240,17 +240,17 @@ void main() {
             ),
           );
 
-          // Try to add 15 minutes - this would exceed maxDateTime
+          // Try to add 15 minutes - this would exceed maxDateTime (12:05 AM > 11:59:59 PM)
           await tester.tap(find.text('+15'));
           await tester.pumpAndSettle();
 
           await tester.tap(find.text('Confirm'));
           await tester.pump();
 
-          // Time should still be at 11:30 PM since +15 would exceed max
+          // Time should still be at 11:50 PM since +15 would exceed max
           expect(confirmedTime, isNotNull);
           expect(confirmedTime!.hour, 23);
-          expect(confirmedTime!.minute, 30);
+          expect(confirmedTime!.minute, 50);
         },
       );
 
