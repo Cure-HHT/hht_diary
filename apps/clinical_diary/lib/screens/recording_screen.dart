@@ -96,6 +96,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _endTime!.difference(_startTime!).inMinutes;
   }
 
+  /// Returns the maximum DateTime allowed for time selection.
+  /// For today, returns DateTime.now() to prevent future times.
+  /// For past dates, returns end of that day (23:59:59) to allow any time.
+  DateTime? get _maxDateTimeForTimePicker {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+    }
+    // Today or future: use current time as max (default behavior)
+    return null;
+  }
+
   List<NosebleedRecord> _getOverlappingEvents() {
     if (_startTime == null || _endTime == null) return [];
 
@@ -418,6 +434,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           initialTime: startInitialTime,
           onConfirm: _handleStartTimeConfirm,
           confirmLabel: 'Set Start Time',
+          maxDateTime: _maxDateTimeForTimePicker,
         );
 
       case RecordingStep.severity:
@@ -446,6 +463,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
           confirmLabel: 'Nosebleed Ended',
+          maxDateTime: _maxDateTimeForTimePicker,
         );
 
       // CUR-408: Notes case removed from recording flow
