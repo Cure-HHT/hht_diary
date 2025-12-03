@@ -833,7 +833,7 @@ class AppLocalizations {
       'clinicalTrialEndedMessage':
           " La participation a l'essai clinique s'est terminee le {0}. Les donnees precedemment partagees restent indefiniment avec les chercheurs pour analyse scientifique.",
       'noDataSharedMessage':
-          ' Aucune donnee n\'est partagee avec des tiers sauf si vous choisissez de participer a la recherche ou aux essais cliniques.',
+          " Aucune donnee n'est partagee avec des tiers sauf si vous choisissez de participer a la recherche ou aux essais cliniques.",
       'enrolledInClinicalTrialStatus': 'Inscrit a un Essai Clinique',
       'clinicalTrialEnrollmentEnded':
           'Inscription a un Essai Clinique: Terminee',
@@ -1051,6 +1051,72 @@ class AppLocalizations {
       'incorrectInformation': 'Falsche Informationen',
       'other': 'Sonstiges',
       'pleaseSpecify': 'Bitte angeben',
+
+      // Time picker
+      'cannotSelectFutureTime':
+          'Es kann keine Zeit in der Zukunft ausgewahlt werden',
+
+      // Notes input
+      'notes': 'Notizen',
+      'notesRequired': 'Erforderlich fur Teilnehmer an klinischen Studien',
+      'notesHint': 'Fugen Sie weitere Details zu diesem Nasenbluten hinzu...',
+      'next': 'Weiter',
+
+      // Logo menu
+      'appMenu': 'App-Menu',
+      'dataManagement': 'Datenverwaltung',
+      'addExampleData': 'Beispieldaten hinzufugen',
+      'clinicalTrialLabel': 'Klinische Studie',
+      'instructionsAndFeedback': 'Anleitungen & Feedback',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Uberlappende Ereignisse erkannt',
+      'overlappingEventsCount':
+          'Dieses Ereignis uberschneidet sich mit {0} vorhandenen {1}',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary': 'Willkommen beim\nNasenbluten-Tagebuch',
+      'enterCodeToGetStarted':
+          'Geben Sie Ihren Anmeldecode ein, um zu beginnen.',
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Loslegen',
+      'codeMustBe8Chars': 'Der Code muss 8 Zeichen haben',
+      'pleaseEnterEnrollmentCode': 'Bitte geben Sie Ihren Anmeldecode ein',
+
+      // Date records screen
+      'addNewEvent': 'Neues Ereignis hinzufugen',
+      'noEventsRecordedForDay': 'Keine Ereignisse fur diesen Tag aufgezeichnet',
+      'eventCountSingular': '1 Ereignis',
+      'eventCountPlural': '{0} Ereignisse',
+
+      // Profile screen
+      'userProfile': 'Benutzerprofil',
+      'enterYourName': 'Geben Sie Ihren Namen ein',
+      'editName': 'Name bearbeiten',
+      'shareWithCureHHT': 'Mit CureHHT teilen',
+      'stopSharingWithCureHHT': 'Teilen mit CureHHT beenden',
+      'privacyDataProtection': 'Datenschutz & Datensicherheit',
+      'healthDataStoredLocally':
+          'Ihre Gesundheitsdaten werden lokal auf Ihrem Gerat gespeichert.',
+      'dataSharedAnonymized':
+          ' Anonymisierte Daten werden zu Forschungszwecken mit CureHHT geteilt.',
+      'clinicalTrialSharingActive':
+          ' Die Teilnahme an der klinischen Studie beinhaltet das Teilen anonymisierter Daten mit Forschern gemaß dem Studienprotokoll.',
+      'clinicalTrialEndedMessage':
+          ' Die Teilnahme an der klinischen Studie endete am {0}. Zuvor geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
+      'noDataSharedMessage':
+          ' Es werden keine Daten mit externen Parteien geteilt, es sei denn, Sie entscheiden sich fur die Teilnahme an Forschung oder klinischen Studien.',
+      'enrolledInClinicalTrialStatus': 'In klinischer Studie angemeldet',
+      'clinicalTrialEnrollmentEnded':
+          'Anmeldung zur klinischen Studie: Beendet',
+      'enrollmentCodeLabel': 'Anmeldecode: {0}',
+      'enrolledLabel': 'Angemeldet: {0}',
+      'endedLabel': 'Beendet: {0}',
+      'sharingWithCureHHT': 'Teilen mit CureHHT',
+      'sharingNoteActive':
+          'Hinweis: Das Logo auf dem Startbildschirm der App erinnert Sie daran, dass Sie Ihre Daten mit einem Dritten teilen.',
+      'sharingNoteEnded':
+          'Hinweis: Wahrend der Teilnahme an der klinischen Studie geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
     },
   };
 
