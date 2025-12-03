@@ -1334,6 +1334,76 @@ class AppLocalizations {
   String get incorrectInformation => translate('incorrectInformation');
   String get other => translate('other');
   String get pleaseSpecify => translate('pleaseSpecify');
+
+  // Time picker
+  String get cannotSelectFutureTime => translate('cannotSelectFutureTime');
+
+  // Notes input
+  String get notes => translate('notes');
+  String get notesRequired => translate('notesRequired');
+  String get notesHint => translate('notesHint');
+  String get next => translate('next');
+
+  // Logo menu
+  String get appMenu => translate('appMenu');
+  String get dataManagement => translate('dataManagement');
+  String get addExampleData => translate('addExampleData');
+  String get clinicalTrialLabel => translate('clinicalTrialLabel');
+  String get instructionsAndFeedback => translate('instructionsAndFeedback');
+
+  // Overlap warning
+  String get overlappingEventsDetected =>
+      translate('overlappingEventsDetected');
+  String overlappingEventsCount(int count) => translateWithParams(
+    'overlappingEventsCount',
+    [count, if (count == 1) translate('event') else translate('events')],
+  );
+
+  // Enrollment screen
+  String get welcomeToNosebleedDiary => translate('welcomeToNosebleedDiary');
+  String get enterCodeToGetStarted => translate('enterCodeToGetStarted');
+  String get enrollmentCodePlaceholder =>
+      translate('enrollmentCodePlaceholder');
+  String get getStarted => translate('getStarted');
+  String get codeMustBe8Chars => translate('codeMustBe8Chars');
+  String get pleaseEnterEnrollmentCode =>
+      translate('pleaseEnterEnrollmentCode');
+
+  // Date records screen
+  String get addNewEvent => translate('addNewEvent');
+  String get noEventsRecordedForDay => translate('noEventsRecordedForDay');
+  String get eventCountSingular => translate('eventCountSingular');
+  String eventCountPlural(int count) =>
+      translateWithParams('eventCountPlural', [count]);
+  String eventCount(int count) =>
+      count == 1 ? eventCountSingular : eventCountPlural(count);
+
+  // Profile screen
+  String get userProfile => translate('userProfile');
+  String get enterYourName => translate('enterYourName');
+  String get editName => translate('editName');
+  String get shareWithCureHHT => translate('shareWithCureHHT');
+  String get stopSharingWithCureHHT => translate('stopSharingWithCureHHT');
+  String get privacyDataProtection => translate('privacyDataProtection');
+  String get healthDataStoredLocally => translate('healthDataStoredLocally');
+  String get dataSharedAnonymized => translate('dataSharedAnonymized');
+  String get clinicalTrialSharingActive =>
+      translate('clinicalTrialSharingActive');
+  String clinicalTrialEndedMessage(String date) =>
+      translateWithParams('clinicalTrialEndedMessage', [date]);
+  String get noDataSharedMessage => translate('noDataSharedMessage');
+  String get enrolledInClinicalTrialStatus =>
+      translate('enrolledInClinicalTrialStatus');
+  String get clinicalTrialEnrollmentEnded =>
+      translate('clinicalTrialEnrollmentEnded');
+  String enrollmentCodeLabel(String code) =>
+      translateWithParams('enrollmentCodeLabel', [code]);
+  String enrolledLabel(String date) =>
+      translateWithParams('enrolledLabel', [date]);
+  String endedLabel(String date) => translateWithParams('endedLabel', [date]);
+  String get sharingWithCureHHT => translate('sharingWithCureHHT');
+  String get sharingNoteActive => translate('sharingNoteActive');
+  String get sharingNoteEnded => translate('sharingNoteEnded');
 }
 
 class _AppLocalizationsDelegate
