@@ -54,3 +54,4 @@ functions/coverage/
 /.firebase/
 /macos/Podfile.lock
 /.claude/setting.local.json
+/.claude/settings.local.json
