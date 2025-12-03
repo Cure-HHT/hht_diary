@@ -235,6 +235,68 @@ class AppLocalizations {
       'incorrectInformation': 'Incorrect information',
       'other': 'Other',
       'pleaseSpecify': 'Please specify',
+
+      // Time picker
+      'cannotSelectFutureTime': 'Cannot select a time in the future',
+
+      // Notes input
+      'notes': 'Notes',
+      'notesRequired': 'Required for clinical trial participants',
+      'notesHint': 'Add any additional details about this nosebleed...',
+      'next': 'Next',
+
+      // Logo menu
+      'appMenu': 'App menu',
+      'dataManagement': 'Data Management',
+      'addExampleData': 'Add Example Data',
+      'clinicalTrialLabel': 'Clinical Trial',
+      'instructionsAndFeedback': 'Instructions & Feedback',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Overlapping Events Detected',
+      'overlappingEventsCount': 'This event overlaps with {0} existing {1}',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary': 'Welcome to\nNosebleed Diary',
+      'enterCodeToGetStarted': 'Enter your enrollment code to get started.',
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Get Started',
+      'codeMustBe8Chars': 'Code must be 8 characters',
+      'pleaseEnterEnrollmentCode': 'Please enter your enrollment code',
+
+      // Date records screen
+      'addNewEvent': 'Add new event',
+      'noEventsRecordedForDay': 'No events recorded for this day',
+      'eventCountSingular': '1 event',
+      'eventCountPlural': '{0} events',
+
+      // Profile screen
+      'userProfile': 'User Profile',
+      'enterYourName': 'Enter your name',
+      'editName': 'Edit name',
+      'shareWithCureHHT': 'Share with CureHHT',
+      'stopSharingWithCureHHT': 'Stop Sharing with CureHHT',
+      'privacyDataProtection': 'Privacy & Data Protection',
+      'healthDataStoredLocally':
+          'Your health data is stored locally on your device.',
+      'dataSharedAnonymized':
+          ' Anonymized data is shared with CureHHT for research purposes.',
+      'clinicalTrialSharingActive':
+          ' Clinical trial participation involves sharing anonymized data with researchers according to the study protocol.',
+      'clinicalTrialEndedMessage':
+          ' Clinical trial participation ended on {0}. Previously shared data remains with researchers indefinitely for scientific analysis.',
+      'noDataSharedMessage':
+          ' No data is shared with external parties unless you choose to participate in research or clinical trials.',
+      'enrolledInClinicalTrialStatus': 'Enrolled in Clinical Trial',
+      'clinicalTrialEnrollmentEnded': 'Clinical Trial Enrollment: Ended',
+      'enrollmentCodeLabel': 'Enrollment Code: {0}',
+      'enrolledLabel': 'Enrolled: {0}',
+      'endedLabel': 'Ended: {0}',
+      'sharingWithCureHHT': 'Sharing with CureHHT',
+      'sharingNoteActive':
+          'Note: The logo displayed on the homescreen of the app is a reminder that you are sharing your data with a 3rd party.',
+      'sharingNoteEnded':
+          'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
     },
     'es': {
       // General
@@ -523,7 +585,7 @@ class AppLocalizations {
       'enterPassword': 'Entrez le mot de passe',
       'confirmPassword': 'Confirmer le mot de passe',
       'reenterPassword': 'Ressaisissez le mot de passe',
-      'noAccountCreate': "Pas de compte? Creez-en un",
+      'noAccountCreate': 'Pas de compte? Creez-en un',
       'hasAccountLogin': 'Vous avez deja un compte? Connectez-vous',
       'minimumCharacters': 'Minimum {0} caracteres',
 
@@ -601,7 +663,7 @@ class AppLocalizations {
       'editRecord': "Modifier l'enregistrement",
       'recordComplete': 'Enregistrement complet',
       'reviewAndSave':
-          "Verifiez les informations et enregistrez quand vous etes pret",
+          'Verifiez les informations et enregistrez quand vous etes pret',
       'tapFieldToEdit': 'Appuyez sur un champ ci-dessus pour le modifier',
       'durationMinutes': 'Duree: {0} minutes',
       'cannotSaveOverlap':
@@ -1031,7 +1093,7 @@ class AppLocalizations {
   String get cannotSaveOverlap => translate('cannotSaveOverlap');
   String cannotSaveOverlapCount(int count) => translateWithParams(
     'cannotSaveOverlapCount',
-    [count, count == 1 ? translate('event') : translate('events')],
+    [count, if (count == 1) translate('event') else translate('events')],
   );
   String get failedToSave => translate('failedToSave');
   String get endTimeAfterStart => translate('endTimeAfterStart');
