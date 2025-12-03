@@ -38,7 +38,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
   }
 
   /// Gets the effective maximum DateTime for validation.
-  /// Uses [widget.maxDateTime] if provided, otherwise DateTime.now().
+  /// Uses maxDateTime if provided, otherwise DateTime.now().
   DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
 
   /// Clamps the given time to the effective max if future times are not allowed
