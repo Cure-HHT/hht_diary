@@ -106,6 +106,202 @@ void main() {
       });
     });
 
+    group('maxDateTime parameter (CUR-447)', () {
+      testWidgets(
+        'allows any time on past date when maxDateTime is set to end-of-day',
+        (tester) async {
+          // Simulate editing a past date (yesterday at 11 PM)
+          final yesterday = DateTime.now().subtract(const Duration(days: 1));
+          final pastDayLateTime = DateTime(
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            23,
+            0,
+          );
+          // Max is end of yesterday
+          final endOfYesterday = DateTime(
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            23,
+            59,
+            59,
+          );
+
+          DateTime? confirmedTime;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: TimePickerDial(
+                  title: 'Test',
+                  initialTime: pastDayLateTime,
+                  onConfirm: (time) => confirmedTime = time,
+                  allowFutureTimes: false,
+                  maxDateTime: endOfYesterday,
+                ),
+              ),
+            ),
+          );
+
+          // Confirm the time - it should be allowed even though 11 PM might be
+          // "later" than the current time of day
+          await tester.tap(find.text('Confirm'));
+          await tester.pump();
+
+          expect(confirmedTime, isNotNull);
+          expect(confirmedTime!.hour, 23);
+          expect(confirmedTime!.minute, 0);
+        },
+      );
+
+      testWidgets('clamps initial time to maxDateTime instead of now', (
+        tester,
+      ) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        // Time that exceeds end of yesterday
+        final tooLateTime = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day + 1, // Actually today
+          2,
+          0,
+        );
+        final endOfYesterday = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          59,
+          59,
+        );
+
+        DateTime? confirmedTime;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TimePickerDial(
+                title: 'Test',
+                initialTime: tooLateTime,
+                onConfirm: (time) => confirmedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Confirm'));
+        await tester.pump();
+
+        // Should be clamped to end of yesterday
+        expect(confirmedTime, isNotNull);
+        expect(
+          confirmedTime!.isBefore(endOfYesterday) ||
+              confirmedTime!.isAtSameMomentAs(endOfYesterday),
+          isTrue,
+        );
+      });
+
+      testWidgets('blocks +15 button when it would exceed maxDateTime', (
+        tester,
+      ) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        // Start at 11:50 PM yesterday - adding 15 would exceed max
+        final pastTime = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          50,
+        );
+        final endOfYesterday = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          59,
+          59,
+        );
+
+        DateTime? confirmedTime;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TimePickerDial(
+                title: 'Test',
+                initialTime: pastTime,
+                onConfirm: (time) => confirmedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
+              ),
+            ),
+          ),
+        );
+
+        // Try to add 15 minutes - this would exceed maxDateTime (12:05 AM > 11:59:59 PM)
+        await tester.tap(find.text('+15'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Confirm'));
+        await tester.pump();
+
+        // Time should still be at 11:50 PM since +15 would exceed max
+        expect(confirmedTime, isNotNull);
+        expect(confirmedTime!.hour, 23);
+        expect(confirmedTime!.minute, 50);
+      });
+
+      testWidgets('allows +5 button on past date when within maxDateTime', (
+        tester,
+      ) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        // Start at 11:00 PM yesterday
+        final pastTime = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          0,
+        );
+        final endOfYesterday = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          59,
+          59,
+        );
+
+        DateTime? confirmedTime;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TimePickerDial(
+                title: 'Test',
+                initialTime: pastTime,
+                onConfirm: (time) => confirmedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
+              ),
+            ),
+          ),
+        );
+
+        // Add 5 minutes - should work since 11:05 PM < 11:59:59 PM
+        await tester.tap(find.text('+5'));
+        await tester.pump();
+
+        await tester.tap(find.text('Confirm'));
+        await tester.pump();
+
+        // Time should be 11:05 PM
+        expect(confirmedTime, isNotNull);
+        expect(confirmedTime!.hour, 23);
+        expect(confirmedTime!.minute, 5);
+      });
+    });
+
     group('UI elements', () {
       testWidgets('displays title', (tester) async {
         await tester.pumpWidget(

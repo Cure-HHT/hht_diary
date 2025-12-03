@@ -79,6 +79,22 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     }
   }
 
+  /// Returns the maximum DateTime allowed for time selection.
+  /// For today, returns DateTime.now() to prevent future times.
+  /// For past dates, returns end of that day (23:59:59) to allow any time.
+  DateTime? get _maxDateTimeForTimePicker {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+    }
+    // Today or future: use current time as max (default behavior)
+    return null;
+  }
+
   List<NosebleedRecord> _getOverlappingEvents() {
     if (_startTime == null || _endTime == null) return [];
 
@@ -348,6 +364,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                           ),
                       onTimeChanged: _handleStartTimeChange,
                       allowFutureTimes: false,
+                      maxDateTime: _maxDateTimeForTimePicker,
                     ),
 
                     const SizedBox(height: 24),
@@ -381,6 +398,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       onTimeChanged: _handleEndTimeChange,
                       allowFutureTimes: false,
                       minTime: _startTime,
+                      maxDateTime: _maxDateTimeForTimePicker,
                     ),
 
                     const SizedBox(height: 24),

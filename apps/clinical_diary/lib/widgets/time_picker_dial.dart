@@ -10,12 +10,18 @@ class TimePickerDial extends StatefulWidget {
     super.key,
     this.confirmLabel = 'Confirm',
     this.allowFutureTimes = false,
+    this.maxDateTime,
   });
   final String title;
   final DateTime initialTime;
   final ValueChanged<DateTime> onConfirm;
   final String confirmLabel;
   final bool allowFutureTimes;
+
+  /// Optional maximum DateTime. When [allowFutureTimes] is false, this is used
+  /// as the limit instead of DateTime.now(). Useful when editing past dates
+  /// where the limit should be end-of-day rather than current moment.
+  final DateTime? maxDateTime;
 
   @override
   State<TimePickerDial> createState() => _TimePickerDialState();
@@ -27,14 +33,18 @@ class _TimePickerDialState extends State<TimePickerDial> {
   @override
   void initState() {
     super.initState();
-    // Clamp initial time to now if future times are not allowed
-    _selectedTime = _clampToNowIfNeeded(widget.initialTime);
+    // Clamp initial time to max if future times are not allowed
+    _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
   }
 
-  /// Clamps the given time to now if future times are not allowed
-  DateTime _clampToNowIfNeeded(DateTime time) {
-    if (!widget.allowFutureTimes && time.isAfter(DateTime.now())) {
-      return DateTime.now();
+  /// Gets the effective maximum DateTime for validation.
+  /// Uses maxDateTime if provided, otherwise DateTime.now().
+  DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
+
+  /// Clamps the given time to the effective max if future times are not allowed
+  DateTime _clampToMaxIfNeeded(DateTime time) {
+    if (!widget.allowFutureTimes && time.isAfter(_effectiveMaxDateTime)) {
+      return _effectiveMaxDateTime;
     }
     return time;
   }
@@ -45,8 +55,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
   void _adjustMinutes(int delta) {
     final newTime = _selectedTime.add(Duration(minutes: delta));
 
-    // Check if this would go into the future
-    if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+    // Check if this would exceed the max time
+    if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
       // Show error flash on the button
       setState(() => _errorButtonDelta = delta);
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -74,9 +84,9 @@ class _TimePickerDialState extends State<TimePickerDial> {
         picked.hour,
         picked.minute,
       );
-      // Don't allow future times unless explicitly permitted
-      if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
-        // Show feedback that future time was rejected
+      // Don't allow times past the max unless explicitly permitted
+      if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
+        // Show feedback that the time was rejected
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -190,8 +200,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                // Final validation: clamp to now if future times not allowed
-                final timeToConfirm = _clampToNowIfNeeded(_selectedTime);
+                // Final validation: clamp to max if future times not allowed
+                final timeToConfirm = _clampToMaxIfNeeded(_selectedTime);
                 widget.onConfirm(timeToConfirm);
               },
               style: FilledButton.styleFrom(

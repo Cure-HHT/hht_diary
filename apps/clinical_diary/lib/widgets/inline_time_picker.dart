@@ -14,6 +14,7 @@ class InlineTimePicker extends StatefulWidget {
     this.initialTime,
     this.allowFutureTimes = false,
     this.minTime,
+    this.maxDateTime,
   });
 
   /// Initial time, or null to show unset state (--:--)
@@ -21,6 +22,11 @@ class InlineTimePicker extends StatefulWidget {
   final ValueChanged<DateTime> onTimeChanged;
   final bool allowFutureTimes;
   final DateTime? minTime;
+
+  /// Optional maximum DateTime. When [allowFutureTimes] is false, this is used
+  /// as the limit instead of DateTime.now(). Useful when editing past dates
+  /// where the limit should be end-of-day rather than current moment.
+  final DateTime? maxDateTime;
 
   @override
   State<InlineTimePicker> createState() => _InlineTimePickerState();
@@ -32,14 +38,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   @override
   void initState() {
     super.initState();
-    _selectedTime = _clampToNowIfNeeded(widget.initialTime);
+    _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
   }
 
-  /// Clamps the given time to now if future times are not allowed
-  DateTime? _clampToNowIfNeeded(DateTime? time) {
+  /// Gets the effective maximum DateTime for validation.
+  /// Uses maxDateTime if provided, otherwise DateTime.now().
+  DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
+
+  /// Clamps the given time to the effective max if future times are not allowed
+  DateTime? _clampToMaxIfNeeded(DateTime? time) {
     if (time == null) return null;
-    if (!widget.allowFutureTimes && time.isAfter(DateTime.now())) {
-      return DateTime.now();
+    if (!widget.allowFutureTimes && time.isAfter(_effectiveMaxDateTime)) {
+      return _effectiveMaxDateTime;
     }
     return time;
   }
@@ -51,11 +61,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
     final oldTime = oldWidget.initialTime;
     final newTime = widget.initialTime;
     if (oldTime == null && newTime != null) {
-      _selectedTime = _clampToNowIfNeeded(newTime);
+      _selectedTime = _clampToMaxIfNeeded(newTime);
     } else if (oldTime != null &&
         newTime != null &&
         newTime.difference(oldTime).inMinutes.abs() > 1) {
-      _selectedTime = _clampToNowIfNeeded(newTime);
+      _selectedTime = _clampToMaxIfNeeded(newTime);
     }
   }
 
@@ -63,12 +73,12 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   int? _errorButtonDelta;
 
   void _adjustMinutes(int delta) {
-    // If no time is set, start from now (clamped)
-    final baseTime = _selectedTime ?? DateTime.now();
+    // If no time is set, start from effective max (clamped)
+    final baseTime = _selectedTime ?? _effectiveMaxDateTime;
     final newTime = baseTime.add(Duration(minutes: delta));
 
-    // Check if this would go into the future
-    if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+    // Check if this would exceed the max time
+    if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
       setState(() => _errorButtonDelta = delta);
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) setState(() => _errorButtonDelta = null);
@@ -92,8 +102,8 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   }
 
   Future<void> _showTimePicker() async {
-    // Use current time as base if no time is set
-    final baseTime = _selectedTime ?? DateTime.now();
+    // Use effective max time as base if no time is set
+    final baseTime = _selectedTime ?? _effectiveMaxDateTime;
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(baseTime),
@@ -108,8 +118,8 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
         picked.minute,
       );
 
-      // Don't allow future times unless explicitly permitted
-      if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+      // Don't allow times past the max unless explicitly permitted
+      if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
