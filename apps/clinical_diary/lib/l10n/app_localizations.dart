@@ -170,7 +170,8 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'When did the nosebleed start?',
       'whenDidItStop': 'When did the nosebleed stop?',
-      'howSevere': 'How severe was it?',
+      'howSevere': 'How severe is the nosebleed?',
+      'selectBestOption': 'Select the option that best describes the bleeding',
       'anyNotes': 'Any additional notes?',
       'notesPlaceholder': 'Optional notes about this nosebleed...',
       'start': 'Start',
@@ -441,7 +442,8 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Cuando empezo la hemorragia nasal?',
       'whenDidItStop': 'Cuando paro la hemorragia nasal?',
-      'howSevere': 'Que tan severa fue?',
+      'howSevere': 'Que tan severa es la hemorragia?',
+      'selectBestOption': 'Selecciona la opcion que mejor describe el sangrado',
       'anyNotes': 'Alguna nota adicional?',
       'notesPlaceholder': 'Notas opcionales sobre esta hemorragia nasal...',
       'start': 'Inicio',
@@ -723,7 +725,9 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Quand le saignement de nez a-t-il commence?',
       'whenDidItStop': "Quand le saignement de nez s'est-il arrete?",
-      'howSevere': 'Quelle etait la gravite?',
+      'howSevere': 'Quelle est la gravite du saignement?',
+      'selectBestOption':
+          "Selectionnez l'option qui decrit le mieux le saignement",
       'anyNotes': 'Des notes supplementaires?',
       'notesPlaceholder': 'Notes optionnelles sur ce saignement de nez...',
       'start': 'Debut',
@@ -1002,7 +1006,9 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Wann hat das Nasenbluten begonnen?',
       'whenDidItStop': 'Wann hat das Nasenbluten aufgehort?',
-      'howSevere': 'Wie stark war es?',
+      'howSevere': 'Wie stark ist das Nasenbluten?',
+      'selectBestOption':
+          'Wahlen Sie die Option, die die Blutung am besten beschreibt',
       'anyNotes': 'Zusatzliche Anmerkungen?',
       'notesPlaceholder': 'Optionale Notizen zu diesem Nasenbluten...',
       'start': 'Start',
@@ -1338,6 +1344,26 @@ class AppLocalizations {
   String get steadyStream => translate('steadyStream');
   String get pouring => translate('pouring');
   String get gushing => translate('gushing');
+
+  /// Get localized severity name for a given severity enum value
+  String severityName(String severity) {
+    switch (severity) {
+      case 'spotting':
+        return spotting;
+      case 'dripping':
+        return dripping;
+      case 'drippingQuickly':
+        return drippingQuickly;
+      case 'steadyStream':
+        return steadyStream;
+      case 'pouring':
+        return pouring;
+      case 'gushing':
+        return gushing;
+      default:
+        return severity;
+    }
+  }
 
   // Yesterday banner
   String get confirmYesterday => translate('confirmYesterday');

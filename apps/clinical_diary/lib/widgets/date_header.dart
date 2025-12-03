@@ -17,7 +17,10 @@ class DateHeader extends StatelessWidget {
   final ValueChanged<DateTime> onChange;
   final bool editable;
 
-  String get _formattedDate => DateFormat('EEEE, MMMM d').format(date);
+  String _formattedDate(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
+    return DateFormat('EEEE, MMMM d', locale).format(date);
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     if (!editable) return;
@@ -52,7 +55,7 @@ class DateHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              _formattedDate,
+              _formattedDate(context),
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),

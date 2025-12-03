@@ -148,9 +148,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).cannotSaveOverlapCount(
-                overlaps.length,
-              ),
+              AppLocalizations.of(
+                context,
+              ).cannotSaveOverlapCount(overlaps.length),
             ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
