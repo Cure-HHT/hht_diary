@@ -202,6 +202,12 @@ class AppLocalizations {
       'saveChanges': 'Save Changes',
       'finished': 'Finished',
       'deleteRecordTooltip': 'Delete record',
+      'setFields': 'Set {0}',
+      'saveAsIncomplete': 'Save as Incomplete?',
+      'saveAsIncompleteDescription':
+          'You have entered some information. Would you like to save it as an incomplete record?',
+      'discard': 'Discard',
+      'keepEditing': 'Keep Editing',
 
       // Severity
       'spotting': 'Spotting',
@@ -468,6 +474,12 @@ class AppLocalizations {
       'saveChanges': 'Guardar cambios',
       'finished': 'Finalizado',
       'deleteRecordTooltip': 'Eliminar registro',
+      'setFields': 'Establecer {0}',
+      'saveAsIncomplete': 'Guardar como incompleto?',
+      'saveAsIncompleteDescription':
+          'Has ingresado alguna informacion. Te gustaria guardarla como un registro incompleto?',
+      'discard': 'Descartar',
+      'keepEditing': 'Seguir editando',
 
       // Severity
       'spotting': 'Manchado',
@@ -744,6 +756,12 @@ class AppLocalizations {
       'saveChanges': 'Enregistrer les modifications',
       'finished': 'Termine',
       'deleteRecordTooltip': "Supprimer l'enregistrement",
+      'setFields': 'Definir {0}',
+      'saveAsIncomplete': 'Enregistrer comme incomplet?',
+      'saveAsIncompleteDescription':
+          'Vous avez entre des informations. Voulez-vous les enregistrer comme un enregistrement incomplet?',
+      'discard': 'Jeter',
+      'keepEditing': 'Continuer a editer',
 
       // Severity
       'spotting': 'Taches',
@@ -1017,6 +1035,12 @@ class AppLocalizations {
       'saveChanges': 'Anderungen speichern',
       'finished': 'Fertig',
       'deleteRecordTooltip': 'Eintrag loschen',
+      'setFields': '{0} festlegen',
+      'saveAsIncomplete': 'Als unvollstandig speichern?',
+      'saveAsIncompleteDescription':
+          'Sie haben einige Informationen eingegeben. Mochten Sie diese als unvollstandigen Eintrag speichern?',
+      'discard': 'Verwerfen',
+      'keepEditing': 'Weiter bearbeiten',
 
       // Severity
       'spotting': 'Leicht',
@@ -1300,6 +1324,12 @@ class AppLocalizations {
   String get saveChanges => translate('saveChanges');
   String get finished => translate('finished');
   String get deleteRecordTooltip => translate('deleteRecordTooltip');
+  String setFields(String fields) => translateWithParams('setFields', [fields]);
+  String get saveAsIncomplete => translate('saveAsIncomplete');
+  String get saveAsIncompleteDescription =>
+      translate('saveAsIncompleteDescription');
+  String get discard => translate('discard');
+  String get keepEditing => translate('keepEditing');
 
   // Severity
   String get spotting => translate('spotting');

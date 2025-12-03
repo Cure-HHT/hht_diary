@@ -244,9 +244,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void _handleEndTimeConfirm(DateTime time) {
     // Validate end time is after start time
     if (_startTime != null && time.isBefore(_startTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after start time')),
-      );
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
       return;
     }
 
@@ -290,25 +291,24 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Future<bool> _confirmExit() async {
     if (!_hasUnsavedPartialRecord) return true;
 
+    final l10n = AppLocalizations.of(context);
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Save as Incomplete?'),
-        content: const Text(
-          'You have entered some information. Would you like to save it as an incomplete record?',
-        ),
+        title: Text(l10n.saveAsIncomplete),
+        content: Text(l10n.saveAsIncompleteDescription),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'discard'),
-            child: const Text('Discard'),
+            child: Text(l10n.discard),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, 'cancel'),
-            child: const Text('Keep Editing'),
+            child: Text(l10n.keepEditing),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, 'save'),
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -324,6 +324,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   @override
   Widget build(BuildContext context) {
     final overlappingEvents = _getOverlappingEvents();
+    final l10n = AppLocalizations.of(context);
 
     return PopScope(
       canPop: false,
@@ -347,7 +348,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     TextButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back),
-                      label: const Text('Back'),
+                      label: Text(l10n.back),
                     ),
                     // Delete button only for existing records
                     if (widget.existingRecord != null)
@@ -355,7 +356,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                         onPressed: _handleDelete,
                         icon: const Icon(Icons.delete_outline),
                         color: Theme.of(context).colorScheme.error,
-                        tooltip: 'Delete record',
+                        tooltip: l10n.deleteRecordTooltip,
                       ),
                   ],
                 ),
@@ -367,7 +368,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
               const SizedBox(height: 16),
 
               // Summary bar
-              _buildSummaryBar(),
+              _buildSummaryBar(l10n),
 
               const SizedBox(height: 16),
 
@@ -383,7 +384,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
               if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
 
               // Main content area
-              Expanded(child: _buildCurrentStep()),
+              Expanded(child: _buildCurrentStep(l10n)),
             ],
           ),
         ),
@@ -391,7 +392,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
-  Widget _buildSummaryBar() {
+  Widget _buildSummaryBar(AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -404,7 +405,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         children: [
           // Start time
           _buildSummaryItem(
-            label: 'Start',
+            label: l10n.start,
             value: _formatTime(_startTime),
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
@@ -414,8 +415,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           // Severity
           _buildSummaryItem(
-            label: 'Severity',
-            value: _severity?.displayName ?? 'Select...',
+            label: l10n.severity,
+            value: _severity?.displayName ?? l10n.selectSeverity,
             isActive: _currentStep == RecordingStep.severity,
             onTap: _startTime != null
                 ? () => _goToStep(RecordingStep.severity)
@@ -426,7 +427,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           // End time
           _buildSummaryItem(
-            label: 'End',
+            label: l10n.end,
             value: _formatTime(_endTime),
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _severity != null
@@ -481,7 +482,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
-  Widget _buildCurrentStep() {
+  Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
         // Use the selected date with current time, or existing start time
@@ -496,10 +497,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
             );
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
-          title: 'Nosebleed Start',
+          title: l10n.nosebleedStart,
           initialTime: startInitialTime,
           onConfirm: _handleStartTimeConfirm,
-          confirmLabel: 'Set Start Time',
+          confirmLabel: l10n.setStartTime,
           maxDateTime: _maxDateTimeForTimePicker,
         );
 
@@ -525,21 +526,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   ));
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
-          title: 'Nosebleed End Time',
+          title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
-          confirmLabel: 'Nosebleed Ended',
+          confirmLabel: l10n.nosebleedEnded,
           maxDateTime: _maxDateTimeForTimePicker,
         );
 
       // CUR-408: Notes case removed from recording flow
 
       case RecordingStep.complete:
-        return _buildCompleteStep();
+        return _buildCompleteStep(l10n);
     }
   }
 
-  Widget _buildCompleteStep() {
+  Widget _buildCompleteStep(AppLocalizations l10n) {
     final isExistingComplete =
         widget.existingRecord != null &&
         widget.existingRecord!.severity != null &&
@@ -549,8 +550,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     final hasOverlaps = _getOverlappingEvents().isNotEmpty;
     final buttonText = widget.existingRecord != null
-        ? (isExistingComplete ? 'Save Changes' : 'Complete Record')
-        : 'Finished';
+        ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
+        : l10n.finished;
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -567,10 +568,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           Text(
             widget.existingRecord != null && !isExistingComplete
-                ? 'Complete Record'
+                ? l10n.completeRecord
                 : widget.existingRecord != null
-                ? 'Edit Record'
-                : 'Record Complete',
+                ? l10n.editRecord
+                : l10n.recordComplete,
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -580,8 +581,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           Text(
             widget.existingRecord != null && !isExistingComplete
-                ? 'Review the information and save when ready'
-                : 'Tap any field above to edit it',
+                ? l10n.reviewAndSave
+                : l10n.tapFieldToEdit,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(
                 context,
@@ -598,7 +599,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Duration: $_durationMinutes minutes',
+                l10n.durationMinutes(_durationMinutes!),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -626,7 +627,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Cannot save: This event overlaps with existing events. Please adjust the time.',
+                      l10n.cannotSaveOverlap,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onErrorContainer,
                       ),
