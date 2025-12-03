@@ -6,24 +6,24 @@ import 'package:clinical_diary/widgets/severity_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('SeverityPicker', () {
     testWidgets('displays title text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: SeverityPicker(onSelect: (_) {})),
-        ),
+        wrapWithScaffold(SeverityPicker(onSelect: (_) {})),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('How severe is the nosebleed?'), findsOneWidget);
     });
 
     testWidgets('displays subtitle text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: SeverityPicker(onSelect: (_) {})),
-        ),
+        wrapWithScaffold(SeverityPicker(onSelect: (_) {})),
       );
+      await tester.pumpAndSettle();
 
       expect(
         find.text('Select the option that best describes the bleeding'),
@@ -35,8 +35,8 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: SizedBox(
               height: 800,
               child: SeverityPicker(onSelect: (_) {}),
@@ -44,6 +44,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // At least some severity options should be visible
       expect(find.text('Spotting'), findsOneWidget);
@@ -54,12 +55,11 @@ void main() {
       NosebleedSeverity? selected;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SeverityPicker(onSelect: (severity) => selected = severity),
-          ),
+        wrapWithScaffold(
+          SeverityPicker(onSelect: (severity) => selected = severity),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Dripping'));
       await tester.pump();
@@ -71,8 +71,8 @@ void main() {
       final selections = <NosebleedSeverity>[];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: SizedBox(
               height: 800,
               child: SeverityPicker(onSelect: selections.add),
@@ -80,6 +80,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Spotting'));
       await tester.pump();
@@ -95,18 +96,23 @@ void main() {
 
     testWidgets('highlights selected severity', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SeverityPicker(
-              selectedSeverity: NosebleedSeverity.steadyStream,
-              onSelect: (_) {},
+        wrapWithMaterialApp(
+          Scaffold(
+            body: SizedBox(
+              height: 800,
+              child: SeverityPicker(
+                selectedSeverity: NosebleedSeverity.steadyStream,
+                onSelect: (_) {},
+              ),
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // The selected severity should show with bold font
-      final textWidget = tester.widget<Text>(find.text('Steady stream'));
+      // Note: label has newline because spaces are replaced with \n
+      final textWidget = tester.widget<Text>(find.text('Steady\nstream'));
       expect(textWidget.style?.fontWeight, FontWeight.bold);
     });
 
@@ -114,15 +120,14 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SeverityPicker(
-              selectedSeverity: NosebleedSeverity.steadyStream,
-              onSelect: (_) {},
-            ),
+        wrapWithScaffold(
+          SeverityPicker(
+            selectedSeverity: NosebleedSeverity.steadyStream,
+            onSelect: (_) {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Non-selected severity should not be bold
       final textWidget = tester.widget<Text>(find.text('Spotting'));
@@ -131,8 +136,8 @@ void main() {
 
     testWidgets('displays images for visible severities', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: SizedBox(
               height: 800,
               child: SeverityPicker(onSelect: (_) {}),
@@ -140,6 +145,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Should have custom severity images (one for each visible severity)
       expect(find.byType(Image), findsWidgets);
@@ -147,18 +153,17 @@ void main() {
 
     testWidgets('renders as a grid', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: SeverityPicker(onSelect: (_) {})),
-        ),
+        wrapWithScaffold(SeverityPicker(onSelect: (_) {})),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(GridView), findsOneWidget);
     });
 
     testWidgets('works without initial selection', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: SizedBox(
               height: 800,
               child: SeverityPicker(selectedSeverity: null, onSelect: (_) {}),
@@ -166,6 +171,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Check visible severities have non-bold weight when nothing is selected
       final spottingText = tester.widget<Text>(find.text('Spotting'));

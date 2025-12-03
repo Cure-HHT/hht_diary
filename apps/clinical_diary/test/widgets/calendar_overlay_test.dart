@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../helpers/test_helpers.dart';
+
 // Helper to build calendar overlay with adequate screen size
 // Wrapped in SingleChildScrollView to handle overflow in tests
 Widget buildCalendarOverlay({
@@ -17,8 +19,8 @@ Widget buildCalendarOverlay({
   List<NosebleedRecord> records = const [],
   DateTime? selectedDate,
 }) {
-  return MaterialApp(
-    home: Scaffold(
+  return wrapWithMaterialApp(
+    Scaffold(
       body: SingleChildScrollView(
         child: SizedBox(
           width: 800,
@@ -86,6 +88,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(SizedBox), findsWidgets);
       expect(find.text('Select Date'), findsNothing);
@@ -99,6 +102,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Select Date'), findsOneWidget);
     });
@@ -111,6 +115,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
@@ -125,6 +130,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.close));
       await tester.pump();
@@ -140,6 +146,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(TableCalendar<dynamic>), findsOneWidget);
     });
@@ -152,13 +159,14 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Nosebleed events'), findsOneWidget);
       expect(find.text('No nosebleeds'), findsOneWidget);
-      expect(find.text('Unknown'), findsOneWidget);
+      expect(find.text('Unknown'), findsWidgets); // Also appears in calendar
       expect(find.text('Incomplete/Missing'), findsOneWidget);
       expect(find.text('Not recorded'), findsOneWidget);
-      expect(find.text('Today'), findsOneWidget);
+      expect(find.text('Today'), findsWidgets); // Also in calendar header
     });
 
     testWidgets('displays help text', (tester) async {
@@ -169,6 +177,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Tap a date to add or edit events'), findsOneWidget);
     });
@@ -181,6 +190,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       // The overlay should contain a Material widget
       expect(find.byType(Material), findsWidgets);
@@ -205,6 +215,7 @@ void main() {
           records: records,
         ),
       );
+      await tester.pumpAndSettle();
 
       // The calendar should render with records
       expect(find.byType(TableCalendar<dynamic>), findsOneWidget);
@@ -218,6 +229,7 @@ void main() {
           onDateSelect: (_) {},
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(GridView), findsOneWidget);
     });

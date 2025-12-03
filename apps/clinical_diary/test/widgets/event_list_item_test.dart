@@ -6,6 +6,8 @@ import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('EventListItem', () {
     final testDate = DateTime(2024, 1, 15);
@@ -21,11 +23,8 @@ void main() {
         severity: NosebleedSeverity.dripping,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.textContaining('10:30 AM'), findsOneWidget);
       expect(find.textContaining('10:45 AM'), findsOneWidget);
@@ -41,11 +40,8 @@ void main() {
         severity: NosebleedSeverity.dripping,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('2:00 PM'), findsOneWidget);
     });
@@ -53,11 +49,8 @@ void main() {
     testWidgets('displays -- when no times provided', (tester) async {
       final record = NosebleedRecord(id: 'test-1', date: testDate);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('--'), findsOneWidget);
     });
@@ -71,11 +64,8 @@ void main() {
         severity: NosebleedSeverity.steadyStream,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('Steady stream'), findsOneWidget);
     });
@@ -87,11 +77,8 @@ void main() {
         startTime: DateTime(2024, 1, 15, 10, 30),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       for (final severity in NosebleedSeverity.values) {
         expect(find.text(severity.displayName), findsNothing);
@@ -107,11 +94,8 @@ void main() {
         severity: NosebleedSeverity.dripping,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('15m'), findsOneWidget);
     });
@@ -125,11 +109,8 @@ void main() {
         severity: NosebleedSeverity.dripping,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('1h 30m'), findsOneWidget);
     });
@@ -145,11 +126,8 @@ void main() {
         severity: NosebleedSeverity.dripping,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('2h'), findsOneWidget);
     });
@@ -164,11 +142,8 @@ void main() {
         isIncomplete: true,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('Incomplete'), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
@@ -186,11 +161,8 @@ void main() {
         isIncomplete: false,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.text('Incomplete'), findsNothing);
     });
@@ -203,12 +175,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record, onTap: () {}),
-          ),
-        ),
+        wrapWithScaffold(EventListItem(record: record, onTap: () {})),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
@@ -222,11 +191,8 @@ void main() {
         startTime: DateTime(2024, 1, 15, 10, 30),
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
@@ -240,12 +206,11 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EventListItem(record: record, onTap: () => tapped = true),
-          ),
+        wrapWithScaffold(
+          EventListItem(record: record, onTap: () => tapped = true),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(EventListItem));
       await tester.pump();
@@ -256,11 +221,8 @@ void main() {
     testWidgets('renders as a Card', (tester) async {
       final record = NosebleedRecord(id: 'test-1', date: testDate);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       expect(find.byType(Card), findsOneWidget);
     });
@@ -272,11 +234,8 @@ void main() {
         severity: NosebleedSeverity.dripping,
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: EventListItem(record: record)),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
+      await tester.pumpAndSettle();
 
       // Find the container that serves as the severity indicator
       final containers = tester.widgetList<Container>(find.byType(Container));
@@ -300,15 +259,14 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
       });
 
-      testWidgets('displays "No nosebleed events" title', (tester) async {
+      testWidgets('displays "No nosebleeds" title', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
           date: testDate,
@@ -316,12 +274,11 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
-        expect(find.text('No nosebleed events'), findsOneWidget);
+        expect(find.text('No nosebleeds'), findsOneWidget);
       });
 
       testWidgets('displays confirmation subtitle', (tester) async {
@@ -332,10 +289,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('Confirmed no events for this day'), findsOneWidget);
       });
@@ -348,10 +304,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         final card = tester.widget<Card>(find.byType(Card));
         expect(card.color, Colors.green.shade50);
@@ -369,10 +324,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('(+1 day)'), findsOneWidget);
       });
@@ -387,10 +341,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('(+1 day)'), findsNothing);
       });
@@ -406,10 +359,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('(+1 day)'), findsNothing);
       });
@@ -426,10 +378,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('45m'), findsOneWidget);
       });
@@ -444,10 +395,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.help_outline), findsOneWidget);
       });
@@ -460,10 +410,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(find.text('Unknown'), findsOneWidget);
       });
@@ -476,10 +425,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         expect(
           find.text('Unable to recall events for this day'),
@@ -495,10 +443,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(body: EventListItem(record: record)),
-          ),
+          wrapWithScaffold(EventListItem(record: record)),
         );
+        await tester.pumpAndSettle();
 
         final card = tester.widget<Card>(find.byType(Card));
         expect(card.color, Colors.yellow.shade50);

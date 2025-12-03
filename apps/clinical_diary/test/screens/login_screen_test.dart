@@ -11,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -67,8 +69,8 @@ void main() {
     });
 
     Widget buildTestWidget({AuthService? customAuthService}) {
-      return MaterialApp(
-        home: LoginScreen(
+      return wrapWithMaterialApp(
+        LoginScreen(
           authService: customAuthService ?? authService,
           onLoginSuccess: () {},
         ),
@@ -98,36 +100,42 @@ void main() {
     group('UI Elements', () {
       testWidgets('displays login title in app bar', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         expect(find.text('Login'), findsWidgets);
       });
 
       testWidgets('displays privacy notice', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         expect(find.text('Privacy Notice'), findsOneWidget);
       });
 
       testWidgets('displays important security notice', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         expect(find.text('Important'), findsOneWidget);
       });
 
       testWidgets('displays username field', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         expect(find.text('Username'), findsWidgets);
       });
 
       testWidgets('displays password field', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         expect(find.text('Password'), findsWidgets);
       });
 
       testWidgets('displays create account toggle text', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         final finder = find.textContaining("Don't have an account?");
         await tester.ensureVisible(finder);
@@ -140,6 +148,7 @@ void main() {
     group('Password Visibility Toggle', () {
       testWidgets('password field has visibility toggle', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Find visibility_off icon (password hidden by default)
         expect(find.byIcon(Icons.visibility_off), findsWidgets);
@@ -149,6 +158,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Find the password field's visibility toggle
         final visibilityOff = find.byIcon(Icons.visibility_off);
@@ -172,6 +182,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Initially in login mode
         expect(find.text('Login'), findsWidgets);
@@ -188,6 +199,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Initially no confirm password field
         expect(find.text('Confirm Password'), findsNothing);
@@ -206,6 +218,7 @@ void main() {
 
       testWidgets('toggles back to login mode', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Switch to register mode
         await scrollAndTap(
@@ -229,6 +242,7 @@ void main() {
     group('Form Validation', () {
       testWidgets('shows error when username is empty', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Enter only password
         final usernameField = find.widgetWithText(TextFormField, 'Username');
@@ -246,6 +260,7 @@ void main() {
 
       testWidgets('shows error when username is too short', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -265,6 +280,7 @@ void main() {
 
       testWidgets('shows error when username contains @', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -286,6 +302,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -305,6 +322,7 @@ void main() {
 
       testWidgets('shows error when password is empty', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -324,6 +342,7 @@ void main() {
 
       testWidgets('shows error when password is too short', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -345,6 +364,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Switch to register mode
         await scrollAndTap(
@@ -391,6 +411,7 @@ void main() {
         await tester.pumpWidget(
           buildTestWidget(customAuthService: failingAuthService),
         );
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -425,6 +446,7 @@ void main() {
         await tester.pumpWidget(
           buildTestWidget(customAuthService: failingAuthService),
         );
+        await tester.pumpAndSettle();
 
         // Trigger login failure
         await scrollAndEnterText(
@@ -467,6 +489,7 @@ void main() {
         await tester.pumpWidget(
           buildTestWidget(customAuthService: failingAuthService),
         );
+        await tester.pumpAndSettle();
 
         // Trigger login failure
         await scrollAndEnterText(
@@ -509,6 +532,7 @@ void main() {
         await tester.pumpWidget(
           buildTestWidget(customAuthService: conflictAuthService),
         );
+        await tester.pumpAndSettle();
 
         // Switch to register mode
         await scrollAndTap(
@@ -544,6 +568,7 @@ void main() {
     group('Confirm Password Visibility', () {
       testWidgets('toggles confirm password visibility', (tester) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
         // Switch to register mode
         await scrollAndTap(
