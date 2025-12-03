@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: User Account Management
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
@@ -80,37 +81,37 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  String? _validateUsername(String? value) {
+  String? _validateUsername(String? value, AppLocalizations l10n) {
     if (value == null || value.trim().isEmpty) {
-      return 'Username is required';
+      return l10n.usernameRequired;
     }
     final trimmed = value.trim();
     if (trimmed.length < AuthService.minUsernameLength) {
-      return 'Username must be at least ${AuthService.minUsernameLength} characters';
+      return l10n.usernameTooShort(AuthService.minUsernameLength);
     }
     if (trimmed.contains('@')) {
-      return 'Username cannot contain @ symbol';
+      return l10n.usernameNoAt;
     }
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(trimmed)) {
-      return 'Only letters, numbers, and underscores allowed';
+      return l10n.usernameLettersOnly;
     }
     return null;
   }
 
-  String? _validatePassword(String? value) {
+  String? _validatePassword(String? value, AppLocalizations l10n) {
     if (value == null || value.isEmpty) {
-      return 'Password is required';
+      return l10n.passwordRequired;
     }
     if (value.length < AuthService.minPasswordLength) {
-      return 'Password must be at least ${AuthService.minPasswordLength} characters';
+      return l10n.passwordTooShort(AuthService.minPasswordLength);
     }
     return null;
   }
 
-  String? _validateConfirmPassword(String? value) {
+  String? _validateConfirmPassword(String? value, AppLocalizations l10n) {
     if (!_isLogin) {
       if (value != _passwordController.text) {
-        return 'Passwords do not match';
+        return l10n.passwordsDoNotMatch;
       }
     }
     return null;
@@ -120,9 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isLogin ? 'Login' : 'Create Account')),
+      appBar: AppBar(title: Text(_isLogin ? l10n.login : l10n.createAccount)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -148,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Privacy Notice',
+                              l10n.privacyNotice,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 color: colorScheme.onPrimaryContainer,
                                 fontWeight: FontWeight.bold,
@@ -158,14 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'For your privacy we do not use email addresses for accounts.',
+                          l10n.privacyNoticeDescription,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onPrimaryContainer,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '@ signs are not allowed for username.',
+                          l10n.noAtSymbol,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onPrimaryContainer,
                           ),
@@ -194,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Important',
+                              l10n.important,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 color: Colors.orange.shade800,
                                 fontWeight: FontWeight.bold,
@@ -204,14 +206,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Store your username and password securely.',
+                          l10n.storeCredentialsSecurely,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: Colors.orange.shade900,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'If you lose your username and password then the app cannot send you a link to reset it.',
+                          l10n.lostCredentialsWarning,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: Colors.orange.shade900,
                           ),
@@ -256,18 +258,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Username field
                 TextFormField(
                   controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    hintText: 'Enter username (no @ symbol)',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                    helperText:
-                        'Minimum ${AuthService.minUsernameLength} characters',
+                  decoration: InputDecoration(
+                    labelText: l10n.username,
+                    hintText: l10n.enterUsername,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: const OutlineInputBorder(),
+                    helperText: l10n.minimumCharacters(
+                      AuthService.minUsernameLength,
+                    ),
                   ),
                   textInputAction: TextInputAction.next,
                   autocorrect: false,
                   enableSuggestions: false,
-                  validator: _validateUsername,
+                  validator: (value) => _validateUsername(value, l10n),
                   onChanged: (_) {
                     if (_errorMessage != null) {
                       setState(() => _errorMessage = null);
@@ -281,12 +284,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _passwordController,
                   decoration: InputDecoration(
-                    labelText: 'Password',
-                    hintText: 'Enter password',
+                    labelText: l10n.password,
+                    hintText: l10n.enterPassword,
                     prefixIcon: const Icon(Icons.lock_outline),
                     border: const OutlineInputBorder(),
-                    helperText:
-                        'Minimum ${AuthService.minPasswordLength} characters',
+                    helperText: l10n.minimumCharacters(
+                      AuthService.minPasswordLength,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -302,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   textInputAction: _isLogin
                       ? TextInputAction.done
                       : TextInputAction.next,
-                  validator: _validatePassword,
+                  validator: (value) => _validatePassword(value, l10n),
                   onChanged: (_) {
                     if (_errorMessage != null) {
                       setState(() => _errorMessage = null);
@@ -317,8 +321,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _confirmPasswordController,
                     decoration: InputDecoration(
-                      labelText: 'Confirm Password',
-                      hintText: 'Re-enter password',
+                      labelText: l10n.confirmPassword,
+                      hintText: l10n.reenterPassword,
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
@@ -337,7 +341,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     obscureText: _obscureConfirmPassword,
                     textInputAction: TextInputAction.done,
-                    validator: _validateConfirmPassword,
+                    validator: (value) => _validateConfirmPassword(value, l10n),
                     onFieldSubmitted: (_) => _submit(),
                   ),
                 ],
@@ -360,7 +364,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         )
                       : Text(
-                          _isLogin ? 'Login' : 'Create Account',
+                          _isLogin ? l10n.login : l10n.createAccount,
                           style: const TextStyle(fontSize: 16),
                         ),
                 ),
@@ -379,9 +383,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           });
                         },
                   child: Text(
-                    _isLogin
-                        ? "Don't have an account? Create one"
-                        : 'Already have an account? Login',
+                    _isLogin ? l10n.noAccountCreate : l10n.hasAccountLogin,
                   ),
                 ),
               ],
