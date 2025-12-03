@@ -502,6 +502,71 @@ class AppLocalizations {
       'incorrectInformation': 'Informacion incorrecta',
       'other': 'Otro',
       'pleaseSpecify': 'Por favor especifica',
+
+      // Time picker
+      'cannotSelectFutureTime': 'No se puede seleccionar una hora en el futuro',
+
+      // Notes input
+      'notes': 'Notas',
+      'notesRequired': 'Requerido para participantes del ensayo clinico',
+      'notesHint': 'Agrega detalles adicionales sobre esta hemorragia nasal...',
+      'next': 'Siguiente',
+
+      // Logo menu
+      'appMenu': 'Menu de la aplicacion',
+      'dataManagement': 'Gestion de Datos',
+      'addExampleData': 'Agregar Datos de Ejemplo',
+      'clinicalTrialLabel': 'Ensayo Clinico',
+      'instructionsAndFeedback': 'Instrucciones y Comentarios',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Eventos Superpuestos Detectados',
+      'overlappingEventsCount':
+          'Este evento se superpone con {0} {1} existente(s)',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary': 'Bienvenido a\nDiario de Hemorragias Nasales',
+      'enterCodeToGetStarted':
+          'Ingresa tu codigo de inscripcion para comenzar.',
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Comenzar',
+      'codeMustBe8Chars': 'El codigo debe tener 8 caracteres',
+      'pleaseEnterEnrollmentCode': 'Por favor ingresa tu codigo de inscripcion',
+
+      // Date records screen
+      'addNewEvent': 'Agregar nuevo evento',
+      'noEventsRecordedForDay': 'No hay eventos registrados para este dia',
+      'eventCountSingular': '1 evento',
+      'eventCountPlural': '{0} eventos',
+
+      // Profile screen
+      'userProfile': 'Perfil de Usuario',
+      'enterYourName': 'Ingresa tu nombre',
+      'editName': 'Editar nombre',
+      'shareWithCureHHT': 'Compartir con CureHHT',
+      'stopSharingWithCureHHT': 'Dejar de Compartir con CureHHT',
+      'privacyDataProtection': 'Privacidad y Proteccion de Datos',
+      'healthDataStoredLocally':
+          'Tus datos de salud se almacenan localmente en tu dispositivo.',
+      'dataSharedAnonymized':
+          ' Los datos anonimizados se comparten con CureHHT para fines de investigacion.',
+      'clinicalTrialSharingActive':
+          ' La participacion en el ensayo clinico implica compartir datos anonimizados con investigadores segun el protocolo del estudio.',
+      'clinicalTrialEndedMessage':
+          ' La participacion en el ensayo clinico termino el {0}. Los datos compartidos previamente permanecen con los investigadores indefinidamente para analisis cientifico.',
+      'noDataSharedMessage':
+          ' No se comparten datos con terceros a menos que elijas participar en investigacion o ensayos clinicos.',
+      'enrolledInClinicalTrialStatus': 'Inscrito en Ensayo Clinico',
+      'clinicalTrialEnrollmentEnded':
+          'Inscripcion al Ensayo Clinico: Terminada',
+      'enrollmentCodeLabel': 'Codigo de Inscripcion: {0}',
+      'enrolledLabel': 'Inscrito: {0}',
+      'endedLabel': 'Terminado: {0}',
+      'sharingWithCureHHT': 'Compartiendo con CureHHT',
+      'sharingNoteActive':
+          'Nota: El logo mostrado en la pantalla de inicio de la aplicacion es un recordatorio de que estas compartiendo tus datos con un tercero.',
+      'sharingNoteEnded':
+          'Nota: Los datos compartidos durante la participacion en el ensayo clinico permanecen con los investigadores indefinidamente para analisis cientifico.',
     },
     'fr': {
       // General
@@ -713,6 +778,73 @@ class AppLocalizations {
       'incorrectInformation': 'Information incorrecte',
       'other': 'Autre',
       'pleaseSpecify': 'Veuillez preciser',
+
+      // Time picker
+      'cannotSelectFutureTime':
+          'Impossible de selectionner une heure dans le futur',
+
+      // Notes input
+      'notes': 'Notes',
+      'notesRequired': 'Requis pour les participants aux essais cliniques',
+      'notesHint':
+          'Ajoutez des details supplementaires sur ce saignement de nez...',
+      'next': 'Suivant',
+
+      // Logo menu
+      'appMenu': "Menu de l'application",
+      'dataManagement': 'Gestion des Donnees',
+      'addExampleData': 'Ajouter des Donnees Exemple',
+      'clinicalTrialLabel': 'Essai Clinique',
+      'instructionsAndFeedback': 'Instructions et Commentaires',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Evenements Chevauches Detectes',
+      'overlappingEventsCount': 'Cet evenement chevauche {0} {1} existant(s)',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary':
+          'Bienvenue dans\nJournal des Saignements de Nez',
+      'enterCodeToGetStarted':
+          "Entrez votre code d'inscription pour commencer.",
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Commencer',
+      'codeMustBe8Chars': 'Le code doit comporter 8 caracteres',
+      'pleaseEnterEnrollmentCode': "Veuillez entrer votre code d'inscription",
+
+      // Date records screen
+      'addNewEvent': 'Ajouter un nouvel evenement',
+      'noEventsRecordedForDay': 'Aucun evenement enregistre pour ce jour',
+      'eventCountSingular': '1 evenement',
+      'eventCountPlural': '{0} evenements',
+
+      // Profile screen
+      'userProfile': 'Profil Utilisateur',
+      'enterYourName': 'Entrez votre nom',
+      'editName': 'Modifier le nom',
+      'shareWithCureHHT': 'Partager avec CureHHT',
+      'stopSharingWithCureHHT': 'Arreter le Partage avec CureHHT',
+      'privacyDataProtection': 'Confidentialite et Protection des Donnees',
+      'healthDataStoredLocally':
+          'Vos donnees de sante sont stockees localement sur votre appareil.',
+      'dataSharedAnonymized':
+          ' Les donnees anonymisees sont partagees avec CureHHT a des fins de recherche.',
+      'clinicalTrialSharingActive':
+          " La participation a l'essai clinique implique le partage de donnees anonymisees avec les chercheurs selon le protocole de l'etude.",
+      'clinicalTrialEndedMessage':
+          " La participation a l'essai clinique s'est terminee le {0}. Les donnees precedemment partagees restent indefiniment avec les chercheurs pour analyse scientifique.",
+      'noDataSharedMessage':
+          ' Aucune donnee n\'est partagee avec des tiers sauf si vous choisissez de participer a la recherche ou aux essais cliniques.',
+      'enrolledInClinicalTrialStatus': 'Inscrit a un Essai Clinique',
+      'clinicalTrialEnrollmentEnded':
+          'Inscription a un Essai Clinique: Terminee',
+      'enrollmentCodeLabel': "Code d'Inscription: {0}",
+      'enrolledLabel': 'Inscrit: {0}',
+      'endedLabel': 'Termine: {0}',
+      'sharingWithCureHHT': 'Partage avec CureHHT',
+      'sharingNoteActive':
+          "Note: Le logo affiche sur l'ecran d'accueil de l'application est un rappel que vous partagez vos donnees avec un tiers.",
+      'sharingNoteEnded':
+          "Note: Les donnees partagees pendant la participation a l'essai clinique restent indefiniment avec les chercheurs pour analyse scientifique.",
     },
     'de': {
       // General
