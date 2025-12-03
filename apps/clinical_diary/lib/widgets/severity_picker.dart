@@ -147,15 +147,18 @@ class _SeverityOption extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                severityLabel,
+                // Split two-word labels onto separate lines
+                severityLabel.replaceAll(' ', '\n'),
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.onSurface,
+                  height: 1.2,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
               ),
             ],
           ),
