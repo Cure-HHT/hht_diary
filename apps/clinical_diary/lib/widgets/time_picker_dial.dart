@@ -1,3 +1,4 @@
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -88,10 +89,11 @@ class _TimePickerDialState extends State<TimePickerDial> {
       if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
         // Show feedback that the time was rejected
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot select a time in the future'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l10n.cannotSelectFutureTime),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
