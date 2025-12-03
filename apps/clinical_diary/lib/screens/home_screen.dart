@@ -644,7 +644,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Profile menu on the right
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.person_outline),
-                    tooltip: 'User menu',
+                    tooltip: AppLocalizations.of(context).userMenu,
                     onSelected: (value) async {
                       if (value == 'login') {
                         await _handleLogin();
@@ -666,9 +666,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Privacy settings coming soon'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context).privacyComingSoon,
+                            ),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       } else if (value == 'enroll') {
@@ -682,81 +684,76 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                     },
-                    itemBuilder: (context) => [
-                      // Login/Logout button
-                      if (_isLoggedIn) ...[
-                        const PopupMenuItem(
-                          value: 'account',
-                          child: Row(
-                            children: [
-                              Icon(Icons.account_circle, size: 20),
-                              SizedBox(width: 12),
-                              Text('Account'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'logout',
-                          child: Row(
-                            children: [
-                              Icon(Icons.logout, size: 20),
-                              SizedBox(width: 12),
-                              Text('Logout'),
-                            ],
-                          ),
-                        ),
-                      ] else
-                        const PopupMenuItem(
-                          value: 'login',
-                          child: Row(
-                            children: [
-                              Icon(Icons.login, size: 20),
-                              SizedBox(width: 12),
-                              Text('Login'),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'accessibility',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.settings, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).accessibilityAndPreferences,
+                    itemBuilder: (context) {
+                      final l10n = AppLocalizations.of(context);
+                      return [
+                        // Login/Logout button
+                        if (_isLoggedIn) ...[
+                          PopupMenuItem(
+                            value: 'account',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.account_circle, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.account),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'privacy',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.privacy_tip, size: 20),
-                            const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).privacy),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'enroll',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.group_add, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).enrollInClinicalTrial,
+                          ),
+                          PopupMenuItem(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.logout, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.logout),
+                              ],
                             ),
-                          ],
+                          ),
+                        ] else
+                          PopupMenuItem(
+                            value: 'login',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.login, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.login),
+                              ],
+                            ),
+                          ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'accessibility',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.settings, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.accessibilityAndPreferences),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        PopupMenuItem(
+                          value: 'privacy',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.privacy_tip, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.privacy),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'enroll',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.group_add, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.enrollInClinicalTrial),
+                            ],
+                          ),
+                        ),
+                      ];
+                    },
                   ),
                 ],
               ),
@@ -766,45 +763,52 @@ class _HomeScreenState extends State<HomeScreen> {
             if (!_isLoading) ...[
               // Incomplete records banner (orange)
               if (_incompleteRecords.isNotEmpty)
-                InkWell(
-                  onTap: _handleIncompleteRecordsClick,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.orange.shade800,
-                          size: 20,
+                Builder(
+                  builder: (context) {
+                    final l10n = AppLocalizations.of(context);
+                    return InkWell(
+                      onTap: _handleIncompleteRecordsClick,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '${_incompleteRecords.length} incomplete record${_incompleteRecords.length > 1 ? 's' : ''}',
-                            style: TextStyle(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
                               color: Colors.orange.shade800,
-                              fontWeight: FontWeight.w500,
+                              size: 20,
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.incompleteRecordCount(
+                                  _incompleteRecords.length,
+                                ),
+                                style: TextStyle(
+                                  color: Colors.orange.shade800,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              l10n.tapToComplete,
+                              style: TextStyle(
+                                color: Colors.orange.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Tap to complete →',
-                          style: TextStyle(
-                            color: Colors.orange.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
 
               // Active questionnaire banner (blue) - placeholder
@@ -872,14 +876,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               elevation: 4,
                               shadowColor: Colors.black.withValues(alpha: 0.3),
                             ),
-                            child: const Column(
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.add, size: 48),
-                                SizedBox(height: 12),
+                                const Icon(Icons.add, size: 48),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Record Nosebleed',
-                                  style: TextStyle(
+                                  AppLocalizations.of(context).recordNosebleed,
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -918,41 +922,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       // Demo toggle for simple recording screen
-                      Tooltip(
-                        message: _useSimpleRecordingScreen
-                            ? 'Using simple UI (tap to switch)'
-                            : 'Using classic UI (tap for simple)',
-                        child: IconButton.outlined(
-                          onPressed: () {
-                            setState(() {
-                              _useSimpleRecordingScreen =
-                                  !_useSimpleRecordingScreen;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _useSimpleRecordingScreen
-                                      ? 'Switched to simple recording UI'
-                                      : 'Switched to classic recording UI',
-                                ),
-                                duration: const Duration(seconds: 2),
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context);
+                          return Tooltip(
+                            message: _useSimpleRecordingScreen
+                                ? l10n.usingSimpleUI
+                                : l10n.usingClassicUI,
+                            child: IconButton.outlined(
+                              onPressed: () {
+                                setState(() {
+                                  _useSimpleRecordingScreen =
+                                      !_useSimpleRecordingScreen;
+                                });
+                                final l10nSnack = AppLocalizations.of(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      _useSimpleRecordingScreen
+                                          ? l10nSnack.switchedToSimpleUI
+                                          : l10nSnack.switchedToClassicUI,
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+
+                              icon: Icon(
+                                _useSimpleRecordingScreen
+                                    ? Icons.view_agenda
+                                    : Icons.dashboard,
                               ),
-                            );
-                          },
-                          icon: Icon(
-                            _useSimpleRecordingScreen
-                                ? Icons.view_agenda
-                                : Icons.dashboard,
-                          ),
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            side: BorderSide(
-                              color: _useSimpleRecordingScreen
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.outline,
+                              style: IconButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                side: BorderSide(
+                                  color: _useSimpleRecordingScreen
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
