@@ -73,8 +73,9 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   int? _errorButtonDelta;
 
   void _adjustMinutes(int delta) {
-    // If no time is set, start from effective max (clamped)
-    final baseTime = _selectedTime ?? _effectiveMaxDateTime;
+    // If no time is set, use minTime's date (for correct date context) or effective max
+    // This ensures end time uses the same date as start time (CUR-451)
+    final baseTime = _selectedTime ?? widget.minTime ?? _effectiveMaxDateTime;
     final newTime = baseTime.add(Duration(minutes: delta));
 
     // Check if this would exceed the max time
@@ -102,8 +103,9 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   }
 
   Future<void> _showTimePicker() async {
-    // Use effective max time as base if no time is set
-    final baseTime = _selectedTime ?? _effectiveMaxDateTime;
+    // Use minTime's date (for correct date context) or effective max if no time is set
+    // This ensures end time uses the same date as start time (CUR-451)
+    final baseTime = _selectedTime ?? widget.minTime ?? _effectiveMaxDateTime;
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(baseTime),

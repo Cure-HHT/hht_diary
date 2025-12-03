@@ -136,20 +136,24 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Future<void> _saveRecord() async {
-    if (_startTime == null || _endTime == null || _severity == null) return;
+    // At minimum, we need a start time to save a record
+    // Records without all fields will be marked as incomplete by the service
+    if (_startTime == null) return;
 
-    // Check for overlapping events - block save if any exist
-    final overlaps = _getOverlappingEvents();
-    if (overlaps.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Cannot save: This event overlaps with ${overlaps.length} existing ${overlaps.length == 1 ? 'event' : 'events'}',
+    // Check for overlapping events - only if we have both start and end times
+    if (_endTime != null) {
+      final overlaps = _getOverlappingEvents();
+      if (overlaps.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Cannot save: This event overlaps with ${overlaps.length} existing ${overlaps.length == 1 ? 'event' : 'events'}',
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
+        );
+        return;
+      }
     }
 
     // CUR-408: Notes validation removed - notes step removed from recording flow
@@ -265,61 +269,119 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
+  /// Check if we have unsaved changes that could be saved as a partial record
+  bool get _hasUnsavedPartialRecord {
+    // If we're editing an existing record, check if values changed
+    if (widget.existingRecord != null) {
+      return _startTime != widget.existingRecord!.startTime ||
+          _endTime != widget.existingRecord!.endTime ||
+          _severity != widget.existingRecord!.severity;
+    }
+    // For new records, we have unsaved data if start time is set
+    // and we're not at the complete step (which has its own save button)
+    return _startTime != null && _currentStep != RecordingStep.complete;
+  }
+
+  /// Show confirmation dialog when user tries to leave with unsaved changes
+  Future<bool> _confirmExit() async {
+    if (!_hasUnsavedPartialRecord) return true;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save as Incomplete?'),
+        content: const Text(
+          'You have entered some information. Would you like to save it as an incomplete record?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: const Text('Discard'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'cancel'),
+            child: const Text('Keep Editing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, 'save'),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'save') {
+      await _saveRecord();
+      return false; // _saveRecord handles navigation via Navigator.pop
+    }
+    return result == 'discard';
+  }
+
   @override
   Widget build(BuildContext context) {
     final overlappingEvents = _getOverlappingEvents();
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header with back and delete buttons
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back'),
-                  ),
-                  // Delete button only for existing records
-                  if (widget.existingRecord != null)
-                    IconButton(
-                      onPressed: _handleDelete,
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      tooltip: 'Delete record',
-                    ),
-                ],
-              ),
-            ),
-
-            // Date header (tappable)
-            DateHeader(date: _date, onChange: _handleDateChange),
-
-            const SizedBox(height: 16),
-
-            // Summary bar
-            _buildSummaryBar(),
-
-            const SizedBox(height: 16),
-
-            // Overlap warning
-            if (overlappingEvents.isNotEmpty)
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _confirmExit();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header with back and delete buttons
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: OverlapWarning(
-                  overlappingCount: overlappingEvents.length,
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Back'),
+                    ),
+                    // Delete button only for existing records
+                    if (widget.existingRecord != null)
+                      IconButton(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        tooltip: 'Delete record',
+                      ),
+                  ],
                 ),
               ),
 
-            if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
+              // Date header (tappable)
+              DateHeader(date: _date, onChange: _handleDateChange),
 
-            // Main content area
-            Expanded(child: _buildCurrentStep()),
-          ],
+              const SizedBox(height: 16),
+
+              // Summary bar
+              _buildSummaryBar(),
+
+              const SizedBox(height: 16),
+
+              // Overlap warning
+              if (overlappingEvents.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: OverlapWarning(
+                    overlappingCount: overlappingEvents.length,
+                  ),
+                ),
+
+              if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
+
+              // Main content area
+              Expanded(child: _buildCurrentStep()),
+            ],
+          ),
         ),
       ),
     );
