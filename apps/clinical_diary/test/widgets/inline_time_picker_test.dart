@@ -206,143 +206,137 @@ void main() {
         },
       );
 
-      testWidgets(
-        'clamps initial time to maxDateTime instead of now',
-        (tester) async {
-          final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          // Time that exceeds end of yesterday
-          final tooLateTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day + 1, // Actually today
-            2,
-            0,
-          );
-          final endOfYesterday = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            59,
-            59,
-          );
+      testWidgets('clamps initial time to maxDateTime instead of now', (
+        tester,
+      ) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        // Time that exceeds end of yesterday
+        final tooLateTime = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day + 1, // Actually today
+          2,
+          0,
+        );
+        final endOfYesterday = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          59,
+          59,
+        );
 
-          DateTime? changedTime;
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: InlineTimePicker(
-                  initialTime: tooLateTime,
-                  onTimeChanged: (time) => changedTime = time,
-                  allowFutureTimes: false,
-                  maxDateTime: endOfYesterday,
-                ),
+        DateTime? changedTime;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InlineTimePicker(
+                initialTime: tooLateTime,
+                onTimeChanged: (time) => changedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
               ),
             ),
-          );
+          ),
+        );
 
-          // Subtracting time should work (we're clamped to end of yesterday)
-          await tester.tap(find.text('-1'));
-          await tester.pump();
+        // Subtracting time should work (we're clamped to end of yesterday)
+        await tester.tap(find.text('-1'));
+        await tester.pump();
 
-          // Should be clamped to end of yesterday minus 1 minute
-          expect(changedTime, isNotNull);
-          expect(
-            changedTime!.isBefore(endOfYesterday),
-            isTrue,
-          );
-        },
-      );
+        // Should be clamped to end of yesterday minus 1 minute
+        expect(changedTime, isNotNull);
+        expect(changedTime!.isBefore(endOfYesterday), isTrue);
+      });
 
-      testWidgets(
-        'prevents +15 button when it would exceed maxDateTime',
-        (tester) async {
-          final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          // Start at 11:50 PM yesterday
-          final pastTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            50,
-          );
-          final endOfYesterday = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            59,
-            59,
-          );
+      testWidgets('prevents +15 button when it would exceed maxDateTime', (
+        tester,
+      ) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        // Start at 11:50 PM yesterday
+        final pastTime = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          50,
+        );
+        final endOfYesterday = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          59,
+          59,
+        );
 
-          DateTime? changedTime;
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: InlineTimePicker(
-                  initialTime: pastTime,
-                  onTimeChanged: (time) => changedTime = time,
-                  allowFutureTimes: false,
-                  maxDateTime: endOfYesterday,
-                ),
+        DateTime? changedTime;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InlineTimePicker(
+                initialTime: pastTime,
+                onTimeChanged: (time) => changedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
               ),
             ),
-          );
+          ),
+        );
 
-          // Try to add 15 minutes - this would exceed maxDateTime
-          await tester.tap(find.text('+15'));
-          await tester.pumpAndSettle();
+        // Try to add 15 minutes - this would exceed maxDateTime
+        await tester.tap(find.text('+15'));
+        await tester.pumpAndSettle();
 
-          // Should be rejected
-          expect(changedTime, isNull);
-        },
-      );
+        // Should be rejected
+        expect(changedTime, isNull);
+      });
 
-      testWidgets(
-        'allows +5 button on past date when within maxDateTime',
-        (tester) async {
-          final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          // Start at 11:00 PM yesterday
-          final pastTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            0,
-          );
-          final endOfYesterday = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            59,
-            59,
-          );
+      testWidgets('allows +5 button on past date when within maxDateTime', (
+        tester,
+      ) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        // Start at 11:00 PM yesterday
+        final pastTime = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          0,
+        );
+        final endOfYesterday = DateTime(
+          yesterday.year,
+          yesterday.month,
+          yesterday.day,
+          23,
+          59,
+          59,
+        );
 
-          DateTime? changedTime;
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: InlineTimePicker(
-                  initialTime: pastTime,
-                  onTimeChanged: (time) => changedTime = time,
-                  allowFutureTimes: false,
-                  maxDateTime: endOfYesterday,
-                ),
+        DateTime? changedTime;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InlineTimePicker(
+                initialTime: pastTime,
+                onTimeChanged: (time) => changedTime = time,
+                allowFutureTimes: false,
+                maxDateTime: endOfYesterday,
               ),
             ),
-          );
+          ),
+        );
 
-          // Add 5 minutes - should work since 11:05 PM < 11:59:59 PM
-          await tester.tap(find.text('+5'));
-          await tester.pump();
+        // Add 5 minutes - should work since 11:05 PM < 11:59:59 PM
+        await tester.tap(find.text('+5'));
+        await tester.pump();
 
-          // Time should be 11:05 PM
-          expect(changedTime, isNotNull);
-          expect(changedTime!.hour, 23);
-          expect(changedTime!.minute, 5);
-        },
-      );
+        // Time should be 11:05 PM
+        expect(changedTime, isNotNull);
+        expect(changedTime!.hour, 23);
+        expect(changedTime!.minute, 5);
+      });
     });
 
     group('adjustment buttons', () {
