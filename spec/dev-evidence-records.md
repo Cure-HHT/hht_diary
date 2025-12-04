@@ -7,6 +7,7 @@
 
 > **Scope**: Third-party timestamp attestation for clinical trial diary data
 >
+> **See**: prd-evidence-records.md for product requirements (executive-level)
 > **See**: docs/adr/ADR-008-timestamp-attestation.md for architecture decision
 > **See**: prd-event-sourcing-system.md for event sourcing architecture
 > **See**: prd-database.md for audit trail requirements
