@@ -564,6 +564,59 @@ void main() {
           findsNothing,
         );
       });
+
+      // CUR-449: Records on different days should not trigger overlap warning
+      testWidgets(
+        'does not show overlap warning for same time on different days',
+        (tester) async {
+          // Use a larger screen size to avoid overflow issues
+          tester.view.physicalSize = const Size(1080, 1920);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
+
+          // Record from yesterday at 10:00-10:30
+          final yesterdayRecord = NosebleedRecord(
+            id: 'yesterday-1',
+            date: DateTime(2024, 1, 14),
+            startTime: DateTime(2024, 1, 14, 10, 0),
+            endTime: DateTime(2024, 1, 14, 10, 30),
+            intensity: NosebleedIntensity.spotting,
+          );
+
+          // Current record is today at same time (10:00-10:30)
+          final todayRecord = NosebleedRecord(
+            id: 'today-1',
+            date: DateTime(2024, 1, 15),
+            startTime: DateTime(2024, 1, 15, 10, 0),
+            endTime: DateTime(2024, 1, 15, 10, 30),
+            intensity: NosebleedIntensity.dripping,
+          );
+
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                existingRecord: todayRecord,
+                allRecords: [yesterdayRecord],
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Should NOT show overlap warning - different days
+          expect(find.text('Overlapping Events Detected'), findsNothing);
+
+          // Save button should be enabled
+          final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
+          expect(saveButton, findsOneWidget);
+          final filledButton = tester.widget<FilledButton>(saveButton);
+          expect(filledButton.onPressed, isNotNull);
+        },
+      );
     });
 
     group('Delete Flow', () {
