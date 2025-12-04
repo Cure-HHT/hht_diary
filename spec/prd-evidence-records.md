@@ -1,8 +1,11 @@
 # Third-Party Timestamp Attestation
 
 **Version**: 1.0
+**Audience**: Product Requirements
 **Last Updated**: 2025-12-02
 **Status**: Active
+
+---
 
 ## Executive Summary
 
@@ -47,7 +50,7 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 ### Why Blockchain
 
-| Property | Blockcain | Traditional TSA (RFC 3161) |
+| Property | Blockchain | Traditional TSA (RFC 3161) |
 | -------- | ---------------------- | -------------------------- |
 | Attack cost | $5-20 billion | ~$100,000 |
 | Backdating possible? | Mathematically impossible | Yes, if TSA compromised |
@@ -159,6 +162,8 @@ Verification interface SHALL support:
 *End* *Timestamp Verification Interface* | **Hash**: 7582f435
 ---
 
+---
+
 # REQ-p01028: Timestamp Proof Archival
 
 **Level**: PRD | **Implements**: REQ-p01025, REQ-p00012 | **Status**: Active
@@ -187,19 +192,24 @@ Proof archival SHALL ensure:
 
 **Level**: PRD | **Implements**: REQ-p01025, REQ-p00012 | **Status**: Active
 
-The system SHALL record information in the timestamp attestation sufficient to 
-verify that the following data was recorded before the date of the block to which
-it tied:
-- the clinical trial data
-- the source of the data
+The system SHALL record information in the timestamp attestation sufficient to verify that the following data was recorded before the date of the block to which it is tied:
+- The clinical trial data
+- The source of the data
 
-The system SHALL use a de-identified unique identifier that can be independently
-verified. This could be based on a device ID (e.g. mobile IMEI),  or patient 
-ID (e.g. driver's license number). 
+The system SHALL use a de-identified unique identifier that can be independently verified. This identifier MAY be based on a device ID or patient ID.
 
-De-identification SHALL be done by using a non-reversable algorithm to transform 
-the number into a new unique number. 
+De-identification SHALL use a non-reversible algorithm to transform the identifier into a new unique value.
 
+**Rationale**: Timestamps prove data existence at a point in time, but do not inherently prove data origin. Including a verifiable source identifier in the timestamped record enables attribution while preserving privacy through de-identification.
+
+**Acceptance Criteria**:
+- Timestamped records include both clinical data hash and source identifier
+- Source identifiers are de-identified using a one-way hash function
+- De-identified identifiers can be independently verified by the data source
+- No personally identifiable information is exposed in the timestamp proof
+
+*End* *Timestamped Record Contents* | **Hash**: 2589e604
+---
 
 ---
 

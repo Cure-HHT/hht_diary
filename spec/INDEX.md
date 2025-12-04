@@ -182,7 +182,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p01026 | prd-evidence-records.md | Bitcoin-Based Timestamp Implementation | 634732d7 |
 | REQ-p01027 | prd-evidence-records.md | Timestamp Verification Interface | 7582f435 |
 | REQ-p01028 | prd-evidence-records.md | Timestamp Proof Archival | 64a9c3ec |
-| REQ-p01029 | prd-evidence-records.md | RFC 3161 TSA Fallback (Deprecated) | 424b9ef9 |
+| REQ-p01029 | prd-evidence-records.md | RFC 3161 TSA Fallback (Deprecated) | 2589e604 |
 
 ---
 
