@@ -252,7 +252,7 @@ python3 tools/requirements/validate_requirements.py
 # ❌ ERROR: Duplicate requirement ID
 #   REQ-p00036 found in:
 #     - spec/prd-requirements.md:45
-#     - spec/prd-app.md:123
+#     - spec/prd-diary-app.md:123
 ```
 
 ### Manual Traceability Matrix Generation

@@ -64,9 +64,9 @@ setup_linear_team_id() {
   return 1
 }
 
-# Run Linear setup
-setup_linear_token
-setup_linear_team_id
+# Run Linear setup (don't fail if Linear isn't configured)
+setup_linear_token || true
+setup_linear_team_id || true
 
 # =============================================================================
 # FLUTTER SETUP (remote/web environment only)
@@ -121,6 +121,21 @@ if [ -f "$CLAUDE_PROJECT_DIR/apps/clinical_diary/functions/package.json" ]; then
   echo "Installing Node.js dependencies for Firebase Functions..."
   cd "$CLAUDE_PROJECT_DIR/apps/clinical_diary/functions"
   npm install
+fi
+
+# =============================================================================
+# GIT HOOKS SETUP
+# =============================================================================
+# Configure git to use the project's custom hooks directory
+# This enables pre-commit checks for dart format, dart analyze, etc.
+
+echo "Configuring git hooks..."
+
+if [ -d "$CLAUDE_PROJECT_DIR/.githooks" ]; then
+  git config --global core.hooksPath "$CLAUDE_PROJECT_DIR/.githooks"
+  echo "✓ Git hooks configured: $CLAUDE_PROJECT_DIR/.githooks"
+else
+  echo "⚠️  .githooks directory not found - git hooks not configured"
 fi
 
 echo "Development environment setup complete!"

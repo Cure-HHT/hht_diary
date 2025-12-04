@@ -336,8 +336,8 @@ Expected output:
 
 2. Make trivial change to spec:
    ```bash
-   echo "" >> spec/prd-app.md
-   git add spec/prd-app.md
+   echo "" >> spec/prd-diary-app.md
+   git add spec/prd-diary-app.md
    git commit -m "Test: Validate CI/CD passes"
    ```
 
@@ -374,7 +374,7 @@ Expected output:
 
 2. Add invalid requirement (use a fake ID that doesn't match your requirements):
    ```bash
-   cat >> spec/prd-app.md <<'EOF'
+   cat >> spec/prd-diary-app.md <<'EOF'
 
 ### REQ-pXXXXX: Test Invalid Requirement
 
@@ -383,7 +383,7 @@ This is an intentionally invalid requirement for testing CI/CD.
 (Use a real requirement ID format when testing, this example uses XXXXX to avoid validation errors in this doc)
 
 EOF
-   git add spec/prd-app.md
+   git add spec/prd-diary-app.md
    git commit -m "Test: Add invalid requirement"
    ```
 
@@ -545,7 +545,7 @@ git show origin/main:.github/workflows/pr-validation.yml
 python3 tools/requirements/validate_requirements.py
 
 # Check for hidden characters
-cat -A spec/prd-app.md | grep REQ-
+cat -A spec/prd-diary-app.md | grep REQ-
 
 # Validate specific requirement
 grep -A 5 "REQ-p00001" spec/prd-*.md

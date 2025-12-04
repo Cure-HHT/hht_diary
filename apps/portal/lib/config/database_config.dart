@@ -5,11 +5,7 @@
 // import '../services/local_database_service.dart';
 
 /// Database environment types
-enum DatabaseEnvironment {
-  dev,
-  qa,
-  prod,
-}
+enum DatabaseEnvironment { dev, qa, prod }
 
 /// Database configuration using build-time environment variables
 ///
@@ -87,15 +83,15 @@ class DatabaseConfig {
   }
 
   /// Get the appropriate database service for the current environment
-//BAD IDEA - no DB access from client
-//   //   static DatabaseService getDatabaseService() {
-//     if (environment == DatabaseEnvironment.dev) {
-//       return LocalDatabaseService();
-//     }
-//
-//     return SupabaseDatabaseService(
-//       url: supabaseUrl,
-//       anonKey: supabaseAnonKey,
-//     );
-//   }
+  //BAD IDEA - no DB access from client
+  //   //   static DatabaseService getDatabaseService() {
+  //     if (environment == DatabaseEnvironment.dev) {
+  //       return LocalDatabaseService();
+  //     }
+  //
+  //     return SupabaseDatabaseService(
+  //       url: supabaseUrl,
+  //       anonKey: supabaseAnonKey,
+  //     );
+  //   }
 }

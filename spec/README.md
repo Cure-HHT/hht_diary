@@ -57,8 +57,8 @@ This ensures requirement traceability is maintained even for obsolete requiremen
 filename: {audience}-{topic}(-{subtopic}).{ext}
 
 examples:
-- prd-app.md
-- prd-app-UX.md
+- prd-diary-app.md
+- prd-diary-app-UX.md
 - prd-clinical-trials.md
 - prd-security.md
 - prd-security-RBAC.md
