@@ -467,6 +467,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 initialDate: firstIncomplete.date,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: firstIncomplete.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -474,6 +481,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 initialDate: firstIncomplete.date,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: firstIncomplete.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
               ),
       ),
     );
