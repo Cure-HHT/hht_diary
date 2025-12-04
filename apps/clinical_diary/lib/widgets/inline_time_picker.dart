@@ -58,6 +58,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   @override
   void didUpdateWidget(InlineTimePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // CUR-447: When maxDateTime changes (e.g., user selected a different date),
+    // we need to re-validate the selected time against the new max.
+    if (widget.maxDateTime != oldWidget.maxDateTime) {
+      _selectedTime = _clampToMaxIfNeeded(_selectedTime ?? widget.initialTime);
+    }
     // Update if initial time changed significantly (not just minor adjustments)
     final oldTime = oldWidget.initialTime;
     final newTime = widget.initialTime;

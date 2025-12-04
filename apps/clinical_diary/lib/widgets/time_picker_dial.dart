@@ -38,6 +38,19 @@ class _TimePickerDialState extends State<TimePickerDial> {
     _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
   }
 
+  @override
+  void didUpdateWidget(TimePickerDial oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When maxDateTime changes (e.g., user selected a different date),
+    // we need to re-validate the selected time against the new max.
+    // CUR-447: This ensures past dates allow full 24-hour selection.
+    if (widget.maxDateTime != oldWidget.maxDateTime ||
+        widget.initialTime != oldWidget.initialTime) {
+      // Re-clamp the selected time with the new maxDateTime
+      _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
+    }
+  }
+
   /// Gets the effective maximum DateTime for validation.
   /// Uses maxDateTime if provided, otherwise DateTime.now().
   DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
