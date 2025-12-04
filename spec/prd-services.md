@@ -33,7 +33,7 @@ Ancillary services SHALL provide:
 - Data exports in standard formats with access controls
 - Integration APIs secured and documented
 
-*End* *Ancillary Platform Services* | **Hash**: TBD
+*End* *Ancillary Platform Services* | **Hash**: 8ae1bd30
 
 ---
 
