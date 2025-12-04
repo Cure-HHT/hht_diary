@@ -915,7 +915,7 @@ void main() {
     });
 
     group('Intensity Selection', () {
-      testWidgets('initializes end time when intensity is selected', (
+      testWidgets('navigates to end time picker when intensity is selected', (
         tester,
       ) async {
         // Use a larger screen size to avoid overflow issues
@@ -945,10 +945,10 @@ void main() {
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Should show end time picker with initialized time
+        // Should show end time picker
         expect(find.text('Nosebleed End Time'), findsOneWidget);
-        // End time should not be '--:--' after selecting intensity
-        expect(find.text('--:--'), findsNothing);
+        // End time in summary bar remains unset until user confirms
+        expect(find.text('--:--'), findsOneWidget);
       });
     });
   });
