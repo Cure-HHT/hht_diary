@@ -173,8 +173,8 @@ Version control workflow SHALL ensure:
 # 1. Create feature branch
 git checkout -b feature/multi-language-support
 
-# 2. Create PRD requirement in spec/prd-app.md
-# Example: REQ-p00022: Multi-Language Support
+# 2. Create PRD requirement in spec/prd-diary-app.md
+# Example: REQ-p00049: Multi-Language Support
 
 # 3. Create OPS requirement in spec/ops-deployment.md
 # Example: REQ-o00018: Language Configuration Management
