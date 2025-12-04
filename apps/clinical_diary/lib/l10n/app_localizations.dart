@@ -265,6 +265,9 @@ class AppLocalizations {
       // Overlap warning
       'overlappingEventsDetected': 'Overlapping Events Detected',
       'overlappingEventsCount': 'This event overlaps with {0} existing {1}',
+      'overlappingEventTimeRange':
+          'This time overlaps with an existing nosebleed record from {0} to {1}',
+      'viewConflictingRecord': 'View',
 
       // Enrollment screen
       'welcomeToNosebleedDiary': 'Welcome to\nNosebleed Diary',
@@ -543,6 +546,9 @@ class AppLocalizations {
       'overlappingEventsDetected': 'Eventos Superpuestos Detectados',
       'overlappingEventsCount':
           'Este evento se superpone con {0} {1} existente(s)',
+      'overlappingEventTimeRange':
+          'Este horario se superpone con un registro de hemorragia nasal existente de {0} a {1}',
+      'viewConflictingRecord': 'Ver',
 
       // Enrollment screen
       'welcomeToNosebleedDiary': 'Bienvenido a\nDiario de Hemorragias Nasales',
@@ -832,6 +838,9 @@ class AppLocalizations {
       // Overlap warning
       'overlappingEventsDetected': 'Evenements Chevauches Detectes',
       'overlappingEventsCount': 'Cet evenement chevauche {0} {1} existant(s)',
+      'overlappingEventTimeRange':
+          'Cet horaire chevauche un enregistrement de saignement de nez existant de {0} a {1}',
+      'viewConflictingRecord': 'Voir',
 
       // Enrollment screen
       'welcomeToNosebleedDiary':
@@ -1117,6 +1126,9 @@ class AppLocalizations {
       'overlappingEventsDetected': 'Uberlappende Ereignisse erkannt',
       'overlappingEventsCount':
           'Dieses Ereignis uberschneidet sich mit {0} vorhandenen {1}',
+      'overlappingEventTimeRange':
+          'Dieser Zeitraum uberschneidet sich mit einem vorhandenen Nasenbluten-Eintrag von {0} bis {1}',
+      'viewConflictingRecord': 'Anzeigen',
 
       // Enrollment screen
       'welcomeToNosebleedDiary': 'Willkommen beim\nNasenbluten-Tagebuch',
@@ -1218,7 +1230,7 @@ class AppLocalizations {
   String get usingClassicUI => translate('usingClassicUI');
   String get noEvents => translate('noEvents');
   String incompleteRecordCount(int count) => translateWithParams(
-    count == 1 ? 'incompleteRecord' : 'incompleteRecords',
+    count == 1 ? 'Incomplete Record' : 'Incomplete Records',
     [count],
   );
 
@@ -1427,6 +1439,9 @@ class AppLocalizations {
     'overlappingEventsCount',
     [count, if (count == 1) translate('event') else translate('events')],
   );
+  String overlappingEventTimeRange(String startTime, String endTime) =>
+      translateWithParams('overlappingEventTimeRange', [startTime, endTime]);
+  String get viewConflictingRecord => translate('viewConflictingRecord');
 
   // Enrollment screen
   String get welcomeToNosebleedDiary => translate('welcomeToNosebleedDiary');
