@@ -287,38 +287,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _startTime != null && _currentStep != RecordingStep.complete;
   }
 
-  /// Show confirmation dialog when user tries to leave with unsaved changes
-  Future<bool> _confirmExit() async {
+  /// Auto-save partial record when user navigates away with unsaved changes.
+  /// REQ-p00001: Incomplete Entry Preservation - automatically saves partial
+  /// records without prompting the user.
+  Future<bool> _handleExit() async {
     if (!_hasUnsavedPartialRecord) return true;
 
-    final l10n = AppLocalizations.of(context);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.saveAsIncomplete),
-        content: Text(l10n.saveAsIncompleteDescription),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'discard'),
-            child: Text(l10n.discard),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'cancel'),
-            child: Text(l10n.keepEditing),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, 'save'),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'save') {
-      await _saveRecord();
-      return false; // _saveRecord handles navigation via Navigator.pop
-    }
-    return result == 'discard';
+    // Auto-save the partial record without prompting
+    await _saveRecord();
+    // _saveRecord handles navigation via Navigator.pop, so return false
+    // to prevent double navigation
+    return false;
   }
 
   @override
@@ -330,7 +309,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final shouldPop = await _confirmExit();
+        final shouldPop = await _handleExit();
         if (shouldPop && context.mounted) {
           Navigator.pop(context);
         }
@@ -346,7 +325,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton.icon(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () async {
+                        final shouldPop = await _handleExit();
+                        if (shouldPop && context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
                       icon: const Icon(Icons.arrow_back),
                       label: Text(l10n.back),
                     ),

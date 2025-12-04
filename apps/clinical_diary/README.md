@@ -529,9 +529,13 @@ This is FDA-regulated medical software. All contributions must:
 - Pass all tests
 - Maintain 90%+ code coverage
 - Follow strict linting rules
+  - Pass flutter analyze cleanly - no errors, warnings or info, even in test code
+  - Pass dart format cleanly, even in test code
 - Include comprehensive documentation
 - Be reviewed by at least one other developer
 - Include user testing plan
+- Failing tests should be created first
+- Integration tests are strongly preferred when reasonable and possible
 
 ## 📝 License
 
