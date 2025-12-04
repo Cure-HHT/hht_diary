@@ -7,7 +7,7 @@
 
 ---
 
-## Executive Summary
+# Executive Summary
 
 Rigorous clinical trials require proof of the validity of the data used. This includes:
 - when the data was collected
@@ -27,7 +27,7 @@ Third-party timestamp attestation provides **independent, cryptographic proof** 
 - Long-term non-repudiation surviving cryptographic algorithm evolution
 - Data traceability to its origin
 
-### Scope and Limitations
+## Scope and Limitations
 
 Third-party timestamp attestation proves *when* data was recorded, but not *who* recorded it. To establish data provenance, the system must also record a de-identified source identifier that can be independently verified by a trusted authority.
 
@@ -37,7 +37,7 @@ Source verification depends on the continued existence of the issuing authority 
 
 ---
 
-### Regulatory Context
+## Regulatory Context
 
 FDA 21 CFR Part 11 requires audit trails that are:
 - Secure and computer-generated
@@ -91,7 +91,7 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 ---
 
-# REQ-p01025: Third-Party Timestamp Attestation Capability
+## REQ-p01025: Third-Party Timestamp Attestation Capability
 
 **Level**: PRD | **Implements**: REQ-p00010, REQ-p00011 | **Status**: Active
 
@@ -117,7 +117,7 @@ Third-party timestamp attestation SHALL ensure:
 
 ---
 
-# REQ-p01026: Bitcoin-Based Timestamp Implementation
+## REQ-p01026: Bitcoin-Based Timestamp Implementation
 
 **Level**: PRD | **Implements**: REQ-p01025 | **Status**: Active
 
@@ -143,7 +143,7 @@ Bitcoin-based timestamps SHALL provide:
 
 ---
 
-# REQ-p01027: Timestamp Verification Interface
+## REQ-p01027: Timestamp Verification Interface
 
 **Level**: PRD | **Implements**: REQ-p01025 | **Status**: Active
 
@@ -169,7 +169,7 @@ Verification interface SHALL support:
 
 ---
 
-# REQ-p01028: Timestamp Proof Archival
+## REQ-p01028: Timestamp Proof Archival
 
 **Level**: PRD | **Implements**: REQ-p01025, REQ-p00012 | **Status**: Active
 
@@ -193,27 +193,108 @@ Proof archival SHALL ensure:
 *End* *Timestamp Proof Archival* | **Hash**: 64a9c3ec
 ---
 
-# REQ-p01029: Timestamped Record Contents
+## REQ-p01029: Device Fingerprinting
 
-**Level**: PRD | **Implements**: REQ-p01025, REQ-p00012 | **Status**: Active
+**Level**: PRD | **Implements**: REQ-p01025 | **Status**: Active
 
-The system SHALL record information in the timestamp attestation sufficient to verify that the following data was recorded before the date of the block to which it is tied:
-- The clinical trial data
-- The source of the data
+The system SHALL record a device fingerprint with each data submission to establish the collection method and enable traceability to the originating device.
 
-The system SHALL use a de-identified unique identifier that can be independently verified. This identifier MAY be based on a device ID or patient ID.
+Device fingerprinting SHALL:
+- Capture a unique, non-reversible identifier derived from device hardware attributes
+- Include the fingerprint in the timestamped evidence record
+- Enable independent verification that data originated from a specific device
+- Preserve privacy by using one-way hash functions
 
-De-identification SHALL use a non-reversible algorithm to transform the identifier into a new unique value.
-
-**Rationale**: Timestamps prove data existence at a point in time, but do not inherently prove data origin. Including a verifiable source identifier in the timestamped record enables attribution while preserving privacy through de-identification.
+**Rationale**: Device fingerprinting establishes *how* data was collected by binding each submission to a specific device. Combined with timestamp attestation (*when*) and patient authentication (*who*), this completes the chain of evidence required for ALCOA+ compliance.
 
 **Acceptance Criteria**:
-- Timestamped records include both clinical data hash and source identifier
-- Source identifiers are de-identified using a one-way hash function
-- De-identified identifiers can be independently verified by the data source
-- No personally identifiable information is exposed in the timestamp proof
+- Each data submission includes a hashed device fingerprint
+- Fingerprints are consistent across sessions on the same device
+- No raw device identifiers are stored or transmitted
+- Auditors can verify fingerprint consistency across a patient's submissions
 
-*End* *Timestamped Record Contents* | **Hash**: 2589e604
+*End* *Device Fingerprinting* | **Hash**: 57a2d038
+---
+
+---
+
+## REQ-p01030: Patient Authentication for Data Attribution
+
+**Level**: PRD | **Implements**: REQ-p01025 | **Status**: Active
+
+The system SHALL authenticate patients before data entry to establish that the person entering data had privileged access to the enrolled device.
+
+Patient authentication SHALL:
+- Rely on the device's native lock screen as the primary authentication mechanism
+- Require an in-app PIN as a fallback when device lock screen is not enabled
+- Detect whether the device has a lock screen enabled
+- Allow Site Coordinators to send PIN reset notifications to patients
+- Ensure Site Coordinators cannot view patient PINs
+
+**Rationale**: The patient's personal device with an active lock screen represents the most secure authentication mechanism available in a clinical trial context. By verifying privileged device access, the system establishes reasonable assurance that the authenticated user is the enrolled patient.
+
+**Acceptance Criteria**:
+- App detects device lock screen status at enrollment and periodically thereafter
+- Patients without device lock screen are prompted to set an in-app PIN
+- PIN reset workflow available to Site Coordinators without PIN visibility
+- Authentication status recorded with each data submission
+- Failed authentication attempts logged for audit purposes
+
+*End* *Patient Authentication for Data Attribution* | **Hash**: e5dd3d06
+---
+
+---
+
+## REQ-p01031: Optional Geolocation Tagging
+
+**Level**: PRD | **Implements**: REQ-p01025 | **Status**: Active
+
+The system SHALL support optional geolocation tagging of data submissions when enabled by the Sponsor and permitted by the device.
+
+Geolocation tagging SHALL:
+- Be disabled by default and require explicit Sponsor enablement per trial
+- Depend on device location services being available and permitted by the patient
+- Record location coordinates with each data submission when enabled
+- Include geolocation data in the timestamped evidence record
+- Clearly inform patients when geolocation is being collected
+
+**Rationale**: Geolocation provides additional evidence of data collection context, strengthening provenance claims. However, location data is potential PII and must only be collected with Sponsor approval and patient awareness.
+
+**Acceptance Criteria**:
+- Geolocation collection configurable at the trial/Sponsor level
+- App requests location permission with clear explanation when enabled
+- Location data included in evidence record only when all conditions met
+- Missing location (permission denied, services unavailable) does not block data entry
+- Patient informed of geolocation collection status in app settings
+
+*End* *Optional Geolocation Tagging* | **Hash**: 034c9479
+---
+
+---
+
+## REQ-p01032: Hashed Email Identity Verification
+
+**Level**: PRD | **Implements**: REQ-p01025 | **Status**: Active
+
+The system SHALL record a hashed patient email address as an identity fingerprint to enable upstream traceability without exposing PII.
+
+Hashed email verification SHALL:
+- Store a one-way hash of the patient's email address with enrollment data
+- Include the hashed email in the evidence record for each data submission
+- Enable Sponsors to provide the original email to auditors for verification
+- Allow auditors to independently hash the email and confirm it matches the stored value
+- Support auditor contact with the patient via the verified email address
+
+**Rationale**: A hashed email provides a verifiable link between data and a contactable individual without storing PII in the evidence record. Auditors can trace data provenance upstream by contacting the patient directly to confirm their participation and data authenticity.
+
+**Acceptance Criteria**:
+- Patient email hashed using a standard, documented algorithm
+- Hashed email recorded at enrollment and verifiable against submissions
+- Sponsor can retrieve original email for auditor disclosure (separate from evidence record)
+- Auditor can independently verify hash matches provided email
+- Hash algorithm documented for long-term reproducibility
+
+*End* *Hashed Email Identity Verification* | **Hash**: 769f35e0
 ---
 
 ---
@@ -262,11 +343,105 @@ De-identification SHALL use a non-reversible algorithm to transform the identifi
 
 | Principle | Evidence Records Contribution |
 | --------- | ----------------------------- |
-| Attributable | Timestamp includes attestation source identity |
-| Contemporaneous | Third-party proof that data existed at claimed time |
+| Attributable | Patient authentication + hashed email links data to individual |
+| Contemporaneous | Third-party blockchain timestamp proves data existed at claimed time |
 | Original | Hash binding proves data unchanged since timestamp |
 | Accurate | Cryptographic verification ensures accuracy |
 | Enduring | Proofs valid for 15-25+ year retention periods |
+
+---
+
+## Data Provenance Traceability
+
+The following diagram illustrates the complete chain of evidence from data collection to audit verification, showing how each evidence component establishes the **when**, **how**, and **who** of data provenance.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DATA PROVENANCE CHAIN                                │
+│                                                                             │
+│  ALCOA+ Principles:  Attributable (WHO) │ Contemporaneous (WHEN) │         │
+│                      Original (HOW)                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                              UPSTREAM TRACE
+                          (Auditor → Data Source)
+                                    │
+┌───────────────────────────────────▼───────────────────────────────────────┐
+│                            AUDITOR                                         │
+│  Receives: Evidence Record + Sponsor-provided email                        │
+│  Verifies: Hash(email) matches stored value                                │
+│  Action:   Contacts patient directly to confirm participation              │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     EVENT DATA STORE (EDS)                                 │
+│                                                                            │
+│  Evidence Record Contains:                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  • Clinical data hash ─────────────────── ORIGINAL (data integrity) │  │
+│  │  • Blockchain timestamp proof ─────────── CONTEMPORANEOUS (when)    │  │
+│  │  • Device fingerprint (hashed) ────────── HOW (collection method)   │  │
+│  │  • Hashed patient email ───────────────── ATTRIBUTABLE (who)        │  │
+│  │  • Geolocation (if enabled) ───────────── Additional context        │  │
+│  │  • Authentication status ──────────────── WHO (privileged access)   │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                         REVERSE PROXY                                      │
+│  Records: Source IP, TLS session, request timestamp                        │
+│  Evidence: Server-side receipt confirmation                                │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                          PATIENT DEVICE                                    │
+│                                                                            │
+│  Authentication Layer:                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  Device Lock Screen ───────── Primary auth (OS-level security)      │  │
+│  │         OR                                                          │  │
+│  │  In-App PIN ───────────────── Fallback (when lock screen disabled)  │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  Device Fingerprint Sources:                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  • Hardware identifiers (hashed) ──────── Unique device binding     │  │
+│  │  • Platform/OS version ────────────────── Collection context        │  │
+│  │  • App installation ID ────────────────── Session continuity        │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────┬───────────────────────────────────────┘
+                                    │
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│                            PATIENT                                         │
+│                                                                            │
+│  Identity Verification:                                                    │
+│  • Enrolled with email address (hashed in system)                          │
+│  • Possesses device with privileged access                                 │
+│  • Can be contacted by auditor via Sponsor-provided email                  │
+│  • Can confirm participation and data authenticity                         │
+└───────────────────────────────────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    VERIFICATION SUMMARY                                     │
+├─────────────────┬───────────────────────────────────────────────────────────┤
+│ WHEN            │ Blockchain timestamp (Bitcoin block time ±2 hours)        │
+│ (Contemporaneous)│ + Server timestamp (sub-second precision)                │
+│                 │ + Client timestamp (device clock at entry)                │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ HOW             │ Device fingerprint proves specific device used            │
+│ (Original)      │ + Data hash proves content unchanged                      │
+│                 │ + Geolocation (optional) confirms physical context        │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ WHO             │ Authentication proves privileged device access            │
+│ (Attributable)  │ + Hashed email links to contactable individual            │
+│                 │ + Auditor can verify identity via direct contact          │
+└─────────────────┴───────────────────────────────────────────────────────────┘
+```
 
 ---
 
