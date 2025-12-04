@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
         9,
         45,
       ),
-      severity: NosebleedSeverity.dripping,
+      intensity: NosebleedIntensity.dripping,
       notes: 'Example morning nosebleed',
     );
 
@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
         0,
       ),
       endTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 30),
-      severity: NosebleedSeverity.steadyStream,
+      intensity: NosebleedIntensity.steadyStream,
       notes: 'Example afternoon nosebleed',
     );
 

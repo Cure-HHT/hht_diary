@@ -203,7 +203,7 @@ void main() {
           date: DateTime.now(),
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(minutes: 15)),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
       ];
 

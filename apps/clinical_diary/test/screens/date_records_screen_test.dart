@@ -108,14 +108,14 @@ void main() {
           date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
         NosebleedRecord(
           id: 'test-2',
           date: testDate,
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
-          severity: NosebleedSeverity.steadyStream,
+          intensity: NosebleedIntensity.steadyStream,
         ),
       ];
 
@@ -143,7 +143,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2025, 11, 28, 10, 30),
         endTime: DateTime(2025, 11, 28, 10, 45),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(
@@ -217,14 +217,14 @@ void main() {
           date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
         NosebleedRecord(
           id: 'test-2',
           date: testDate,
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
-          severity: NosebleedSeverity.steadyStream,
+          intensity: NosebleedIntensity.steadyStream,
         ),
       ];
 
@@ -250,7 +250,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
       ];
 

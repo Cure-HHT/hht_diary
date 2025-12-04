@@ -176,13 +176,13 @@ void main() {
           date: date,
           startTime: startTime,
           endTime: endTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
         );
 
         expect(record.startTime, startTime);
         expect(record.endTime, endTime);
-        expect(record.severity, NosebleedSeverity.dripping);
+        expect(record.intensity, NosebleedIntensity.dripping);
         expect(record.notes, 'Test notes');
         expect(record.isIncomplete, false);
       });
@@ -332,7 +332,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 15),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         // Incomplete record
@@ -502,7 +502,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 15),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         // Update it
@@ -511,14 +511,14 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Updated notes',
         );
 
         // Verify the updated record has different ID and correct parentRecordId
         expect(updated.id, isNot(equals(original.id)));
         expect(updated.parentRecordId, original.id);
-        expect(updated.severity, NosebleedSeverity.dripping);
+        expect(updated.intensity, NosebleedIntensity.dripping);
         expect(updated.notes, 'Updated notes');
       });
 
@@ -537,7 +537,7 @@ void main() {
           date: DateTime(2024, 1, 16),
           startTime: DateTime(2024, 1, 16, 14, 0),
           endTime: DateTime(2024, 1, 16, 14, 30),
-          severity: NosebleedSeverity.drippingQuickly,
+          intensity: NosebleedIntensity.drippingQuickly,
           notes: 'Updated notes',
           isNoNosebleedsEvent: false,
           isUnknownEvent: false,
@@ -545,7 +545,7 @@ void main() {
 
         expect(updated.date, DateTime(2024, 1, 16));
         expect(updated.startTime, DateTime(2024, 1, 16, 14, 0));
-        expect(updated.severity, NosebleedSeverity.drippingQuickly);
+        expect(updated.intensity, NosebleedIntensity.drippingQuickly);
       });
     });
 
@@ -563,7 +563,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 15),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         // Delete it
@@ -627,13 +627,13 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          severity: NosebleedIntensity.dripping,
           notes: 'Completed later',
         );
 
         expect(completed.isIncomplete, false);
         expect(completed.endTime, DateTime(2024, 1, 15, 10, 30));
-        expect(completed.severity, NosebleedSeverity.dripping);
+        expect(completed.intensity, NosebleedIntensity.dripping);
         expect(completed.notes, 'Completed later');
       });
     });
@@ -656,7 +656,7 @@ void main() {
           date: twoHoursAgo,
           startTime: twoHoursAgo,
           endTime: twoHoursAgo.add(const Duration(minutes: 15)),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         // Record from 25 hours ago (should not be included)
@@ -664,13 +664,13 @@ void main() {
           date: oneDayAgo,
           startTime: oneDayAgo,
           endTime: oneDayAgo.add(const Duration(minutes: 15)),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         final recent = await service.getRecentRecords();
 
         expect(recent.length, 1);
-        expect(recent.first.severity, NosebleedSeverity.spotting);
+        expect(recent.first.intensity, NosebleedIntensity.spotting);
       });
 
       test('excludes records without startTime', () async {
@@ -708,22 +708,22 @@ void main() {
           date: oneHourAgo,
           startTime: oneHourAgo,
           endTime: oneHourAgo.add(const Duration(minutes: 15)),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await service.addRecord(
           date: threeHoursAgo,
           startTime: threeHoursAgo,
           endTime: threeHoursAgo.add(const Duration(minutes: 15)),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         final recent = await service.getRecentRecords();
 
         expect(recent.length, 2);
         // Should be sorted ascending by startTime
-        expect(recent.first.severity, NosebleedSeverity.spotting);
-        expect(recent.last.severity, NosebleedSeverity.dripping);
+        expect(recent.first.intensity, NosebleedIntensity.spotting);
+        expect(recent.last.intensity, NosebleedIntensity.dripping);
       });
     });
 
@@ -785,7 +785,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         final status = await service.getDayStatus(DateTime(2024, 1, 15));
@@ -861,7 +861,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         final status = await service.getDayStatus(DateTime(2024, 1, 15));
@@ -883,7 +883,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await service.markNoNosebleeds(DateTime(2024, 1, 16));

@@ -139,7 +139,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
         );
 
@@ -167,7 +167,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -221,7 +221,7 @@ void main() {
           id: 'existing-1',
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
           // Missing endTime
         );
@@ -250,7 +250,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -273,7 +273,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -346,7 +346,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -392,7 +392,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -401,7 +401,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -428,7 +428,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         // allRecords includes the record being edited
@@ -465,7 +465,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -474,7 +474,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -521,7 +521,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 8, 0), // Does not overlap
             endTime: DateTime(2024, 1, 15, 8, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -530,7 +530,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -572,7 +572,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -614,7 +614,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -709,7 +709,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         await tester.pumpWidget(
@@ -841,7 +841,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 14, 0), // 2:00 PM
           endTime: DateTime(2024, 1, 15, 14, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
         );
 
@@ -891,7 +891,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -995,7 +995,7 @@ class FailingNosebleedService extends NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
@@ -1010,7 +1010,7 @@ class FailingNosebleedService extends NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,

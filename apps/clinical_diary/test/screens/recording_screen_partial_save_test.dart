@@ -116,7 +116,7 @@ void main() {
           expect(records.first.isIncomplete, isTrue);
           expect(records.first.startTime, isNotNull);
           // Severity and endTime should be null since user didn't set them
-          expect(records.first.severity, isNull);
+          expect(records.first.intensity, isNull);
           expect(records.first.endTime, isNull);
         },
       );
@@ -169,7 +169,7 @@ void main() {
           expect(records.first.isIncomplete, isTrue);
           expect(records.first.startTime, isNotNull);
           // No severity or end time yet
-          expect(records.first.severity, isNull);
+          expect(records.first.intensity, isNull);
           expect(records.first.endTime, isNull);
         },
       );
@@ -225,7 +225,7 @@ void main() {
           expect(records.length, 1);
           expect(records.first.isIncomplete, isTrue);
           expect(records.first.startTime, isNotNull);
-          expect(records.first.severity, isNotNull);
+          expect(records.first.intensity, isNotNull);
           // End time is auto-initialized but not confirmed
           // The partial save should include whatever state is there
         },

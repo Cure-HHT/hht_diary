@@ -7,10 +7,10 @@ class AppTheme {
   static const Color primaryTealDark = Color(0xFF0F766E); // teal-700
   static const Color primaryTealLight = Color(0xFF14B8A6); // teal-500
 
-  // Severity indicator colors (neutral scale, not alarming)
-  static const Color severityLow = Color(0xFFE0F2FE); // sky-100
-  static const Color severityMedium = Color(0xFFFEF3C7); // amber-100
-  static const Color severityHigh = Color(0xFFFFE4E6); // rose-100
+  // Intensity indicator colors (neutral scale, not alarming)
+  static const Color intensityLow = Color(0xFFE0F2FE); // sky-100
+  static const Color intensityMedium = Color(0xFFFEF3C7); // amber-100
+  static const Color intensityHigh = Color(0xFFFFE4E6); // rose-100
 
   // Warning/Alert colors
   static const Color warningYellow = Color(0xFFFEF9C3); // yellow-50

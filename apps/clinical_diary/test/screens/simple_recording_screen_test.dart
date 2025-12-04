@@ -286,7 +286,7 @@ void main() {
           );
           expect(records.length, 1);
           expect(records.first.isIncomplete, isTrue);
-          expect(records.first.severity, NosebleedSeverity.dripping);
+          expect(records.first.intensity, NosebleedIntensity.dripping);
         },
       );
 
@@ -308,7 +308,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 30),
             endTime: DateTime(2024, 1, 15, 10, 45),
-            severity: NosebleedSeverity.dripping,
+            intensity: NosebleedIntensity.dripping,
           );
 
           await tester.pumpWidget(
@@ -382,7 +382,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 30),
             endTime: DateTime(2024, 1, 15, 10, 45),
-            severity: NosebleedSeverity.dripping,
+            intensity: NosebleedIntensity.dripping,
           );
 
           var didPop = false;
@@ -555,7 +555,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(

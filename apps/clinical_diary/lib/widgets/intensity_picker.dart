@@ -2,15 +2,15 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 
-/// Severity selection widget with visual icons
-class SeverityPicker extends StatelessWidget {
-  const SeverityPicker({
+/// Intensity selection widget with visual icons
+class IntensityPicker extends StatelessWidget {
+  const IntensityPicker({
     required this.onSelect,
     super.key,
-    this.selectedSeverity,
+    this.selectedIntensity,
   });
-  final NosebleedSeverity? selectedSeverity;
-  final ValueChanged<NosebleedSeverity> onSelect;
+  final NosebleedIntensity? selectedIntensity;
+  final ValueChanged<NosebleedIntensity> onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -57,11 +57,11 @@ class SeverityPicker extends StatelessWidget {
                   crossAxisSpacing: 8,
                   childAspectRatio: (constraints.maxWidth / 2 - 12) / boxHeight,
                   physics: const NeverScrollableScrollPhysics(),
-                  children: NosebleedSeverity.values.map((severity) {
-                    final isSelected = selectedSeverity == severity;
-                    return _SeverityOption(
+                  children: NosebleedIntensity.values.map((severity) {
+                    final isSelected = selectedIntensity == severity;
+                    return _IntensityOption(
                       severity: severity,
-                      severityLabel: l10n.severityName(severity.name),
+                      severityLabel: l10n.intensityName(severity.name),
                       isSelected: isSelected,
                       onTap: () => onSelect(severity),
                       iconSize: iconSize,
@@ -78,8 +78,8 @@ class SeverityPicker extends StatelessWidget {
   }
 }
 
-class _SeverityOption extends StatelessWidget {
-  const _SeverityOption({
+class _IntensityOption extends StatelessWidget {
+  const _IntensityOption({
     required this.severity,
     required this.severityLabel,
     required this.isSelected,
@@ -87,7 +87,7 @@ class _SeverityOption extends StatelessWidget {
     this.iconSize = 56,
     this.fontSize = 14,
   });
-  final NosebleedSeverity severity;
+  final NosebleedIntensity severity;
   final String severityLabel;
   final bool isSelected;
   final VoidCallback onTap;
@@ -96,17 +96,17 @@ class _SeverityOption extends StatelessWidget {
 
   String get _imagePath {
     switch (severity) {
-      case NosebleedSeverity.spotting:
+      case NosebleedIntensity.spotting:
         return 'assets/images/severity_spotting.png';
-      case NosebleedSeverity.dripping:
+      case NosebleedIntensity.dripping:
         return 'assets/images/severity_dripping.png';
-      case NosebleedSeverity.drippingQuickly:
+      case NosebleedIntensity.drippingQuickly:
         return 'assets/images/severity_dripping_quickly.png';
-      case NosebleedSeverity.steadyStream:
+      case NosebleedIntensity.steadyStream:
         return 'assets/images/severity_steady_stream.png';
-      case NosebleedSeverity.pouring:
+      case NosebleedIntensity.pouring:
         return 'assets/images/severity_pouring.png';
-      case NosebleedSeverity.gushing:
+      case NosebleedIntensity.gushing:
         return 'assets/images/severity_gushing.png';
     }
   }

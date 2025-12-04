@@ -20,7 +20,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -37,7 +37,7 @@ void main() {
         id: 'test-1',
         date: testDate,
         startTime: DateTime(2024, 1, 15, 14, 0),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -61,7 +61,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
-        severity: NosebleedSeverity.steadyStream,
+        intensity: NosebleedIntensity.steadyStream,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -80,7 +80,7 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      for (final severity in NosebleedSeverity.values) {
+      for (final severity in NosebleedIntensity.values) {
         expect(find.text(severity.displayName), findsNothing);
       }
     });
@@ -91,7 +91,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45), // 15 minutes
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -106,7 +106,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 11, 30), // 1 hour 30 minutes
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -123,7 +123,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 12, 0), // 2 hours exactly
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -157,7 +157,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
         isIncomplete: false,
       );
 
@@ -231,7 +231,7 @@ void main() {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -320,7 +320,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
           endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -337,7 +337,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -355,7 +355,7 @@ void main() {
           id: 'test-1',
           date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -374,7 +374,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
           endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day = 45 min
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(

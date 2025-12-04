@@ -2,17 +2,17 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:clinical_diary/models/nosebleed_record.dart';
-import 'package:clinical_diary/widgets/severity_picker.dart';
+import 'package:clinical_diary/widgets/intensity_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_helpers.dart';
 
 void main() {
-  group('SeverityPicker', () {
+  group('IntensityPicker', () {
     testWidgets('displays title text', (tester) async {
       await tester.pumpWidget(
-        wrapWithScaffold(SeverityPicker(onSelect: (_) {})),
+        wrapWithScaffold(IntensityPicker(onSelect: (_) {})),
       );
       await tester.pumpAndSettle();
 
@@ -21,7 +21,7 @@ void main() {
 
     testWidgets('displays subtitle text', (tester) async {
       await tester.pumpWidget(
-        wrapWithScaffold(SeverityPicker(onSelect: (_) {})),
+        wrapWithScaffold(IntensityPicker(onSelect: (_) {})),
       );
       await tester.pumpAndSettle();
 
@@ -39,7 +39,7 @@ void main() {
           Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(onSelect: (_) {}),
+              child: IntensityPicker(onSelect: (_) {}),
             ),
           ),
         ),
@@ -52,11 +52,11 @@ void main() {
     });
 
     testWidgets('calls onSelect when severity is tapped', (tester) async {
-      NosebleedSeverity? selected;
+      NosebleedIntensity? selected;
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          SeverityPicker(onSelect: (severity) => selected = severity),
+          IntensityPicker(onSelect: (severity) => selected = severity),
         ),
       );
       await tester.pumpAndSettle();
@@ -64,18 +64,18 @@ void main() {
       await tester.tap(find.text('Dripping'));
       await tester.pump();
 
-      expect(selected, NosebleedSeverity.dripping);
+      expect(selected, NosebleedIntensity.dripping);
     });
 
     testWidgets('can select different visible severities', (tester) async {
-      final selections = <NosebleedSeverity>[];
+      final selections = <NosebleedIntensity>[];
 
       await tester.pumpWidget(
         wrapWithMaterialApp(
           Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(onSelect: selections.add),
+              child: IntensityPicker(onSelect: selections.add),
             ),
           ),
         ),
@@ -89,8 +89,8 @@ void main() {
       await tester.pump();
 
       expect(selections, [
-        NosebleedSeverity.spotting,
-        NosebleedSeverity.dripping,
+        NosebleedIntensity.spotting,
+        NosebleedIntensity.dripping,
       ]);
     });
 
@@ -100,8 +100,8 @@ void main() {
           Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(
-                selectedSeverity: NosebleedSeverity.steadyStream,
+              child: IntensityPicker(
+                selectedIntensity: NosebleedIntensity.steadyStream,
                 onSelect: (_) {},
               ),
             ),
@@ -121,8 +121,8 @@ void main() {
     ) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          SeverityPicker(
-            selectedSeverity: NosebleedSeverity.steadyStream,
+          IntensityPicker(
+            selectedIntensity: NosebleedIntensity.steadyStream,
             onSelect: (_) {},
           ),
         ),
@@ -140,7 +140,7 @@ void main() {
           Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(onSelect: (_) {}),
+              child: IntensityPicker(onSelect: (_) {}),
             ),
           ),
         ),
@@ -153,7 +153,7 @@ void main() {
 
     testWidgets('renders as a grid', (tester) async {
       await tester.pumpWidget(
-        wrapWithScaffold(SeverityPicker(onSelect: (_) {})),
+        wrapWithScaffold(IntensityPicker(onSelect: (_) {})),
       );
       await tester.pumpAndSettle();
 
@@ -166,7 +166,7 @@ void main() {
           Scaffold(
             body: SizedBox(
               height: 800,
-              child: SeverityPicker(selectedSeverity: null, onSelect: (_) {}),
+              child: IntensityPicker(selectedIntensity: null, onSelect: (_) {}),
             ),
           ),
         ),

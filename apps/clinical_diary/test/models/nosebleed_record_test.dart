@@ -7,44 +7,47 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('NosebleedSeverity', () {
     test('displayName returns correct string for each severity', () {
-      expect(NosebleedSeverity.spotting.displayName, 'Spotting');
-      expect(NosebleedSeverity.dripping.displayName, 'Dripping');
-      expect(NosebleedSeverity.drippingQuickly.displayName, 'Dripping quickly');
-      expect(NosebleedSeverity.steadyStream.displayName, 'Steady stream');
-      expect(NosebleedSeverity.pouring.displayName, 'Pouring');
-      expect(NosebleedSeverity.gushing.displayName, 'Gushing');
+      expect(NosebleedIntensity.spotting.displayName, 'Spotting');
+      expect(NosebleedIntensity.dripping.displayName, 'Dripping');
+      expect(
+        NosebleedIntensity.drippingQuickly.displayName,
+        'Dripping quickly',
+      );
+      expect(NosebleedIntensity.steadyStream.displayName, 'Steady stream');
+      expect(NosebleedIntensity.pouring.displayName, 'Pouring');
+      expect(NosebleedIntensity.gushing.displayName, 'Gushing');
     });
 
     group('fromString', () {
       test('parses display names correctly', () {
         expect(
-          NosebleedSeverity.fromString('Spotting'),
-          NosebleedSeverity.spotting,
+          NosebleedIntensity.fromString('Spotting'),
+          NosebleedIntensity.spotting,
         );
         expect(
-          NosebleedSeverity.fromString('Dripping quickly'),
-          NosebleedSeverity.drippingQuickly,
+          NosebleedIntensity.fromString('Dripping quickly'),
+          NosebleedIntensity.drippingQuickly,
         );
       });
 
       test('parses enum names correctly', () {
         expect(
-          NosebleedSeverity.fromString('spotting'),
-          NosebleedSeverity.spotting,
+          NosebleedIntensity.fromString('spotting'),
+          NosebleedIntensity.spotting,
         );
         expect(
-          NosebleedSeverity.fromString('drippingQuickly'),
-          NosebleedSeverity.drippingQuickly,
+          NosebleedIntensity.fromString('drippingQuickly'),
+          NosebleedIntensity.drippingQuickly,
         );
       });
 
       test('returns null for invalid values', () {
-        expect(NosebleedSeverity.fromString('invalid'), isNull);
-        expect(NosebleedSeverity.fromString(''), isNull);
+        expect(NosebleedIntensity.fromString('invalid'), isNull);
+        expect(NosebleedIntensity.fromString(''), isNull);
       });
 
       test('returns null for null input', () {
-        expect(NosebleedSeverity.fromString(null), isNull);
+        expect(NosebleedIntensity.fromString(null), isNull);
       });
     });
   });
@@ -71,7 +74,7 @@ void main() {
           date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
           isNoNosebleedsEvent: false,
           isUnknownEvent: false,
@@ -81,7 +84,7 @@ void main() {
 
         expect(record.startTime, testStartTime);
         expect(record.endTime, testEndTime);
-        expect(record.severity, NosebleedSeverity.dripping);
+        expect(record.intensity, NosebleedIntensity.dripping);
         expect(record.notes, 'Test notes');
         expect(record.deviceUuid, 'device-uuid');
       });
@@ -134,7 +137,7 @@ void main() {
 
         expect(record.startTime, isNotNull);
         expect(record.endTime, isNotNull);
-        expect(record.severity, NosebleedSeverity.dripping);
+        expect(record.intensity, NosebleedIntensity.dripping);
         expect(record.notes, 'Test notes');
         expect(record.isIncomplete, true);
         expect(record.deviceUuid, 'device-uuid');
@@ -155,7 +158,7 @@ void main() {
 
         expect(record.startTime, isNull);
         expect(record.endTime, isNull);
-        expect(record.severity, isNull);
+        expect(record.intensity, isNull);
         expect(record.notes, isNull);
       });
 
@@ -178,7 +181,7 @@ void main() {
           date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
           createdAt: createdAt,
@@ -214,7 +217,7 @@ void main() {
           date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
-          severity: NosebleedSeverity.steadyStream,
+          intensity: NosebleedIntensity.steadyStream,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
         );
@@ -226,7 +229,7 @@ void main() {
         expect(restored.date, original.date);
         expect(restored.startTime, original.startTime);
         expect(restored.endTime, original.endTime);
-        expect(restored.severity, original.severity);
+        expect(restored.intensity, original.intensity);
         expect(restored.notes, original.notes);
         expect(restored.deviceUuid, original.deviceUuid);
       });
@@ -285,7 +288,7 @@ void main() {
           date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         expect(record.isComplete, true);
@@ -296,7 +299,7 @@ void main() {
           id: 'test-123',
           date: testDate,
           endTime: testEndTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         expect(record.isComplete, false);
@@ -307,7 +310,7 @@ void main() {
           id: 'test-123',
           date: testDate,
           startTime: testStartTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         expect(record.isComplete, false);
@@ -360,7 +363,7 @@ void main() {
           date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
         );
 
@@ -370,7 +373,7 @@ void main() {
         expect(copy.date, original.date);
         expect(copy.startTime, original.startTime);
         expect(copy.endTime, original.endTime);
-        expect(copy.severity, original.severity);
+        expect(copy.intensity, original.intensity);
         expect(copy.notes, original.notes);
       });
 
@@ -378,17 +381,17 @@ void main() {
         final original = NosebleedRecord(
           id: 'test-123',
           date: testDate,
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         final copy = original.copyWith(
-          severity: NosebleedSeverity.gushing,
+          intensity: NosebleedIntensity.gushing,
           notes: 'Updated notes',
         );
 
         expect(copy.id, original.id);
         expect(copy.date, original.date);
-        expect(copy.severity, NosebleedSeverity.gushing);
+        expect(copy.intensity, NosebleedIntensity.gushing);
         expect(copy.notes, 'Updated notes');
       });
     });
