@@ -87,7 +87,7 @@ This document specifies operational procedures and tooling for achieving, measur
 
 # REQ-o00056: SLO Definition and Tracking
 
-**Level**: Ops | **Implements**: p01021 | **Status**: Active
+**Level**: Ops | **Implements**: p01021 | **Status**: Draft
 
 The system SHALL define and track Service Level Objectives (SLOs) using GCP Cloud Monitoring.
 
@@ -138,7 +138,7 @@ gcloud monitoring slo create portal-availability \
 
 # REQ-o00057: Automated Uptime Monitoring
 
-**Level**: Ops | **Implements**: p01021, o00046 | **Status**: Active
+**Level**: Ops | **Implements**: p01021, o00046 | **Status**: Draft
 
 Production services SHALL be monitored for availability with automated health checks.
 
@@ -185,7 +185,7 @@ gcloud monitoring uptime-check-configs create portal-health \
 
 # REQ-o00058: On-Call Automation
 
-**Level**: Ops | **Implements**: p01023 | **Status**: Active
+**Level**: Ops | **Implements**: p01023 | **Status**: Draft
 
 On-call management SHALL be automated to ensure rapid incident response.
 
@@ -241,7 +241,7 @@ service:
 
 # REQ-o00059: Automated Status Page
 
-**Level**: Ops | **Implements**: p01033 | **Status**: Active
+**Level**: Ops | **Implements**: p01033 | **Status**: Draft
 
 Customer-facing status page SHALL provide real-time service status with automated updates.
 
@@ -293,7 +293,7 @@ GCP Alert → Webhook → Status Page API → Auto-update status
 
 # REQ-o00060: SLA Reporting Automation
 
-**Level**: Ops | **Implements**: p01021 | **Status**: Active
+**Level**: Ops | **Implements**: p01021 | **Status**: Draft
 
 Monthly SLA compliance reports SHALL be generated automatically.
 
@@ -346,7 +346,7 @@ gcloud scheduler jobs create http sla-monthly-report \
 
 # REQ-o00061: Incident Classification Automation
 
-**Level**: Ops | **Implements**: p01022 | **Status**: Active
+**Level**: Ops | **Implements**: p01022 | **Status**: Draft
 
 Incident severity SHALL be automatically classified based on alert characteristics.
 
@@ -396,7 +396,7 @@ alertPolicy:
 
 # REQ-o00062: RCA and CAPA Workflow
 
-**Level**: Ops | **Implements**: p01034, p01035 | **Status**: Active
+**Level**: Ops | **Implements**: p01034, p01035 | **Status**: Draft
 
 Root Cause Analysis and CAPA processes SHALL be tracked through automated workflows.
 
@@ -458,7 +458,7 @@ automation:
 
 # REQ-o00063: Error Budget Alerting
 
-**Level**: Ops | **Implements**: p01021, p01037 | **Status**: Active
+**Level**: Ops | **Implements**: p01021, p01037 | **Status**: Draft
 
 Error budget consumption SHALL be monitored with proactive alerts before SLA breach.
 
@@ -504,7 +504,7 @@ gcloud monitoring alerting-policies create \
 
 # REQ-o00064: Maintenance Window Management
 
-**Level**: Ops | **Implements**: p01021 | **Status**: Active
+**Level**: Ops | **Implements**: p01021 | **Status**: Draft
 
 Scheduled maintenance SHALL be managed with advance notification and SLA exclusion tracking.
 

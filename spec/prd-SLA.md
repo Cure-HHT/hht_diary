@@ -39,7 +39,7 @@ This document defines the Service Level Agreement (SLA) commitments provided to 
 
 # REQ-p01021: Service Availability Commitment
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The platform SHALL provide 99.9% monthly uptime for all customer-facing production services.
 
@@ -73,7 +73,7 @@ Uptime % = (Total Minutes in Month - Downtime Minutes) / Total Minutes in Month 
 
 # REQ-p01022: Incident Severity Classification
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 All service incidents SHALL be classified by severity level to determine response priority and customer communication requirements.
 
@@ -99,7 +99,7 @@ Severity levels SHALL be defined as:
 
 # REQ-p01023: Incident Response Times
 
-**Level**: PRD | **Implements**: p01022 | **Status**: Active
+**Level**: PRD | **Implements**: p01022 | **Status**: Draft
 
 The platform SHALL respond to and resolve incidents within defined timeframes based on severity level.
 
@@ -136,7 +136,7 @@ Response and resolution commitments:
 
 # REQ-p01024: Disaster Recovery Objectives
 
-**Level**: PRD | **Implements**: p00012 | **Status**: Active
+**Level**: PRD | **Implements**: p00012 | **Status**: Draft
 
 The platform SHALL maintain disaster recovery capabilities meeting defined RTO and RPO objectives.
 
@@ -166,7 +166,7 @@ Recovery capabilities SHALL include:
 
 # REQ-p01033: Customer Incident Notification
 
-**Level**: PRD | **Implements**: p01022 | **Status**: Active
+**Level**: PRD | **Implements**: p01022 | **Status**: Draft
 
 Customers SHALL be notified of incidents affecting their service within defined timeframes.
 
@@ -199,7 +199,7 @@ Notifications SHALL include:
 
 # REQ-p01034: Root Cause Analysis
 
-**Level**: PRD | **Implements**: p01023 | **Status**: Active
+**Level**: PRD | **Implements**: p01023 | **Status**: Draft
 
 Significant incidents SHALL receive documented root cause analysis (RCA) within defined timeframes.
 
@@ -235,7 +235,7 @@ RCA documentation SHALL include:
 
 # REQ-p01035: Corrective and Preventive Action
 
-**Level**: PRD | **Implements**: p01034, p00010 | **Status**: Active
+**Level**: PRD | **Implements**: p01034, p00010 | **Status**: Draft
 
 Incidents affecting data integrity or regulatory compliance SHALL trigger Corrective and Preventive Action (CAPA) processes.
 
@@ -266,7 +266,7 @@ CAPA documentation SHALL include:
 
 # REQ-p01036: Data Recovery Guarantee
 
-**Level**: PRD | **Implements**: p01024 | **Status**: Active
+**Level**: PRD | **Implements**: p01024 | **Status**: Draft
 
 In the event of data loss or corruption, recovery services SHALL be provided at no additional cost.
 
@@ -295,7 +295,7 @@ Recovery communication SHALL include:
 
 # REQ-p01037: Chronic Failure Escalation
 
-**Level**: PRD | **Implements**: p01021 | **Status**: Active
+**Level**: PRD | **Implements**: p01021 | **Status**: Draft
 
 If service reliability falls below acceptable thresholds for sustained periods, escalation and remediation processes SHALL be triggered.
 
@@ -320,7 +320,7 @@ Escalation process:
 
 # REQ-p01038: Regulatory Event Support
 
-**Level**: PRD | **Implements**: p00010, p01034 | **Status**: Active
+**Level**: PRD | **Implements**: p00010, p01034 | **Status**: Draft
 
 If an SLA failure results in regulatory inquiry or inspection finding, support services SHALL be provided.
 
