@@ -164,7 +164,7 @@ Recovery capabilities SHALL include:
 *End* *Disaster Recovery Objectives* | **Hash**: b0de06c9
 ---
 
-# REQ-p01025: Customer Incident Notification
+# REQ-p01033: Customer Incident Notification
 
 **Level**: PRD | **Implements**: p01022 | **Status**: Active
 
@@ -197,7 +197,7 @@ Notifications SHALL include:
 *End* *Customer Incident Notification* | **Hash**: 39a8a25c
 ---
 
-# REQ-p01026: Root Cause Analysis
+# REQ-p01034: Root Cause Analysis
 
 **Level**: PRD | **Implements**: p01023 | **Status**: Active
 
@@ -233,9 +233,9 @@ RCA documentation SHALL include:
 *End* *Root Cause Analysis* | **Hash**: 145a7df7
 ---
 
-# REQ-p01027: Corrective and Preventive Action
+# REQ-p01035: Corrective and Preventive Action
 
-**Level**: PRD | **Implements**: p01026, p00010 | **Status**: Active
+**Level**: PRD | **Implements**: p01034, p00010 | **Status**: Active
 
 Incidents affecting data integrity or regulatory compliance SHALL trigger Corrective and Preventive Action (CAPA) processes.
 
@@ -264,7 +264,7 @@ CAPA documentation SHALL include:
 *End* *Corrective and Preventive Action* | **Hash**: c731bb83
 ---
 
-# REQ-p01028: Data Recovery Guarantee
+# REQ-p01036: Data Recovery Guarantee
 
 **Level**: PRD | **Implements**: p01024 | **Status**: Active
 
@@ -293,7 +293,7 @@ Recovery communication SHALL include:
 *End* *Data Recovery Guarantee* | **Hash**: accdee07
 ---
 
-# REQ-p01029: Chronic Failure Escalation
+# REQ-p01037: Chronic Failure Escalation
 
 **Level**: PRD | **Implements**: p01021 | **Status**: Active
 
@@ -318,9 +318,9 @@ Escalation process:
 *End* *Chronic Failure Escalation* | **Hash**: c3a07afa
 ---
 
-# REQ-p01030: Regulatory Event Support
+# REQ-p01038: Regulatory Event Support
 
-**Level**: PRD | **Implements**: p00010, p01026 | **Status**: Active
+**Level**: PRD | **Implements**: p00010, p01034 | **Status**: Active
 
 If an SLA failure results in regulatory inquiry or inspection finding, support services SHALL be provided.
 

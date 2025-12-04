@@ -244,7 +244,7 @@ service:
 
 # REQ-o00059: Automated Status Page
 
-**Level**: Ops | **Implements**: p01025 | **Status**: Active
+**Level**: Ops | **Implements**: p01033 | **Status**: Active
 
 Customer-facing status page SHALL provide real-time service status with automated updates.
 
@@ -401,7 +401,7 @@ alertPolicy:
 
 # REQ-o00062: RCA and CAPA Workflow
 
-**Level**: Ops | **Implements**: p01026, p01027 | **Status**: Active
+**Level**: Ops | **Implements**: p01034, p01035 | **Status**: Active
 
 Root Cause Analysis and CAPA processes SHALL be tracked through automated workflows.
 
@@ -464,7 +464,7 @@ automation:
 
 # REQ-o00063: Error Budget Alerting
 
-**Level**: Ops | **Implements**: p01021, p01029 | **Status**: Active
+**Level**: Ops | **Implements**: p01021, p01037 | **Status**: Active
 
 Error budget consumption SHALL be monitored with proactive alerts before SLA breach.
 
