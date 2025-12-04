@@ -233,11 +233,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     setState(() {
       _intensity = intensity;
       _currentStep = RecordingStep.endTime;
-      // Initialize end time to start time + 15 minutes if not set
-      // This preserves the date from _startTime instead of using today's date
-      if (_endTime == null && _startTime != null) {
-        _endTime = _startTime!.add(const Duration(minutes: 15));
-      }
     });
   }
 
