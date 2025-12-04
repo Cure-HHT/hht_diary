@@ -35,7 +35,7 @@ Data storage system SHALL provide:
 - Row-level security enforcing access boundaries
 - Data retention meeting regulatory requirements (7+ years)
 
-*End* *Clinical Data Storage System* | **Hash**: TBD
+*End* *Clinical Data Storage System* | **Hash**: d8a1fdf2
 
 ---
 

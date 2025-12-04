@@ -34,7 +34,7 @@ Mobile application SHALL provide:
 - Sponsor branding applied per enrollment
 - Complete audit trail of all patient actions
 
-*End* *Clinical Diary Mobile Application* | **Hash**: TBD
+*End* *Clinical Diary Mobile Application* | **Hash**: 5062a707
 
 ---
 
@@ -195,7 +195,7 @@ Temporal validation SHALL ensure:
 - Calendar view disables selection of future dates
 - Date picker restricts selection to current date and earlier
 - End time does not exceed current real time
-- Users cannot create entries before their app start date
+- Users cannot create entries before diary start day (see REQ-p01039)
 - Entries more than 24 hours old require justification with reason selection
 - No time overlap exists with other entries
 
@@ -213,8 +213,8 @@ Temporal validation SHALL ensure:
 - Current time updates dynamically if user keeps picker open
 
 *Historical Boundaries:*
-- System captures and stores user's app start date during onboarding
-- Dates before app start date disabled in calendar view (grayed out and not selectable)
+- System enforces diary start day boundaries per REQ-p01039
+- Dates before diary start day visually distinct per REQ-p01040
 
 *24-Hour Justification:*
 - When entry date/time is more than 24 hours in past, system displays reason selection prompt
@@ -227,7 +227,97 @@ Temporal validation SHALL ensure:
 - System displays error message identifying conflicting entry: "This time overlaps with an existing nosebleed record from [start] to [end]"
 - User can navigate to view conflicting record
 
-*End* *Temporal Entry Validation* | **Hash**: TBD
+*End* *Temporal Entry Validation* | **Hash**: 9f0a0d36
+
+---
+
+## Diary Start Day
+
+# REQ-p01039: Diary Start Day Definition
+
+**Level**: PRD | **Implements**: p00043, p00050 | **Status**: Active
+
+The system SHALL establish and maintain a "diary start day" representing the earliest date for which diary entries are valid, enabling users to record historical events while maintaining data integrity boundaries.
+
+Diary start day SHALL ensure:
+- Default value is set to the day before the first diary entry is created
+- User can override the start day by selecting an earlier date and creating an entry
+- Start day cannot be set to a future date
+- Start day cannot be set earlier than 365 days before app installation
+- Start day persists across app sessions and device changes via cloud sync
+
+**Rationale**: Clinical trial participants may need to record nosebleeds that occurred before their first app usage. By defaulting the start day to the day before the first entry, users immediately see that they can record past events. This feature demonstrates to users that they can backfill historical data while maintaining reasonable temporal boundaries for data quality. The one-year limit prevents unreliable retrospective data entry while still accommodating patients who want to capture recent history.
+
+**Acceptance Criteria**:
+
+*Default Behavior:*
+- When user creates their first diary entry, system sets start day to (entry date - 1 day)
+- If first entry is created for a past date, start day is set to (that past date - 1 day)
+- Start day is stored locally and synced to cloud when online
+- Users are not explicitly prompted to set start day during onboarding
+
+*User Override:*
+- User can implicitly set an earlier start day by selecting a date before current start day and creating an entry
+- When user selects a date before current start day in calendar, entry creation automatically updates start day
+- Start day moves backward (earlier) but never forward (later) once set
+- System displays confirmation when start day is being extended: "This will extend your diary history to include [date]. Continue?"
+
+*Boundary Enforcement:*
+- Calendar view disables dates more than 365 days before app installation
+- Dates before start day are visually distinct but selectable (triggers start day extension)
+- Error message displayed if user attempts to set start day beyond 365-day limit: "Diary records cannot be created more than one year before app installation"
+
+*Persistence:*
+- Start day stored in local database with cloud sync
+- Start day restored correctly after app reinstallation (from cloud backup)
+- Start day consistent across multiple devices for same user
+
+*End* *Diary Start Day Definition* | **Hash**: ef7a7921
+
+---
+
+## Calendar Visual Indicators
+
+# REQ-p01040: Calendar Visual Indicators for Entry Status
+
+**Level**: PRD | **Implements**: p00043, p01039 | **Status**: Active
+
+The calendar view SHALL provide clear visual indicators distinguishing between dates with recorded entries, dates with no entries within the diary period, and dates outside the diary period.
+
+Calendar visual indicators SHALL display:
+- Dates with diary entries: highlighted with sponsor theme color (filled dot or colored background)
+- Dates with no entries within diary period (from start day to today): marked in black/dark color indicating "no nosebleed recorded"
+- Dates before diary start day: grayed out and visually muted to indicate they are outside the diary period
+- Future dates: grayed out and disabled (not selectable)
+- Current date: outlined or otherwise distinguished from other dates
+
+**Rationale**: Users need clear visual feedback to understand their diary history at a glance. Showing dates within the diary period that have no entries as "black" (or distinctively marked) communicates that those days were part of the diary period but had no nosebleeds recorded—valuable clinical information. This visual distinction helps patients identify gaps in their records and provides researchers with insight into both recorded events and recorded absence of events.
+
+**Acceptance Criteria**:
+
+*Entry Status Indicators:*
+- Days with one or more entries display a filled indicator (dot, badge, or colored background)
+- Days with multiple entries display a count badge or multiple indicator
+- Indicator color matches sponsor branding theme
+- Indicator is visible without requiring user interaction (hover/tap)
+
+*No-Entry Days Within Diary Period:*
+- Days from start day through yesterday with no entries display dark/black indicator
+- Dark indicator clearly distinguishable from days with entries
+- Dark indicator conveys "active diary period, no event recorded" meaning
+- Today shows neutral styling until end of day (then becomes no-entry if applicable)
+
+*Outside Diary Period:*
+- Days before start day appear grayed out/muted
+- Future days appear grayed out/muted and are not tappable
+- Clear visual distinction between "outside period" (gray) and "no entry recorded" (black/dark)
+
+*Accessibility:*
+- Color indicators supplemented with icons or patterns for colorblind users
+- Sufficient contrast ratios for all visual states
+- Screen reader announces entry status when navigating calendar
+
+*End* *Calendar Visual Indicators for Entry Status* | **Hash**: f0cf3d1c
 
 ---
 

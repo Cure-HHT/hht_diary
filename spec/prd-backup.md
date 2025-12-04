@@ -36,7 +36,7 @@ Backup and archival SHALL provide:
 - Backup integrity verified with checksums
 - Each sponsor's backups isolated from others
 
-*End* *Data Backup and Archival* | **Hash**: TBD
+*End* *Data Backup and Archival* | **Hash**: 4e13d1c2
 
 ---
 
