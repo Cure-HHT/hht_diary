@@ -1,39 +1,32 @@
-# Third-Party Timestamp Attestation
+# Evidence Records and Data Provenance
 
-**Version**: 1.0
+**Version**: 1.1
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-02
+**Last Updated**: 2025-12-03
 **Status**: Active
 
 ---
 
-# Executive Summary
+## Executive Summary
 
 Rigorous clinical trials require proof of the validity of the data used. This includes:
-- when the data was collected
-- who collected the data
-- how the data was collected
+- **When** the data was collected
+- **Who** collected the data
+- **How** the data was collected
 
-Third-party timestamp attestation provides **independent, cryptographic proof** that clinical trial diary data existed at a specific point in time. The timestamped data must include information sufficient to allow verification of the source of the data (who and how), as well as validation that the data has not been altered. This capability is essential for FDA 21 CFR Part 11 compliance, where audit trails must be tamper-evident and independently verifiable.
+This specification defines the evidence collection mechanisms that establish data provenance for clinical trial diary entries. The system combines blockchain-based timestamp attestation with device fingerprinting, patient authentication, and identity verification to create a complete chain of evidence.
 
 **Business Value**:
-- **Regulatory Defense**: Third-party timestamps provide evidence that cannot be forged or backdated, strengthening the defensibility of clinical trial data in FDA audits
-- **Long-Term Archival**: Clinical trial data must be retained for 15-25 years; timestamps must remain verifiable throughout this period
-- **Trust Amplification**: Self-asserted timestamps can be questioned; third-party attestation removes doubt about when data was recorded
+- **Regulatory Defense**: Evidence records provide proof that cannot be forged or backdated, strengthening the defensibility of clinical trial data in FDA audits
+- **Long-Term Archival**: Clinical trial data must be retained for 15-25 years; evidence must remain verifiable throughout this period
+- **Trust Amplification**: Self-asserted claims can be questioned; independent attestation removes doubt about data authenticity
 
 **Key Capabilities**:
-- Independent proof of data existence at time of recording
-- Cryptographic verification that data has not been modified since timestamping
+- Independent proof of data existence at time of recording (WHEN)
+- Device fingerprinting to establish collection method (HOW)
+- Patient authentication and identity verification (WHO)
+- Cryptographic verification that data has not been modified
 - Long-term non-repudiation surviving cryptographic algorithm evolution
-- Data traceability to its origin
-
-## Scope and Limitations
-
-Third-party timestamp attestation proves *when* data was recorded, but not *who* recorded it. To establish data provenance, the system must also record a de-identified source identifier that can be independently verified by a trusted authority.
-
-Source verification depends on the continued existence of the issuing authority at the time of validation. The level of assurance varies based on the verification method employed.
-
-**See**: dev-evidence-records.md for implementation details on source identification and de-identification strategies.
 
 ---
 
@@ -51,7 +44,7 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 ---
 
-## Blockchain locked timestamps
+## Blockchain-Based Timestamps
 
 ### Why Blockchain
 
@@ -191,6 +184,8 @@ Proof archival SHALL ensure:
 - Proof format documented for long-term interpretation
 
 *End* *Timestamp Proof Archival* | **Hash**: 64a9c3ec
+---
+
 ---
 
 ## REQ-p01029: Device Fingerprinting
@@ -342,12 +337,16 @@ Hashed email verification SHALL:
 ### ALCOA+ Principles
 
 | Principle | Evidence Records Contribution |
-| --------- | ----------------------------- |
+| --- | --- |
 | Attributable | Patient authentication + hashed email links data to individual |
+| Legible | Evidence records exportable in standard, documented formats |
 | Contemporaneous | Third-party blockchain timestamp proves data existed at claimed time |
-| Original | Hash binding proves data unchanged since timestamp |
+| Original | Hash binding proves data unchanged since timestamp; device fingerprint proves collection method |
 | Accurate | Cryptographic verification ensures accuracy |
+| Complete | All evidence components (timestamp, device, auth, identity) recorded together |
+| Consistent | Same evidence structure across all submissions |
 | Enduring | Proofs valid for 15-25+ year retention periods |
+| Available | Proofs retrievable for regulatory review at any time |
 
 ---
 
@@ -457,11 +456,14 @@ The following diagram illustrates the complete chain of evidence from data colle
 
 ## Glossary
 
-**Evidence Record**: Cryptographic proof structure binding data to a timestamp
-**OpenTimestamps**: Open protocol for creating Bitcoin-anchored timestamps
-**RFC 3161**: IETF standard for trusted timestamp protocol
-**RFC 4998**: IETF standard for long-term evidence record syntax
-**TSA**: Time-Stamp Authority—entity issuing RFC 3161 timestamps
-**ALCOA+**: FDA data integrity principles (Attributable, Legible, Contemporaneous, Original, Accurate + Complete, Consistent, Enduring, Available)
+| Term | Definition |
+| --- | --- |
+| **ALCOA+** | FDA data integrity principles: Attributable, Legible, Contemporaneous, Original, Accurate + Complete, Consistent, Enduring, Available |
+| **Device Fingerprint** | Hashed identifier derived from device hardware attributes, used to establish collection method |
+| **Evidence Record** | Cryptographic proof structure binding data to timestamps, device, and identity verification |
+| **OpenTimestamps** | Open protocol for creating Bitcoin-anchored timestamps |
+| **RFC 3161** | IETF standard for trusted timestamp protocol |
+| **RFC 4998** | IETF standard for long-term evidence record syntax |
+| **TSA** | Time-Stamp Authority—entity issuing RFC 3161 timestamps |
 
 ---
