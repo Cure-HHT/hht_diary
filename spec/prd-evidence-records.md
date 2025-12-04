@@ -1,17 +1,8 @@
 # Third-Party Timestamp Attestation
 
 **Version**: 1.0
-**Audience**: Product Requirements
 **Last Updated**: 2025-12-02
 **Status**: Active
-
-> **See**: dev-evidence-records.md for implementation details
-> **See**: docs/adr/ADR-008-timestamp-attestation.md for architecture decision
-> **See**: prd-event-sourcing-system.md for event sourcing architecture
-> **See**: prd-database.md for audit trail requirements
-> **See**: prd-clinical-trials.md for FDA 21 CFR Part 11 compliance requirements
-
----
 
 ## Executive Summary
 
@@ -26,20 +17,17 @@ Third-party timestamp attestation provides **independent, cryptographic proof** 
 - Independent proof of data existence at time of recording
 - Cryptographic verification that data has not been modified since timestamping
 - Long-term non-repudiation surviving cryptographic algorithm evolution
-- Cost-effective implementation for high-volume diary entries
+- Data can be traced to its origin
+
+Third-party timestamp attestation is an essential component in providing evidence 
+that data was collected in the manner and time which is claimed. However, TPTA alone 
+cannot prove that data was created by a specific individual. That can only be 
+done by the individual in question. To achieve the highest level of confidence 
+in the authenticity of the data, that individual must provide proof of their 
+identity as well as proof of having the key necessary to generate the data 
+referenced in the timestamp. 
 
 ---
-
-## Strategic Context
-
-### Current Audit Trail Limitations
-
-The existing event sourcing system (see prd-event-sourcing-system.md) provides:
-- Append-only event storage with hash chain tamper detection
-- Client and server timestamps for ALCOA+ compliance
-- Cryptographic hash linking between events
-
-**Gap**: All timestamps are self-asserted by our systems. While database constraints prevent internal tampering, there is no independent third-party proof of when data was recorded.
 
 ### Regulatory Context
 
@@ -55,23 +43,21 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 ---
 
-## Recommended Approach: Bitcoin/OpenTimestamps
+## Blockchain locked timestamps
 
-Per ADR-008, the recommended approach is **Bitcoin blockchain via OpenTimestamps protocol**.
+### Why Blockchain
 
-### Why Bitcoin/OpenTimestamps?
-
-| Property | Bitcoin/OpenTimestamps | Traditional TSA (RFC 3161) |
+| Property | Blockcain | Traditional TSA (RFC 3161) |
 | -------- | ---------------------- | -------------------------- |
 | Attack cost | $5-20 billion | ~$100,000 |
-| Backdating possible | Mathematically impossible | Yes, if TSA compromised |
+| Backdating possible? | Mathematically impossible | Yes, if TSA compromised |
 | Historical breaches | Zero in 16+ years | Multiple (DigiNotar, Comodo) |
 | Failure mode | Public (blockchain visible) | Silent (undetectable) |
 | Single point of failure | None | TSA operator |
 | Annual cost | $0 | $0.02-0.40 per timestamp |
 | Longevity (2040+ availability) | Highest (nation-state adoption) | Depends on TSA business |
 
-### How It Works (Conceptual)
+### How It Works
 
 1. **Aggregate**: Daily diary entries are hashed together into a single digest
 2. **Submit**: The digest is submitted to public OpenTimestamps calendar servers
@@ -93,22 +79,7 @@ Per ADR-008, the recommended approach is **Bitcoin blockchain via OpenTimestamps
 
 ---
 
-## Deprecated Approach: RFC 3161 TSA
-
-Traditional Time-Stamp Authority (TSA) based on RFC 3161/RFC 4998 is **deprecated** and should only be used when regulators explicitly require that specific format.
-
-**Deprecation Reasons**:
-- Proven track record of TSA compromise (DigiNotar 2011, Comodo 2011, NIC India 2014)
-- Silent failure mode—breaches may go undetected for years
-- Backdating capability if TSA private key is compromised
-- Per-timestamp costs that compound with data volume
-- TSA business continuity risk over 15-25 year retention period
-
-**When to Use**: Only if a regulatory body explicitly mandates RFC 3161 format and rejects Bitcoin-based attestation.
-
----
-
-## Requirements
+# Requirements
 
 ---
 
@@ -188,8 +159,6 @@ Verification interface SHALL support:
 *End* *Timestamp Verification Interface* | **Hash**: 7582f435
 ---
 
----
-
 # REQ-p01028: Timestamp Proof Archival
 
 **Level**: PRD | **Implements**: REQ-p01025, REQ-p00012 | **Status**: Active
@@ -214,33 +183,26 @@ Proof archival SHALL ensure:
 *End* *Timestamp Proof Archival* | **Hash**: 64a9c3ec
 ---
 
----
+# REQ-p01029: Timestamped Record Contents
 
-# REQ-p01029: RFC 3161 TSA Fallback (Deprecated)
+**Level**: PRD | **Implements**: REQ-p01025, REQ-p00012 | **Status**: Active
 
-**Level**: PRD | **Implements**: REQ-p01025 | **Status**: Deprecated
+The system SHALL record information in the timestamp attestation sufficient to 
+verify that the following data was recorded before the date of the block to which
+it tied:
+- the clinical trial data
+- the source of the data
 
-The system MAY provide RFC 3161 Time-Stamp Authority integration as a fallback when regulators explicitly require traditional timestamp format.
+The system SHALL use a de-identified unique identifier that can be independently
+verified. This could be based on a device ID (e.g. mobile IMEI),  or patient 
+ID (e.g. driver's license number). 
 
-RFC 3161 fallback SHALL provide:
-- Timestamp requests to configured TSA endpoints
-- Proof storage in standard RFC 4998 Evidence Record format
-- Certificate chain validation and storage
-- Timestamp renewal before certificate expiration
+De-identification SHALL be done by using a non-reversable algorithm to transform 
+the number into a new unique number. 
 
-**Rationale**: While Bitcoin timestamps are superior, some regulators may require traditional RFC 3161 format during transition periods. This fallback ensures compliance with legacy requirements.
-
-**NOTE**: This requirement is deprecated per ADR-008. Use only when regulators explicitly mandate RFC 3161 format.
-
-**Acceptance Criteria**:
-- TSA endpoint configurable per deployment
-- Timestamps verifiable using standard tools
-- Certificate expiration monitored and renewed proactively
-
-*End* *RFC 3161 TSA Fallback (Deprecated)* | **Hash**: 424b9ef9
----
 
 ---
+
 
 ## Operational Parameters
 
@@ -293,65 +255,10 @@ RFC 3161 fallback SHALL provide:
 
 ---
 
-## Security Considerations
-
-### Attack Cost Comparison
-
-| Attack Vector | Bitcoin | RFC 3161 TSA |
-| ------------- | ------- | ------------ |
-| Forge timestamp | $5-20 billion (51% attack) | ~$100K (TSA compromise) |
-| Backdate record | Mathematically impossible | Possible if TSA compromised |
-| Modify without detection | Computationally infeasible | Depends on TSA security |
-
-### Risk Assessment
-
-**Bitcoin/OpenTimestamps Risks**:
-- ±2 hour time precision (mitigated by internal timestamps)
-- 60-minute finality (acceptable for diary use case)
-- Requires internet for initial submission (queue for offline)
-
-**RFC 3161 TSA Risks**:
-- TSA private key compromise enables backdating
-- TSA business failure may affect proof validity
-- Certificate chain may become unverifiable
-- Ongoing per-timestamp costs
-
----
-
-## Success Metrics
-
-| Metric | Target | Measurement |
-| ------ | ------ | ----------- |
-| Proof completion rate | > 99.9% | Daily proofs successfully anchored |
-| Verification success rate | 100% | Valid proofs always verify successfully |
-| Proof retrieval latency | < 1 second | Time to retrieve proof for any entry |
-| Auditor verification time | < 5 minutes | Time for non-technical auditor to verify |
-
----
-
-## Phased Implementation
-
-### Phase 1: Core Bitcoin Timestamping
-- Daily aggregation and proof creation
-- Proof storage with diary data
-- Basic verification capability
-
-### Phase 2: Production Hardening
-- Multi-calendar redundancy
-- Automated proof completion monitoring
-- Verification UI for portal users
-
-### Phase 3: Advanced Features (Optional)
-- RFC 3161 fallback for legacy requirements
-- Proof renewal for algorithm evolution
-- Regulatory export templates
-
----
-
 ## References
 
 - **Architecture Decision**: docs/adr/ADR-008-timestamp-attestation.md
-- **Implementation Guide**: dev-evidence-records.md
+- **Implementation**: dev-evidence-records.md
 - **Event Sourcing**: prd-event-sourcing-system.md
 - **Database Audit Trail**: prd-database.md
 - **Clinical Compliance**: prd-clinical-trials.md
@@ -368,15 +275,3 @@ RFC 3161 fallback SHALL provide:
 **ALCOA+**: FDA data integrity principles (Attributable, Legible, Contemporaneous, Original, Accurate + Complete, Consistent, Enduring, Available)
 
 ---
-
-## Revision History
-
-| Version | Date | Changes | Author |
-| ------- | ---- | ------- | ------ |
-| 1.0 | 2025-12-02 | Initial PRD from dev-evidence-records.md | Development Team |
-
----
-
-**Document Classification**: Executive Review - Product Requirements
-**Review Frequency**: Quarterly
-**Owner**: Product Management / Compliance Team
