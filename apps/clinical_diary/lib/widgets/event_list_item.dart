@@ -8,19 +8,43 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// List item widget for displaying a nosebleed event
+/// Implements CUR-443: One-line history format with intensity icon
 class EventListItem extends StatelessWidget {
-  const EventListItem({required this.record, super.key, this.onTap});
+  const EventListItem({
+    required this.record,
+    super.key,
+    this.onTap,
+    this.hasOverlap = false,
+  });
   final NosebleedRecord record;
   final VoidCallback? onTap;
 
-  String _timeRange(String locale) {
-    if (record.startTime == null) return '--';
+  /// Whether this record overlaps with another record's time range
+  final bool hasOverlap;
 
-    final startStr = DateFormat.jm(locale).format(record.startTime!);
-    if (record.endTime == null) return startStr;
+  /// Format start time for one-line display (e.g., "09:09 PM")
+  String _startTimeFormatted(String locale) {
+    if (record.startTime == null) return '--:--';
+    return DateFormat.jm(locale).format(record.startTime!);
+  }
 
-    final endStr = DateFormat.jm(locale).format(record.endTime!);
-    return '$startStr - $endStr';
+  /// Get the intensity icon image path
+  String? get _intensityImagePath {
+    if (record.intensity == null) return null;
+    switch (record.intensity!) {
+      case NosebleedIntensity.spotting:
+        return 'assets/images/intensity_spotting.png';
+      case NosebleedIntensity.dripping:
+        return 'assets/images/intensity_dripping.png';
+      case NosebleedIntensity.drippingQuickly:
+        return 'assets/images/intensity_dripping_quickly.png';
+      case NosebleedIntensity.steadyStream:
+        return 'assets/images/intensity_steady_stream.png';
+      case NosebleedIntensity.pouring:
+        return 'assets/images/intensity_pouring.png';
+      case NosebleedIntensity.gushing:
+        return 'assets/images/intensity_gushing.png';
+    }
   }
 
   /// Check if the event crosses midnight (ends on a different day)
@@ -49,26 +73,6 @@ class EventListItem extends StatelessWidget {
     final remainingMinutes = minutes % 60;
     if (remainingMinutes == 0) return '${hours}h';
     return '${hours}h ${remainingMinutes}m';
-  }
-
-  Color _getIntensityColor(BuildContext context) {
-    if (record.intensity == null) return Colors.grey;
-
-    // Use neutral blue-grey scale for intensity indicator
-    switch (record.intensity!) {
-      case NosebleedIntensity.spotting:
-        return Colors.blueGrey.shade100;
-      case NosebleedIntensity.dripping:
-        return Colors.blueGrey.shade200;
-      case NosebleedIntensity.drippingQuickly:
-        return Colors.blueGrey.shade300;
-      case NosebleedIntensity.steadyStream:
-        return Colors.blueGrey.shade400;
-      case NosebleedIntensity.pouring:
-        return Colors.blueGrey.shade500;
-      case NosebleedIntensity.gushing:
-        return Colors.blueGrey.shade600;
-    }
   }
 
   @override
@@ -178,6 +182,7 @@ class EventListItem extends StatelessWidget {
   }
 
   /// Build card for regular nosebleed events
+  /// CUR-443: One-line format: "09:09 PM (icon) 1h 11m" with warning icon
   Widget _buildNosebleedCard(
     BuildContext context,
     AppLocalizations l10n,
@@ -189,122 +194,95 @@ class EventListItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Row(
             children: [
-              // Intensity indicator
-              Container(
-                width: 4,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _getIntensityColor(context),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+              // Start time
+              Text(
+                _startTimeFormatted(locale),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
 
-              const SizedBox(width: 12),
-
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          _timeRange(locale),
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                        ),
-                        if (_isMultiDay) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            l10n.translate('plusOneDay'),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ],
-                        if (_duration.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              _duration,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (record.intensity != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.intensityName(record.intensity!.name),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Status indicators
-              if (record.isIncomplete)
+              // Intensity mini-icon with subtle border
+              if (_intensityImagePath != null) ...[
+                const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.3),
+                    ),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 14,
-                        color: Colors.orange.shade800,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.translate('incomplete'),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange.shade800,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  child: Image.asset(
+                    _intensityImagePath!,
+                    width: 24,
+                    height: 24,
+                    fit: BoxFit.contain,
                   ),
                 ),
+              ],
+
+              // Duration
+              if (_duration.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                Text(
+                  _duration,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+
+              // Multi-day indicator
+              if (_isMultiDay) ...[
+                const SizedBox(width: 8),
+                Text(
+                  l10n.translate('plusOneDay'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+
+              // Spacer to push status indicators to the right
+              const Spacer(),
+
+              // Incomplete indicator (compact)
+              if (record.isIncomplete) ...[
+                Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: Colors.orange.shade700,
+                ),
+                const SizedBox(width: 8),
+              ],
+
+              // Overlap warning icon
+              if (hasOverlap) ...[
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 24,
+                  color: Colors.orange.shade600,
+                ),
+                const SizedBox(width: 8),
+              ],
 
               // Chevron
-              if (onTap != null) ...[
-                const SizedBox(width: 8),
+              if (onTap != null)
                 Icon(
                   Icons.chevron_right,
                   color: Theme.of(
                     context,
                   ).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
-              ],
             ],
           ),
         ),

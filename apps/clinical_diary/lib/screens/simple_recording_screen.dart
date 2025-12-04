@@ -155,28 +155,15 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     // Must have user-set at least start time
     if (!_userSetStart) return false;
 
-    // Check for overlapping events if we have both start and end set
-    if (_userSetEnd && _getOverlappingEvents().isNotEmpty) {
-      return false;
-    }
-
+    // CUR-443: Overlapping events are allowed - warning shown but doesn't block save
     return true;
   }
 
   Future<void> _saveRecord(AppLocalizations l10n) async {
     if (!_canSubmit()) return;
 
-    // Check for overlapping events - block save if any exist
-    final overlaps = _getOverlappingEvents();
-    if (overlaps.isNotEmpty && _endTime != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.cannotSaveOverlapCount(overlaps.length)),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
-    }
+    // CUR-443: Overlapping events are allowed - warning shown in UI but doesn't block save
+    // User can save and fix either record later
 
     setState(() => _isSaving = true);
 
