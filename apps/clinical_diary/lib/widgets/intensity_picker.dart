@@ -2,15 +2,15 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 
-/// Severity selection widget with visual icons
-class SeverityPicker extends StatelessWidget {
-  const SeverityPicker({
+/// Intensity selection widget with visual icons
+class IntensityPicker extends StatelessWidget {
+  const IntensityPicker({
     required this.onSelect,
     super.key,
-    this.selectedSeverity,
+    this.selectedIntensity,
   });
-  final NosebleedSeverity? selectedSeverity;
-  final ValueChanged<NosebleedSeverity> onSelect;
+  final NosebleedIntensity? selectedIntensity;
+  final ValueChanged<NosebleedIntensity> onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -57,13 +57,13 @@ class SeverityPicker extends StatelessWidget {
                   crossAxisSpacing: 8,
                   childAspectRatio: (constraints.maxWidth / 2 - 12) / boxHeight,
                   physics: const NeverScrollableScrollPhysics(),
-                  children: NosebleedSeverity.values.map((severity) {
-                    final isSelected = selectedSeverity == severity;
-                    return _SeverityOption(
-                      severity: severity,
-                      severityLabel: l10n.severityName(severity.name),
+                  children: NosebleedIntensity.values.map((intensity) {
+                    final isSelected = selectedIntensity == intensity;
+                    return _IntensityOption(
+                      intensity: intensity,
+                      intensityLabel: l10n.intensityName(intensity.name),
                       isSelected: isSelected,
-                      onTap: () => onSelect(severity),
+                      onTap: () => onSelect(intensity),
                       iconSize: iconSize,
                       fontSize: fontSize,
                     );
@@ -78,36 +78,36 @@ class SeverityPicker extends StatelessWidget {
   }
 }
 
-class _SeverityOption extends StatelessWidget {
-  const _SeverityOption({
-    required this.severity,
-    required this.severityLabel,
+class _IntensityOption extends StatelessWidget {
+  const _IntensityOption({
+    required this.intensity,
+    required this.intensityLabel,
     required this.isSelected,
     required this.onTap,
     this.iconSize = 56,
     this.fontSize = 14,
   });
-  final NosebleedSeverity severity;
-  final String severityLabel;
+  final NosebleedIntensity intensity;
+  final String intensityLabel;
   final bool isSelected;
   final VoidCallback onTap;
   final double iconSize;
   final double fontSize;
 
   String get _imagePath {
-    switch (severity) {
-      case NosebleedSeverity.spotting:
-        return 'assets/images/severity_spotting.png';
-      case NosebleedSeverity.dripping:
-        return 'assets/images/severity_dripping.png';
-      case NosebleedSeverity.drippingQuickly:
-        return 'assets/images/severity_dripping_quickly.png';
-      case NosebleedSeverity.steadyStream:
-        return 'assets/images/severity_steady_stream.png';
-      case NosebleedSeverity.pouring:
-        return 'assets/images/severity_pouring.png';
-      case NosebleedSeverity.gushing:
-        return 'assets/images/severity_gushing.png';
+    switch (intensity) {
+      case NosebleedIntensity.spotting:
+        return 'assets/images/intensity_spotting.png';
+      case NosebleedIntensity.dripping:
+        return 'assets/images/intensity_dripping.png';
+      case NosebleedIntensity.drippingQuickly:
+        return 'assets/images/intensity_dripping_quickly.png';
+      case NosebleedIntensity.steadyStream:
+        return 'assets/images/intensity_steady_stream.png';
+      case NosebleedIntensity.pouring:
+        return 'assets/images/intensity_pouring.png';
+      case NosebleedIntensity.gushing:
+        return 'assets/images/intensity_gushing.png';
     }
   }
 
@@ -148,7 +148,7 @@ class _SeverityOption extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 // Split two-word labels onto separate lines
-                severityLabel.replaceAll(' ', '\n'),
+                intensityLabel.replaceAll(' ', '\n'),
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,

@@ -7,9 +7,9 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
+import 'package:clinical_diary/widgets/intensity_picker.dart';
 // CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/overlap_warning.dart';
-import 'package:clinical_diary/widgets/severity_picker.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -38,13 +38,13 @@ class RecordingScreen extends StatefulWidget {
 }
 
 // CUR-408: Removed notes step from recording flow
-enum RecordingStep { startTime, severity, endTime, complete }
+enum RecordingStep { startTime, intensity, endTime, complete }
 
 class _RecordingScreenState extends State<RecordingScreen> {
   late DateTime _date;
   DateTime? _startTime;
   DateTime? _endTime;
-  NosebleedSeverity? _severity;
+  NosebleedIntensity? _intensity;
   // CUR-408: Notes field removed from recording flow
 
   RecordingStep _currentStep = RecordingStep.startTime;
@@ -59,7 +59,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
-      _severity = widget.existingRecord!.severity;
+      _intensity = widget.existingRecord!.intensity;
       // CUR-408: Notes field no longer loaded from existing record
       _currentStep = _getInitialStepForExisting();
     } else {
@@ -79,7 +79,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   RecordingStep _getInitialStepForExisting() {
     final record = widget.existingRecord!;
-    if (record.severity == null) return RecordingStep.severity;
+    if (record.intensity == null) return RecordingStep.intensity;
     if (record.endTime == null) return RecordingStep.endTime;
     // For editing existing records, go to complete step
     return RecordingStep.complete;
@@ -171,7 +171,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
-          severity: _severity,
+          intensity: _intensity,
           // CUR-408: notes parameter removed
         );
       } else {
@@ -180,7 +180,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
-          severity: _severity,
+          intensity: _intensity,
           // CUR-408: notes parameter removed
         );
       }
@@ -225,13 +225,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void _handleStartTimeConfirm(DateTime time) {
     setState(() {
       _startTime = time;
-      _currentStep = RecordingStep.severity;
+      _currentStep = RecordingStep.intensity;
     });
   }
 
-  void _handleSeveritySelect(NosebleedSeverity severity) {
+  void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
-      _severity = severity;
+      _intensity = intensity;
       _currentStep = RecordingStep.endTime;
       // Initialize end time to start time + 15 minutes if not set
       // This preserves the date from _startTime instead of using today's date
@@ -280,7 +280,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (widget.existingRecord != null) {
       return _startTime != widget.existingRecord!.startTime ||
           _endTime != widget.existingRecord!.endTime ||
-          _severity != widget.existingRecord!.severity;
+          _intensity != widget.existingRecord!.intensity;
     }
     // For new records, we have unsaved data if start time is set
     // and we're not at the complete step (which has its own save button)
@@ -398,15 +398,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           _buildDivider(),
 
-          // Severity
+          // Intensity
           _buildSummaryItem(
-            label: l10n.severity,
-            value: _severity != null
-                ? l10n.severityName(_severity!.name)
-                : l10n.selectSeverity,
-            isActive: _currentStep == RecordingStep.severity,
+            label: l10n.intensity,
+            value: _intensity != null
+                ? l10n.intensityName(_intensity!.name)
+                : l10n.selectIntensity,
+            isActive: _currentStep == RecordingStep.intensity,
             onTap: _startTime != null
-                ? () => _goToStep(RecordingStep.severity)
+                ? () => _goToStep(RecordingStep.intensity)
                 : null,
           ),
 
@@ -417,7 +417,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
             label: l10n.end,
             value: _formatTime(_endTime, locale),
             isActive: _currentStep == RecordingStep.endTime,
-            onTap: _severity != null
+            onTap: _intensity != null
                 ? () => _goToStep(RecordingStep.endTime)
                 : null,
           ),
@@ -491,11 +491,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
           maxDateTime: _maxDateTimeForTimePicker,
         );
 
-      case RecordingStep.severity:
-        return SeverityPicker(
-          key: const ValueKey('severity_picker'),
-          selectedSeverity: _severity,
-          onSelect: _handleSeveritySelect,
+      case RecordingStep.intensity:
+        return IntensityPicker(
+          key: const ValueKey('intensity_picker'),
+          selectedIntensity: _intensity,
+          onSelect: _handleIntensitySelect,
         );
 
       case RecordingStep.endTime:
@@ -530,7 +530,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCompleteStep(AppLocalizations l10n) {
     final isExistingComplete =
         widget.existingRecord != null &&
-        widget.existingRecord!.severity != null &&
+        widget.existingRecord!.intensity != null &&
         widget.existingRecord!.endTime != null;
 
     // CUR-408: Notes-related currentRecord and needsNotes removed

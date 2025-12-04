@@ -20,7 +20,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -37,7 +37,7 @@ void main() {
         id: 'test-1',
         date: testDate,
         startTime: DateTime(2024, 1, 15, 14, 0),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -55,13 +55,13 @@ void main() {
       expect(find.text('--'), findsOneWidget);
     });
 
-    testWidgets('displays severity name', (tester) async {
+    testWidgets('displays intensity name', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
-        severity: NosebleedSeverity.steadyStream,
+        intensity: NosebleedIntensity.steadyStream,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -70,7 +70,7 @@ void main() {
       expect(find.text('Steady stream'), findsOneWidget);
     });
 
-    testWidgets('does not display severity when null', (tester) async {
+    testWidgets('does not display intensity when null', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -80,8 +80,8 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      for (final severity in NosebleedSeverity.values) {
-        expect(find.text(severity.displayName), findsNothing);
+      for (final intensity in NosebleedIntensity.values) {
+        expect(find.text(intensity.displayName), findsNothing);
       }
     });
 
@@ -91,7 +91,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45), // 15 minutes
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -106,7 +106,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 11, 30), // 1 hour 30 minutes
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -123,7 +123,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 12, 0), // 2 hours exactly
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
@@ -157,7 +157,7 @@ void main() {
         date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
         isIncomplete: false,
       );
 
@@ -227,17 +227,17 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('displays severity indicator bar', (tester) async {
+    testWidgets('displays intensity indicator bar', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      // Find the container that serves as the severity indicator
+      // Find the container that serves as the intensity indicator
       final containers = tester.widgetList<Container>(find.byType(Container));
       final hasIndicator = containers.any((container) {
         final decoration = container.decoration;
@@ -320,7 +320,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
           endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -337,7 +337,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -355,7 +355,7 @@ void main() {
           id: 'test-1',
           date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -374,7 +374,7 @@ void main() {
           date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
           endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day = 45 min
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(

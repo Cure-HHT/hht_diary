@@ -265,8 +265,8 @@ void main() {
           await tester.tap(find.text('Open Recording'));
           await tester.pumpAndSettle();
 
-          // Set intensity (tap on one of the severity options)
-          // The IntensityRow shows severity options
+          // Set intensity (tap on one of the intensity options)
+          // The IntensityRow shows intensity options
           await tester.tap(find.text('Dripping'));
           await tester.pumpAndSettle();
 
@@ -280,13 +280,13 @@ void main() {
           // Should NOT show any dialog
           expect(find.text('Save as Incomplete?'), findsNothing);
 
-          // Verify a record was saved with severity
+          // Verify a record was saved with intensity
           final records = await nosebleedService.getRecordsForDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
           expect(records.first.isIncomplete, isTrue);
-          expect(records.first.severity, NosebleedSeverity.dripping);
+          expect(records.first.intensity, NosebleedIntensity.dripping);
         },
       );
 
@@ -308,7 +308,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 30),
             endTime: DateTime(2024, 1, 15, 10, 45),
-            severity: NosebleedSeverity.dripping,
+            intensity: NosebleedIntensity.dripping,
           );
 
           await tester.pumpWidget(
@@ -382,7 +382,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 30),
             endTime: DateTime(2024, 1, 15, 10, 45),
-            severity: NosebleedSeverity.dripping,
+            intensity: NosebleedIntensity.dripping,
           );
 
           var didPop = false;
@@ -555,7 +555,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(

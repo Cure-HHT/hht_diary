@@ -115,8 +115,8 @@ void main() {
           expect(records.length, 1);
           expect(records.first.isIncomplete, isTrue);
           expect(records.first.startTime, isNotNull);
-          // Severity and endTime should be null since user didn't set them
-          expect(records.first.severity, isNull);
+          // Intensity and endTime should be null since user didn't set them
+          expect(records.first.intensity, isNull);
           expect(records.first.endTime, isNull);
         },
       );
@@ -144,14 +144,14 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          // Confirm start time to proceed to severity step
+          // Confirm start time to proceed to intensity step
           await tester.tap(find.text('Set Start Time'));
           await tester.pumpAndSettle();
 
-          // Should now be on severity step
+          // Should now be on intensity step
           expect(find.text('Spotting'), findsOneWidget);
 
-          // Press back without selecting severity
+          // Press back without selecting intensity
           await tester.tap(find.text('Back'));
           // Use pump with duration instead of pumpAndSettle
           await tester.pump(const Duration(milliseconds: 100));
@@ -168,14 +168,14 @@ void main() {
           expect(records.length, 1);
           expect(records.first.isIncomplete, isTrue);
           expect(records.first.startTime, isNotNull);
-          // No severity or end time yet
-          expect(records.first.severity, isNull);
+          // No intensity or end time yet
+          expect(records.first.intensity, isNull);
           expect(records.first.endTime, isNull);
         },
       );
 
       testWidgets(
-        'auto-saves partial with severity after selecting it and going back',
+        'auto-saves partial with intensity after selecting it and going back',
         skip: true, // Skipped: hangs due to async Datastore operations in tests
         (tester) async {
           // Use a larger screen size to avoid overflow issues
@@ -201,7 +201,7 @@ void main() {
           await tester.tap(find.text('Set Start Time'));
           await tester.pumpAndSettle();
 
-          // Select severity
+          // Select intensity
           await tester.tap(find.text('Dripping'));
           await tester.pumpAndSettle();
 
@@ -218,14 +218,14 @@ void main() {
           // Should auto-save without dialog
           expect(find.text('Save as incomplete?'), findsNothing);
 
-          // Verify the partial record was saved with severity
+          // Verify the partial record was saved with intensity
           final records = await nosebleedService.getRecordsForDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
           expect(records.first.isIncomplete, isTrue);
           expect(records.first.startTime, isNotNull);
-          expect(records.first.severity, isNotNull);
+          expect(records.first.intensity, isNotNull);
           // End time is auto-initialized but not confirmed
           // The partial save should include whatever state is there
         },
@@ -306,7 +306,7 @@ void main() {
           await tester.tap(find.text('Set Start Time'));
           await tester.pumpAndSettle();
 
-          // Select severity
+          // Select intensity
           await tester.tap(find.text('Dripping'));
           await tester.pumpAndSettle();
 

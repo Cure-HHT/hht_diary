@@ -180,8 +180,7 @@ class AppLocalizations {
       'notesPlaceholder': 'Optional notes about this nosebleed...',
       'start': 'Start',
       'end': 'End',
-      'severity': 'Severity',
-      'selectSeverity': 'Select...',
+      'selectIntensity': 'Select...',
       'intensity': 'Intensity',
       'nosebleedStart': 'Nosebleed Start',
       'setStartTime': 'Set Start Time',
@@ -214,7 +213,7 @@ class AppLocalizations {
       'discard': 'Discard',
       'keepEditing': 'Keep Editing',
 
-      // Severity
+      // Intensity
       'spotting': 'Spotting',
       'dripping': 'Dripping',
       'drippingQuickly': 'Dripping quickly',
@@ -456,8 +455,7 @@ class AppLocalizations {
       'notesPlaceholder': 'Notas opcionales sobre esta hemorragia nasal...',
       'start': 'Inicio',
       'end': 'Fin',
-      'severity': 'Severidad',
-      'selectSeverity': 'Seleccionar...',
+      'selectIntensity': 'Seleccionar...',
       'intensity': 'Intensidad',
       'nosebleedStart': 'Inicio de hemorragia',
       'setStartTime': 'Establecer hora de inicio',
@@ -491,7 +489,7 @@ class AppLocalizations {
       'discard': 'Descartar',
       'keepEditing': 'Seguir editando',
 
-      // Severity
+      // Intensity
       'spotting': 'Manchado',
       'dripping': 'Goteo',
       'drippingQuickly': 'Goteo rapido',
@@ -745,8 +743,7 @@ class AppLocalizations {
       'notesPlaceholder': 'Notes optionnelles sur ce saignement de nez...',
       'start': 'Debut',
       'end': 'Fin',
-      'severity': 'Gravite',
-      'selectSeverity': 'Selectionner...',
+      'selectIntensity': 'Selectionner...',
       'intensity': 'Intensite',
       'nosebleedStart': 'Debut du saignement',
       'setStartTime': "Definir l'heure de debut",
@@ -780,7 +777,7 @@ class AppLocalizations {
       'discard': 'Jeter',
       'keepEditing': 'Continuer a editer',
 
-      // Severity
+      // Intensity
       'spotting': 'Taches',
       'dripping': 'Gouttes',
       'drippingQuickly': 'Gouttes rapides',
@@ -1031,8 +1028,7 @@ class AppLocalizations {
       'notesPlaceholder': 'Optionale Notizen zu diesem Nasenbluten...',
       'start': 'Start',
       'end': 'Ende',
-      'severity': 'Schweregrad',
-      'selectSeverity': 'Auswahlen...',
+      'selectIntensity': 'Auswahlen...',
       'intensity': 'Intensitat',
       'nosebleedStart': 'Nasenbluten-Start',
       'setStartTime': 'Startzeit festlegen',
@@ -1066,7 +1062,7 @@ class AppLocalizations {
       'discard': 'Verwerfen',
       'keepEditing': 'Weiter bearbeiten',
 
-      // Severity
+      // Intensity
       'spotting': 'Leicht',
       'dripping': 'Tropfend',
       'drippingQuickly': 'Schnell tropfend',
@@ -1321,8 +1317,7 @@ class AppLocalizations {
   String get notesPlaceholder => translate('notesPlaceholder');
   String get start => translate('start');
   String get end => translate('end');
-  String get severity => translate('severity');
-  String get selectSeverity => translate('selectSeverity');
+  String get selectIntensity => translate('selectIntensity');
   String get intensity => translate('intensity');
   String get nosebleedStart => translate('nosebleedStart');
   String get setStartTime => translate('setStartTime');
@@ -1355,7 +1350,7 @@ class AppLocalizations {
   String get discard => translate('discard');
   String get keepEditing => translate('keepEditing');
 
-  // Severity
+  // Intensity
   String get spotting => translate('spotting');
   String get dripping => translate('dripping');
   String get drippingQuickly => translate('drippingQuickly');
@@ -1363,9 +1358,9 @@ class AppLocalizations {
   String get pouring => translate('pouring');
   String get gushing => translate('gushing');
 
-  /// Get localized severity name for a given severity enum value
-  String severityName(String severity) {
-    switch (severity) {
+  /// Get localized Intensity name for a given Intensity enum value
+  String intensityName(String intensity) {
+    switch (intensity) {
       case 'spotting':
         return spotting;
       case 'dripping':
@@ -1379,7 +1374,7 @@ class AppLocalizations {
       case 'gushing':
         return gushing;
       default:
-        return severity;
+        return intensity;
     }
   }
 

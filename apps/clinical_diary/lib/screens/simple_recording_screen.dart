@@ -40,13 +40,13 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   late DateTime _date;
   DateTime? _startTime;
   DateTime? _endTime;
-  NosebleedSeverity? _severity;
+  NosebleedIntensity? _intensity;
   bool _isSaving = false;
 
   // Track which fields the user has explicitly set (vs default values)
   bool _userSetStart = false;
   bool _userSetEnd = false;
-  bool _userSetSeverity = false;
+  bool _userSetIntensity = false;
 
   // Keys for independent time picker state
   final _startTimePickerKey = GlobalKey<State>();
@@ -60,11 +60,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
-      _severity = widget.existingRecord!.severity;
+      _intensity = widget.existingRecord!.intensity;
       // Existing record means all present fields were "set"
       _userSetStart = _startTime != null;
       _userSetEnd = _endTime != null;
-      _userSetSeverity = _severity != null;
+      _userSetIntensity = _intensity != null;
     } else {
       // Default start time to the selected date with current time of day
       // but don't mark it as user-set yet
@@ -125,7 +125,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
     // For editing, always show "Update Nosebleed" when complete
     if (isEditing) {
-      if (_userSetStart && _userSetSeverity && _userSetEnd) {
+      if (_userSetStart && _userSetIntensity && _userSetEnd) {
         return l10n.updateNosebleed;
       }
       return l10n.saveChanges;
@@ -134,7 +134,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     // Build list of what's been set
     final setParts = <String>[];
     if (_userSetStart) setParts.add(l10n.start);
-    if (_userSetSeverity) setParts.add(l10n.intensity);
+    if (_userSetIntensity) setParts.add(l10n.intensity);
     if (_userSetEnd) setParts.add(l10n.end);
 
     // All three set - ready to add
@@ -188,7 +188,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
-          severity: _severity,
+          intensity: _intensity,
         );
       } else {
         // Create new record (isIncomplete is calculated automatically by service)
@@ -196,7 +196,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
-          severity: _severity,
+          intensity: _intensity,
         );
       }
 
@@ -269,10 +269,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     });
   }
 
-  void _handleSeveritySelect(NosebleedSeverity severity) {
+  void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
-      _severity = severity;
-      _userSetSeverity = true;
+      _intensity = intensity;
+      _userSetIntensity = true;
     });
   }
 
@@ -296,10 +296,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     if (widget.existingRecord != null) {
       return _startTime != widget.existingRecord!.startTime ||
           _endTime != widget.existingRecord!.endTime ||
-          _severity != widget.existingRecord!.severity;
+          _intensity != widget.existingRecord!.intensity;
     }
     // For new records, we have unsaved data if user has explicitly set any field
-    return _userSetStart || _userSetEnd || _userSetSeverity;
+    return _userSetStart || _userSetEnd || _userSetIntensity;
   }
 
   /// Auto-save partial record when user navigates away with unsaved changes.
@@ -419,8 +419,8 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       ),
                       const SizedBox(height: 8),
                       IntensityRow(
-                        selectedIntensity: _severity,
-                        onSelect: _handleSeveritySelect,
+                        selectedIntensity: _intensity,
+                        onSelect: _handleIntensitySelect,
                       ),
 
                       const SizedBox(height: 24),

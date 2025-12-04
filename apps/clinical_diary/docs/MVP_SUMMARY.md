@@ -83,7 +83,7 @@ apps/clinical_diary/
    - Large "Record Nosebleed" button
    - Mark yesterday as "No nosebleeds" or "Don't remember"
 
-### Severity Levels
+### Intensity Levels
 
 1. Spotting - Minor spotting on tissue
 2. Dripping - Occasional drops

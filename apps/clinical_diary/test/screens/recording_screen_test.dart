@@ -127,7 +127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Start'), findsOneWidget);
-        expect(find.text('Severity'), findsOneWidget);
+        expect(find.text('Intensity'), findsOneWidget);
         expect(find.text('End'), findsOneWidget);
       });
     });
@@ -139,7 +139,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
         );
 
@@ -167,7 +167,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -187,7 +187,7 @@ void main() {
         expect(find.text('Duration: 15 minutes'), findsOneWidget);
       });
 
-      testWidgets('shows severity picker for record missing severity', (
+      testWidgets('shows intensity picker for record missing intensity', (
         tester,
       ) async {
         final incompleteRecord = NosebleedRecord(
@@ -195,7 +195,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           isIncomplete: true,
-          // Missing severity and endTime
+          // Missing intensity and endTime
         );
 
         await tester.pumpWidget(
@@ -209,7 +209,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
@@ -221,7 +221,7 @@ void main() {
           id: 'existing-1',
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
           // Missing endTime
         );
@@ -250,7 +250,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -273,7 +273,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -309,7 +309,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          // Missing severity
+          // Missing intensity
           isIncomplete: true,
         );
 
@@ -324,7 +324,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Select a severity to proceed to complete step
+        // Select a intensity to proceed to complete step
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -346,7 +346,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -367,11 +367,11 @@ void main() {
         // Should show start time picker
         expect(find.text('Nosebleed Start'), findsOneWidget);
 
-        // Tap on severity in summary bar
+        // Tap on intensity in summary bar
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
       });
     });
@@ -392,7 +392,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -401,7 +401,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -428,7 +428,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         // allRecords includes the record being edited
@@ -465,7 +465,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -474,7 +474,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -521,7 +521,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 8, 0), // Does not overlap
             endTime: DateTime(2024, 1, 15, 8, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -530,7 +530,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -572,7 +572,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -614,7 +614,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -673,7 +673,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -709,7 +709,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         await tester.pumpWidget(
@@ -727,14 +727,14 @@ void main() {
         expect(find.text('Save Changes'), findsOneWidget);
         expect(find.text('Edit Record'), findsOneWidget);
 
-        // Navigate to severity to change it
+        // Navigate to intensity to change it
         await tester.tap(find.text('Spotting'));
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Dripping'), findsOneWidget);
 
-        // Change severity
+        // Change intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -774,7 +774,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -798,7 +798,7 @@ void main() {
     // CUR-408: Notes Requirement group removed - notes step removed from flow
 
     group('Start Time Confirmation', () {
-      testWidgets('advances to severity step after confirming start time', (
+      testWidgets('advances to intensity step after confirming start time', (
         tester,
       ) async {
         await tester.pumpWidget(
@@ -818,7 +818,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Should now show severity picker
+        // Should now show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
@@ -841,7 +841,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 14, 0), // 2:00 PM
           endTime: DateTime(2024, 1, 15, 14, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
         );
 
@@ -891,7 +891,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
@@ -914,8 +914,8 @@ void main() {
       });
     });
 
-    group('Severity Selection', () {
-      testWidgets('initializes end time when severity is selected', (
+    group('Intensity Selection', () {
+      testWidgets('initializes end time when intensity is selected', (
         tester,
       ) async {
         // Use a larger screen size to avoid overflow issues
@@ -941,13 +941,13 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
         // Should show end time picker with initialized time
         expect(find.text('Nosebleed End Time'), findsOneWidget);
-        // End time should not be '--:--' after selecting severity
+        // End time should not be '--:--' after selecting intensity
         expect(find.text('--:--'), findsNothing);
       });
     });
@@ -995,7 +995,7 @@ class FailingNosebleedService extends NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
@@ -1010,7 +1010,7 @@ class FailingNosebleedService extends NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,

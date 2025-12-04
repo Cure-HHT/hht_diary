@@ -268,7 +268,7 @@ void main() {
       final record = NosebleedRecord.fromJson(json);
 
       expect(record.id, 'test-123');
-      expect(record.severity, NosebleedSeverity.dripping);
+      expect(record.severity, NosebleedIntensity.dripping);
     });
   });
 }
@@ -440,7 +440,7 @@ The app uses the `append_only_datastore` package for offline-first event sourcin
 ### Nosebleed Entry
 - Date and time picker
 - Duration tracking
-- Severity rating (1-10)
+- Intensity rating (1-10)
 - Location (left/right nostril)
 - Photos (optional)
 - Notes field

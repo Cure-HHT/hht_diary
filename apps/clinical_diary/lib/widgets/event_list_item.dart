@@ -51,22 +51,22 @@ class EventListItem extends StatelessWidget {
     return '${hours}h ${remainingMinutes}m';
   }
 
-  Color _getSeverityColor(BuildContext context) {
-    if (record.severity == null) return Colors.grey;
+  Color _getIntensityColor(BuildContext context) {
+    if (record.intensity == null) return Colors.grey;
 
-    // Use neutral blue-grey scale for severity indicator
-    switch (record.severity!) {
-      case NosebleedSeverity.spotting:
+    // Use neutral blue-grey scale for intensity indicator
+    switch (record.intensity!) {
+      case NosebleedIntensity.spotting:
         return Colors.blueGrey.shade100;
-      case NosebleedSeverity.dripping:
+      case NosebleedIntensity.dripping:
         return Colors.blueGrey.shade200;
-      case NosebleedSeverity.drippingQuickly:
+      case NosebleedIntensity.drippingQuickly:
         return Colors.blueGrey.shade300;
-      case NosebleedSeverity.steadyStream:
+      case NosebleedIntensity.steadyStream:
         return Colors.blueGrey.shade400;
-      case NosebleedSeverity.pouring:
+      case NosebleedIntensity.pouring:
         return Colors.blueGrey.shade500;
-      case NosebleedSeverity.gushing:
+      case NosebleedIntensity.gushing:
         return Colors.blueGrey.shade600;
     }
   }
@@ -192,12 +192,12 @@ class EventListItem extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              // Severity indicator
+              // Intensity indicator
               Container(
                 width: 4,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _getSeverityColor(context),
+                  color: _getIntensityColor(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -248,10 +248,10 @@ class EventListItem extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (record.severity != null) ...[
+                    if (record.intensity != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        l10n.severityName(record.severity!.name),
+                        l10n.intensityName(record.intensity!.name),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(
                             context,

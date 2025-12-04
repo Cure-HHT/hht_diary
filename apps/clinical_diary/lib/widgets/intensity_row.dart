@@ -14,8 +14,8 @@ class IntensityRow extends StatelessWidget {
     this.selectedIntensity,
   });
 
-  final NosebleedSeverity? selectedIntensity;
-  final ValueChanged<NosebleedSeverity> onSelect;
+  final NosebleedIntensity? selectedIntensity;
+  final ValueChanged<NosebleedIntensity> onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +34,11 @@ class IntensityRow extends StatelessWidget {
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: NosebleedSeverity.values.map((intensity) {
+          children: NosebleedIntensity.values.map((intensity) {
             final isSelected = selectedIntensity == intensity;
             return _IntensityItem(
               intensity: intensity,
-              label: l10n.severityName(intensity.name),
+              label: l10n.intensityName(intensity.name),
               isSelected: isSelected,
               onTap: () => onSelect(intensity),
               size: effectiveSize,
@@ -59,7 +59,7 @@ class _IntensityItem extends StatelessWidget {
     required this.size,
   });
 
-  final NosebleedSeverity intensity;
+  final NosebleedIntensity intensity;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -67,18 +67,18 @@ class _IntensityItem extends StatelessWidget {
 
   String get _imagePath {
     switch (intensity) {
-      case NosebleedSeverity.spotting:
-        return 'assets/images/severity_spotting.png';
-      case NosebleedSeverity.dripping:
-        return 'assets/images/severity_dripping.png';
-      case NosebleedSeverity.drippingQuickly:
-        return 'assets/images/severity_dripping_quickly.png';
-      case NosebleedSeverity.steadyStream:
-        return 'assets/images/severity_steady_stream.png';
-      case NosebleedSeverity.pouring:
-        return 'assets/images/severity_pouring.png';
-      case NosebleedSeverity.gushing:
-        return 'assets/images/severity_gushing.png';
+      case NosebleedIntensity.spotting:
+        return 'assets/images/intensity_spotting.png';
+      case NosebleedIntensity.dripping:
+        return 'assets/images/intensity_dripping.png';
+      case NosebleedIntensity.drippingQuickly:
+        return 'assets/images/intensity_dripping_quickly.png';
+      case NosebleedIntensity.steadyStream:
+        return 'assets/images/intensity_steady_stream.png';
+      case NosebleedIntensity.pouring:
+        return 'assets/images/intensity_pouring.png';
+      case NosebleedIntensity.gushing:
+        return 'assets/images/intensity_gushing.png';
     }
   }
 

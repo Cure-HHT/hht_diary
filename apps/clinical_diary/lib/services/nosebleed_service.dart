@@ -89,10 +89,10 @@ class NosebleedService {
       endTime: data['endTime'] != null
           ? DateTime.parse(data['endTime'] as String)
           : null,
-      severity: data['severity'] != null
-          ? NosebleedSeverity.values.firstWhere(
-              (s) => s.name == data['severity'],
-              orElse: () => NosebleedSeverity.spotting,
+      intensity: data['intensity'] != null
+          ? NosebleedIntensity.values.firstWhere(
+              (s) => s.name == data['intensity'],
+              orElse: () => NosebleedIntensity.spotting,
             )
           : null,
       notes: data['notes'] as String?,
@@ -141,7 +141,7 @@ class NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
@@ -153,14 +153,14 @@ class NosebleedService {
       date: date,
       startTime: startTime,
       endTime: endTime,
-      severity: severity,
+      intensity: intensity,
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
       isUnknownEvent: isUnknownEvent,
       isIncomplete:
           !isNoNosebleedsEvent &&
           !isUnknownEvent &&
-          (startTime == null || endTime == null || severity == null),
+          (startTime == null || endTime == null || intensity == null),
       parentRecordId: parentRecordId,
       deviceUuid: deviceUuid,
       createdAt: DateTime.now(),
@@ -179,7 +179,7 @@ class NosebleedService {
           'startTime': record.startTime!.toIso8601String(),
         if (record.endTime != null)
           'endTime': record.endTime!.toIso8601String(),
-        if (record.severity != null) 'severity': record.severity!.name,
+        if (record.intensity != null) 'intensity': record.intensity!.name,
         if (record.notes != null) 'notes': record.notes,
         'isNoNosebleedsEvent': record.isNoNosebleedsEvent,
         'isUnknownEvent': record.isUnknownEvent,
@@ -205,7 +205,7 @@ class NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
@@ -214,7 +214,7 @@ class NosebleedService {
       date: date,
       startTime: startTime,
       endTime: endTime,
-      severity: severity,
+      intensity: intensity,
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
       isUnknownEvent: isUnknownEvent,
@@ -280,7 +280,7 @@ class NosebleedService {
     required DateTime date,
     required DateTime startTime,
     required DateTime endTime,
-    required NosebleedSeverity severity,
+    required NosebleedIntensity intensity,
     String? notes,
   }) async {
     // Mark the original as completed by adding a new complete record
@@ -289,7 +289,7 @@ class NosebleedService {
       date: date,
       startTime: startTime,
       endTime: endTime,
-      severity: severity,
+      intensity: intensity,
       notes: notes,
     );
   }
@@ -460,8 +460,8 @@ class NosebleedService {
                   'startTime': cloudRecord.startTime!.toIso8601String(),
                 if (cloudRecord.endTime != null)
                   'endTime': cloudRecord.endTime!.toIso8601String(),
-                if (cloudRecord.severity != null)
-                  'severity': cloudRecord.severity!.name,
+                if (cloudRecord.intensity != null)
+                  'intensity': cloudRecord.intensity!.name,
                 if (cloudRecord.notes != null) 'notes': cloudRecord.notes,
                 'isNoNosebleedsEvent': cloudRecord.isNoNosebleedsEvent,
                 'isUnknownEvent': cloudRecord.isUnknownEvent,
