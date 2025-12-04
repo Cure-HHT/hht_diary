@@ -2,13 +2,40 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-12-02
 **Status**: Active
 
+> **See**: prd-system.md for platform overview
 > **See**: prd-event-sourcing-system.md for generic event sourcing architecture
 > **See**: dev-database.md for implementation details
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture
 > **See**: prd-clinical-trials.md for compliance requirements
+
+---
+
+# REQ-p00046: Clinical Data Storage System
+
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
+
+A cloud database system using event sourcing to store clinical trial data with complete audit trails, sponsor isolation, and FDA 21 CFR Part 11 compliance.
+
+Data storage system SHALL provide:
+- Event sourcing for immutable audit trails
+- Separate database instance per sponsor
+- Complete history of all data changes
+- Row-level security for access control
+- Long-term data retention compliance
+
+**Rationale**: Provides the data persistence layer for all clinical trial information, designed to meet FDA regulatory requirements for electronic records. Event sourcing ensures tamper-evident audit trails while sponsor isolation protects data integrity across independent trials.
+
+**Acceptance Criteria**:
+- All data changes stored as immutable events
+- Complete audit trail reconstructable at any point in time
+- Separate database per sponsor with no cross-access
+- Row-level security enforcing access boundaries
+- Data retention meeting regulatory requirements (7+ years)
+
+*End* *Clinical Data Storage System* | **Hash**: TBD
 
 ---
 
@@ -20,7 +47,7 @@ This document describes the diary-specific implementation and refinement of the 
 
 ## Executive Summary
 
-The database stores patient diary entries with complete history of all changes for regulatory compliance. 
+The database stores patient diary entries with complete history of all changes for regulatory compliance.
 Each sponsor operates an independent database, ensuring complete data isolation between different clinical trials.
 FDA compliant record keeping.
 

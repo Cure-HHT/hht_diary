@@ -2,14 +2,41 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-10-27
-**Status**: Draft
+**Last Updated**: 2025-12-02
+**Status**: Active
 
+> **See**: prd-system.md for platform overview
 > **See**: ops-portal.md for deployment and operations procedures
 > **See**: dev-portal.md for implementation details
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture (REQ-p00009)
 > **See**: prd-security-RBAC.md for role-based access control
 > **See**: prd-database.md for data architecture
+
+---
+
+# REQ-p00045: Sponsor Portal Application
+
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
+
+A sponsor-specific web application enabling clinical trial staff to manage users, enroll patients, monitor engagement, and access audit trails with complete sponsor data isolation.
+
+Sponsor portal SHALL provide:
+- Role-based access for Admins, Investigators, and Auditors
+- Patient enrollment and monitoring workflows
+- Questionnaire management and distribution
+- Audit trail access for compliance reviews
+- Sponsor-specific branding and configuration
+
+**Rationale**: Provides the sponsor-facing interface for clinical trial management, enabling staff to oversee patient participation while maintaining regulatory compliance and data isolation between sponsors.
+
+**Acceptance Criteria**:
+- Separate portal deployment per sponsor
+- Role-based access control enforced
+- Complete audit trail of all staff actions
+- Real-time patient engagement monitoring
+- Sponsor branding applied throughout interface
+
+*End* *Sponsor Portal Application* | **Hash**: TBD
 
 ---
 

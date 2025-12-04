@@ -2,12 +2,39 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-12-02
 **Status**: Active
 
+> **See**: prd-system.md for platform overview
 > **See**: dev-app.md for implementation details
 > **See**: prd-architecture-multi-sponsor.md for overall architecture
 > **See**: prd-security.md for security architecture
+
+---
+
+# REQ-p00043: Clinical Diary Mobile Application
+
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
+
+A smartphone application for iOS and Android enabling clinical trial patients to record daily health observations with offline capability and automatic synchronization.
+
+Mobile application SHALL provide:
+- Offline-first data entry for all diary operations
+- Automatic data synchronization when network available
+- Multi-sponsor support with automatic configuration
+- Sponsor-specific branding and customization
+- FDA 21 CFR Part 11 compliant audit trails
+
+**Rationale**: Provides the patient-facing interface for clinical trial data capture, designed for ease of use regardless of connectivity. Single app serving all sponsors simplifies distribution and maintenance while maintaining complete data isolation.
+
+**Acceptance Criteria**:
+- Available on iOS and Android app stores
+- Functions offline for core diary operations
+- Automatic data synchronization when online
+- Sponsor branding applied per enrollment
+- Complete audit trail of all patient actions
+
+*End* *Clinical Diary Mobile Application* | **Hash**: TBD
 
 ---
 
@@ -28,7 +55,7 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 
 # REQ-p00007: Automatic Sponsor Configuration
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p00043, p00001 | **Status**: Active
 
 The app SHALL automatically configure itself for the correct sponsor and study based on the enrollment link provided to the patient, eliminating manual sponsor/study selection.
 
@@ -75,7 +102,7 @@ Automatic configuration SHALL ensure:
 
 # REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: p00043 | **Status**: Active
 
 Patients SHALL be able to record diary entries without requiring internet connectivity, ensuring clinical trial participation is not dependent on network availability.
 
@@ -156,8 +183,57 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 ---
 
+## Temporal Entry Validation
+
+# REQ-p00050: Temporal Entry Validation
+
+**Level**: PRD | **Implements**: p00043 | **Status**: Active
+
+The system SHALL enforce temporal boundaries for nosebleed entries to maintain data integrity and prevent invalid records.
+
+Temporal validation SHALL ensure:
+- Calendar view disables selection of future dates
+- Date picker restricts selection to current date and earlier
+- End time does not exceed current real time
+- Users cannot create entries before their app start date
+- Entries more than 24 hours old require justification with reason selection
+- No time overlap exists with other entries
+
+**Rationale**: Temporal validation ensures data reflects actual events, prevents logical impossibilities (future events, overlapping nosebleeds, entries before app usage), and maintains clinical trial data quality. Capturing reasons for delayed entries helps researchers understand data quality and patient adherence patterns.
+
+**Acceptance Criteria**:
+
+*Future Prevention:*
+- Future dates visually disabled/grayed out in calendar view
+- Future dates not selectable in date picker
+- Current date is maximum selectable date in calendar
+- End time picker maximum value is current real time
+- Future times visually disabled/grayed out in time picker
+- End time validation ensures: end time ≥ start time AND end time ≤ current time
+- Current time updates dynamically if user keeps picker open
+
+*Historical Boundaries:*
+- System captures and stores user's app start date during onboarding
+- Dates before app start date disabled in calendar view (grayed out and not selectable)
+
+*24-Hour Justification:*
+- When entry date/time is more than 24 hours in past, system displays reason selection prompt
+- User must select from predefined reasons: "I forgot to record it at the time", "I didn't have access to the app", "I was in a medical facility", "Technical issues with the app", "Other (specify)"
+- User cannot proceed with entry creation without selecting reason
+- System stores selected reason with entry metadata
+
+*Overlap Prevention:*
+- System validates entries for time overlaps before saving (both new and edited entries)
+- System displays error message identifying conflicting entry: "This time overlaps with an existing nosebleed record from [start] to [end]"
+- User can navigate to view conflicting record
+
+*End* *Temporal Entry Validation* | **Hash**: TBD
+
+---
+
 ## References
 
+- **Platform**: prd-system.md
 - **Implementation**: dev-app.md
 - **Architecture**: prd-architecture-multi-sponsor.md
 - **Security**: prd-security.md
