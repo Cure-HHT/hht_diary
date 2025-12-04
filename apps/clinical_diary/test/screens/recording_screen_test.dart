@@ -497,10 +497,11 @@ void main() {
         final filledButton = tester.widget<FilledButton>(saveButton);
         expect(filledButton.onPressed, isNull);
 
-        // Should show error message about overlaps
+        // Should show overlap warning with time range (CUR-410)
+        expect(find.text('Overlapping Events Detected'), findsOneWidget);
         expect(
           find.text(
-            'Cannot save: This event overlaps with existing events. Please adjust the time.',
+            'This time overlaps with an existing nosebleed record from 10:00 AM to 10:30 AM',
           ),
           findsOneWidget,
         );

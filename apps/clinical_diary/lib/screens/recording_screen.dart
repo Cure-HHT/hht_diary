@@ -356,7 +356,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: OverlapWarning(
-                    overlappingCount: overlappingEvents.length,
+                    overlappingRecords: overlappingEvents,
+                    onViewConflict: (conflictingRecord) {
+                      // Pop back to view the conflicting record in context
+                      Navigator.pop(context, false);
+                    },
                   ),
                 ),
 
@@ -590,36 +594,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // CUR-408: Notes display section removed from complete step
           const Spacer(),
 
-          // Show overlap error message if overlaps exist
-          if (hasOverlaps) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: Theme.of(context).colorScheme.onErrorContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.cannotSaveOverlap,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
+          // CUR-410: Red error container removed - overlap warning banner
+          // now shows the specific conflicting record time range
           SizedBox(
             width: double.infinity,
             child: FilledButton(
