@@ -450,7 +450,9 @@ void main() {
         expect(find.text('Overlapping Events Detected'), findsNothing);
       });
 
-      testWidgets('disables save button when overlaps exist', (tester) async {
+      testWidgets('shows warning but allows save when overlaps exist', (
+        tester,
+      ) async {
         // Use a larger screen size to avoid overflow issues
         tester.view.physicalSize = const Size(1080, 1920);
         tester.view.devicePixelRatio = 1.0;
@@ -489,13 +491,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Find the save button - it should be disabled
+        // Find the save button - CUR-443: button should be ENABLED even with overlaps
         final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
         expect(saveButton, findsOneWidget);
 
-        // The button should be disabled (onPressed is null)
+        // CUR-443: The button should be enabled (overlaps don't block save)
         final filledButton = tester.widget<FilledButton>(saveButton);
-        expect(filledButton.onPressed, isNull);
+        expect(filledButton.onPressed, isNotNull);
 
         // Should show overlap warning with time range (CUR-410)
         expect(find.text('Overlapping Events Detected'), findsOneWidget);

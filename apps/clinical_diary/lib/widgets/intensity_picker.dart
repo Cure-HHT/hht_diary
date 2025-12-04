@@ -27,8 +27,9 @@ class IntensityPicker extends StatelessWidget {
               constraints.maxHeight - headerHeight - gridSpacing;
           final boxHeight = (availableHeight / 3).clamp(60.0, 110.0);
 
-          // Icon should be ~55% of box height, leaving room for text
-          final iconSize = (boxHeight * 0.5).clamp(32.0, 56.0);
+          // Icon should be ~40% of box height, leaving room for text and border container
+          // Border container adds ~11px (4px padding * 2 + 1.5px border * 2)
+          final iconSize = (boxHeight * 0.4).clamp(28.0, 48.0);
           final fontSize = (boxHeight * 0.14).clamp(10.0, 14.0);
 
           final l10n = AppLocalizations.of(context);
@@ -139,11 +140,27 @@ class _IntensityOption extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                _imagePath,
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.contain,
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.5)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Image.asset(
+                  _imagePath,
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.contain,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

@@ -538,6 +538,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Check if a record overlaps with any other record in the list
+  /// CUR-443: Used to show warning icon on overlapping events
+  bool _hasOverlap(NosebleedRecord record) {
+    if (!record.isRealEvent ||
+        record.startTime == null ||
+        record.endTime == null) {
+      return false;
+    }
+
+    for (final other in _records) {
+      // Skip same record
+      if (other.id == record.id) continue;
+
+      // Only check real events with both start and end times
+      if (!other.isRealEvent ||
+          other.startTime == null ||
+          other.endTime == null) {
+        continue;
+      }
+
+      // Check if events overlap
+      if (record.startTime!.isBefore(other.endTime!) &&
+          record.endTime!.isAfter(other.startTime!)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final today = DateTime.now();
@@ -592,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // Today's records
+    // Today's records (excluding incomplete - they have their own warning banner)
     final todayRecords =
         _records.where((r) {
           final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
@@ -863,50 +892,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Missing data button (placeholder)
                   // TODO: Add missing data functionality
 
-                  // Main record button - large red button
+                  // Main record button - compact red button
                   SizedBox(
                     width: double.infinity,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Get screen height
-                        final screenHeight = MediaQuery.of(context).size.height;
-                        // Calculate 25vh (25% of viewport height)
-                        final buttonHeight = screenHeight * 0.25;
-                        // Ensure minimum height of 160px
-                        final finalHeight = buttonHeight < 160
-                            ? 160.0
-                            : buttonHeight;
-
-                        return SizedBox(
-                          height: finalHeight,
-                          child: FilledButton(
-                            onPressed: _navigateToRecording,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.red.shade600,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              elevation: 4,
-                              shadowColor: Colors.black.withValues(alpha: 0.3),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.add, size: 48),
-                                const SizedBox(height: 12),
-                                Text(
-                                  AppLocalizations.of(context).recordNosebleed,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                    height: 80,
+                    child: FilledButton(
+                      onPressed: _navigateToRecording,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 4,
+                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add, size: 32),
+                          const SizedBox(width: 12),
+                          Text(
+                            AppLocalizations.of(context).recordNosebleed,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
                   ),
 
@@ -1078,6 +1092,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: EventListItem(
                 record: record,
                 onTap: () => _navigateToEditRecord(record),
+                hasOverlap: _hasOverlap(record),
               ),
             ),
           ),

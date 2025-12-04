@@ -12,9 +12,8 @@ void main() {
   group('EventListItem', () {
     final testDate = DateTime(2024, 1, 15);
 
-    testWidgets('displays time range when both start and end time provided', (
-      tester,
-    ) async {
+    // CUR-443: One-line format shows only start time, not time range
+    testWidgets('displays start time only (one-line format)', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -26,8 +25,8 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
+      // Should show start time only, not end time in one-line format
       expect(find.textContaining('10:30 AM'), findsOneWidget);
-      expect(find.textContaining('10:45 AM'), findsOneWidget);
     });
 
     testWidgets('displays only start time when end time is missing', (
@@ -46,16 +45,17 @@ void main() {
       expect(find.text('2:00 PM'), findsOneWidget);
     });
 
-    testWidgets('displays -- when no times provided', (tester) async {
+    testWidgets('displays --:-- when no times provided', (tester) async {
       final record = NosebleedRecord(id: 'test-1', date: testDate);
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('--'), findsOneWidget);
+      expect(find.text('--:--'), findsOneWidget);
     });
 
-    testWidgets('displays intensity name', (tester) async {
+    // CUR-443: Intensity is now shown as an icon image, not text
+    testWidgets('displays intensity icon image', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -67,10 +67,11 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('Steady stream'), findsOneWidget);
+      // Should find an Image widget for the intensity icon
+      expect(find.byType(Image), findsOneWidget);
     });
 
-    testWidgets('does not display intensity when null', (tester) async {
+    testWidgets('does not display intensity icon when null', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -80,9 +81,8 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      for (final intensity in NosebleedIntensity.values) {
-        expect(find.text(intensity.displayName), findsNothing);
-      }
+      // No intensity image should be shown
+      expect(find.byType(Image), findsNothing);
     });
 
     testWidgets('displays duration in minutes', (tester) async {
@@ -132,9 +132,8 @@ void main() {
       expect(find.text('2h'), findsOneWidget);
     });
 
-    testWidgets('shows Incomplete badge for incomplete records', (
-      tester,
-    ) async {
+    // CUR-443: Incomplete indicator is now edit icon, not text badge
+    testWidgets('shows edit icon for incomplete records', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -145,13 +144,10 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('Incomplete'), findsOneWidget);
-      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     });
 
-    testWidgets('does not show Incomplete badge for complete records', (
-      tester,
-    ) async {
+    testWidgets('does not show edit icon for complete records', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -164,7 +160,7 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('Incomplete'), findsNothing);
+      expect(find.byIcon(Icons.edit_outlined), findsNothing);
     });
 
     testWidgets('shows chevron icon when onTap is provided', (tester) async {
@@ -227,27 +223,57 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('displays intensity indicator bar', (tester) async {
+    // CUR-443: Intensity is now shown as an image, not a colored bar
+    testWidgets('displays intensity as image not bar', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
+        startTime: DateTime(2024, 1, 15, 10, 30),
         intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      // Find the container that serves as the intensity indicator
-      final containers = tester.widgetList<Container>(find.byType(Container));
-      final hasIndicator = containers.any((container) {
-        final decoration = container.decoration;
-        if (decoration is BoxDecoration) {
-          return container.constraints?.maxWidth == 4;
-        }
-        return false;
-      });
+      // Should find an Image widget for the intensity
+      expect(find.byType(Image), findsOneWidget);
+    });
 
-      expect(hasIndicator, true);
+    // CUR-443: New hasOverlap feature for warning icons
+    testWidgets('shows warning icon when hasOverlap is true', (tester) async {
+      final record = NosebleedRecord(
+        id: 'test-1',
+        date: testDate,
+        startTime: DateTime(2024, 1, 15, 10, 30),
+        endTime: DateTime(2024, 1, 15, 10, 45),
+        intensity: NosebleedIntensity.dripping,
+      );
+
+      await tester.pumpWidget(
+        wrapWithScaffold(EventListItem(record: record, hasOverlap: true)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    });
+
+    testWidgets('does not show warning icon when hasOverlap is false', (
+      tester,
+    ) async {
+      final record = NosebleedRecord(
+        id: 'test-1',
+        date: testDate,
+        startTime: DateTime(2024, 1, 15, 10, 30),
+        endTime: DateTime(2024, 1, 15, 10, 45),
+        intensity: NosebleedIntensity.dripping,
+      );
+
+      await tester.pumpWidget(
+        wrapWithScaffold(EventListItem(record: record, hasOverlap: false)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
     });
 
     group('No Nosebleeds event card', () {

@@ -141,23 +141,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
     // Records without all fields will be marked as incomplete by the service
     if (_startTime == null) return;
 
-    // Check for overlapping events - only if we have both start and end times
-    if (_endTime != null) {
-      final overlaps = _getOverlappingEvents();
-      if (overlaps.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              ).cannotSaveOverlapCount(overlaps.length),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-        return;
-      }
-    }
+    // CUR-443: Overlapping events are allowed - warning shown in UI but doesn't block save
+    // User can save and fix either record later
 
     // CUR-408: Notes validation removed - notes step removed from recording flow
 
@@ -533,8 +518,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
         widget.existingRecord!.endTime != null;
 
     // CUR-408: Notes-related currentRecord and needsNotes removed
+    // CUR-443: hasOverlaps removed - overlaps show warning but don't block save
 
-    final hasOverlaps = _getOverlappingEvents().isNotEmpty;
     final buttonText = widget.existingRecord != null
         ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
         : l10n.finished;
@@ -544,14 +529,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 64,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-
-          const SizedBox(height: 24),
-
+          // CUR-443: Removed large checkmark icon - not in spec
           Text(
             widget.existingRecord != null && !isExistingComplete
                 ? l10n.completeRecord
@@ -594,13 +572,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // CUR-408: Notes display section removed from complete step
           const Spacer(),
 
-          // CUR-410: Red error container removed - overlap warning banner
-          // now shows the specific conflicting record time range
+          // CUR-443: Overlaps show warning but don't block save
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              // CUR-408: Simplified - notes validation removed
-              onPressed: (_isSaving || hasOverlaps) ? null : _saveRecord,
+              onPressed: _isSaving ? null : _saveRecord,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

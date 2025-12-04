@@ -101,6 +101,7 @@ void main() {
       expect(find.text('No events recorded for this day'), findsOneWidget);
     });
 
+    // CUR-443: One-line format shows times, not intensity names
     testWidgets('displays list of records', (tester) async {
       final records = [
         NosebleedRecord(
@@ -131,11 +132,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Should display both records
-      expect(find.text('Dripping'), findsOneWidget);
-      expect(find.text('Steady stream'), findsOneWidget);
+      // Should display both records by their start times
+      expect(find.textContaining('10:30 AM'), findsOneWidget);
+      expect(find.textContaining('2:00 PM'), findsOneWidget);
+      // Intensity is shown as images, not text
+      expect(find.byType(Image), findsNWidgets(2));
     });
 
+    // CUR-443: One-line format - tap by start time, not intensity name
     testWidgets('calls onEditEvent when record is tapped', (tester) async {
       NosebleedRecord? tappedRecord;
       final record = NosebleedRecord(
@@ -158,8 +162,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap on the record card
-      await tester.tap(find.text('Dripping'));
+      // Tap on the record card by finding the start time
+      await tester.tap(find.textContaining('10:30 AM'));
       await tester.pump();
 
       expect(tappedRecord, isNotNull);

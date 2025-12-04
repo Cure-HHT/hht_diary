@@ -28,6 +28,35 @@ class DateRecordsScreen extends StatelessWidget {
     return l10n.eventCount(records.length);
   }
 
+  /// Check if a record overlaps with any other record in the list
+  /// CUR-443: Used to show warning icon on overlapping events
+  bool _hasOverlap(NosebleedRecord record) {
+    if (!record.isRealEvent ||
+        record.startTime == null ||
+        record.endTime == null) {
+      return false;
+    }
+
+    for (final other in records) {
+      // Skip same record
+      if (other.id == record.id) continue;
+
+      // Only check real events with both start and end times
+      if (!other.isRealEvent ||
+          other.startTime == null ||
+          other.endTime == null) {
+        continue;
+      }
+
+      // Check if events overlap
+      if (record.startTime!.isBefore(other.endTime!) &&
+          record.endTime!.isAfter(other.startTime!)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -120,7 +149,11 @@ class DateRecordsScreen extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final record = records[index];
-        return EventListItem(record: record, onTap: () => onEditEvent(record));
+        return EventListItem(
+          record: record,
+          onTap: () => onEditEvent(record),
+          hasOverlap: _hasOverlap(record),
+        );
       },
     );
   }

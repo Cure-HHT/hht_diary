@@ -119,11 +119,27 @@ class _IntensityItem extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  _imagePath,
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.contain,
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.5)
+                          : Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Image.asset(
+                    _imagePath,
+                    width: iconSize,
+                    height: iconSize,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
