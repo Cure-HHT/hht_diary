@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-p00001: Incomplete Entry Preservation (CUR-405)
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
@@ -289,190 +290,232 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     );
   }
 
+  /// Check if we have unsaved changes that could be saved as a partial record
+  bool get _hasUnsavedPartialRecord {
+    // If we're editing an existing record, check if values changed
+    if (widget.existingRecord != null) {
+      return _startTime != widget.existingRecord!.startTime ||
+          _endTime != widget.existingRecord!.endTime ||
+          _severity != widget.existingRecord!.severity;
+    }
+    // For new records, we have unsaved data if user has explicitly set any field
+    return _userSetStart || _userSetEnd || _userSetSeverity;
+  }
+
+  /// Auto-save partial record when user navigates away with unsaved changes.
+  /// REQ-p00001: Incomplete Entry Preservation - automatically saves partial
+  /// records without prompting the user.
+  Future<bool> _handleExit() async {
+    if (!_hasUnsavedPartialRecord) return true;
+
+    // Auto-save the partial record without prompting
+    final l10n = AppLocalizations.of(context);
+    await _saveRecord(l10n);
+    // _saveRecord handles navigation via Navigator.pop, so return false
+    // to prevent double navigation
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final overlappingEvents = _getOverlappingEvents();
     final hasOverlaps = overlappingEvents.isNotEmpty && _endTime != null;
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header with back and delete buttons
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: Text(l10n.back),
-                  ),
-                  // Delete button only for existing records
-                  if (widget.existingRecord != null)
-                    IconButton(
-                      onPressed: _handleDelete,
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      tooltip: l10n.deleteRecordTooltip,
-                    ),
-                ],
-              ),
-            ),
-
-            // Date header (tappable)
-            DateHeader(date: _date, onChange: _handleDateChange),
-
-            const SizedBox(height: 16),
-
-            // Scrollable content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handleExit();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header with back and delete buttons
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Overlap warning
-                    if (hasOverlaps)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: OverlapWarning(
-                          overlappingCount: overlappingEvents.length,
-                        ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        final shouldPop = await _handleExit();
+                        if (shouldPop && context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back),
+                      label: Text(l10n.back),
+                    ),
+                    // Delete button only for existing records
+                    if (widget.existingRecord != null)
+                      IconButton(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        tooltip: l10n.deleteRecordTooltip,
                       ),
-
-                    // Start Time Section
-                    Text(
-                      l10n.nosebleedStart,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    InlineTimePicker(
-                      key: _startTimePickerKey,
-                      initialTime:
-                          _startTime ??
-                          DateTime(
-                            _date.year,
-                            _date.month,
-                            _date.day,
-                            DateTime.now().hour,
-                            DateTime.now().minute,
-                          ),
-                      onTimeChanged: _handleStartTimeChange,
-                      allowFutureTimes: false,
-                      maxDateTime: _maxDateTimeForTimePicker,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Intensity Section
-                    Text(
-                      l10n.intensity,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    IntensityRow(
-                      selectedIntensity: _severity,
-                      onSelect: _handleSeveritySelect,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // End Time Section
-                    Text(
-                      l10n.nosebleedEnd,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    InlineTimePicker(
-                      key: _endTimePickerKey,
-                      initialTime: _endTime,
-                      onTimeChanged: (time) => _handleEndTimeChange(time, l10n),
-                      allowFutureTimes: false,
-                      minTime: _startTime,
-                      maxDateTime: _maxDateTimeForTimePicker,
-                    ),
-
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-            ),
 
-            // Bottom action button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Show overlap error message if overlaps exist
-                  if (hasOverlaps)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onErrorContainer,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l10n.cannotSaveOverlap,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onErrorContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              // Date header (tappable)
+              DateHeader(date: _date, onChange: _handleDateChange),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: (_isSaving || !_canSubmit())
-                          ? null
-                          : () => _saveRecord(l10n),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+              const SizedBox(height: 16),
+
+              // Scrollable content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Overlap warning
+                      if (hasOverlaps)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: OverlapWarning(
+                            overlappingCount: overlappingEvents.length,
+                          ),
+                        ),
+
+                      // Start Time Section
+                      Text(
+                        l10n.nosebleedStart,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              _getButtonText(l10n),
-                              style: const TextStyle(fontSize: 18),
+                      const SizedBox(height: 8),
+                      InlineTimePicker(
+                        key: _startTimePickerKey,
+                        initialTime:
+                            _startTime ??
+                            DateTime(
+                              _date.year,
+                              _date.month,
+                              _date.day,
+                              DateTime.now().hour,
+                              DateTime.now().minute,
                             ),
-                    ),
+                        onTimeChanged: _handleStartTimeChange,
+                        allowFutureTimes: false,
+                        maxDateTime: _maxDateTimeForTimePicker,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Intensity Section
+                      Text(
+                        l10n.intensity,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      IntensityRow(
+                        selectedIntensity: _severity,
+                        onSelect: _handleSeveritySelect,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // End Time Section
+                      Text(
+                        l10n.nosebleedEnd,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      InlineTimePicker(
+                        key: _endTimePickerKey,
+                        initialTime: _endTime,
+                        onTimeChanged: (time) =>
+                            _handleEndTimeChange(time, l10n),
+                        allowFutureTimes: false,
+                        minTime: _startTime,
+                        maxDateTime: _maxDateTimeForTimePicker,
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              // Bottom action button
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Show overlap error message if overlaps exist
+                    if (hasOverlaps)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onErrorContainer,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l10n.cannotSaveOverlap,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: (_isSaving || !_canSubmit())
+                            ? null
+                            : () => _saveRecord(l10n),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _getButtonText(l10n),
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
