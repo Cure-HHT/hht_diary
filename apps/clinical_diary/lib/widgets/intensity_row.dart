@@ -68,17 +68,17 @@ class _IntensityItem extends StatelessWidget {
   String get _imagePath {
     switch (intensity) {
       case NosebleedIntensity.spotting:
-        return 'assets/images/severity_spotting.png';
+        return 'assets/images/intensity_spotting.png';
       case NosebleedIntensity.dripping:
-        return 'assets/images/severity_dripping.png';
+        return 'assets/images/intensity_dripping.png';
       case NosebleedIntensity.drippingQuickly:
-        return 'assets/images/severity_dripping_quickly.png';
+        return 'assets/images/intensity_dripping_quickly.png';
       case NosebleedIntensity.steadyStream:
-        return 'assets/images/severity_steady_stream.png';
+        return 'assets/images/intensity_steady_stream.png';
       case NosebleedIntensity.pouring:
-        return 'assets/images/severity_pouring.png';
+        return 'assets/images/intensity_pouring.png';
       case NosebleedIntensity.gushing:
-        return 'assets/images/severity_gushing.png';
+        return 'assets/images/intensity_gushing.png';
     }
   }
 

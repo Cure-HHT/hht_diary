@@ -1359,8 +1359,8 @@ class AppLocalizations {
   String get gushing => translate('gushing');
 
   /// Get localized Intensity name for a given Intensity enum value
-  String intensityName(String severity) {
-    switch (severity) {
+  String intensityName(String intensity) {
+    switch (intensity) {
       case 'spotting':
         return spotting;
       case 'dripping':
@@ -1374,7 +1374,7 @@ class AppLocalizations {
       case 'gushing':
         return gushing;
       default:
-        return severity;
+        return intensity;
     }
   }
 

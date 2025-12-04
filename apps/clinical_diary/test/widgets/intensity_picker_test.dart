@@ -31,7 +31,7 @@ void main() {
       );
     });
 
-    testWidgets('displays severity options (first visible ones)', (
+    testWidgets('displays intensity options (first visible ones)', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -46,17 +46,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // At least some severity options should be visible
+      // At least some intensity options should be visible
       expect(find.text('Spotting'), findsOneWidget);
       expect(find.text('Dripping'), findsOneWidget);
     });
 
-    testWidgets('calls onSelect when severity is tapped', (tester) async {
+    testWidgets('calls onSelect when intensity is tapped', (tester) async {
       NosebleedIntensity? selected;
 
       await tester.pumpWidget(
         wrapWithScaffold(
-          IntensityPicker(onSelect: (severity) => selected = severity),
+          IntensityPicker(onSelect: (intensity) => selected = intensity),
         ),
       );
       await tester.pumpAndSettle();
@@ -94,7 +94,7 @@ void main() {
       ]);
     });
 
-    testWidgets('highlights selected severity', (tester) async {
+    testWidgets('highlights selected intensity', (tester) async {
       await tester.pumpWidget(
         wrapWithMaterialApp(
           Scaffold(
@@ -110,7 +110,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The selected severity should show with bold font
+      // The selected intensity should show with bold font
       // Note: label has newline because spaces are replaced with \n
       final textWidget = tester.widget<Text>(find.text('Steady\nstream'));
       expect(textWidget.style?.fontWeight, FontWeight.bold);
@@ -129,7 +129,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Non-selected severity should not be bold
+      // Non-selected intensity should not be bold
       final textWidget = tester.widget<Text>(find.text('Spotting'));
       expect(textWidget.style?.fontWeight, FontWeight.w500);
     });
@@ -147,7 +147,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Should have custom severity images (one for each visible severity)
+      // Should have custom intensity images (one for each visible intensity)
       expect(find.byType(Image), findsWidgets);
     });
 

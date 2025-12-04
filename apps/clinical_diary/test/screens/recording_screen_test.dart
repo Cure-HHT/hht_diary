@@ -127,7 +127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Start'), findsOneWidget);
-        expect(find.text('Severity'), findsOneWidget);
+        expect(find.text('Intensity'), findsOneWidget);
         expect(find.text('End'), findsOneWidget);
       });
     });
@@ -187,7 +187,7 @@ void main() {
         expect(find.text('Duration: 15 minutes'), findsOneWidget);
       });
 
-      testWidgets('shows severity picker for record missing severity', (
+      testWidgets('shows intensity picker for record missing intensity', (
         tester,
       ) async {
         final incompleteRecord = NosebleedRecord(
@@ -195,7 +195,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           isIncomplete: true,
-          // Missing severity and endTime
+          // Missing intensity and endTime
         );
 
         await tester.pumpWidget(
@@ -209,7 +209,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
@@ -309,7 +309,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          // Missing severity
+          // Missing intensity
           isIncomplete: true,
         );
 
@@ -324,7 +324,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Select a severity to proceed to complete step
+        // Select a intensity to proceed to complete step
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -367,11 +367,11 @@ void main() {
         // Should show start time picker
         expect(find.text('Nosebleed Start'), findsOneWidget);
 
-        // Tap on severity in summary bar
+        // Tap on intensity in summary bar
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
       });
     });
@@ -673,7 +673,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -727,14 +727,14 @@ void main() {
         expect(find.text('Save Changes'), findsOneWidget);
         expect(find.text('Edit Record'), findsOneWidget);
 
-        // Navigate to severity to change it
+        // Navigate to intensity to change it
         await tester.tap(find.text('Spotting'));
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Dripping'), findsOneWidget);
 
-        // Change severity
+        // Change intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -774,7 +774,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -798,7 +798,7 @@ void main() {
     // CUR-408: Notes Requirement group removed - notes step removed from flow
 
     group('Start Time Confirmation', () {
-      testWidgets('advances to severity step after confirming start time', (
+      testWidgets('advances to intensity step after confirming start time', (
         tester,
       ) async {
         await tester.pumpWidget(
@@ -818,7 +818,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Should now show severity picker
+        // Should now show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
@@ -914,8 +914,8 @@ void main() {
       });
     });
 
-    group('Severity Selection', () {
-      testWidgets('initializes end time when severity is selected', (
+    group('Intensity Selection', () {
+      testWidgets('initializes end time when intensity is selected', (
         tester,
       ) async {
         // Use a larger screen size to avoid overflow issues
@@ -941,13 +941,13 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
         // Should show end time picker with initialized time
         expect(find.text('Nosebleed End Time'), findsOneWidget);
-        // End time should not be '--:--' after selecting severity
+        // End time should not be '--:--' after selecting intensity
         expect(find.text('--:--'), findsNothing);
       });
     });

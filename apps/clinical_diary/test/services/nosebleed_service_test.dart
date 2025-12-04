@@ -198,7 +198,7 @@ void main() {
         final record = await service.addRecord(
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
-          // Missing endTime and severity
+          // Missing endTime and intensity
         );
 
         expect(record.isIncomplete, true);
@@ -339,7 +339,7 @@ void main() {
         await service.addRecord(
           date: DateTime(2024, 1, 16),
           startTime: DateTime(2024, 1, 16, 10, 0),
-          // Missing endTime and severity
+          // Missing endTime and intensity
         );
 
         // No-nosebleed event (complete)
@@ -617,7 +617,7 @@ void main() {
         final incomplete = await service.addRecord(
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
-          // Missing endTime and severity
+          // Missing endTime and intensity
         );
         expect(incomplete.isIncomplete, true);
 
@@ -627,7 +627,7 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedIntensity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Completed later',
         );
 
@@ -834,7 +834,7 @@ void main() {
         await service.addRecord(
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
-          // Missing endTime and severity
+          // Missing endTime and intensity
         );
 
         final status = await service.getDayStatus(DateTime(2024, 1, 15));
@@ -928,7 +928,7 @@ void main() {
         await service.addRecord(
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
-          // Missing endTime and severity
+          // Missing endTime and intensity
         );
 
         final statuses = await service.getDayStatusRange(
@@ -1212,7 +1212,7 @@ void main() {
                     'date': '2024-01-20T00:00:00.000',
                     'startTime': '2024-01-20T10:00:00.000',
                     'endTime': '2024-01-20T10:30:00.000',
-                    'severity': 'dripping',
+                    'intensity': 'dripping',
                     'notes': 'Cloud record notes',
                     'isNoNosebleedsEvent': false,
                     'isUnknownEvent': false,

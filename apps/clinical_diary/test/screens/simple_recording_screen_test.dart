@@ -265,8 +265,8 @@ void main() {
           await tester.tap(find.text('Open Recording'));
           await tester.pumpAndSettle();
 
-          // Set intensity (tap on one of the severity options)
-          // The IntensityRow shows severity options
+          // Set intensity (tap on one of the intensity options)
+          // The IntensityRow shows intensity options
           await tester.tap(find.text('Dripping'));
           await tester.pumpAndSettle();
 
@@ -280,7 +280,7 @@ void main() {
           // Should NOT show any dialog
           expect(find.text('Save as Incomplete?'), findsNothing);
 
-          // Verify a record was saved with severity
+          // Verify a record was saved with intensity
           final records = await nosebleedService.getRecordsForDate(
             DateTime(2024, 1, 15),
           );

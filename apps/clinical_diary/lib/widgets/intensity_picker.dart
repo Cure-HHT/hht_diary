@@ -57,13 +57,13 @@ class IntensityPicker extends StatelessWidget {
                   crossAxisSpacing: 8,
                   childAspectRatio: (constraints.maxWidth / 2 - 12) / boxHeight,
                   physics: const NeverScrollableScrollPhysics(),
-                  children: NosebleedIntensity.values.map((severity) {
-                    final isSelected = selectedIntensity == severity;
+                  children: NosebleedIntensity.values.map((intensity) {
+                    final isSelected = selectedIntensity == intensity;
                     return _IntensityOption(
-                      severity: severity,
-                      severityLabel: l10n.intensityName(severity.name),
+                      intensity: intensity,
+                      intensityLabel: l10n.intensityName(intensity.name),
                       isSelected: isSelected,
-                      onTap: () => onSelect(severity),
+                      onTap: () => onSelect(intensity),
                       iconSize: iconSize,
                       fontSize: fontSize,
                     );
@@ -80,34 +80,34 @@ class IntensityPicker extends StatelessWidget {
 
 class _IntensityOption extends StatelessWidget {
   const _IntensityOption({
-    required this.severity,
-    required this.severityLabel,
+    required this.intensity,
+    required this.intensityLabel,
     required this.isSelected,
     required this.onTap,
     this.iconSize = 56,
     this.fontSize = 14,
   });
-  final NosebleedIntensity severity;
-  final String severityLabel;
+  final NosebleedIntensity intensity;
+  final String intensityLabel;
   final bool isSelected;
   final VoidCallback onTap;
   final double iconSize;
   final double fontSize;
 
   String get _imagePath {
-    switch (severity) {
+    switch (intensity) {
       case NosebleedIntensity.spotting:
-        return 'assets/images/severity_spotting.png';
+        return 'assets/images/intensity_spotting.png';
       case NosebleedIntensity.dripping:
-        return 'assets/images/severity_dripping.png';
+        return 'assets/images/intensity_dripping.png';
       case NosebleedIntensity.drippingQuickly:
-        return 'assets/images/severity_dripping_quickly.png';
+        return 'assets/images/intensity_dripping_quickly.png';
       case NosebleedIntensity.steadyStream:
-        return 'assets/images/severity_steady_stream.png';
+        return 'assets/images/intensity_steady_stream.png';
       case NosebleedIntensity.pouring:
-        return 'assets/images/severity_pouring.png';
+        return 'assets/images/intensity_pouring.png';
       case NosebleedIntensity.gushing:
-        return 'assets/images/severity_gushing.png';
+        return 'assets/images/intensity_gushing.png';
     }
   }
 
@@ -148,7 +148,7 @@ class _IntensityOption extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 // Split two-word labels onto separate lines
-                severityLabel.replaceAll(' ', '\n'),
+                intensityLabel.replaceAll(' ', '\n'),
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,

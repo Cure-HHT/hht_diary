@@ -5,8 +5,8 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('NosebleedSeverity', () {
-    test('displayName returns correct string for each severity', () {
+  group('NosebleedIntensity', () {
+    test('displayName returns correct string for each intensity', () {
       expect(NosebleedIntensity.spotting.displayName, 'Spotting');
       expect(NosebleedIntensity.dripping.displayName, 'Dripping');
       expect(
@@ -123,7 +123,7 @@ void main() {
           'date': '2024-01-15T00:00:00.000',
           'startTime': '2024-01-15T10:30:00.000',
           'endTime': '2024-01-15T10:45:00.000',
-          'severity': 'dripping',
+          'intensity': 'dripping',
           'notes': 'Test notes',
           'isNoNosebleedsEvent': false,
           'isUnknownEvent': false,
@@ -150,7 +150,7 @@ void main() {
           'date': '2024-01-15T00:00:00.000',
           'startTime': null,
           'endTime': null,
-          'severity': null,
+          'intensity': null,
           'notes': null,
         };
 
@@ -193,7 +193,7 @@ void main() {
         expect(json['date'], testDate.toIso8601String());
         expect(json['startTime'], testStartTime.toIso8601String());
         expect(json['endTime'], testEndTime.toIso8601String());
-        expect(json['severity'], 'dripping');
+        expect(json['intensity'], 'dripping');
         expect(json['notes'], 'Test notes');
         expect(json['deviceUuid'], 'device-uuid');
         expect(json['createdAt'], createdAt.toIso8601String());
@@ -206,7 +206,7 @@ void main() {
 
         expect(json['startTime'], isNull);
         expect(json['endTime'], isNull);
-        expect(json['severity'], isNull);
+        expect(json['intensity'], isNull);
         expect(json['notes'], isNull);
         expect(json['syncedAt'], isNull);
       });
@@ -316,7 +316,7 @@ void main() {
         expect(record.isComplete, false);
       });
 
-      test('isComplete returns false when severity is missing', () {
+      test('isComplete returns false when intensity is missing', () {
         final record = NosebleedRecord(
           id: 'test-123',
           date: testDate,

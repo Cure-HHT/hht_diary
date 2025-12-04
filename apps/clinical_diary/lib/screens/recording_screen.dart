@@ -229,9 +229,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  void _handleIntensitySelect(NosebleedIntensity severity) {
+  void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
-      _intensity = severity;
+      _intensity = intensity;
       _currentStep = RecordingStep.endTime;
       // Initialize end time to start time + 15 minutes if not set
       // This preserves the date from _startTime instead of using today's date
@@ -493,7 +493,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
       case RecordingStep.intensity:
         return IntensityPicker(
-          key: const ValueKey('severity_picker'),
+          key: const ValueKey('intensity_picker'),
           selectedIntensity: _intensity,
           onSelect: _handleIntensitySelect,
         );

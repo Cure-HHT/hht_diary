@@ -280,7 +280,7 @@ class NosebleedService {
     required DateTime date,
     required DateTime startTime,
     required DateTime endTime,
-    required NosebleedIntensity severity,
+    required NosebleedIntensity intensity,
     String? notes,
   }) async {
     // Mark the original as completed by adding a new complete record
@@ -289,7 +289,7 @@ class NosebleedService {
       date: date,
       startTime: startTime,
       endTime: endTime,
-      intensity: severity,
+      intensity: intensity,
       notes: notes,
     );
   }
@@ -461,7 +461,7 @@ class NosebleedService {
                 if (cloudRecord.endTime != null)
                   'endTime': cloudRecord.endTime!.toIso8601String(),
                 if (cloudRecord.intensity != null)
-                  'severity': cloudRecord.intensity!.name,
+                  'intensity': cloudRecord.intensity!.name,
                 if (cloudRecord.notes != null) 'notes': cloudRecord.notes,
                 'isNoNosebleedsEvent': cloudRecord.isNoNosebleedsEvent,
                 'isUnknownEvent': cloudRecord.isUnknownEvent,

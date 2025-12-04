@@ -269,9 +269,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     });
   }
 
-  void _handleIntensitySelect(NosebleedIntensity severity) {
+  void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
-      _intensity = severity;
+      _intensity = intensity;
       _userSetIntensity = true;
     });
   }

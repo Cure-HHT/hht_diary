@@ -55,7 +55,7 @@ void main() {
       expect(find.text('--'), findsOneWidget);
     });
 
-    testWidgets('displays severity name', (tester) async {
+    testWidgets('displays intensity name', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -70,7 +70,7 @@ void main() {
       expect(find.text('Steady stream'), findsOneWidget);
     });
 
-    testWidgets('does not display severity when null', (tester) async {
+    testWidgets('does not display intensity when null', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -80,8 +80,8 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      for (final severity in NosebleedIntensity.values) {
-        expect(find.text(severity.displayName), findsNothing);
+      for (final intensity in NosebleedIntensity.values) {
+        expect(find.text(intensity.displayName), findsNothing);
       }
     });
 
@@ -227,7 +227,7 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('displays severity indicator bar', (tester) async {
+    testWidgets('displays intensity indicator bar', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
         date: testDate,
@@ -237,7 +237,7 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      // Find the container that serves as the severity indicator
+      // Find the container that serves as the intensity indicator
       final containers = tester.widgetList<Container>(find.byType(Container));
       final hasIndicator = containers.any((container) {
         final decoration = container.decoration;
