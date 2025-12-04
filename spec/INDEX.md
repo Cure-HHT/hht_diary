@@ -120,15 +120,15 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00053 | ops-cicd.md | Branch Protection Enforcement | d0584e9a |
 | REQ-o00054 | ops-cicd.md | Audit Trail Generation for CI/CD | 7da5e2e7 |
 | REQ-o00055 | ops-portal.md | Role-Based Visual Indicator Verification | b02eb8c1 |
-| REQ-o00056 | ops-SLA.md | SLO Definition and Tracking | 358a2ee6 |
-| REQ-o00057 | ops-SLA.md | Automated Uptime Monitoring | 18300517 |
-| REQ-o00058 | ops-SLA.md | On-Call Automation | b7511122 |
+| REQ-o00056 | ops-SLA.md | SLO Definition and Tracking | 5efae38e |
+| REQ-o00057 | ops-SLA.md | Automated Uptime Monitoring | 29c323db |
+| REQ-o00058 | ops-SLA.md | On-Call Automation | 545e519a |
 | REQ-o00059 | ops-SLA.md | Automated Status Page | 6ef867f8 |
-| REQ-o00060 | ops-SLA.md | SLA Reporting Automation | 1cf9c150 |
-| REQ-o00061 | ops-SLA.md | Incident Classification Automation | 38a4fb26 |
-| REQ-o00062 | ops-SLA.md | RCA and CAPA Workflow | 5de3c7fa |
-| REQ-o00063 | ops-SLA.md | Error Budget Alerting | c57773b2 |
-| REQ-o00064 | ops-SLA.md | Maintenance Window Management | 6f533c4c |
+| REQ-o00060 | ops-SLA.md | SLA Reporting Automation | 037b0946 |
+| REQ-o00061 | ops-SLA.md | Incident Classification Automation | 5e96a7aa |
+| REQ-o00062 | ops-SLA.md | RCA and CAPA Workflow | ecec7aed |
+| REQ-o00063 | ops-SLA.md | Error Budget Alerting | 60d8b564 |
+| REQ-o00064 | ops-SLA.md | Maintenance Window Management | 3732f8ca |
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |

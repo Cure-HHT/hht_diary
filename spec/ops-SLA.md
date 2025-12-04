@@ -113,10 +113,9 @@ SLO configuration SHALL include:
    - Target: 99.5% success
    - Measurement: Rolling 7 days
 
-**GCP Configuration**:
+**GCP Configuration** (create availability SLO for portal):
 
 ```bash
-# Create availability SLO for portal
 gcloud monitoring slo create portal-availability \
   --service=portal \
   --project=$PROJECT_ID \
@@ -134,7 +133,7 @@ gcloud monitoring slo create portal-availability \
 - Burn rate alerts configured
 - Monthly SLO compliance exportable
 
-*End* *SLO Definition and Tracking* | **Hash**: 358a2ee6
+*End* *SLO Definition and Tracking* | **Hash**: 5efae38e
 ---
 
 # REQ-o00057: Automated Uptime Monitoring
@@ -160,10 +159,9 @@ Uptime check configuration:
 - **Immediate (P0)**: 2 consecutive failures from 2+ regions
 - **Warning**: 1 failure or latency > 5 seconds
 
-**GCP Configuration**:
+**GCP Configuration** (create uptime check):
 
 ```bash
-# Create uptime check
 gcloud monitoring uptime-check-configs create portal-health \
   --display-name="Portal Health Check" \
   --http-check-path="/health" \
@@ -182,7 +180,7 @@ gcloud monitoring uptime-check-configs create portal-health \
 - Alerts trigger within 2 minutes of outage
 - False positive rate < 1%
 
-*End* *Automated Uptime Monitoring* | **Hash**: 18300517
+*End* *Automated Uptime Monitoring* | **Hash**: 29c323db
 ---
 
 # REQ-o00058: On-Call Automation
@@ -218,10 +216,9 @@ On-call configuration:
    - Auto-escalation if unacknowledged
    - Acknowledgment logged for reporting
 
-**Integration**:
+**Integration** (PagerDuty service configuration):
 
 ```yaml
-# PagerDuty service configuration
 service:
   name: "Clinical Diary Production"
   escalation_policy: "production-critical"
@@ -239,7 +236,7 @@ service:
 - Response time tracked per incident
 - Monthly on-call reports generated
 
-*End* *On-Call Automation* | **Hash**: b7511122
+*End* *On-Call Automation* | **Hash**: 545e519a
 ---
 
 # REQ-o00059: Automated Status Page
@@ -325,10 +322,9 @@ Report content:
    - Emailed to sponsor contacts
    - Archived in Cloud Storage (7 years)
 
-**Cloud Scheduler Configuration**:
+**Cloud Scheduler Configuration** (monthly SLA report generation):
 
 ```bash
-# Monthly SLA report generation
 gcloud scheduler jobs create http sla-monthly-report \
   --location=$REGION \
   --schedule="0 6 1 * *" \
@@ -345,7 +341,7 @@ gcloud scheduler jobs create http sla-monthly-report \
 - Reports archived per retention policy
 - Report format approved by compliance
 
-*End* *SLA Reporting Automation* | **Hash**: 1cf9c150
+*End* *SLA Reporting Automation* | **Hash**: 037b0946
 ---
 
 # REQ-o00061: Incident Classification Automation
@@ -366,10 +362,9 @@ Classification rules:
 | Non-critical service down | P2 Medium | Yes |
 | Performance degradation | P3 Low | Yes |
 
-**Auto-classification logic**:
+**Auto-classification logic** (alert policy with severity label):
 
 ```yaml
-# Alert policy with severity label
 alertPolicy:
   displayName: "API High Error Rate"
   conditions:
@@ -396,7 +391,7 @@ alertPolicy:
 - Override history tracked
 - Classification accuracy reviewed monthly
 
-*End* *Incident Classification Automation* | **Hash**: 38a4fb26
+*End* *Incident Classification Automation* | **Hash**: 5e96a7aa
 ---
 
 # REQ-o00062: RCA and CAPA Workflow
@@ -435,10 +430,9 @@ Workflow stages:
    - 72-hour initiation deadline
    - 30-day effectiveness deadline
 
-**Linear Automation Rules**:
+**Linear Automation Rules** (auto-create RCA ticket for P0/P1):
 
 ```yaml
-# Auto-create RCA ticket for P0/P1
 automation:
   trigger: incident_resolved
   conditions:
@@ -459,7 +453,7 @@ automation:
 - CAPA effectiveness tracking automated
 - Workflow audit trail complete
 
-*End* *RCA and CAPA Workflow* | **Hash**: 5de3c7fa
+*End* *RCA and CAPA Workflow* | **Hash**: ecec7aed
 ---
 
 # REQ-o00063: Error Budget Alerting
@@ -481,10 +475,9 @@ Alert thresholds:
 - Fast burn (3x rate): Alert immediately
 - Slow burn (1.5x rate): Alert after 1 hour sustained
 
-**GCP Configuration**:
+**GCP Configuration** (error budget burn rate alert):
 
 ```bash
-# Error budget burn rate alert
 gcloud monitoring alerting-policies create \
   --display-name="Fast Error Budget Burn" \
   --condition-threshold-value=0.5 \
@@ -506,7 +499,7 @@ gcloud monitoring alerting-policies create \
 - Deployment freeze enforceable (CI/CD gate)
 - Chronic failure detected automatically
 
-*End* *Error Budget Alerting* | **Hash**: c57773b2
+*End* *Error Budget Alerting* | **Hash**: 60d8b564
 ---
 
 # REQ-o00064: Maintenance Window Management
@@ -533,10 +526,9 @@ Maintenance window process:
    - Actual vs. planned duration logged
    - Post-maintenance verification run
 
-**Automation**:
+**Automation** (create maintenance window):
 
 ```bash
-# Create maintenance window
 gcloud monitoring snooze create maintenance-window \
   --display-name="Scheduled Database Maintenance" \
   --criteria-policies=all \
@@ -557,7 +549,7 @@ gcloud monitoring snooze create maintenance-window \
 - Downtime excluded from SLA calculation
 - Overrun triggers immediate notification
 
-*End* *Maintenance Window Management* | **Hash**: 6f533c4c
+*End* *Maintenance Window Management* | **Hash**: 3732f8ca
 ---
 
 ## Implementation Checklist
