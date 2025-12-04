@@ -9,7 +9,14 @@
 
 ## Executive Summary
 
-Third-party timestamp attestation provides **independent, cryptographic proof** that clinical trial diary data existed at a specific point in time. This capability is essential for FDA 21 CFR Part 11 compliance, where audit trails must be tamper-evident and independently verifiable.
+Rigorous clinical trials require proof of the validity of the data used. This includes:
+- when the data was collected
+- who collected the data
+- how the data was collected
+
+Third-party timestamp attestation provides **independent, cryptographic proof** that the data used in a clinical trial diary data existed at a specific point in time. 
+This data must include information sufficient to allow verification of the souce of the data (who and how), as well as validating that the data points have not been altered.
+This capability is essential for FDA 21 CFR Part 11 compliance, where audit trails must be tamper-evident and independently verifiable.
 
 **Business Value**:
 - **Regulatory Defense**: Third-party timestamps provide evidence that cannot be forged or backdated, strengthening the defensibility of clinical trial data in FDA audits
@@ -22,13 +29,15 @@ Third-party timestamp attestation provides **independent, cryptographic proof** 
 - Long-term non-repudiation surviving cryptographic algorithm evolution
 - Data can be traced to its origin
 
-Third-party timestamp attestation is an essential component in providing evidence 
-that data was collected in the manner and time which is claimed. However, TPTA alone 
-cannot prove that data was created by a specific individual. That can only be 
-done by the individual in question. To achieve the highest level of confidence 
-in the authenticity of the data, that individual must provide proof of their 
-identity as well as proof of having the key necessary to generate the data 
-referenced in the timestamp. 
+**Necessary but not Sufficient**
+
+- Third-party timestamp attestation is an essential component in providing evidence that data was collected in the manner and time which is claimed. 
+- However, TPTA alone can only prove that the data was recorded at certain time. It cannot prove *who* recorded it.
+- Proof of the data source can only be done by a different independent trusted party that can attest to some unique value associated with the purported source to of the data. 
+- The ability to validate this ID relies on the issuing authority's existance at the time of the validation.
+- Example: A DMV knows the driver's license for a person. By recording a license number in the system, in a way that can be proven to have taken place at a certain time, you can establish the identity of a person in a way that cannot be later altered.
+- Depending on the level of proof required, it may still be necessary to verify directly with the subject that they were involved in the trial and that the unique ID is theirs. For maximum validation, the controller of the ID would be consulted as well.
+- Similarly, modern devices have unique serial numbers that can be used to verify the method of collection.
 
 ---
 
