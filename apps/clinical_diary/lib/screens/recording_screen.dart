@@ -1,12 +1,13 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
-import 'package:clinical_diary/widgets/notes_input.dart';
+// CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/severity_picker.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
@@ -36,16 +37,15 @@ class RecordingScreen extends StatefulWidget {
   State<RecordingScreen> createState() => _RecordingScreenState();
 }
 
-enum RecordingStep { startTime, severity, endTime, notes, complete }
+// CUR-408: Removed notes step from recording flow
+enum RecordingStep { startTime, severity, endTime, complete }
 
 class _RecordingScreenState extends State<RecordingScreen> {
   late DateTime _date;
   DateTime? _startTime;
   DateTime? _endTime;
   NosebleedSeverity? _severity;
-  String? _notes;
-  bool _isEnrolledInTrial = false;
-  DateTime? _enrollmentDateTime;
+  // CUR-408: Notes field removed from recording flow
 
   RecordingStep _currentStep = RecordingStep.startTime;
   bool _isSaving = false;
@@ -54,13 +54,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     _date = widget.initialDate ?? DateTime.now();
-    _loadEnrollmentStatus();
+    // CUR-408: Removed _loadEnrollmentStatus call - notes step removed
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
       _severity = widget.existingRecord!.severity;
-      _notes = widget.existingRecord!.notes;
+      // CUR-408: Notes field no longer loaded from existing record
       _currentStep = _getInitialStepForExisting();
     } else {
       // Default start time to the selected date with current time of day
@@ -75,15 +75,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  Future<void> _loadEnrollmentStatus() async {
-    final enrollment = await widget.enrollmentService.getEnrollment();
-    if (mounted) {
-      setState(() {
-        _isEnrolledInTrial = enrollment != null;
-        _enrollmentDateTime = enrollment?.enrolledAt;
-      });
-    }
-  }
+  // CUR-408: _loadEnrollmentStatus removed - notes step removed from recording flow
 
   RecordingStep _getInitialStepForExisting() {
     final record = widget.existingRecord!;
@@ -93,23 +85,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return RecordingStep.complete;
   }
 
-  bool _shouldRequireNotes(NosebleedRecord? record) {
-    if (!_isEnrolledInTrial || _enrollmentDateTime == null) return false;
-    if (record == null) return false;
+  // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow
 
-    final recordStartTime = record.startTime ?? record.date;
-    return recordStartTime.isAfter(_enrollmentDateTime!) ||
-        recordStartTime.isAtSameMomentAs(_enrollmentDateTime!);
-  }
-
-  String _formatTime(DateTime? time) {
+  String _formatTime(DateTime? time, String locale) {
     if (time == null) return '--:--';
-    return DateFormat('h:mm a').format(time);
+    return DateFormat.jm(locale).format(time);
   }
 
   int? get _durationMinutes {
     if (_startTime == null || _endTime == null) return null;
     return _endTime!.difference(_startTime!).inMinutes;
+  }
+
+  /// Returns the maximum DateTime allowed for time selection.
+  /// For today, returns DateTime.now() to prevent future times.
+  /// For past dates, returns end of that day (23:59:59) to allow any time.
+  DateTime? get _maxDateTimeForTimePicker {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+    }
+    // Today or future: use current time as max (default behavior)
+    return null;
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
@@ -136,41 +137,29 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   Future<void> _saveRecord() async {
-    if (_startTime == null || _endTime == null || _severity == null) return;
+    // At minimum, we need a start time to save a record
+    // Records without all fields will be marked as incomplete by the service
+    if (_startTime == null) return;
 
-    // Check for overlapping events - block save if any exist
-    final overlaps = _getOverlappingEvents();
-    if (overlaps.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Cannot save: This event overlaps with ${overlaps.length} existing ${overlaps.length == 1 ? 'event' : 'events'}',
+    // Check for overlapping events - only if we have both start and end times
+    if (_endTime != null) {
+      final overlaps = _getOverlappingEvents();
+      if (overlaps.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).cannotSaveOverlapCount(overlaps.length),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
+        );
+        return;
+      }
     }
 
-    // Check if notes are required
-    final currentRecord = NosebleedRecord(
-      id: widget.existingRecord?.id ?? '',
-      date: _date,
-      startTime: _startTime,
-      endTime: _endTime,
-      severity: _severity,
-      notes: _notes,
-    );
-
-    if (_shouldRequireNotes(currentRecord) &&
-        (_notes == null || _notes!.trim().isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notes are required for clinical trial participants'),
-        ),
-      );
-      return;
-    }
+    // CUR-408: Notes validation removed - notes step removed from recording flow
 
     setState(() => _isSaving = true);
 
@@ -183,7 +172,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           startTime: _startTime,
           endTime: _endTime,
           severity: _severity,
-          notes: _notes,
+          // CUR-408: notes parameter removed
         );
       } else {
         // Create new record
@@ -192,7 +181,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           startTime: _startTime,
           endTime: _endTime,
           severity: _severity,
-          notes: _notes,
+          // CUR-408: notes parameter removed
         );
       }
 
@@ -201,9 +190,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+        ).showSnackBar(SnackBar(content: Text('${l10n.failedToSave}: $e')));
       }
     } finally {
       if (mounted) {
@@ -254,36 +244,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void _handleEndTimeConfirm(DateTime time) {
     // Validate end time is after start time
     if (_startTime != null && time.isBefore(_startTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after start time')),
-      );
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
       return;
     }
 
     setState(() {
       _endTime = time;
-      // Always show notes step, it will be optional for non-enrolled users
-      _currentStep = RecordingStep.notes;
-    });
-  }
-
-  void _handleNotesChange(String notes) {
-    setState(() {
-      _notes = notes;
-    });
-  }
-
-  void _handleNotesBack() {
-    setState(() {
-      _currentStep = RecordingStep.endTime;
-    });
-  }
-
-  void _handleNotesNext() {
-    setState(() {
+      // CUR-408: Go directly to complete step, notes step removed
       _currentStep = RecordingStep.complete;
     });
   }
+
+  // CUR-408: _handleNotesChange, _handleNotesBack, _handleNotesNext removed
 
   Future<void> _handleDelete() async {
     await DeleteConfirmationDialog.show(
@@ -299,67 +274,126 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
+  /// Check if we have unsaved changes that could be saved as a partial record
+  bool get _hasUnsavedPartialRecord {
+    // If we're editing an existing record, check if values changed
+    if (widget.existingRecord != null) {
+      return _startTime != widget.existingRecord!.startTime ||
+          _endTime != widget.existingRecord!.endTime ||
+          _severity != widget.existingRecord!.severity;
+    }
+    // For new records, we have unsaved data if start time is set
+    // and we're not at the complete step (which has its own save button)
+    return _startTime != null && _currentStep != RecordingStep.complete;
+  }
+
+  /// Show confirmation dialog when user tries to leave with unsaved changes
+  Future<bool> _confirmExit() async {
+    if (!_hasUnsavedPartialRecord) return true;
+
+    final l10n = AppLocalizations.of(context);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.saveAsIncomplete),
+        content: Text(l10n.saveAsIncompleteDescription),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: Text(l10n.discard),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'cancel'),
+            child: Text(l10n.keepEditing),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, 'save'),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'save') {
+      await _saveRecord();
+      return false; // _saveRecord handles navigation via Navigator.pop
+    }
+    return result == 'discard';
+  }
+
   @override
   Widget build(BuildContext context) {
     final overlappingEvents = _getOverlappingEvents();
+    final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header with back and delete buttons
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back'),
-                  ),
-                  // Delete button only for existing records
-                  if (widget.existingRecord != null)
-                    IconButton(
-                      onPressed: _handleDelete,
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      tooltip: 'Delete record',
-                    ),
-                ],
-              ),
-            ),
-
-            // Date header (tappable)
-            DateHeader(date: _date, onChange: _handleDateChange),
-
-            const SizedBox(height: 16),
-
-            // Summary bar
-            _buildSummaryBar(),
-
-            const SizedBox(height: 16),
-
-            // Overlap warning
-            if (overlappingEvents.isNotEmpty)
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _confirmExit();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header with back and delete buttons
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: OverlapWarning(
-                  overlappingCount: overlappingEvents.length,
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
+                      label: Text(l10n.back),
+                    ),
+                    // Delete button only for existing records
+                    if (widget.existingRecord != null)
+                      IconButton(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        tooltip: l10n.deleteRecordTooltip,
+                      ),
+                  ],
                 ),
               ),
 
-            if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
+              // Date header (tappable)
+              DateHeader(date: _date, onChange: _handleDateChange),
 
-            // Main content area
-            Expanded(child: _buildCurrentStep()),
-          ],
+              const SizedBox(height: 16),
+
+              // Summary bar
+              _buildSummaryBar(l10n),
+
+              const SizedBox(height: 16),
+
+              // Overlap warning
+              if (overlappingEvents.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: OverlapWarning(
+                    overlappingCount: overlappingEvents.length,
+                  ),
+                ),
+
+              if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
+
+              // Main content area
+              Expanded(child: _buildCurrentStep(l10n)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSummaryBar() {
+  Widget _buildSummaryBar(AppLocalizations l10n) {
+    final locale = Localizations.localeOf(context).languageCode;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -372,8 +406,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
         children: [
           // Start time
           _buildSummaryItem(
-            label: 'Start',
-            value: _formatTime(_startTime),
+            label: l10n.start,
+            value: _formatTime(_startTime, locale),
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
           ),
@@ -382,8 +416,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           // Severity
           _buildSummaryItem(
-            label: 'Severity',
-            value: _severity?.displayName ?? 'Select...',
+            label: l10n.severity,
+            value: _severity != null
+                ? l10n.severityName(_severity!.name)
+                : l10n.selectSeverity,
             isActive: _currentStep == RecordingStep.severity,
             onTap: _startTime != null
                 ? () => _goToStep(RecordingStep.severity)
@@ -394,8 +430,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           // End time
           _buildSummaryItem(
-            label: 'End',
-            value: _formatTime(_endTime),
+            label: l10n.end,
+            value: _formatTime(_endTime, locale),
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _severity != null
                 ? () => _goToStep(RecordingStep.endTime)
@@ -449,7 +485,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
-  Widget _buildCurrentStep() {
+  Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
         // Use the selected date with current time, or existing start time
@@ -464,10 +500,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
             );
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
-          title: 'Nosebleed Start',
+          title: l10n.nosebleedStart,
           initialTime: startInitialTime,
           onConfirm: _handleStartTimeConfirm,
-          confirmLabel: 'Set Start Time',
+          confirmLabel: l10n.setStartTime,
+          maxDateTime: _maxDateTimeForTimePicker,
         );
 
       case RecordingStep.severity:
@@ -492,47 +529,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   ));
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
-          title: 'Nosebleed End Time',
+          title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
-          confirmLabel: 'Nosebleed Ended',
+          confirmLabel: l10n.nosebleedEnded,
+          maxDateTime: _maxDateTimeForTimePicker,
         );
 
-      case RecordingStep.notes:
-        return NotesInput(
-          key: const ValueKey('notes_input'),
-          notes: _notes ?? '',
-          onNotesChange: _handleNotesChange,
-          onBack: _handleNotesBack,
-          onNext: _handleNotesNext,
-          isRequired: _isEnrolledInTrial,
-        );
+      // CUR-408: Notes case removed from recording flow
 
       case RecordingStep.complete:
-        return _buildCompleteStep();
+        return _buildCompleteStep(l10n);
     }
   }
 
-  Widget _buildCompleteStep() {
+  Widget _buildCompleteStep(AppLocalizations l10n) {
     final isExistingComplete =
         widget.existingRecord != null &&
         widget.existingRecord!.severity != null &&
         widget.existingRecord!.endTime != null;
 
-    final currentRecord = NosebleedRecord(
-      id: widget.existingRecord?.id ?? '',
-      date: _date,
-      startTime: _startTime,
-      endTime: _endTime,
-      severity: _severity,
-      notes: _notes,
-    );
+    // CUR-408: Notes-related currentRecord and needsNotes removed
 
-    final needsNotes = _shouldRequireNotes(currentRecord);
     final hasOverlaps = _getOverlappingEvents().isNotEmpty;
     final buttonText = widget.existingRecord != null
-        ? (isExistingComplete ? 'Save Changes' : 'Complete Record')
-        : 'Finished';
+        ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
+        : l10n.finished;
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -549,10 +571,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           Text(
             widget.existingRecord != null && !isExistingComplete
-                ? 'Complete Record'
+                ? l10n.completeRecord
                 : widget.existingRecord != null
-                ? 'Edit Record'
-                : 'Record Complete',
+                ? l10n.editRecord
+                : l10n.recordComplete,
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -562,8 +584,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           Text(
             widget.existingRecord != null && !isExistingComplete
-                ? 'Review the information and save when ready'
-                : 'Tap any field above to edit it',
+                ? l10n.reviewAndSave
+                : l10n.tapFieldToEdit,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(
                 context,
@@ -580,62 +602,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Duration: $_durationMinutes minutes',
+                l10n.durationMinutes(_durationMinutes!),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
           ],
 
-          // Show notes if required
-          if (needsNotes) ...[
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Notes',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () =>
-                        setState(() => _currentStep = RecordingStep.notes),
-                    child: Text(
-                      (_notes?.isNotEmpty ?? false)
-                          ? _notes!
-                          : 'Tap to add notes (required)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: (_notes?.isNotEmpty ?? false)
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
+          // CUR-408: Notes display section removed from complete step
           const Spacer(),
 
           // Show overlap error message if overlaps exist
@@ -657,7 +630,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Cannot save: This event overlaps with existing events. Please adjust the time.',
+                      l10n.cannotSaveOverlap,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onErrorContainer,
                       ),
@@ -671,13 +644,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed:
-                  (_isSaving ||
-                      hasOverlaps ||
-                      (needsNotes &&
-                          (_notes == null || _notes!.trim().isEmpty)))
-                  ? null
-                  : _saveRecord,
+              // CUR-408: Simplified - notes validation removed
+              onPressed: (_isSaving || hasOverlaps) ? null : _saveRecord,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

@@ -1,45 +1,72 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Inline time picker widget with time display and adjustment buttons
 /// Designed to be used within a form layout without requiring a separate screen
+/// Supports null/unset state displaying "--:--"
 class InlineTimePicker extends StatefulWidget {
   const InlineTimePicker({
-    required this.initialTime,
     required this.onTimeChanged,
     super.key,
+    this.initialTime,
     this.allowFutureTimes = false,
     this.minTime,
+    this.maxDateTime,
   });
 
-  final DateTime initialTime;
+  /// Initial time, or null to show unset state (--:--)
+  final DateTime? initialTime;
   final ValueChanged<DateTime> onTimeChanged;
   final bool allowFutureTimes;
   final DateTime? minTime;
+
+  /// Optional maximum DateTime. When [allowFutureTimes] is false, this is used
+  /// as the limit instead of DateTime.now(). Useful when editing past dates
+  /// where the limit should be end-of-day rather than current moment.
+  final DateTime? maxDateTime;
 
   @override
   State<InlineTimePicker> createState() => _InlineTimePickerState();
 }
 
 class _InlineTimePickerState extends State<InlineTimePicker> {
-  late DateTime _selectedTime;
+  DateTime? _selectedTime;
 
   @override
   void initState() {
     super.initState();
-    _selectedTime = widget.initialTime;
+    _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
+  }
+
+  /// Gets the effective maximum DateTime for validation.
+  /// Uses maxDateTime if provided, otherwise DateTime.now().
+  DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
+
+  /// Clamps the given time to the effective max if future times are not allowed
+  DateTime? _clampToMaxIfNeeded(DateTime? time) {
+    if (time == null) return null;
+    if (!widget.allowFutureTimes && time.isAfter(_effectiveMaxDateTime)) {
+      return _effectiveMaxDateTime;
+    }
+    return time;
   }
 
   @override
   void didUpdateWidget(InlineTimePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Update if initial time changed significantly (not just minor adjustments)
-    if (widget.initialTime.difference(oldWidget.initialTime).inMinutes.abs() >
-        1) {
-      _selectedTime = widget.initialTime;
+    final oldTime = oldWidget.initialTime;
+    final newTime = widget.initialTime;
+    if (oldTime == null && newTime != null) {
+      _selectedTime = _clampToMaxIfNeeded(newTime);
+    } else if (oldTime != null &&
+        newTime != null &&
+        newTime.difference(oldTime).inMinutes.abs() > 1) {
+      _selectedTime = _clampToMaxIfNeeded(newTime);
     }
   }
 
@@ -47,10 +74,13 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   int? _errorButtonDelta;
 
   void _adjustMinutes(int delta) {
-    final newTime = _selectedTime.add(Duration(minutes: delta));
+    // If no time is set, use minTime's date (for correct date context) or effective max
+    // This ensures end time uses the same date as start time (CUR-451)
+    final baseTime = _selectedTime ?? widget.minTime ?? _effectiveMaxDateTime;
+    final newTime = baseTime.add(Duration(minutes: delta));
 
-    // Check if this would go into the future
-    if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+    // Check if this would exceed the max time
+    if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
       setState(() => _errorButtonDelta = delta);
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) setState(() => _errorButtonDelta = null);
@@ -74,27 +104,31 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   }
 
   Future<void> _showTimePicker() async {
+    // Use minTime's date (for correct date context) or effective max if no time is set
+    // This ensures end time uses the same date as start time (CUR-451)
+    final baseTime = _selectedTime ?? widget.minTime ?? _effectiveMaxDateTime;
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedTime),
+      initialTime: TimeOfDay.fromDateTime(baseTime),
     );
 
     if (picked != null) {
       final newTime = DateTime(
-        _selectedTime.year,
-        _selectedTime.month,
-        _selectedTime.day,
+        baseTime.year,
+        baseTime.month,
+        baseTime.day,
         picked.hour,
         picked.minute,
       );
 
-      // Don't allow future times unless explicitly permitted
-      if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+      // Don't allow times past the max unless explicitly permitted
+      if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot select a time in the future'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l10n.cannotSelectFutureTime),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -104,10 +138,11 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
       // Don't allow times before min time
       if (widget.minTime != null && newTime.isBefore(widget.minTime!)) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('End time must be after start time'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l10n.endTimeAfterStart),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -123,8 +158,12 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final timeFormat = DateFormat('h:mm');
-    final periodFormat = DateFormat('a');
+    final locale = Localizations.localeOf(context).languageCode;
+    final timeFormat = DateFormat('H:mm', locale);
+    final periodFormat = DateFormat('a', locale);
+    // Check if locale uses 24-hour format
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
+    final isUnset = _selectedTime == null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -143,18 +182,33 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  timeFormat.format(_selectedTime),
+                  isUnset
+                      ? '--:--'
+                      : (use24Hour
+                            ? timeFormat.format(_selectedTime!)
+                            : DateFormat(
+                                'h:mm',
+                                locale,
+                              ).format(_selectedTime!)),
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     fontWeight: FontWeight.w300,
+                    color: isUnset
+                        ? Theme.of(context).colorScheme.outline
+                        : null,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  periodFormat.format(_selectedTime),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
-                ),
+                if (!use24Hour) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    isUnset ? '--' : periodFormat.format(_selectedTime!),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w400,
+                      color: isUnset
+                          ? Theme.of(context).colorScheme.outline
+                          : null,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

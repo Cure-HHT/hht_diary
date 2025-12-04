@@ -1,3 +1,4 @@
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 
@@ -30,17 +31,18 @@ class SeverityPicker extends StatelessWidget {
           final iconSize = (boxHeight * 0.5).clamp(32.0, 56.0);
           final fontSize = (boxHeight * 0.14).clamp(10.0, 14.0);
 
+          final l10n = AppLocalizations.of(context);
           return Column(
             children: [
               Text(
-                'How severe is the nosebleed?',
+                l10n.howSevere,
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'Select the option that best describes the bleeding',
+                l10n.translate('selectBestOption'),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(
                     context,
@@ -59,6 +61,7 @@ class SeverityPicker extends StatelessWidget {
                     final isSelected = selectedSeverity == severity;
                     return _SeverityOption(
                       severity: severity,
+                      severityLabel: l10n.severityName(severity.name),
                       isSelected: isSelected,
                       onTap: () => onSelect(severity),
                       iconSize: iconSize,
@@ -78,12 +81,14 @@ class SeverityPicker extends StatelessWidget {
 class _SeverityOption extends StatelessWidget {
   const _SeverityOption({
     required this.severity,
+    required this.severityLabel,
     required this.isSelected,
     required this.onTap,
     this.iconSize = 56,
     this.fontSize = 14,
   });
   final NosebleedSeverity severity;
+  final String severityLabel;
   final bool isSelected;
   final VoidCallback onTap;
   final double iconSize;
@@ -142,15 +147,18 @@ class _SeverityOption extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                severity.displayName,
+                // Split two-word labels onto separate lines
+                severityLabel.replaceAll(' ', '\n'),
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.onSurface,
+                  height: 1.2,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
               ),
             ],
           ),

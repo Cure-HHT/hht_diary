@@ -20,7 +20,7 @@ The Clinical Trial Diary Platform is a multi-sponsor system for FDA 21 CFR Part 
 
 ---
 
-# REQ-p00042: Clinical Trial Diary Platform
+# REQ-p00044: Clinical Trial Diary Platform
 
 **Level**: PRD | **Implements**: - | **Status**: Active
 
@@ -51,13 +51,13 @@ Platform components SHALL include:
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    CLINICAL TRIAL DIARY PLATFORM                     │
-│                         (REQ-p00042)                                 │
+│                         (REQ-p00044)                                 │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
 │  │  Mobile App  │  │   Sponsor    │  │    Ancillary Services    │  │
-│  │  (p00041)    │  │   Portal     │  │        (p00047)          │  │
-│  │              │  │   (p00043)   │  │  - Push Notifications    │  │
+│  │  (p00043)    │  │   Portal     │  │        (p00049)          │  │
+│  │              │  │   (p00045)   │  │  - Push Notifications    │  │
 │  │  - iOS      │  │              │  │  - Email Services        │  │
 │  │  - Android   │  │  - Admin     │  │  - Reporting             │  │
 │  │  - Offline   │  │  - Invest.   │  │                          │  │
@@ -68,7 +68,7 @@ Platform components SHALL include:
 │                           │                                         │
 │              ┌────────────▼────────────┐                           │
 │              │   Cloud Database        │                           │
-│              │      (p00044)           │                           │
+│              │      (p00046)           │                           │
 │              │   - Event Sourcing      │                           │
 │              │   - Audit Trail         │                           │
 │              │   - Sponsor Isolation   │                           │
@@ -78,7 +78,7 @@ Platform components SHALL include:
 │         │                                   │                      │
 │  ┌──────▼──────┐                    ┌───────▼───────┐              │
 │  │   Backup    │                    │    DevOps     │              │
-│  │  (p00045)   │                    │   (p00046)    │              │
+│  │  (p00047)   │                    │   (p00048)    │              │
 │  │             │                    │               │              │
 │  │ - Archives  │                    │ - Monitoring  │              │
 │  │ - Retention │                    │ - Alerts      │              │

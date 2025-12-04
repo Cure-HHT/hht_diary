@@ -1,10 +1,16 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
 
+import 'dart:convert';
+
+import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
-class LogoMenu extends StatelessWidget {
+class LogoMenu extends StatefulWidget {
   const LogoMenu({
     required this.onAddExampleData,
     required this.onResetAllData,
@@ -19,9 +25,61 @@ class LogoMenu extends StatelessWidget {
   final VoidCallback onInstructionsAndFeedback;
 
   @override
+  State<LogoMenu> createState() => _LogoMenuState();
+}
+
+class _LogoMenuState extends State<LogoMenu> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    // On web, fetch version.json directly (more reliable than package_info_plus)
+    if (kIsWeb) {
+      await _loadVersionFromJson();
+      return;
+    }
+
+    // On native platforms, use package_info_plus
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = packageInfo.version;
+        });
+      }
+    } catch (e) {
+      debugPrint('PackageInfo error: $e');
+    }
+  }
+
+  Future<void> _loadVersionFromJson() async {
+    try {
+      // Use Uri.base to resolve the correct absolute URL on web
+      final versionUrl = Uri.base.resolve('version.json');
+      final response = await http.get(versionUrl);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _version = data['version'] as String? ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('version.json fetch error: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopupMenuButton<String>(
-      tooltip: 'App menu',
+      tooltip: l10n.appMenu,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ColorFiltered(
@@ -40,13 +98,13 @@ class LogoMenu extends StatelessWidget {
       onSelected: (value) {
         switch (value) {
           case 'add_example_data':
-            onAddExampleData();
+            widget.onAddExampleData();
           case 'reset_all_data':
-            onResetAllData();
+            widget.onResetAllData();
           case 'end_clinical_trial':
-            onEndClinicalTrial?.call();
+            widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
-            onInstructionsAndFeedback();
+            widget.onInstructionsAndFeedback();
         }
       },
       itemBuilder: (context) => [
@@ -54,7 +112,7 @@ class LogoMenu extends StatelessWidget {
         PopupMenuItem<String>(
           enabled: false,
           child: Text(
-            'Data Management',
+            l10n.dataManagement,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -71,7 +129,7 @@ class LogoMenu extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Flexible(child: Text('Add Example Data')),
+              Flexible(child: Text(l10n.addExampleData)),
             ],
           ),
         ),
@@ -87,7 +145,7 @@ class LogoMenu extends StatelessWidget {
               const SizedBox(width: 12),
               Flexible(
                 child: Text(
-                  'Reset All Data',
+                  l10n.resetAllData,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
@@ -96,12 +154,12 @@ class LogoMenu extends StatelessWidget {
         ),
 
         // Clinical Trial section (only if enrolled)
-        if (onEndClinicalTrial != null) ...[
+        if (widget.onEndClinicalTrial != null) ...[
           const PopupMenuDivider(),
           PopupMenuItem<String>(
             enabled: false,
             child: Text(
-              'Clinical Trial',
+              l10n.clinicalTrialLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -118,7 +176,7 @@ class LogoMenu extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 12),
-                const Flexible(child: Text('End Clinical Trial')),
+                Flexible(child: Text(l10n.endClinicalTrial)),
               ],
             ),
           ),
@@ -136,8 +194,23 @@ class LogoMenu extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Flexible(child: Text('Instructions & Feedback')),
+              Flexible(child: Text(l10n.instructionsAndFeedback)),
             ],
+          ),
+        ),
+
+        // Version info at bottom
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          enabled: false,
+          height: 32,
+          child: Center(
+            child: Text(
+              _version.isNotEmpty ? 'v$_version' : '',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         ),
       ],

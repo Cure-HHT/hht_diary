@@ -2,6 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00008: Mobile App Diary Entry
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -12,13 +13,13 @@ class EventListItem extends StatelessWidget {
   final NosebleedRecord record;
   final VoidCallback? onTap;
 
-  String get _timeRange {
+  String _timeRange(String locale) {
     if (record.startTime == null) return '--';
 
-    final startStr = DateFormat('h:mm a').format(record.startTime!);
+    final startStr = DateFormat.jm(locale).format(record.startTime!);
     if (record.endTime == null) return startStr;
 
-    final endStr = DateFormat('h:mm a').format(record.endTime!);
+    final endStr = DateFormat.jm(locale).format(record.endTime!);
     return '$startStr - $endStr';
   }
 
@@ -72,21 +73,24 @@ class EventListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+
     // Handle special event types with custom styling
     if (record.isNoNosebleedsEvent) {
-      return _buildNoNosebleedsCard(context);
+      return _buildNoNosebleedsCard(context, l10n);
     }
 
     if (record.isUnknownEvent) {
-      return _buildUnknownCard(context);
+      return _buildUnknownCard(context, l10n);
     }
 
     // Regular nosebleed event card
-    return _buildNosebleedCard(context);
+    return _buildNosebleedCard(context, l10n, locale);
   }
 
   /// Build card for "No nosebleed events" type
-  Widget _buildNoNosebleedsCard(BuildContext context) {
+  Widget _buildNoNosebleedsCard(BuildContext context, AppLocalizations l10n) {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.green.shade50,
@@ -104,7 +108,7 @@ class EventListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'No nosebleed events',
+                      l10n.noNosebleeds,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.green.shade800,
@@ -112,7 +116,7 @@ class EventListItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Confirmed no events for this day',
+                      l10n.translate('confirmedNoEvents'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.green.shade700,
                       ),
@@ -130,7 +134,7 @@ class EventListItem extends StatelessWidget {
   }
 
   /// Build card for "Unknown" event type
-  Widget _buildUnknownCard(BuildContext context) {
+  Widget _buildUnknownCard(BuildContext context, AppLocalizations l10n) {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.yellow.shade50,
@@ -148,7 +152,7 @@ class EventListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Unknown',
+                      l10n.unknown,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.orange.shade800,
@@ -156,7 +160,7 @@ class EventListItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Unable to recall events for this day',
+                      l10n.translate('unableToRecallEvents'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.orange.shade700,
                       ),
@@ -174,7 +178,11 @@ class EventListItem extends StatelessWidget {
   }
 
   /// Build card for regular nosebleed events
-  Widget _buildNosebleedCard(BuildContext context) {
+  Widget _buildNosebleedCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    String locale,
+  ) {
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -204,14 +212,14 @@ class EventListItem extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          _timeRange,
+                          _timeRange(locale),
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(fontWeight: FontWeight.w500),
                         ),
                         if (_isMultiDay) ...[
                           const SizedBox(width: 4),
                           Text(
-                            '(+1 day)',
+                            l10n.translate('plusOneDay'),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
@@ -243,7 +251,7 @@ class EventListItem extends StatelessWidget {
                     if (record.severity != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        record.severity!.displayName,
+                        l10n.severityName(record.severity!.name),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(
                             context,
@@ -276,7 +284,7 @@ class EventListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Incomplete',
+                        l10n.translate('incomplete'),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.orange.shade800,

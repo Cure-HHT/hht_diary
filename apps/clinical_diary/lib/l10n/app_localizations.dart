@@ -47,12 +47,90 @@ class AppLocalizations {
       'today': 'Today',
       'yesterday': 'Yesterday',
       'calendar': 'Calendar',
+      'yes': 'Yes',
+      'no': 'No',
+      'ok': 'OK',
+      'error': 'Error',
+      'reset': 'Reset',
 
       // Home Screen
       'recordNosebleed': 'Record Nosebleed',
       'noEventsToday': 'no events today',
       'noEventsYesterday': 'no events yesterday',
       'incompleteRecords': 'Incomplete Records',
+      'tapToComplete': 'Tap to complete',
+      'exampleDataAdded': 'Example data added',
+      'resetAllData': 'Reset All Data?',
+      'resetAllDataMessage':
+          'This will permanently delete all your recorded data. This action cannot be undone.',
+      'allDataReset': 'All data has been reset',
+      'endClinicalTrial': 'End Clinical Trial?',
+      'endClinicalTrialMessage':
+          'Are you sure you want to end your participation in the clinical trial? Your data will be retained but no longer synced.',
+      'endTrial': 'End Trial',
+      'leftClinicalTrial': 'You have left the clinical trial',
+      'userMenu': 'User menu',
+      'privacyComingSoon': 'Privacy settings coming soon',
+      'switchedToSimpleUI': 'Switched to simple recording UI',
+      'switchedToClassicUI': 'Switched to classic recording UI',
+      'usingSimpleUI': 'Using simple UI (tap to switch)',
+      'usingClassicUI': 'Using classic UI (tap for simple)',
+      'noEvents': 'no events',
+
+      // Login/Account
+      'login': 'Login',
+      'logout': 'Logout',
+      'account': 'Account',
+      'createAccount': 'Create Account',
+      'savedCredentialsQuestion': 'Have you saved your username and password?',
+      'credentialsAvailableInAccount':
+          "If you didn't save your credentials, they are available in the Account page.",
+      'yesLogout': 'Yes, Logout',
+      'syncingData': 'Syncing your data...',
+      'syncFailed': 'Sync Failed',
+      'syncFailedMessage':
+          'Could not sync your data to the server. Please check your internet connection and try again.',
+      'loggedOut': 'You have been logged out',
+      'privacyNotice': 'Privacy Notice',
+      'privacyNoticeDescription':
+          'For your privacy we do not use email addresses for accounts.',
+      'noAtSymbol': '@ signs are not allowed for username.',
+      'important': 'Important',
+      'storeCredentialsSecurely': 'Store your username and password securely.',
+      'lostCredentialsWarning':
+          'If you lose your username and password then the app cannot send you a link to reset it.',
+      'usernameRequired': 'Username is required',
+      'usernameTooShort': 'Username must be at least {0} characters',
+      'usernameNoAt': 'Username cannot contain @ symbol',
+      'usernameLettersOnly': 'Only letters, numbers, and underscores allowed',
+      'passwordRequired': 'Password is required',
+      'passwordTooShort': 'Password must be at least {0} characters',
+      'passwordsDoNotMatch': 'Passwords do not match',
+      'username': 'Username',
+      'enterUsername': 'Enter username (no @ symbol)',
+      'password': 'Password',
+      'enterPassword': 'Enter password',
+      'confirmPassword': 'Confirm Password',
+      'reenterPassword': 'Re-enter password',
+      'noAccountCreate': "Don't have an account? Create one",
+      'hasAccountLogin': 'Already have an account? Login',
+      'minimumCharacters': 'Minimum {0} characters',
+
+      // Account Profile
+      'changePassword': 'Change Password',
+      'currentPassword': 'Current Password',
+      'currentPasswordRequired': 'Current password is required',
+      'newPassword': 'New Password',
+      'newPasswordRequired': 'New password is required',
+      'confirmNewPassword': 'Confirm New Password',
+      'passwordChangedSuccess': 'Password changed successfully',
+      'yourCredentials': 'Your Credentials',
+      'keepCredentialsSafe': 'Keep these safe - there is no password recovery.',
+      'hidePassword': 'Hide password',
+      'showPassword': 'Show password',
+      'securityReminder': 'Security Reminder',
+      'securityReminderText':
+          'Write down your username and password and store them in a safe place. If you lose these credentials, you will not be able to recover your account.',
 
       // Settings
       'settings': 'Settings',
@@ -77,12 +155,18 @@ class AppLocalizations {
       'accessibilityAndPreferences': 'Accessibility & Preferences',
       'privacy': 'Privacy',
       'enrollInClinicalTrial': 'Enroll in Clinical Trial',
+      'comingSoon': 'Coming soon',
+      'comingSoonEnglishOnly': 'Coming soon - English only for now',
 
       // Calendar
       'selectDate': 'Select Date',
       'nosebleedEvents': 'Nosebleed events',
       'noNosebleeds': 'No nosebleeds',
+      'confirmedNoEvents': 'Confirmed no events for this day',
       'unknown': 'Unknown',
+      'unableToRecallEvents': 'Unable to recall events for this day',
+      'plusOneDay': '(+1 day)',
+      'incomplete': 'Incomplete',
       'incompleteMissing': 'Incomplete/Missing',
       'notRecorded': 'Not recorded',
       'tapToAddOrEdit': 'Tap a date to add or edit events',
@@ -90,9 +174,45 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'When did the nosebleed start?',
       'whenDidItStop': 'When did the nosebleed stop?',
-      'howSevere': 'How severe was it?',
+      'howSevere': 'How severe is the nosebleed?',
+      'selectBestOption': 'Select the option that best describes the bleeding',
       'anyNotes': 'Any additional notes?',
       'notesPlaceholder': 'Optional notes about this nosebleed...',
+      'start': 'Start',
+      'end': 'End',
+      'severity': 'Severity',
+      'selectSeverity': 'Select...',
+      'intensity': 'Intensity',
+      'nosebleedStart': 'Nosebleed Start',
+      'setStartTime': 'Set Start Time',
+      'nosebleedEnd': 'Nosebleed End',
+      'nosebleedEndTime': 'Nosebleed End Time',
+      'nosebleedEnded': 'Nosebleed Ended',
+      'completeRecord': 'Complete Record',
+      'editRecord': 'Edit Record',
+      'recordComplete': 'Record Complete',
+      'reviewAndSave': 'Review the information and save when ready',
+      'tapFieldToEdit': 'Tap any field above to edit it',
+      'durationMinutes': 'Duration: {0} minutes',
+      'cannotSaveOverlap':
+          'Cannot save: This event overlaps with existing events. Please adjust the time.',
+      'cannotSaveOverlapCount':
+          'Cannot save: This event overlaps with {0} existing {1}',
+      'event': 'event',
+      'events': 'events',
+      'failedToSave': 'Failed to save',
+      'endTimeAfterStart': 'End time must be after start time',
+      'updateNosebleed': 'Update Nosebleed',
+      'addNosebleed': 'Add Nosebleed',
+      'saveChanges': 'Save Changes',
+      'finished': 'Finished',
+      'deleteRecordTooltip': 'Delete record',
+      'setFields': 'Set {0}',
+      'saveAsIncomplete': 'Save as Incomplete?',
+      'saveAsIncompleteDescription':
+          'You have entered some information. Would you like to save it as an incomplete record?',
+      'discard': 'Discard',
+      'keepEditing': 'Keep Editing',
 
       // Severity
       'spotting': 'Spotting',
@@ -104,6 +224,7 @@ class AppLocalizations {
 
       // Yesterday banner
       'confirmYesterday': 'Confirm Yesterday',
+      'confirmYesterdayDate': 'Confirm Yesterday - {0}',
       'didYouHaveNosebleeds': 'Did you have nosebleeds?',
       'noNosebleedsYesterday': 'No nosebleeds',
       'hadNosebleeds': 'Had nosebleeds',
@@ -125,6 +246,68 @@ class AppLocalizations {
       'incorrectInformation': 'Incorrect information',
       'other': 'Other',
       'pleaseSpecify': 'Please specify',
+
+      // Time picker
+      'cannotSelectFutureTime': 'Cannot select a time in the future',
+
+      // Notes input
+      'notes': 'Notes',
+      'notesRequired': 'Required for clinical trial participants',
+      'notesHint': 'Add any additional details about this nosebleed...',
+      'next': 'Next',
+
+      // Logo menu
+      'appMenu': 'App menu',
+      'dataManagement': 'Data Management',
+      'addExampleData': 'Add Example Data',
+      'clinicalTrialLabel': 'Clinical Trial',
+      'instructionsAndFeedback': 'Instructions & Feedback',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Overlapping Events Detected',
+      'overlappingEventsCount': 'This event overlaps with {0} existing {1}',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary': 'Welcome to\nNosebleed Diary',
+      'enterCodeToGetStarted': 'Enter your enrollment code to get started.',
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Get Started',
+      'codeMustBe8Chars': 'Code must be 8 characters',
+      'pleaseEnterEnrollmentCode': 'Please enter your enrollment code',
+
+      // Date records screen
+      'addNewEvent': 'Add new event',
+      'noEventsRecordedForDay': 'No events recorded for this day',
+      'eventCountSingular': '1 event',
+      'eventCountPlural': '{0} events',
+
+      // Profile screen
+      'userProfile': 'User Profile',
+      'enterYourName': 'Enter your name',
+      'editName': 'Edit name',
+      'shareWithCureHHT': 'Share with CureHHT',
+      'stopSharingWithCureHHT': 'Stop Sharing with CureHHT',
+      'privacyDataProtection': 'Privacy & Data Protection',
+      'healthDataStoredLocally':
+          'Your health data is stored locally on your device.',
+      'dataSharedAnonymized':
+          ' Anonymized data is shared with CureHHT for research purposes.',
+      'clinicalTrialSharingActive':
+          ' Clinical trial participation involves sharing anonymized data with researchers according to the study protocol.',
+      'clinicalTrialEndedMessage':
+          ' Clinical trial participation ended on {0}. Previously shared data remains with researchers indefinitely for scientific analysis.',
+      'noDataSharedMessage':
+          ' No data is shared with external parties unless you choose to participate in research or clinical trials.',
+      'enrolledInClinicalTrialStatus': 'Enrolled in Clinical Trial',
+      'clinicalTrialEnrollmentEnded': 'Clinical Trial Enrollment: Ended',
+      'enrollmentCodeLabel': 'Enrollment Code: {0}',
+      'enrolledLabel': 'Enrolled: {0}',
+      'endedLabel': 'Ended: {0}',
+      'sharingWithCureHHT': 'Sharing with CureHHT',
+      'sharingNoteActive':
+          'Note: The logo displayed on the homescreen of the app is a reminder that you are sharing your data with a 3rd party.',
+      'sharingNoteEnded':
+          'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
     },
     'es': {
       // General
@@ -137,12 +320,93 @@ class AppLocalizations {
       'today': 'Hoy',
       'yesterday': 'Ayer',
       'calendar': 'Calendario',
+      'yes': 'Si',
+      'no': 'No',
+      'ok': 'OK',
+      'error': 'Error',
+      'reset': 'Reiniciar',
 
       // Home Screen
       'recordNosebleed': 'Registrar Hemorragia Nasal',
       'noEventsToday': 'sin eventos hoy',
       'noEventsYesterday': 'sin eventos ayer',
       'incompleteRecords': 'Registros Incompletos',
+      'tapToComplete': 'Toca para completar',
+      'exampleDataAdded': 'Datos de ejemplo agregados',
+      'resetAllData': 'Reiniciar todos los datos?',
+      'resetAllDataMessage':
+          'Esto eliminara permanentemente todos tus datos registrados. Esta accion no se puede deshacer.',
+      'allDataReset': 'Todos los datos han sido reiniciados',
+      'endClinicalTrial': 'Finalizar ensayo clinico?',
+      'endClinicalTrialMessage':
+          'Estas seguro de que deseas finalizar tu participacion en el ensayo clinico? Tus datos se conservaran pero ya no se sincronizaran.',
+      'endTrial': 'Finalizar',
+      'leftClinicalTrial': 'Has dejado el ensayo clinico',
+      'userMenu': 'Menu de usuario',
+      'privacyComingSoon': 'Configuracion de privacidad proximamente',
+      'switchedToSimpleUI': 'Cambiado a interfaz simple',
+      'switchedToClassicUI': 'Cambiado a interfaz clasica',
+      'usingSimpleUI': 'Usando interfaz simple (toca para cambiar)',
+      'usingClassicUI': 'Usando interfaz clasica (toca para simple)',
+      'noEvents': 'sin eventos',
+
+      // Login/Account
+      'login': 'Iniciar sesion',
+      'logout': 'Cerrar sesion',
+      'account': 'Cuenta',
+      'createAccount': 'Crear cuenta',
+      'savedCredentialsQuestion': 'Has guardado tu usuario y contrasena?',
+      'credentialsAvailableInAccount':
+          'Si no guardaste tus credenciales, estan disponibles en la pagina de Cuenta.',
+      'yesLogout': 'Si, cerrar sesion',
+      'syncingData': 'Sincronizando tus datos...',
+      'syncFailed': 'Error de sincronizacion',
+      'syncFailedMessage':
+          'No se pudieron sincronizar tus datos con el servidor. Por favor verifica tu conexion a internet e intenta de nuevo.',
+      'loggedOut': 'Has cerrado sesion',
+      'privacyNotice': 'Aviso de privacidad',
+      'privacyNoticeDescription':
+          'Para tu privacidad no usamos direcciones de correo electronico para las cuentas.',
+      'noAtSymbol': 'No se permite el simbolo @ en el nombre de usuario.',
+      'important': 'Importante',
+      'storeCredentialsSecurely':
+          'Guarda tu nombre de usuario y contrasena de forma segura.',
+      'lostCredentialsWarning':
+          'Si pierdes tu nombre de usuario y contrasena, la aplicacion no puede enviarte un enlace para restablecerla.',
+      'usernameRequired': 'El nombre de usuario es requerido',
+      'usernameTooShort':
+          'El nombre de usuario debe tener al menos {0} caracteres',
+      'usernameNoAt': 'El nombre de usuario no puede contener @',
+      'usernameLettersOnly': 'Solo se permiten letras, numeros y guiones bajos',
+      'passwordRequired': 'La contrasena es requerida',
+      'passwordTooShort': 'La contrasena debe tener al menos {0} caracteres',
+      'passwordsDoNotMatch': 'Las contrasenas no coinciden',
+      'username': 'Nombre de usuario',
+      'enterUsername': 'Ingresa nombre de usuario (sin @)',
+      'password': 'Contrasena',
+      'enterPassword': 'Ingresa contrasena',
+      'confirmPassword': 'Confirmar contrasena',
+      'reenterPassword': 'Vuelve a ingresar la contrasena',
+      'noAccountCreate': 'No tienes cuenta? Crea una',
+      'hasAccountLogin': 'Ya tienes cuenta? Inicia sesion',
+      'minimumCharacters': 'Minimo {0} caracteres',
+
+      // Account Profile
+      'changePassword': 'Cambiar contrasena',
+      'currentPassword': 'Contrasena actual',
+      'currentPasswordRequired': 'La contrasena actual es requerida',
+      'newPassword': 'Nueva contrasena',
+      'newPasswordRequired': 'La nueva contrasena es requerida',
+      'confirmNewPassword': 'Confirmar nueva contrasena',
+      'passwordChangedSuccess': 'Contrasena cambiada exitosamente',
+      'yourCredentials': 'Tus credenciales',
+      'keepCredentialsSafe':
+          'Guardalas de forma segura - no hay recuperacion de contrasena.',
+      'hidePassword': 'Ocultar contrasena',
+      'showPassword': 'Mostrar contrasena',
+      'securityReminder': 'Recordatorio de seguridad',
+      'securityReminderText':
+          'Escribe tu nombre de usuario y contrasena y guardalos en un lugar seguro. Si pierdes estas credenciales, no podras recuperar tu cuenta.',
 
       // Settings
       'settings': 'Configuracion',
@@ -167,12 +431,18 @@ class AppLocalizations {
       'accessibilityAndPreferences': 'Accesibilidad y Preferencias',
       'privacy': 'Privacidad',
       'enrollInClinicalTrial': 'Inscribirse en Ensayo Clinico',
+      'comingSoon': 'Proximamente',
+      'comingSoonEnglishOnly': 'Proximamente - Solo ingles por ahora',
 
       // Calendar
       'selectDate': 'Seleccionar Fecha',
       'nosebleedEvents': 'Eventos de hemorragia nasal',
       'noNosebleeds': 'Sin hemorragias nasales',
+      'confirmedNoEvents': 'Confirmado sin eventos para este dia',
       'unknown': 'Desconocido',
+      'unableToRecallEvents': 'No se pueden recordar los eventos de este dia',
+      'plusOneDay': '(+1 dia)',
+      'incomplete': 'Incompleto',
       'incompleteMissing': 'Incompleto/Faltante',
       'notRecorded': 'No registrado',
       'tapToAddOrEdit': 'Toca una fecha para agregar o editar eventos',
@@ -180,9 +450,46 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Cuando empezo la hemorragia nasal?',
       'whenDidItStop': 'Cuando paro la hemorragia nasal?',
-      'howSevere': 'Que tan severa fue?',
+      'howSevere': 'Que tan severa es la hemorragia?',
+      'selectBestOption': 'Selecciona la opcion que mejor describe el sangrado',
       'anyNotes': 'Alguna nota adicional?',
       'notesPlaceholder': 'Notas opcionales sobre esta hemorragia nasal...',
+      'start': 'Inicio',
+      'end': 'Fin',
+      'severity': 'Severidad',
+      'selectSeverity': 'Seleccionar...',
+      'intensity': 'Intensidad',
+      'nosebleedStart': 'Inicio de hemorragia',
+      'setStartTime': 'Establecer hora de inicio',
+      'nosebleedEnd': 'Fin de hemorragia',
+      'nosebleedEndTime': 'Hora de fin de hemorragia',
+      'nosebleedEnded': 'Hemorragia finalizada',
+      'completeRecord': 'Completar registro',
+      'editRecord': 'Editar registro',
+      'recordComplete': 'Registro completo',
+      'reviewAndSave': 'Revisa la informacion y guarda cuando estes listo',
+      'tapFieldToEdit': 'Toca cualquier campo arriba para editarlo',
+      'durationMinutes': 'Duracion: {0} minutos',
+      'cannotSaveOverlap':
+          'No se puede guardar: Este evento se superpone con eventos existentes. Por favor ajusta la hora.',
+      'cannotSaveOverlapCount':
+          'No se puede guardar: Este evento se superpone con {0} {1} existente(s)',
+      'event': 'evento',
+      'events': 'eventos',
+      'failedToSave': 'Error al guardar',
+      'endTimeAfterStart':
+          'La hora de fin debe ser despues de la hora de inicio',
+      'updateNosebleed': 'Actualizar hemorragia',
+      'addNosebleed': 'Agregar hemorragia',
+      'saveChanges': 'Guardar cambios',
+      'finished': 'Finalizado',
+      'deleteRecordTooltip': 'Eliminar registro',
+      'setFields': 'Establecer {0}',
+      'saveAsIncomplete': 'Guardar como incompleto?',
+      'saveAsIncompleteDescription':
+          'Has ingresado alguna informacion. Te gustaria guardarla como un registro incompleto?',
+      'discard': 'Descartar',
+      'keepEditing': 'Seguir editando',
 
       // Severity
       'spotting': 'Manchado',
@@ -194,6 +501,7 @@ class AppLocalizations {
 
       // Yesterday banner
       'confirmYesterday': 'Confirmar Ayer',
+      'confirmYesterdayDate': 'Confirmar Ayer - {0}',
       'didYouHaveNosebleeds': 'Tuviste hemorragias nasales?',
       'noNosebleedsYesterday': 'Sin hemorragias nasales',
       'hadNosebleeds': 'Tuve hemorragias nasales',
@@ -216,6 +524,71 @@ class AppLocalizations {
       'incorrectInformation': 'Informacion incorrecta',
       'other': 'Otro',
       'pleaseSpecify': 'Por favor especifica',
+
+      // Time picker
+      'cannotSelectFutureTime': 'No se puede seleccionar una hora en el futuro',
+
+      // Notes input
+      'notes': 'Notas',
+      'notesRequired': 'Requerido para participantes del ensayo clinico',
+      'notesHint': 'Agrega detalles adicionales sobre esta hemorragia nasal...',
+      'next': 'Siguiente',
+
+      // Logo menu
+      'appMenu': 'Menu de la aplicacion',
+      'dataManagement': 'Gestion de Datos',
+      'addExampleData': 'Agregar Datos de Ejemplo',
+      'clinicalTrialLabel': 'Ensayo Clinico',
+      'instructionsAndFeedback': 'Instrucciones y Comentarios',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Eventos Superpuestos Detectados',
+      'overlappingEventsCount':
+          'Este evento se superpone con {0} {1} existente(s)',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary': 'Bienvenido a\nDiario de Hemorragias Nasales',
+      'enterCodeToGetStarted':
+          'Ingresa tu codigo de inscripcion para comenzar.',
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Comenzar',
+      'codeMustBe8Chars': 'El codigo debe tener 8 caracteres',
+      'pleaseEnterEnrollmentCode': 'Por favor ingresa tu codigo de inscripcion',
+
+      // Date records screen
+      'addNewEvent': 'Agregar nuevo evento',
+      'noEventsRecordedForDay': 'No hay eventos registrados para este dia',
+      'eventCountSingular': '1 evento',
+      'eventCountPlural': '{0} eventos',
+
+      // Profile screen
+      'userProfile': 'Perfil de Usuario',
+      'enterYourName': 'Ingresa tu nombre',
+      'editName': 'Editar nombre',
+      'shareWithCureHHT': 'Compartir con CureHHT',
+      'stopSharingWithCureHHT': 'Dejar de Compartir con CureHHT',
+      'privacyDataProtection': 'Privacidad y Proteccion de Datos',
+      'healthDataStoredLocally':
+          'Tus datos de salud se almacenan localmente en tu dispositivo.',
+      'dataSharedAnonymized':
+          ' Los datos anonimizados se comparten con CureHHT para fines de investigacion.',
+      'clinicalTrialSharingActive':
+          ' La participacion en el ensayo clinico implica compartir datos anonimizados con investigadores segun el protocolo del estudio.',
+      'clinicalTrialEndedMessage':
+          ' La participacion en el ensayo clinico termino el {0}. Los datos compartidos previamente permanecen con los investigadores indefinidamente para analisis cientifico.',
+      'noDataSharedMessage':
+          ' No se comparten datos con terceros a menos que elijas participar en investigacion o ensayos clinicos.',
+      'enrolledInClinicalTrialStatus': 'Inscrito en Ensayo Clinico',
+      'clinicalTrialEnrollmentEnded':
+          'Inscripcion al Ensayo Clinico: Terminada',
+      'enrollmentCodeLabel': 'Codigo de Inscripcion: {0}',
+      'enrolledLabel': 'Inscrito: {0}',
+      'endedLabel': 'Terminado: {0}',
+      'sharingWithCureHHT': 'Compartiendo con CureHHT',
+      'sharingNoteActive':
+          'Nota: El logo mostrado en la pantalla de inicio de la aplicacion es un recordatorio de que estas compartiendo tus datos con un tercero.',
+      'sharingNoteEnded':
+          'Nota: Los datos compartidos durante la participacion en el ensayo clinico permanecen con los investigadores indefinidamente para analisis cientifico.',
     },
     'fr': {
       // General
@@ -228,12 +601,97 @@ class AppLocalizations {
       'today': "Aujourd'hui",
       'yesterday': 'Hier',
       'calendar': 'Calendrier',
+      'yes': 'Oui',
+      'no': 'Non',
+      'ok': 'OK',
+      'error': 'Erreur',
+      'reset': 'Reinitialiser',
 
       // Home Screen
       'recordNosebleed': 'Enregistrer un Saignement',
       'noEventsToday': "pas d'evenements aujourd'hui",
       'noEventsYesterday': "pas d'evenements hier",
       'incompleteRecords': 'Enregistrements Incomplets',
+      'tapToComplete': 'Appuyez pour completer',
+      'exampleDataAdded': 'Donnees exemple ajoutees',
+      'resetAllData': 'Reinitialiser toutes les donnees?',
+      'resetAllDataMessage':
+          'Cela supprimera definitivement toutes vos donnees enregistrees. Cette action ne peut pas etre annulee.',
+      'allDataReset': 'Toutes les donnees ont ete reinitialiser',
+      'endClinicalTrial': "Terminer l'essai clinique?",
+      'endClinicalTrialMessage':
+          "Etes-vous sur de vouloir mettre fin a votre participation a l'essai clinique? Vos donnees seront conservees mais ne seront plus synchronisees.",
+      'endTrial': 'Terminer',
+      'leftClinicalTrial': "Vous avez quitte l'essai clinique",
+      'userMenu': 'Menu utilisateur',
+      'privacyComingSoon': 'Parametres de confidentialite bientot disponibles',
+      'switchedToSimpleUI': "Interface simple d'enregistrement activee",
+      'switchedToClassicUI': "Interface classique d'enregistrement activee",
+      'usingSimpleUI': 'Interface simple (appuyez pour changer)',
+      'usingClassicUI': 'Interface classique (appuyez pour simple)',
+      'noEvents': "pas d'evenements",
+
+      // Login/Account
+      'login': 'Connexion',
+      'logout': 'Deconnexion',
+      'account': 'Compte',
+      'createAccount': 'Creer un compte',
+      'savedCredentialsQuestion':
+          "Avez-vous enregistre votre nom d'utilisateur et mot de passe?",
+      'credentialsAvailableInAccount':
+          "Si vous n'avez pas enregistre vos identifiants, ils sont disponibles dans la page Compte.",
+      'yesLogout': 'Oui, deconnecter',
+      'syncingData': 'Synchronisation de vos donnees...',
+      'syncFailed': 'Echec de la synchronisation',
+      'syncFailedMessage':
+          'Impossible de synchroniser vos donnees avec le serveur. Veuillez verifier votre connexion internet et reessayer.',
+      'loggedOut': 'Vous avez ete deconnecte',
+      'privacyNotice': 'Avis de confidentialite',
+      'privacyNoticeDescription':
+          "Pour votre vie privee, nous n'utilisons pas d'adresses e-mail pour les comptes.",
+      'noAtSymbol':
+          "Le symbole @ n'est pas autorise pour le nom d'utilisateur.",
+      'important': 'Important',
+      'storeCredentialsSecurely':
+          "Conservez votre nom d'utilisateur et mot de passe en securite.",
+      'lostCredentialsWarning':
+          "Si vous perdez votre nom d'utilisateur et mot de passe, l'application ne peut pas vous envoyer de lien pour le reinitialiser.",
+      'usernameRequired': "Le nom d'utilisateur est requis",
+      'usernameTooShort':
+          "Le nom d'utilisateur doit comporter au moins {0} caracteres",
+      'usernameNoAt': "Le nom d'utilisateur ne peut pas contenir @",
+      'usernameLettersOnly':
+          'Seuls les lettres, chiffres et tirets bas sont autorises',
+      'passwordRequired': 'Le mot de passe est requis',
+      'passwordTooShort':
+          'Le mot de passe doit comporter au moins {0} caracteres',
+      'passwordsDoNotMatch': 'Les mots de passe ne correspondent pas',
+      'username': "Nom d'utilisateur",
+      'enterUsername': "Entrez le nom d'utilisateur (sans @)",
+      'password': 'Mot de passe',
+      'enterPassword': 'Entrez le mot de passe',
+      'confirmPassword': 'Confirmer le mot de passe',
+      'reenterPassword': 'Ressaisissez le mot de passe',
+      'noAccountCreate': 'Pas de compte? Creez-en un',
+      'hasAccountLogin': 'Vous avez deja un compte? Connectez-vous',
+      'minimumCharacters': 'Minimum {0} caracteres',
+
+      // Account Profile
+      'changePassword': 'Changer le mot de passe',
+      'currentPassword': 'Mot de passe actuel',
+      'currentPasswordRequired': 'Le mot de passe actuel est requis',
+      'newPassword': 'Nouveau mot de passe',
+      'newPasswordRequired': 'Le nouveau mot de passe est requis',
+      'confirmNewPassword': 'Confirmer le nouveau mot de passe',
+      'passwordChangedSuccess': 'Mot de passe change avec succes',
+      'yourCredentials': 'Vos identifiants',
+      'keepCredentialsSafe':
+          "Gardez-les en securite - il n'y a pas de recuperation de mot de passe.",
+      'hidePassword': 'Masquer le mot de passe',
+      'showPassword': 'Afficher le mot de passe',
+      'securityReminder': 'Rappel de securite',
+      'securityReminderText':
+          "Notez votre nom d'utilisateur et mot de passe et conservez-les dans un endroit sur. Si vous perdez ces identifiants, vous ne pourrez pas recuperer votre compte.",
 
       // Settings
       'settings': 'Parametres',
@@ -258,12 +716,20 @@ class AppLocalizations {
       'accessibilityAndPreferences': 'Accessibilite et Preferences',
       'privacy': 'Confidentialite',
       'enrollInClinicalTrial': "S'inscrire a un Essai Clinique",
+      'comingSoon': 'Bientot disponible',
+      'comingSoonEnglishOnly':
+          'Bientot disponible - Anglais uniquement pour le moment',
 
       // Calendar
       'selectDate': 'Selectionner une Date',
       'nosebleedEvents': 'Evenements de saignement de nez',
       'noNosebleeds': 'Pas de saignements de nez',
+      'confirmedNoEvents': 'Confirme aucun evenement pour ce jour',
       'unknown': 'Inconnu',
+      'unableToRecallEvents':
+          'Impossible de se souvenir des evenements de ce jour',
+      'plusOneDay': '(+1 jour)',
+      'incomplete': 'Incomplet',
       'incompleteMissing': 'Incomplet/Manquant',
       'notRecorded': 'Non enregistre',
       'tapToAddOrEdit':
@@ -272,9 +738,47 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Quand le saignement de nez a-t-il commence?',
       'whenDidItStop': "Quand le saignement de nez s'est-il arrete?",
-      'howSevere': 'Quelle etait la gravite?',
+      'howSevere': 'Quelle est la gravite du saignement?',
+      'selectBestOption':
+          "Selectionnez l'option qui decrit le mieux le saignement",
       'anyNotes': 'Des notes supplementaires?',
       'notesPlaceholder': 'Notes optionnelles sur ce saignement de nez...',
+      'start': 'Debut',
+      'end': 'Fin',
+      'severity': 'Gravite',
+      'selectSeverity': 'Selectionner...',
+      'intensity': 'Intensite',
+      'nosebleedStart': 'Debut du saignement',
+      'setStartTime': "Definir l'heure de debut",
+      'nosebleedEnd': 'Fin du saignement',
+      'nosebleedEndTime': 'Heure de fin du saignement',
+      'nosebleedEnded': 'Saignement termine',
+      'completeRecord': "Completer l'enregistrement",
+      'editRecord': "Modifier l'enregistrement",
+      'recordComplete': 'Enregistrement complet',
+      'reviewAndSave':
+          'Verifiez les informations et enregistrez quand vous etes pret',
+      'tapFieldToEdit': 'Appuyez sur un champ ci-dessus pour le modifier',
+      'durationMinutes': 'Duree: {0} minutes',
+      'cannotSaveOverlap':
+          "Impossible d'enregistrer: Cet evenement chevauche des evenements existants. Veuillez ajuster l'heure.",
+      'cannotSaveOverlapCount':
+          "Impossible d'enregistrer: Cet evenement chevauche {0} {1} existant(s)",
+      'event': 'evenement',
+      'events': 'evenements',
+      'failedToSave': "Echec de l'enregistrement",
+      'endTimeAfterStart': "L'heure de fin doit etre apres l'heure de debut",
+      'updateNosebleed': 'Mettre a jour le saignement',
+      'addNosebleed': 'Ajouter un saignement',
+      'saveChanges': 'Enregistrer les modifications',
+      'finished': 'Termine',
+      'deleteRecordTooltip': "Supprimer l'enregistrement",
+      'setFields': 'Definir {0}',
+      'saveAsIncomplete': 'Enregistrer comme incomplet?',
+      'saveAsIncompleteDescription':
+          'Vous avez entre des informations. Voulez-vous les enregistrer comme un enregistrement incomplet?',
+      'discard': 'Jeter',
+      'keepEditing': 'Continuer a editer',
 
       // Severity
       'spotting': 'Taches',
@@ -286,6 +790,7 @@ class AppLocalizations {
 
       // Yesterday banner
       'confirmYesterday': 'Confirmer Hier',
+      'confirmYesterdayDate': 'Confirmer Hier - {0}',
       'didYouHaveNosebleeds': 'Avez-vous eu des saignements de nez?',
       'noNosebleedsYesterday': 'Pas de saignements de nez',
       'hadNosebleeds': "J'ai eu des saignements de nez",
@@ -308,6 +813,73 @@ class AppLocalizations {
       'incorrectInformation': 'Information incorrecte',
       'other': 'Autre',
       'pleaseSpecify': 'Veuillez preciser',
+
+      // Time picker
+      'cannotSelectFutureTime':
+          'Impossible de selectionner une heure dans le futur',
+
+      // Notes input
+      'notes': 'Notes',
+      'notesRequired': 'Requis pour les participants aux essais cliniques',
+      'notesHint':
+          'Ajoutez des details supplementaires sur ce saignement de nez...',
+      'next': 'Suivant',
+
+      // Logo menu
+      'appMenu': "Menu de l'application",
+      'dataManagement': 'Gestion des Donnees',
+      'addExampleData': 'Ajouter des Donnees Exemple',
+      'clinicalTrialLabel': 'Essai Clinique',
+      'instructionsAndFeedback': 'Instructions et Commentaires',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Evenements Chevauches Detectes',
+      'overlappingEventsCount': 'Cet evenement chevauche {0} {1} existant(s)',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary':
+          'Bienvenue dans\nJournal des Saignements de Nez',
+      'enterCodeToGetStarted':
+          "Entrez votre code d'inscription pour commencer.",
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Commencer',
+      'codeMustBe8Chars': 'Le code doit comporter 8 caracteres',
+      'pleaseEnterEnrollmentCode': "Veuillez entrer votre code d'inscription",
+
+      // Date records screen
+      'addNewEvent': 'Ajouter un nouvel evenement',
+      'noEventsRecordedForDay': 'Aucun evenement enregistre pour ce jour',
+      'eventCountSingular': '1 evenement',
+      'eventCountPlural': '{0} evenements',
+
+      // Profile screen
+      'userProfile': 'Profil Utilisateur',
+      'enterYourName': 'Entrez votre nom',
+      'editName': 'Modifier le nom',
+      'shareWithCureHHT': 'Partager avec CureHHT',
+      'stopSharingWithCureHHT': 'Arreter le Partage avec CureHHT',
+      'privacyDataProtection': 'Confidentialite et Protection des Donnees',
+      'healthDataStoredLocally':
+          'Vos donnees de sante sont stockees localement sur votre appareil.',
+      'dataSharedAnonymized':
+          ' Les donnees anonymisees sont partagees avec CureHHT a des fins de recherche.',
+      'clinicalTrialSharingActive':
+          " La participation a l'essai clinique implique le partage de donnees anonymisees avec les chercheurs selon le protocole de l'etude.",
+      'clinicalTrialEndedMessage':
+          " La participation a l'essai clinique s'est terminee le {0}. Les donnees precedemment partagees restent indefiniment avec les chercheurs pour analyse scientifique.",
+      'noDataSharedMessage':
+          " Aucune donnee n'est partagee avec des tiers sauf si vous choisissez de participer a la recherche ou aux essais cliniques.",
+      'enrolledInClinicalTrialStatus': 'Inscrit a un Essai Clinique',
+      'clinicalTrialEnrollmentEnded':
+          'Inscription a un Essai Clinique: Terminee',
+      'enrollmentCodeLabel': "Code d'Inscription: {0}",
+      'enrolledLabel': 'Inscrit: {0}',
+      'endedLabel': 'Termine: {0}',
+      'sharingWithCureHHT': 'Partage avec CureHHT',
+      'sharingNoteActive':
+          "Note: Le logo affiche sur l'ecran d'accueil de l'application est un rappel que vous partagez vos donnees avec un tiers.",
+      'sharingNoteEnded':
+          "Note: Les donnees partagees pendant la participation a l'essai clinique restent indefiniment avec les chercheurs pour analyse scientifique.",
     },
     'de': {
       // General
@@ -320,12 +892,93 @@ class AppLocalizations {
       'today': 'Heute',
       'yesterday': 'Gestern',
       'calendar': 'Kalender',
+      'yes': 'Ja',
+      'no': 'Nein',
+      'ok': 'OK',
+      'error': 'Fehler',
+      'reset': 'Zurucksetzen',
 
       // Home Screen
       'recordNosebleed': 'Nasenbluten erfassen',
       'noEventsToday': 'keine Ereignisse heute',
       'noEventsYesterday': 'keine Ereignisse gestern',
-      'incompleteRecords': 'Unvollstandige Einträge',
+      'incompleteRecords': 'Unvollstandige Eintrage',
+      'tapToComplete': 'Tippen zum Vervollstandigen',
+      'exampleDataAdded': 'Beispieldaten hinzugefugt',
+      'resetAllData': 'Alle Daten zurucksetzen?',
+      'resetAllDataMessage':
+          'Dies wird alle Ihre aufgezeichneten Daten dauerhaft loschen. Diese Aktion kann nicht ruckgangig gemacht werden.',
+      'allDataReset': 'Alle Daten wurden zuruckgesetzt',
+      'endClinicalTrial': 'Klinische Studie beenden?',
+      'endClinicalTrialMessage':
+          'Sind Sie sicher, dass Sie Ihre Teilnahme an der klinischen Studie beenden mochten? Ihre Daten werden aufbewahrt, aber nicht mehr synchronisiert.',
+      'endTrial': 'Beenden',
+      'leftClinicalTrial': 'Sie haben die klinische Studie verlassen',
+      'userMenu': 'Benutzermenu',
+      'privacyComingSoon': 'Datenschutzeinstellungen kommen bald',
+      'switchedToSimpleUI': 'Zur einfachen Aufnahme-Oberflache gewechselt',
+      'switchedToClassicUI': 'Zur klassischen Aufnahme-Oberflache gewechselt',
+      'usingSimpleUI': 'Einfache Oberflache (tippen zum Wechseln)',
+      'usingClassicUI': 'Klassische Oberflache (tippen fur einfach)',
+      'noEvents': 'keine Ereignisse',
+
+      // Login/Account
+      'login': 'Anmelden',
+      'logout': 'Abmelden',
+      'account': 'Konto',
+      'createAccount': 'Konto erstellen',
+      'savedCredentialsQuestion':
+          'Haben Sie Ihren Benutzernamen und Ihr Passwort gespeichert?',
+      'credentialsAvailableInAccount':
+          'Wenn Sie Ihre Anmeldedaten nicht gespeichert haben, sind sie auf der Kontoseite verfugbar.',
+      'yesLogout': 'Ja, abmelden',
+      'syncingData': 'Ihre Daten werden synchronisiert...',
+      'syncFailed': 'Synchronisierung fehlgeschlagen',
+      'syncFailedMessage':
+          'Ihre Daten konnten nicht mit dem Server synchronisiert werden. Bitte uberprufen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+      'loggedOut': 'Sie wurden abgemeldet',
+      'privacyNotice': 'Datenschutzhinweis',
+      'privacyNoticeDescription':
+          'Fur Ihre Privatsphare verwenden wir keine E-Mail-Adressen fur Konten.',
+      'noAtSymbol': 'Das @-Symbol ist im Benutzernamen nicht erlaubt.',
+      'important': 'Wichtig',
+      'storeCredentialsSecurely':
+          'Speichern Sie Ihren Benutzernamen und Ihr Passwort sicher.',
+      'lostCredentialsWarning':
+          'Wenn Sie Ihren Benutzernamen und Ihr Passwort verlieren, kann die App Ihnen keinen Link zum Zurucksetzen senden.',
+      'usernameRequired': 'Benutzername ist erforderlich',
+      'usernameTooShort': 'Der Benutzername muss mindestens {0} Zeichen haben',
+      'usernameNoAt': 'Benutzername darf kein @ enthalten',
+      'usernameLettersOnly': 'Nur Buchstaben, Zahlen und Unterstriche erlaubt',
+      'passwordRequired': 'Passwort ist erforderlich',
+      'passwordTooShort': 'Das Passwort muss mindestens {0} Zeichen haben',
+      'passwordsDoNotMatch': 'Passworter stimmen nicht uberein',
+      'username': 'Benutzername',
+      'enterUsername': 'Benutzername eingeben (ohne @)',
+      'password': 'Passwort',
+      'enterPassword': 'Passwort eingeben',
+      'confirmPassword': 'Passwort bestatigen',
+      'reenterPassword': 'Passwort erneut eingeben',
+      'noAccountCreate': 'Kein Konto? Erstellen Sie eines',
+      'hasAccountLogin': 'Bereits ein Konto? Anmelden',
+      'minimumCharacters': 'Mindestens {0} Zeichen',
+
+      // Account Profile
+      'changePassword': 'Passwort andern',
+      'currentPassword': 'Aktuelles Passwort',
+      'currentPasswordRequired': 'Aktuelles Passwort ist erforderlich',
+      'newPassword': 'Neues Passwort',
+      'newPasswordRequired': 'Neues Passwort ist erforderlich',
+      'confirmNewPassword': 'Neues Passwort bestatigen',
+      'passwordChangedSuccess': 'Passwort erfolgreich geandert',
+      'yourCredentials': 'Ihre Anmeldedaten',
+      'keepCredentialsSafe':
+          'Bewahren Sie diese sicher auf - es gibt keine Passwortwiederherstellung.',
+      'hidePassword': 'Passwort verbergen',
+      'showPassword': 'Passwort anzeigen',
+      'securityReminder': 'Sicherheitshinweis',
+      'securityReminderText':
+          'Schreiben Sie Ihren Benutzernamen und Ihr Passwort auf und bewahren Sie sie an einem sicheren Ort auf. Wenn Sie diese Anmeldedaten verlieren, konnen Sie Ihr Konto nicht wiederherstellen.',
 
       // Settings
       'settings': 'Einstellungen',
@@ -350,12 +1003,19 @@ class AppLocalizations {
       'accessibilityAndPreferences': 'Barrierefreiheit & Einstellungen',
       'privacy': 'Datenschutz',
       'enrollInClinicalTrial': 'An klinischer Studie teilnehmen',
+      'comingSoon': 'Demnachst verfugbar',
+      'comingSoonEnglishOnly': 'Demnachst verfugbar - Vorerst nur Englisch',
 
       // Calendar
       'selectDate': 'Datum auswahlen',
       'nosebleedEvents': 'Nasenbluten-Ereignisse',
       'noNosebleeds': 'Kein Nasenbluten',
+      'confirmedNoEvents': 'Bestatigt keine Ereignisse fur diesen Tag',
       'unknown': 'Unbekannt',
+      'unableToRecallEvents':
+          'Ereignisse fur diesen Tag konnen nicht erinnert werden',
+      'plusOneDay': '(+1 Tag)',
+      'incomplete': 'Unvollstandig',
       'incompleteMissing': 'Unvollstandig/Fehlend',
       'notRecorded': 'Nicht erfasst',
       'tapToAddOrEdit':
@@ -364,20 +1024,59 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Wann hat das Nasenbluten begonnen?',
       'whenDidItStop': 'Wann hat das Nasenbluten aufgehort?',
-      'howSevere': 'Wie stark war es?',
+      'howSevere': 'Wie stark ist das Nasenbluten?',
+      'selectBestOption':
+          'Wahlen Sie die Option, die die Blutung am besten beschreibt',
       'anyNotes': 'Zusatzliche Anmerkungen?',
       'notesPlaceholder': 'Optionale Notizen zu diesem Nasenbluten...',
+      'start': 'Start',
+      'end': 'Ende',
+      'severity': 'Schweregrad',
+      'selectSeverity': 'Auswahlen...',
+      'intensity': 'Intensitat',
+      'nosebleedStart': 'Nasenbluten-Start',
+      'setStartTime': 'Startzeit festlegen',
+      'nosebleedEnd': 'Nasenbluten-Ende',
+      'nosebleedEndTime': 'Nasenbluten-Endzeit',
+      'nosebleedEnded': 'Nasenbluten beendet',
+      'completeRecord': 'Eintrag vervollstandigen',
+      'editRecord': 'Eintrag bearbeiten',
+      'recordComplete': 'Eintrag vollstandig',
+      'reviewAndSave':
+          'Uberprufen Sie die Informationen und speichern Sie, wenn Sie bereit sind',
+      'tapFieldToEdit': 'Tippen Sie auf ein Feld oben, um es zu bearbeiten',
+      'durationMinutes': 'Dauer: {0} Minuten',
+      'cannotSaveOverlap':
+          'Kann nicht gespeichert werden: Dieses Ereignis uberschneidet sich mit vorhandenen Ereignissen. Bitte passen Sie die Zeit an.',
+      'cannotSaveOverlapCount':
+          'Kann nicht gespeichert werden: Dieses Ereignis uberschneidet sich mit {0} vorhandenen {1}',
+      'event': 'Ereignis',
+      'events': 'Ereignissen',
+      'failedToSave': 'Speichern fehlgeschlagen',
+      'endTimeAfterStart': 'Die Endzeit muss nach der Startzeit liegen',
+      'updateNosebleed': 'Nasenbluten aktualisieren',
+      'addNosebleed': 'Nasenbluten hinzufugen',
+      'saveChanges': 'Anderungen speichern',
+      'finished': 'Fertig',
+      'deleteRecordTooltip': 'Eintrag loschen',
+      'setFields': '{0} festlegen',
+      'saveAsIncomplete': 'Als unvollstandig speichern?',
+      'saveAsIncompleteDescription':
+          'Sie haben einige Informationen eingegeben. Mochten Sie diese als unvollstandigen Eintrag speichern?',
+      'discard': 'Verwerfen',
+      'keepEditing': 'Weiter bearbeiten',
 
       // Severity
       'spotting': 'Leicht',
       'dripping': 'Tropfend',
       'drippingQuickly': 'Schnell tropfend',
       'steadyStream': 'Stetiger Fluss',
-      'pouring': 'Strömend',
-      'gushing': 'Stark strömend',
+      'pouring': 'Stromend',
+      'gushing': 'Stark stromend',
 
       // Yesterday banner
       'confirmYesterday': 'Gestern bestatigen',
+      'confirmYesterdayDate': 'Gestern bestatigen - {0}',
       'didYouHaveNosebleeds': 'Hatten Sie Nasenbluten?',
       'noNosebleedsYesterday': 'Kein Nasenbluten',
       'hadNosebleeds': 'Hatte Nasenbluten',
@@ -400,6 +1099,72 @@ class AppLocalizations {
       'incorrectInformation': 'Falsche Informationen',
       'other': 'Sonstiges',
       'pleaseSpecify': 'Bitte angeben',
+
+      // Time picker
+      'cannotSelectFutureTime':
+          'Es kann keine Zeit in der Zukunft ausgewahlt werden',
+
+      // Notes input
+      'notes': 'Notizen',
+      'notesRequired': 'Erforderlich fur Teilnehmer an klinischen Studien',
+      'notesHint': 'Fugen Sie weitere Details zu diesem Nasenbluten hinzu...',
+      'next': 'Weiter',
+
+      // Logo menu
+      'appMenu': 'App-Menu',
+      'dataManagement': 'Datenverwaltung',
+      'addExampleData': 'Beispieldaten hinzufugen',
+      'clinicalTrialLabel': 'Klinische Studie',
+      'instructionsAndFeedback': 'Anleitungen & Feedback',
+
+      // Overlap warning
+      'overlappingEventsDetected': 'Uberlappende Ereignisse erkannt',
+      'overlappingEventsCount':
+          'Dieses Ereignis uberschneidet sich mit {0} vorhandenen {1}',
+
+      // Enrollment screen
+      'welcomeToNosebleedDiary': 'Willkommen beim\nNasenbluten-Tagebuch',
+      'enterCodeToGetStarted':
+          'Geben Sie Ihren Anmeldecode ein, um zu beginnen.',
+      'enrollmentCodePlaceholder': 'CUREHHT#',
+      'getStarted': 'Loslegen',
+      'codeMustBe8Chars': 'Der Code muss 8 Zeichen haben',
+      'pleaseEnterEnrollmentCode': 'Bitte geben Sie Ihren Anmeldecode ein',
+
+      // Date records screen
+      'addNewEvent': 'Neues Ereignis hinzufugen',
+      'noEventsRecordedForDay': 'Keine Ereignisse fur diesen Tag aufgezeichnet',
+      'eventCountSingular': '1 Ereignis',
+      'eventCountPlural': '{0} Ereignisse',
+
+      // Profile screen
+      'userProfile': 'Benutzerprofil',
+      'enterYourName': 'Geben Sie Ihren Namen ein',
+      'editName': 'Name bearbeiten',
+      'shareWithCureHHT': 'Mit CureHHT teilen',
+      'stopSharingWithCureHHT': 'Teilen mit CureHHT beenden',
+      'privacyDataProtection': 'Datenschutz & Datensicherheit',
+      'healthDataStoredLocally':
+          'Ihre Gesundheitsdaten werden lokal auf Ihrem Gerat gespeichert.',
+      'dataSharedAnonymized':
+          ' Anonymisierte Daten werden zu Forschungszwecken mit CureHHT geteilt.',
+      'clinicalTrialSharingActive':
+          ' Die Teilnahme an der klinischen Studie beinhaltet das Teilen anonymisierter Daten mit Forschern gemaß dem Studienprotokoll.',
+      'clinicalTrialEndedMessage':
+          ' Die Teilnahme an der klinischen Studie endete am {0}. Zuvor geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
+      'noDataSharedMessage':
+          ' Es werden keine Daten mit externen Parteien geteilt, es sei denn, Sie entscheiden sich fur die Teilnahme an Forschung oder klinischen Studien.',
+      'enrolledInClinicalTrialStatus': 'In klinischer Studie angemeldet',
+      'clinicalTrialEnrollmentEnded':
+          'Anmeldung zur klinischen Studie: Beendet',
+      'enrollmentCodeLabel': 'Anmeldecode: {0}',
+      'enrolledLabel': 'Angemeldet: {0}',
+      'endedLabel': 'Beendet: {0}',
+      'sharingWithCureHHT': 'Teilen mit CureHHT',
+      'sharingNoteActive':
+          'Hinweis: Das Logo auf dem Startbildschirm der App erinnert Sie daran, dass Sie Ihre Daten mit einem Dritten teilen.',
+      'sharingNoteEnded':
+          'Hinweis: Wahrend der Teilnahme an der klinischen Studie geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
     },
   };
 
@@ -407,6 +1172,16 @@ class AppLocalizations {
     return _localizedStrings[locale.languageCode]?[key] ??
         _localizedStrings['en']?[key] ??
         key;
+  }
+
+  /// Translate with parameter substitution
+  /// Parameters are replaced using {0}, {1}, etc. placeholders
+  String translateWithParams(String key, List<dynamic> params) {
+    var result = translate(key);
+    for (var i = 0; i < params.length; i++) {
+      result = result.replaceAll('{$i}', params[i].toString());
+    }
+    return result;
   }
 
   // Convenience getters for common strings
@@ -419,10 +1194,93 @@ class AppLocalizations {
   String get today => translate('today');
   String get yesterday => translate('yesterday');
   String get calendar => translate('calendar');
+  String get yes => translate('yes');
+  String get no => translate('no');
+  String get ok => translate('ok');
+  String get error => translate('error');
+  String get reset => translate('reset');
+
+  // Home Screen
   String get recordNosebleed => translate('recordNosebleed');
   String get noEventsToday => translate('noEventsToday');
   String get noEventsYesterday => translate('noEventsYesterday');
   String get incompleteRecords => translate('incompleteRecords');
+  String get tapToComplete => translate('tapToComplete');
+  String get exampleDataAdded => translate('exampleDataAdded');
+  String get resetAllData => translate('resetAllData');
+  String get resetAllDataMessage => translate('resetAllDataMessage');
+  String get allDataReset => translate('allDataReset');
+  String get endClinicalTrial => translate('endClinicalTrial');
+  String get endClinicalTrialMessage => translate('endClinicalTrialMessage');
+  String get endTrial => translate('endTrial');
+  String get leftClinicalTrial => translate('leftClinicalTrial');
+  String get userMenu => translate('userMenu');
+  String get privacyComingSoon => translate('privacyComingSoon');
+  String get switchedToSimpleUI => translate('switchedToSimpleUI');
+  String get switchedToClassicUI => translate('switchedToClassicUI');
+  String get usingSimpleUI => translate('usingSimpleUI');
+  String get usingClassicUI => translate('usingClassicUI');
+  String get noEvents => translate('noEvents');
+  String incompleteRecordCount(int count) => translateWithParams(
+    count == 1 ? 'incompleteRecord' : 'incompleteRecords',
+    [count],
+  );
+
+  // Login/Account
+  String get login => translate('login');
+  String get logout => translate('logout');
+  String get account => translate('account');
+  String get createAccount => translate('createAccount');
+  String get savedCredentialsQuestion => translate('savedCredentialsQuestion');
+  String get credentialsAvailableInAccount =>
+      translate('credentialsAvailableInAccount');
+  String get yesLogout => translate('yesLogout');
+  String get syncingData => translate('syncingData');
+  String get syncFailed => translate('syncFailed');
+  String get syncFailedMessage => translate('syncFailedMessage');
+  String get loggedOut => translate('loggedOut');
+  String get privacyNotice => translate('privacyNotice');
+  String get privacyNoticeDescription => translate('privacyNoticeDescription');
+  String get noAtSymbol => translate('noAtSymbol');
+  String get important => translate('important');
+  String get storeCredentialsSecurely => translate('storeCredentialsSecurely');
+  String get lostCredentialsWarning => translate('lostCredentialsWarning');
+  String get usernameRequired => translate('usernameRequired');
+  String usernameTooShort(int minLength) =>
+      translateWithParams('usernameTooShort', [minLength]);
+  String get usernameNoAt => translate('usernameNoAt');
+  String get usernameLettersOnly => translate('usernameLettersOnly');
+  String get passwordRequired => translate('passwordRequired');
+  String passwordTooShort(int minLength) =>
+      translateWithParams('passwordTooShort', [minLength]);
+  String get passwordsDoNotMatch => translate('passwordsDoNotMatch');
+  String get username => translate('username');
+  String get enterUsername => translate('enterUsername');
+  String get password => translate('password');
+  String get enterPassword => translate('enterPassword');
+  String get confirmPassword => translate('confirmPassword');
+  String get reenterPassword => translate('reenterPassword');
+  String get noAccountCreate => translate('noAccountCreate');
+  String get hasAccountLogin => translate('hasAccountLogin');
+  String minimumCharacters(int count) =>
+      translateWithParams('minimumCharacters', [count]);
+
+  // Account Profile
+  String get changePassword => translate('changePassword');
+  String get currentPassword => translate('currentPassword');
+  String get currentPasswordRequired => translate('currentPasswordRequired');
+  String get newPassword => translate('newPassword');
+  String get newPasswordRequired => translate('newPasswordRequired');
+  String get confirmNewPassword => translate('confirmNewPassword');
+  String get passwordChangedSuccess => translate('passwordChangedSuccess');
+  String get yourCredentials => translate('yourCredentials');
+  String get keepCredentialsSafe => translate('keepCredentialsSafe');
+  String get hidePassword => translate('hidePassword');
+  String get showPassword => translate('showPassword');
+  String get securityReminder => translate('securityReminder');
+  String get securityReminderText => translate('securityReminderText');
+
+  // Settings
   String get settings => translate('settings');
   String get colorScheme => translate('colorScheme');
   String get chooseAppearance => translate('chooseAppearance');
@@ -443,6 +1301,10 @@ class AppLocalizations {
       translate('accessibilityAndPreferences');
   String get privacy => translate('privacy');
   String get enrollInClinicalTrial => translate('enrollInClinicalTrial');
+  String get comingSoon => translate('comingSoon');
+  String get comingSoonEnglishOnly => translate('comingSoonEnglishOnly');
+
+  // Calendar
   String get selectDate => translate('selectDate');
   String get nosebleedEvents => translate('nosebleedEvents');
   String get noNosebleeds => translate('noNosebleeds');
@@ -450,6 +1312,172 @@ class AppLocalizations {
   String get incompleteMissing => translate('incompleteMissing');
   String get notRecorded => translate('notRecorded');
   String get tapToAddOrEdit => translate('tapToAddOrEdit');
+
+  // Recording
+  String get whenDidItStart => translate('whenDidItStart');
+  String get whenDidItStop => translate('whenDidItStop');
+  String get howSevere => translate('howSevere');
+  String get anyNotes => translate('anyNotes');
+  String get notesPlaceholder => translate('notesPlaceholder');
+  String get start => translate('start');
+  String get end => translate('end');
+  String get severity => translate('severity');
+  String get selectSeverity => translate('selectSeverity');
+  String get intensity => translate('intensity');
+  String get nosebleedStart => translate('nosebleedStart');
+  String get setStartTime => translate('setStartTime');
+  String get nosebleedEnd => translate('nosebleedEnd');
+  String get nosebleedEndTime => translate('nosebleedEndTime');
+  String get nosebleedEnded => translate('nosebleedEnded');
+  String get completeRecord => translate('completeRecord');
+  String get editRecord => translate('editRecord');
+  String get recordComplete => translate('recordComplete');
+  String get reviewAndSave => translate('reviewAndSave');
+  String get tapFieldToEdit => translate('tapFieldToEdit');
+  String durationMinutes(int minutes) =>
+      translateWithParams('durationMinutes', [minutes]);
+  String get cannotSaveOverlap => translate('cannotSaveOverlap');
+  String cannotSaveOverlapCount(int count) => translateWithParams(
+    'cannotSaveOverlapCount',
+    [count, if (count == 1) translate('event') else translate('events')],
+  );
+  String get failedToSave => translate('failedToSave');
+  String get endTimeAfterStart => translate('endTimeAfterStart');
+  String get updateNosebleed => translate('updateNosebleed');
+  String get addNosebleed => translate('addNosebleed');
+  String get saveChanges => translate('saveChanges');
+  String get finished => translate('finished');
+  String get deleteRecordTooltip => translate('deleteRecordTooltip');
+  String setFields(String fields) => translateWithParams('setFields', [fields]);
+  String get saveAsIncomplete => translate('saveAsIncomplete');
+  String get saveAsIncompleteDescription =>
+      translate('saveAsIncompleteDescription');
+  String get discard => translate('discard');
+  String get keepEditing => translate('keepEditing');
+
+  // Severity
+  String get spotting => translate('spotting');
+  String get dripping => translate('dripping');
+  String get drippingQuickly => translate('drippingQuickly');
+  String get steadyStream => translate('steadyStream');
+  String get pouring => translate('pouring');
+  String get gushing => translate('gushing');
+
+  /// Get localized severity name for a given severity enum value
+  String severityName(String severity) {
+    switch (severity) {
+      case 'spotting':
+        return spotting;
+      case 'dripping':
+        return dripping;
+      case 'drippingQuickly':
+        return drippingQuickly;
+      case 'steadyStream':
+        return steadyStream;
+      case 'pouring':
+        return pouring;
+      case 'gushing':
+        return gushing;
+      default:
+        return severity;
+    }
+  }
+
+  // Yesterday banner
+  String get confirmYesterday => translate('confirmYesterday');
+  String confirmYesterdayDate(String date) =>
+      translateWithParams('confirmYesterdayDate', [date]);
+  String get didYouHaveNosebleeds => translate('didYouHaveNosebleeds');
+  String get noNosebleedsYesterday => translate('noNosebleedsYesterday');
+  String get hadNosebleeds => translate('hadNosebleeds');
+  String get dontRemember => translate('dontRemember');
+
+  // Enrollment
+  String get enrollmentTitle => translate('enrollmentTitle');
+  String get enterEnrollmentCode => translate('enterEnrollmentCode');
+  String get enrollmentCodeHint => translate('enrollmentCodeHint');
+  String get enroll => translate('enroll');
+  String get enrollmentSuccess => translate('enrollmentSuccess');
+  String get enrollmentError => translate('enrollmentError');
+
+  // Delete confirmation
+  String get deleteRecord => translate('deleteRecord');
+  String get selectDeleteReason => translate('selectDeleteReason');
+  String get enteredByMistake => translate('enteredByMistake');
+  String get duplicateEntry => translate('duplicateEntry');
+  String get incorrectInformation => translate('incorrectInformation');
+  String get other => translate('other');
+  String get pleaseSpecify => translate('pleaseSpecify');
+
+  // Time picker
+  String get cannotSelectFutureTime => translate('cannotSelectFutureTime');
+
+  // Notes input
+  String get notes => translate('notes');
+  String get notesRequired => translate('notesRequired');
+  String get notesHint => translate('notesHint');
+  String get next => translate('next');
+
+  // Logo menu
+  String get appMenu => translate('appMenu');
+  String get dataManagement => translate('dataManagement');
+  String get addExampleData => translate('addExampleData');
+  String get clinicalTrialLabel => translate('clinicalTrialLabel');
+  String get instructionsAndFeedback => translate('instructionsAndFeedback');
+
+  // Overlap warning
+  String get overlappingEventsDetected =>
+      translate('overlappingEventsDetected');
+  String overlappingEventsCount(int count) => translateWithParams(
+    'overlappingEventsCount',
+    [count, if (count == 1) translate('event') else translate('events')],
+  );
+
+  // Enrollment screen
+  String get welcomeToNosebleedDiary => translate('welcomeToNosebleedDiary');
+  String get enterCodeToGetStarted => translate('enterCodeToGetStarted');
+  String get enrollmentCodePlaceholder =>
+      translate('enrollmentCodePlaceholder');
+  String get getStarted => translate('getStarted');
+  String get codeMustBe8Chars => translate('codeMustBe8Chars');
+  String get pleaseEnterEnrollmentCode =>
+      translate('pleaseEnterEnrollmentCode');
+
+  // Date records screen
+  String get addNewEvent => translate('addNewEvent');
+  String get noEventsRecordedForDay => translate('noEventsRecordedForDay');
+  String get eventCountSingular => translate('eventCountSingular');
+  String eventCountPlural(int count) =>
+      translateWithParams('eventCountPlural', [count]);
+  String eventCount(int count) =>
+      count == 1 ? eventCountSingular : eventCountPlural(count);
+
+  // Profile screen
+  String get userProfile => translate('userProfile');
+  String get enterYourName => translate('enterYourName');
+  String get editName => translate('editName');
+  String get shareWithCureHHT => translate('shareWithCureHHT');
+  String get stopSharingWithCureHHT => translate('stopSharingWithCureHHT');
+  String get privacyDataProtection => translate('privacyDataProtection');
+  String get healthDataStoredLocally => translate('healthDataStoredLocally');
+  String get dataSharedAnonymized => translate('dataSharedAnonymized');
+  String get clinicalTrialSharingActive =>
+      translate('clinicalTrialSharingActive');
+  String clinicalTrialEndedMessage(String date) =>
+      translateWithParams('clinicalTrialEndedMessage', [date]);
+  String get noDataSharedMessage => translate('noDataSharedMessage');
+  String get enrolledInClinicalTrialStatus =>
+      translate('enrolledInClinicalTrialStatus');
+  String get clinicalTrialEnrollmentEnded =>
+      translate('clinicalTrialEnrollmentEnded');
+  String enrollmentCodeLabel(String code) =>
+      translateWithParams('enrollmentCodeLabel', [code]);
+  String enrolledLabel(String date) =>
+      translateWithParams('enrolledLabel', [date]);
+  String endedLabel(String date) => translateWithParams('endedLabel', [date]);
+  String get sharingWithCureHHT => translate('sharingWithCureHHT');
+  String get sharingNoteActive => translate('sharingNoteActive');
+  String get sharingNoteEnded => translate('sharingNoteEnded');
 }
 
 class _AppLocalizationsDelegate

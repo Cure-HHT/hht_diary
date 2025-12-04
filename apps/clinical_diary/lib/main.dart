@@ -11,6 +11,7 @@ import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -88,7 +89,8 @@ class ClinicalDiaryApp extends StatefulWidget {
 
 class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   Locale _locale = const Locale('en');
-  ThemeMode _themeMode = ThemeMode.system;
+  // CUR-424: Force light mode for alpha partners (no system/dark mode)
+  ThemeMode _themeMode = ThemeMode.light;
   final PreferencesService _preferencesService = PreferencesService();
 
   @override
@@ -101,7 +103,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
     final prefs = await _preferencesService.getPreferences();
     setState(() {
       _locale = Locale(prefs.languageCode);
-      _themeMode = prefs.isDarkMode ? ThemeMode.dark : ThemeMode.light;
+      // CUR-424: Always use light mode for alpha partners
+      _themeMode = ThemeMode.light;
     });
   }
 
@@ -112,8 +115,9 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   }
 
   void _setThemeMode(bool isDarkMode) {
+    // CUR-424: Ignore dark mode requests, always use light mode for alpha
     setState(() {
-      _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+      _themeMode = ThemeMode.light;
     });
   }
 
@@ -164,6 +168,7 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
+  final AuthService _authService = AuthService();
   late final NosebleedService _nosebleedService;
 
   @override
@@ -179,6 +184,7 @@ class _AppRootState extends State<AppRoot> {
     return HomeScreen(
       nosebleedService: _nosebleedService,
       enrollmentService: _enrollmentService,
+      authService: _authService,
       onLocaleChanged: widget.onLocaleChanged,
       onThemeModeChanged: widget.onThemeModeChanged,
       preferencesService: widget.preferencesService,

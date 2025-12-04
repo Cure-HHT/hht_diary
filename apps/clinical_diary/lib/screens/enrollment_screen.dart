@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,19 +43,19 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     super.dispose();
   }
 
-  Future<void> _enroll() async {
+  Future<void> _enroll(AppLocalizations l10n) async {
     final code = _codeController.text.trim();
 
     if (code.isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter your enrollment code';
+        _errorMessage = l10n.pleaseEnterEnrollmentCode;
       });
       return;
     }
 
     if (code.length != 8) {
       setState(() {
-        _errorMessage = 'Code must be 8 characters';
+        _errorMessage = l10n.codeMustBe8Chars;
       });
       return;
     }
@@ -73,7 +74,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error: $e';
+        _errorMessage = '${l10n.error}: $e';
       });
     } finally {
       setState(() {
@@ -84,6 +85,8 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -95,7 +98,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
               // Title
               Text(
-                'Welcome to\nNosebleed Diary',
+                l10n.welcomeToNosebleedDiary,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -106,7 +109,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
               // Description
               Text(
-                'Enter your enrollment code to get started.',
+                l10n.enterCodeToGetStarted,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(
                     context,
@@ -129,7 +132,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                   fontWeight: FontWeight.bold,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'CUREHHT#',
+                  hintText: l10n.enrollmentCodePlaceholder,
                   hintStyle: TextStyle(
                     letterSpacing: 4,
                     color: Theme.of(
@@ -156,7 +159,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                     });
                   }
                 },
-                onSubmitted: (_) => _enroll(),
+                onSubmitted: (_) => _enroll(l10n),
               ),
 
               const SizedBox(height: 24),
@@ -194,7 +197,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
               // Enroll button
               FilledButton(
-                onPressed: _isLoading ? null : _enroll,
+                onPressed: _isLoading ? null : () => _enroll(l10n),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -210,7 +213,10 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Get Started', style: TextStyle(fontSize: 18)),
+                    : Text(
+                        l10n.getStarted,
+                        style: const TextStyle(fontSize: 18),
+                      ),
               ),
 
               const Spacer(flex: 3),

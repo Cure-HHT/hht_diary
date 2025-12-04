@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 
-import 'config/database_config.dart';
-import 'router/app_router.dart';
-import 'services/auth_service.dart';
+// import 'config/database_config.dart';
+// import 'router/app_router.dart';
+//import 'services/auth_service.dart';
 import 'theme/portal_theme.dart';
 
 void main() async {
@@ -32,12 +32,12 @@ class CarinaPortalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        // ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: MaterialApp.router(
         title: 'Carina Clinical Trial Portal',
         theme: portalTheme,
-        routerConfig: appRouter,
+        // routerConfig: appRouter,
         debugShowCheckedModeBanner: false,
       ),
     );

@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:flutter/material.dart';
 
@@ -18,6 +19,7 @@ class IntensityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         // Calculate item width to fill available space
@@ -36,6 +38,7 @@ class IntensityRow extends StatelessWidget {
             final isSelected = selectedIntensity == intensity;
             return _IntensityItem(
               intensity: intensity,
+              label: l10n.severityName(intensity.name),
               isSelected: isSelected,
               onTap: () => onSelect(intensity),
               size: effectiveSize,
@@ -50,12 +53,14 @@ class IntensityRow extends StatelessWidget {
 class _IntensityItem extends StatelessWidget {
   const _IntensityItem({
     required this.intensity,
+    required this.label,
     required this.isSelected,
     required this.onTap,
     required this.size,
   });
 
   final NosebleedSeverity intensity;
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
   final double size;
@@ -86,11 +91,13 @@ class _IntensityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Icon should be about 70% of the container size
-    final iconSize = size * 0.7;
+    // Icon should be about 50% of the container size to leave room for text
+    final iconSize = size * 0.5;
+    // Font size scales with container
+    final fontSize = (size * 0.18).clamp(9.0, 13.0);
 
     return Tooltip(
-      message: intensity.displayName,
+      message: label,
       child: Material(
         color: _getBackgroundColor(context),
         borderRadius: BorderRadius.circular(8),
@@ -109,13 +116,32 @@ class _IntensityItem extends StatelessWidget {
                     )
                   : null,
             ),
-            child: Center(
-              child: Image.asset(
-                _imagePath,
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.contain,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  _imagePath,
+                  width: iconSize,
+                  height: iconSize,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  // Split two-word labels onto separate lines
+                  label.replaceAll(' ', '\n'),
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface,
+                    height: 1.1,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ),

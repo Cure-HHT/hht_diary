@@ -12,9 +12,9 @@
 
 ---
 
-# REQ-p00045: Data Backup and Archival
+# REQ-p00047: Data Backup and Archival
 
-**Level**: PRD | **Implements**: p00042 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
 
 A backup and archival system ensuring clinical trial data is protected against loss, recoverable in disaster scenarios, and retained for regulatory compliance periods.
 

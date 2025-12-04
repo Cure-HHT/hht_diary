@@ -14,9 +14,9 @@
 
 ---
 
-# REQ-p00043: Sponsor Portal Application
+# REQ-p00045: Sponsor Portal Application
 
-**Level**: PRD | **Implements**: p00042 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
 
 A sponsor-specific web application enabling clinical trial staff to manage users, enroll patients, monitor engagement, and access audit trails with complete sponsor data isolation.
 

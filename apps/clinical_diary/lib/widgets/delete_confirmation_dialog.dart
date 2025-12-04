@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Dialog for confirming deletion of a record with required reason
@@ -28,14 +29,31 @@ class DeleteConfirmationDialog extends StatefulWidget {
 
 class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
   final _reasonController = TextEditingController();
-  String? _selectedReason;
+  String? _selectedReasonKey;
 
-  final List<String> _reasons = [
-    'Entered by mistake',
-    'Duplicate entry',
-    'Incorrect information',
-    'Other',
+  // Reason keys for internal logic
+  static const _reasonKeys = [
+    'enteredByMistake',
+    'duplicateEntry',
+    'incorrectInformation',
+    'other',
   ];
+
+  // Get localized display string for a reason key
+  String _getReasonDisplay(String key, AppLocalizations l10n) {
+    switch (key) {
+      case 'enteredByMistake':
+        return l10n.enteredByMistake;
+      case 'duplicateEntry':
+        return l10n.duplicateEntry;
+      case 'incorrectInformation':
+        return l10n.incorrectInformation;
+      case 'other':
+        return l10n.other;
+      default:
+        return key;
+    }
+  }
 
   @override
   void dispose() {
@@ -45,29 +63,30 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Delete Record'),
+      title: Text(l10n.deleteRecord),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Please select a reason for deleting this record:'),
+          Text(l10n.selectDeleteReason),
           const SizedBox(height: 16),
           // Using RadioGroup ancestor to manage radio selection
           RadioGroup<String>(
-            groupValue: _selectedReason,
-            onChanged: (value) => setState(() => _selectedReason = value),
+            groupValue: _selectedReasonKey,
+            onChanged: (value) => setState(() => _selectedReasonKey = value),
             child: Column(
-              children: _reasons
+              children: _reasonKeys
                   .map(
-                    (reason) => InkWell(
-                      onTap: () => setState(() => _selectedReason = reason),
+                    (key) => InkWell(
+                      onTap: () => setState(() => _selectedReasonKey = key),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Row(
                           children: [
-                            Radio<String>(value: reason),
-                            Expanded(child: Text(reason)),
+                            Radio<String>(value: key),
+                            Expanded(child: Text(_getReasonDisplay(key, l10n))),
                           ],
                         ),
                       ),
@@ -76,13 +95,13 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
                   .toList(),
             ),
           ),
-          if (_selectedReason == 'Other') ...[
+          if (_selectedReasonKey == 'other') ...[
             const SizedBox(height: 8),
             TextField(
               controller: _reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Please specify',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.pleaseSpecify,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
@@ -92,25 +111,25 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed:
-              _selectedReason == null ||
-                  (_selectedReason == 'Other' &&
+              _selectedReasonKey == null ||
+                  (_selectedReasonKey == 'other' &&
                       _reasonController.text.trim().isEmpty)
               ? null
               : () {
-                  final reason = _selectedReason == 'Other'
+                  final reason = _selectedReasonKey == 'other'
                       ? _reasonController.text.trim()
-                      : _selectedReason!;
+                      : _getReasonDisplay(_selectedReasonKey!, l10n);
                   widget.onConfirmDelete(reason);
                   Navigator.pop(context);
                 },
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     );

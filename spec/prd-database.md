@@ -13,9 +13,9 @@
 
 ---
 
-# REQ-p00044: Clinical Data Storage System
+# REQ-p00046: Clinical Data Storage System
 
-**Level**: PRD | **Implements**: p00042 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
 
 A cloud database system using event sourcing to store clinical trial data with complete audit trails, sponsor isolation, and FDA 21 CFR Part 11 compliance.
 

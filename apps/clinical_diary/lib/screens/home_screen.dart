@@ -5,11 +5,14 @@ import 'dart:async';
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
+import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
+import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -25,6 +28,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     required this.nosebleedService,
     required this.enrollmentService,
+    required this.authService,
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
     required this.preferencesService,
@@ -32,6 +36,7 @@ class HomeScreen extends StatefulWidget {
   });
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
+  final AuthService authService;
   final ValueChanged<String> onLocaleChanged;
   final ValueChanged<bool> onThemeModeChanged;
   final PreferencesService preferencesService;
@@ -46,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
+  bool _isLoggedIn = false;
   bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
 
   @override
@@ -53,6 +59,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadRecords();
     _checkEnrollmentStatus();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final isLoggedIn = await widget.authService.isLoggedIn();
+    if (mounted) {
+      setState(() => _isLoggedIn = isLoggedIn);
+    }
+  }
+
+  /// Sync records from cloud and reload local records
+  Future<void> _syncFromCloudAndReload() async {
+    await widget.nosebleedService.fetchRecordsFromCloud();
+    await _loadRecords();
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -186,34 +206,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Example data added'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).exampleDataAdded),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
   }
 
   Future<void> _handleResetAllData() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset All Data?'),
-        content: const Text(
-          'This will permanently delete all your recorded data. '
-          'This action cannot be undone.',
-        ),
+        title: Text(l10n.resetAllData),
+        content: Text(l10n.resetAllDataMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Reset'),
+            child: Text(l10n.reset),
           ),
         ],
       ),
@@ -225,9 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All data has been reset'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).allDataReset),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -235,25 +253,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleEndClinicalTrial() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('End Clinical Trial?'),
-        content: const Text(
-          'Are you sure you want to end your participation in the clinical trial? '
-          'Your data will be retained but no longer synced.',
-        ),
+        title: Text(l10n.endClinicalTrial),
+        content: Text(l10n.endClinicalTrialMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('End Trial'),
+            child: Text(l10n.endTrial),
           ),
         ],
       ),
@@ -265,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have left the clinical trial'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).leftClinicalTrial),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -279,6 +295,161 @@ class _HomeScreenState extends State<HomeScreen> {
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
+  }
+
+  Future<void> _handleLogin() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => LoginScreen(
+          authService: widget.authService,
+          onLoginSuccess: () {
+            unawaited(_checkLoginStatus());
+            // Fetch user's synced data from cloud after login
+            unawaited(_syncFromCloudAndReload());
+          },
+        ),
+      ),
+    );
+    unawaited(_checkLoginStatus());
+  }
+
+  Future<void> _handleLogout() async {
+    // Check if user has stored credentials to remind them
+    final hasCredentials = await widget.authService.hasStoredCredentials();
+
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.logout),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.savedCredentialsQuestion),
+            const SizedBox(height: 16),
+            if (hasCredentials)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.credentialsAvailableInAccount,
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.yesLogout),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed ?? false) {
+      // Show syncing progress dialog (fire-and-forget, closed after sync)
+      if (mounted) {
+        unawaited(
+          showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              content: Row(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 24),
+                  Text(AppLocalizations.of(context).syncingData),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Sync records before logout
+      final syncResult = await widget.nosebleedService
+          .syncAllRecordsWithResult();
+
+      // Close progress dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!syncResult.isSuccess) {
+        // Sync failed - show error and don't logout
+        if (mounted) {
+          final l10nError = AppLocalizations.of(context);
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10nError.syncFailed),
+              content: Text(
+                '${l10nError.syncFailedMessage}\n\n'
+                'Error: ${syncResult.errorMessage}',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10nError.ok),
+                ),
+              ],
+            ),
+          );
+        }
+        return; // Don't logout
+      }
+
+      // Sync succeeded - proceed with logout
+      await widget.authService.logout();
+      unawaited(_checkLoginStatus());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).loggedOut),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleShowAccountProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            AccountProfileScreen(authService: widget.authService),
+      ),
+    );
   }
 
   Future<void> _handleIncompleteRecordsClick() async {
@@ -473,9 +644,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Profile menu on the right
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.person_outline),
-                    tooltip: 'User menu',
+                    tooltip: AppLocalizations.of(context).userMenu,
                     onSelected: (value) async {
-                      if (value == 'accessibility') {
+                      if (value == 'login') {
+                        await _handleLogin();
+                      } else if (value == 'logout') {
+                        await _handleLogout();
+                      } else if (value == 'account') {
+                        await _handleShowAccountProfile();
+                      } else if (value == 'accessibility') {
                         await Navigator.push(
                           context,
                           MaterialPageRoute<void>(
@@ -489,9 +666,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Privacy settings coming soon'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context).privacyComingSoon,
+                            ),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       } else if (value == 'enroll') {
@@ -505,47 +684,76 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                     },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'accessibility',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.settings, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).accessibilityAndPreferences,
+                    itemBuilder: (context) {
+                      final l10n = AppLocalizations.of(context);
+                      return [
+                        // Login/Logout button
+                        if (_isLoggedIn) ...[
+                          PopupMenuItem(
+                            value: 'account',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.account_circle, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.account),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'privacy',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.privacy_tip, size: 20),
-                            const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).privacy),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'enroll',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.group_add, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).enrollInClinicalTrial,
+                          ),
+                          PopupMenuItem(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.logout, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.logout),
+                              ],
                             ),
-                          ],
+                          ),
+                        ] else
+                          PopupMenuItem(
+                            value: 'login',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.login, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.login),
+                              ],
+                            ),
+                          ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'accessibility',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.settings, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.accessibilityAndPreferences),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        PopupMenuItem(
+                          value: 'privacy',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.privacy_tip, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.privacy),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'enroll',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.group_add, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.enrollInClinicalTrial),
+                            ],
+                          ),
+                        ),
+                      ];
+                    },
                   ),
                 ],
               ),
@@ -555,45 +763,52 @@ class _HomeScreenState extends State<HomeScreen> {
             if (!_isLoading) ...[
               // Incomplete records banner (orange)
               if (_incompleteRecords.isNotEmpty)
-                InkWell(
-                  onTap: _handleIncompleteRecordsClick,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.orange.shade800,
-                          size: 20,
+                Builder(
+                  builder: (context) {
+                    final l10n = AppLocalizations.of(context);
+                    return InkWell(
+                      onTap: _handleIncompleteRecordsClick,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '${_incompleteRecords.length} incomplete record${_incompleteRecords.length > 1 ? 's' : ''}',
-                            style: TextStyle(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
                               color: Colors.orange.shade800,
-                              fontWeight: FontWeight.w500,
+                              size: 20,
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.incompleteRecordCount(
+                                  _incompleteRecords.length,
+                                ),
+                                style: TextStyle(
+                                  color: Colors.orange.shade800,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              l10n.tapToComplete,
+                              style: TextStyle(
+                                color: Colors.orange.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Tap to complete →',
-                          style: TextStyle(
-                            color: Colors.orange.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
 
               // Active questionnaire banner (blue) - placeholder
@@ -661,14 +876,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               elevation: 4,
                               shadowColor: Colors.black.withValues(alpha: 0.3),
                             ),
-                            child: const Column(
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.add, size: 48),
-                                SizedBox(height: 12),
+                                const Icon(Icons.add, size: 48),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Record Nosebleed',
-                                  style: TextStyle(
+                                  AppLocalizations.of(context).recordNosebleed,
+                                  style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -707,41 +922,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       // Demo toggle for simple recording screen
-                      Tooltip(
-                        message: _useSimpleRecordingScreen
-                            ? 'Using simple UI (tap to switch)'
-                            : 'Using classic UI (tap for simple)',
-                        child: IconButton.outlined(
-                          onPressed: () {
-                            setState(() {
-                              _useSimpleRecordingScreen =
-                                  !_useSimpleRecordingScreen;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _useSimpleRecordingScreen
-                                      ? 'Switched to simple recording UI'
-                                      : 'Switched to classic recording UI',
-                                ),
-                                duration: const Duration(seconds: 2),
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context);
+                          return Tooltip(
+                            message: _useSimpleRecordingScreen
+                                ? l10n.usingSimpleUI
+                                : l10n.usingClassicUI,
+                            child: IconButton.outlined(
+                              onPressed: () {
+                                setState(() {
+                                  _useSimpleRecordingScreen =
+                                      !_useSimpleRecordingScreen;
+                                });
+                                final l10nSnack = AppLocalizations.of(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      _useSimpleRecordingScreen
+                                          ? l10nSnack.switchedToSimpleUI
+                                          : l10nSnack.switchedToClassicUI,
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+
+                              icon: Icon(
+                                _useSimpleRecordingScreen
+                                    ? Icons.view_agenda
+                                    : Icons.dashboard,
                               ),
-                            );
-                          },
-                          icon: Icon(
-                            _useSimpleRecordingScreen
-                                ? Icons.view_agenda
-                                : Icons.dashboard,
-                          ),
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            side: BorderSide(
-                              color: _useSimpleRecordingScreen
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.outline,
+                              style: IconButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                side: BorderSide(
+                                  color: _useSimpleRecordingScreen
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -808,7 +1030,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 const SizedBox(height: 8),
                 Text(
-                  DateFormat('EEEE, MMMM d, y').format(group.date!),
+                  DateFormat(
+                    'EEEE, MMMM d, y',
+                    Localizations.localeOf(context).languageCode,
+                  ).format(group.date!),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),

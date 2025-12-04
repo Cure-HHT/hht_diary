@@ -74,6 +74,13 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
+| REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 7ff9716c |
+| REQ-d00071 | dev-CDISC.md | SDTM Domain Transformation Implementation | 1286bfd8 |
+| REQ-d00072 | dev-CDISC.md | ODM-XML Export Implementation | f1b48f69 |
+| REQ-d00073 | dev-CDISC.md | Define-XML Metadata Generation | 4a4d28cd |
+| REQ-d00074 | dev-CDISC.md | CDISC Controlled Terminology Implementation | 772bf977 |
+| REQ-d00075 | dev-CDISC.md | EDC Data Transformation Specification | cd5b72f1 |
+| REQ-d00076 | dev-CDISC.md | Clinical Data Export Formats | 718bd3af |
 | REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | c6ed3379 |
 | REQ-o00003 | ops-database-setup.md | GCP Project Provisioning Per Sponsor | 5c8ec50e |
@@ -113,6 +120,15 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00053 | ops-cicd.md | Branch Protection Enforcement | d0584e9a |
 | REQ-o00054 | ops-cicd.md | Audit Trail Generation for CI/CD | 7da5e2e7 |
 | REQ-o00055 | ops-portal.md | Role-Based Visual Indicator Verification | b02eb8c1 |
+| REQ-o00056 | ops-SLA.md | SLO Definition and Tracking | 5efae38e |
+| REQ-o00057 | ops-SLA.md | Automated Uptime Monitoring | 29c323db |
+| REQ-o00058 | ops-SLA.md | On-Call Automation | 545e519a |
+| REQ-o00059 | ops-SLA.md | Automated Status Page | 6ef867f8 |
+| REQ-o00060 | ops-SLA.md | SLA Reporting Automation | 037b0946 |
+| REQ-o00061 | ops-SLA.md | Incident Classification Automation | 5e96a7aa |
+| REQ-o00062 | ops-SLA.md | RCA and CAPA Workflow | ecec7aed |
+| REQ-o00063 | ops-SLA.md | Error Budget Alerting | 60d8b564 |
+| REQ-o00064 | ops-SLA.md | Maintenance Window Management | 3732f8ca |
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |
@@ -148,14 +164,16 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00038 | prd-security-RLS.md | Auditor Compliance Access | 6324bf04 |
 | REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail | e8a3d480 |
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection | 0e94f5cf |
-| REQ-p00041 | prd-diary-app.md | Clinical Diary Mobile Application | TBD |
-| REQ-p00042 | prd-system.md | Clinical Trial Diary Platform | TBD |
-| REQ-p00043 | prd-portal.md | Sponsor Portal Application | TBD |
-| REQ-p00044 | prd-database.md | Clinical Data Storage System | TBD |
-| REQ-p00045 | prd-backup.md | Data Backup and Archival | TBD |
-| REQ-p00046 | prd-devops.md | Platform Operations and Monitoring | TBD |
-| REQ-p00047 | prd-services.md | Ancillary Platform Services | TBD |
-| REQ-p00048 | prd-diary-app.md | Temporal Entry Validation | TBD |
+| REQ-p00041 | prd-standards.md | CDISC Standards Compliance | bd86de7e |
+| REQ-p00042 | prd-epistaxis-terminology.md | HHT Epistaxis Data Capture Standard | e2501d13 |
+| REQ-p00043 | prd-diary-app.md | Clinical Diary Mobile Application | TBD |
+| REQ-p00044 | prd-system.md | Clinical Trial Diary Platform | TBD |
+| REQ-p00045 | prd-portal.md | Sponsor Portal Application | TBD |
+| REQ-p00046 | prd-database.md | Clinical Data Storage System | TBD |
+| REQ-p00047 | prd-backup.md | Data Backup and Archival | TBD |
+| REQ-p00048 | prd-devops.md | Platform Operations and Monitoring | TBD |
+| REQ-p00049 | prd-services.md | Ancillary Platform Services | TBD |
+| REQ-p00050 | prd-diary-app.md | Temporal Entry Validation | TBD |
 | REQ-p01000 | prd-event-sourcing-system.md | Event Sourcing Client Interface | c3f9c7d2 |
 | REQ-p01001 | prd-event-sourcing-system.md | Offline Event Queue with Automatic Synchronization | 9a8601c2 |
 | REQ-p01002 | prd-event-sourcing-system.md | Optimistic Concurrency Control | 21a2772e |
@@ -176,9 +194,28 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p01017 | prd-event-sourcing-system.md | Backward Compatibility Guarantees | 0af743bf |
 | REQ-p01018 | prd-event-sourcing-system.md | Security Audit and Compliance | 6a021418 |
 | REQ-p01019 | prd-event-sourcing-system.md | Phased Implementation | d60453bf |
+| REQ-p01020 | prd-glossary.md | Privacy Policy and Regulatory Compliance Documentation | 1ff593de |
+| REQ-p01021 | prd-SLA.md | Service Availability Commitment | f2662639 |
+| REQ-p01022 | prd-SLA.md | Incident Severity Classification | 9eb12926 |
+| REQ-p01023 | prd-SLA.md | Incident Response Times | 39e43b49 |
+| REQ-p01024 | prd-SLA.md | Disaster Recovery Objectives | b0de06c9 |
+| REQ-p01025 | prd-evidence-records.md | Third-Party Timestamp Attestation Capability | 5aef2ec0 |
+| REQ-p01026 | prd-evidence-records.md | Bitcoin-Based Timestamp Implementation | 634732d7 |
+| REQ-p01027 | prd-evidence-records.md | Timestamp Verification Interface | 7582f435 |
+| REQ-p01028 | prd-evidence-records.md | Timestamp Proof Archival | 64a9c3ec |
+| REQ-p01029 | prd-evidence-records.md | Device Fingerprinting | 57a2d038 |
+| REQ-p01030 | prd-evidence-records.md | Patient Authentication for Data Attribution | e5dd3d06 |
+| REQ-p01031 | prd-evidence-records.md | Optional Geolocation Tagging | 034c9479 |
+| REQ-p01032 | prd-evidence-records.md | Hashed Email Identity Verification | 769f35e0 |
+| REQ-p01033 | prd-SLA.md | Customer Incident Notification | 39a8a25c |
+| REQ-p01034 | prd-SLA.md | Root Cause Analysis | 145a7df7 |
+| REQ-p01035 | prd-SLA.md | Corrective and Preventive Action | c731bb83 |
+| REQ-p01036 | prd-SLA.md | Data Recovery Guarantee | accdee07 |
+| REQ-p01037 | prd-SLA.md | Chronic Failure Escalation | c3a07afa |
+| REQ-p01038 | prd-SLA.md | Regulatory Event Support | fec701fa |
 
 ---
 
-**Total Requirements**: 162
+**Total Requirements**: 199
 
 **Generated by**: `python3 tools/requirements/regenerate-index.py`

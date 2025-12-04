@@ -16,6 +16,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -68,8 +70,8 @@ void main() {
     group('New Record Mode', () {
       testWidgets('displays start time picker as initial step', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -85,8 +87,8 @@ void main() {
 
       testWidgets('displays back button', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -101,8 +103,8 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -115,8 +117,8 @@ void main() {
 
       testWidgets('displays summary bar with all fields', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -142,8 +144,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -169,8 +171,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -197,8 +199,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -225,8 +227,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -252,8 +254,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -275,8 +277,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -312,8 +314,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -326,11 +328,9 @@ void main() {
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Go to notes step, then to complete step
+        // Go to end time step, then confirm to go to complete step
+        // CUR-408: Notes step removed - flow goes directly to complete
         await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
 
         // Should show Complete Record button (check by widget type)
@@ -350,8 +350,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -405,8 +405,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -435,8 +435,8 @@ void main() {
         final allRecords = [existingRecord];
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -478,8 +478,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -534,8 +534,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -576,8 +576,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -618,8 +618,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -659,8 +659,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -677,12 +677,8 @@ void main() {
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Confirm end time
+        // Confirm end time - CUR-408: Goes directly to complete (notes removed)
         await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Skip notes and go to complete
-        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
 
         // Should show Finished button for new record
@@ -717,8 +713,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -764,119 +760,9 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RecordingScreen(
-                nosebleedService: failingService,
-                enrollmentService: mockEnrollment,
-                initialDate: DateTime(2024, 1, 15),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Confirm start time
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-
-        // Select severity
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-
-        // Confirm end time
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Skip notes and go to complete
-        await tester.tap(find.text('Next'));
-        await tester.pumpAndSettle();
-
-        // Tap save button
-        await tester.tap(find.text('Finished'));
-        // Use pump with duration instead of pumpAndSettle which times out
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Should show error snackbar
-        expect(find.textContaining('Failed to save'), findsOneWidget);
-
-        failingService.dispose();
-      });
-    });
-
-    group('Notes Requirement', () {
-      testWidgets('shows notes section with required label for enrolled user', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        // Set up enrolled user
-        mockEnrollment
-          ..enrollment = UserEnrollment(
-            userId: 'enrolled-user',
-            jwtToken: 'test-token',
-            enrolledAt: DateTime(2024, 1, 1), // Enrolled before event date
-          )
-          ..jwtToken = 'test-token';
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15), // After enrollment
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Confirm start time
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-
-        // Select severity
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-
-        // Confirm end time
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Should be on notes step
-        expect(find.text('Notes'), findsWidgets);
-        expect(
-          find.text('Required for clinical trial participants'),
-          findsOneWidget,
-        );
-      });
-
-      testWidgets('does not require notes for non-enrolled user', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        // Not enrolled
-        mockEnrollment
-          ..enrollment = null
-          ..jwtToken = null;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
+          wrapWithScaffold(
+            RecordingScreen(
+              nosebleedService: failingService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
             ),
@@ -892,29 +778,32 @@ void main() {
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Confirm end time
+        // Confirm end time - CUR-408: Goes directly to complete (notes removed)
         await tester.tap(find.text('Nosebleed Ended'));
         await tester.pumpAndSettle();
 
-        // Skip notes - go to complete
-        await tester.tap(find.text('Next'));
-        await tester.pumpAndSettle();
+        // Tap save button
+        await tester.tap(find.text('Finished'));
+        // Use pump with duration instead of pumpAndSettle which times out
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
 
-        // Finished button should be enabled because notes are NOT required
-        final saveButton = find.widgetWithText(FilledButton, 'Finished');
-        expect(saveButton, findsOneWidget);
-        final button = tester.widget<FilledButton>(saveButton);
-        expect(button.onPressed, isNotNull); // Enabled
+        // Should show error snackbar
+        expect(find.textContaining('Failed to save'), findsOneWidget);
+
+        failingService.dispose();
       });
     });
+
+    // CUR-408: Notes Requirement group removed - notes step removed from flow
 
     group('Start Time Confirmation', () {
       testWidgets('advances to severity step after confirming start time', (
         tester,
       ) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -957,13 +846,11 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RecordingScreen(
-                nosebleedService: nosebleedService,
-                enrollmentService: mockEnrollment,
-                existingRecord: existingRecord,
-              ),
+          wrapWithScaffold(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              existingRecord: existingRecord,
             ),
           ),
         );
@@ -995,87 +882,7 @@ void main() {
       });
     });
 
-    group('Notes Step', () {
-      testWidgets('can navigate back from notes step to end time', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Go through flow to notes step
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Should be on notes step (titled "Notes")
-        expect(find.text('Notes'), findsWidgets);
-
-        // Tap back button on notes step
-        await tester.tap(find.text('Back').last);
-        await tester.pumpAndSettle();
-
-        // Should be back on end time step
-        expect(find.text('Nosebleed End Time'), findsOneWidget);
-      });
-
-      testWidgets('can enter notes and they are preserved', (tester) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Go through flow to notes step
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Enter notes
-        final notesField = find.byType(TextField);
-        await tester.enterText(notesField, 'Test note entry');
-        await tester.pumpAndSettle();
-
-        // Go to complete step
-        await tester.tap(find.text('Next'));
-        await tester.pumpAndSettle();
-
-        // Should show the complete screen
-        expect(find.text('Record Complete'), findsOneWidget);
-      });
-    });
+    // CUR-408: Notes Step group removed - notes step removed from flow
 
     group('Summary Bar Navigation', () {
       testWidgets('can navigate to end time via summary bar', (tester) async {
@@ -1088,8 +895,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -1120,8 +927,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),

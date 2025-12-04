@@ -12,9 +12,9 @@
 
 ---
 
-# REQ-p00041: Clinical Diary Mobile Application
+# REQ-p00043: Clinical Diary Mobile Application
 
-**Level**: PRD | **Implements**: p00042 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Active
 
 A smartphone application for iOS and Android enabling clinical trial patients to record daily health observations with offline capability and automatic synchronization.
 
@@ -55,7 +55,7 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 
 # REQ-p00007: Automatic Sponsor Configuration
 
-**Level**: PRD | **Implements**: p00041, p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p00043, p00001 | **Status**: Active
 
 The app SHALL automatically configure itself for the correct sponsor and study based on the enrollment link provided to the patient, eliminating manual sponsor/study selection.
 
@@ -102,7 +102,7 @@ Automatic configuration SHALL ensure:
 
 # REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Implements**: p00041 | **Status**: Active
+**Level**: PRD | **Implements**: p00043 | **Status**: Active
 
 Patients SHALL be able to record diary entries without requiring internet connectivity, ensuring clinical trial participation is not dependent on network availability.
 
@@ -185,9 +185,9 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 ## Temporal Entry Validation
 
-# REQ-p00048: Temporal Entry Validation
+# REQ-p00050: Temporal Entry Validation
 
-**Level**: PRD | **Implements**: p00041 | **Status**: Active
+**Level**: PRD | **Implements**: p00043 | **Status**: Active
 
 The system SHALL enforce temporal boundaries for nosebleed entries to maintain data integrity and prevent invalid records.
 

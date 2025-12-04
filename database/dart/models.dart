@@ -95,42 +95,45 @@ class EventRecord {
 // EPISTAXIS (NOSEBLEED) RECORD
 // ============================================================================
 
-/// Severity levels for nosebleed events
+/// Intensity levels for nosebleed events (speed of blood flow)
+///
+/// HHT-specific terminology per REQ-p00042: HHT Epistaxis Data Capture Standard
+/// Uses patient-friendly descriptive terms that map to clinical severity.
 ///
 /// IMPORTANT: Uses meaningful strings (not numbers) per ALCOA+ principles
-enum EpistaxisSeverity {
-  minimal('minimal'),
-  mild('mild'),
-  moderate('moderate'),
-  severe('severe'),
-  verySevere('very_severe'),
-  extreme('extreme');
+enum EpistaxisIntensity {
+  spotting('spotting'),
+  drippingSlowly('dripping_slowly'),
+  drippingQuickly('dripping_quickly'),
+  steadyStream('steady_stream'),
+  pouring('pouring'),
+  gushing('gushing');
 
   final String value;
-  const EpistaxisSeverity(this.value);
+  const EpistaxisIntensity(this.value);
 
-  static EpistaxisSeverity fromString(String value) {
-    return EpistaxisSeverity.values.firstWhere(
+  static EpistaxisIntensity fromString(String value) {
+    return EpistaxisIntensity.values.firstWhere(
       (e) => e.value == value,
-      orElse: () => throw ArgumentError('Invalid severity: $value'),
+      orElse: () => throw ArgumentError('Invalid intensity: $value'),
     );
   }
 
-  /// User-friendly display text
+  /// User-friendly display text (shown with visual graphic in UI)
   String get displayText {
     switch (this) {
-      case EpistaxisSeverity.minimal:
-        return 'Minimal';
-      case EpistaxisSeverity.mild:
-        return 'Mild';
-      case EpistaxisSeverity.moderate:
-        return 'Moderate';
-      case EpistaxisSeverity.severe:
-        return 'Severe';
-      case EpistaxisSeverity.verySevere:
-        return 'Very Severe';
-      case EpistaxisSeverity.extreme:
-        return 'Extreme';
+      case EpistaxisIntensity.spotting:
+        return 'Spotting';
+      case EpistaxisIntensity.drippingSlowly:
+        return 'Dripping slowly';
+      case EpistaxisIntensity.drippingQuickly:
+        return 'Dripping quickly';
+      case EpistaxisIntensity.steadyStream:
+        return 'Steady stream';
+      case EpistaxisIntensity.pouring:
+        return 'Pouring';
+      case EpistaxisIntensity.gushing:
+        return 'Gushing';
     }
   }
 }
@@ -150,9 +153,9 @@ class EpistaxisRecord {
   /// Null if ongoing or unknown
   final DateTime? endTime;
 
-  /// Clinical severity rating
+  /// Intensity (speed of blood flow) per REQ-p00042
   /// Null if not applicable (e.g., no nosebleed event)
-  final EpistaxisSeverity? severity;
+  final EpistaxisIntensity? intensity;
 
   /// Patient-entered free-text notes
   /// Max recommended length: 2000 characters
@@ -178,7 +181,7 @@ class EpistaxisRecord {
     required this.id,
     required this.startTime,
     this.endTime,
-    this.severity,
+    this.intensity,
     this.userNotes,
     this.isNoNosebleedsEvent = false,
     this.isUnknownNosebleedsEvent = false,
@@ -193,9 +196,9 @@ class EpistaxisRecord {
     }
 
     // Validate special events don't have clinical data
-    if ((isNoNosebleedsEvent || isUnknownNosebleedsEvent) && severity != null) {
+    if ((isNoNosebleedsEvent || isUnknownNosebleedsEvent) && intensity != null) {
       throw ArgumentError(
-        'severity must be null when isNoNosebleedsEvent or isUnknownNosebleedsEvent is true',
+        'intensity must be null when isNoNosebleedsEvent or isUnknownNosebleedsEvent is true',
       );
     }
 
@@ -212,7 +215,7 @@ class EpistaxisRecord {
       'id': id,
       'startTime': startTime.toIso8601String(),
       if (endTime != null) 'endTime': endTime!.toIso8601String(),
-      if (severity != null) 'severity': severity!.value,
+      if (intensity != null) 'intensity': intensity!.value,
       if (userNotes != null) 'user_notes': userNotes,
       if (isNoNosebleedsEvent) 'isNoNosebleedsEvent': isNoNosebleedsEvent,
       if (isUnknownNosebleedsEvent) 'isUnknownNosebleedsEvent': isUnknownNosebleedsEvent,
@@ -229,8 +232,8 @@ class EpistaxisRecord {
       endTime: json['endTime'] != null
           ? DateTime.parse(json['endTime'] as String)
           : null,
-      severity: json['severity'] != null
-          ? EpistaxisSeverity.fromString(json['severity'] as String)
+      intensity: json['intensity'] != null
+          ? EpistaxisIntensity.fromString(json['intensity'] as String)
           : null,
       userNotes: json['user_notes'] as String?,
       isNoNosebleedsEvent: json['isNoNosebleedsEvent'] as bool? ?? false,
@@ -244,7 +247,7 @@ class EpistaxisRecord {
   factory EpistaxisRecord.createNosebleed({
     required DateTime startTime,
     DateTime? endTime,
-    EpistaxisSeverity? severity,
+    EpistaxisIntensity? intensity,
     String? userNotes,
     bool isIncomplete = false,
   }) {
@@ -253,7 +256,7 @@ class EpistaxisRecord {
       id: EventRecord.generateUuid(),
       startTime: startTime,
       endTime: endTime,
-      severity: severity,
+      intensity: intensity,
       userNotes: userNotes,
       isIncomplete: isIncomplete,
       lastModified: now,
@@ -294,7 +297,7 @@ class EpistaxisRecord {
   EpistaxisRecord copyWith({
     DateTime? startTime,
     DateTime? endTime,
-    EpistaxisSeverity? severity,
+    EpistaxisIntensity? intensity,
     String? userNotes,
     bool? isIncomplete,
   }) {
@@ -302,7 +305,7 @@ class EpistaxisRecord {
       id: id,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      severity: severity ?? this.severity,
+      intensity: intensity ?? this.intensity,
       userNotes: userNotes ?? this.userNotes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
       isUnknownNosebleedsEvent: isUnknownNosebleedsEvent,

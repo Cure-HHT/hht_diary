@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
@@ -73,9 +74,26 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         DateTime.now().hour,
         DateTime.now().minute,
       );
-      // Default end time
-      _endTime = _startTime!.add(const Duration(minutes: 15));
+      // End time is null (unset) by default - user must explicitly set it
+      // This prevents end time from being in the future
+      _endTime = null;
     }
+  }
+
+  /// Returns the maximum DateTime allowed for time selection.
+  /// For today, returns DateTime.now() to prevent future times.
+  /// For past dates, returns end of that day (23:59:59) to allow any time.
+  DateTime? get _maxDateTimeForTimePicker {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+    }
+    // Today or future: use current time as max (default behavior)
+    return null;
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
@@ -101,35 +119,35 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     }).toList();
   }
 
-  String _getButtonText() {
+  String _getButtonText(AppLocalizations l10n) {
     final isEditing = widget.existingRecord != null;
 
     // For editing, always show "Update Nosebleed" when complete
     if (isEditing) {
       if (_userSetStart && _userSetSeverity && _userSetEnd) {
-        return 'Update Nosebleed';
+        return l10n.updateNosebleed;
       }
-      return 'Save Changes';
+      return l10n.saveChanges;
     }
 
     // Build list of what's been set
     final setParts = <String>[];
-    if (_userSetStart) setParts.add('Start');
-    if (_userSetSeverity) setParts.add('Intensity');
-    if (_userSetEnd) setParts.add('End');
+    if (_userSetStart) setParts.add(l10n.start);
+    if (_userSetSeverity) setParts.add(l10n.intensity);
+    if (_userSetEnd) setParts.add(l10n.end);
 
     // All three set - ready to add
     if (setParts.length == 3) {
-      return 'Add Nosebleed';
+      return l10n.addNosebleed;
     }
 
     // Some set - show what's been set
     if (setParts.isNotEmpty) {
-      return 'Set ${setParts.join(' & ')}';
+      return l10n.setFields(setParts.join(' & '));
     }
 
     // Nothing set yet - show disabled "Add Nosebleed"
-    return 'Add Nosebleed';
+    return l10n.addNosebleed;
   }
 
   bool _canSubmit() {
@@ -144,7 +162,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     return true;
   }
 
-  Future<void> _saveRecord() async {
+  Future<void> _saveRecord(AppLocalizations l10n) async {
     if (!_canSubmit()) return;
 
     // Check for overlapping events - block save if any exist
@@ -152,9 +170,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     if (overlaps.isNotEmpty && _endTime != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Cannot save: This event overlaps with ${overlaps.length} existing ${overlaps.length == 1 ? 'event' : 'events'}',
-          ),
+          content: Text(l10n.cannotSaveOverlapCount(overlaps.length)),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -190,7 +206,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+        ).showSnackBar(SnackBar(content: Text('${l10n.failedToSave}: $e')));
       }
     } finally {
       if (mounted) {
@@ -229,19 +245,21 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() {
       _startTime = time;
       _userSetStart = true;
-      // If end time is before start time, adjust it
+      // If end time is before start time, clear it (user must re-set)
+      // This prevents automatically setting a potentially future time
       if (_endTime != null && _endTime!.isBefore(time)) {
-        _endTime = time.add(const Duration(minutes: 15));
+        _endTime = null;
+        _userSetEnd = false;
       }
     });
   }
 
-  void _handleEndTimeChange(DateTime time) {
+  void _handleEndTimeChange(DateTime time, AppLocalizations l10n) {
     // Validate end time is after start time
     if (_startTime != null && time.isBefore(_startTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after start time')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
       return;
     }
     setState(() {
@@ -275,6 +293,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   Widget build(BuildContext context) {
     final overlappingEvents = _getOverlappingEvents();
     final hasOverlaps = overlappingEvents.isNotEmpty && _endTime != null;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -289,7 +308,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back'),
+                    label: Text(l10n.back),
                   ),
                   // Delete button only for existing records
                   if (widget.existingRecord != null)
@@ -297,7 +316,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       onPressed: _handleDelete,
                       icon: const Icon(Icons.delete_outline),
                       color: Theme.of(context).colorScheme.error,
-                      tooltip: 'Delete record',
+                      tooltip: l10n.deleteRecordTooltip,
                     ),
                 ],
               ),
@@ -326,7 +345,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
                     // Start Time Section
                     Text(
-                      'Nosebleed Start',
+                      l10n.nosebleedStart,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -345,13 +364,14 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                           ),
                       onTimeChanged: _handleStartTimeChange,
                       allowFutureTimes: false,
+                      maxDateTime: _maxDateTimeForTimePicker,
                     ),
 
                     const SizedBox(height: 24),
 
                     // Intensity Section
                     Text(
-                      'Intensity',
+                      l10n.intensity,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -366,7 +386,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
                     // End Time Section
                     Text(
-                      'Nosebleed End',
+                      l10n.nosebleedEnd,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -374,19 +394,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                     const SizedBox(height: 8),
                     InlineTimePicker(
                       key: _endTimePickerKey,
-                      initialTime:
-                          _endTime ??
-                          (_startTime?.add(const Duration(minutes: 15)) ??
-                              DateTime(
-                                _date.year,
-                                _date.month,
-                                _date.day,
-                                DateTime.now().hour,
-                                DateTime.now().minute + 15,
-                              )),
-                      onTimeChanged: _handleEndTimeChange,
+                      initialTime: _endTime,
+                      onTimeChanged: (time) => _handleEndTimeChange(time, l10n),
                       allowFutureTimes: false,
                       minTime: _startTime,
+                      maxDateTime: _maxDateTimeForTimePicker,
                     ),
 
                     const SizedBox(height: 24),
@@ -421,7 +433,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Cannot save: This event overlaps with existing events.',
+                              l10n.cannotSaveOverlap,
                               style: TextStyle(
                                 color: Theme.of(
                                   context,
@@ -438,7 +450,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                     child: FilledButton(
                       onPressed: (_isSaving || !_canSubmit())
                           ? null
-                          : _saveRecord,
+                          : () => _saveRecord(l10n),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -452,7 +464,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                               ),
                             )
                           : Text(
-                              _getButtonText(),
+                              _getButtonText(l10n),
                               style: const TextStyle(fontSize: 18),
                             ),
                     ),

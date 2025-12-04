@@ -28,9 +28,7 @@ final portalTheme = ThemeData(
     ),
   ),
   inputDecorationTheme: InputDecorationTheme(
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-    ),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
     filled: true,
   ),
 );

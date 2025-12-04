@@ -22,6 +22,17 @@
   "hosting": {
     "public": "build/web",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      }
+    ],
     "rewrites": [
       {
         "source": "/api/enroll",
@@ -41,6 +52,21 @@
       {
         "source": "/api/getRecords",
         "function": "getRecords",
+        "region": "europe-west1"
+      },
+      {
+        "source": "/api/register",
+        "function": "register",
+        "region": "europe-west1"
+      },
+      {
+        "source": "/api/login",
+        "function": "login",
+        "region": "europe-west1"
+      },
+      {
+        "source": "/api/changePassword",
+        "function": "changePassword",
         "region": "europe-west1"
       },
       {

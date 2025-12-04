@@ -1,3 +1,4 @@
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -10,12 +11,18 @@ class TimePickerDial extends StatefulWidget {
     super.key,
     this.confirmLabel = 'Confirm',
     this.allowFutureTimes = false,
+    this.maxDateTime,
   });
   final String title;
   final DateTime initialTime;
   final ValueChanged<DateTime> onConfirm;
   final String confirmLabel;
   final bool allowFutureTimes;
+
+  /// Optional maximum DateTime. When [allowFutureTimes] is false, this is used
+  /// as the limit instead of DateTime.now(). Useful when editing past dates
+  /// where the limit should be end-of-day rather than current moment.
+  final DateTime? maxDateTime;
 
   @override
   State<TimePickerDial> createState() => _TimePickerDialState();
@@ -27,7 +34,20 @@ class _TimePickerDialState extends State<TimePickerDial> {
   @override
   void initState() {
     super.initState();
-    _selectedTime = widget.initialTime;
+    // Clamp initial time to max if future times are not allowed
+    _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
+  }
+
+  /// Gets the effective maximum DateTime for validation.
+  /// Uses maxDateTime if provided, otherwise DateTime.now().
+  DateTime get _effectiveMaxDateTime => widget.maxDateTime ?? DateTime.now();
+
+  /// Clamps the given time to the effective max if future times are not allowed
+  DateTime _clampToMaxIfNeeded(DateTime time) {
+    if (!widget.allowFutureTimes && time.isAfter(_effectiveMaxDateTime)) {
+      return _effectiveMaxDateTime;
+    }
+    return time;
   }
 
   // Track which button should show error flash
@@ -36,8 +56,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
   void _adjustMinutes(int delta) {
     final newTime = _selectedTime.add(Duration(minutes: delta));
 
-    // Check if this would go into the future
-    if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
+    // Check if this would exceed the max time
+    if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
       // Show error flash on the button
       setState(() => _errorButtonDelta = delta);
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -65,14 +85,15 @@ class _TimePickerDialState extends State<TimePickerDial> {
         picked.hour,
         picked.minute,
       );
-      // Don't allow future times unless explicitly permitted
-      if (!widget.allowFutureTimes && newTime.isAfter(DateTime.now())) {
-        // Show feedback that future time was rejected
+      // Don't allow times past the max unless explicitly permitted
+      if (!widget.allowFutureTimes && newTime.isAfter(_effectiveMaxDateTime)) {
+        // Show feedback that the time was rejected
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot select a time in the future'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(l10n.cannotSelectFutureTime),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -88,8 +109,11 @@ class _TimePickerDialState extends State<TimePickerDial> {
 
   @override
   Widget build(BuildContext context) {
-    final timeFormat = DateFormat('h:mm');
-    final periodFormat = DateFormat('a');
+    final locale = Localizations.localeOf(context).languageCode;
+    final timeFormat = DateFormat('H:mm', locale);
+    final periodFormat = DateFormat('a', locale);
+    // Check if locale uses 24-hour format
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -113,19 +137,23 @@ class _TimePickerDialState extends State<TimePickerDial> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  timeFormat.format(_selectedTime),
+                  use24Hour
+                      ? timeFormat.format(_selectedTime)
+                      : DateFormat('h:mm', locale).format(_selectedTime),
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     fontWeight: FontWeight.w300,
                     fontSize: 72,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  periodFormat.format(_selectedTime),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w400,
+                if (!use24Hour) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    periodFormat.format(_selectedTime),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -180,7 +208,11 @@ class _TimePickerDialState extends State<TimePickerDial> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => widget.onConfirm(_selectedTime),
+              onPressed: () {
+                // Final validation: clamp to max if future times not allowed
+                final timeToConfirm = _clampToMaxIfNeeded(_selectedTime);
+                widget.onConfirm(timeToConfirm);
+              },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
