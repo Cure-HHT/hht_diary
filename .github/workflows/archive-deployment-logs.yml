@@ -26,6 +26,11 @@ jobs:
       actions: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .  # Minimal checkout, just need git context for gh CLI
+
       - name: Determine workflow run ID
         id: workflow
         run: |
