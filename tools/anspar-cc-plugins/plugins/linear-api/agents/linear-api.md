@@ -1,6 +1,6 @@
 ---
 name: linear-api
-description: Generic Linear API client for ticket CRUD operations using GraphQL API
+description: MUST BE USED for all Linear ticket operations (fetch, create, update, search, labels). Use when interacting with Linear API for CRUD operations on tickets. Generic GraphQL-based client with no project-specific business logic.
 tools: Bash, Read
 ---
 
