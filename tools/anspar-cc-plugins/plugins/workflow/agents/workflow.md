@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: Enforces git workflow by ensuring active ticket is claimed before implementation work and validates REQ references in commits
+description: MUST BE USED before starting implementation work to verify active ticket is claimed. PROACTIVELY detects task context shifts via UserPromptSubmit hook. Use when writing code, editing specs/docs, committing changes, or handling PR merge cleanup. Validates REQ references in commits.
 tools: Bash, Read, AskUserQuestion
 ---
 
