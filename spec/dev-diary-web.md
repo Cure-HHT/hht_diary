@@ -429,47 +429,48 @@ class StorageClearer {
 
 **Level**: Dev | **Implements**: p01042, p01043 | **Status**: Active
 
-After successful authentication, the Web Diary SHALL load sponsor-specific configuration including branding, timeout settings, and Firestore connection details.
+After successful authentication, the Web Diary SHALL load sponsor-specific configuration by fetching it directly from the Sponsor Portal using the portal URL provided in the authentication token.
 
 Implementation SHALL include:
-- Sponsor config fetched from HHT Diary Auth service after login
+- Sponsor Portal URL obtained from auth token after login
+- Sponsor configuration fetched directly from Sponsor Portal API
 - Configuration cached in memory only (not persisted)
-- Firestore connection established to sponsor's GCP project
-- Theme applied based on sponsor branding
-- Session timeout configured per sponsor settings
+- Theme applied based on sponsor branding from portal response
+- Session timeout configured per sponsor settings from portal
 
 ```dart
-// Sponsor configuration structure
+// Auth token includes portal URL (from linking code pattern match)
+class AuthToken {
+  final String sub;
+  final String username;
+  final String sponsorId;
+  final String sponsorUrl;  // Sponsor Portal base URL
+  final String appUuid;
+  final DateTime iat;
+  final DateTime exp;
+}
+
+// Sponsor configuration fetched from Sponsor Portal
 class SponsorConfig {
   final String sponsorId;
   final String sponsorName;
-  final String portalUrl;
-  final String firestoreProjectId;
-  final String firestoreApiKey;      // Limited-scope API key
   final int sessionTimeoutMinutes;   // Default 2, range 1-30
   final SponsorBranding branding;
 }
 
 class SponsorBranding {
   final String logoUrl;
-  final Color primaryColor;
-  final Color secondaryColor;
-  final String welcomeMessage;
+  final String primaryColor;      // Hex color
+  final String secondaryColor;    // Hex color
+  final String? welcomeMessage;
 }
 
 // Post-login initialization
 Future<void> initializeSponsorContext(AuthToken token) async {
-  // Fetch sponsor config from auth service
-  final config = await authService.getSponsorConfig(token.sponsorId);
-
-  // Initialize Firestore for sponsor's project
-  await Firebase.initializeApp(
-    options: FirebaseOptions(
-      apiKey: config.firestoreApiKey,
-      projectId: config.firestoreProjectId,
-      // ... other options
-    ),
-  );
+  // Fetch sponsor config directly from Sponsor Portal
+  final configUrl = '${token.sponsorUrl}/api/diary/config';
+  final response = await http.get(Uri.parse(configUrl));
+  final config = SponsorConfig.fromJson(jsonDecode(response.body));
 
   // Apply branding
   applyTheme(config.branding);
@@ -479,16 +480,17 @@ Future<void> initializeSponsorContext(AuthToken token) async {
 }
 ```
 
-**Rationale**: Dynamic sponsor configuration enables the single Web Diary application to serve multiple sponsors with customized experiences while maintaining complete data isolation.
+**Rationale**: Fetching sponsor configuration directly from the Sponsor Portal simplifies the auth service (which only needs to provide the portal URL) and ensures the client always gets the latest sponsor configuration. The Sponsor Portal already manages sponsor-specific data including branding, making it the authoritative source.
 
 **Acceptance Criteria**:
-- Sponsor config loaded within 1 second of login
-- Firestore connected to correct sponsor project
-- Branding (logo, colors) applied immediately
+- Portal URL available in auth token after successful login
+- Sponsor config fetched from Sponsor Portal within 1 second
+- Branding (logo, colors) applied immediately after fetch
 - Session timeout uses sponsor-configured value
 - Config not persisted to browser storage
+- Graceful fallback if portal config fetch fails (use defaults)
 
-*End* *Sponsor Configuration Loading* | **Hash**: 338eab43
+*End* *Sponsor Configuration Loading* | **Hash**: 5a79a42d
 
 ---
 

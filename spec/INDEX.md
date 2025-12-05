@@ -88,7 +88,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00081 | dev-diary-web.md | User Document Schema | cde85fd6 |
 | REQ-d00082 | dev-diary-web.md | Password Hashing Implementation | 05136a5d |
 | REQ-d00083 | dev-diary-web.md | Browser Storage Clearing | d5857410 |
-| REQ-d00084 | dev-diary-web.md | Sponsor Configuration Loading | 338eab43 |
+| REQ-d00084 | dev-diary-web.md | Sponsor Configuration Loading | 5a79a42d |
 | REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | c6ed3379 |
 | REQ-o00003 | ops-database-setup.md | GCP Project Provisioning Per Sponsor | 5c8ec50e |
