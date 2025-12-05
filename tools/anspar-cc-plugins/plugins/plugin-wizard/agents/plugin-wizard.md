@@ -1,6 +1,6 @@
 ---
 name: plugin-wizard
-description: Builds complete plugins around user-defined agents using 2-phase workflow
+description: MUST BE USED for creating, modifying, researching, or validating Claude Code plugins and sub-agents. PROACTIVELY invoked for any plugin/agent changes. Builds complete plugins around user-defined agents using 2-phase workflow with marketplace integration.
 tools: Read, Write, Bash, Edit, Glob, Grep
 ---
 

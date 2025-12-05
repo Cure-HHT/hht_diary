@@ -1,6 +1,6 @@
 ---
 name: spec-compliance
-description: Proactive enforcement of spec/ directory guidelines including file naming, audience scope, and requirement format validation
+description: MUST BE USED when creating or modifying spec/ directory files. PROACTIVELY validates file naming, audience-specific content restrictions (no code in PRD files), and requirement format compliance. Enforces spec/README.md guidelines and /command remove-prd-code.md process.
 tools: Read, Grep, Bash
 ---
 
