@@ -6,7 +6,6 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
-import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
 import 'package:clinical_diary/widgets/intensity_row.dart';
@@ -37,7 +36,8 @@ class SimpleRecordingScreen extends StatefulWidget {
 }
 
 class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
-  late DateTime _date;
+  late DateTime _startDate;
+  late DateTime _endDate;
   DateTime? _startTime;
   DateTime? _endTime;
   NosebleedIntensity? _intensity;
@@ -55,12 +55,25 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   @override
   void initState() {
     super.initState();
-    _date = widget.initialDate ?? DateTime.now();
+    final initialDate = widget.initialDate ?? DateTime.now();
+    _startDate = initialDate;
+    _endDate = initialDate;
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
       _intensity = widget.existingRecord!.intensity;
+      // Set dates from existing record times
+      if (_startTime != null) {
+        _startDate = DateTime(
+          _startTime!.year,
+          _startTime!.month,
+          _startTime!.day,
+        );
+      }
+      if (_endTime != null) {
+        _endDate = DateTime(_endTime!.year, _endTime!.month, _endTime!.day);
+      }
       // Existing record means all present fields were "set"
       _userSetStart = _startTime != null;
       _userSetEnd = _endTime != null;
@@ -69,9 +82,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       // Default start time to the selected date with current time of day
       // but don't mark it as user-set yet
       _startTime = DateTime(
-        _date.year,
-        _date.month,
-        _date.day,
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
         DateTime.now().hour,
         DateTime.now().minute,
       );
@@ -81,19 +94,45 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     }
   }
 
-  /// Returns the maximum DateTime allowed for time selection.
-  /// For today, returns DateTime.now() to prevent future times.
-  /// For past dates, returns end of that day (23:59:59) to allow any time.
-  DateTime? get _maxDateTimeForTimePicker {
+  /// Get the primary date for the record (used for grouping/display)
+  DateTime get _date => _startDate;
+
+  /// Returns the maximum DateTime allowed for start time selection.
+  DateTime? get _maxStartDateTime {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+    final selectedDay = DateTime(
+      _startDate.year,
+      _startDate.month,
+      _startDate.day,
+    );
 
     if (selectedDay.isBefore(today)) {
       // Past date: allow any time on that day
-      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+      return DateTime(
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
+        23,
+        59,
+        59,
+      );
     }
-    // Today or future: use current time as max (default behavior)
+    // Today: use current time as max
+    return null;
+  }
+
+  /// Returns the maximum DateTime allowed for end time selection.
+  DateTime? get _maxEndDateTime {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_endDate.year, _endDate.month, _endDate.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+    }
+    // Today: use current time as max
     return null;
   }
 
@@ -203,9 +242,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     }
   }
 
-  void _handleDateChange(DateTime newDate) {
+  void _handleStartDateChange(DateTime newDate) {
     setState(() {
-      _date = newDate;
+      _startDate = newDate;
       // Update start time to match new date while preserving time
       if (_startTime != null) {
         _startTime = DateTime(
@@ -216,7 +255,26 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           _startTime!.minute,
         );
       }
-      // Update end time similarly
+      // If end date is before start date, update it to match
+      if (_endDate.isBefore(newDate)) {
+        _endDate = newDate;
+        if (_endTime != null) {
+          _endTime = DateTime(
+            newDate.year,
+            newDate.month,
+            newDate.day,
+            _endTime!.hour,
+            _endTime!.minute,
+          );
+        }
+      }
+    });
+  }
+
+  void _handleEndDateChange(DateTime newDate) {
+    setState(() {
+      _endDate = newDate;
+      // Update end time to match new date while preserving time
       if (_endTime != null) {
         _endTime = DateTime(
           newDate.year,
@@ -324,7 +382,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
             children: [
               // Header with back and delete buttons
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -350,14 +411,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                 ),
               ),
 
-              // Date header (tappable)
-              DateHeader(date: _date, onChange: _handleDateChange),
-
-              const SizedBox(height: 16),
-
-              // Scrollable content
+              // Content area (no scroll)
               Expanded(
-                child: SingleChildScrollView(
+                child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +421,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       // Overlap warning
                       if (hasOverlaps)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: OverlapWarning(
                             overlappingRecords: overlappingEvents,
                             onViewConflict: (conflictingRecord) {
@@ -376,10 +432,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                         ),
 
                       // Start Time Section
-                      Text(
-                        l10n.nosebleedStart,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          l10n.nosebleedStart,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -388,24 +445,27 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                         initialTime:
                             _startTime ??
                             DateTime(
-                              _date.year,
-                              _date.month,
-                              _date.day,
+                              _startDate.year,
+                              _startDate.month,
+                              _startDate.day,
                               DateTime.now().hour,
                               DateTime.now().minute,
                             ),
                         onTimeChanged: _handleStartTimeChange,
                         allowFutureTimes: false,
-                        maxDateTime: _maxDateTimeForTimePicker,
+                        maxDateTime: _maxStartDateTime,
+                        date: _startDate,
+                        onDateChanged: _handleStartDateChange,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // Intensity Section
-                      Text(
-                        l10n.intensity,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          l10n.maxIntensity,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -414,13 +474,14 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                         onSelect: _handleIntensitySelect,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // End Time Section
-                      Text(
-                        l10n.nosebleedEnd,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          l10n.nosebleedEnd,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -431,10 +492,12 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                             _handleEndTimeChange(time, l10n),
                         allowFutureTimes: false,
                         minTime: _startTime,
-                        maxDateTime: _maxDateTimeForTimePicker,
+                        maxDateTime: _maxEndDateTime,
+                        date: _endDate,
+                        onDateChanged: _handleEndDateChange,
                       ),
 
-                      const SizedBox(height: 24),
+                      const Spacer(),
                     ],
                   ),
                 ),
@@ -442,7 +505,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
               // Bottom action button
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Column(
                   children: [
                     // CUR-410: Red error container removed - overlap warning banner

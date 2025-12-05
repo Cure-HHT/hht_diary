@@ -127,7 +127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Start'), findsOneWidget);
-        expect(find.text('Intensity'), findsOneWidget);
+        expect(find.text('Max Intensity'), findsOneWidget);
         expect(find.text('End'), findsOneWidget);
       });
     });

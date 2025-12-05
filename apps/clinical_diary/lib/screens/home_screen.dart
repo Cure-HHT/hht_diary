@@ -872,13 +872,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
                       onRefresh: _loadRecords,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: groupedRecords.length,
-                        itemBuilder: (context, index) {
-                          final group = groupedRecords[index];
-                          return _buildGroup(context, group);
-                        },
+                      child: Scrollbar(
+                        thumbVisibility: true,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: groupedRecords.length,
+                          itemBuilder: (context, index) {
+                            final group = groupedRecords[index];
+                            return _buildGroup(context, group);
+                          },
+                        ),
                       ),
                     ),
             ),

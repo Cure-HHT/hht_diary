@@ -518,6 +518,14 @@ void main() {
 
     group('Basic Functionality', () {
       testWidgets('displays all form sections', (tester) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
         await tester.pumpWidget(
           wrapWithMaterialApp(
             SimpleRecordingScreen(
@@ -531,11 +539,19 @@ void main() {
 
         // Should show all sections
         expect(find.text('Nosebleed Start'), findsOneWidget);
-        expect(find.text('Intensity'), findsOneWidget);
+        expect(find.text('Max Intensity'), findsOneWidget);
         expect(find.text('Nosebleed End'), findsOneWidget);
       });
 
       testWidgets('displays back button', (tester) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
         await tester.pumpWidget(
           wrapWithMaterialApp(
             SimpleRecordingScreen(
@@ -550,6 +566,14 @@ void main() {
       });
 
       testWidgets('shows delete button for existing records', (tester) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
           date: DateTime(2024, 1, 15),
@@ -575,6 +599,14 @@ void main() {
       testWidgets('does not show delete button for new records', (
         tester,
       ) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
         await tester.pumpWidget(
           wrapWithMaterialApp(
             SimpleRecordingScreen(

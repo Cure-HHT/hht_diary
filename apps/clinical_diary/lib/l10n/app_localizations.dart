@@ -182,6 +182,7 @@ class AppLocalizations {
       'end': 'End',
       'selectIntensity': 'Select...',
       'intensity': 'Intensity',
+      'maxIntensity': 'Max Intensity',
       'nosebleedStart': 'Nosebleed Start',
       'setStartTime': 'Set Start Time',
       'nosebleedEnd': 'Nosebleed End',
@@ -460,6 +461,7 @@ class AppLocalizations {
       'end': 'Fin',
       'selectIntensity': 'Seleccionar...',
       'intensity': 'Intensidad',
+      'maxIntensity': 'Intensidad Máxima',
       'nosebleedStart': 'Inicio de hemorragia',
       'setStartTime': 'Establecer hora de inicio',
       'nosebleedEnd': 'Fin de hemorragia',
@@ -751,6 +753,7 @@ class AppLocalizations {
       'end': 'Fin',
       'selectIntensity': 'Selectionner...',
       'intensity': 'Intensite',
+      'maxIntensity': 'Intensite Maximale',
       'nosebleedStart': 'Debut du saignement',
       'setStartTime': "Definir l'heure de debut",
       'nosebleedEnd': 'Fin du saignement',
@@ -1039,6 +1042,7 @@ class AppLocalizations {
       'end': 'Ende',
       'selectIntensity': 'Auswahlen...',
       'intensity': 'Intensitat',
+      'maxIntensity': 'Maximale Intensitat',
       'nosebleedStart': 'Nasenbluten-Start',
       'setStartTime': 'Startzeit festlegen',
       'nosebleedEnd': 'Nasenbluten-Ende',
@@ -1331,6 +1335,7 @@ class AppLocalizations {
   String get end => translate('end');
   String get selectIntensity => translate('selectIntensity');
   String get intensity => translate('intensity');
+  String get maxIntensity => translate('maxIntensity');
   String get nosebleedStart => translate('nosebleedStart');
   String get setStartTime => translate('setStartTime');
   String get nosebleedEnd => translate('nosebleedEnd');

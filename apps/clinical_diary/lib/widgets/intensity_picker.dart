@@ -15,22 +15,21 @@ class IntensityPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate icon size based on available height
-          // Header ~70px (title + subtitle + spacing), grid spacing ~16px (2 gaps)
+          // Header ~50px (title + subtitle + spacing), grid spacing ~12px (2 gaps)
           // We need 3 rows of boxes to fit
-          const headerHeight = 80.0;
-          const gridSpacing = 16.0; // 2 gaps * 8px each
+          const headerHeight = 50.0;
+          const gridSpacing = 12.0; // 2 gaps * 6px each
           final availableHeight =
               constraints.maxHeight - headerHeight - gridSpacing;
-          final boxHeight = (availableHeight / 3).clamp(60.0, 110.0);
+          final boxHeight = (availableHeight / 3).clamp(50.0, 100.0);
 
-          // Icon should be ~40% of box height, leaving room for text and border container
-          // Border container adds ~11px (4px padding * 2 + 1.5px border * 2)
-          final iconSize = (boxHeight * 0.4).clamp(28.0, 48.0);
-          final fontSize = (boxHeight * 0.14).clamp(10.0, 14.0);
+          // Icon should be ~45% of box height, leaving room for text
+          final iconSize = (boxHeight * 0.45).clamp(24.0, 44.0);
+          final fontSize = (boxHeight * 0.15).clamp(9.0, 13.0);
 
           final l10n = AppLocalizations.of(context);
           return Column(
@@ -41,7 +40,7 @@ class IntensityPicker extends StatelessWidget {
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 l10n.translate('selectBestOption'),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -50,13 +49,13 @@ class IntensityPicker extends StatelessWidget {
                   ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: (constraints.maxWidth / 2 - 12) / boxHeight,
+                  mainAxisSpacing: 6,
+                  crossAxisSpacing: 6,
+                  childAspectRatio: (constraints.maxWidth / 2 - 9) / boxHeight,
                   physics: const NeverScrollableScrollPhysics(),
                   children: NosebleedIntensity.values.map((intensity) {
                     final isSelected = selectedIntensity == intensity;
@@ -140,8 +139,7 @@ class _IntensityOption extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
+              DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: isSelected
@@ -153,13 +151,16 @@ class _IntensityOption extends StatelessWidget {
                           ).colorScheme.outline.withValues(alpha: 0.4),
                     width: 1.5,
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Image.asset(
-                  _imagePath,
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.contain,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4.5),
+                  child: Image.asset(
+                    _imagePath,
+                    width: iconSize,
+                    height: iconSize,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),

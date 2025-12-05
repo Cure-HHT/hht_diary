@@ -384,7 +384,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           // Intensity
           _buildSummaryItem(
-            label: l10n.intensity,
+            label: l10n.maxIntensity,
             value: _intensity != null
                 ? l10n.intensityName(_intensity!.name)
                 : l10n.selectIntensity,
