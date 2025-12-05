@@ -3,6 +3,10 @@
 # Pre-Commit Hook: Plugin Orchestrator
 # =====================================================
 #
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00018: Git Hook Implementation
+#   REQ-o00053: Branch Protection Enforcement
+#
 # Auto-discovers and executes pre-commit hooks from all
 # installed Claude Code plugins in anspar-cc-plugins.
 #
@@ -11,7 +15,9 @@
 #   Executes: All found hooks in alphabetical order
 #
 # Built-in Checks:
+#   - Branch health (blocks commits on merged branches)
 #   - Branch protection (blocks commits to main/master)
+#   - Ticket-branch consistency (warns on mismatch)
 #   - Dockerfile linting (if hadolint available)
 #   - Dart code quality (dart format + dart analyze)
 #   - TypeScript code quality (ESLint)
@@ -28,7 +34,34 @@
 set -e
 
 # =====================================================
-# 0. Branch Protection - Block Commits to Main
+# 0. Branch Health Check - Block Commits on Merged Branches
+# =====================================================
+
+BRANCH_HEALTH_SCRIPT="tools/anspar-cc-plugins/plugins/workflow/scripts/branch-health-check.sh"
+
+if [ -x "$BRANCH_HEALTH_SCRIPT" ]; then
+    BRANCH_HEALTH_JSON=$("$BRANCH_HEALTH_SCRIPT" --format=json 2>/dev/null || echo '{"status": "error", "canWork": true}')
+    BRANCH_STATUS=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.status // "error"' 2>/dev/null || echo "error")
+    CAN_WORK=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.canWork // true' 2>/dev/null || echo "true")
+    BRANCH_NAME=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.branch // "unknown"' 2>/dev/null || echo "unknown")
+    BRANCH_MESSAGE=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.message // ""' 2>/dev/null || echo "")
+
+    if [ "$CAN_WORK" = "false" ]; then
+        echo "⛔ ERROR: Cannot commit to this branch!"
+        echo ""
+        echo "Branch: $BRANCH_NAME"
+        echo "Status: $BRANCH_STATUS"
+        echo "$BRANCH_MESSAGE"
+        echo ""
+        echo "Create a new branch from main:"
+        echo "  git checkout -b feature/NEW-TICKET-ID origin/main"
+        echo ""
+        exit 1
+    fi
+fi
+
+# =====================================================
+# 0.1. Branch Protection - Block Commits to Main
 # =====================================================
 
 CURRENT_BRANCH=$(git branch --show-current)
@@ -51,6 +84,41 @@ if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
     echo "  git commit"
     echo ""
     exit 1
+fi
+
+# =====================================================
+# 0.2. Ticket-Branch Consistency Check (Warning Only)
+# =====================================================
+# Warns if the branch name doesn't match the claimed ticket
+
+GET_ACTIVE_TICKET="tools/anspar-cc-plugins/plugins/workflow/scripts/get-active-ticket.sh"
+
+if [ -x "$GET_ACTIVE_TICKET" ]; then
+    ACTIVE_TICKET=$("$GET_ACTIVE_TICKET" --format=id 2>/dev/null || echo "")
+
+    if [ -n "$ACTIVE_TICKET" ]; then
+        CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+        if [ -n "$CURRENT_BRANCH" ]; then
+            # Extract ticket ID from branch name (e.g., feature/CUR-412-something -> CUR-412)
+            BRANCH_TICKET=$(echo "$CURRENT_BRANCH" | grep -oE 'CUR-[0-9]+' | head -1 || echo "")
+
+            if [ -n "$BRANCH_TICKET" ] && [ "$BRANCH_TICKET" != "$ACTIVE_TICKET" ]; then
+                echo "⚠️  WARNING: Ticket-branch mismatch detected!"
+                echo ""
+                echo "   Active ticket: $ACTIVE_TICKET"
+                echo "   Branch ticket: $BRANCH_TICKET"
+                echo "   Branch name:   $CURRENT_BRANCH"
+                echo ""
+                echo "   You are committing to a branch for a different ticket."
+                echo "   If this is intentional, you can continue."
+                echo ""
+                echo "   To switch tickets: tools/anspar-cc-plugins/plugins/workflow/scripts/switch-ticket.sh $BRANCH_TICKET"
+                echo "   To continue anyway: This is just a warning, commit will proceed."
+                echo ""
+            fi
+        fi
+    fi
 fi
 
 # =====================================================
