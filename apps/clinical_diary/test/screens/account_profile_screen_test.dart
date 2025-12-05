@@ -11,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -46,7 +48,9 @@ void main() {
     });
 
     Widget buildTestWidget() {
-      return MaterialApp(home: AccountProfileScreen(authService: authService));
+      return wrapWithMaterialApp(
+        AccountProfileScreen(authService: authService),
+      );
     }
 
     group('UI Elements', () {
@@ -355,6 +359,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
+        await tester.pump(); // Let localization initialize
 
         // Before pumpAndSettle, should show loading
         expect(find.byType(CircularProgressIndicator), findsOneWidget);

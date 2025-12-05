@@ -89,7 +89,8 @@ class ClinicalDiaryApp extends StatefulWidget {
 
 class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   Locale _locale = const Locale('en');
-  ThemeMode _themeMode = ThemeMode.system;
+  // CUR-424: Force light mode for alpha partners (no system/dark mode)
+  ThemeMode _themeMode = ThemeMode.light;
   final PreferencesService _preferencesService = PreferencesService();
 
   @override
@@ -102,7 +103,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
     final prefs = await _preferencesService.getPreferences();
     setState(() {
       _locale = Locale(prefs.languageCode);
-      _themeMode = prefs.isDarkMode ? ThemeMode.dark : ThemeMode.light;
+      // CUR-424: Always use light mode for alpha partners
+      _themeMode = ThemeMode.light;
     });
   }
 
@@ -113,8 +115,9 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   }
 
   void _setThemeMode(bool isDarkMode) {
+    // CUR-424: Ignore dark mode requests, always use light mode for alpha
     setState(() {
-      _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+      _themeMode = ThemeMode.light;
     });
   }
 

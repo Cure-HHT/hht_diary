@@ -6,20 +6,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('YesterdayBanner', () {
     testWidgets('displays yesterday date', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
       final dateStr = DateFormat('MMM d').format(yesterday);
@@ -29,80 +30,75 @@ void main() {
 
     testWidgets('displays confirmation title', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.textContaining('Confirm Yesterday'), findsOneWidget);
     });
 
     testWidgets('displays question text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Did you have nosebleeds?'), findsOneWidget);
     });
 
     testWidgets('displays Yes button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Yes'), findsOneWidget);
     });
 
     testWidgets('displays No button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('No'), findsOneWidget);
     });
 
     testWidgets('displays Dont remember button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text("Don't remember"), findsOneWidget);
     });
@@ -111,16 +107,15 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () => called = true,
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () => called = true,
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Yes'));
       await tester.pump();
@@ -132,16 +127,15 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () => called = true,
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () => called = true,
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('No'));
       await tester.pump();
@@ -155,16 +149,15 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () => called = true,
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () => called = true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text("Don't remember"));
       await tester.pump();
@@ -174,48 +167,45 @@ void main() {
 
     testWidgets('has three OutlinedButtons', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(OutlinedButton), findsNWidgets(3));
     });
 
     testWidgets('No button has check icon', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
     testWidgets('has yellow background', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: YesterdayBanner(
-              onNoNosebleeds: () {},
-              onHadNosebleeds: () {},
-              onDontRemember: () {},
-            ),
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final container = tester.widget<Container>(find.byType(Container).first);
       final decoration = container.decoration as BoxDecoration;

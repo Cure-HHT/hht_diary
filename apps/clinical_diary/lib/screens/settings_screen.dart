@@ -65,6 +65,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _selectLanguage(String code) {
+    setState(() => _languageCode = code);
+    _savePreferences();
+    widget.onLanguageChanged?.call(code);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,38 +187,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                           const SizedBox(height: 32),
 
-                          // Language Section - disabled for alpha release
+                          // Language Section
                           _buildSectionHeader(
                             context,
                             AppLocalizations.of(context).language,
-                            'Coming soon - English only for now',
+                            AppLocalizations.of(context).languageDescription,
                           ),
                           const SizedBox(height: 16),
                           _buildLanguageOption(
                             context,
                             code: 'en',
                             name: 'English',
-                            isSelected: true,
-                            onTap: null,
-                            isDisabled: true,
+                            isSelected: _languageCode == 'en',
+                            onTap: () => _selectLanguage('en'),
                           ),
                           const SizedBox(height: 12),
                           _buildLanguageOption(
                             context,
                             code: 'es',
                             name: 'Español',
-                            isSelected: false,
-                            onTap: null,
-                            isDisabled: true,
+                            isSelected: _languageCode == 'es',
+                            onTap: () => _selectLanguage('es'),
                           ),
                           const SizedBox(height: 12),
                           _buildLanguageOption(
                             context,
                             code: 'fr',
                             name: 'Français',
-                            isSelected: false,
-                            onTap: null,
-                            isDisabled: true,
+                            isSelected: _languageCode == 'fr',
+                            onTap: () => _selectLanguage('fr'),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildLanguageOption(
+                            context,
+                            code: 'de',
+                            name: 'Deutsch',
+                            isSelected: _languageCode == 'de',
+                            onTap: () => _selectLanguage('de'),
                           ),
                         ],
                       ),

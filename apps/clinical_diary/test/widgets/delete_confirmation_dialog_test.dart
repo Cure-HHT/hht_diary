@@ -5,12 +5,14 @@ import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('DeleteConfirmationDialog', () {
     testWidgets('displays dialog title', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -24,6 +26,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -33,8 +36,8 @@ void main() {
 
     testWidgets('displays instruction text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -48,6 +51,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -60,8 +64,8 @@ void main() {
 
     testWidgets('displays all reason options', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -75,6 +79,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -87,8 +92,8 @@ void main() {
 
     testWidgets('displays Cancel and Delete buttons', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -102,6 +107,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -114,8 +120,8 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -129,6 +135,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -142,8 +149,8 @@ void main() {
 
     testWidgets('Cancel button closes dialog', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -157,6 +164,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -169,8 +177,8 @@ void main() {
 
     testWidgets('selecting a reason enables Delete button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -184,6 +192,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -207,8 +216,8 @@ void main() {
       String? deletedReason;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -223,6 +232,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -244,8 +254,8 @@ void main() {
 
     testWidgets('shows text field when Other is selected', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: SingleChildScrollView(
               child: SizedBox(
                 height: 800,
@@ -267,6 +277,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -291,8 +302,8 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: SingleChildScrollView(
               child: SizedBox(
                 height: 800,
@@ -314,6 +325,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
@@ -335,8 +347,8 @@ void main() {
 
     testWidgets('static show method displays dialog', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => DeleteConfirmationDialog.show(
@@ -349,6 +361,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
@@ -358,8 +371,8 @@ void main() {
 
     testWidgets('renders as AlertDialog', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        wrapWithMaterialApp(
+          Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => showDialog<void>(
@@ -373,6 +386,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();

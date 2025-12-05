@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
         9,
         45,
       ),
-      severity: NosebleedSeverity.dripping,
+      intensity: NosebleedIntensity.dripping,
       notes: 'Example morning nosebleed',
     );
 
@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
         0,
       ),
       endTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 30),
-      severity: NosebleedSeverity.steadyStream,
+      intensity: NosebleedIntensity.steadyStream,
       notes: 'Example afternoon nosebleed',
     );
 
@@ -206,34 +206,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Example data added'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).exampleDataAdded),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
   }
 
   Future<void> _handleResetAllData() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset All Data?'),
-        content: const Text(
-          'This will permanently delete all your recorded data. '
-          'This action cannot be undone.',
-        ),
+        title: Text(l10n.resetAllData),
+        content: Text(l10n.resetAllDataMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Reset'),
+            child: Text(l10n.reset),
           ),
         ],
       ),
@@ -245,9 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('All data has been reset'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).allDataReset),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -255,25 +253,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleEndClinicalTrial() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('End Clinical Trial?'),
-        content: const Text(
-          'Are you sure you want to end your participation in the clinical trial? '
-          'Your data will be retained but no longer synced.',
-        ),
+        title: Text(l10n.endClinicalTrial),
+        content: Text(l10n.endClinicalTrialMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('End Trial'),
+            child: Text(l10n.endTrial),
           ),
         ],
       ),
@@ -285,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have left the clinical trial'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).leftClinicalTrial),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -324,15 +320,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
+        title: Text(l10n.logout),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Have you saved your username and password?'),
+            Text(l10n.savedCredentialsQuestion),
             const SizedBox(height: 16),
             if (hasCredentials)
               Container(
@@ -352,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "If you didn't save your credentials, they are available in the Account page.",
+                        l10n.credentialsAvailableInAccount,
                         style: TextStyle(
                           color: Colors.orange.shade900,
                           fontSize: 13,
@@ -367,11 +364,11 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes, Logout'),
+            child: Text(l10n.yesLogout),
           ),
         ],
       ),
@@ -384,12 +381,12 @@ class _HomeScreenState extends State<HomeScreen> {
           showDialog<void>(
             context: context,
             barrierDismissible: false,
-            builder: (context) => const AlertDialog(
+            builder: (context) => AlertDialog(
               content: Row(
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 24),
-                  Text('Syncing your data...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 24),
+                  Text(AppLocalizations.of(context).syncingData),
                 ],
               ),
             ),
@@ -409,19 +406,19 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!syncResult.isSuccess) {
         // Sync failed - show error and don't logout
         if (mounted) {
+          final l10nError = AppLocalizations.of(context);
           await showDialog<void>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Sync Failed'),
+              title: Text(l10nError.syncFailed),
               content: Text(
-                'Could not sync your data to the server. '
-                'Please check your internet connection and try again.\n\n'
+                '${l10nError.syncFailedMessage}\n\n'
                 'Error: ${syncResult.errorMessage}',
               ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
+                  child: Text(l10nError.ok),
                 ),
               ],
             ),
@@ -436,9 +433,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have been logged out'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).loggedOut),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -470,6 +467,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 initialDate: firstIncomplete.date,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: firstIncomplete.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -477,6 +481,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 initialDate: firstIncomplete.date,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
+                onDelete: (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: firstIncomplete.id,
+                    reason: reason,
+                  );
+                  unawaited(_loadRecords());
+                },
               ),
       ),
     );
@@ -525,6 +536,35 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result ?? false) {
       unawaited(_loadRecords());
     }
+  }
+
+  /// Check if a record overlaps with any other record in the list
+  /// CUR-443: Used to show warning icon on overlapping events
+  bool _hasOverlap(NosebleedRecord record) {
+    if (!record.isRealEvent ||
+        record.startTime == null ||
+        record.endTime == null) {
+      return false;
+    }
+
+    for (final other in _records) {
+      // Skip same record
+      if (other.id == record.id) continue;
+
+      // Only check real events with both start and end times
+      if (!other.isRealEvent ||
+          other.startTime == null ||
+          other.endTime == null) {
+        continue;
+      }
+
+      // Check if events overlap
+      if (record.startTime!.isBefore(other.endTime!) &&
+          record.endTime!.isAfter(other.startTime!)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
@@ -581,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // Today's records
+    // Today's records (excluding incomplete - they have their own warning banner)
     final todayRecords =
         _records.where((r) {
           final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
@@ -647,7 +687,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Profile menu on the right
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.person_outline),
-                    tooltip: 'User menu',
+                    tooltip: AppLocalizations.of(context).userMenu,
                     onSelected: (value) async {
                       if (value == 'login') {
                         await _handleLogin();
@@ -669,9 +709,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Privacy settings coming soon'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context).privacyComingSoon,
+                            ),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       } else if (value == 'enroll') {
@@ -685,81 +727,76 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                     },
-                    itemBuilder: (context) => [
-                      // Login/Logout button
-                      if (_isLoggedIn) ...[
-                        const PopupMenuItem(
-                          value: 'account',
-                          child: Row(
-                            children: [
-                              Icon(Icons.account_circle, size: 20),
-                              SizedBox(width: 12),
-                              Text('Account'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'logout',
-                          child: Row(
-                            children: [
-                              Icon(Icons.logout, size: 20),
-                              SizedBox(width: 12),
-                              Text('Logout'),
-                            ],
-                          ),
-                        ),
-                      ] else
-                        const PopupMenuItem(
-                          value: 'login',
-                          child: Row(
-                            children: [
-                              Icon(Icons.login, size: 20),
-                              SizedBox(width: 12),
-                              Text('Login'),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'accessibility',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.settings, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).accessibilityAndPreferences,
+                    itemBuilder: (context) {
+                      final l10n = AppLocalizations.of(context);
+                      return [
+                        // Login/Logout button
+                        if (_isLoggedIn) ...[
+                          PopupMenuItem(
+                            value: 'account',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.account_circle, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.account),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'privacy',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.privacy_tip, size: 20),
-                            const SizedBox(width: 12),
-                            Text(AppLocalizations.of(context).privacy),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'enroll',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.group_add, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              ).enrollInClinicalTrial,
+                          ),
+                          PopupMenuItem(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.logout, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.logout),
+                              ],
                             ),
-                          ],
+                          ),
+                        ] else
+                          PopupMenuItem(
+                            value: 'login',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.login, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.login),
+                              ],
+                            ),
+                          ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'accessibility',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.settings, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.accessibilityAndPreferences),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        PopupMenuItem(
+                          value: 'privacy',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.privacy_tip, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.privacy),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'enroll',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.group_add, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.enrollInClinicalTrial),
+                            ],
+                          ),
+                        ),
+                      ];
+                    },
                   ),
                 ],
               ),
@@ -769,45 +806,52 @@ class _HomeScreenState extends State<HomeScreen> {
             if (!_isLoading) ...[
               // Incomplete records banner (orange)
               if (_incompleteRecords.isNotEmpty)
-                InkWell(
-                  onTap: _handleIncompleteRecordsClick,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.orange.shade800,
-                          size: 20,
+                Builder(
+                  builder: (context) {
+                    final l10n = AppLocalizations.of(context);
+                    return InkWell(
+                      onTap: _handleIncompleteRecordsClick,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '${_incompleteRecords.length} incomplete record${_incompleteRecords.length > 1 ? 's' : ''}',
-                            style: TextStyle(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
                               color: Colors.orange.shade800,
-                              fontWeight: FontWeight.w500,
+                              size: 20,
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.incompleteRecordCount(
+                                  _incompleteRecords.length,
+                                ),
+                                style: TextStyle(
+                                  color: Colors.orange.shade800,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              l10n.tapToComplete,
+                              style: TextStyle(
+                                color: Colors.orange.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Tap to complete →',
-                          style: TextStyle(
-                            color: Colors.orange.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
 
               // Active questionnaire banner (blue) - placeholder
@@ -848,50 +892,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Missing data button (placeholder)
                   // TODO: Add missing data functionality
 
-                  // Main record button - large red button
+                  // Main record button - compact red button
                   SizedBox(
                     width: double.infinity,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Get screen height
-                        final screenHeight = MediaQuery.of(context).size.height;
-                        // Calculate 25vh (25% of viewport height)
-                        final buttonHeight = screenHeight * 0.25;
-                        // Ensure minimum height of 160px
-                        final finalHeight = buttonHeight < 160
-                            ? 160.0
-                            : buttonHeight;
-
-                        return SizedBox(
-                          height: finalHeight,
-                          child: FilledButton(
-                            onPressed: _navigateToRecording,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.red.shade600,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              elevation: 4,
-                              shadowColor: Colors.black.withValues(alpha: 0.3),
-                            ),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add, size: 48),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Record Nosebleed',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                    height: 80,
+                    child: FilledButton(
+                      onPressed: _navigateToRecording,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 4,
+                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add, size: 32),
+                          const SizedBox(width: 12),
+                          Text(
+                            AppLocalizations.of(context).recordNosebleed,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
                   ),
 
@@ -921,41 +950,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       // Demo toggle for simple recording screen
-                      Tooltip(
-                        message: _useSimpleRecordingScreen
-                            ? 'Using simple UI (tap to switch)'
-                            : 'Using classic UI (tap for simple)',
-                        child: IconButton.outlined(
-                          onPressed: () {
-                            setState(() {
-                              _useSimpleRecordingScreen =
-                                  !_useSimpleRecordingScreen;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _useSimpleRecordingScreen
-                                      ? 'Switched to simple recording UI'
-                                      : 'Switched to classic recording UI',
-                                ),
-                                duration: const Duration(seconds: 2),
+                      Builder(
+                        builder: (context) {
+                          final l10n = AppLocalizations.of(context);
+                          return Tooltip(
+                            message: _useSimpleRecordingScreen
+                                ? l10n.usingSimpleUI
+                                : l10n.usingClassicUI,
+                            child: IconButton.outlined(
+                              onPressed: () {
+                                setState(() {
+                                  _useSimpleRecordingScreen =
+                                      !_useSimpleRecordingScreen;
+                                });
+                                final l10nSnack = AppLocalizations.of(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      _useSimpleRecordingScreen
+                                          ? l10nSnack.switchedToSimpleUI
+                                          : l10nSnack.switchedToClassicUI,
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+
+                              icon: Icon(
+                                _useSimpleRecordingScreen
+                                    ? Icons.view_agenda
+                                    : Icons.dashboard,
                               ),
-                            );
-                          },
-                          icon: Icon(
-                            _useSimpleRecordingScreen
-                                ? Icons.view_agenda
-                                : Icons.dashboard,
-                          ),
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            side: BorderSide(
-                              color: _useSimpleRecordingScreen
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.outline,
+                              style: IconButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                side: BorderSide(
+                                  color: _useSimpleRecordingScreen
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -1022,7 +1058,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 const SizedBox(height: 8),
                 Text(
-                  DateFormat('EEEE, MMMM d, y').format(group.date!),
+                  DateFormat(
+                    'EEEE, MMMM d, y',
+                    Localizations.localeOf(context).languageCode,
+                  ).format(group.date!),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
@@ -1053,6 +1092,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: EventListItem(
                 record: record,
                 onTap: () => _navigateToEditRecord(record),
+                hasOverlap: _hasOverlap(record),
               ),
             ),
           ),

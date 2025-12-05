@@ -2,8 +2,8 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-d00013: Application Instance UUID Generation
 
-/// Severity levels for nosebleed events
-enum NosebleedSeverity {
+/// Intensity levels for nosebleed events
+enum NosebleedIntensity {
   spotting,
   dripping,
   drippingQuickly,
@@ -13,24 +13,24 @@ enum NosebleedSeverity {
 
   String get displayName {
     switch (this) {
-      case NosebleedSeverity.spotting:
+      case NosebleedIntensity.spotting:
         return 'Spotting';
-      case NosebleedSeverity.dripping:
+      case NosebleedIntensity.dripping:
         return 'Dripping';
-      case NosebleedSeverity.drippingQuickly:
+      case NosebleedIntensity.drippingQuickly:
         return 'Dripping quickly';
-      case NosebleedSeverity.steadyStream:
+      case NosebleedIntensity.steadyStream:
         return 'Steady stream';
-      case NosebleedSeverity.pouring:
+      case NosebleedIntensity.pouring:
         return 'Pouring';
-      case NosebleedSeverity.gushing:
+      case NosebleedIntensity.gushing:
         return 'Gushing';
     }
   }
 
-  static NosebleedSeverity? fromString(String? value) {
+  static NosebleedIntensity? fromString(String? value) {
     if (value == null) return null;
-    return NosebleedSeverity.values.cast<NosebleedSeverity?>().firstWhere(
+    return NosebleedIntensity.values.cast<NosebleedIntensity?>().firstWhere(
       (e) => e?.displayName == value || e?.name == value,
       orElse: () => null,
     );
@@ -44,7 +44,7 @@ class NosebleedRecord {
     required this.date,
     this.startTime,
     this.endTime,
-    this.severity,
+    this.intensity,
     this.notes,
     this.isNoNosebleedsEvent = false,
     this.isUnknownEvent = false,
@@ -68,7 +68,7 @@ class NosebleedRecord {
       endTime: json['endTime'] != null
           ? DateTime.parse(json['endTime'] as String)
           : null,
-      severity: NosebleedSeverity.fromString(json['severity'] as String?),
+      intensity: NosebleedIntensity.fromString(json['intensity'] as String?),
       notes: json['notes'] as String?,
       isNoNosebleedsEvent: json['isNoNosebleedsEvent'] as bool? ?? false,
       isUnknownEvent: json['isUnknownEvent'] as bool? ?? false,
@@ -90,7 +90,7 @@ class NosebleedRecord {
   final DateTime date;
   final DateTime? startTime;
   final DateTime? endTime;
-  final NosebleedSeverity? severity;
+  final NosebleedIntensity? intensity;
   final String? notes;
   final bool isNoNosebleedsEvent;
   final bool isUnknownEvent;
@@ -109,7 +109,7 @@ class NosebleedRecord {
   bool get isComplete =>
       isNoNosebleedsEvent ||
       isUnknownEvent ||
-      (startTime != null && endTime != null && severity != null);
+      (startTime != null && endTime != null && intensity != null);
 
   /// Calculate duration in minutes
   int? get durationMinutes {
@@ -123,7 +123,7 @@ class NosebleedRecord {
     DateTime? date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool? isNoNosebleedsEvent,
     bool? isUnknownEvent,
@@ -140,7 +140,7 @@ class NosebleedRecord {
       date: date ?? this.date,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      severity: severity ?? this.severity,
+      intensity: intensity ?? this.intensity,
       notes: notes ?? this.notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent ?? this.isNoNosebleedsEvent,
       isUnknownEvent: isUnknownEvent ?? this.isUnknownEvent,
@@ -161,7 +161,7 @@ class NosebleedRecord {
       'date': date.toIso8601String(),
       'startTime': startTime?.toIso8601String(),
       'endTime': endTime?.toIso8601String(),
-      'severity': severity?.name,
+      'intensity': intensity?.name,
       'notes': notes,
       'isNoNosebleedsEvent': isNoNosebleedsEvent,
       'isUnknownEvent': isUnknownEvent,

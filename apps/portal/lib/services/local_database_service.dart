@@ -62,7 +62,9 @@ class LocalDatabaseService implements DatabaseService {
 
   @override
   Future<Map<String, dynamic>?> signInWithEmail(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     // Mock authentication - accept any password for test users
     final user = _portalUsers.firstWhere(
       (u) => u['email'] == email && u['is_active'] == true,
@@ -155,8 +157,9 @@ class LocalDatabaseService implements DatabaseService {
       'last_diary_entry': null,
       'created_at': DateTime.now().toIso8601String(),
       'sites': {
-        'site_name':
-            _sites.firstWhere((s) => s['site_id'] == siteId)['site_name'],
+        'site_name': _sites.firstWhere(
+          (s) => s['site_id'] == siteId,
+        )['site_name'],
       },
       'questionnaires': [],
     };

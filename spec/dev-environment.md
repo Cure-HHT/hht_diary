@@ -5,7 +5,7 @@
 **Last Updated**: 2025-11-24
 **Status**: Active
 
-> **See**: prd-app.md for application architecture
+> **See**: prd-diary-app.md for application architecture
 > **See**: ops-deployment.md for production environment specifications
 > **See**: docs/adr/ADR-006-docker-dev-environments.md for architecture decisions
 

@@ -120,13 +120,22 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00053 | ops-cicd.md | Branch Protection Enforcement | d0584e9a |
 | REQ-o00054 | ops-cicd.md | Audit Trail Generation for CI/CD | 7da5e2e7 |
 | REQ-o00055 | ops-portal.md | Role-Based Visual Indicator Verification | b02eb8c1 |
+| REQ-o00056 | ops-SLA.md | SLO Definition and Tracking | 5efae38e |
+| REQ-o00057 | ops-SLA.md | Automated Uptime Monitoring | 29c323db |
+| REQ-o00058 | ops-SLA.md | On-Call Automation | 545e519a |
+| REQ-o00059 | ops-SLA.md | Automated Status Page | 6ef867f8 |
+| REQ-o00060 | ops-SLA.md | SLA Reporting Automation | 037b0946 |
+| REQ-o00061 | ops-SLA.md | Incident Classification Automation | 5e96a7aa |
+| REQ-o00062 | ops-SLA.md | RCA and CAPA Workflow | ecec7aed |
+| REQ-o00063 | ops-SLA.md | Error Budget Alerting | 60d8b564 |
+| REQ-o00064 | ops-SLA.md | Maintenance Window Management | 3732f8ca |
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |
 | REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | 0c0b0807 |
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control | 692bc7bd |
-| REQ-p00006 | prd-app.md | Offline-First Data Entry | c5ff6bf6 |
-| REQ-p00007 | prd-app.md | Automatic Sponsor Configuration | b90eb7ab |
+| REQ-p00006 | prd-diary-app.md | Offline-First Data Entry | c5ff6bf6 |
+| REQ-p00007 | prd-diary-app.md | Automatic Sponsor Configuration | b90eb7ab |
 | REQ-p00008 | prd-architecture-multi-sponsor.md | Single Mobile App for All Sponsors | f638b9f4 |
 | REQ-p00009 | prd-architecture-multi-sponsor.md | Sponsor-Specific Web Portals | 4ebd0c72 |
 | REQ-p00010 | prd-clinical-trials.md | FDA 21 CFR Part 11 Compliance | 62500780 |
@@ -157,6 +166,14 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection | 0e94f5cf |
 | REQ-p00041 | prd-standards.md | CDISC Standards Compliance | bd86de7e |
 | REQ-p00042 | prd-epistaxis-terminology.md | HHT Epistaxis Data Capture Standard | e2501d13 |
+| REQ-p00043 | prd-diary-app.md | Clinical Diary Mobile Application | 5062a707 |
+| REQ-p00044 | prd-system.md | Clinical Trial Diary Platform | 0e8a8d5b |
+| REQ-p00045 | prd-portal.md | Sponsor Portal Application | 0a9ccb54 |
+| REQ-p00046 | prd-database.md | Clinical Data Storage System | d8a1fdf2 |
+| REQ-p00047 | prd-backup.md | Data Backup and Archival | 4e13d1c2 |
+| REQ-p00048 | prd-devops.md | Platform Operations and Monitoring | b06492a0 |
+| REQ-p00049 | prd-services.md | Ancillary Platform Services | 8ae1bd30 |
+| REQ-p00050 | prd-diary-app.md | Temporal Entry Validation | 9f0a0d36 |
 | REQ-p01000 | prd-event-sourcing-system.md | Event Sourcing Client Interface | c3f9c7d2 |
 | REQ-p01001 | prd-event-sourcing-system.md | Offline Event Queue with Automatic Synchronization | 9a8601c2 |
 | REQ-p01002 | prd-event-sourcing-system.md | Optimistic Concurrency Control | 21a2772e |
@@ -177,9 +194,30 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p01017 | prd-event-sourcing-system.md | Backward Compatibility Guarantees | 0af743bf |
 | REQ-p01018 | prd-event-sourcing-system.md | Security Audit and Compliance | 6a021418 |
 | REQ-p01019 | prd-event-sourcing-system.md | Phased Implementation | d60453bf |
+| REQ-p01020 | prd-glossary.md | Privacy Policy and Regulatory Compliance Documentation | 1ff593de |
+| REQ-p01021 | prd-SLA.md | Service Availability Commitment | f2662639 |
+| REQ-p01022 | prd-SLA.md | Incident Severity Classification | 9eb12926 |
+| REQ-p01023 | prd-SLA.md | Incident Response Times | 39e43b49 |
+| REQ-p01024 | prd-SLA.md | Disaster Recovery Objectives | b0de06c9 |
+| REQ-p01025 | prd-evidence-records.md | Third-Party Timestamp Attestation Capability | 5aef2ec0 |
+| REQ-p01026 | prd-evidence-records.md | Bitcoin-Based Timestamp Implementation | 634732d7 |
+| REQ-p01027 | prd-evidence-records.md | Timestamp Verification Interface | 7582f435 |
+| REQ-p01028 | prd-evidence-records.md | Timestamp Proof Archival | 64a9c3ec |
+| REQ-p01029 | prd-evidence-records.md | Device Fingerprinting | 57a2d038 |
+| REQ-p01030 | prd-evidence-records.md | Patient Authentication for Data Attribution | e5dd3d06 |
+| REQ-p01031 | prd-evidence-records.md | Optional Geolocation Tagging | 034c9479 |
+| REQ-p01032 | prd-evidence-records.md | Hashed Email Identity Verification | 769f35e0 |
+| REQ-p01033 | prd-SLA.md | Customer Incident Notification | 39a8a25c |
+| REQ-p01034 | prd-SLA.md | Root Cause Analysis | 145a7df7 |
+| REQ-p01035 | prd-SLA.md | Corrective and Preventive Action | c731bb83 |
+| REQ-p01036 | prd-SLA.md | Data Recovery Guarantee | accdee07 |
+| REQ-p01037 | prd-SLA.md | Chronic Failure Escalation | c3a07afa |
+| REQ-p01038 | prd-SLA.md | Regulatory Event Support | fec701fa |
+| REQ-p01039 | prd-diary-app.md | Diary Start Day Definition | ef7a7921 |
+| REQ-p01040 | prd-diary-app.md | Calendar Visual Indicators for Entry Status | f0cf3d1c |
 
 ---
 
-**Total Requirements**: 162
+**Total Requirements**: 201
 
 **Generated by**: `python3 tools/requirements/regenerate-index.py`

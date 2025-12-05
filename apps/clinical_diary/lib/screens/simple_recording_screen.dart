@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-p00001: Incomplete Entry Preservation (CUR-405)
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
@@ -38,13 +40,13 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   late DateTime _date;
   DateTime? _startTime;
   DateTime? _endTime;
-  NosebleedSeverity? _severity;
+  NosebleedIntensity? _intensity;
   bool _isSaving = false;
 
   // Track which fields the user has explicitly set (vs default values)
   bool _userSetStart = false;
   bool _userSetEnd = false;
-  bool _userSetSeverity = false;
+  bool _userSetIntensity = false;
 
   // Keys for independent time picker state
   final _startTimePickerKey = GlobalKey<State>();
@@ -58,11 +60,11 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
-      _severity = widget.existingRecord!.severity;
+      _intensity = widget.existingRecord!.intensity;
       // Existing record means all present fields were "set"
       _userSetStart = _startTime != null;
       _userSetEnd = _endTime != null;
-      _userSetSeverity = _severity != null;
+      _userSetIntensity = _intensity != null;
     } else {
       // Default start time to the selected date with current time of day
       // but don't mark it as user-set yet
@@ -73,9 +75,26 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         DateTime.now().hour,
         DateTime.now().minute,
       );
-      // Default end time
-      _endTime = _startTime!.add(const Duration(minutes: 15));
+      // End time is null (unset) by default - user must explicitly set it
+      // This prevents end time from being in the future
+      _endTime = null;
     }
+  }
+
+  /// Returns the maximum DateTime allowed for time selection.
+  /// For today, returns DateTime.now() to prevent future times.
+  /// For past dates, returns end of that day (23:59:59) to allow any time.
+  DateTime? get _maxDateTimeForTimePicker {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+    }
+    // Today or future: use current time as max (default behavior)
+    return null;
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
@@ -101,65 +120,50 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     }).toList();
   }
 
-  String _getButtonText() {
+  String _getButtonText(AppLocalizations l10n) {
     final isEditing = widget.existingRecord != null;
 
     // For editing, always show "Update Nosebleed" when complete
     if (isEditing) {
-      if (_userSetStart && _userSetSeverity && _userSetEnd) {
-        return 'Update Nosebleed';
+      if (_userSetStart && _userSetIntensity && _userSetEnd) {
+        return l10n.updateNosebleed;
       }
-      return 'Save Changes';
+      return l10n.saveChanges;
     }
 
     // Build list of what's been set
     final setParts = <String>[];
-    if (_userSetStart) setParts.add('Start');
-    if (_userSetSeverity) setParts.add('Intensity');
-    if (_userSetEnd) setParts.add('End');
+    if (_userSetStart) setParts.add(l10n.start);
+    if (_userSetIntensity) setParts.add(l10n.intensity);
+    if (_userSetEnd) setParts.add(l10n.end);
 
     // All three set - ready to add
     if (setParts.length == 3) {
-      return 'Add Nosebleed';
+      return l10n.addNosebleed;
     }
 
     // Some set - show what's been set
     if (setParts.isNotEmpty) {
-      return 'Set ${setParts.join(' & ')}';
+      return l10n.setFields(setParts.join(' & '));
     }
 
     // Nothing set yet - show disabled "Add Nosebleed"
-    return 'Add Nosebleed';
+    return l10n.addNosebleed;
   }
 
   bool _canSubmit() {
     // Must have user-set at least start time
     if (!_userSetStart) return false;
 
-    // Check for overlapping events if we have both start and end set
-    if (_userSetEnd && _getOverlappingEvents().isNotEmpty) {
-      return false;
-    }
-
+    // CUR-443: Overlapping events are allowed - warning shown but doesn't block save
     return true;
   }
 
-  Future<void> _saveRecord() async {
+  Future<void> _saveRecord(AppLocalizations l10n) async {
     if (!_canSubmit()) return;
 
-    // Check for overlapping events - block save if any exist
-    final overlaps = _getOverlappingEvents();
-    if (overlaps.isNotEmpty && _endTime != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Cannot save: This event overlaps with ${overlaps.length} existing ${overlaps.length == 1 ? 'event' : 'events'}',
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
-    }
+    // CUR-443: Overlapping events are allowed - warning shown in UI but doesn't block save
+    // User can save and fix either record later
 
     setState(() => _isSaving = true);
 
@@ -171,7 +175,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
-          severity: _severity,
+          intensity: _intensity,
         );
       } else {
         // Create new record (isIncomplete is calculated automatically by service)
@@ -179,7 +183,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
-          severity: _severity,
+          intensity: _intensity,
         );
       }
 
@@ -190,7 +194,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+        ).showSnackBar(SnackBar(content: Text('${l10n.failedToSave}: $e')));
       }
     } finally {
       if (mounted) {
@@ -229,19 +233,21 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() {
       _startTime = time;
       _userSetStart = true;
-      // If end time is before start time, adjust it
+      // If end time is before start time, clear it (user must re-set)
+      // This prevents automatically setting a potentially future time
       if (_endTime != null && _endTime!.isBefore(time)) {
-        _endTime = time.add(const Duration(minutes: 15));
+        _endTime = null;
+        _userSetEnd = false;
       }
     });
   }
 
-  void _handleEndTimeChange(DateTime time) {
+  void _handleEndTimeChange(DateTime time, AppLocalizations l10n) {
     // Validate end time is after start time
     if (_startTime != null && time.isBefore(_startTime!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End time must be after start time')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
       return;
     }
     setState(() {
@@ -250,10 +256,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     });
   }
 
-  void _handleSeveritySelect(NosebleedSeverity severity) {
+  void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
-      _severity = severity;
-      _userSetSeverity = true;
+      _intensity = intensity;
+      _userSetIntensity = true;
     });
   }
 
@@ -271,196 +277,205 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     );
   }
 
+  /// Check if we have unsaved changes that could be saved as a partial record
+  bool get _hasUnsavedPartialRecord {
+    // If we're editing an existing record, check if values changed
+    if (widget.existingRecord != null) {
+      return _startTime != widget.existingRecord!.startTime ||
+          _endTime != widget.existingRecord!.endTime ||
+          _intensity != widget.existingRecord!.intensity;
+    }
+    // For new records, we have unsaved data if user has explicitly set any field
+    return _userSetStart || _userSetEnd || _userSetIntensity;
+  }
+
+  /// Auto-save partial record when user navigates away with unsaved changes.
+  /// REQ-p00001: Incomplete Entry Preservation - automatically saves partial
+  /// records without prompting the user.
+  Future<bool> _handleExit() async {
+    if (!_hasUnsavedPartialRecord) return true;
+
+    // Auto-save the partial record without prompting
+    final l10n = AppLocalizations.of(context);
+    await _saveRecord(l10n);
+    // _saveRecord handles navigation via Navigator.pop, so return false
+    // to prevent double navigation
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final overlappingEvents = _getOverlappingEvents();
     final hasOverlaps = overlappingEvents.isNotEmpty && _endTime != null;
+    final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header with back and delete buttons
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back),
-                    label: const Text('Back'),
-                  ),
-                  // Delete button only for existing records
-                  if (widget.existingRecord != null)
-                    IconButton(
-                      onPressed: _handleDelete,
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      tooltip: 'Delete record',
-                    ),
-                ],
-              ),
-            ),
-
-            // Date header (tappable)
-            DateHeader(date: _date, onChange: _handleDateChange),
-
-            const SizedBox(height: 16),
-
-            // Scrollable content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handleExit();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header with back and delete buttons
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Overlap warning
-                    if (hasOverlaps)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: OverlapWarning(
-                          overlappingCount: overlappingEvents.length,
-                        ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        final shouldPop = await _handleExit();
+                        if (shouldPop && context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back),
+                      label: Text(l10n.back),
+                    ),
+                    // Delete button only for existing records
+                    if (widget.existingRecord != null)
+                      IconButton(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        tooltip: l10n.deleteRecordTooltip,
                       ),
-
-                    // Start Time Section
-                    Text(
-                      'Nosebleed Start',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    InlineTimePicker(
-                      key: _startTimePickerKey,
-                      initialTime:
-                          _startTime ??
-                          DateTime(
-                            _date.year,
-                            _date.month,
-                            _date.day,
-                            DateTime.now().hour,
-                            DateTime.now().minute,
-                          ),
-                      onTimeChanged: _handleStartTimeChange,
-                      allowFutureTimes: false,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Intensity Section
-                    Text(
-                      'Intensity',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    IntensityRow(
-                      selectedIntensity: _severity,
-                      onSelect: _handleSeveritySelect,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // End Time Section
-                    Text(
-                      'Nosebleed End',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    InlineTimePicker(
-                      key: _endTimePickerKey,
-                      initialTime:
-                          _endTime ??
-                          (_startTime?.add(const Duration(minutes: 15)) ??
-                              DateTime(
-                                _date.year,
-                                _date.month,
-                                _date.day,
-                                DateTime.now().hour,
-                                DateTime.now().minute + 15,
-                              )),
-                      onTimeChanged: _handleEndTimeChange,
-                      allowFutureTimes: false,
-                      minTime: _startTime,
-                    ),
-
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-            ),
 
-            // Bottom action button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Show overlap error message if overlaps exist
-                  if (hasOverlaps)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onErrorContainer,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Cannot save: This event overlaps with existing events.',
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onErrorContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              // Date header (tappable)
+              DateHeader(date: _date, onChange: _handleDateChange),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: (_isSaving || !_canSubmit())
-                          ? null
-                          : _saveRecord,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+              const SizedBox(height: 16),
+
+              // Scrollable content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Overlap warning
+                      if (hasOverlaps)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: OverlapWarning(
+                            overlappingRecords: overlappingEvents,
+                            onViewConflict: (conflictingRecord) {
+                              // Pop back to view the conflicting record in context
+                              Navigator.pop(context, false);
+                            },
+                          ),
+                        ),
+
+                      // Start Time Section
+                      Text(
+                        l10n.nosebleedStart,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              _getButtonText(),
-                              style: const TextStyle(fontSize: 18),
+                      const SizedBox(height: 8),
+                      InlineTimePicker(
+                        key: _startTimePickerKey,
+                        initialTime:
+                            _startTime ??
+                            DateTime(
+                              _date.year,
+                              _date.month,
+                              _date.day,
+                              DateTime.now().hour,
+                              DateTime.now().minute,
                             ),
-                    ),
+                        onTimeChanged: _handleStartTimeChange,
+                        allowFutureTimes: false,
+                        maxDateTime: _maxDateTimeForTimePicker,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Intensity Section
+                      Text(
+                        l10n.intensity,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      IntensityRow(
+                        selectedIntensity: _intensity,
+                        onSelect: _handleIntensitySelect,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // End Time Section
+                      Text(
+                        l10n.nosebleedEnd,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      InlineTimePicker(
+                        key: _endTimePickerKey,
+                        initialTime: _endTime,
+                        onTimeChanged: (time) =>
+                            _handleEndTimeChange(time, l10n),
+                        allowFutureTimes: false,
+                        minTime: _startTime,
+                        maxDateTime: _maxDateTimeForTimePicker,
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              // Bottom action button
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // CUR-410: Red error container removed - overlap warning banner
+                    // now shows the specific conflicting record time range
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: (_isSaving || !_canSubmit())
+                            ? null
+                            : () => _saveRecord(l10n),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _getButtonText(l10n),
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

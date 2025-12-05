@@ -5,23 +5,24 @@ import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('LogoMenu', () {
     testWidgets('displays logo image with correct size and grey filter', (
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(Image), findsOneWidget);
       expect(find.byType(ColorFiltered), findsOneWidget);
@@ -34,17 +35,16 @@ void main() {
 
     testWidgets('icon is tappable', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Find the logo image and tap it
       await tester.tap(find.byType(Image));
@@ -56,17 +56,16 @@ void main() {
 
     testWidgets('shows Data Management section header', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
@@ -76,17 +75,16 @@ void main() {
 
     testWidgets('shows Add Example Data option', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
@@ -96,39 +94,37 @@ void main() {
 
     testWidgets('shows Reset All Data option', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reset All Data'), findsOneWidget);
+      expect(find.text('Reset All Data?'), findsOneWidget);
     });
 
     testWidgets('calls onAddExampleData when tapped', (tester) async {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () => called = true,
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () => called = true,
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
@@ -143,22 +139,21 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () => called = true,
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () => called = true,
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Reset All Data'));
+      await tester.tap(find.text('Reset All Data?'));
       await tester.pumpAndSettle();
 
       expect(called, true);
@@ -166,17 +161,16 @@ void main() {
 
     testWidgets('shows Instructions and Feedback option', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
@@ -188,17 +182,16 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () => called = true,
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () => called = true,
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
@@ -211,64 +204,61 @@ void main() {
 
     testWidgets('shows End Clinical Trial when enrolled', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: () {},
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: () {},
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      expect(find.text('End Clinical Trial'), findsOneWidget);
+      expect(find.text('End Clinical Trial?'), findsOneWidget);
     });
 
     testWidgets('hides End Clinical Trial when not enrolled', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      expect(find.text('End Clinical Trial'), findsNothing);
+      expect(find.text('End Clinical Trial?'), findsNothing);
     });
 
     testWidgets('calls onEndClinicalTrial when tapped', (tester) async {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: () => called = true,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: () => called = true,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('End Clinical Trial'));
+      await tester.tap(find.text('End Clinical Trial?'));
       await tester.pumpAndSettle();
 
       expect(called, true);
@@ -276,17 +266,16 @@ void main() {
 
     testWidgets('shows Clinical Trial section when enrolled', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: () {},
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: () {},
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
@@ -298,17 +287,16 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LogoMenu(
-              onAddExampleData: () {},
-              onResetAllData: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-            ),
+        wrapWithScaffold(
+          LogoMenu(
+            onAddExampleData: () {},
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();

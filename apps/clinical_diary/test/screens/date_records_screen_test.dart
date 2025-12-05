@@ -7,14 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   group('DateRecordsScreen', () {
     final testDate = DateTime(2025, 11, 28);
 
     testWidgets('displays the formatted date', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: const [],
             onAddEvent: () {},
@@ -22,6 +24,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       final dateStr = DateFormat('EEEE, MMMM d, y').format(testDate);
       expect(find.text(dateStr), findsOneWidget);
@@ -29,8 +32,8 @@ void main() {
 
     testWidgets('displays back button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: const [],
             onAddEvent: () {},
@@ -38,14 +41,15 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     });
 
     testWidgets('displays "Add new event" button', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: const [],
             onAddEvent: () {},
@@ -53,6 +57,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Add new event'), findsOneWidget);
     });
@@ -63,8 +68,8 @@ void main() {
       var called = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: const [],
             onAddEvent: () => called = true,
@@ -72,6 +77,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Add new event'));
       await tester.pump();
@@ -81,8 +87,8 @@ void main() {
 
     testWidgets('displays empty state when no records', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: const [],
             onAddEvent: () {},
@@ -90,10 +96,12 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('No events recorded for this day'), findsOneWidget);
     });
 
+    // CUR-443: One-line format shows times, not intensity names
     testWidgets('displays list of records', (tester) async {
       final records = [
         NosebleedRecord(
@@ -101,20 +109,20 @@ void main() {
           date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
         NosebleedRecord(
           id: 'test-2',
           date: testDate,
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
-          severity: NosebleedSeverity.steadyStream,
+          intensity: NosebleedIntensity.steadyStream,
         ),
       ];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: records,
             onAddEvent: () {},
@@ -122,12 +130,16 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      // Should display both records
-      expect(find.text('Dripping'), findsOneWidget);
-      expect(find.text('Steady stream'), findsOneWidget);
+      // Should display both records by their start times
+      expect(find.textContaining('10:30 AM'), findsOneWidget);
+      expect(find.textContaining('2:00 PM'), findsOneWidget);
+      // Intensity is shown as images, not text
+      expect(find.byType(Image), findsNWidgets(2));
     });
 
+    // CUR-443: One-line format - tap by start time, not intensity name
     testWidgets('calls onEditEvent when record is tapped', (tester) async {
       NosebleedRecord? tappedRecord;
       final record = NosebleedRecord(
@@ -135,12 +147,12 @@ void main() {
         date: testDate,
         startTime: DateTime(2025, 11, 28, 10, 30),
         endTime: DateTime(2025, 11, 28, 10, 45),
-        severity: NosebleedSeverity.dripping,
+        intensity: NosebleedIntensity.dripping,
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: [record],
             onAddEvent: () {},
@@ -148,9 +160,10 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      // Tap on the record card
-      await tester.tap(find.text('Dripping'));
+      // Tap on the record card by finding the start time
+      await tester.tap(find.textContaining('10:30 AM'));
       await tester.pump();
 
       expect(tappedRecord, isNotNull);
@@ -165,8 +178,8 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: [record],
             onAddEvent: () {},
@@ -174,8 +187,9 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      expect(find.text('No nosebleed events'), findsOneWidget);
+      expect(find.text('No nosebleeds'), findsOneWidget);
     });
 
     testWidgets('displays Unknown event card correctly', (tester) async {
@@ -186,8 +200,8 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: [record],
             onAddEvent: () {},
@@ -195,6 +209,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Unknown'), findsOneWidget);
     });
@@ -206,20 +221,20 @@ void main() {
           date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
         NosebleedRecord(
           id: 'test-2',
           date: testDate,
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
-          severity: NosebleedSeverity.steadyStream,
+          intensity: NosebleedIntensity.steadyStream,
         ),
       ];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: records,
             onAddEvent: () {},
@@ -227,6 +242,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('2 events'), findsOneWidget);
     });
@@ -238,13 +254,13 @@ void main() {
           date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         ),
       ];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: DateRecordsScreen(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
             date: testDate,
             records: records,
             onAddEvent: () {},
@@ -252,6 +268,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('1 event'), findsOneWidget);
     });

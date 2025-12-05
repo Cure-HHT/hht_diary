@@ -1,7 +1,12 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
 
+import 'dart:convert';
+
+import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
@@ -33,18 +38,48 @@ class _LogoMenuState extends State<LogoMenu> {
   }
 
   Future<void> _loadVersion() async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _version = packageInfo.version;
-      });
+    // On web, fetch version.json directly (more reliable than package_info_plus)
+    if (kIsWeb) {
+      await _loadVersionFromJson();
+      return;
+    }
+
+    // On native platforms, use package_info_plus
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = packageInfo.version;
+        });
+      }
+    } catch (e) {
+      debugPrint('PackageInfo error: $e');
+    }
+  }
+
+  Future<void> _loadVersionFromJson() async {
+    try {
+      // Use Uri.base to resolve the correct absolute URL on web
+      final versionUrl = Uri.base.resolve('version.json');
+      final response = await http.get(versionUrl);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _version = data['version'] as String? ?? '';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('version.json fetch error: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopupMenuButton<String>(
-      tooltip: 'App menu',
+      tooltip: l10n.appMenu,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ColorFiltered(
@@ -77,7 +112,7 @@ class _LogoMenuState extends State<LogoMenu> {
         PopupMenuItem<String>(
           enabled: false,
           child: Text(
-            'Data Management',
+            l10n.dataManagement,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
@@ -94,7 +129,7 @@ class _LogoMenuState extends State<LogoMenu> {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Flexible(child: Text('Add Example Data')),
+              Flexible(child: Text(l10n.addExampleData)),
             ],
           ),
         ),
@@ -110,7 +145,7 @@ class _LogoMenuState extends State<LogoMenu> {
               const SizedBox(width: 12),
               Flexible(
                 child: Text(
-                  'Reset All Data',
+                  l10n.resetAllData,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
@@ -124,7 +159,7 @@ class _LogoMenuState extends State<LogoMenu> {
           PopupMenuItem<String>(
             enabled: false,
             child: Text(
-              'Clinical Trial',
+              l10n.clinicalTrialLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -141,7 +176,7 @@ class _LogoMenuState extends State<LogoMenu> {
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 12),
-                const Flexible(child: Text('End Clinical Trial')),
+                Flexible(child: Text(l10n.endClinicalTrial)),
               ],
             ),
           ),
@@ -159,7 +194,7 @@ class _LogoMenuState extends State<LogoMenu> {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              const Flexible(child: Text('Instructions & Feedback')),
+              Flexible(child: Text(l10n.instructionsAndFeedback)),
             ],
           ),
         ),
@@ -173,7 +208,7 @@ class _LogoMenuState extends State<LogoMenu> {
             child: Text(
               _version.isNotEmpty ? 'v$_version' : '',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),

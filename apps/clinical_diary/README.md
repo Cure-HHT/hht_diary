@@ -268,7 +268,7 @@ void main() {
       final record = NosebleedRecord.fromJson(json);
 
       expect(record.id, 'test-123');
-      expect(record.severity, NosebleedSeverity.dripping);
+      expect(record.severity, NosebleedIntensity.dripping);
     });
   });
 }
@@ -440,7 +440,7 @@ The app uses the `append_only_datastore` package for offline-first event sourcin
 ### Nosebleed Entry
 - Date and time picker
 - Duration tracking
-- Severity rating (1-10)
+- Intensity rating (1-10)
 - Location (left/right nostril)
 - Photos (optional)
 - Notes field
@@ -529,9 +529,13 @@ This is FDA-regulated medical software. All contributions must:
 - Pass all tests
 - Maintain 90%+ code coverage
 - Follow strict linting rules
+  - Pass flutter analyze cleanly - no errors, warnings or info, even in test code
+  - Pass dart format cleanly, even in test code
 - Include comprehensive documentation
 - Be reviewed by at least one other developer
 - Include user testing plan
+- Failing tests should be created first
+- Integration tests are strongly preferred when reasonable and possible
 
 ## 📝 License
 

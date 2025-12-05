@@ -15,7 +15,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 - **2 Major Missing Features** - Questionnaire system, Survey Events
 - **0 Visual Differences** - All visual elements now match Figma design
 - **1 Flutter Addition** - Internationalization (EN/ES/FR) not in design
-- **8 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator, Animated Enrollment Dialog, Custom Severity Icons
+- **8 Features Completed** - Day Selection, Date Records, Color-coded Calendar, Special Event Cards, Logo Menu, Multi-day Indicator, Animated Enrollment Dialog, Custom Intensity Icons
 
 ---
 
@@ -70,9 +70,9 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ### Low Priority (Visual Polish)
 
-- [x] **8. Custom Severity Icons** ✅ DONE
+- [x] **8. Custom Intensity Icons** ✅ DONE
   - [x] Download/create droplet illustration assets
-  - [x] Replace Material Icons in SeverityPicker
+  - [x] Replace Material Icons in IntensityPicker
   - [x] Custom nose/droplet images from Figma
 
 - [x] **9. Animated Enrollment Dialog** ✅ DONE
@@ -232,13 +232,13 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ## Visual/UI Differences
 
-### 8. Severity Icons
+### 8. Intensity Icons
 
 | Aspect | Figma Design | Flutter Implementation |
 | -------- | -------------- | ------------------------ |
 | Icon Type | Custom image assets (droplet illustrations) | Material Icons |
 | Icons Used | `spottingIcon.png`, `drippingIcon.png`, etc. | `Icons.water_drop`, `Icons.opacity`, etc. |
-| Color Scheme | Severity-specific colors (green→yellow→red) | Blue-grey scale |
+| Color Scheme | Intensity-specific colors (green→yellow→red) | Blue-grey scale |
 
 **Figma Assets**:
 - `2abb485475a2155888f0b9cf5d60b00d0e60c0dc.png` (Spotting)
@@ -256,7 +256,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 | -------- | -------------- | ------------------------ |
 | Layout | Single-line: time + icon + duration | Multi-row card with vertical color bar |
 | Time Display | Start time only | Time range (start - end) |
-| Severity | Image icon inline | Vertical color stripe + text name |
+| Intensity | Image icon inline | Vertical color stripe + text name |
 | Duration | Text inline (e.g., "45m") | Badge/chip style |
 
 ---
@@ -303,7 +303,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 | --------- | :-----: | :-------: | -------- |
 | Home Screen | ✅ | ✅ | Partial (missing logo menu) |
 | Recording Flow | ✅ | ✅ | Complete |
-| Severity Selection | ✅ | ✅ | Different UI (icons) |
+| Intensity Selection | ✅ | ✅ | Different UI (icons) |
 | Time Picker | ✅ | ✅ | Complete |
 | Notes Input | ✅ | ✅ | Complete |
 | Calendar | ✅ | ✅ | ✅ Complete with colors |
@@ -365,7 +365,7 @@ This document compares the Flutter implementation of the Clinical Diary mobile a
 
 ### Low Priority (Visual Polish)
 
-8. ~~**Custom Severity Icons**~~ - ✅ DONE
+8. ~~**Custom Intensity Icons**~~ - ✅ DONE
    - ~~Replace Material Icons with design assets~~
    - ~~Match Figma severity illustrations~~
 

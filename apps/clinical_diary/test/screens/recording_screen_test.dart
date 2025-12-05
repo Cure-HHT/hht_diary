@@ -16,6 +16,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/test_helpers.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -68,8 +70,8 @@ void main() {
     group('New Record Mode', () {
       testWidgets('displays start time picker as initial step', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -85,8 +87,8 @@ void main() {
 
       testWidgets('displays back button', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -101,8 +103,8 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -115,8 +117,8 @@ void main() {
 
       testWidgets('displays summary bar with all fields', (tester) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -125,7 +127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Start'), findsOneWidget);
-        expect(find.text('Severity'), findsOneWidget);
+        expect(find.text('Intensity'), findsOneWidget);
         expect(find.text('End'), findsOneWidget);
       });
     });
@@ -137,13 +139,13 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -165,12 +167,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -185,7 +187,7 @@ void main() {
         expect(find.text('Duration: 15 minutes'), findsOneWidget);
       });
 
-      testWidgets('shows severity picker for record missing severity', (
+      testWidgets('shows intensity picker for record missing intensity', (
         tester,
       ) async {
         final incompleteRecord = NosebleedRecord(
@@ -193,12 +195,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           isIncomplete: true,
-          // Missing severity and endTime
+          // Missing intensity and endTime
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -207,7 +209,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
@@ -219,14 +221,14 @@ void main() {
           id: 'existing-1',
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
           // Missing endTime
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -248,12 +250,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -271,12 +273,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -307,13 +309,13 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          // Missing severity
+          // Missing intensity
           isIncomplete: true,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: incompleteRecord,
@@ -322,15 +324,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Select a severity to proceed to complete step
+        // Select a intensity to proceed to complete step
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Go to notes step, then to complete step
+        // Go to end time step, then confirm to go to complete step
+        // CUR-408: Notes step removed - flow goes directly to complete
         await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
 
         // Should show Complete Record button (check by widget type)
@@ -346,12 +346,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -367,11 +367,11 @@ void main() {
         // Should show start time picker
         expect(find.text('Nosebleed Start'), findsOneWidget);
 
-        // Tap on severity in summary bar
+        // Tap on intensity in summary bar
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
       });
     });
@@ -392,7 +392,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -401,12 +401,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -428,15 +428,15 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         // allRecords includes the record being edited
         final allRecords = [existingRecord];
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -450,7 +450,9 @@ void main() {
         expect(find.text('Overlapping Events Detected'), findsNothing);
       });
 
-      testWidgets('disables save button when overlaps exist', (tester) async {
+      testWidgets('shows warning but allows save when overlaps exist', (
+        tester,
+      ) async {
         // Use a larger screen size to avoid overflow issues
         tester.view.physicalSize = const Size(1080, 1920);
         tester.view.devicePixelRatio = 1.0;
@@ -465,7 +467,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -474,12 +476,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -489,18 +491,19 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Find the save button - it should be disabled
+        // Find the save button - CUR-443: button should be ENABLED even with overlaps
         final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
         expect(saveButton, findsOneWidget);
 
-        // The button should be disabled (onPressed is null)
+        // CUR-443: The button should be enabled (overlaps don't block save)
         final filledButton = tester.widget<FilledButton>(saveButton);
-        expect(filledButton.onPressed, isNull);
+        expect(filledButton.onPressed, isNotNull);
 
-        // Should show error message about overlaps
+        // Should show overlap warning with time range (CUR-410)
+        expect(find.text('Overlapping Events Detected'), findsOneWidget);
         expect(
           find.text(
-            'Cannot save: This event overlaps with existing events. Please adjust the time.',
+            'This time overlaps with an existing nosebleed record from 10:00 AM to 10:30 AM',
           ),
           findsOneWidget,
         );
@@ -521,7 +524,7 @@ void main() {
             date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 8, 0), // Does not overlap
             endTime: DateTime(2024, 1, 15, 8, 30),
-            severity: NosebleedSeverity.spotting,
+            intensity: NosebleedIntensity.spotting,
           ),
         ];
 
@@ -530,12 +533,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -561,6 +564,59 @@ void main() {
           findsNothing,
         );
       });
+
+      // CUR-449: Records on different days should not trigger overlap warning
+      testWidgets(
+        'does not show overlap warning for same time on different days',
+        (tester) async {
+          // Use a larger screen size to avoid overflow issues
+          tester.view.physicalSize = const Size(1080, 1920);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
+
+          // Record from yesterday at 10:00-10:30
+          final yesterdayRecord = NosebleedRecord(
+            id: 'yesterday-1',
+            date: DateTime(2024, 1, 14),
+            startTime: DateTime(2024, 1, 14, 10, 0),
+            endTime: DateTime(2024, 1, 14, 10, 30),
+            intensity: NosebleedIntensity.spotting,
+          );
+
+          // Current record is today at same time (10:00-10:30)
+          final todayRecord = NosebleedRecord(
+            id: 'today-1',
+            date: DateTime(2024, 1, 15),
+            startTime: DateTime(2024, 1, 15, 10, 0),
+            endTime: DateTime(2024, 1, 15, 10, 30),
+            intensity: NosebleedIntensity.dripping,
+          );
+
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                existingRecord: todayRecord,
+                allRecords: [yesterdayRecord],
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Should NOT show overlap warning - different days
+          expect(find.text('Overlapping Events Detected'), findsNothing);
+
+          // Save button should be enabled
+          final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
+          expect(saveButton, findsOneWidget);
+          final filledButton = tester.widget<FilledButton>(saveButton);
+          expect(filledButton.onPressed, isNotNull);
+        },
+      );
     });
 
     group('Delete Flow', () {
@@ -572,12 +628,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -614,12 +670,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -659,8 +715,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -673,16 +729,12 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Confirm end time
+        // Confirm end time - CUR-408: Goes directly to complete (notes removed)
         await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Skip notes and go to complete
-        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
 
         // Should show Finished button for new record
@@ -713,12 +765,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
-          severity: NosebleedSeverity.spotting,
+          intensity: NosebleedIntensity.spotting,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -731,14 +783,14 @@ void main() {
         expect(find.text('Save Changes'), findsOneWidget);
         expect(find.text('Edit Record'), findsOneWidget);
 
-        // Navigate to severity to change it
+        // Navigate to intensity to change it
         await tester.tap(find.text('Spotting'));
         await tester.pumpAndSettle();
 
-        // Should show severity picker
+        // Should show intensity picker
         expect(find.text('Dripping'), findsOneWidget);
 
-        // Change severity
+        // Change intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
@@ -764,13 +816,11 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RecordingScreen(
-                nosebleedService: failingService,
-                enrollmentService: mockEnrollment,
-                initialDate: DateTime(2024, 1, 15),
-              ),
+          wrapWithScaffold(
+            RecordingScreen(
+              nosebleedService: failingService,
+              enrollmentService: mockEnrollment,
+              initialDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -780,16 +830,12 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Confirm end time
+        // Confirm end time - CUR-408: Goes directly to complete (notes removed)
         await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Skip notes and go to complete
-        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
 
         // Tap save button
@@ -805,116 +851,15 @@ void main() {
       });
     });
 
-    group('Notes Requirement', () {
-      testWidgets('shows notes section with required label for enrolled user', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        // Set up enrolled user
-        mockEnrollment
-          ..enrollment = UserEnrollment(
-            userId: 'enrolled-user',
-            jwtToken: 'test-token',
-            enrolledAt: DateTime(2024, 1, 1), // Enrolled before event date
-          )
-          ..jwtToken = 'test-token';
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15), // After enrollment
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Confirm start time
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-
-        // Select severity
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-
-        // Confirm end time
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Should be on notes step
-        expect(find.text('Notes'), findsWidgets);
-        expect(
-          find.text('Required for clinical trial participants'),
-          findsOneWidget,
-        );
-      });
-
-      testWidgets('does not require notes for non-enrolled user', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        // Not enrolled
-        mockEnrollment
-          ..enrollment = null
-          ..jwtToken = null;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Confirm start time
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-
-        // Select severity
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-
-        // Confirm end time
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Skip notes - go to complete
-        await tester.tap(find.text('Next'));
-        await tester.pumpAndSettle();
-
-        // Finished button should be enabled because notes are NOT required
-        final saveButton = find.widgetWithText(FilledButton, 'Finished');
-        expect(saveButton, findsOneWidget);
-        final button = tester.widget<FilledButton>(saveButton);
-        expect(button.onPressed, isNotNull); // Enabled
-      });
-    });
+    // CUR-408: Notes Requirement group removed - notes step removed from flow
 
     group('Start Time Confirmation', () {
-      testWidgets('advances to severity step after confirming start time', (
+      testWidgets('advances to intensity step after confirming start time', (
         tester,
       ) async {
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
             ),
@@ -929,7 +874,7 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Should now show severity picker
+        // Should now show intensity picker
         expect(find.text('Spotting'), findsOneWidget);
         expect(find.text('Dripping'), findsOneWidget);
       });
@@ -952,18 +897,16 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 14, 0), // 2:00 PM
           endTime: DateTime(2024, 1, 15, 14, 30),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RecordingScreen(
-                nosebleedService: nosebleedService,
-                enrollmentService: mockEnrollment,
-                existingRecord: existingRecord,
-              ),
+          wrapWithScaffold(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              existingRecord: existingRecord,
             ),
           ),
         );
@@ -995,87 +938,7 @@ void main() {
       });
     });
 
-    group('Notes Step', () {
-      testWidgets('can navigate back from notes step to end time', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Go through flow to notes step
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Should be on notes step (titled "Notes")
-        expect(find.text('Notes'), findsWidgets);
-
-        // Tap back button on notes step
-        await tester.tap(find.text('Back').last);
-        await tester.pumpAndSettle();
-
-        // Should be back on end time step
-        expect(find.text('Nosebleed End Time'), findsOneWidget);
-      });
-
-      testWidgets('can enter notes and they are preserved', (tester) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Go through flow to notes step
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Enter notes
-        final notesField = find.byType(TextField);
-        await tester.enterText(notesField, 'Test note entry');
-        await tester.pumpAndSettle();
-
-        // Go to complete step
-        await tester.tap(find.text('Next'));
-        await tester.pumpAndSettle();
-
-        // Should show the complete screen
-        expect(find.text('Record Complete'), findsOneWidget);
-      });
-    });
+    // CUR-408: Notes Step group removed - notes step removed from flow
 
     group('Summary Bar Navigation', () {
       testWidgets('can navigate to end time via summary bar', (tester) async {
@@ -1084,12 +947,12 @@ void main() {
           date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
-          severity: NosebleedSeverity.dripping,
+          intensity: NosebleedIntensity.dripping,
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -1107,8 +970,8 @@ void main() {
       });
     });
 
-    group('Severity Selection', () {
-      testWidgets('initializes end time when severity is selected', (
+    group('Intensity Selection', () {
+      testWidgets('navigates to end time picker when intensity is selected', (
         tester,
       ) async {
         // Use a larger screen size to avoid overflow issues
@@ -1120,8 +983,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: RecordingScreen(
+          wrapWithMaterialApp(
+            RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -1134,14 +997,14 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Select severity
+        // Select intensity
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Should show end time picker with initialized time
+        // Should show end time picker
         expect(find.text('Nosebleed End Time'), findsOneWidget);
-        // End time should not be '--:--' after selecting severity
-        expect(find.text('--:--'), findsNothing);
+        // End time in summary bar remains unset until user confirms
+        expect(find.text('--:--'), findsOneWidget);
       });
     });
   });
@@ -1188,7 +1051,7 @@ class FailingNosebleedService extends NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
@@ -1203,7 +1066,7 @@ class FailingNosebleedService extends NosebleedService {
     required DateTime date,
     DateTime? startTime,
     DateTime? endTime,
-    NosebleedSeverity? severity,
+    NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
