@@ -17,7 +17,7 @@ When reviewing spec/ files, you MUST enforce these rules strictly:
 ### 1. File Naming Convention
 - Files MUST follow pattern: `{audience}-{topic}(-{subtopic}).md`
 - Valid audiences: `prd-`, `ops-`, `dev-`
-- Examples: `prd-app.md`, `ops-deployment.md`, `dev-security-RBAC.md`
+- Examples: `prd-diary-app.md`, `ops-deployment.md`, `dev-security-RBAC.md`
 - REJECT files with incorrect naming patterns
 
 ### 2. Audience-Specific Content Restrictions

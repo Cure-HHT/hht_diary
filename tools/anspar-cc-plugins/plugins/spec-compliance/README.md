@@ -83,7 +83,7 @@ fi
 ./tools/anspar-cc-plugins/plugins/spec-compliance/scripts/validate-spec-compliance.sh
 
 # Test with a spec file
-git add spec/prd-app.md
+git add spec/prd-diary-app.md
 git commit -m "test" --dry-run
 ```
 
@@ -104,7 +104,7 @@ git commit -m "test" --dry-run
 **Usage in Claude Code**:
 
 ```
-I've updated spec/prd-app.md to add some features. Please validate it for compliance.
+I've updated spec/prd-diary-app.md to add some features. Please validate it for compliance.
 ```
 
 The agent will analyze the file and report any violations with corrective actions.
@@ -124,7 +124,7 @@ The agent will analyze the file and report any violations with corrective action
 📋 Spec Compliance Validation
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Detected changes in spec/ directory:
-  - spec/prd-app.md
+  - spec/prd-diary-app.md
 Running spec compliance checks...
 ✅ Spec compliance validation passed!
 ```
@@ -139,7 +139,7 @@ Running spec compliance checks...
 ./scripts/validate-spec-compliance.sh
 
 # Validate specific files
-./scripts/validate-spec-compliance.sh spec/prd-app.md spec/ops-deployment.md
+./scripts/validate-spec-compliance.sh spec/prd-diary-app.md spec/ops-deployment.md
 ```
 
 **Features**:
@@ -157,7 +157,7 @@ Running spec compliance checks...
 **Valid audiences**: `prd-`, `ops-`, `dev-`
 
 **Examples**:
-- ✅ `prd-app.md`
+- ✅ `prd-diary-app.md`
 - ✅ `ops-deployment.md`
 - ✅ `dev-security-RBAC.md`
 - ❌ `product-requirements.md` (wrong audience prefix)
@@ -240,12 +240,12 @@ The plugin runs automatically when you commit changes to spec/ files:
 
 ```bash
 # Normal workflow - validation runs automatically
-git add spec/prd-app.md
+git add spec/prd-diary-app.md
 git commit -m "Update PRD requirements"
 
 # If validation fails, fix issues and retry
 # Fix violations...
-git add spec/prd-app.md
+git add spec/prd-diary-app.md
 git commit -m "Update PRD requirements"
 ```
 
@@ -258,7 +258,7 @@ Run validation anytime without committing:
 ./scripts/validate-spec-compliance.sh
 
 # Validate specific files
-./scripts/validate-spec-compliance.sh spec/prd-app.md
+./scripts/validate-spec-compliance.sh spec/prd-diary-app.md
 ```
 
 ### AI Agent Invocation
@@ -294,7 +294,7 @@ git commit --no-verify -m "Draft: WIP requirements"
 
 **Error**:
 ```
-❌ spec/prd-app.md contains code examples (forbidden in PRD files)
+❌ spec/prd-diary-app.md contains code examples (forbidden in PRD files)
    Line 42: SQL query detected
 ```
 
@@ -308,12 +308,12 @@ git commit --no-verify -m "Draft: WIP requirements"
 **Error**:
 ```
 ❌ spec/product-requirements.md: Invalid naming convention
-   Expected: {audience}-{topic}.md (e.g., prd-app.md)
+   Expected: {audience}-{topic}.md (e.g., prd-diary-app.md)
 ```
 
 **Fix**:
 ```bash
-git mv spec/product-requirements.md spec/prd-app.md
+git mv spec/product-requirements.md spec/prd-diary-app.md
 ```
 
 ### Violation: Malformed Requirement

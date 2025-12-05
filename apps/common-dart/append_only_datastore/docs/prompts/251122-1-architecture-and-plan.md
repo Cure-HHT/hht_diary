@@ -3,7 +3,7 @@ We are going to implement the initial important submodule for capturing clinical
 This is production software and will be used in a government regulated FDA studies in the uS (and also in the EU).   No shortcuts.
 
 The entire app is explained here:
-/Users/mbushe/dev/anspar/hht_diary/spec/prd-app.md
+/Users/mbushe/dev/anspar/hht_diary/spec/prd-diary-app.md
 
 We'll consider this module to be for a flutter client only but perhaps it could be used on the server as well. (I don't think so the server has different requirements.)
 
