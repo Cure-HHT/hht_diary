@@ -22,10 +22,18 @@ class EventListItem extends StatelessWidget {
   /// Whether this record overlaps with another record's time range
   final bool hasOverlap;
 
-  /// Format start time for one-line display (e.g., "09:09 PM")
+  /// Format start time for one-line display (e.g., "9:09 PM PST")
+  /// Includes timezone abbreviation for 12-hour locales
   String _startTimeFormatted(String locale) {
     if (record.startTime == null) return '--:--';
-    return DateFormat.jm(locale).format(record.startTime!);
+    final timeStr = DateFormat.jm(locale).format(record.startTime!);
+    // Add timezone abbreviation for 12-hour locales
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
+    if (!use24Hour) {
+      final tz = record.startTime!.timeZoneName;
+      return '$timeStr $tz';
+    }
+    return timeStr;
   }
 
   /// Get the intensity icon image path
@@ -182,12 +190,20 @@ class EventListItem extends StatelessWidget {
   }
 
   /// Build card for regular nosebleed events
-  /// CUR-443: One-line format: "09:09 PM (icon) 1h 11m" with warning icon
+  /// CUR-443: One-line format: "9:09 PM PST (icon) 1h 11m" with warning icon
+  /// Fixed-width columns for alignment across rows
   Widget _buildNosebleedCard(
     BuildContext context,
     AppLocalizations l10n,
     String locale,
   ) {
+    // Fixed widths for column alignment
+    // Time column: "12:59 PM CET" needs ~95px, 24h "23:59" needs ~40px
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
+    final timeWidth = use24Hour ? 40.0 : 95.0;
+    const iconWidth = 32.0; // 28px icon + 4px gap
+    const durationWidth = 50.0; // "12h" or "59m" - compact
+
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -199,54 +215,64 @@ class EventListItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               children: [
-                // Start time
-                Text(
-                  _startTimeFormatted(locale),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                // Start time - fixed width, right aligned, same style as duration
+                SizedBox(
+                  width: timeWidth,
+                  child: Text(
+                    _startTimeFormatted(locale),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ),
 
-                // Intensity mini-icon with subtle border (tight to image)
-                if (_intensityImagePath != null) ...[
-                  const SizedBox(width: 12),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(
+                const SizedBox(width: 8),
+
+                // Intensity mini-icon - fixed width container with tight border
+                SizedBox(
+                  width: iconWidth,
+                  child: _intensityImagePath != null
+                      ? Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.5),
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: Image.asset(
+                              _intensityImagePath!,
+                              width: 28,
+                              height: 28,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+
+                // Duration - fixed width with left padding
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: SizedBox(
+                    width: durationWidth,
+                    child: Text(
+                      _duration,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.outline.withValues(alpha: 0.3),
-                      ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: Image.asset(
-                        _intensityImagePath!,
-                        width: 28,
-                        height: 28,
-                        fit: BoxFit.cover,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
-                ],
+                ),
 
-                // Duration
-                if (_duration.isNotEmpty) ...[
-                  const SizedBox(width: 12),
-                  Text(
-                    _duration,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-
-                // Multi-day indicator
-                if (_isMultiDay) ...[
-                  const SizedBox(width: 8),
+                // Multi-day indicator (left-aligned, no extra padding)
+                if (_isMultiDay)
                   Text(
                     l10n.translate('plusOneDay'),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -254,7 +280,6 @@ class EventListItem extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
 
                 // Spacer to push status indicators to the right
                 const Spacer(),

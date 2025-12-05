@@ -41,7 +41,9 @@ class RecordingScreen extends StatefulWidget {
 enum RecordingStep { startTime, intensity, endTime, complete }
 
 class _RecordingScreenState extends State<RecordingScreen> {
-  late DateTime _date;
+  // CUR-447: Separate dates for start and end to support cross-day nosebleeds
+  late DateTime _startDate;
+  late DateTime _endDate;
   DateTime? _startTime;
   DateTime? _endTime;
   NosebleedIntensity? _intensity;
@@ -50,25 +52,51 @@ class _RecordingScreenState extends State<RecordingScreen> {
   RecordingStep _currentStep = RecordingStep.startTime;
   bool _isSaving = false;
 
+  /// Get the currently active date based on the current step
+  DateTime get _currentDate {
+    switch (_currentStep) {
+      case RecordingStep.startTime:
+        return _startDate;
+      case RecordingStep.endTime:
+        return _endDate;
+      case RecordingStep.intensity:
+      case RecordingStep.complete:
+        return _startDate; // Default to start date for non-time steps
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _date = widget.initialDate ?? DateTime.now();
+    final initialDate = widget.initialDate ?? DateTime.now();
+    _startDate = initialDate;
+    _endDate = initialDate;
     // CUR-408: Removed _loadEnrollmentStatus call - notes step removed
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
       _intensity = widget.existingRecord!.intensity;
+      // CUR-447: Set dates from existing record times for cross-day support
+      if (_startTime != null) {
+        _startDate = DateTime(
+          _startTime!.year,
+          _startTime!.month,
+          _startTime!.day,
+        );
+      }
+      if (_endTime != null) {
+        _endDate = DateTime(_endTime!.year, _endTime!.month, _endTime!.day);
+      }
       // CUR-408: Notes field no longer loaded from existing record
       _currentStep = _getInitialStepForExisting();
     } else {
       // Default start time to the selected date with current time of day
       // This ensures recording for past dates doesn't default to today's datetime
       _startTime = DateTime(
-        _date.year,
-        _date.month,
-        _date.day,
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
         DateTime.now().hour,
         DateTime.now().minute,
       );
@@ -100,14 +128,26 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// Returns the maximum DateTime allowed for time selection.
   /// For today, returns DateTime.now() to prevent future times.
   /// For past dates, returns end of that day (23:59:59) to allow any time.
+  /// CUR-447: Uses _currentDate to get the correct date for the current step.
   DateTime? get _maxDateTimeForTimePicker {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+    final selectedDay = DateTime(
+      _currentDate.year,
+      _currentDate.month,
+      _currentDate.day,
+    );
 
     if (selectedDay.isBefore(today)) {
       // Past date: allow any time on that day
-      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+      return DateTime(
+        _currentDate.year,
+        _currentDate.month,
+        _currentDate.day,
+        23,
+        59,
+        59,
+      );
     }
     // Today or future: use current time as max (default behavior)
     return null;
@@ -151,9 +191,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     try {
       if (widget.existingRecord != null) {
         // Update existing record (creates a new version that supersedes the original)
+        // CUR-447: Use _startDate as the primary date for the record
         await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
-          date: _date,
+          date: _startDate,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
@@ -161,8 +202,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
         );
       } else {
         // Create new record
+        // CUR-447: Use _startDate as the primary date for the record
         await widget.nosebleedService.addRecord(
-          date: _date,
+          date: _startDate,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
@@ -189,16 +231,61 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   void _handleDateChange(DateTime newDate) {
     setState(() {
-      _date = newDate;
-      // Update start time to match new date while preserving time
-      if (_startTime != null) {
-        _startTime = DateTime(
-          newDate.year,
-          newDate.month,
-          newDate.day,
-          _startTime!.hour,
-          _startTime!.minute,
-        );
+      // CUR-447: Update the date for the current step only
+      switch (_currentStep) {
+        case RecordingStep.startTime:
+          _startDate = newDate;
+          // Update start time to match new date while preserving time
+          if (_startTime != null) {
+            _startTime = DateTime(
+              newDate.year,
+              newDate.month,
+              newDate.day,
+              _startTime!.hour,
+              _startTime!.minute,
+            );
+          }
+          // If end date is before start date, update it to match
+          if (_endDate.isBefore(newDate)) {
+            _endDate = newDate;
+            if (_endTime != null) {
+              _endTime = DateTime(
+                newDate.year,
+                newDate.month,
+                newDate.day,
+                _endTime!.hour,
+                _endTime!.minute,
+              );
+            }
+          }
+          break;
+        case RecordingStep.endTime:
+          _endDate = newDate;
+          // Update end time to match new date while preserving time
+          if (_endTime != null) {
+            _endTime = DateTime(
+              newDate.year,
+              newDate.month,
+              newDate.day,
+              _endTime!.hour,
+              _endTime!.minute,
+            );
+          }
+          break;
+        case RecordingStep.intensity:
+        case RecordingStep.complete:
+          // For non-time steps, update start date (primary date)
+          _startDate = newDate;
+          if (_startTime != null) {
+            _startTime = DateTime(
+              newDate.year,
+              newDate.month,
+              newDate.day,
+              _startTime!.hour,
+              _startTime!.minute,
+            );
+          }
+          break;
       }
     });
   }
@@ -327,7 +414,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
               ),
 
               // Date header (tappable)
-              DateHeader(date: _date, onChange: _handleDateChange),
+              // CUR-447: Show date for current step (start date or end date)
+              DateHeader(date: _currentDate, onChange: _handleDateChange),
 
               const SizedBox(height: 16),
 
@@ -456,18 +544,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
-        // Use the selected date with current time, or existing start time
-        final startInitialTime =
-            _startTime ??
-            DateTime(
-              _date.year,
-              _date.month,
-              _date.day,
-              DateTime.now().hour,
-              DateTime.now().minute,
-            );
+        // CUR-447: Use _startDate for start time, ensuring date sync with DateHeader
+        final DateTime startInitialTime;
+        if (_startTime != null) {
+          // Use existing start time but ensure it's on current _startDate
+          startInitialTime = DateTime(
+            _startDate.year,
+            _startDate.month,
+            _startDate.day,
+            _startTime!.hour,
+            _startTime!.minute,
+          );
+        } else {
+          // Default to current time on _startDate
+          startInitialTime = DateTime(
+            _startDate.year,
+            _startDate.month,
+            _startDate.day,
+            DateTime.now().hour,
+            DateTime.now().minute,
+          );
+        }
         return TimePickerDial(
-          key: const ValueKey('start_time_picker'),
+          // CUR-447: Include date in key to force rebuild when date changes
+          key: ValueKey(
+            'start_time_picker_${_startDate.toIso8601String().split('T')[0]}',
+          ),
           title: l10n.nosebleedStart,
           initialTime: startInitialTime,
           onConfirm: _handleStartTimeConfirm,
@@ -483,20 +585,43 @@ class _RecordingScreenState extends State<RecordingScreen> {
         );
 
       case RecordingStep.endTime:
-        // Use start time + 15 minutes as default, or existing end time
-        final endInitialTime =
-            _endTime ??
-            (_startTime != null
-                ? _startTime!.add(const Duration(minutes: 15))
-                : DateTime(
-                    _date.year,
-                    _date.month,
-                    _date.day,
-                    DateTime.now().hour,
-                    DateTime.now().minute,
-                  ));
+        // CUR-447: Use _endDate for end time, with time-of-day from start + 15min
+        // This ensures changing the end date in DateHeader updates the picker
+        final DateTime endInitialTime;
+        if (_endTime != null) {
+          // Use existing end time but update to current _endDate
+          endInitialTime = DateTime(
+            _endDate.year,
+            _endDate.month,
+            _endDate.day,
+            _endTime!.hour,
+            _endTime!.minute,
+          );
+        } else if (_startTime != null) {
+          // Default to start time + 15 minutes, but on _endDate
+          final defaultTime = _startTime!.add(const Duration(minutes: 15));
+          endInitialTime = DateTime(
+            _endDate.year,
+            _endDate.month,
+            _endDate.day,
+            defaultTime.hour,
+            defaultTime.minute,
+          );
+        } else {
+          // Fallback: current time on _endDate
+          endInitialTime = DateTime(
+            _endDate.year,
+            _endDate.month,
+            _endDate.day,
+            DateTime.now().hour,
+            DateTime.now().minute,
+          );
+        }
         return TimePickerDial(
-          key: const ValueKey('end_time_picker'),
+          // CUR-447: Include date in key to force rebuild when date changes
+          key: ValueKey(
+            'end_time_picker_${_endDate.toIso8601String().split('T')[0]}',
+          ),
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,

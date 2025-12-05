@@ -80,7 +80,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       _userSetIntensity = _intensity != null;
     } else {
       // Default start time to the selected date with current time of day
-      // but don't mark it as user-set yet
+      // CUR-447: Mark as user-set since a time is displayed and user expects it to be valid
       _startTime = DateTime(
         _startDate.year,
         _startDate.month,
@@ -88,6 +88,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         DateTime.now().hour,
         DateTime.now().minute,
       );
+      _userSetStart = true; // Time is shown, so consider it "set"
       // End time is null (unset) by default - user must explicitly set it
       // This prevents end time from being in the future
       _endTime = null;
