@@ -155,23 +155,24 @@ jobs:
             const changedCount = '${{ steps.detect.outputs.changed_count }}';
             const newCount = '${{ steps.detect.outputs.new_count }}';
 
-            const body = `## 📋 Requirement Verification
-
-Changed Requirements: ${changedCount}
-New Requirements: ${newCount}
-
-<details>
-<summary>View Verification Report</summary>
-
-${report}
-
-</details>
-
-**Next Steps:**
-1. Review changed requirements
-2. Update implementations if needed
-3. Run: \`python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/mark-verified.py REQ-{id}\`
-            `;
+            const body = [
+              '## 📋 Requirement Verification',
+              '',
+              `Changed Requirements: ${changedCount}`,
+              `New Requirements: ${newCount}`,
+              '',
+              '<details>',
+              '<summary>View Verification Report</summary>',
+              '',
+              report,
+              '',
+              '</details>',
+              '',
+              '**Next Steps:**',
+              '1. Review changed requirements',
+              '2. Update implementations if needed',
+              '3. Run: `python3 tools/anspar-cc-plugins/plugins/simple-requirements/scripts/mark-verified.py REQ-{id}`'
+            ].join('\n');
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
