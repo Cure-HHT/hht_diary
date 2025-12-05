@@ -193,97 +193,102 @@ class EventListItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Row(
-            children: [
-              // Start time
-              Text(
-                _startTimeFormatted(locale),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-              ),
+        child: SizedBox(
+          height: 40,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                // Start time
+                Text(
+                  _startTimeFormatted(locale),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                ),
 
-              // Intensity mini-icon with subtle border
-              if (_intensityImagePath != null) ...[
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    border: Border.all(
+                // Intensity mini-icon with subtle border (tight to image)
+                if (_intensityImagePath != null) ...[
+                  const SizedBox(width: 12),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.3),
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: Image.asset(
+                        _intensityImagePath!,
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Duration
+                if (_duration.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  Text(
+                    _duration,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.outline.withValues(alpha: 0.3),
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
-                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Image.asset(
-                    _intensityImagePath!,
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ],
+                ],
 
-              // Duration
-              if (_duration.isNotEmpty) ...[
-                const SizedBox(width: 12),
-                Text(
-                  _duration,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                // Multi-day indicator
+                if (_isMultiDay) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.translate('plusOneDay'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+
+                // Spacer to push status indicators to the right
+                const Spacer(),
+
+                // Incomplete indicator (compact)
+                if (record.isIncomplete) ...[
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: Colors.orange.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Overlap warning icon
+                if (hasOverlap) ...[
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 24,
+                    color: Colors.orange.shade600,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Chevron
+                if (onTap != null)
+                  Icon(
+                    Icons.chevron_right,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
-                ),
               ],
-
-              // Multi-day indicator
-              if (_isMultiDay) ...[
-                const SizedBox(width: 8),
-                Text(
-                  l10n.translate('plusOneDay'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-
-              // Spacer to push status indicators to the right
-              const Spacer(),
-
-              // Incomplete indicator (compact)
-              if (record.isIncomplete) ...[
-                Icon(
-                  Icons.edit_outlined,
-                  size: 20,
-                  color: Colors.orange.shade700,
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // Overlap warning icon
-              if (hasOverlap) ...[
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 24,
-                  color: Colors.orange.shade600,
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // Chevron
-              if (onTap != null)
-                Icon(
-                  Icons.chevron_right,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-            ],
+            ),
           ),
         ),
       ),
