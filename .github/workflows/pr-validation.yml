@@ -2,6 +2,7 @@
 #   REQ-d00002: Requirements validation tool
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
 #   REQ-d00018: Git Hook Implementation
+#   REQ-o00017: Version Control Workflow (commit message validation)
 
 name: PR Validation - Requirements & Traceability
 
@@ -51,6 +52,116 @@ jobs:
               - 'tools/**/*.py'
             workflows:
               - '.github/workflows/**'
+
+  # Validate commit messages have required CUR-XXX and REQ-XXX references
+  validate-commit-messages:
+    name: Validate Commit Messages (CUR + REQ)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for commit traversal
+
+      - name: Validate PR commit messages
+        id: validate
+        run: |
+          set -euo pipefail
+          echo "::group::Validating Commit Messages"
+
+          # Get all commits in this PR
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          echo "Checking commits from $BASE_SHA to $HEAD_SHA"
+          echo ""
+
+          # Get commit messages (exclude merge commits)
+          COMMITS=$(git log --no-merges --format='%H|%s' "$BASE_SHA".."$HEAD_SHA")
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found in PR"
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          INVALID_COMMITS=()
+          VALID_COUNT=0
+
+          while IFS='|' read -r sha subject; do
+            # Get full commit message
+            FULL_MSG=$(git log -1 --format='%B' "$sha")
+
+            # Check for CUR-XXX reference
+            HAS_CUR=false
+            if echo "$FULL_MSG" | grep -qE '\[?CUR-[0-9]+\]?'; then
+              HAS_CUR=true
+            fi
+
+            # Check for REQ-XXX reference (format: REQ-{p|o|d}NNNNN)
+            HAS_REQ=false
+            if echo "$FULL_MSG" | grep -qE 'REQ-[pdo][0-9]{5}'; then
+              HAS_REQ=true
+            fi
+
+            # Check validity
+            if [ "$HAS_CUR" = "true" ] && [ "$HAS_REQ" = "true" ]; then
+              echo "✅ ${sha:0:7}: $subject"
+              VALID_COUNT=$((VALID_COUNT + 1))
+            else
+              ERRORS=""
+              if [ "$HAS_CUR" = "false" ]; then
+                ERRORS="missing CUR-XXX"
+              fi
+              if [ "$HAS_REQ" = "false" ]; then
+                if [ -n "$ERRORS" ]; then
+                  ERRORS="$ERRORS, missing REQ-XXX"
+                else
+                  ERRORS="missing REQ-XXX"
+                fi
+              fi
+              echo "❌ ${sha:0:7}: $subject ($ERRORS)"
+              INVALID_COMMITS+=("$sha|$subject|$ERRORS")
+            fi
+          done <<< "$COMMITS"
+
+          echo ""
+          echo "::endgroup::"
+
+          # Report results
+          if [ ${#INVALID_COMMITS[@]} -gt 0 ]; then
+            echo ""
+            echo "::error::Found ${#INVALID_COMMITS[@]} commit(s) without required references"
+            echo ""
+            echo "❌ COMMIT MESSAGE VALIDATION FAILED"
+            echo ""
+            echo "The following commits are missing required references:"
+            echo ""
+            for commit in "${INVALID_COMMITS[@]}"; do
+              IFS='|' read -r sha subject errors <<< "$commit"
+              echo "  • ${sha:0:7}: $subject"
+              echo "    └── $errors"
+            done
+            echo ""
+            echo "Required format:"
+            echo "  [CUR-XXX] Subject line describing the change"
+            echo ""
+            echo "  Implements: REQ-{type}{number}"
+            echo ""
+            echo "Where:"
+            echo "  CUR-XXX: Linear ticket number (e.g., CUR-399)"
+            echo "  REQ type: p (PRD), o (Ops), d (Dev)"
+            echo "  REQ number: 5 digits (e.g., REQ-d00018)"
+            echo ""
+            echo "To fix: Use 'git rebase -i' to edit commit messages"
+            echo ""
+            exit 1
+          else
+            echo "✅ All $VALID_COUNT commit(s) have valid CUR-XXX and REQ-XXX references"
+          fi
 
   validate-requirements:
     name: Validate Requirements Format & Traceability
@@ -545,7 +656,7 @@ jobs:
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
-    needs: [changes, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
+    needs: [changes, validate-commit-messages, validate-requirements, validate-code-headers, validate-migrations, security-check, fda-compliance-check, test-git-hooks]
     if: always()
 
     steps:
@@ -565,6 +676,15 @@ jobs:
 
           # Show test results
           echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+
+          # Commit messages (CUR + REQ)
+          if [ "${{ needs.validate-commit-messages.result }}" = "success" ]; then
+            echo "✅ Commit messages (CUR + REQ): PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-commit-messages.result }}" = "skipped" ]; then
+            echo "⏭️ Commit messages: SKIPPED (not a PR)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Commit messages (CUR + REQ): FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
 
           # Requirements
           if [ "${{ needs.validate-requirements.result }}" = "success" ]; then
@@ -622,7 +742,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           FAILED=false
 
-          if [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
+          if [ "${{ needs.validate-commit-messages.result }}" = "failure" ] || \
+             [ "${{ needs.validate-requirements.result }}" = "failure" ] || \
              [ "${{ needs.security-check.result }}" = "failure" ] || \
              [ "${{ needs.fda-compliance-check.result }}" = "failure" ] || \
              [ "${{ needs.test-git-hooks.result }}" = "failure" ] || \
