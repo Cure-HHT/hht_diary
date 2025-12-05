@@ -330,6 +330,67 @@ void main() {
       });
     });
 
+    group('cross-day validation (CUR-447)', () {
+      testWidgets(
+        'allows end time on future date when minTime is on past date',
+        (tester) async {
+          final yesterday = DateTime.now().subtract(const Duration(days: 1));
+          final today = DateTime.now();
+
+          // Start time is yesterday at 11 PM
+          final startTime = DateTime(
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            23,
+            0,
+          );
+
+          // End date is today (via widget.date)
+          final endDate = DateTime(today.year, today.month, today.day);
+
+          // Max is end of today
+          final endOfToday = DateTime(
+            today.year,
+            today.month,
+            today.day,
+            23,
+            59,
+            59,
+          );
+
+          DateTime? changedTime;
+          await tester.pumpWidget(
+            wrapWithScaffold(
+              InlineTimePicker(
+                initialTime: null, // End time not set yet
+                onTimeChanged: (time) => changedTime = time,
+                allowFutureTimes: false,
+                minTime: startTime, // Yesterday 11 PM
+                maxDateTime: endOfToday,
+                date: endDate, // Today
+                onDateChanged: (_) {}, // Allow date changes
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Add 1 minute - should use today's date context (from widget.date)
+          // not yesterday's date (from minTime)
+          await tester.tap(find.text('+1'));
+          await tester.pump();
+
+          // Should succeed and use today's date
+          expect(changedTime, isNotNull);
+          expect(changedTime!.year, today.year);
+          expect(changedTime!.month, today.month);
+          expect(changedTime!.day, today.day);
+          // Time should be current hour + 1 minute (approximately)
+          expect(changedTime!.isAfter(startTime), isTrue);
+        },
+      );
+    });
+
     group('adjustment buttons', () {
       testWidgets('displays all adjustment buttons', (tester) async {
         await tester.pumpWidget(

@@ -91,7 +91,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   void _adjustMinutes(int delta) {
     // If no time is set, use minTime's date (for correct date context) or effective max
     // This ensures end time uses the same date as start time (CUR-451)
-    final baseTime = _selectedTime ?? widget.minTime ?? _effectiveMaxDateTime;
+    // CUR-447: If widget.date is provided and no time is selected yet, use that date
+    final baseTime =
+        _selectedTime ??
+        (widget.date != null
+            ? DateTime(
+                widget.date!.year,
+                widget.date!.month,
+                widget.date!.day,
+                DateTime.now().hour,
+                DateTime.now().minute,
+              )
+            : widget.minTime ?? _effectiveMaxDateTime);
     final newTime = baseTime.add(Duration(minutes: delta));
 
     // Check if this would exceed the max time
@@ -130,10 +141,13 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
     );
 
     if (picked != null) {
+      // CUR-447: Use widget.date if provided (for cross-day validation),
+      // otherwise use baseTime's date
+      final dateContext = widget.date ?? baseTime;
       final newTime = DateTime(
-        baseTime.year,
-        baseTime.month,
-        baseTime.day,
+        dateContext.year,
+        dateContext.month,
+        dateContext.day,
         picked.hour,
         picked.minute,
       );
