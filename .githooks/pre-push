@@ -44,11 +44,20 @@ if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
 fi
 
 # =====================================================
-# 1. Detect PR Status
+# 1. Detect PR Status and PR-Intended Branches
 # =====================================================
 
 HAS_PR=false
 PR_URL=""
+IS_PR_INTENDED_BRANCH=false
+
+# Check if branch name indicates it's intended for a PR
+# Per CLAUDE.md: feature/*, fix/*, release/* branches require PRs
+if [[ "$CURRENT_BRANCH" == feature/* ]] || \
+   [[ "$CURRENT_BRANCH" == fix/* ]] || \
+   [[ "$CURRENT_BRANCH" == release/* ]]; then
+    IS_PR_INTENDED_BRANCH=true
+fi
 
 # Check if gh CLI is available
 if command -v gh &> /dev/null; then
@@ -66,6 +75,13 @@ else
     echo ""
 fi
 
+# PR-intended branches should be blocking even before PR exists
+# This ensures validation passes BEFORE creating a PR
+SHOULD_BLOCK=$HAS_PR
+if [ "$IS_PR_INTENDED_BRANCH" = true ]; then
+    SHOULD_BLOCK=true
+fi
+
 # =====================================================
 # 2. Run Validation Scripts
 # =====================================================
@@ -76,9 +92,13 @@ echo -e "${BLUE}  Pre-Push Validation${NC}"
 echo -e "${BLUE}======================================${NC}"
 echo ""
 
-if [ "$HAS_PR" = true ]; then
-    echo -e "${BLUE}Branch '$CURRENT_BRANCH' has open PR:${NC}"
-    echo -e "${BLUE}  $PR_URL${NC}"
+if [ "$SHOULD_BLOCK" = true ]; then
+    if [ "$HAS_PR" = true ]; then
+        echo -e "${BLUE}Branch '$CURRENT_BRANCH' has open PR:${NC}"
+        echo -e "${BLUE}  $PR_URL${NC}"
+    elif [ "$IS_PR_INTENDED_BRANCH" = true ]; then
+        echo -e "${BLUE}Branch '$CURRENT_BRANCH' is a PR-intended branch (feature/fix/release).${NC}"
+    fi
     echo -e "${RED}Validation failures will BLOCK this push.${NC}"
 else
     echo -e "${YELLOW}Branch '$CURRENT_BRANCH' has no open PR.${NC}"
@@ -419,11 +439,15 @@ echo -e "${BLUE}======================================${NC}"
 echo ""
 
 if [ "$VALIDATION_FAILED" = true ]; then
-    if [ "$HAS_PR" = true ]; then
-        # PR exists - BLOCK the push
+    if [ "$SHOULD_BLOCK" = true ]; then
+        # PR exists or PR-intended branch - BLOCK the push
         echo -e "${RED}VALIDATION FAILED${NC}"
         echo ""
-        echo -e "${RED}Push BLOCKED because branch has an open PR.${NC}"
+        if [ "$HAS_PR" = true ]; then
+            echo -e "${RED}Push BLOCKED because branch has an open PR.${NC}"
+        elif [ "$IS_PR_INTENDED_BRANCH" = true ]; then
+            echo -e "${RED}Push BLOCKED because this is a PR-intended branch (feature/fix/release).${NC}"
+        fi
         echo -e "${RED}PR branches must pass all validations.${NC}"
         echo ""
         echo "To fix:"
@@ -437,7 +461,7 @@ if [ "$VALIDATION_FAILED" = true ]; then
         echo ""
         exit 1
     else
-        # No PR - warn but allow push
+        # No PR and not a PR-intended branch - warn but allow push
         echo -e "${YELLOW}VALIDATION FAILED (warnings only)${NC}"
         echo ""
         echo -e "${YELLOW}Push ALLOWED because branch has no open PR.${NC}"
