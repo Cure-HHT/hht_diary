@@ -283,18 +283,21 @@ See `spec/requirements-format.md` for full format specification.
 
 ### Invalid ID format
 
-**Cause**: ID doesn't match `[pod]NNNNN` pattern.
+**Cause**: ID doesn't match `[pod]NNNNN` or `[SPONSOR]-[pod]NNNNN` pattern.
 
 **Solution**: Use correct format:
-- `p00001` to `p99999` for PRD
-- `o00001` to `o99999` for Ops
-- `d00001` to `d99999` for Dev
+- Core: `p00001` to `p99999` for PRD, `o00001` for Ops, `d00001` for Dev
+- Sponsor-specific: `CAL-p00001`, `CAL-d00005`, etc. (2-4 uppercase letter prefix)
 
 ### Missing parent requirement
 
 **Cause**: "Implements" references non-existent requirement.
 
 **Solution**: Ensure parent requirement exists or use `-` for top-level requirements.
+
+**Note for sponsor-specific requirements**: In Implements fields, use:
+- `CAL-p00001` for sponsor-specific parent (keep sponsor prefix)
+- `p00001` for core parent (no prefix)
 
 ### Level mismatch
 

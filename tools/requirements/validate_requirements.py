@@ -11,6 +11,7 @@ Validates requirement format with hash at end:
 - Whitespace-only between title and status
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -34,15 +35,28 @@ class Requirement:
 
     @property
     def level_prefix(self) -> str:
-        """Extract level prefix (p, o, d) from ID"""
-        match = re.match(r'^([pod])(\d{5})$', self.id)
+        """Extract level prefix (p, o, d) from ID
+
+        Supports both core IDs (d00001) and sponsor-specific IDs (CAL-d00001)
+        """
+        # Match optional sponsor prefix + level prefix
+        match = re.match(r'^(?:[A-Z]{2,4}-)?([pod])(\d{5})$', self.id)
         return match.group(1) if match else ''
 
     @property
     def number(self) -> int:
-        """Extract numeric part of ID"""
-        match = re.match(r'^([pod])(\d{5})$', self.id)
+        """Extract numeric part of ID
+
+        Supports both core IDs (d00001) and sponsor-specific IDs (CAL-d00001)
+        """
+        match = re.match(r'^(?:[A-Z]{2,4}-)?([pod])(\d{5})$', self.id)
         return int(match.group(2)) if match else 0
+
+    @property
+    def sponsor_prefix(self) -> str:
+        """Extract sponsor prefix if present (e.g., 'CAL' from 'CAL-d00001')"""
+        match = re.match(r'^([A-Z]{2,4})-[pod]\d{5}$', self.id)
+        return match.group(1) if match else ''
 
 
 # calculate_requirement_hash is now imported from requirement_hash module
@@ -53,7 +67,8 @@ class RequirementValidator:
 
     # Regex patterns for new format
     # Convention (not enforced): REQ headers typically use level 1 (#), freeing up levels 2-6 for body structure
-    REQ_HEADER_PATTERN = re.compile(r'^(#{1,6})\s+REQ-([pod]\d{5}):\s+(.+)$', re.MULTILINE)
+    # Supports both core REQs (REQ-d00001) and sponsor-specific REQs (REQ-CAL-d00001)
+    REQ_HEADER_PATTERN = re.compile(r'^(#{1,6})\s+REQ-(?:([A-Z]{2,4})-)?([pod]\d{5}):\s+(.+)$', re.MULTILINE)
     STATUS_PATTERN = re.compile(
         r'^\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
         r'\*\*Implements\*\*:\s+([^\|]+?)\s+\|\s+'
@@ -124,9 +139,13 @@ class RequirementValidator:
         for header_match in self.REQ_HEADER_PATTERN.finditer(content):
             heading_marks = header_match.group(1)
             heading_level = len(heading_marks)
-            req_id = header_match.group(2)
-            title = header_match.group(3).strip()
+            sponsor_prefix = header_match.group(2)  # Optional, e.g., "CAL"
+            base_id = header_match.group(3)  # e.g., "d00001"
+            title = header_match.group(4).strip()
             line_num = content[:header_match.start()].count('\n') + 1
+
+            # Construct full req_id (with or without sponsor prefix)
+            req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
 
             # Extract content after header until end of file
             req_start = header_match.end()
@@ -233,14 +252,18 @@ class RequirementValidator:
                 seen_ids[req_id] = req.file_path
 
     def _check_id_format(self):
-        """Check that requirement IDs follow the correct format"""
-        id_pattern = re.compile(r'^[pod]\d{5}$')
+        """Check that requirement IDs follow the correct format
+
+        Supports both core IDs (d00001) and sponsor-specific IDs (CAL-d00001)
+        """
+        # Match optional sponsor prefix + standard ID format
+        id_pattern = re.compile(r'^(?:[A-Z]{2,4}-)?[pod]\d{5}$')
 
         for req_id, req in self.requirements.items():
             if not id_pattern.match(req_id):
                 self.errors.append(
                     f"{req.file_path.name}:{req.line_number} - "
-                    f"Invalid ID format: {req_id} (expected: [pod]NNNNN)"
+                    f"Invalid ID format: {req_id} (expected: [pod]NNNNN or [SPONSOR]-[pod]NNNNN)"
                 )
 
             # Check level prefix matches stated level
@@ -266,7 +289,8 @@ class RequirementValidator:
     def _scan_implementation_files(self):
         """Scan implementation files for 'IMPLEMENTS REQUIREMENTS:' declarations"""
         impl_pattern = re.compile(r'IMPLEMENTS\s+REQUIREMENTS?:\s*\n?(.*?)(?=\n\s*\n|\Z)', re.IGNORECASE | re.DOTALL)
-        req_pattern = re.compile(r'REQ-([pod]\d{5})', re.IGNORECASE)
+        # Match both core (d00001) and sponsor-specific (CAL-d00001) REQ IDs
+        req_pattern = re.compile(r'REQ-(?:([A-Z]{2,4})-)?([pod]\d{5})', re.IGNORECASE)
 
         patterns = [
             '.github/workflows/**/*.yml',
@@ -287,7 +311,10 @@ class RequirementValidator:
                         for match in impl_pattern.finditer(content):
                             req_block = match.group(1)
                             for req_match in req_pattern.finditer(req_block):
-                                req_id = req_match.group(1).lower()
+                                sponsor_prefix = req_match.group(1)
+                                base_id = req_match.group(2).lower()
+                                # Construct full ID with sponsor prefix if present
+                                req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
                                 self.implemented_in_code.add(req_id)
                     except Exception:
                         continue
@@ -375,8 +402,34 @@ class RequirementValidator:
 
 
 def main():
-    script_dir = Path(__file__).parent
-    spec_dir = script_dir.parent.parent / "spec"
+    parser = argparse.ArgumentParser(
+        description='Validate requirements format and consistency',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Validate current repo
+  python validate_requirements.py
+
+  # Validate a different repo
+  python validate_requirements.py --path /path/to/other/repo
+
+  # Validate sibling repo
+  python validate_requirements.py --path ../sibling-repo
+'''
+    )
+    parser.add_argument(
+        '--path',
+        type=Path,
+        help='Path to repository root (default: auto-detect from script location)'
+    )
+    args = parser.parse_args()
+
+    if args.path:
+        repo_root = args.path.resolve()
+        spec_dir = repo_root / "spec"
+    else:
+        script_dir = Path(__file__).parent
+        spec_dir = script_dir.parent.parent / "spec"
 
     if not spec_dir.exists():
         print(f"❌ Error: Spec directory not found: {spec_dir}")

@@ -25,12 +25,44 @@ This document defines the format for traceable requirements across PRD, Operatio
 
 **Examples**: `p00001`, `o00042`, `d00156`
 
+### Sponsor-Specific Requirements
+
+Sponsor-specific requirements use a sponsor prefix before the level indicator:
+
+```
+{SPONSOR}-{level}{5-digit-number}
+```
+
+**Format**:
+- `{SPONSOR}` = 2-4 uppercase letters identifying the sponsor (e.g., `CAL`, `HHT`)
+- Followed by the standard level and number format
+
+**Examples**:
+- `CAL-p00001` = Callisto sponsor PRD requirement
+- `CAL-d00005` = Callisto sponsor Dev requirement
+- `HHT-o00001` = HHT sponsor Ops requirement
+
+**In Headers**: Include `REQ-` prefix
+```markdown
+# REQ-CAL-p00001: Sponsor-Specific Feature
+```
+
+**In Implements Field**: Omit `REQ-` prefix, keep sponsor prefix
+```markdown
+**Implements**: CAL-p00001, p00004
+```
+
+This allows sponsor-specific requirements to reference:
+- Other sponsor-specific requirements: `CAL-p00001`
+- Core requirements: `p00004` (no sponsor prefix)
+
 ### ID Assignment Rules
 
 1. **Sequential within level**: IDs increment sequentially within each level
 2. **Never reuse**: Deleted requirements keep their ID (marked as deprecated)
 3. **Zero-padded**: Always use 5 digits (p00001, not p1)
 4. **No gaps required**: IDs can be consecutive
+5. **Sponsor isolation**: Sponsor-specific IDs are independent of core IDs (CAL-p00001 ≠ p00001)
 
 ---
 

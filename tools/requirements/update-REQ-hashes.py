@@ -36,7 +36,8 @@ def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str =
     updates = {}
 
     # Pattern to find REQ headers
-    req_pattern = re.compile(r'^(#{1,6})\s+REQ-([pod]\d{5}):\s+(.+)$')
+    # Supports both core REQs (REQ-d00001) and sponsor-specific REQs (REQ-CAL-d00001)
+    req_pattern = re.compile(r'^(#{1,6})\s+REQ-(?:([A-Z]{2,4})-)?([pod]\d{5}):\s+(.+)$')
 
     # Pattern to find status line
     status_pattern = re.compile(
@@ -55,11 +56,15 @@ def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str =
             i += 1
             continue
 
-        req_id = req_match.group(2)
-        title = req_match.group(3).strip()
+        sponsor_prefix = req_match.group(2)  # Optional, e.g., "CAL"
+        base_id = req_match.group(3)  # e.g., "d00001"
+        title = req_match.group(4).strip()
+        # Construct full req_id
+        req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
 
         # Skip if specific_req set and doesn't match
-        if specific_req and req_id != specific_req:
+        # Handle both full ID (CAL-d00001) or base ID (d00001)
+        if specific_req and req_id != specific_req and base_id != specific_req:
             i += 1
             continue
 
@@ -157,10 +162,25 @@ def update_index_file(index_path: Path, hash_updates: Dict[str, str], dry_run: b
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Update requirement hashes (new format)')
+    parser = argparse.ArgumentParser(
+        description='Update requirement hashes (new format)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Update hashes in current repo
+  python update-REQ-hashes.py
+
+  # Update hashes in a different repo
+  python update-REQ-hashes.py --path /path/to/other/repo
+
+  # Verify hashes only
+  python update-REQ-hashes.py --verify --path ../sibling-repo
+'''
+    )
     parser.add_argument('--dry-run', action='store_true', help='Show changes without writing')
     parser.add_argument('--req-id', help='Update only specific requirement (e.g., d00027 or REQ-d00027)')
     parser.add_argument('--verify', action='store_true', help='Verify hashes only')
+    parser.add_argument('--path', type=Path, help='Path to repository root (default: auto-detect from script location)')
     args = parser.parse_args()
 
     # Normalize req-id format
@@ -171,8 +191,12 @@ def main():
             print(f"❌ Invalid requirement ID format: {args.req_id}")
             sys.exit(1)
 
-    script_dir = Path(__file__).parent
-    spec_dir = script_dir.parent.parent / 'spec'
+    if args.path:
+        repo_root = args.path.resolve()
+        spec_dir = repo_root / 'spec'
+    else:
+        script_dir = Path(__file__).parent
+        spec_dir = script_dir.parent.parent / 'spec'
     index_path = spec_dir / 'INDEX.md'
 
     if not spec_dir.exists():

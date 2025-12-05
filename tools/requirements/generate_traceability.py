@@ -1340,7 +1340,20 @@ def main():
 
     parser = argparse.ArgumentParser(
         description='Generate requirements traceability matrix with test coverage',
-        epilog='Tip: Use --format both to generate both markdown and HTML versions'
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Tip: Use --format both to generate both markdown and HTML versions
+
+Examples:
+  # Generate matrix for current repo
+  python generate_traceability.py
+
+  # Generate matrix for a different repo
+  python generate_traceability.py --path /path/to/other/repo
+
+  # Generate for sibling repo with HTML output
+  python generate_traceability.py --path ../sibling-repo --format html
+'''
     )
     parser.add_argument(
         '--format',
@@ -1374,6 +1387,11 @@ def main():
         type=Path,
         help='Output directory path (overrides default based on mode)'
     )
+    parser.add_argument(
+        '--path',
+        type=Path,
+        help='Path to repository root (default: auto-detect from script location)'
+    )
 
     args = parser.parse_args()
 
@@ -1383,8 +1401,11 @@ def main():
         sys.exit(1)
 
     # Find spec directory
-    script_dir = Path(__file__).parent
-    repo_root = script_dir.parent.parent
+    if args.path:
+        repo_root = args.path.resolve()
+    else:
+        script_dir = Path(__file__).parent
+        repo_root = script_dir.parent.parent
     spec_dir = repo_root / 'spec'
 
     if not spec_dir.exists():
