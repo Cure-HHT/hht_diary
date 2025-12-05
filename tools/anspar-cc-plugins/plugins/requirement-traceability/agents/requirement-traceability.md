@@ -1,6 +1,6 @@
 ---
 name: requirement-traceability
-description: Requirement-to-ticket traceability for spec/ requirements with Linear integration
+description: MUST BE USED for requirement-to-ticket traceability operations. Use when creating Linear tickets from spec/ requirements, checking traceability coverage, adding implementation checklists, or maintaining bidirectional REQ-ticket mappings.
 tools: Bash, Read, Grep
 ---
 

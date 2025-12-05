@@ -51,7 +51,7 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 **See**: `docs/README.md` for complete documentation about when to use docs/ vs spec/.
 
 **Key Documents**:
-- `spec/prd-app.md` - High level system functional requirements
+- `spec/prd-diary-app.md` - High level system functional requirements
 - `spec/prd-database.md` - Database architecture requirements
 - `spec/prd-database-event-sourcing.md` - Event Sourcing pattern
 - `spec/prd-security-RBAC.md` - Role-based access control
