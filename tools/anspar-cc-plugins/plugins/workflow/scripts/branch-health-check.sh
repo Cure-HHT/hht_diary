@@ -143,7 +143,7 @@ if git branch -r --merged "origin/$MAIN_BRANCH" 2>/dev/null | grep -q "origin/$B
     MERGE_INFO="Branch has been merged into $MAIN_BRANCH"
 fi
 
-# Check for squash merge: does the diff between branch and main show no meaningful changes?
+# Check for squash merge: does the tree content of branch match main?
 # This happens when all commits from the branch are already in main via squash
 if [ "$MERGED" = false ]; then
     # Get the merge base
@@ -154,8 +154,9 @@ if [ "$MERGED" = false ]; then
         COMMITS_AHEAD=$(git rev-list --count "$MERGE_BASE".."$BRANCH" 2>/dev/null || echo "0")
 
         if [ "$COMMITS_AHEAD" -gt 0 ]; then
-            # Check if the diff between branch and main is empty (squash-merged)
-            DIFF_SIZE=$(git diff --stat "origin/$MAIN_BRANCH"..."$BRANCH" 2>/dev/null | wc -l || echo "999")
+            # Compare actual tree contents (not commit history) between branch and main
+            # Two-dot diff compares the actual file contents at each ref
+            DIFF_SIZE=$(git diff "origin/$MAIN_BRANCH".."$BRANCH" 2>/dev/null | wc -l || echo "999")
 
             if [ "$DIFF_SIZE" -eq 0 ]; then
                 SQUASH_MERGED=true
