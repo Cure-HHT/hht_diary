@@ -136,31 +136,37 @@ jobs:
           CORE_SHA="${{ needs.validate-build.outputs.core_sha }}"
           DESCRIPTION="${{ inputs.description }}"
           RUN_ID="${{ inputs.github_run_id }}"
+          SPONSORS_JSON='${{ needs.validate-build.outputs.sponsors_json }}'
+          ACTOR="${{ github.actor }}"
+          REPO="${{ github.repository }}"
+
+          # Build tag message (avoid heredoc at column 0 which breaks YAML)
+          SPONSORS_LIST=$(echo "$SPONSORS_JSON" | jq -r '.[] | "  - \(.name) (\(.code)) @ \(.git_sha)"')
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          TAG_MESSAGE="Production Candidate: $VERSION
+
+          $DESCRIPTION
+
+          Build Information:
+          - GitHub Run ID: $RUN_ID
+          - Core SHA: $CORE_SHA
+          - Timestamp: $TIMESTAMP
+          - Tagged by: $ACTOR
+
+          Sponsors:
+          $SPONSORS_LIST
+
+          Build Manifest:
+          https://github.com/$REPO/actions/runs/$RUN_ID
+
+          Artifacts:
+          - APK: app-release-apk
+          - AAB: app-release-aab
+          - Manifest: sponsor-build-manifest"
 
           # Create annotated tag
-          git tag -a "$VERSION" "$CORE_SHA" -m "$(cat <<EOF
-Production Candidate: $VERSION
-
-$DESCRIPTION
-
-Build Information:
-- GitHub Run ID: $RUN_ID
-- Core SHA: $CORE_SHA
-- Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-- Tagged by: ${{ github.actor }}
-
-Sponsors:
-$(echo '${{ needs.validate-build.outputs.sponsors_json }}' | jq -r '.[] | "  - \(.name) (\(.code)) @ \(.git_sha)"')
-
-Build Manifest:
-https://github.com/${{ github.repository }}/actions/runs/$RUN_ID
-
-Artifacts:
-- APK: app-release-apk
-- AAB: app-release-aab
-- Manifest: sponsor-build-manifest
-EOF
-)"
+          git tag -a "$VERSION" "$CORE_SHA" -m "$TAG_MESSAGE"
 
           echo "Created tag: $VERSION @ $CORE_SHA"
 
@@ -196,108 +202,115 @@ EOF
 
       - name: Create Release Notes
         id: notes
+        env:
+          VERSION: ${{ inputs.version }}
+          DESCRIPTION: ${{ inputs.description }}
+          CORE_SHA: ${{ needs.validate-build.outputs.core_sha }}
+          RUN_ID: ${{ inputs.github_run_id }}
+          BUILD_MANIFEST: ${{ needs.validate-build.outputs.build_manifest }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
         run: |
-          VERSION="${{ inputs.version }}"
-          DESCRIPTION="${{ inputs.description }}"
-          CORE_SHA="${{ needs.validate-build.outputs.core_sha }}"
-          RUN_ID="${{ inputs.github_run_id }}"
-          BUILD_MANIFEST='${{ needs.validate-build.outputs.build_manifest }}'
+          # Generate dynamic content
+          TIMESTAMP=$(echo "$BUILD_MANIFEST" | jq -r '.timestamp')
+          TAG_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SPONSORS_TABLE=$(echo "$BUILD_MANIFEST" | jq -r '.sponsors[] | "| \(.name) | \(.code) | \(.repo) | \(.tag) | `\(.git_sha[0:8])` |"')
 
-          # Generate release notes
-          cat > /tmp/release-notes.md <<EOF
-# $VERSION
-
-$DESCRIPTION
-
-## Build Information
-
-- **Core SHA**: \`$CORE_SHA\`
-- **Build Run**: [#$RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$RUN_ID)
-- **Build Timestamp**: $(echo "$BUILD_MANIFEST" | jq -r '.timestamp')
-- **Tagged By**: @${{ github.actor }}
-- **Tag Date**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-## Integrated Sponsors
-
-| Sponsor | Code | Repository | Tag | Git SHA |
-|---------|------|------------|-----|---------|
-$(echo "$BUILD_MANIFEST" | jq -r '.sponsors[] | "| \(.name) | \(.code) | \(.repo) | \(.tag) | \`\(.git_sha[0:8])\` |"')
-
-## Artifacts
-
-- **APK**: \`app-release.apk\` (Android Package)
-- **AAB**: \`app-release.aab\` (Android App Bundle)
-- **Build Manifest**: \`sponsor-build-manifest.json\` (Traceability)
-
-## Installation
-
-### Android APK
-\`\`\`bash
-# Download
-gh release download $VERSION -p "app-release.apk"
-
-# Install
-adb install app-release.apk
-\`\`\`
-
-### Google Play (AAB)
-\`\`\`bash
-# Download
-gh release download $VERSION -p "app-release.aab"
-
-# Upload to Google Play Console
-\`\`\`
-
-## Verification
-
-### Build Manifest
-\`\`\`bash
-# Download and inspect
-gh release download $VERSION -p "sponsor-build-manifest.json"
-cat sponsor-build-manifest.json | jq '.'
-\`\`\`
-
-### Git SHA Verification
-\`\`\`bash
-# Verify core repository
-git checkout $CORE_SHA
-git describe --tags --exact-match  # Should show $VERSION
-
-# Verify each sponsor (if multi-repo)
-# cd sponsor/<name> && git checkout <sponsor_sha>
-\`\`\`
-
-## Hotfix Process
-
-To create a hotfix for this release:
-
-1. **Create hotfix branch** from this tag:
-   \`\`\`bash
-   git checkout -b hotfix/$VERSION-patch1 $VERSION
-   \`\`\`
-
-2. **Make changes** and commit
-
-3. **Tag hotfix** version:
-   \`\`\`bash
-   git tag -a $VERSION-patch1 -m "Hotfix for $VERSION"
-   \`\`\`
-
-4. **Rebuild** with same sponsor commits (if applicable)
-
-5. **Merge back** to main
-
-## FDA Compliance
-
-This release is archived to per-sponsor S3 buckets:
-- **Bucket**: \`hht-diary-artifacts-{sponsor}-{region}\`
-- **Path**: \`builds/YYYY/MM/DD/hht-diary-{CODE}-{SHA}.tar.gz\`
-- **Retention**: 7 years (FDA 21 CFR Part 11)
-
-## Support
-
-For questions or issues, contact the development team.
-EOF
+          # Generate release notes using printf to avoid heredoc YAML issues
+          {
+            echo "# $VERSION"
+            echo ""
+            echo "$DESCRIPTION"
+            echo ""
+            echo "## Build Information"
+            echo ""
+            echo "- **Core SHA**: \`$CORE_SHA\`"
+            echo "- **Build Run**: [#$RUN_ID](https://github.com/$REPO/actions/runs/$RUN_ID)"
+            echo "- **Build Timestamp**: $TIMESTAMP"
+            echo "- **Tagged By**: @$ACTOR"
+            echo "- **Tag Date**: $TAG_DATE"
+            echo ""
+            echo "## Integrated Sponsors"
+            echo ""
+            echo "| Sponsor | Code | Repository | Tag | Git SHA |"
+            echo "|---------|------|------------|-----|---------|"
+            echo "$SPONSORS_TABLE"
+            echo ""
+            echo "## Artifacts"
+            echo ""
+            echo "- **APK**: \`app-release.apk\` (Android Package)"
+            echo "- **AAB**: \`app-release.aab\` (Android App Bundle)"
+            echo "- **Build Manifest**: \`sponsor-build-manifest.json\` (Traceability)"
+            echo ""
+            echo "## Installation"
+            echo ""
+            echo "### Android APK"
+            echo "\`\`\`bash"
+            echo "# Download"
+            echo "gh release download $VERSION -p \"app-release.apk\""
+            echo ""
+            echo "# Install"
+            echo "adb install app-release.apk"
+            echo "\`\`\`"
+            echo ""
+            echo "### Google Play (AAB)"
+            echo "\`\`\`bash"
+            echo "# Download"
+            echo "gh release download $VERSION -p \"app-release.aab\""
+            echo ""
+            echo "# Upload to Google Play Console"
+            echo "\`\`\`"
+            echo ""
+            echo "## Verification"
+            echo ""
+            echo "### Build Manifest"
+            echo "\`\`\`bash"
+            echo "# Download and inspect"
+            echo "gh release download $VERSION -p \"sponsor-build-manifest.json\""
+            echo "cat sponsor-build-manifest.json | jq '.'"
+            echo "\`\`\`"
+            echo ""
+            echo "### Git SHA Verification"
+            echo "\`\`\`bash"
+            echo "# Verify core repository"
+            echo "git checkout $CORE_SHA"
+            echo "git describe --tags --exact-match  # Should show $VERSION"
+            echo ""
+            echo "# Verify each sponsor (if multi-repo)"
+            echo "# cd sponsor/<name> && git checkout <sponsor_sha>"
+            echo "\`\`\`"
+            echo ""
+            echo "## Hotfix Process"
+            echo ""
+            echo "To create a hotfix for this release:"
+            echo ""
+            echo "1. **Create hotfix branch** from this tag:"
+            echo "   \`\`\`bash"
+            echo "   git checkout -b hotfix/$VERSION-patch1 $VERSION"
+            echo "   \`\`\`"
+            echo ""
+            echo "2. **Make changes** and commit"
+            echo ""
+            echo "3. **Tag hotfix** version:"
+            echo "   \`\`\`bash"
+            echo "   git tag -a $VERSION-patch1 -m \"Hotfix for $VERSION\""
+            echo "   \`\`\`"
+            echo ""
+            echo "4. **Rebuild** with same sponsor commits (if applicable)"
+            echo ""
+            echo "5. **Merge back** to main"
+            echo ""
+            echo "## FDA Compliance"
+            echo ""
+            echo "This release is archived to per-sponsor S3 buckets:"
+            echo "- **Bucket**: \`hht-diary-artifacts-{sponsor}-{region}\`"
+            echo "- **Path**: \`builds/YYYY/MM/DD/hht-diary-{CODE}-{SHA}.tar.gz\`"
+            echo "- **Retention**: 7 years (FDA 21 CFR Part 11)"
+            echo ""
+            echo "## Support"
+            echo ""
+            echo "For questions or issues, contact the development team."
+          } > /tmp/release-notes.md
 
           cat /tmp/release-notes.md
 

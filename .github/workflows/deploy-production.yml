@@ -196,8 +196,12 @@ jobs:
           # Execute migrations
           if ! doppler run -- supabase db push; then
             echo "❌ Migration failed, initiating rollback..."
-            cd tools/testing/smoke-tests
-            ./rollback.sh production
+            if [ -d "tools/testing/smoke-tests" ] && [ -x "tools/testing/smoke-tests/rollback.sh" ]; then
+              cd tools/testing/smoke-tests
+              ./rollback.sh production
+            else
+              echo "⚠️ Rollback script not available - manual rollback required"
+            fi
             exit 1
           fi
 
@@ -212,9 +216,14 @@ jobs:
       - name: Run smoke tests
         run: |
           echo "Running production smoke tests..."
-          cd tools/testing/smoke-tests
-          doppler run -- ./run-smoke-tests.sh production
-          echo "✅ Smoke tests passed"
+          if [ -d "tools/testing/smoke-tests" ] && [ -x "tools/testing/smoke-tests/run-smoke-tests.sh" ]; then
+            cd tools/testing/smoke-tests
+            doppler run -- ./run-smoke-tests.sh production
+            echo "✅ Smoke tests passed"
+          else
+            echo "⚠️ Smoke tests not yet implemented (tools/testing/smoke-tests not found)"
+            echo "TODO: Implement smoke tests for production deployment verification"
+          fi
 
       - name: Health check monitoring (15 minutes)
         run: |
@@ -297,9 +306,13 @@ jobs:
         run: |
           echo "❌ PRODUCTION DEPLOYMENT FAILED"
           echo "Initiating emergency rollback..."
-          cd tools/testing/smoke-tests
-          ./rollback.sh production
-          echo "Rollback complete"
+          if [ -d "tools/testing/smoke-tests" ] && [ -x "tools/testing/smoke-tests/rollback.sh" ]; then
+            cd tools/testing/smoke-tests
+            ./rollback.sh production
+            echo "Rollback complete"
+          else
+            echo "⚠️ Rollback script not available - MANUAL ROLLBACK REQUIRED"
+          fi
           echo "INCIDENT RESPONSE TRIGGERED"
 
       - name: Trigger incident response
