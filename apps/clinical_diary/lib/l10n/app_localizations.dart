@@ -174,7 +174,7 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'When did the nosebleed start?',
       'whenDidItStop': 'When did the nosebleed stop?',
-      'howSevere': 'How severe is the nosebleed?',
+      'howSevere': 'How intense is the nosebleed?',
       'selectBestOption': 'Select the option that best describes the bleeding',
       'anyNotes': 'Any additional notes?',
       'notesPlaceholder': 'Optional notes about this nosebleed...',
@@ -453,7 +453,7 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Cuando empezo la hemorragia nasal?',
       'whenDidItStop': 'Cuando paro la hemorragia nasal?',
-      'howSevere': 'Que tan severa es la hemorragia?',
+      'howSevere': 'Que tan intensa es la hemorragia?',
       'selectBestOption': 'Selecciona la opcion que mejor describe el sangrado',
       'anyNotes': 'Alguna nota adicional?',
       'notesPlaceholder': 'Notas opcionales sobre esta hemorragia nasal...',
@@ -744,7 +744,7 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Quand le saignement de nez a-t-il commence?',
       'whenDidItStop': "Quand le saignement de nez s'est-il arrete?",
-      'howSevere': 'Quelle est la gravite du saignement?',
+      'howSevere': "Quelle est l'intensite du saignement?",
       'selectBestOption':
           "Selectionnez l'option qui decrit le mieux le saignement",
       'anyNotes': 'Des notes supplementaires?',
@@ -1033,7 +1033,7 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Wann hat das Nasenbluten begonnen?',
       'whenDidItStop': 'Wann hat das Nasenbluten aufgehort?',
-      'howSevere': 'Wie stark ist das Nasenbluten?',
+      'howSevere': 'Wie intensiv ist das Nasenbluten?',
       'selectBestOption':
           'Wahlen Sie die Option, die die Blutung am besten beschreibt',
       'anyNotes': 'Zusatzliche Anmerkungen?',

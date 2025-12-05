@@ -141,32 +141,46 @@ class _TimePickerDialState extends State<TimePickerDial> {
 
           const Spacer(),
 
-          // Time display
+          // Time display with date below (CUR-447: show date for clarity)
           GestureDetector(
             onTap: _showTimePicker,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      use24Hour
+                          ? timeFormat.format(_selectedTime)
+                          : DateFormat('h:mm', locale).format(_selectedTime),
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        fontWeight: FontWeight.w300,
+                        fontSize: 72,
+                      ),
+                    ),
+                    if (!use24Hour) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        periodFormat.format(_selectedTime),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // CUR-447: Show date below time for clarity in cross-day scenarios
                 Text(
-                  use24Hour
-                      ? timeFormat.format(_selectedTime)
-                      : DateFormat('h:mm', locale).format(_selectedTime),
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    fontSize: 72,
+                  DateFormat.yMMMd(locale).format(_selectedTime),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
-                if (!use24Hour) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    periodFormat.format(_selectedTime),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
