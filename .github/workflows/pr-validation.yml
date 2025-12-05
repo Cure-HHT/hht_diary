@@ -110,7 +110,7 @@ jobs:
             # Check validity
             if [ "$HAS_CUR" = "true" ] && [ "$HAS_REQ" = "true" ]; then
               echo "✅ ${sha:0:7}: $subject"
-              ((VALID_COUNT++))
+              VALID_COUNT=$((VALID_COUNT + 1))
             else
               ERRORS=""
               if [ "$HAS_CUR" = "false" ]; then
