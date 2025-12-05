@@ -3,6 +3,10 @@
 # SessionStart Hook
 # =====================================================
 #
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00018: Git Hook Implementation
+#   REQ-d00068: Enhanced Workflow New Work Detection
+#
 # Provides workflow status context to Claude at session start.
 # Claude will announce the status to the user.
 #
@@ -13,9 +17,98 @@
 # Find plugin directory
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CHECK_SCRIPT="$PLUGIN_DIR/scripts/check-active-ticket.sh"
+BRANCH_HEALTH_SCRIPT="$PLUGIN_DIR/scripts/branch-health-check.sh"
 
 # Build status message
 STATUS_MSG=""
+BRANCH_HEALTH_WARNING=""
+
+# =====================================================
+# Branch Health Check (P0)
+# =====================================================
+# Check if current branch is merged, stale, or diverged
+
+if [ -f "$BRANCH_HEALTH_SCRIPT" ]; then
+    BRANCH_HEALTH_JSON=$("$BRANCH_HEALTH_SCRIPT" --format=json 2>/dev/null || echo '{"status": "error"}')
+    BRANCH_STATUS=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.status // "error"')
+    BRANCH_NAME=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.branch // "unknown"')
+    CAN_WORK=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.canWork // true')
+    BRANCH_MESSAGE=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.message // ""')
+    BRANCH_RECOMMENDATION=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.recommendation // ""')
+
+    case $BRANCH_STATUS in
+        merged|squash-merged)
+            BRANCH_HEALTH_WARNING="
+─────────────────────────────────────────────────────
+
+⛔ BRANCH ALREADY MERGED
+
+Branch: $BRANCH_NAME
+Status: $BRANCH_STATUS
+$BRANCH_MESSAGE
+
+You should NOT continue working on this branch.
+New commits will diverge from main and may cause confusion.
+
+$BRANCH_RECOMMENDATION
+
+To start fresh work:
+  git checkout -b feature/NEW-TICKET-ID origin/main
+
+─────────────────────────────────────────────────────"
+            ;;
+        stale)
+            BRANCH_HEALTH_WARNING="
+─────────────────────────────────────────────────────
+
+⚠️  STALE BRANCH DETECTED
+
+Branch: $BRANCH_NAME
+$BRANCH_MESSAGE
+
+$BRANCH_RECOMMENDATION
+
+─────────────────────────────────────────────────────"
+            ;;
+        diverged)
+            BRANCH_HEALTH_WARNING="
+─────────────────────────────────────────────────────
+
+⚠️  BRANCH HAS DIVERGED FROM REMOTE
+
+Branch: $BRANCH_NAME
+$BRANCH_MESSAGE
+
+$BRANCH_RECOMMENDATION
+
+─────────────────────────────────────────────────────"
+            ;;
+        protected)
+            BRANCH_HEALTH_WARNING="
+─────────────────────────────────────────────────────
+
+🛡️  ON PROTECTED BRANCH
+
+You are on branch: $BRANCH_NAME
+
+Create a feature branch before making changes:
+  git checkout -b feature/TICKET-ID
+
+─────────────────────────────────────────────────────"
+            ;;
+        detached)
+            BRANCH_HEALTH_WARNING="
+─────────────────────────────────────────────────────
+
+⚠️  DETACHED HEAD STATE
+
+You are not on a branch. Create or checkout a branch:
+  git checkout -b feature/TICKET-ID
+
+─────────────────────────────────────────────────────"
+            ;;
+    esac
+fi
 
 # Check for active ticket
 if [ -f "$CHECK_SCRIPT" ]; then
@@ -138,6 +231,7 @@ fi
 # Use jq to properly escape the status message for JSON
 CONTEXT="WORKFLOW STATUS:
 $STATUS_MSG
+$BRANCH_HEALTH_WARNING
 $GIT_HOOKS_WARNING
 $DEV_CONTAINER_WARNING
 
@@ -146,6 +240,7 @@ IMPORTANT: Announce this workflow status to the user at the start of the session
 # Create user-friendly message
 USER_MSG="🔄 WORKFLOW STATUS:
 $STATUS_MSG
+$BRANCH_HEALTH_WARNING
 $GIT_HOOKS_WARNING
 $DEV_CONTAINER_WARNING"
 

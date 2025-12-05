@@ -3,6 +3,11 @@
 # UserPromptSubmit Hook - Workflow Plugin
 # =====================================================
 #
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00018: Git Hook Implementation
+#   REQ-d00068: Enhanced Workflow New Work Detection
+#   REQ-o00053: Branch Protection Enforcement
+#
 # Detects task-switching language and recommends
 # ticket management before work starts.
 #
@@ -21,9 +26,95 @@ PROMPT=$(cat)
 
 # Find plugin directory
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BRANCH_HEALTH_SCRIPT="$PLUGIN_DIR/scripts/branch-health-check.sh"
 
 # Get current active ticket
 ACTIVE_TICKET=$("$PLUGIN_DIR/scripts/get-active-ticket.sh" --format=id 2>/dev/null || echo "")
+
+# ===================================================
+# BRANCH HEALTH CHECK (P0 - Highest Priority)
+# ===================================================
+# Block work on merged/squash-merged branches before any other checks
+
+BRANCH_BLOCKED=false
+BRANCH_BLOCK_MSG=""
+
+if [ -f "$BRANCH_HEALTH_SCRIPT" ]; then
+    BRANCH_HEALTH_JSON=$("$BRANCH_HEALTH_SCRIPT" --format=json 2>/dev/null || echo '{"status": "error", "canWork": true}')
+    BRANCH_STATUS=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.status // "error"')
+    CAN_WORK=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.canWork // true')
+    BRANCH_NAME=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.branch // "unknown"')
+    BRANCH_MESSAGE=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.message // ""')
+    BRANCH_RECOMMENDATION=$(echo "$BRANCH_HEALTH_JSON" | jq -r '.recommendation // ""')
+
+    if [ "$CAN_WORK" = "false" ]; then
+        BRANCH_BLOCKED=true
+
+        case $BRANCH_STATUS in
+            merged|squash-merged)
+                BRANCH_BLOCK_MSG="⛔ CANNOT WORK ON MERGED BRANCH
+
+Branch: $BRANCH_NAME
+Status: $BRANCH_STATUS
+$BRANCH_MESSAGE
+
+This branch has already been merged into main.
+Continuing work here will create divergence and confusion.
+
+🚨 ACTION REQUIRED:
+
+1. If you need to continue this work, create a new branch:
+   git checkout -b feature/NEW-TICKET-ID origin/main
+
+2. If the work is complete, you can delete this branch:
+   $BRANCH_RECOMMENDATION
+
+3. If this is unexpected, verify the merge status:
+   git branch -r --merged origin/main | grep $BRANCH_NAME
+
+The workflow enforcer is blocking this action to prevent accidental work on merged branches."
+                ;;
+            protected)
+                BRANCH_BLOCK_MSG="🛡️ CANNOT WORK ON PROTECTED BRANCH
+
+You are on branch: $BRANCH_NAME
+
+Protected branches (main, master) require work on feature branches.
+
+🚨 ACTION REQUIRED:
+
+Create a feature branch before making changes:
+  git checkout -b feature/TICKET-ID origin/main"
+                ;;
+            detached)
+                BRANCH_BLOCK_MSG="⚠️ DETACHED HEAD STATE
+
+You are not on a branch. Git operations may not work as expected.
+
+🚨 ACTION REQUIRED:
+
+Create or checkout a branch:
+  git checkout -b feature/TICKET-ID"
+                ;;
+        esac
+    fi
+fi
+
+# If branch is blocked, output warning and exit early
+if [ "$BRANCH_BLOCKED" = true ]; then
+    jq -n \
+        --arg msg "$BRANCH_BLOCK_MSG" \
+        --arg status "$BRANCH_STATUS" \
+        --arg branch "$BRANCH_NAME" \
+        '{
+          "systemMessage": $msg,
+          "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": ("Branch health check failed: " + $status + " on " + $branch + ". Work blocked until branch issue is resolved.")
+          }
+        }'
+    exit 0
+fi
 
 # Pattern matching scores
 TASK_SWITCH_SCORE=0
