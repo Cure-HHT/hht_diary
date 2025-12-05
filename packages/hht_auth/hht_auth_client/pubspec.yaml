@@ -1,0 +1,36 @@
+name: hht_auth_client
+description: Flutter Web client authentication library for HHT Diary
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  hht_auth_core:
+    path: ../hht_auth_core
+
+  # HTTP client
+  http: ^1.1.0
+
+  # Password hashing (Argon2id)
+  pointycastle: ^3.7.4
+
+  # State management
+  signals_core: ^5.5.0
+  flutter_riverpod: ^2.4.9
+
+  # Utilities
+  meta: ^1.11.0
+
+  # Flutter
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  test: ^1.24.9
+  mockito: ^5.4.4
+  build_runner: ^2.4.7
+  lints: ^3.0.0

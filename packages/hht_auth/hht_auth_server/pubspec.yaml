@@ -1,0 +1,26 @@
+name: hht_auth_server
+description: Server-side authentication service for HHT Diary (Cloud Run)
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  hht_auth_core:
+    path: ../hht_auth_core
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  dart_jsonwebtoken: ^2.12.1
+  firedart: ^0.9.6
+  uuid: ^4.2.1
+  crypto: ^3.0.3
+  args: ^2.4.2
+  pointycastle: ^3.7.3
+
+dev_dependencies:
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+  test: ^1.24.9
+  lints: ^3.0.0
+  http: ^1.1.2
