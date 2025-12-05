@@ -65,7 +65,7 @@ fi
 
 ```bash
 # Test with a spec file change
-git add spec/prd-app.md
+git add spec/prd-diary-app.md
 git commit -m "test" --dry-run
 
 # Check that matrix was regenerated
@@ -181,7 +181,7 @@ The matrix shows all requirements organized by level:
 ### REQ-p00042: User Authentication
 **Implements**: -
 **Status**: Active
-**File**: spec/prd-app.md:42
+**File**: spec/prd-diary-app.md:42
 
 #### Implemented By:
 - REQ-o00015: Authentication Deployment (spec/ops-deployment.md:73)

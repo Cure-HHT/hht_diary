@@ -72,7 +72,7 @@ fi
 
 ```bash
 # Test with a spec file change
-git add spec/prd-app.md
+git add spec/prd-diary-app.md
 git commit -m "test" --dry-run
 ```
 
@@ -361,7 +361,7 @@ git commit --no-verify -m "Draft: WIP requirements"
 ```
 ❌ ERROR: Duplicate requirement ID: REQ-p00042
    Found in:
-     - spec/prd-app.md:42
+     - spec/prd-diary-app.md:42
      - spec/prd-features.md:15
 ```
 

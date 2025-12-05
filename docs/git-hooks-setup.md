@@ -303,14 +303,14 @@ user executes: git commit -m "message"
    ```
    ❌ ERROR: Duplicate requirement ID: REQ-p00042
    Found in:
-     - spec/prd-app.md:42
+     - spec/prd-diary-app.md:42
      - spec/prd-features.md:15
    ```
    Fix: Rename duplicate with new ID
 
 6. **Code in PRD file**:
    ```
-   ❌ spec/prd-app.md contains code examples (forbidden in PRD files)
+   ❌ spec/prd-diary-app.md contains code examples (forbidden in PRD files)
    ```
    Fix: Move code to dev-* file, reference from PRD
 
@@ -603,7 +603,7 @@ Invalid scenarios:
 When you commit changes to spec/ files, traceability matrices are automatically regenerated:
 
 ```bash
-git add spec/prd-app.md spec/dev-api.md
+git add spec/prd-diary-app.md spec/dev-api.md
 git commit -m "Update requirements\n\nImplements: REQ-p00042, REQ-d00027"
 
 # Output during commit:

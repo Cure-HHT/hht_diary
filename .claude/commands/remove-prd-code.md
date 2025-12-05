@@ -47,7 +47,7 @@ with open(filepath, 'w', encoding='utf-8') as f:
 ## Expected Output Format
 
 ```
-Cleaned prd-app.md:
+Cleaned prd-diary-app.md:
   - Removed: 37 code blocks (Dart, TypeScript, SQL)
   - Preserved: 0 ASCII diagrams
   - Remaining: 0 code blocks
