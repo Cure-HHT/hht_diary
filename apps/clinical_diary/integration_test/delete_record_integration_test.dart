@@ -395,7 +395,7 @@ void main() {
       final records = await nosebleedService.getLocalRecords();
       expect(records.isEmpty, true);
     });
-  }, skip: true);
+  });
 }
 
 /// Mock EnrollmentService for testing
