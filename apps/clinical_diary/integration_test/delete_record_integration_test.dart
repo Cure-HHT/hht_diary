@@ -21,12 +21,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../helpers/test_helpers.dart';
+import '../test/helpers/test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Delete Record Integration Tests', () {
     late MockEnrollmentService mockEnrollment;
@@ -59,6 +60,7 @@ void main() {
         httpClient: MockClient(
           (_) async => http.Response('{"success": true}', 200),
         ),
+        enableCloudSync: false, // Disable for tests
       );
     });
 

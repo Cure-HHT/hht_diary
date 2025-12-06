@@ -9,18 +9,32 @@ class UserPreferences {
     this.isDarkMode = false,
     this.dyslexiaFriendlyFont = false,
     this.largerTextAndControls = false,
+    this.useAnimation = true,
     this.languageCode = 'en',
   });
+
+  /// Create from JSON (Firebase)
+  factory UserPreferences.fromJson(Map<String, dynamic> json) {
+    return UserPreferences(
+      isDarkMode: json['isDarkMode'] as bool? ?? false,
+      dyslexiaFriendlyFont: json['dyslexiaFriendlyFont'] as bool? ?? false,
+      largerTextAndControls: json['largerTextAndControls'] as bool? ?? false,
+      useAnimation: json['useAnimation'] as bool? ?? true,
+      languageCode: json['languageCode'] as String? ?? 'en',
+    );
+  }
 
   final bool isDarkMode;
   final bool dyslexiaFriendlyFont;
   final bool largerTextAndControls;
+  final bool useAnimation;
   final String languageCode;
 
   UserPreferences copyWith({
     bool? isDarkMode,
     bool? dyslexiaFriendlyFont,
     bool? largerTextAndControls,
+    bool? useAnimation,
     String? languageCode,
   }) {
     return UserPreferences(
@@ -28,9 +42,19 @@ class UserPreferences {
       dyslexiaFriendlyFont: dyslexiaFriendlyFont ?? this.dyslexiaFriendlyFont,
       largerTextAndControls:
           largerTextAndControls ?? this.largerTextAndControls,
+      useAnimation: useAnimation ?? this.useAnimation,
       languageCode: languageCode ?? this.languageCode,
     );
   }
+
+  /// Convert to JSON for Firebase storage
+  Map<String, dynamic> toJson() => {
+    'isDarkMode': isDarkMode,
+    'dyslexiaFriendlyFont': dyslexiaFriendlyFont,
+    'largerTextAndControls': largerTextAndControls,
+    'useAnimation': useAnimation,
+    'languageCode': languageCode,
+  };
 }
 
 /// Service for managing user preferences
@@ -41,6 +65,7 @@ class PreferencesService {
   static const _keyDarkMode = 'pref_dark_mode';
   static const _keyDyslexiaFont = 'pref_dyslexia_font';
   static const _keyLargerControls = 'pref_larger_controls';
+  static const _keyUseAnimation = 'pref_use_animation';
   static const _keyLanguageCode = 'pref_language_code';
 
   SharedPreferences? _sharedPreferences;
@@ -57,6 +82,7 @@ class PreferencesService {
       isDarkMode: prefs.getBool(_keyDarkMode) ?? false,
       dyslexiaFriendlyFont: prefs.getBool(_keyDyslexiaFont) ?? false,
       largerTextAndControls: prefs.getBool(_keyLargerControls) ?? false,
+      useAnimation: prefs.getBool(_keyUseAnimation) ?? true,
       languageCode: prefs.getString(_keyLanguageCode) ?? 'en',
     );
   }
@@ -67,6 +93,7 @@ class PreferencesService {
     await prefs.setBool(_keyDarkMode, preferences.isDarkMode);
     await prefs.setBool(_keyDyslexiaFont, preferences.dyslexiaFriendlyFont);
     await prefs.setBool(_keyLargerControls, preferences.largerTextAndControls);
+    await prefs.setBool(_keyUseAnimation, preferences.useAnimation);
     await prefs.setString(_keyLanguageCode, preferences.languageCode);
   }
 
@@ -86,6 +113,18 @@ class PreferencesService {
   Future<void> setLargerTextAndControls(bool value) async {
     final prefs = await _getPrefs();
     await prefs.setBool(_keyLargerControls, value);
+  }
+
+  /// Update use animation preference
+  Future<void> setUseAnimation(bool value) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyUseAnimation, value);
+  }
+
+  /// Get use animation preference
+  Future<bool> getUseAnimation() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_keyUseAnimation) ?? true;
   }
 
   /// Update language preference

@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = false;
   bool _dyslexiaFriendlyFont = false;
   bool _largerTextAndControls = false;
+  bool _useAnimation = true;
   String _languageCode = 'en';
   bool _isLoading = true;
 
@@ -42,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isDarkMode = prefs.isDarkMode;
       _dyslexiaFriendlyFont = prefs.dyslexiaFriendlyFont;
       _largerTextAndControls = prefs.largerTextAndControls;
+      _useAnimation = prefs.useAnimation;
       _languageCode = prefs.languageCode;
       _isLoading = false;
     });
@@ -53,6 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         isDarkMode: _isDarkMode,
         dyslexiaFriendlyFont: _dyslexiaFriendlyFont,
         largerTextAndControls: _largerTextAndControls,
+        useAnimation: _useAnimation,
         languageCode: _languageCode,
       ),
     );
@@ -184,6 +188,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _savePreferences();
                             },
                           ),
+                          // Use Animation option - only show if feature flag is enabled
+                          if (FeatureFlags.useAnimations) ...[
+                            const SizedBox(height: 12),
+                            _buildAccessibilityOption(
+                              context,
+                              title: AppLocalizations.of(context).useAnimation,
+                              subtitle: AppLocalizations.of(
+                                context,
+                              ).useAnimationDescription,
+                              value: _useAnimation,
+                              onChanged: (value) {
+                                setState(() => _useAnimation = value);
+                                _savePreferences();
+                              },
+                            ),
+                          ],
 
                           const SizedBox(height: 32),
 

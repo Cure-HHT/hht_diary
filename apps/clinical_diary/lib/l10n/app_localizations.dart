@@ -150,6 +150,9 @@ class AppLocalizations {
       'largerTextAndControls': 'Larger Text and Controls',
       'largerTextDescription':
           'Increase the size of text and interactive elements for easier reading and navigation',
+      'useAnimation': 'Use Animations',
+      'useAnimationDescription':
+          'Enable visual animations and transitions throughout the app',
       'language': 'Language',
       'languageDescription': 'Choose your preferred language',
       'accessibilityAndPreferences': 'Accessibility & Preferences',
@@ -187,7 +190,7 @@ class AppLocalizations {
       'setStartTime': 'Set Start Time',
       'nosebleedEnd': 'Nosebleed End',
       'nosebleedEndTime': 'Nosebleed End Time',
-      'nosebleedEnded': 'Nosebleed Ended',
+      'setEndTime': 'Set End Time',
       'completeRecord': 'Complete Record',
       'editRecord': 'Edit Record',
       'recordComplete': 'Record Complete',
@@ -429,6 +432,9 @@ class AppLocalizations {
       'largerTextAndControls': 'Texto y Controles Mas Grandes',
       'largerTextDescription':
           'Aumenta el tamano del texto y elementos interactivos para facilitar la lectura y navegacion',
+      'useAnimation': 'Usar Animaciones',
+      'useAnimationDescription':
+          'Habilitar animaciones visuales y transiciones en toda la aplicacion',
       'language': 'Idioma',
       'languageDescription': 'Elige tu idioma preferido',
       'accessibilityAndPreferences': 'Accesibilidad y Preferencias',
@@ -466,7 +472,7 @@ class AppLocalizations {
       'setStartTime': 'Establecer hora de inicio',
       'nosebleedEnd': 'Fin de hemorragia',
       'nosebleedEndTime': 'Hora de fin de hemorragia',
-      'nosebleedEnded': 'Hemorragia finalizada',
+      'setEndTime': 'Establecer hora de fin',
       'completeRecord': 'Completar registro',
       'editRecord': 'Editar registro',
       'recordComplete': 'Registro completo',
@@ -717,6 +723,9 @@ class AppLocalizations {
       'largerTextAndControls': 'Texte et Controles Plus Grands',
       'largerTextDescription':
           'Augmentez la taille du texte et des elements interactifs pour faciliter la lecture et la navigation',
+      'useAnimation': 'Utiliser les Animations',
+      'useAnimationDescription':
+          "Activer les animations visuelles et les transitions dans l'application",
       'language': 'Langue',
       'languageDescription': 'Choisissez votre langue preferee',
       'accessibilityAndPreferences': 'Accessibilite et Preferences',
@@ -758,7 +767,7 @@ class AppLocalizations {
       'setStartTime': "Definir l'heure de debut",
       'nosebleedEnd': 'Fin du saignement',
       'nosebleedEndTime': 'Heure de fin du saignement',
-      'nosebleedEnded': 'Saignement termine',
+      'setEndTime': 'Definir heure de fin',
       'completeRecord': "Completer l'enregistrement",
       'editRecord': "Modifier l'enregistrement",
       'recordComplete': 'Enregistrement complet',
@@ -1007,6 +1016,9 @@ class AppLocalizations {
       'largerTextAndControls': 'Grosserer Text und Steuerelemente',
       'largerTextDescription':
           'Vergrossern Sie Text und interaktive Elemente fur einfacheres Lesen und Navigieren',
+      'useAnimation': 'Animationen verwenden',
+      'useAnimationDescription':
+          'Visuelle Animationen und Ubergange in der gesamten App aktivieren',
       'language': 'Sprache',
       'languageDescription': 'Wahlen Sie Ihre bevorzugte Sprache',
       'accessibilityAndPreferences': 'Barrierefreiheit & Einstellungen',
@@ -1047,7 +1059,7 @@ class AppLocalizations {
       'setStartTime': 'Startzeit festlegen',
       'nosebleedEnd': 'Nasenbluten-Ende',
       'nosebleedEndTime': 'Nasenbluten-Endzeit',
-      'nosebleedEnded': 'Nasenbluten beendet',
+      'setEndTime': 'Endzeit festlegen',
       'completeRecord': 'Eintrag vervollstandigen',
       'editRecord': 'Eintrag bearbeiten',
       'recordComplete': 'Eintrag vollstandig',
@@ -1307,6 +1319,8 @@ class AppLocalizations {
   String get learnMoreOpenDyslexic => translate('learnMoreOpenDyslexic');
   String get largerTextAndControls => translate('largerTextAndControls');
   String get largerTextDescription => translate('largerTextDescription');
+  String get useAnimation => translate('useAnimation');
+  String get useAnimationDescription => translate('useAnimationDescription');
   String get language => translate('language');
   String get languageDescription => translate('languageDescription');
   String get accessibilityAndPreferences =>
@@ -1340,7 +1354,7 @@ class AppLocalizations {
   String get setStartTime => translate('setStartTime');
   String get nosebleedEnd => translate('nosebleedEnd');
   String get nosebleedEndTime => translate('nosebleedEndTime');
-  String get nosebleedEnded => translate('nosebleedEnded');
+  String get setEndTime => translate('setEndTime');
   String get completeRecord => translate('completeRecord');
   String get editRecord => translate('editRecord');
   String get recordComplete => translate('recordComplete');
