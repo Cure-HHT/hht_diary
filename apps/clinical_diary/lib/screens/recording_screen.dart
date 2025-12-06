@@ -601,6 +601,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
           title: l10n.nosebleedStart,
           initialTime: startInitialTime,
           onConfirm: _handleStartTimeConfirm,
+          onTimeChanged: (time) {
+            // CUR-464: Update summary in real-time as user adjusts time
+            setState(() => _startTime = time);
+          },
           confirmLabel: l10n.setStartTime,
           maxDateTime: _maxDateTimeForTimePicker,
         );
@@ -653,6 +657,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
+          onTimeChanged: (time) {
+            // CUR-464: Update summary in real-time as user adjusts time
+            setState(() => _endTime = time);
+          },
           confirmLabel: l10n.setEndTime,
           maxDateTime: _maxDateTimeForTimePicker,
         );
