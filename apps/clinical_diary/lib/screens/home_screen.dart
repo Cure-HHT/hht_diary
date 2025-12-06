@@ -17,6 +17,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
+import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:flutter/material.dart';
@@ -53,13 +54,32 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isEnrolled = false;
   bool _isLoggedIn = false;
   bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
+  bool _useAnimation = true; // User preference for animations
+
+  // CUR-464: Track record to flash/highlight after save
+  String? _flashRecordId;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadRecords();
+    _loadAnimationPreference();
     _checkEnrollmentStatus();
     _checkLoginStatus();
+  }
+
+  Future<void> _loadAnimationPreference() async {
+    final useAnimation = await widget.preferencesService.getUseAnimation();
+    if (mounted) {
+      setState(() => _useAnimation = useAnimation);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkLoginStatus() async {
@@ -102,7 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navigateToRecording() async {
-    final result = await Navigator.push<bool>(
+    // CUR-464: Result is now record ID (String) instead of bool
+    final result = await Navigator.push<String?>(
       context,
       MaterialPageRoute(
         builder: (context) => _useSimpleRecordingScreen
@@ -119,9 +140,29 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (result ?? false) {
-      unawaited(_loadRecords());
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _flashRecordId = result;
+      });
+      await _loadRecords();
+      _scrollToRecord(result);
     }
+  }
+
+  /// Scroll to a specific record in the list and ensure it's visible.
+  void _scrollToRecord(String recordId) {
+    // Scroll to top - the flash animation will draw attention to the new record
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        // Scroll to top to ensure the new record is visible
+        // (most new records appear at the top of today's section)
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _handleYesterdayNoNosebleeds() async {
@@ -132,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleYesterdayHadNosebleeds() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final result = await Navigator.push<bool>(
+    // CUR-464: Result is now record ID (String) instead of bool
+    final result = await Navigator.push<String?>(
       context,
       MaterialPageRoute(
         builder: (context) => _useSimpleRecordingScreen
@@ -151,8 +193,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (result ?? false) {
-      unawaited(_loadRecords());
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _flashRecordId = result;
+      });
+      await _loadRecords();
+      _scrollToRecord(result);
     }
   }
 
@@ -498,7 +544,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navigateToEditRecord(NosebleedRecord record) async {
-    final result = await Navigator.push<bool>(
+    // CUR-464: Result is now record ID (String) instead of bool
+    final result = await Navigator.push<String?>(
       context,
       MaterialPageRoute(
         builder: (context) => _useSimpleRecordingScreen
@@ -533,8 +580,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (result ?? false) {
-      unawaited(_loadRecords());
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _flashRecordId = result;
+      });
+      await _loadRecords();
+      _scrollToRecord(result);
     }
   }
 
@@ -706,6 +757,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         );
+                        // Reload animation preference in case it changed
+                        await _loadAnimationPreference();
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -874,7 +927,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       onRefresh: _loadRecords,
                       child: Scrollbar(
                         thumbVisibility: true,
+                        controller: _scrollController,
                         child: ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: groupedRecords.length,
                           itemBuilder: (context, index) {
@@ -1092,10 +1147,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ...group.records.map(
             (record) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: EventListItem(
-                record: record,
-                onTap: () => _navigateToEditRecord(record),
-                hasOverlap: _hasOverlap(record),
+              // CUR-464: Wrap with FlashHighlight to animate new records
+              // Key ensures new widget instance when record ID changes (e.g., on edit)
+              child: FlashHighlight(
+                key: ValueKey(record.id),
+                flash: record.id == _flashRecordId,
+                enabled: _useAnimation,
+                onFlashComplete: () {
+                  if (mounted) {
+                    setState(() {
+                      _flashRecordId = null;
+                    });
+                  }
+                },
+                builder: (context, highlightColor) => EventListItem(
+                  record: record,
+                  onTap: () => _navigateToEditRecord(record),
+                  hasOverlap: _hasOverlap(record),
+                  highlightColor: highlightColor,
+                ),
               ),
             ),
           ),

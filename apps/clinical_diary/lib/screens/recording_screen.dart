@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -176,10 +177,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }).toList();
   }
 
-  Future<void> _saveRecord() async {
+  /// Saves the record and returns the record ID, or null if save failed.
+  Future<String?> _saveRecord() async {
     // At minimum, we need a start time to save a record
     // Records without all fields will be marked as incomplete by the service
-    if (_startTime == null) return;
+    if (_startTime == null) return null;
 
     // CUR-443: Overlapping events are allowed - warning shown in UI but doesn't block save
     // User can save and fix either record later
@@ -189,10 +191,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
     setState(() => _isSaving = true);
 
     try {
+      String? recordId;
       if (widget.existingRecord != null) {
         // Update existing record (creates a new version that supersedes the original)
         // CUR-447: Use _startDate as the primary date for the record
-        await widget.nosebleedService.updateRecord(
+        final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           date: _startDate,
           startTime: _startTime,
@@ -200,21 +203,25 @@ class _RecordingScreenState extends State<RecordingScreen> {
           intensity: _intensity,
           // CUR-408: notes parameter removed
         );
+        recordId = record.id;
       } else {
         // Create new record
         // CUR-447: Use _startDate as the primary date for the record
-        await widget.nosebleedService.addRecord(
+        final record = await widget.nosebleedService.addRecord(
           date: _startDate,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
           // CUR-408: notes parameter removed
         );
+        recordId = record.id;
       }
 
       if (mounted) {
-        Navigator.pop(context, true);
+        // Return record ID so home screen can scroll to and highlight it
+        Navigator.pop(context, recordId);
       }
+      return recordId;
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);
@@ -222,6 +229,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('${l10n.failedToSave}: $e')));
       }
+      return null;
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -308,7 +316,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  void _handleEndTimeConfirm(DateTime time) {
+  Future<void> _handleEndTimeConfirm(DateTime time) async {
     // Validate end time is after start time
     if (_startTime != null && time.isBefore(_startTime!)) {
       final l10n = AppLocalizations.of(context);
@@ -320,7 +328,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     setState(() {
       _endTime = time;
-      // CUR-408: Go directly to complete step, notes step removed
+    });
+
+    // CUR-464: When useReviewScreen is false, save immediately and return
+    if (!FeatureFlags.useReviewScreen) {
+      await _saveRecord();
+      return;
+    }
+
+    // CUR-408: Go directly to complete step, notes step removed
+    setState(() {
       _currentStep = RecordingStep.complete;
     });
   }
@@ -625,7 +642,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
-          confirmLabel: l10n.nosebleedEnded,
+          confirmLabel: l10n.setEndTime,
           maxDateTime: _maxDateTimeForTimePicker,
         );
 

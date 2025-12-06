@@ -208,27 +208,31 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() => _isSaving = true);
 
     try {
+      String? recordId;
       if (widget.existingRecord != null) {
         // Update existing record
-        await widget.nosebleedService.updateRecord(
+        final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
         );
+        recordId = record.id;
       } else {
         // Create new record (isIncomplete is calculated automatically by service)
-        await widget.nosebleedService.addRecord(
+        final record = await widget.nosebleedService.addRecord(
           date: _date,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
         );
+        recordId = record.id;
       }
 
       if (mounted) {
-        Navigator.pop(context, true);
+        // Return record ID so home screen can scroll to and highlight it
+        Navigator.pop(context, recordId);
       }
     } catch (e) {
       if (mounted) {

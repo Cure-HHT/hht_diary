@@ -29,6 +29,7 @@ void main() {
       expect(find.textContaining('10:30 AM'), findsOneWidget);
     });
 
+    // CUR-447: Time now includes timezone abbreviation for 12-hour locales
     testWidgets('displays only start time when end time is missing', (
       tester,
     ) async {
@@ -42,7 +43,8 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('2:00 PM'), findsOneWidget);
+      // Time includes timezone abbreviation (e.g., "2:00 PM PST")
+      expect(find.textContaining('2:00 PM'), findsOneWidget);
     });
 
     testWidgets('displays --:-- when no times provided', (tester) async {

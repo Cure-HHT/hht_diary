@@ -16,7 +16,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('How severe is the nosebleed?'), findsOneWidget);
+      expect(find.text('How intense is the nosebleed?'), findsOneWidget);
     });
 
     testWidgets('displays subtitle text', (tester) async {

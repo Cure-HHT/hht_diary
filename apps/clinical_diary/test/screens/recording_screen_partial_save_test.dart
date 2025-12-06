@@ -311,7 +311,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // Confirm end time
-          await tester.tap(find.text('Nosebleed Ended'));
+          await tester.tap(find.text('Set End Time'));
           await tester.pumpAndSettle();
 
           // Should be on complete step

@@ -15,6 +15,7 @@ class EventListItem extends StatelessWidget {
     super.key,
     this.onTap,
     this.hasOverlap = false,
+    this.highlightColor,
   });
   final NosebleedRecord record;
   final VoidCallback? onTap;
@@ -22,14 +23,28 @@ class EventListItem extends StatelessWidget {
   /// Whether this record overlaps with another record's time range
   final bool hasOverlap;
 
-  /// Format start time for one-line display (e.g., "9:09 PM PST")
-  /// Includes timezone abbreviation for 12-hour locales
+  /// Optional highlight color to apply to the card background (for flash animation)
+  final Color? highlightColor;
+
+  /// Format start time for one-line display (e.g., "9:09 PM")
+  /// Shows timezone abbreviation when:
+  /// - Start and end time zones differ (cross-timezone event)
+  /// - Either time zone differs from device's current timezone
   String _startTimeFormatted(String locale) {
     if (record.startTime == null) return '--:--';
     final timeStr = DateFormat.jm(locale).format(record.startTime!);
-    // Add timezone abbreviation for 12-hour locales
-    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    if (!use24Hour) {
+
+    final deviceTzOffset = DateTime.now().timeZoneOffset;
+    final startTzOffset = record.startTime!.timeZoneOffset;
+    final endTzOffset = record.endTime?.timeZoneOffset;
+
+    // Show timezone if start/end differ OR if either differs from device
+    final startDiffersFromDevice = startTzOffset != deviceTzOffset;
+    final endDiffersFromDevice =
+        endTzOffset != null && endTzOffset != deviceTzOffset;
+    final startEndDiffer = endTzOffset != null && startTzOffset != endTzOffset;
+
+    if (startDiffersFromDevice || endDiffersFromDevice || startEndDiffer) {
       final tz = record.startTime!.timeZoneName;
       return '$timeStr $tz';
     }
@@ -206,6 +221,7 @@ class EventListItem extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
+      color: highlightColor,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

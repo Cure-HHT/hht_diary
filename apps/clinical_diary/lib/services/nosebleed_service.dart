@@ -29,15 +29,18 @@ class NosebleedService {
     required EnrollmentService enrollmentService,
     http.Client? httpClient,
     EventRepository? repository,
+    bool enableCloudSync = true,
   }) : _enrollmentService = enrollmentService,
        _httpClient = httpClient ?? http.Client(),
-       _repository = repository;
+       _repository = repository,
+       _enableCloudSync = enableCloudSync;
 
   static const _deviceUuidKey = 'device_uuid';
 
   final EnrollmentService _enrollmentService;
   final http.Client _httpClient;
   final EventRepository? _repository;
+  final bool _enableCloudSync;
   final Uuid _uuid = const Uuid();
 
   /// Get the event repository (from Datastore singleton or injected for tests)
@@ -331,6 +334,9 @@ class NosebleedService {
 
   /// Sync a single record to cloud via HTTP
   Future<void> _syncRecordToCloud(NosebleedRecord record) async {
+    // Skip sync in unit tests
+    if (!_enableCloudSync) return;
+
     try {
       final jwtToken = await _enrollmentService.getJwtToken();
       if (jwtToken == null) return;
