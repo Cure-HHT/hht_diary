@@ -5,14 +5,12 @@
 import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
-import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -296,82 +294,8 @@ void main() {
         expect(find.text('Dripping'), findsOneWidget);
       });
 
-      // CUR-464: With FeatureFlags.useReviewScreen = false, saves and pops immediately
-      testWidgets(
-        'saves and returns to caller for incomplete existing record',
-        (tester) async {
-          // Use a larger screen size to avoid overflow issues
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
-
-          final incompleteRecord = NosebleedRecord(
-            id: 'existing-1',
-            date: DateTime(2024, 1, 15),
-            startTime: DateTime(2024, 1, 15, 10, 30),
-            endTime: DateTime(2024, 1, 15, 10, 45),
-            // Missing intensity
-            isIncomplete: true,
-          );
-
-          String? popResult;
-          await tester.pumpWidget(
-            MaterialApp(
-              locale: const Locale('en'),
-              supportedLocales: AppLocalizations.supportedLocales,
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              home: Builder(
-                builder: (context) => Scaffold(
-                  body: ElevatedButton(
-                    onPressed: () async {
-                      popResult = await Navigator.push<String>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RecordingScreen(
-                            nosebleedService: nosebleedService,
-                            enrollmentService: mockEnrollment,
-                            existingRecord: incompleteRecord,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text('Open'),
-                  ),
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // Navigate to RecordingScreen
-          await tester.tap(find.text('Open'));
-          await tester.pumpAndSettle();
-
-          // Select intensity to proceed
-          await tester.tap(find.text('Dripping'));
-          await tester.pumpAndSettle();
-
-          // Verify we're on end time step
-          expect(find.text('Set End Time'), findsOneWidget);
-
-          // Tap Set End Time - CUR-464: saves immediately and pops
-          await tester.tap(find.text('Set End Time'));
-          await tester.pumpAndSettle();
-
-          // Should have popped back with a record ID
-          expect(popResult, isNotNull);
-          expect(popResult, isNotEmpty);
-        },
-        skip: true,
-      );
+      // CUR-464: Test moved to integration_test/recording_save_flow_test.dart
+      // Reason: Datastore transactions don't complete properly in widget tests
 
       testWidgets('can navigate between steps via summary bar', (tester) async {
         final existingRecord = NosebleedRecord(
@@ -738,75 +662,8 @@ void main() {
     });
 
     group('Save Flow', () {
-      // CUR-464: With FeatureFlags.useReviewScreen = false, saves immediately on Set End Time
-      // Skip: Test needs refactoring - Navigator.pop result not being captured reliably
-      testWidgets(
-        'saves and returns record ID after completing flow',
-        skip: true,
-        (tester) async {
-          // Use a larger screen size to avoid overflow issues
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
-
-          String? popResult;
-          await tester.pumpWidget(
-            MaterialApp(
-              locale: const Locale('en'),
-              supportedLocales: AppLocalizations.supportedLocales,
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              home: Builder(
-                builder: (context) => Scaffold(
-                  body: ElevatedButton(
-                    onPressed: () async {
-                      popResult = await Navigator.push<String>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RecordingScreen(
-                            nosebleedService: nosebleedService,
-                            enrollmentService: mockEnrollment,
-                            initialDate: DateTime(2024, 1, 15),
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text('Open'),
-                  ),
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // Navigate to RecordingScreen
-          await tester.tap(find.text('Open'));
-          await tester.pumpAndSettle();
-
-          // Confirm start time
-          await tester.tap(find.text('Set Start Time'));
-          await tester.pumpAndSettle();
-
-          // Select intensity
-          await tester.tap(find.text('Dripping'));
-          await tester.pumpAndSettle();
-
-          // Confirm end time - CUR-464: saves immediately and pops with record ID
-          await tester.tap(find.text('Set End Time'));
-          await tester.pumpAndSettle();
-
-          // Should have popped back with a record ID (not the complete step)
-          expect(popResult, isNotNull);
-          expect(popResult, isNotEmpty);
-        },
-      );
+      // CUR-464: Test moved to integration_test/recording_save_flow_test.dart
+      // Reason: Datastore transactions don't complete properly in widget tests
 
       testWidgets('can navigate through existing record editing', (
         tester,
