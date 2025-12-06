@@ -14,10 +14,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('RecordingScreen Automatic Partial Save', () {
     late MockEnrollmentService mockEnrollment;
@@ -67,14 +68,10 @@ void main() {
       }
     });
 
-    // NOTE: These integration tests use real Datastore and may hang in CI
-    // due to async database operations that don't complete in test environment.
-    // The auto-save behavior is tested at the unit level in the service tests.
-    // Skip these tests in CI; run manually with: flutter test --no-test-assets
+    // Integration tests using real Datastore and cloud sync
     group('Back Button Auto-Save Partial', () {
       testWidgets(
         'automatically saves partial record when pressing back on new record',
-        skip: true, // Skipped: hangs due to async Datastore operations in tests
         (tester) async {
           // Use a larger screen size to avoid overflow issues
           tester.view.physicalSize = const Size(1080, 1920);
@@ -123,7 +120,6 @@ void main() {
 
       testWidgets(
         'auto-saves partial after setting start time and going back',
-        skip: true, // Skipped: hangs due to async Datastore operations in tests
         (tester) async {
           // Use a larger screen size to avoid overflow issues
           tester.view.physicalSize = const Size(1080, 1920);
@@ -176,7 +172,6 @@ void main() {
 
       testWidgets(
         'auto-saves partial with intensity after selecting it and going back',
-        skip: true, // Skipped: hangs due to async Datastore operations in tests
         (tester) async {
           // Use a larger screen size to avoid overflow issues
           tester.view.physicalSize = const Size(1080, 1920);
@@ -231,56 +226,51 @@ void main() {
         },
       );
 
-      testWidgets(
-        'system back button also triggers auto-save',
-        skip: true, // Skipped: hangs due to async Datastore operations in tests
-        (tester) async {
-          // Use a larger screen size to avoid overflow issues
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
+      testWidgets('system back button also triggers auto-save', (tester) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-          await tester.pumpWidget(
-            _wrapWithApp(
-              RecordingScreen(
-                nosebleedService: nosebleedService,
-                enrollmentService: mockEnrollment,
-                initialDate: DateTime(2024, 1, 15),
-              ),
+        await tester.pumpWidget(
+          _wrapWithApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              initialDate: DateTime(2024, 1, 15),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // Verify we're on the start time screen
-          expect(find.text('Nosebleed Start'), findsOneWidget);
+        // Verify we're on the start time screen
+        expect(find.text('Nosebleed Start'), findsOneWidget);
 
-          // Simulate system back button press using the Navigator
-          final dynamic state = tester.state(find.byType(Navigator));
-          // ignore: avoid_dynamic_calls
-          state.maybePop();
-          // Use pump with duration instead of pumpAndSettle
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.pump(const Duration(milliseconds: 100));
+        // Simulate system back button press using the Navigator
+        final dynamic state = tester.state(find.byType(Navigator));
+        // ignore: avoid_dynamic_calls
+        state.maybePop();
+        // Use pump with duration instead of pumpAndSettle
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
 
-          // Should NOT show any dialog
-          expect(find.text('Save as incomplete?'), findsNothing);
+        // Should NOT show any dialog
+        expect(find.text('Save as incomplete?'), findsNothing);
 
-          // Verify the partial record was saved
-          final records = await nosebleedService.getRecordsForDate(
-            DateTime(2024, 1, 15),
-          );
-          expect(records.length, 1);
-          expect(records.first.isIncomplete, isTrue);
-        },
-      );
+        // Verify the partial record was saved
+        final records = await nosebleedService.getRecordsForDate(
+          DateTime(2024, 1, 15),
+        );
+        expect(records.length, 1);
+        expect(records.first.isIncomplete, isTrue);
+      });
 
       testWidgets(
         'does not save partial when on complete step (already has save button)',
-        skip: true, // Skipped: hangs due to async Datastore operations in tests
         (tester) async {
           // Use a larger screen size to avoid overflow issues
           tester.view.physicalSize = const Size(1080, 1920);

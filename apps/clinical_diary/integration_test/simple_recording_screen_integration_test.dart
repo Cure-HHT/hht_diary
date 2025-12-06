@@ -16,12 +16,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../helpers/test_helpers.dart';
+import '../test/helpers/test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('SimpleRecordingScreen', () {
     late MockEnrollmentService mockEnrollment;
@@ -72,8 +73,6 @@ void main() {
     group('Incomplete Entry Preservation (CUR-405)', () {
       testWidgets(
         'auto-saves partial record when back is tapped with unsaved changes',
-        skip:
-            true, // Complex async test - datastore operations require longer pump waits
         (tester) async {
           // Use a larger screen size to avoid overflow issues
           tester.view.physicalSize = const Size(1080, 1920);
@@ -211,160 +210,154 @@ void main() {
         // Should NOT show any dialog - should just navigate back
         expect(find.text('Save as Incomplete?'), findsNothing);
         expect(didPop, isTrue);
-      }, skip: true); //TODO - not sure why it's failing
+      });
 
-      testWidgets(
-        'auto-saves when intensity is set and back is pressed',
-        skip:
-            true, // Complex async test - datastore operations require longer pump waits
-        (tester) async {
-          // Use a larger screen size to avoid overflow issues
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
+      testWidgets('auto-saves when intensity is set and back is pressed', (
+        tester,
+      ) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-          await tester.pumpWidget(
-            MaterialApp(
-              locale: const Locale('en'),
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: Builder(
-                builder: (context) {
-                  return Scaffold(
-                    body: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) => SimpleRecordingScreen(
-                              nosebleedService: nosebleedService,
-                              enrollmentService: mockEnrollment,
-                              initialDate: DateTime(2024, 1, 15),
-                            ),
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Builder(
+              builder: (context) {
+                return Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => SimpleRecordingScreen(
+                            nosebleedService: nosebleedService,
+                            enrollmentService: mockEnrollment,
+                            initialDate: DateTime(2024, 1, 15),
                           ),
-                        );
-                      },
-                      child: const Text('Open Recording'),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      );
+                    },
+                    child: const Text('Open Recording'),
+                  ),
+                );
+              },
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // Open the recording screen
-          await tester.tap(find.text('Open Recording'));
-          await tester.pumpAndSettle();
+        // Open the recording screen
+        await tester.tap(find.text('Open Recording'));
+        await tester.pumpAndSettle();
 
-          // Set intensity (tap on one of the intensity options)
-          // The IntensityRow shows intensity options
-          await tester.tap(find.text('Dripping'));
-          await tester.pumpAndSettle();
+        // Set intensity (tap on one of the intensity options)
+        // The IntensityRow shows intensity options
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
 
-          // Try to go back - should auto-save without dialog
-          await tester.tap(find.text('Back'));
-          // Use pump instead of pumpAndSettle due to async operations
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.pump(const Duration(milliseconds: 100));
+        // Try to go back - should auto-save without dialog
+        await tester.tap(find.text('Back'));
+        // Use pump instead of pumpAndSettle due to async operations
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
 
-          // Should NOT show any dialog
-          expect(find.text('Save as Incomplete?'), findsNothing);
+        // Should NOT show any dialog
+        expect(find.text('Save as Incomplete?'), findsNothing);
 
-          // Verify a record was saved with intensity
-          final records = await nosebleedService.getRecordsForDate(
-            DateTime(2024, 1, 15),
-          );
-          expect(records.length, 1);
-          expect(records.first.isIncomplete, isTrue);
-          expect(records.first.intensity, NosebleedIntensity.dripping);
-        },
-      );
+        // Verify a record was saved with intensity
+        final records = await nosebleedService.getRecordsForDate(
+          DateTime(2024, 1, 15),
+        );
+        expect(records.length, 1);
+        expect(records.first.isIncomplete, isTrue);
+        expect(records.first.intensity, NosebleedIntensity.dripping);
+      });
 
-      testWidgets(
-        'auto-saves when editing existing record with changes',
-        skip:
-            true, // Complex async test - datastore operations require longer pump waits
-        (tester) async {
-          // Use a larger screen size to avoid overflow issues
-          tester.view.physicalSize = const Size(1080, 1920);
-          tester.view.devicePixelRatio = 1.0;
-          addTearDown(() {
-            tester.view.resetPhysicalSize();
-            tester.view.resetDevicePixelRatio();
-          });
+      testWidgets('auto-saves when editing existing record with changes', (
+        tester,
+      ) async {
+        // Use a larger screen size to avoid overflow issues
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-          final existingRecord = NosebleedRecord(
-            id: 'existing-1',
-            date: DateTime(2024, 1, 15),
-            startTime: DateTime(2024, 1, 15, 10, 30),
-            endTime: DateTime(2024, 1, 15, 10, 45),
-            intensity: NosebleedIntensity.dripping,
-          );
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          date: DateTime(2024, 1, 15),
+          startTime: DateTime(2024, 1, 15, 10, 30),
+          endTime: DateTime(2024, 1, 15, 10, 45),
+          intensity: NosebleedIntensity.dripping,
+        );
 
-          await tester.pumpWidget(
-            MaterialApp(
-              locale: const Locale('en'),
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: Builder(
-                builder: (context) {
-                  return Scaffold(
-                    body: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) => SimpleRecordingScreen(
-                              nosebleedService: nosebleedService,
-                              enrollmentService: mockEnrollment,
-                              existingRecord: existingRecord,
-                            ),
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Builder(
+              builder: (context) {
+                return Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => SimpleRecordingScreen(
+                            nosebleedService: nosebleedService,
+                            enrollmentService: mockEnrollment,
+                            existingRecord: existingRecord,
                           ),
-                        );
-                      },
-                      child: const Text('Open Recording'),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      );
+                    },
+                    child: const Text('Open Recording'),
+                  ),
+                );
+              },
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // Open the recording screen
-          await tester.tap(find.text('Open Recording'));
-          await tester.pumpAndSettle();
+        // Open the recording screen
+        await tester.tap(find.text('Open Recording'));
+        await tester.pumpAndSettle();
 
-          // Change the intensity
-          await tester.tap(find.text('Pouring'));
-          await tester.pumpAndSettle();
+        // Change the intensity
+        await tester.tap(find.text('Pouring'));
+        await tester.pumpAndSettle();
 
-          // Try to go back - should auto-save without dialog
-          await tester.tap(find.text('Back'));
-          // Use pump instead of pumpAndSettle due to async operations
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.pump(const Duration(milliseconds: 100));
+        // Try to go back - should auto-save without dialog
+        await tester.tap(find.text('Back'));
+        // Use pump instead of pumpAndSettle due to async operations
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
 
-          // Should NOT show any dialog
-          expect(find.text('Save as Incomplete?'), findsNothing);
-        },
-      );
+        // Should NOT show any dialog
+        expect(find.text('Save as Incomplete?'), findsNothing);
+      });
 
       testWidgets(
         'navigates back without saving when editing existing record without changes',
@@ -439,8 +432,6 @@ void main() {
 
       testWidgets(
         'handles system back button with unsaved changes via auto-save',
-        skip:
-            true, // Complex async test - datastore operations require longer pump waits
         (tester) async {
           // Use a larger screen size to avoid overflow issues
           tester.view.physicalSize = const Size(1080, 1920);
