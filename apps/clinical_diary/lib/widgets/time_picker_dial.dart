@@ -12,6 +12,7 @@ class TimePickerDial extends StatefulWidget {
     this.confirmLabel = 'Confirm',
     this.allowFutureTimes = false,
     this.maxDateTime,
+    this.onTimeChanged,
   });
   final String title;
   final DateTime initialTime;
@@ -23,6 +24,10 @@ class TimePickerDial extends StatefulWidget {
   /// as the limit instead of DateTime.now(). Useful when editing past dates
   /// where the limit should be end-of-day rather than current moment.
   final DateTime? maxDateTime;
+
+  /// Called when the time changes via adjustment buttons or time picker.
+  /// This allows the parent to track live changes before confirm is pressed.
+  final ValueChanged<DateTime>? onTimeChanged;
 
   @override
   State<TimePickerDial> createState() => _TimePickerDialState();
@@ -82,6 +87,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
     setState(() {
       _selectedTime = newTime;
     });
+    // Notify parent of the time change
+    widget.onTimeChanged?.call(newTime);
   }
 
   Future<void> _showTimePicker() async {
@@ -115,6 +122,8 @@ class _TimePickerDialState extends State<TimePickerDial> {
       setState(() {
         _selectedTime = newTime;
       });
+      // Notify parent of the time change
+      widget.onTimeChanged?.call(newTime);
       // Auto-confirm when user selects from native time picker
       widget.onConfirm(newTime);
     }

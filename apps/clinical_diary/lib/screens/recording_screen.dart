@@ -523,29 +523,40 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isActive
+                    ? Theme.of(context).colorScheme.onPrimaryContainer
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive
+                    ? Theme.of(context).colorScheme.onPrimaryContainer
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -590,6 +601,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
           title: l10n.nosebleedStart,
           initialTime: startInitialTime,
           onConfirm: _handleStartTimeConfirm,
+          onTimeChanged: (time) {
+            // CUR-464: Update summary in real-time as user adjusts time
+            setState(() => _startTime = time);
+          },
           confirmLabel: l10n.setStartTime,
           maxDateTime: _maxDateTimeForTimePicker,
         );
@@ -642,6 +657,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
+          onTimeChanged: (time) {
+            // CUR-464: Update summary in real-time as user adjusts time
+            setState(() => _endTime = time);
+          },
           confirmLabel: l10n.setEndTime,
           maxDateTime: _maxDateTimeForTimePicker,
         );
