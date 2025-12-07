@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: apps/clinical_diary/functions/package-lock.json
 
       - name: Setup Dart/Flutter
         uses: subosito/flutter-action@v2
@@ -48,6 +49,7 @@ jobs:
           sudo mv supabase /usr/local/bin/
 
       - name: Install dependencies
+        working-directory: apps/clinical_diary/functions
         run: npm install
 
       - name: Load secrets from Doppler
@@ -56,12 +58,15 @@ jobs:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_DEV }}
 
       - name: Lint code
+        working-directory: apps/clinical_diary/functions
         run: npm run lint
 
       - name: Type check
+        working-directory: apps/clinical_diary/functions
         run: npm run check-types
 
       - name: Run unit tests
+        working-directory: apps/clinical_diary/functions
         run: npm test
 
       - name: Database migration (with rollback on failure)

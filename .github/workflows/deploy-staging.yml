@@ -55,6 +55,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/clinical_diary/functions/package-lock.json
 
       - name: Setup Dart/Flutter
         uses: subosito/flutter-action@v2
@@ -71,9 +72,11 @@ jobs:
           supabase --version
 
       - name: Install dependencies
+        working-directory: apps/clinical_diary/functions
         run: npm install
 
       - name: Security scan
+        working-directory: apps/clinical_diary/functions
         run: |
           set -euo pipefail
 
@@ -102,6 +105,7 @@ jobs:
           echo "✅ Pre-deployment health check passed"
 
       - name: Run full test suite
+        working-directory: apps/clinical_diary/functions
         run: |
           set -euo pipefail
 
