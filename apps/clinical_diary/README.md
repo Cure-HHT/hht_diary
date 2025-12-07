@@ -56,6 +56,105 @@ export SYNC_SERVER_URL="https://api.example.com"
 flutter run
 ```
 
+## 🎨 Environment Flavors
+
+The app supports four environments controlled via compile-time `--dart-define` flags:
+
+| Environment | `showDevTools` | Description                                      |
+| ----------- | -------------- | ------------------------------------------------ |
+| `dev`       | Yes            | Development - full debug tools, dev API          |
+| `test`      | Yes            | Automated testing - debug tools enabled          |
+| `uat`       | No             | User Acceptance Testing - mirrors prod visually  |
+| `prod`      | No             | Production - no debug tools, production API      |
+
+### Running with Environments
+
+```bash
+# Development (default if not specified)
+flutter run --dart-define=ENVIRONMENT=dev
+
+# Test environment
+flutter run --dart-define=ENVIRONMENT=test
+
+# UAT (looks like production)
+flutter run --dart-define=ENVIRONMENT=uat
+
+# Production
+flutter run --dart-define=ENVIRONMENT=prod
+```
+
+### Building for Release
+
+```bash
+# Build for UAT testing
+flutter build web --release --dart-define=ENVIRONMENT=uat
+
+# Build for production
+flutter build web --release --dart-define=ENVIRONMENT=prod
+
+# Build APK for production
+flutter build apk --release --dart-define=ENVIRONMENT=prod
+
+# Build iOS for production
+flutter build ios --release --dart-define=ENVIRONMENT=prod
+```
+
+### Environment Features
+
+**Dev/Test environments (`showDevTools: true`):**
+- "Reset All Data" menu option - clears local database for testing
+- "Add Example Data" menu option - populates sample records
+
+**UAT/Prod environments (`showDevTools: false`):**
+- Dev menu items are hidden
+- UI mirrors production exactly
+- FDA-compliant append-only datastore (no data deletion)
+
+### Custom API Base URL
+
+Override the default API endpoint per environment:
+
+```bash
+flutter run \
+  --dart-define=ENVIRONMENT=dev \
+  --dart-define=API_BASE=https://staging.example.com/api
+```
+
+### Using in Code
+
+```dart
+import 'package:clinical_diary/config/app_config.dart';
+
+// Check current environment
+if (AppConfig.environment == AppEnvironment.prod) {
+  // Production-specific logic
+}
+
+// Check if dev tools should be shown
+if (AppConfig.showDevTools) {
+  // Show debug menu items
+}
+
+// Check if production-like (prod or uat)
+if (AppConfig.environment.isProductionLike) {
+  // Stricter validation, no test features
+}
+```
+
+### CI/CD Integration
+
+In GitHub Actions workflows:
+
+```yaml
+# Build for UAT
+- name: Build UAT
+  run: flutter build web --release --dart-define=ENVIRONMENT=uat
+
+# Build for Production
+- name: Build Production
+  run: flutter build web --release --dart-define=ENVIRONMENT=prod
+```
+
 ## 🔐 Configuration with Doppler
 
 ### Required Secrets
