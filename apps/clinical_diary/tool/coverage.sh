@@ -122,12 +122,18 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
     echo ""
 
     # Detect platform and set device target
+    XVFB_PREFIX=""
     case "$(uname -s)" in
         Darwin*)
             DEVICE="macos"
             ;;
         Linux*)
             DEVICE="linux"
+            # Use xvfb-run for headless Linux (CI) if available
+            if command -v xvfb-run &> /dev/null; then
+                XVFB_PREFIX="xvfb-run -a"
+                echo "   Using xvfb-run for headless display"
+            fi
             ;;
         MINGW*|CYGWIN*|MSYS*)
             DEVICE="windows"
@@ -153,7 +159,7 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
                 FILE_INDEX=$((FILE_INDEX + 1))
 
                 # Run with coverage, output to numbered file
-                if flutter test "$test_file" -d "$DEVICE" --coverage; then
+                if $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE" --coverage; then
                     if [ -f "coverage/lcov.info" ]; then
                         mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
                         INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"

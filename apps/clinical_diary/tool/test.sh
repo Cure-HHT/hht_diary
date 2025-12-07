@@ -118,12 +118,18 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
     echo ""
 
     # Detect platform and set device target
+    XVFB_PREFIX=""
     case "$(uname -s)" in
         Darwin*)
             DEVICE="macos"
             ;;
         Linux*)
             DEVICE="linux"
+            # Use xvfb-run for headless Linux (CI) if available
+            if command -v xvfb-run &> /dev/null; then
+                XVFB_PREFIX="xvfb-run -a"
+                echo "   Using xvfb-run for headless display"
+            fi
             ;;
         MINGW*|CYGWIN*|MSYS*)
             DEVICE="windows"
@@ -144,7 +150,7 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
             if [ -f "$test_file" ]; then
                 echo ""
                 echo "   Running: $test_file"
-                if ! flutter test "$test_file" -d "$DEVICE"; then
+                if ! $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"; then
                     INTEGRATION_FAILED=true
                 fi
             fi

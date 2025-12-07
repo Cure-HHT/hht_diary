@@ -67,7 +67,8 @@ jobs:
             ninja-build \
             libblkid-dev \
             liblzma-dev \
-            libsecret-1-dev
+            libsecret-1-dev \
+            xvfb
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
