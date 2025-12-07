@@ -378,7 +378,6 @@ void main() {
       await tester.pumpAndSettle();
 
       // Focus the TextField first, then enter custom reason
-      // Integration tests on desktop require special handling for text input
       final textField = find.byType(TextField);
       expect(
         textField,
@@ -386,13 +385,9 @@ void main() {
         reason: 'TextField should appear after selecting Other',
       );
 
-      // Get the TextField widget and its controller to directly set text
-      // This is more reliable than enterText in integration tests
-      final textFieldWidget = tester.widget<TextField>(textField);
-      textFieldWidget.controller?.text = 'Custom deletion reason for testing';
-
-      // Pump to trigger rebuild with new text
-      await tester.pump();
+      // Use enterText which properly triggers onChanged callbacks
+      // This works across all platforms including headless Linux
+      await tester.enterText(textField, 'Custom deletion reason for testing');
       await tester.pumpAndSettle();
 
       // Verify Delete button is enabled (not null onPressed)
