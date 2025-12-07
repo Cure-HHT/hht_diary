@@ -86,6 +86,7 @@ mkdir -p coverage
 FLUTTER_UNIT_COVERAGE=false
 FLUTTER_INTEGRATION_COVERAGE=false
 TS_COVERAGE=false
+EXIT_CODE=0
 
 # Run Flutter unit test coverage
 if [ "$RUN_FLUTTER_UNIT" = true ]; then
@@ -94,7 +95,10 @@ if [ "$RUN_FLUTTER_UNIT" = true ]; then
     echo "   Concurrency: $CONCURRENCY"
     echo ""
 
-    flutter test --coverage --concurrency="$CONCURRENCY"
+    if ! flutter test --coverage --concurrency="$CONCURRENCY"; then
+        echo "❌ Flutter unit tests failed!"
+        EXIT_CODE=1
+    fi
 
     if [ -f "coverage/lcov.info" ]; then
         FLUTTER_UNIT_COVERAGE=true
@@ -224,7 +228,10 @@ if [ "$RUN_TYPESCRIPT" = true ]; then
         fi
 
         # Run tests with coverage
-        npm run test:coverage
+        if ! npm run test:coverage; then
+            echo "❌ TypeScript tests or coverage thresholds failed!"
+            EXIT_CODE=1
+        fi
 
         if [ -f "coverage/lcov.info" ]; then
             TS_COVERAGE=true
@@ -410,4 +417,9 @@ if [ "$HTML_REPORTS_FOUND" = false ]; then
     fi
 fi
 
-exit 0
+if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "💥 Coverage check failed!"
+fi
+
+exit $EXIT_CODE
