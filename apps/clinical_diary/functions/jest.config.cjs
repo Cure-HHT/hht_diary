@@ -11,12 +11,13 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/__tests__/**',
+    '!src/index.ts', // Re-exports only, functions tested in their source modules
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 90,
+      branches: 95,
       functions: 100,
       lines: 95,
       statements: 95,
