@@ -16,8 +16,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../test_helpers/flavor_setup.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpTestFlavor();
 
   group('NosebleedService', () {
     late MockEnrollmentService mockEnrollment;

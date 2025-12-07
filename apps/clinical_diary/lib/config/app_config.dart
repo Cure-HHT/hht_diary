@@ -1,82 +1,107 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
-/// Application environment enum.
-/// Determined at compile time via --dart-define=ENVIRONMENT=xxx
-enum AppEnvironment {
-  /// Development environment - full dev tools, local/dev API
-  dev,
+import 'package:clinical_diary/flavors.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
-  /// Test environment - for automated testing
-  test,
+/// Exception thrown when required configuration is missing.
+class MissingConfigException implements Exception {
+  MissingConfigException(this.configName, this.message);
 
-  /// User Acceptance Testing - mirrors prod visually, test API
-  uat,
+  final String configName;
+  final String message;
 
-  /// Production environment - no dev tools, production API
-  prod;
-
-  /// Parse environment from string (case-insensitive)
-  static AppEnvironment fromString(String? value) {
-    if (value == null) return AppEnvironment.dev;
-    return AppEnvironment.values.firstWhere(
-      (e) => e.name.toLowerCase() == value.toLowerCase(),
-      orElse: () => AppEnvironment.dev,
-    );
-  }
-
-  /// Whether this environment should show developer tools
-  /// (Reset All Data, Add Example Data menus)
-  bool get showDevTools => this == dev || this == test;
-
-  /// Whether this is a production-like environment (prod or uat)
-  bool get isProductionLike => this == prod || this == uat;
-
-  /// Display name for the environment
-  String get displayName => switch (this) {
-    dev => 'Development',
-    test => 'Test',
-    uat => 'UAT',
-    prod => 'Production',
-  };
+  @override
+  String toString() => 'MissingConfigException: $configName - $message';
 }
 
 /// Application configuration.
-/// All environment-specific values are determined at compile time
-/// via --dart-define flags.
+///
+/// Configuration values are set at compile time via flutter_flavorizr.
+/// Run with: flutter run --flavor dev -t lib/main_dev.dart
+///
+/// Required dart-define variables (set by flavorizr):
+/// - apiBase: API endpoint URL (REQUIRED - throws if missing)
+/// - environment: dev, test, uat, or prod
+/// - showDevTools: true/false
+/// - showBanner: true/false (shows DEV/TEST banner overlay)
 class AppConfig {
-  /// Current environment - set via --dart-define=ENVIRONMENT=xxx
-  static const String _envString = String.fromEnvironment(
-    'ENVIRONMENT',
-    defaultValue: 'dev',
-  );
+  // Private constructor - this is a static utility class
+  AppConfig._();
 
-  /// Parsed environment enum
-  static final AppEnvironment environment = AppEnvironment.fromString(
-    _envString,
-  );
+  /// Flag to track if config has been validated
+  static bool _validated = false;
 
-  /// API base URL - uses Firebase Hosting rewrites to proxy to functions
-  /// This avoids CORS issues and org policy restrictions on direct function access
-  /// Set via --dart-define=API_BASE=xxx or defaults based on environment
-  static const String _apiBaseOverride = String.fromEnvironment('API_BASE');
-  static String get _apiBase {
-    if (_apiBaseOverride.isNotEmpty) return _apiBaseOverride;
-    return switch (environment) {
-      AppEnvironment.dev => 'https://hht-diary-mvp.web.app/api',
-      AppEnvironment.test => 'https://hht-diary-mvp.web.app/api',
-      AppEnvironment.uat => 'https://hht-diary-mvp.web.app/api',
-      AppEnvironment.prod => 'https://hht-diary-mvp.web.app/api',
-    };
+  /// Validate that all required configuration is present.
+  /// Call this early in app startup (e.g., in main()).
+  /// Throws [MissingConfigException] if required config is missing.
+  static void validate() {
+    if (_validated) return;
+
+    if (_apiBaseRaw.isEmpty) {
+      throw MissingConfigException(
+        'apiBase',
+        'API_BASE must be set via --dart-define=apiBase=<url> or flutter flavor. '
+            'Run with: flutter run --flavor dev -t lib/main_dev.dart',
+      );
+    }
+
+    _validated = true;
   }
 
-  static String get enrollUrl => '$_apiBase/enroll';
-  static String get healthUrl => '$_apiBase/health';
-  static String get syncUrl => '$_apiBase/sync';
-  static String get getRecordsUrl => '$_apiBase/getRecords';
-  static String get registerUrl => '$_apiBase/register';
-  static String get loginUrl => '$_apiBase/login';
-  static String get changePasswordUrl => '$_apiBase/changePassword';
+  // ============================================================
+  // Environment Configuration (from flavorizr via F class)
+  // ============================================================
+
+  /// Current flavor/environment - delegates to F class set by flavorizr
+  static Flavor get environment => F.appFlavor;
+
+  /// Whether to show the environment banner (DEV/TEST ribbon)
+  static bool get showBanner => F.showBanner;
+
+  // ============================================================
+  // API Configuration
+  // ============================================================
+
+  /// Raw API base URL from dart-define (REQUIRED)
+  static const String _apiBaseRaw = String.fromEnvironment('apiBase');
+
+  /// Test-only override for API base URL.
+  /// Set this in test setUp() to avoid MissingConfigException.
+  /// ignore: use_setters_to_change_properties
+  @visibleForTesting
+  static String? testApiBaseOverride;
+
+  /// API base URL - throws if not configured
+  /// Uses Firebase Hosting rewrites to proxy to functions,
+  /// avoiding CORS issues and org policy restrictions.
+  static String get apiBase {
+    // Allow test override
+    if (testApiBaseOverride != null) {
+      return testApiBaseOverride!;
+    }
+    if (_apiBaseRaw.isEmpty) {
+      throw MissingConfigException(
+        'apiBase',
+        'API_BASE is not configured. Run with a flavor: '
+            'flutter run --flavor dev -t lib/main_dev.dart',
+      );
+    }
+    return _apiBaseRaw;
+  }
+
+  // API Endpoints
+  static String get enrollUrl => '$apiBase/enroll';
+  static String get healthUrl => '$apiBase/health';
+  static String get syncUrl => '$apiBase/sync';
+  static String get getRecordsUrl => '$apiBase/getRecords';
+  static String get registerUrl => '$apiBase/register';
+  static String get loginUrl => '$apiBase/login';
+  static String get changePasswordUrl => '$apiBase/changePassword';
+
+  // ============================================================
+  // App Metadata
+  // ============================================================
 
   /// App name displayed in UI
   static const String appName = 'Nosebleed Diary';
@@ -87,6 +112,11 @@ class AppConfig {
     defaultValue: false,
   );
 
-  /// Convenience getter for showing dev tools
-  static bool get showDevTools => environment.showDevTools;
+  // ============================================================
+  // Convenience Getters
+  // ============================================================
+
+  /// Whether to show dev tools menu items (Reset All Data, Add Example Data).
+  /// Determined by flavor - only shown in dev and test environments.
+  static bool get showDevTools => F.showDevTools;
 }

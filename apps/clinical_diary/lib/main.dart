@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/firebase_options.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
@@ -23,7 +24,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:uuid/uuid.dart';
 
+/// Flavor name passed from native code via --dart-define or Xcode/Gradle config.
+const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR');
+
 void main() async {
+  // Initialize flavor from native platform configuration
+  F.appFlavor = Flavor.values.firstWhere(
+    (f) => f.name == appFlavor,
+    orElse: () => Flavor.dev, // Default to dev if not specified
+  );
+  debugPrint('Running with flavor: ${F.name}');
   // Catch all errors in the Flutter framework
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -124,7 +134,7 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Nosebleed Diary',
+      title: F.title,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

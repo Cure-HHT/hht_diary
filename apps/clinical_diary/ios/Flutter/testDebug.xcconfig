@@ -1,0 +1,6 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+#include "Generated.xcconfig"
+
+ASSET_PREFIX=test
+BUNDLE_NAME=Diary TEST
+BUNDLE_DISPLAY_NAME=Diary TEST

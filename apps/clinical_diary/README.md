@@ -58,87 +58,101 @@ flutter run
 
 ## 🎨 Environment Flavors
 
-The app supports four environments controlled via compile-time `--dart-define` flags:
+The app uses [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr) to support four environments with distinct app identities:
 
-| Environment | `showDevTools` | Description                                      |
-| ----------- | -------------- | ------------------------------------------------ |
-| `dev`       | Yes            | Development - full debug tools, dev API          |
-| `test`      | Yes            | Automated testing - debug tools enabled          |
-| `uat`       | No             | User Acceptance Testing - mirrors prod visually  |
-| `prod`      | No             | Production - no debug tools, production API      |
+| Flavor | App Name       | Bundle ID                        | Banner | Dev Tools |
+| ------ | -------------- | -------------------------------- | ------ | --------- |
+| `dev`  | Diary DEV      | org.curehht.clinicaldiary.dev    | Orange | Yes       |
+| `test` | Diary TEST     | org.curehht.clinicaldiary.test   | Purple | Yes       |
+| `uat`  | Clinical Diary | org.curehht.clinicaldiary.uat    | None   | No        |
+| `prod` | Clinical Diary | org.curehht.clinicaldiary        | None   | No        |
 
-### Running with Environments
+Each flavor has:
+- **Distinct bundle ID** - Allows side-by-side installation on the same device
+- **Unique app icon** - DEV/TEST have labeled icons for easy identification
+- **Separate Firebase project** - Isolated data per environment
+- **Environment-specific API base URL**
+
+### Running with Flavors
 
 ```bash
-# Development (default if not specified)
-flutter run --dart-define=ENVIRONMENT=dev
+# Development
+flutter run --flavor dev
 
 # Test environment
-flutter run --dart-define=ENVIRONMENT=test
+flutter run --flavor test
 
 # UAT (looks like production)
-flutter run --dart-define=ENVIRONMENT=uat
+flutter run --flavor uat
 
 # Production
-flutter run --dart-define=ENVIRONMENT=prod
+flutter run --flavor prod
 ```
 
 ### Building for Release
 
 ```bash
-# Build for UAT testing
-flutter build web --release --dart-define=ENVIRONMENT=uat
-
-# Build for production
-flutter build web --release --dart-define=ENVIRONMENT=prod
-
 # Build APK for production
-flutter build apk --release --dart-define=ENVIRONMENT=prod
+flutter build apk --release --flavor prod
 
 # Build iOS for production
-flutter build ios --release --dart-define=ENVIRONMENT=prod
+flutter build ios --release --flavor prod
+
+# Build for UAT testing
+flutter build apk --release --flavor uat
+flutter build ios --release --flavor uat
 ```
+
+### Regenerating Flavor Configs
+
+If you modify `flavorizr.yaml`, regenerate the native configurations:
+
+```bash
+flutter pub get
+dart run flutter_flavorizr
+```
+
+This will regenerate:
+- Android: `android/app/build.gradle.kts` productFlavors
+- iOS: Xcode schemes and xcconfig files
+- VS Code: Launch configurations
 
 ### Environment Features
 
 **Dev/Test environments (`showDevTools: true`):**
 - "Reset All Data" menu option - clears local database for testing
 - "Add Example Data" menu option - populates sample records
+- Corner ribbon banner showing environment name
 
 **UAT/Prod environments (`showDevTools: false`):**
 - Dev menu items are hidden
+- No environment banner
 - UI mirrors production exactly
 - FDA-compliant append-only datastore (no data deletion)
-
-### Custom API Base URL
-
-Override the default API endpoint per environment:
-
-```bash
-flutter run \
-  --dart-define=ENVIRONMENT=dev \
-  --dart-define=API_BASE=https://staging.example.com/api
-```
 
 ### Using in Code
 
 ```dart
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
 
-// Check current environment
-if (AppConfig.environment == AppEnvironment.prod) {
+// Check current flavor
+if (F.appFlavor == Flavor.prod) {
   // Production-specific logic
 }
 
 // Check if dev tools should be shown
+if (F.showDevTools) {
+  // Show debug menu items
+}
+
+// Or use AppConfig (delegates to F)
 if (AppConfig.showDevTools) {
   // Show debug menu items
 }
 
-// Check if production-like (prod or uat)
-if (AppConfig.environment.isProductionLike) {
-  // Stricter validation, no test features
-}
+// Get app title for current flavor
+print(F.title); // "Diary DEV", "Diary TEST", or "Clinical Diary"
 ```
 
 ### CI/CD Integration
@@ -147,13 +161,39 @@ In GitHub Actions workflows:
 
 ```yaml
 # Build for UAT
-- name: Build UAT
-  run: flutter build web --release --dart-define=ENVIRONMENT=uat
+- name: Build UAT APK
+  run: flutter build apk --release --flavor uat
 
 # Build for Production
-- name: Build Production
-  run: flutter build web --release --dart-define=ENVIRONMENT=prod
+- name: Build Production APK
+  run: flutter build apk --release --flavor prod
+
+# Build iOS
+- name: Build Production iOS
+  run: flutter build ios --release --flavor prod --no-codesign
 ```
+
+### Firebase Configuration
+
+Each flavor uses its own Firebase project. Config files are located at:
+
+```
+.firebase/
+├── dev/
+│   ├── google-services.json      # Android
+│   └── GoogleService-Info.plist  # iOS
+├── test/
+│   ├── google-services.json
+│   └── GoogleService-Info.plist
+├── uat/
+│   ├── google-services.json
+│   └── GoogleService-Info.plist
+└── prod/
+    ├── google-services.json
+    └── GoogleService-Info.plist
+```
+
+Run `dart run flutter_flavorizr` to copy these to the correct platform-specific locations.
 
 ## 🔐 Configuration with Doppler
 

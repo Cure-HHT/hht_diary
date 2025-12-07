@@ -12,9 +12,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import '../helpers/test_helpers.dart';
+import '../test_helpers/flavor_setup.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpTestFlavor();
 
   group('LoginScreen', () {
     late MockSecureStorage mockStorage;

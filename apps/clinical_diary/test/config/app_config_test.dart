@@ -2,148 +2,232 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('AppEnvironment', () {
-    group('fromString', () {
-      test('parses dev environment', () {
-        expect(AppEnvironment.fromString('dev'), AppEnvironment.dev);
-        expect(AppEnvironment.fromString('DEV'), AppEnvironment.dev);
-        expect(AppEnvironment.fromString('Dev'), AppEnvironment.dev);
+  group('Flavor enum', () {
+    test('has all expected values', () {
+      expect(
+        Flavor.values,
+        containsAll([Flavor.dev, Flavor.test, Flavor.uat, Flavor.prod]),
+      );
+      expect(Flavor.values.length, 4);
+    });
+
+    test('name property returns correct strings', () {
+      expect(Flavor.dev.name, 'dev');
+      expect(Flavor.test.name, 'test');
+      expect(Flavor.uat.name, 'uat');
+      expect(Flavor.prod.name, 'prod');
+    });
+  });
+
+  group('F class', () {
+    setUp(() {
+      // Reset to dev for each test
+      F.appFlavor = Flavor.dev;
+    });
+
+    group('appFlavor', () {
+      test('can set and get flavor', () {
+        F.appFlavor = Flavor.prod;
+        expect(F.appFlavor, Flavor.prod);
+
+        F.appFlavor = Flavor.test;
+        expect(F.appFlavor, Flavor.test);
+      });
+    });
+
+    group('name', () {
+      test('returns flavor name', () {
+        F.appFlavor = Flavor.dev;
+        expect(F.name, 'dev');
+
+        F.appFlavor = Flavor.prod;
+        expect(F.name, 'prod');
+      });
+    });
+
+    group('title', () {
+      test('returns Diary DEV for dev', () {
+        F.appFlavor = Flavor.dev;
+        expect(F.title, 'Diary DEV');
       });
 
-      test('parses test environment', () {
-        expect(AppEnvironment.fromString('test'), AppEnvironment.test);
-        expect(AppEnvironment.fromString('TEST'), AppEnvironment.test);
+      test('returns Diary TEST for test', () {
+        F.appFlavor = Flavor.test;
+        expect(F.title, 'Diary TEST');
       });
 
-      test('parses uat environment', () {
-        expect(AppEnvironment.fromString('uat'), AppEnvironment.uat);
-        expect(AppEnvironment.fromString('UAT'), AppEnvironment.uat);
+      test('returns Clinical Diary for uat', () {
+        F.appFlavor = Flavor.uat;
+        expect(F.title, 'Clinical Diary');
       });
 
-      test('parses prod environment', () {
-        expect(AppEnvironment.fromString('prod'), AppEnvironment.prod);
-        expect(AppEnvironment.fromString('PROD'), AppEnvironment.prod);
-      });
-
-      test('defaults to dev for null', () {
-        expect(AppEnvironment.fromString(null), AppEnvironment.dev);
-      });
-
-      test('defaults to dev for unknown value', () {
-        expect(AppEnvironment.fromString('unknown'), AppEnvironment.dev);
-        expect(AppEnvironment.fromString(''), AppEnvironment.dev);
+      test('returns Clinical Diary for prod', () {
+        F.appFlavor = Flavor.prod;
+        expect(F.title, 'Clinical Diary');
       });
     });
 
     group('showDevTools', () {
       test('returns true for dev environment', () {
-        expect(AppEnvironment.dev.showDevTools, true);
+        F.appFlavor = Flavor.dev;
+        expect(F.showDevTools, true);
       });
 
       test('returns true for test environment', () {
-        expect(AppEnvironment.test.showDevTools, true);
+        F.appFlavor = Flavor.test;
+        expect(F.showDevTools, true);
       });
 
       test('returns false for uat environment', () {
-        expect(AppEnvironment.uat.showDevTools, false);
+        F.appFlavor = Flavor.uat;
+        expect(F.showDevTools, false);
       });
 
       test('returns false for prod environment', () {
-        expect(AppEnvironment.prod.showDevTools, false);
+        F.appFlavor = Flavor.prod;
+        expect(F.showDevTools, false);
       });
     });
 
-    group('isProductionLike', () {
-      test('returns false for dev environment', () {
-        expect(AppEnvironment.dev.isProductionLike, false);
+    group('showBanner', () {
+      test('returns true for dev environment', () {
+        F.appFlavor = Flavor.dev;
+        expect(F.showBanner, true);
       });
 
-      test('returns false for test environment', () {
-        expect(AppEnvironment.test.isProductionLike, false);
+      test('returns true for test environment', () {
+        F.appFlavor = Flavor.test;
+        expect(F.showBanner, true);
       });
 
-      test('returns true for uat environment', () {
-        expect(AppEnvironment.uat.isProductionLike, true);
+      test('returns false for uat environment', () {
+        F.appFlavor = Flavor.uat;
+        expect(F.showBanner, false);
       });
 
-      test('returns true for prod environment', () {
-        expect(AppEnvironment.prod.isProductionLike, true);
-      });
-    });
-
-    group('displayName', () {
-      test('returns human-readable names', () {
-        expect(AppEnvironment.dev.displayName, 'Development');
-        expect(AppEnvironment.test.displayName, 'Test');
-        expect(AppEnvironment.uat.displayName, 'UAT');
-        expect(AppEnvironment.prod.displayName, 'Production');
+      test('returns false for prod environment', () {
+        F.appFlavor = Flavor.prod;
+        expect(F.showBanner, false);
       });
     });
   });
 
-  group('AppConfig', () {
-    group('environment', () {
-      test('environment is a valid AppEnvironment', () {
-        expect(AppConfig.environment, isA<AppEnvironment>());
+  group('FlavorConfig', () {
+    test('dev has correct values', () {
+      expect(FlavorConfig.dev.name, 'dev');
+      expect(FlavorConfig.dev.apiBase, 'https://hht-diary-mvp.web.app/api');
+      expect(FlavorConfig.dev.environment, 'dev');
+      expect(FlavorConfig.dev.showDevTools, true);
+      expect(FlavorConfig.dev.showBanner, true);
+    });
+
+    test('test has correct values', () {
+      expect(FlavorConfig.test.name, 'test');
+      expect(FlavorConfig.test.apiBase, 'https://hht-diary-test.web.app/api');
+      expect(FlavorConfig.test.environment, 'test');
+      expect(FlavorConfig.test.showDevTools, true);
+      expect(FlavorConfig.test.showBanner, true);
+    });
+
+    test('uat has correct values', () {
+      expect(FlavorConfig.uat.name, 'uat');
+      expect(FlavorConfig.uat.apiBase, 'https://hht-diary-uat.web.app/api');
+      expect(FlavorConfig.uat.environment, 'uat');
+      expect(FlavorConfig.uat.showDevTools, false);
+      expect(FlavorConfig.uat.showBanner, false);
+    });
+
+    test('prod has correct values', () {
+      expect(FlavorConfig.prod.name, 'prod');
+      expect(FlavorConfig.prod.apiBase, 'https://hht-diary.web.app/api');
+      expect(FlavorConfig.prod.environment, 'prod');
+      expect(FlavorConfig.prod.showDevTools, false);
+      expect(FlavorConfig.prod.showBanner, false);
+    });
+
+    group('byName', () {
+      test('returns correct flavor for valid names', () {
+        expect(FlavorConfig.byName('dev'), FlavorConfig.dev);
+        expect(FlavorConfig.byName('test'), FlavorConfig.test);
+        expect(FlavorConfig.byName('uat'), FlavorConfig.uat);
+        expect(FlavorConfig.byName('prod'), FlavorConfig.prod);
       });
 
-      test('showDevTools matches environment setting', () {
-        expect(AppConfig.showDevTools, AppConfig.environment.showDevTools);
+      test('is case insensitive', () {
+        expect(FlavorConfig.byName('DEV'), FlavorConfig.dev);
+        expect(FlavorConfig.byName('Dev'), FlavorConfig.dev);
+        expect(FlavorConfig.byName('PROD'), FlavorConfig.prod);
+      });
+
+      test('defaults to dev for unknown value', () {
+        expect(FlavorConfig.byName('unknown'), FlavorConfig.dev);
+        expect(FlavorConfig.byName(''), FlavorConfig.dev);
       });
     });
 
-    group('URL configuration', () {
-      test('enrollUrl has correct base path', () {
-        expect(AppConfig.enrollUrl, contains('hht-diary-mvp.web.app'));
-        expect(AppConfig.enrollUrl, contains('/api/'));
-        expect(AppConfig.enrollUrl, endsWith('/enroll'));
+    group('all', () {
+      test('contains all flavors', () {
+        expect(FlavorConfig.all.length, 4);
+        expect(FlavorConfig.all, contains(FlavorConfig.dev));
+        expect(FlavorConfig.all, contains(FlavorConfig.test));
+        expect(FlavorConfig.all, contains(FlavorConfig.uat));
+        expect(FlavorConfig.all, contains(FlavorConfig.prod));
+      });
+    });
+  });
+
+  group('FlavorValues', () {
+    test('dartDefines generates correct arguments', () {
+      final defines = FlavorConfig.dev.dartDefines;
+      expect(
+        defines,
+        contains('--dart-define=apiBase=https://hht-diary-mvp.web.app/api'),
+      );
+      expect(defines, contains('--dart-define=environment=dev'));
+      expect(defines, contains('--dart-define=showDevTools=true'));
+      expect(defines, contains('--dart-define=showBanner=true'));
+    });
+
+    test('dartDefineString joins arguments', () {
+      final defineString = FlavorConfig.dev.dartDefineString;
+      expect(defineString, contains('--dart-define=apiBase='));
+      expect(defineString, contains(' --dart-define=environment='));
+    });
+  });
+
+  group('AppConfig', () {
+    setUp(() {
+      // Ensure flavor is set for tests
+      F.appFlavor = Flavor.dev;
+    });
+
+    group('environment', () {
+      test('environment returns current flavor', () {
+        F.appFlavor = Flavor.dev;
+        expect(AppConfig.environment, Flavor.dev);
+
+        F.appFlavor = Flavor.prod;
+        expect(AppConfig.environment, Flavor.prod);
       });
 
-      test('healthUrl has correct base path', () {
-        expect(AppConfig.healthUrl, contains('hht-diary-mvp.web.app'));
-        expect(AppConfig.healthUrl, contains('/api/'));
-        expect(AppConfig.healthUrl, endsWith('/health'));
+      test('showDevTools delegates to F.showDevTools', () {
+        F.appFlavor = Flavor.dev;
+        expect(AppConfig.showDevTools, true);
+
+        F.appFlavor = Flavor.prod;
+        expect(AppConfig.showDevTools, false);
       });
 
-      test('syncUrl has correct base path', () {
-        expect(AppConfig.syncUrl, contains('hht-diary-mvp.web.app'));
-        expect(AppConfig.syncUrl, contains('/api/'));
-        expect(AppConfig.syncUrl, endsWith('/sync'));
-      });
+      test('showBanner delegates to F.showBanner', () {
+        F.appFlavor = Flavor.dev;
+        expect(AppConfig.showBanner, true);
 
-      test('getRecordsUrl has correct base path', () {
-        expect(AppConfig.getRecordsUrl, contains('hht-diary-mvp.web.app'));
-        expect(AppConfig.getRecordsUrl, contains('/api/'));
-        expect(AppConfig.getRecordsUrl, endsWith('/getRecords'));
-      });
-
-      test('all URLs use HTTPS', () {
-        expect(AppConfig.enrollUrl, startsWith('https://'));
-        expect(AppConfig.healthUrl, startsWith('https://'));
-        expect(AppConfig.syncUrl, startsWith('https://'));
-        expect(AppConfig.getRecordsUrl, startsWith('https://'));
-      });
-
-      test('all URLs are valid URIs', () {
-        expect(() => Uri.parse(AppConfig.enrollUrl), returnsNormally);
-        expect(() => Uri.parse(AppConfig.healthUrl), returnsNormally);
-        expect(() => Uri.parse(AppConfig.syncUrl), returnsNormally);
-        expect(() => Uri.parse(AppConfig.getRecordsUrl), returnsNormally);
-      });
-
-      test('URLs share common base', () {
-        // Extract base from enrollUrl
-        final enrollUri = Uri.parse(AppConfig.enrollUrl);
-        final healthUri = Uri.parse(AppConfig.healthUrl);
-        final syncUri = Uri.parse(AppConfig.syncUrl);
-        final getRecordsUri = Uri.parse(AppConfig.getRecordsUrl);
-
-        expect(enrollUri.host, healthUri.host);
-        expect(enrollUri.host, syncUri.host);
-        expect(enrollUri.host, getRecordsUri.host);
+        F.appFlavor = Flavor.prod;
+        expect(AppConfig.showBanner, false);
       });
     });
 
@@ -160,28 +244,6 @@ void main() {
       test('isDebug defaults to false', () {
         // Without DEBUG environment variable set, should default to false
         expect(AppConfig.isDebug, false);
-      });
-    });
-
-    group('URL path segments', () {
-      test('enroll URL path is /api/enroll', () {
-        final uri = Uri.parse(AppConfig.enrollUrl);
-        expect(uri.path, '/api/enroll');
-      });
-
-      test('health URL path is /api/health', () {
-        final uri = Uri.parse(AppConfig.healthUrl);
-        expect(uri.path, '/api/health');
-      });
-
-      test('sync URL path is /api/sync', () {
-        final uri = Uri.parse(AppConfig.syncUrl);
-        expect(uri.path, '/api/sync');
-      });
-
-      test('getRecords URL path is /api/getRecords', () {
-        final uri = Uri.parse(AppConfig.getRecordsUrl);
-        expect(uri.path, '/api/getRecords');
       });
     });
   });
