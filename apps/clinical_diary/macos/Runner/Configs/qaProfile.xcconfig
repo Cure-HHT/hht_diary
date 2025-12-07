@@ -1,4 +1,4 @@
-#include "../../Flutter/testProfile.xcconfig"
+#include "../../Flutter/qaProfile.xcconfig"
 #include "Warnings.xcconfig"
 
 ASSET_PREFIX=qa
