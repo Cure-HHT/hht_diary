@@ -75,6 +75,11 @@ interface MockResponseType {
   promise: Promise<void>;
 }
 
+/**
+ * Creates a mock Express request object for testing.
+ * @param {MockRequestOptions} options - Request configuration options
+ * @return {object} Mock request with method, body, and headers
+ */
 function createMockRequest(options: MockRequestOptions): {
   method: string;
   body: Record<string, unknown> | null | undefined;
@@ -87,6 +92,10 @@ function createMockRequest(options: MockRequestOptions): {
   };
 }
 
+/**
+ * Creates a mock Express response object for testing.
+ * @return {MockResponseType} Mock response with status, json, and promise
+ */
 function createMockResponse(): MockResponseType {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   let resolvePromise: () => void = () => {};
@@ -116,6 +125,12 @@ function createMockResponse(): MockResponseType {
   return res;
 }
 
+/**
+ * Creates a valid JWT token for testing authenticated endpoints.
+ * @param {string} authCode - The authentication code to embed in token
+ * @param {string} userId - The user ID to embed in token
+ * @return {string} Signed JWT token
+ */
 function createTestToken(authCode: string, userId: string): string {
   return jwt.sign(
     {authCode, userId, iat: Math.floor(Date.now() / 1000)},
@@ -326,8 +341,10 @@ describe("Register Function", () => {
   });
 
   it("handles request with empty body (defensive logging)", async () => {
-    // Tests the "no body" path in logging - req.body ? Object.keys(req.body) : "no body"
-    // Note: With empty object, Object.keys returns [] which is truthy, so we test empty fields
+    // Tests the "no body" path in logging
+    // req.body ? Object.keys(req.body) : "no body"
+    // Note: With empty object, Object.keys returns [] which is truthy,
+    // so we test empty fields
     const req = createMockRequest({
       method: "POST",
       body: {}, // Empty body - all fields undefined
@@ -677,7 +694,10 @@ describe("ChangePassword Function", () => {
     const req = createMockRequest({
       method: "POST",
       headers: {authorization: `Bearer ${validToken}`},
-      body: {currentPasswordHash: VALID_PASSWORD_HASH, newPasswordHash: "short"},
+      body: {
+        currentPasswordHash: VALID_PASSWORD_HASH,
+        newPasswordHash: "short",
+      },
     });
     const res = createMockResponse();
 
