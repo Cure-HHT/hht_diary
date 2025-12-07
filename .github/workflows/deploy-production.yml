@@ -109,6 +109,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: apps/clinical_diary/functions/package-lock.json
 
       - name: Setup Dart/Flutter
         uses: subosito/flutter-action@v2
@@ -124,6 +125,7 @@ jobs:
           sudo mv supabase /usr/local/bin/
 
       - name: Install dependencies
+        working-directory: apps/clinical_diary/functions
         run: npm install
 
       - name: Load secrets from Doppler
