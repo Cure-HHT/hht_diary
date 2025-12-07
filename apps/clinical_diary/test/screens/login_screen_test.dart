@@ -135,15 +135,14 @@ void main() {
         expect(find.text('Password'), findsWidgets);
       });
 
-      testWidgets('displays create account toggle text', (tester) async {
+      testWidgets('displays Login and Create Account tabs', (tester) async {
         await tester.pumpWidget(buildTestWidget());
         await tester.pumpAndSettle();
 
-        final finder = find.textContaining("Don't have an account?");
-        await tester.ensureVisible(finder);
-        await tester.pumpAndSettle();
-
-        expect(finder, findsOneWidget);
+        // Should have TabBar with Login and Create Account tabs
+        expect(find.byType(TabBar), findsOneWidget);
+        expect(find.widgetWithText(Tab, 'Login'), findsOneWidget);
+        expect(find.widgetWithText(Tab, 'Create Account'), findsOneWidget);
       });
     });
 
@@ -179,38 +178,37 @@ void main() {
       });
     });
 
-    group('Mode Toggle', () {
-      testWidgets('toggles to register mode when create account tapped', (
-        tester,
-      ) async {
+    group('Tab Navigation', () {
+      testWidgets('switches to Create Account tab when tapped', (tester) async {
         await tester.pumpWidget(buildTestWidget());
         await tester.pumpAndSettle();
 
-        // Initially in login mode
+        // Initially on Login tab
         expect(find.text('Login'), findsWidgets);
 
-        // Scroll to and tap the toggle button
-        final toggleButton = find.textContaining("Don't have an account?");
-        await scrollAndTap(tester, toggleButton);
+        // Tap the Create Account tab
+        await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+        await tester.pumpAndSettle();
 
-        // Now in register mode - app bar title should change
-        expect(find.text('Create Account'), findsWidgets);
+        // Now on Create Account tab - button text should be Create Account
+        expect(
+          find.widgetWithText(FilledButton, 'Create Account'),
+          findsOneWidget,
+        );
       });
 
-      testWidgets('shows confirm password field in register mode', (
+      testWidgets('shows confirm password field on Create Account tab', (
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
         await tester.pumpAndSettle();
 
-        // Initially no confirm password field
+        // Initially no confirm password field on Login tab
         expect(find.text('Confirm Password'), findsNothing);
 
-        // Switch to register mode
-        await scrollAndTap(
-          tester,
-          find.textContaining("Don't have an account?"),
-        );
+        // Switch to Create Account tab
+        await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+        await tester.pumpAndSettle();
 
         // Now confirm password field is visible
         final confirmField = find.text('Confirm Password');
@@ -218,26 +216,24 @@ void main() {
         expect(confirmField, findsOneWidget);
       });
 
-      testWidgets('toggles back to login mode', (tester) async {
+      testWidgets('switches back to Login tab', (tester) async {
         await tester.pumpWidget(buildTestWidget());
         await tester.pumpAndSettle();
 
-        // Switch to register mode
-        await scrollAndTap(
-          tester,
-          find.textContaining("Don't have an account?"),
+        // Switch to Create Account tab
+        await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.widgetWithText(FilledButton, 'Create Account'),
+          findsOneWidget,
         );
 
-        expect(find.text('Create Account'), findsWidgets);
+        // Switch back to Login tab
+        await tester.tap(find.widgetWithText(Tab, 'Login'));
+        await tester.pumpAndSettle();
 
-        // Switch back to login mode
-        await scrollAndTap(
-          tester,
-          find.textContaining('Already have an account?'),
-        );
-
-        expect(find.text('Login'), findsWidgets);
-        expect(find.text('Confirm Password'), findsNothing);
+        expect(find.widgetWithText(FilledButton, 'Login'), findsOneWidget);
       });
     });
 
@@ -362,17 +358,15 @@ void main() {
         expect(find.textContaining('at least'), findsWidgets);
       });
 
-      testWidgets('shows error when passwords do not match in register mode', (
+      testWidgets('shows error when passwords do not match on Create Account', (
         tester,
       ) async {
         await tester.pumpWidget(buildTestWidget());
         await tester.pumpAndSettle();
 
-        // Switch to register mode
-        await scrollAndTap(
-          tester,
-          find.textContaining("Don't have an account?"),
-        );
+        // Switch to Create Account tab
+        await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -519,7 +513,7 @@ void main() {
         expect(find.byIcon(Icons.error_outline), findsNothing);
       });
 
-      testWidgets('shows error for taken username in register mode', (
+      testWidgets('shows error for taken username on Create Account tab', (
         tester,
       ) async {
         // Create auth service with mock client that returns 409 for register
@@ -536,11 +530,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Switch to register mode
-        await scrollAndTap(
-          tester,
-          find.textContaining("Don't have an account?"),
-        );
+        // Switch to Create Account tab
+        await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+        await tester.pumpAndSettle();
 
         await scrollAndEnterText(
           tester,
@@ -572,11 +564,9 @@ void main() {
         await tester.pumpWidget(buildTestWidget());
         await tester.pumpAndSettle();
 
-        // Switch to register mode
-        await scrollAndTap(
-          tester,
-          find.textContaining("Don't have an account?"),
-        );
+        // Switch to Create Account tab
+        await tester.tap(find.widgetWithText(Tab, 'Create Account'));
+        await tester.pumpAndSettle();
 
         // Find all visibility_off icons (password has one, confirm has one)
         expect(find.byIcon(Icons.visibility_off), findsNWidgets(2));
