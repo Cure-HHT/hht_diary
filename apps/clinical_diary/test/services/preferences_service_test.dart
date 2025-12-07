@@ -38,6 +38,28 @@ void main() {
       });
     });
 
+    group('compactView', () {
+      test('getCompactView returns false by default', () async {
+        final result = await service.getCompactView();
+        expect(result, isFalse);
+      });
+
+      test('setCompactView stores value correctly', () async {
+        await service.setCompactView(true);
+
+        final result = await service.getCompactView();
+        expect(result, isTrue);
+      });
+
+      test('setCompactView can toggle value', () async {
+        await service.setCompactView(true);
+        expect(await service.getCompactView(), isTrue);
+
+        await service.setCompactView(false);
+        expect(await service.getCompactView(), isFalse);
+      });
+    });
+
     group('getPreferences', () {
       test('returns default values when nothing is stored', () async {
         final prefs = await service.getPreferences();
@@ -46,6 +68,7 @@ void main() {
         expect(prefs.dyslexiaFriendlyFont, isFalse);
         expect(prefs.largerTextAndControls, isFalse);
         expect(prefs.useAnimation, isTrue);
+        expect(prefs.compactView, isFalse);
         expect(prefs.languageCode, equals('en'));
       });
 
@@ -56,6 +79,7 @@ void main() {
             dyslexiaFriendlyFont: true,
             largerTextAndControls: true,
             useAnimation: false,
+            compactView: true,
             languageCode: 'es',
           ),
         );
@@ -66,6 +90,7 @@ void main() {
         expect(prefs.dyslexiaFriendlyFont, isTrue);
         expect(prefs.largerTextAndControls, isTrue);
         expect(prefs.useAnimation, isFalse);
+        expect(prefs.compactView, isTrue);
         expect(prefs.languageCode, equals('es'));
       });
     });
@@ -77,6 +102,7 @@ void main() {
           dyslexiaFriendlyFont: true,
           largerTextAndControls: true,
           useAnimation: false,
+          compactView: true,
           languageCode: 'fr',
         );
 
@@ -90,6 +116,7 @@ void main() {
           equals(prefs.largerTextAndControls),
         );
         expect(loaded.useAnimation, equals(prefs.useAnimation));
+        expect(loaded.compactView, equals(prefs.compactView));
         expect(loaded.languageCode, equals(prefs.languageCode));
       });
     });
@@ -102,11 +129,13 @@ void main() {
         dyslexiaFriendlyFont: false,
         largerTextAndControls: false,
         useAnimation: true,
+        compactView: false,
         languageCode: 'en',
       );
 
       final updated = original.copyWith(
         useAnimation: false,
+        compactView: true,
         languageCode: 'de',
       );
 
@@ -120,6 +149,7 @@ void main() {
         equals(original.largerTextAndControls),
       );
       expect(updated.useAnimation, isFalse);
+      expect(updated.compactView, isTrue);
       expect(updated.languageCode, equals('de'));
     });
 
@@ -129,6 +159,7 @@ void main() {
         dyslexiaFriendlyFont: true,
         largerTextAndControls: true,
         useAnimation: false,
+        compactView: true,
         languageCode: 'es',
       );
 
@@ -138,6 +169,7 @@ void main() {
       expect(json['dyslexiaFriendlyFont'], isTrue);
       expect(json['largerTextAndControls'], isTrue);
       expect(json['useAnimation'], isFalse);
+      expect(json['compactView'], isTrue);
       expect(json['languageCode'], equals('es'));
     });
 
@@ -147,6 +179,7 @@ void main() {
         'dyslexiaFriendlyFont': true,
         'largerTextAndControls': true,
         'useAnimation': false,
+        'compactView': true,
         'languageCode': 'fr',
       };
 
@@ -156,6 +189,7 @@ void main() {
       expect(prefs.dyslexiaFriendlyFont, isTrue);
       expect(prefs.largerTextAndControls, isTrue);
       expect(prefs.useAnimation, isFalse);
+      expect(prefs.compactView, isTrue);
       expect(prefs.languageCode, equals('fr'));
     });
 
@@ -168,6 +202,7 @@ void main() {
       expect(prefs.dyslexiaFriendlyFont, isFalse);
       expect(prefs.largerTextAndControls, isFalse);
       expect(prefs.useAnimation, isTrue); // Default is true
+      expect(prefs.compactView, isFalse); // Default is false
       expect(prefs.languageCode, equals('en'));
     });
   });

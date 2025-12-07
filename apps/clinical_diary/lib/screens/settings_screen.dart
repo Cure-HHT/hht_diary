@@ -29,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _dyslexiaFriendlyFont = false;
   bool _largerTextAndControls = false;
   bool _useAnimation = true;
+  bool _compactView = false;
   String _languageCode = 'en';
   bool _isLoading = true;
 
@@ -45,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _dyslexiaFriendlyFont = prefs.dyslexiaFriendlyFont;
       _largerTextAndControls = prefs.largerTextAndControls;
       _useAnimation = prefs.useAnimation;
+      _compactView = prefs.compactView;
       _languageCode = prefs.languageCode;
       _isLoading = false;
     });
@@ -57,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         dyslexiaFriendlyFont: _dyslexiaFriendlyFont,
         largerTextAndControls: _largerTextAndControls,
         useAnimation: _useAnimation,
+        compactView: _compactView,
         languageCode: _languageCode,
       ),
     );
@@ -204,6 +207,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               },
                             ),
                           ],
+                          // CUR-464: Compact view option
+                          const SizedBox(height: 12),
+                          _buildAccessibilityOption(
+                            context,
+                            title: AppLocalizations.of(context).compactView,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            ).compactViewDescription,
+                            value: _compactView,
+                            onChanged: (value) {
+                              setState(() => _compactView = value);
+                              _savePreferences();
+                            },
+                          ),
 
                           const SizedBox(height: 32),
 
