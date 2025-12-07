@@ -10,8 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../test_helpers/flavor_setup.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpTestFlavor();
 
   group('AuthService', () {
     late MockSecureStorage mockStorage;

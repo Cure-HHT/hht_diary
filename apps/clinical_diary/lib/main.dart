@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/firebase_options.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
@@ -16,6 +17,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
+import 'package:clinical_diary/widgets/environment_banner.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -23,7 +25,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:uuid/uuid.dart';
 
+/// Flavor name passed from native code via --dart-define or Xcode/Gradle config.
+const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR');
+
 void main() async {
+  // Initialize flavor from native platform configuration
+  F.appFlavor = Flavor.values.firstWhere(
+    (f) => f.name == appFlavor,
+    orElse: () => Flavor.dev, // Default to dev if not specified
+  );
+  debugPrint('Running with flavor: ${F.name}');
   // Catch all errors in the Flutter framework
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -123,28 +134,33 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Nosebleed Diary',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
-      locale: _locale,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      // Wrap all routes with ResponsiveWebFrame to constrain width on web
-      builder: (context, child) {
-        return ResponsiveWebFrame(child: child ?? const SizedBox.shrink());
-      },
-      home: AppRoot(
-        onLocaleChanged: _setLocale,
-        onThemeModeChanged: _setThemeMode,
-        preferencesService: _preferencesService,
+    // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
+    return EnvironmentBanner(
+      child: MaterialApp(
+        title: F.title,
+        // Show Flutter debug banner in debug mode (top-right corner)
+        // Environment ribbon (DEV/QA) shows in top-left corner
+        debugShowCheckedModeBanner: kDebugMode,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: _themeMode,
+        locale: _locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        // Wrap all routes with ResponsiveWebFrame to constrain width on web
+        builder: (context, child) {
+          return ResponsiveWebFrame(child: child ?? const SizedBox.shrink());
+        },
+        home: AppRoot(
+          onLocaleChanged: _setLocale,
+          onThemeModeChanged: _setThemeMode,
+          preferencesService: _preferencesService,
+        ),
       ),
     );
   }

@@ -1,0 +1,96 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00005: Sponsor Configuration Detection Implementation
+#
+# Flutter Flavorizr Configuration
+# Defines app flavors for different environments with distinct:
+# - Bundle IDs (allow side-by-side installation)
+# - App names (visible in device launcher)
+# - App icons (visual differentiation)
+# - Firebase configs (separate projects per environment)
+# - Custom variables (API_BASE, showDevTools, etc.)
+#
+# Usage:
+#   flutter pub get
+#   dart run flutter_flavorizr
+#
+# Then run with:
+#   flutter run --flavor dev -t lib/main.dart
+#   flutter run --flavor qa -t lib/main.dart
+#   flutter run --flavor uat -t lib/main.dart
+#   flutter run --flavor prod -t lib/main.dart
+
+app:
+  android:
+    flavorDimensions: "environment"
+
+flavors:
+  dev:
+    app:
+      name: "Diary DEV"
+    android:
+      applicationId: "org.curehht.clinicaldiary.dev"
+      icon: "assets/icons/dev/app_icon.png"
+      firebase:
+        config: ".firebase/dev/google-services.json"
+    ios:
+      bundleId: "org.curehht.clinicaldiary-dev"
+      icon: "assets/icons/dev/app_icon.png"
+      firebase:
+        config: ".firebase/dev/GoogleService-Info.plist"
+    macos:
+      bundleId: "org.curehht.clinicaldiary-dev"
+      icon: "assets/icons/dev/app_icon.png"
+
+  qa:
+    app:
+      name: "Diary QA"
+    android:
+      applicationId: "org.curehht.clinicaldiary.qa"
+      icon: "assets/icons/qa/app_icon.png"
+      firebase:
+        config: ".firebase/qa/google-services.json"
+    ios:
+      bundleId: "org.curehht.clinicaldiary-qa"
+      icon: "assets/icons/qa/app_icon.png"
+      firebase:
+        config: ".firebase/qa/GoogleService-Info.plist"
+    macos:
+      bundleId: "org.curehht.clinicaldiary-qa"
+      icon: "assets/icons/qa/app_icon.png"
+
+  uat:
+    app:
+      name: "Clinical Diary"
+    android:
+      applicationId: "org.curehht.clinicaldiary.uat"
+      icon: "assets/icons/uat/app_icon.png"
+      firebase:
+        config: ".firebase/uat/google-services.json"
+    ios:
+      bundleId: "org.curehht.clinicaldiary-uat"
+      icon: "assets/icons/uat/app_icon.png"
+      firebase:
+        config: ".firebase/uat/GoogleService-Info.plist"
+    macos:
+      bundleId: "org.curehht.clinicaldiary-uat"
+      icon: "assets/icons/uat/app_icon.png"
+
+  prod:
+    app:
+      name: "Clinical Diary"
+    android:
+      applicationId: "org.curehht.clinicaldiary"
+      icon: "assets/icons/prod/app_icon.png"
+      firebase:
+        config: ".firebase/prod/google-services.json"
+    ios:
+      bundleId: "org.curehht.clinicaldiary"
+      icon: "assets/icons/prod/app_icon.png"
+      firebase:
+        config: ".firebase/prod/GoogleService-Info.plist"
+    macos:
+      bundleId: "org.curehht.clinicaldiary"
+      icon: "assets/icons/prod/app_icon.png"
+
+# IDE configuration - generates VS Code launch configurations
+ide: "vscode"

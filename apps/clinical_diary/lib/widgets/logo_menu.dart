@@ -16,6 +16,7 @@ class LogoMenu extends StatefulWidget {
     required this.onResetAllData,
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
+    this.showDevTools = true,
     super.key,
   });
 
@@ -23,6 +24,10 @@ class LogoMenu extends StatefulWidget {
   final VoidCallback onResetAllData;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+
+  /// Whether to show developer tools (Reset All Data, Add Example Data).
+  /// Should be false in production and UAT environments.
+  final bool showDevTools;
 
   @override
   State<LogoMenu> createState() => _LogoMenuState();
@@ -108,54 +113,59 @@ class _LogoMenuState extends State<LogoMenu> {
         }
       },
       itemBuilder: (context) => [
-        // Data Management section header
-        PopupMenuItem<String>(
-          enabled: false,
-          child: Text(
-            l10n.dataManagement,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
+        // Data Management section header (only shown in dev/test environments)
+        if (widget.showDevTools) ...[
+          PopupMenuItem<String>(
+            enabled: false,
+            child: Text(
+              l10n.dataManagement,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        PopupMenuItem<String>(
-          value: 'add_example_data',
-          child: Row(
-            children: [
-              Icon(
-                Icons.add_circle_outline,
-                size: 20,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              const SizedBox(width: 12),
-              Flexible(child: Text(l10n.addExampleData)),
-            ],
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'reset_all_data',
-          child: Row(
-            children: [
-              Icon(
-                Icons.delete_outline,
-                size: 20,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  l10n.resetAllData,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+          PopupMenuItem<String>(
+            value: 'add_example_data',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.add_circle_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.addExampleData)),
+              ],
+            ),
           ),
-        ),
+          PopupMenuItem<String>(
+            value: 'reset_all_data',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    l10n.resetAllData,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
 
         // Clinical Trial section (only if enrolled)
         if (widget.onEndClinicalTrial != null) ...[
-          const PopupMenuDivider(),
+          // Only add divider if dev tools section was shown
+          if (widget.showDevTools) const PopupMenuDivider(),
           PopupMenuItem<String>(
             enabled: false,
             child: Text(
@@ -183,7 +193,9 @@ class _LogoMenuState extends State<LogoMenu> {
         ],
 
         // External links section
-        const PopupMenuDivider(),
+        // Only add divider if there was content above
+        if (widget.showDevTools || widget.onEndClinicalTrial != null)
+          const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'instructions_feedback',
           child: Row(

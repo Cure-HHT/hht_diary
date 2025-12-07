@@ -1,0 +1,6 @@
+#include "../../Flutter/uatRelease.xcconfig"
+#include "Warnings.xcconfig"
+
+ASSET_PREFIX=uat
+BUNDLE_NAME=Clinical Diary
+BUNDLE_DISPLAY_NAME=Clinical Diary

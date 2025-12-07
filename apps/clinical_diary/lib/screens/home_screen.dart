@@ -3,6 +3,7 @@
 
 import 'dart:async';
 
+import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/account_profile_screen.dart';
@@ -728,6 +729,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? _handleEndClinicalTrial
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
+                    showDevTools: AppConfig.showDevTools,
                   ),
                   // Centered title
                   Expanded(
