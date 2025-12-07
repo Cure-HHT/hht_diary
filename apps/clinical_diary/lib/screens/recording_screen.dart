@@ -8,6 +8,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
+import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
 // CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/overlap_warning.dart';
@@ -52,6 +53,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   RecordingStep _currentStep = RecordingStep.startTime;
   bool _isSaving = false;
+  // CUR-464: Flash intensity field when user tries to set end time without intensity
+  bool _flashIntensity = false;
 
   /// Get the currently active date based on the current step
   DateTime get _currentDate {
@@ -302,6 +305,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
     setState(() => _currentStep = step);
   }
 
+  /// CUR-464: Handle end time tap - flash intensity if not set, otherwise navigate
+  void _handleEndTimeTap() {
+    if (_intensity == null) {
+      // Flash the intensity field to remind user to set it first
+      setState(() => _flashIntensity = true);
+    } else {
+      _goToStep(RecordingStep.endTime);
+    }
+  }
+
   void _handleStartTimeConfirm(DateTime time) {
     setState(() {
       _startTime = time;
@@ -488,28 +501,36 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           _buildDivider(),
 
-          // Intensity
-          _buildSummaryItem(
-            label: l10n.maxIntensity,
-            value: _intensity != null
-                ? l10n.intensityName(_intensity!.name)
-                : l10n.selectIntensity,
-            isActive: _currentStep == RecordingStep.intensity,
-            onTap: _startTime != null
-                ? () => _goToStep(RecordingStep.intensity)
-                : null,
+          // Intensity - wrapped in FlashHighlight for CUR-464
+          FlashHighlight(
+            flash: _flashIntensity,
+            highlightColor: Colors.orange,
+            onFlashComplete: () {
+              if (mounted) {
+                setState(() => _flashIntensity = false);
+              }
+            },
+            builder: (context, highlightColor) => _buildSummaryItem(
+              label: l10n.maxIntensity,
+              value: _intensity != null
+                  ? l10n.intensityName(_intensity!.name)
+                  : l10n.selectIntensity,
+              isActive: _currentStep == RecordingStep.intensity,
+              onTap: _startTime != null
+                  ? () => _goToStep(RecordingStep.intensity)
+                  : null,
+              highlightColor: highlightColor,
+            ),
           ),
 
           _buildDivider(),
 
-          // End time
+          // End time - CUR-464: use _handleEndTimeTap to flash intensity if not set
           _buildSummaryItem(
             label: l10n.end,
             value: _formatTime(_endTime, locale),
             isActive: _currentStep == RecordingStep.endTime,
-            onTap: _intensity != null
-                ? () => _goToStep(RecordingStep.endTime)
-                : null,
+            onTap: _startTime != null ? _handleEndTimeTap : null,
           ),
         ],
       ),
@@ -521,15 +542,19 @@ class _RecordingScreenState extends State<RecordingScreen> {
     required String value,
     required bool isActive,
     VoidCallback? onTap,
+    Color? highlightColor,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Colors.transparent,
+          // CUR-464: Use highlight color when flashing, otherwise normal styling
+          color:
+              highlightColor ??
+              (isActive
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : Colors.transparent),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
