@@ -10,14 +10,14 @@ void main() {
     test('has all expected values', () {
       expect(
         Flavor.values,
-        containsAll([Flavor.dev, Flavor.test, Flavor.uat, Flavor.prod]),
+        containsAll([Flavor.dev, Flavor.qa, Flavor.uat, Flavor.prod]),
       );
       expect(Flavor.values.length, 4);
     });
 
     test('name property returns correct strings', () {
       expect(Flavor.dev.name, 'dev');
-      expect(Flavor.test.name, 'test');
+      expect(Flavor.qa.name, 'qa');
       expect(Flavor.uat.name, 'uat');
       expect(Flavor.prod.name, 'prod');
     });
@@ -34,8 +34,8 @@ void main() {
         F.appFlavor = Flavor.prod;
         expect(F.appFlavor, Flavor.prod);
 
-        F.appFlavor = Flavor.test;
-        expect(F.appFlavor, Flavor.test);
+        F.appFlavor = Flavor.qa;
+        expect(F.appFlavor, Flavor.qa);
       });
     });
 
@@ -55,9 +55,9 @@ void main() {
         expect(F.title, 'Diary DEV');
       });
 
-      test('returns Diary TEST for test', () {
-        F.appFlavor = Flavor.test;
-        expect(F.title, 'Diary TEST');
+      test('returns Diary QA for qa', () {
+        F.appFlavor = Flavor.qa;
+        expect(F.title, 'Diary QA');
       });
 
       test('returns Clinical Diary for uat', () {
@@ -77,8 +77,8 @@ void main() {
         expect(F.showDevTools, true);
       });
 
-      test('returns true for test environment', () {
-        F.appFlavor = Flavor.test;
+      test('returns true for qa environment', () {
+        F.appFlavor = Flavor.qa;
         expect(F.showDevTools, true);
       });
 
@@ -99,8 +99,8 @@ void main() {
         expect(F.showBanner, true);
       });
 
-      test('returns true for test environment', () {
-        F.appFlavor = Flavor.test;
+      test('returns true for qa environment', () {
+        F.appFlavor = Flavor.qa;
         expect(F.showBanner, true);
       });
 
@@ -125,12 +125,12 @@ void main() {
       expect(FlavorConfig.dev.showBanner, true);
     });
 
-    test('test has correct values', () {
-      expect(FlavorConfig.test.name, 'test');
-      expect(FlavorConfig.test.apiBase, 'https://hht-diary-test.web.app/api');
-      expect(FlavorConfig.test.environment, 'test');
-      expect(FlavorConfig.test.showDevTools, true);
-      expect(FlavorConfig.test.showBanner, true);
+    test('qa has correct values', () {
+      expect(FlavorConfig.qa.name, 'qa');
+      expect(FlavorConfig.qa.apiBase, 'https://hht-diary-qa.web.app/api');
+      expect(FlavorConfig.qa.environment, 'qa');
+      expect(FlavorConfig.qa.showDevTools, true);
+      expect(FlavorConfig.qa.showBanner, true);
     });
 
     test('uat has correct values', () {
@@ -152,7 +152,7 @@ void main() {
     group('byName', () {
       test('returns correct flavor for valid names', () {
         expect(FlavorConfig.byName('dev'), FlavorConfig.dev);
-        expect(FlavorConfig.byName('test'), FlavorConfig.test);
+        expect(FlavorConfig.byName('qa'), FlavorConfig.qa);
         expect(FlavorConfig.byName('uat'), FlavorConfig.uat);
         expect(FlavorConfig.byName('prod'), FlavorConfig.prod);
       });
@@ -173,7 +173,7 @@ void main() {
       test('contains all flavors', () {
         expect(FlavorConfig.all.length, 4);
         expect(FlavorConfig.all, contains(FlavorConfig.dev));
-        expect(FlavorConfig.all, contains(FlavorConfig.test));
+        expect(FlavorConfig.all, contains(FlavorConfig.qa));
         expect(FlavorConfig.all, contains(FlavorConfig.uat));
         expect(FlavorConfig.all, contains(FlavorConfig.prod));
       });

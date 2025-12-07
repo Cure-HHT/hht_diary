@@ -60,12 +60,12 @@ flutter run
 
 The app uses [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr) to support four environments with distinct app identities:
 
-| Flavor | App Name       | Bundle ID                        | Banner | Dev Tools |
-| ------ | -------------- | -------------------------------- | ------ | --------- |
-| `dev`  | Diary DEV      | org.curehht.clinicaldiary.dev    | Orange | Yes       |
-| `test` | Diary TEST     | org.curehht.clinicaldiary.test   | Purple | Yes       |
-| `uat`  | Clinical Diary | org.curehht.clinicaldiary.uat    | None   | No        |
-| `prod` | Clinical Diary | org.curehht.clinicaldiary        | None   | No        |
+| Flavor | App Name       | Bundle ID                     | Banner | Dev Tools |
+| ------ | -------------- | ----------------------------- | ------ | --------- |
+| `dev`  | Diary DEV      | org.curehht.clinicaldiary.dev | Orange | Yes       |
+| `qa`   | Diary QA       | org.curehht.clinicaldiary.qa  | Purple | Yes       |
+| `uat`  | Clinical Diary | org.curehht.clinicaldiary.uat | None   | No        |
+| `prod` | Clinical Diary | org.curehht.clinicaldiary     | None   | No        |
 
 Each flavor has:
 - **Distinct bundle ID** - Allows side-by-side installation on the same device
@@ -80,7 +80,7 @@ Each flavor has:
 flutter run --flavor dev
 
 # Test environment
-flutter run --flavor test
+flutter run --flavor qa
 
 # UAT (looks like production)
 flutter run --flavor uat
@@ -152,7 +152,7 @@ if (AppConfig.showDevTools) {
 }
 
 // Get app title for current flavor
-print(F.title); // "Diary DEV", "Diary TEST", or "Clinical Diary"
+print(F.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
 ```
 
 ### CI/CD Integration

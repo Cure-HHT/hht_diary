@@ -4,11 +4,11 @@
 import 'package:clinical_diary/flavors.dart';
 import 'package:flutter/material.dart';
 
-/// A banner overlay that displays the current environment (DEV/TEST).
+/// A banner overlay that displays the current environment (DEV/QA).
 ///
 /// This widget wraps the app content and displays a corner ribbon
 /// indicating the environment. Only shown when [F.showBanner] is true
-/// (configured via flavorizr for dev and test environments).
+/// (configured via flavorizr for dev and qa environments).
 ///
 /// Usage:
 /// ```dart
@@ -82,7 +82,7 @@ class _EnvironmentRibbon extends StatelessWidget {
   Color _getColor() {
     return switch (flavor) {
       Flavor.dev => Colors.orange,
-      Flavor.test => Colors.purple,
+      Flavor.qa => Colors.purple,
       Flavor.uat => Colors.blue,
       Flavor.prod => Colors.transparent,
     };
@@ -91,7 +91,7 @@ class _EnvironmentRibbon extends StatelessWidget {
   String _getLabel() {
     return switch (flavor) {
       Flavor.dev => 'DEV',
-      Flavor.test => 'TEST',
+      Flavor.qa => 'QA',
       Flavor.uat => 'UAT',
       Flavor.prod => '',
     };

@@ -14,10 +14,10 @@
 #   dart run flutter_flavorizr
 #
 # Then run with:
-#   flutter run --flavor dev -t lib/main_dev.dart
-#   flutter run --flavor test -t lib/main_test.dart
-#   flutter run --flavor uat -t lib/main_uat.dart
-#   flutter run --flavor prod -t lib/main_prod.dart
+#   flutter run --flavor dev -t lib/main.dart
+#   flutter run --flavor qa -t lib/main.dart
+#   flutter run --flavor uat -t lib/main.dart
+#   flutter run --flavor prod -t lib/main.dart
 
 app:
   android:
@@ -41,22 +41,22 @@ flavors:
       bundleId: "org.curehht.clinicaldiary-dev"
       icon: "assets/icons/dev/app_icon.png"
 
-  test:
+  qa:
     app:
-      name: "Diary TEST"
+      name: "Diary QA"
     android:
-      applicationId: "org.curehht.clinicaldiary.test"
-      icon: "assets/icons/test/app_icon.png"
+      applicationId: "org.curehht.clinicaldiary.qa"
+      icon: "assets/icons/qa/app_icon.png"
       firebase:
-        config: ".firebase/test/google-services.json"
+        config: ".firebase/qa/google-services.json"
     ios:
-      bundleId: "org.curehht.clinicaldiary-test"
-      icon: "assets/icons/test/app_icon.png"
+      bundleId: "org.curehht.clinicaldiary-qa"
+      icon: "assets/icons/qa/app_icon.png"
       firebase:
-        config: ".firebase/test/GoogleService-Info.plist"
+        config: ".firebase/qa/GoogleService-Info.plist"
     macos:
-      bundleId: "org.curehht.clinicaldiary-test"
-      icon: "assets/icons/test/app_icon.png"
+      bundleId: "org.curehht.clinicaldiary-qa"
+      icon: "assets/icons/qa/app_icon.png"
 
   uat:
     app:

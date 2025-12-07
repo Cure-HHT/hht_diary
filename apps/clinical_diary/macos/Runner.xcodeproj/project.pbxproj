@@ -1290,7 +1290,7 @@
 			};
 			name = "Release-prod";
 		};
-		6C1F2E51725762381E9E7696 /* Release-test */ = {
+		6C1F2E51725762381E9E7696 /* Release-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = FA6F66A91B1716DF79A6DDFF /* testRelease.xcconfig */;
 			buildSettings = {
@@ -1353,7 +1353,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
-			name = "Release-test";
+			name = "Release-qa";
 		};
 		75C9952D6F2262BAAF3FE6DB /* Profile-uat */ = {
 			isa = XCBuildConfiguration;
@@ -1443,7 +1443,7 @@
 			};
 			name = "Debug-dev";
 		};
-		8F37D60931C965B4D1935A0F /* Debug-test */ = {
+		8F37D60931C965B4D1935A0F /* Debug-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 6DC8A2F326E1AFBAF2393B98 /* testDebug.xcconfig */;
 			buildSettings = {
@@ -1513,7 +1513,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
-			name = "Debug-test";
+			name = "Debug-qa";
 		};
 		9CB047EC5E3C09945CEFE933 /* Debug-prod */ = {
 			isa = XCBuildConfiguration;
@@ -1523,13 +1523,13 @@
 			};
 			name = "Debug-prod";
 		};
-		A0C4B6E622228997F7A0216C /* Profile-test */ = {
+		A0C4B6E622228997F7A0216C /* Profile-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = EF7E48FF35A252F5B219E52B /* testProfile.xcconfig */;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = "Profile-test";
+			name = "Profile-qa";
 		};
 		A48715EADA4AA36B01510C37 /* Release-dev */ = {
 			isa = XCBuildConfiguration;
@@ -1627,15 +1627,15 @@
 			};
 			name = "Debug-uat";
 		};
-		D2BCFBCDBFED8B7D786D5A9A /* Debug-test */ = {
+		D2BCFBCDBFED8B7D786D5A9A /* Debug-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 6DC8A2F326E1AFBAF2393B98 /* testDebug.xcconfig */;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = "Debug-test";
+			name = "Debug-qa";
 		};
-		D804451CC1DA86377D85A74E /* Profile-test */ = {
+		D804451CC1DA86377D85A74E /* Profile-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = EF7E48FF35A252F5B219E52B /* testProfile.xcconfig */;
 			buildSettings = {
@@ -1698,15 +1698,15 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
-			name = "Profile-test";
+			name = "Profile-qa";
 		};
-		FE2FFE4EF0898856CECB881A /* Release-test */ = {
+		FE2FFE4EF0898856CECB881A /* Release-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = FA6F66A91B1716DF79A6DDFF /* testRelease.xcconfig */;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = "Release-test";
+			name = "Release-qa";
 		};
 /* End XCBuildConfiguration section */
 
@@ -1730,9 +1730,9 @@
 				7DF1EB0B4D02556E3F387C9E /* Debug-dev */,
 				46A662AFBD17788077FFD55F /* Profile-dev */,
 				5B58A21D661D93DD07FE43E3 /* Release-dev */,
-				8F37D60931C965B4D1935A0F /* Debug-test */,
-				D804451CC1DA86377D85A74E /* Profile-test */,
-				6C1F2E51725762381E9E7696 /* Release-test */,
+				8F37D60931C965B4D1935A0F /* Debug-qa */,
+				D804451CC1DA86377D85A74E /* Profile-qa */,
+				6C1F2E51725762381E9E7696 /* Release-qa */,
 				CFC8014A5F52853FF5055565 /* Debug-uat */,
 				4E984948719E40AA7563BE67 /* Profile-uat */,
 				5BDB0B13C2B75A5C4BB62A27 /* Release-uat */,
@@ -1752,9 +1752,9 @@
 				7C381078F81453D1CE82BEFA /* Debug-dev */,
 				0D2CE34220E50D3B02737FB5 /* Profile-dev */,
 				A48715EADA4AA36B01510C37 /* Release-dev */,
-				D2BCFBCDBFED8B7D786D5A9A /* Debug-test */,
-				A0C4B6E622228997F7A0216C /* Profile-test */,
-				FE2FFE4EF0898856CECB881A /* Release-test */,
+				D2BCFBCDBFED8B7D786D5A9A /* Debug-qa */,
+				A0C4B6E622228997F7A0216C /* Profile-qa */,
+				FE2FFE4EF0898856CECB881A /* Release-qa */,
 				D1A3D80075B00648B5430AE2 /* Debug-uat */,
 				75C9952D6F2262BAAF3FE6DB /* Profile-uat */,
 				1CFD331EA1DEAF64EC0EEAE1 /* Release-uat */,

@@ -23,7 +23,7 @@
 		83573F3BEA947C201E5C8BBC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 66FF8F045F0024836995C9AD /* GoogleService-Info.plist */; };
 		92025DD69E4804287C8C4ABC /* prodDebug.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 54AFEC22D932E96AE943438D /* prodDebug.xcconfig */; };
 		9522144C1D8C4CDD9548F7D2 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9989754B355C96A1E0B885C5 /* Pods_Runner.framework */; };
-		95EF44C176630D3948B3C31E /* testLaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2B3F2D47D51DF8DA13490F97 /* testLaunchScreen.storyboard */; };
+		95EF44C176630D3948B3C31E /* qaLaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2B3F2D47D51DF8DA13490F97 /* qaLaunchScreen.storyboard */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -66,7 +66,7 @@
 		19AD299579824DE7780E0824 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 		22E1B3B19BC6A1EC1474EBEB /* testRelease.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = testRelease.xcconfig; path = Flutter/testRelease.xcconfig; sourceTree = "<group>"; };
 		2523310033C7323B834A49D8 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
-		2B3F2D47D51DF8DA13490F97 /* testLaunchScreen.storyboard */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file.storyboard; name = testLaunchScreen.storyboard; path = Runner/testLaunchScreen.storyboard; sourceTree = "<group>"; };
+		2B3F2D47D51DF8DA13490F97 /* qaLaunchScreen.storyboard */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file.storyboard; name = qaLaunchScreen.storyboard; path = Runner/qaLaunchScreen.storyboard; sourceTree = "<group>"; };
 		2FED7F1DE82C4546DEF83B74 /* prodRelease.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = prodRelease.xcconfig; path = Flutter/prodRelease.xcconfig; sourceTree = "<group>"; };
 		30A692948C99AE488B5FD04F /* devDebug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = devDebug.xcconfig; path = Flutter/devDebug.xcconfig; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
@@ -177,7 +177,7 @@
 				46AE020EA48C428DFE74FEFC /* Pods */,
 				CE35F82524F2B38DC4263390 /* Frameworks */,
 				A1D69FA5BAAC7CAF1C45753A /* devLaunchScreen.storyboard */,
-				2B3F2D47D51DF8DA13490F97 /* testLaunchScreen.storyboard */,
+				2B3F2D47D51DF8DA13490F97 /* qaLaunchScreen.storyboard */,
 				DFB8DF3386A5522876AAB2FA /* uatLaunchScreen.storyboard */,
 				FAD09D6BBA61BE72A78FF423 /* prodLaunchScreen.storyboard */,
 			);
@@ -330,7 +330,7 @@
 				293511D2E8F76BDA9CE50B0A /* prodProfile.xcconfig in Resources */,
 				D02DFB74F885539A8D404A9E /* prodRelease.xcconfig in Resources */,
 				2F2D16773328EBDBB4C05CCC /* devLaunchScreen.storyboard in Resources */,
-				95EF44C176630D3948B3C31E /* testLaunchScreen.storyboard in Resources */,
+				95EF44C176630D3948B3C31E /* qaLaunchScreen.storyboard in Resources */,
 				C61AFDCD870173410C800920 /* uatLaunchScreen.storyboard in Resources */,
 				B144A897472E694FAFE2605F /* prodLaunchScreen.storyboard in Resources */,
 			);
@@ -372,7 +372,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"$CONFIGURATION\" == \"Debug-dev\" ] || [ \"$CONFIGURATION\" == \"Release-dev\" ]; then\n  cp Runner/dev/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-test\" ] || [ \"$CONFIGURATION\" == \"Release-test\" ]; then\n  cp Runner/test/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-uat\" ] || [ \"$CONFIGURATION\" == \"Release-uat\" ]; then\n  cp Runner/uat/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-prod\" ] || [ \"$CONFIGURATION\" == \"Release-prod\" ]; then\n  cp Runner/prod/GoogleService-Info.plist Runner/GoogleService-Info.plist\nfi\n\n";
+			shellScript = "if [ \"$CONFIGURATION\" == \"Debug-dev\" ] || [ \"$CONFIGURATION\" == \"Release-dev\" ]; then\n  cp Runner/dev/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-qa\" ] || [ \"$CONFIGURATION\" == \"Release-qa\" ]; then\n  cp Runner/test/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-uat\" ] || [ \"$CONFIGURATION\" == \"Release-uat\" ]; then\n  cp Runner/uat/GoogleService-Info.plist Runner/GoogleService-Info.plist\nelif [ \"$CONFIGURATION\" == \"Debug-prod\" ] || [ \"$CONFIGURATION\" == \"Release-prod\" ]; then\n  cp Runner/prod/GoogleService-Info.plist Runner/GoogleService-Info.plist\nfi\n\n";
 		};
 		54B6DA686376D224F92E8111 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -508,7 +508,7 @@
 			};
 			name = "Profile-prod";
 		};
-		0A7A43876B18D82441EEF4C6 /* Debug-test */ = {
+		0A7A43876B18D82441EEF4C6 /* Debug-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D20F1D776FFE3CFEB9DD6829 /* testDebug.xcconfig */;
 			buildSettings = {
@@ -581,9 +581,9 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
-			name = "Debug-test";
+			name = "Debug-qa";
 		};
-		0AB544BD8ADFA5F71E5C3904 /* Release-test */ = {
+		0AB544BD8ADFA5F71E5C3904 /* Release-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 22E1B3B19BC6A1EC1474EBEB /* testRelease.xcconfig */;
 			buildSettings = {
@@ -653,7 +653,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
-			name = "Release-test";
+			name = "Release-qa";
 		};
 		0BB4F51BC5B62485443E953E /* Debug-uat */ = {
 			isa = XCBuildConfiguration;
@@ -733,21 +733,21 @@
 			};
 			name = "Profile-dev";
 		};
-		13C70214ECEE61AE50459195 /* Profile-test */ = {
+		13C70214ECEE61AE50459195 /* Profile-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 06A985C1DB9A1EB07FBAC62A /* testProfile.xcconfig */;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = "Profile-test";
+			name = "Profile-qa";
 		};
-		16F520E5E7B94274B2BD56B2 /* Debug-test */ = {
+		16F520E5E7B94274B2BD56B2 /* Debug-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D20F1D776FFE3CFEB9DD6829 /* testDebug.xcconfig */;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = "Debug-test";
+			name = "Debug-qa";
 		};
 		1E865C542694C4786977F2A4 /* Release-prod */ = {
 			isa = XCBuildConfiguration;
@@ -1031,13 +1031,13 @@
 			};
 			name = "Profile-uat";
 		};
-		5470713F29B2446BE4020B5A /* Release-test */ = {
+		5470713F29B2446BE4020B5A /* Release-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 22E1B3B19BC6A1EC1474EBEB /* testRelease.xcconfig */;
 			buildSettings = {
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
-			name = "Release-test";
+			name = "Release-qa";
 		};
 		6A3CC3099D2B40DE30E9303A /* Release-prod */ = {
 			isa = XCBuildConfiguration;
@@ -1111,7 +1111,7 @@
 			};
 			name = "Release-prod";
 		};
-		87CCFD7F717B887AEC102031 /* Profile-test */ = {
+		87CCFD7F717B887AEC102031 /* Profile-qa */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 06A985C1DB9A1EB07FBAC62A /* testProfile.xcconfig */;
 			buildSettings = {
@@ -1179,7 +1179,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
-			name = "Profile-test";
+			name = "Profile-qa";
 		};
 		971AF451FB101537C7FF0A5B /* Debug-dev */ = {
 			isa = XCBuildConfiguration;
@@ -1766,9 +1766,9 @@
 				971AF451FB101537C7FF0A5B /* Debug-dev */,
 				131DD323942A4CBB80CECED3 /* Profile-dev */,
 				3D017D38ED45C451FB0B74A8 /* Release-dev */,
-				0A7A43876B18D82441EEF4C6 /* Debug-test */,
-				87CCFD7F717B887AEC102031 /* Profile-test */,
-				0AB544BD8ADFA5F71E5C3904 /* Release-test */,
+				0A7A43876B18D82441EEF4C6 /* Debug-qa */,
+				87CCFD7F717B887AEC102031 /* Profile-qa */,
+				0AB544BD8ADFA5F71E5C3904 /* Release-qa */,
 				A733D7A737B4A8D6A83798AA /* Debug-uat */,
 				4B10264D94F74F5CC9E115AE /* Profile-uat */,
 				CC7253E0C32C7413FE697AFB /* Release-uat */,
@@ -1788,9 +1788,9 @@
 				E699F2DD9CC5F033323F266D /* Debug-dev */,
 				3C6BBD3FA7C2E396FE2211B4 /* Profile-dev */,
 				B2E257EE8E73C8BEEA28177A /* Release-dev */,
-				16F520E5E7B94274B2BD56B2 /* Debug-test */,
-				13C70214ECEE61AE50459195 /* Profile-test */,
-				5470713F29B2446BE4020B5A /* Release-test */,
+				16F520E5E7B94274B2BD56B2 /* Debug-qa */,
+				13C70214ECEE61AE50459195 /* Profile-qa */,
+				5470713F29B2446BE4020B5A /* Release-qa */,
 				0BB4F51BC5B62485443E953E /* Debug-uat */,
 				A39CDFAF92142DB8555E223B /* Profile-uat */,
 				B8ADE23639B9F5EE25A01923 /* Release-uat */,

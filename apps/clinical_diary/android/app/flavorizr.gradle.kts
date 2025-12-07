@@ -11,10 +11,10 @@ android.apply {
             applicationId = "org.curehht.clinicaldiary.dev"
             resValue(type = "string", name = "app_name", value = "Diary DEV")
         }
-        create("test") {
+        create("qa") {
             dimension = "environment"
-            applicationId = "org.curehht.clinicaldiary.test"
-            resValue(type = "string", name = "app_name", value = "Diary TEST")
+            applicationId = "org.curehht.clinicaldiary.qa"
+            resValue(type = "string", name = "app_name", value = "Diary QA")
         }
         create("uat") {
             dimension = "environment"
