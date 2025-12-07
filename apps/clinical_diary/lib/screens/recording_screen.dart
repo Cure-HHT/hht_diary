@@ -350,9 +350,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
       onConfirmDelete: (String reason) async {
         if (widget.onDelete != null) {
           await widget.onDelete!(reason);
-          if (mounted) {
-            Navigator.pop(context, true);
-          }
+        }
+        // Pop the recording screen after the dialog closes
+        if (mounted) {
+          Navigator.pop(context, true);
         }
       },
     );

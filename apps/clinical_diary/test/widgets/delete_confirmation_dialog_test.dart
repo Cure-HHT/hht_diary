@@ -18,7 +18,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -43,7 +43,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -71,7 +71,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -99,7 +99,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -127,7 +127,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -156,7 +156,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -184,7 +184,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),
@@ -223,7 +223,9 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) => DeleteConfirmationDialog(
-                    onConfirmDelete: (reason) => deletedReason = reason,
+                    onConfirmDelete: (reason) async {
+                      deletedReason = reason;
+                    },
                   ),
                 ),
                 child: const Text('Open Dialog'),
@@ -265,7 +267,7 @@ void main() {
                       context: context,
                       builder: (_) => SingleChildScrollView(
                         child: DeleteConfirmationDialog(
-                          onConfirmDelete: (_) {},
+                          onConfirmDelete: (_) async {},
                         ),
                       ),
                     ),
@@ -313,7 +315,7 @@ void main() {
                       context: context,
                       builder: (_) => SingleChildScrollView(
                         child: DeleteConfirmationDialog(
-                          onConfirmDelete: (_) {},
+                          onConfirmDelete: (_) async {},
                         ),
                       ),
                     ),
@@ -353,7 +355,7 @@ void main() {
               builder: (context) => ElevatedButton(
                 onPressed: () => DeleteConfirmationDialog.show(
                   context: context,
-                  onConfirmDelete: (_) {},
+                  onConfirmDelete: (_) async {},
                 ),
                 child: const Text('Show Dialog'),
               ),
@@ -378,7 +380,7 @@ void main() {
                 onPressed: () => showDialog<void>(
                   context: context,
                   builder: (_) =>
-                      DeleteConfirmationDialog(onConfirmDelete: (_) {}),
+                      DeleteConfirmationDialog(onConfirmDelete: (_) async {}),
                 ),
                 child: const Text('Open Dialog'),
               ),

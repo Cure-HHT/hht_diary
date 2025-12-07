@@ -377,15 +377,42 @@ void main() {
       await tester.tap(find.text('Other'));
       await tester.pumpAndSettle();
 
-      // Enter custom reason
-      await tester.enterText(
-        find.byType(TextField),
-        'Custom deletion reason for testing',
+      // Focus the TextField first, then enter custom reason
+      // Integration tests on desktop require special handling for text input
+      final textField = find.byType(TextField);
+      expect(
+        textField,
+        findsOneWidget,
+        reason: 'TextField should appear after selecting Other',
       );
+
+      // Get the TextField widget and its controller to directly set text
+      // This is more reliable than enterText in integration tests
+      final textFieldWidget = tester.widget<TextField>(textField);
+      textFieldWidget.controller?.text = 'Custom deletion reason for testing';
+
+      // Pump to trigger rebuild with new text
+      await tester.pump();
       await tester.pumpAndSettle();
 
+      // Verify Delete button is enabled (not null onPressed)
+      final deleteButton = find.widgetWithText(FilledButton, 'Delete');
+      expect(
+        deleteButton,
+        findsOneWidget,
+        reason: 'Delete button should exist',
+      );
+      final filledButton = tester.widget<FilledButton>(deleteButton);
+      expect(
+        filledButton.onPressed,
+        isNotNull,
+        reason:
+            'Delete button should be enabled after entering custom reason. '
+            'Text field may not have received text input.',
+      );
+
       // Tap confirm delete button
-      await tester.tap(find.text('Delete'));
+      await tester.tap(deleteButton);
       await tester.pumpAndSettle();
 
       // Verify custom reason was captured
