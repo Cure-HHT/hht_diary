@@ -29,15 +29,18 @@ class EnvironmentBanner extends StatelessWidget {
       return child;
     }
 
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          top: 0,
-          right: 0,
-          child: _EnvironmentRibbon(flavor: F.appFlavor),
-        ),
-      ],
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Stack(
+        children: [
+          child,
+          Positioned(
+            top: 0,
+            left: 0,
+            child: _EnvironmentRibbon(flavor: F.appFlavor),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -60,9 +63,9 @@ class _EnvironmentRibbon extends StatelessWidget {
           width: 100,
           height: 100,
           child: Align(
-            alignment: const Alignment(0.5, -0.5),
+            alignment: const Alignment(-0.5, -0.5),
             child: Transform.rotate(
-              angle: 0.785398, // 45 degrees in radians
+              angle: -0.785398, // -45 degrees in radians (for top-left)
               child: Text(
                 label,
                 style: const TextStyle(
@@ -110,10 +113,11 @@ class _RibbonPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
+    // Draw triangle in top-left corner
     final path = Path()
-      ..moveTo(size.width * 0.3, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width, size.height * 0.7)
+      ..moveTo(0, 0)
+      ..lineTo(size.width * 0.7, 0)
+      ..lineTo(0, size.height * 0.7)
       ..close();
 
     canvas.drawPath(path, paint);

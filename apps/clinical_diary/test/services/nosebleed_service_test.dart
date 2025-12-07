@@ -392,7 +392,8 @@ void main() {
         // Generate a device UUID first
         final uuid1 = await service.getDeviceUuid();
 
-        await service.clearLocalData();
+        // Pass reinitialize: false since tests manage Datastore manually
+        await service.clearLocalData(reinitialize: false);
 
         // Re-initialize datastore after reset (normally done by app restart)
         await Datastore.initialize(
@@ -427,7 +428,8 @@ void main() {
         var records = await service.getLocalRecords();
         expect(records.length, 2);
 
-        await service.clearLocalData();
+        // Pass reinitialize: false since tests manage Datastore manually
+        await service.clearLocalData(reinitialize: false);
 
         // Re-initialize datastore after reset (normally done by app restart)
         await Datastore.initialize(

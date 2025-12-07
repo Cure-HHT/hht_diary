@@ -576,7 +576,10 @@ class NosebleedService {
   ///
   /// After calling this method, the Datastore is reset and ready for use
   /// with a fresh database.
-  Future<void> clearLocalData() async {
+  ///
+  /// Set [reinitialize] to false in unit tests where Datastore initialization
+  /// is handled manually with a test-specific config.
+  Future<void> clearLocalData({bool reinitialize = true}) async {
     // Clear device UUID from preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_deviceUuidKey);
@@ -584,9 +587,19 @@ class NosebleedService {
     // Delete and reset the datastore (clears all event records)
     // This uses the Datastore singleton's deleteAndReset method which
     // properly closes the database, deletes the file, and resets state.
-    // The datastore will be automatically reinitialized on next access.
     if (Datastore.isInitialized) {
       await Datastore.instance.deleteAndReset();
+
+      // Reinitialize the datastore with a fresh database (skip in tests)
+      if (reinitialize) {
+        final deviceId = _uuid.v4();
+        await Datastore.initialize(
+          config: DatastoreConfig.development(
+            deviceId: deviceId,
+            userId: 'anonymous',
+          ),
+        );
+      }
     }
   }
 
