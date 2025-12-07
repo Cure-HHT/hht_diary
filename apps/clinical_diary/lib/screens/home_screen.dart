@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoggedIn = false;
   bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
   bool _useAnimation = true; // User preference for animations
+  bool _compactView = false; // User preference for compact list view
 
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
@@ -64,15 +65,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadRecords();
-    _loadAnimationPreference();
+    _loadPreferences();
     _checkEnrollmentStatus();
     _checkLoginStatus();
   }
 
-  Future<void> _loadAnimationPreference() async {
+  Future<void> _loadPreferences() async {
     final useAnimation = await widget.preferencesService.getUseAnimation();
+    final compactView = await widget.preferencesService.getCompactView();
     if (mounted) {
-      setState(() => _useAnimation = useAnimation);
+      setState(() {
+        _useAnimation = useAnimation;
+        _compactView = compactView;
+      });
     }
   }
 
@@ -757,8 +762,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         );
-                        // Reload animation preference in case it changed
-                        await _loadAnimationPreference();
+                        // Reload preferences in case they changed
+                        await _loadPreferences();
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -1146,7 +1151,8 @@ class _HomeScreenState extends State<HomeScreen> {
         else
           ...group.records.map(
             (record) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              // CUR-464: Use smaller gap when compact view is enabled
+              padding: EdgeInsets.only(bottom: _compactView ? 4 : 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
               // Key ensures new widget instance when record ID changes (e.g., on edit)
               child: FlashHighlight(

@@ -153,6 +153,9 @@ class AppLocalizations {
       'useAnimation': 'Use Animations',
       'useAnimationDescription':
           'Enable visual animations and transitions throughout the app',
+      'compactView': 'Compact View',
+      'compactViewDescription':
+          'Reduce spacing between entries in the event list for a denser display',
       'language': 'Language',
       'languageDescription': 'Choose your preferred language',
       'accessibilityAndPreferences': 'Accessibility & Preferences',
@@ -435,6 +438,9 @@ class AppLocalizations {
       'useAnimation': 'Usar Animaciones',
       'useAnimationDescription':
           'Habilitar animaciones visuales y transiciones en toda la aplicacion',
+      'compactView': 'Vista Compacta',
+      'compactViewDescription':
+          'Reducir el espacio entre entradas en la lista de eventos para una visualizacion mas densa',
       'language': 'Idioma',
       'languageDescription': 'Elige tu idioma preferido',
       'accessibilityAndPreferences': 'Accesibilidad y Preferencias',
@@ -726,6 +732,9 @@ class AppLocalizations {
       'useAnimation': 'Utiliser les Animations',
       'useAnimationDescription':
           "Activer les animations visuelles et les transitions dans l'application",
+      'compactView': 'Vue Compacte',
+      'compactViewDescription':
+          "Reduire l'espacement entre les entrees dans la liste des evenements pour un affichage plus dense",
       'language': 'Langue',
       'languageDescription': 'Choisissez votre langue preferee',
       'accessibilityAndPreferences': 'Accessibilite et Preferences',
@@ -1019,6 +1028,9 @@ class AppLocalizations {
       'useAnimation': 'Animationen verwenden',
       'useAnimationDescription':
           'Visuelle Animationen und Ubergange in der gesamten App aktivieren',
+      'compactView': 'Kompakte Ansicht',
+      'compactViewDescription':
+          'Reduziert den Abstand zwischen Eintragen in der Ereignisliste fur eine dichtere Anzeige',
       'language': 'Sprache',
       'languageDescription': 'Wahlen Sie Ihre bevorzugte Sprache',
       'accessibilityAndPreferences': 'Barrierefreiheit & Einstellungen',
@@ -1321,6 +1333,8 @@ class AppLocalizations {
   String get largerTextDescription => translate('largerTextDescription');
   String get useAnimation => translate('useAnimation');
   String get useAnimationDescription => translate('useAnimationDescription');
+  String get compactView => translate('compactView');
+  String get compactViewDescription => translate('compactViewDescription');
   String get language => translate('language');
   String get languageDescription => translate('languageDescription');
   String get accessibilityAndPreferences =>

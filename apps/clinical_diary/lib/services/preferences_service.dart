@@ -10,6 +10,7 @@ class UserPreferences {
     this.dyslexiaFriendlyFont = false,
     this.largerTextAndControls = false,
     this.useAnimation = true,
+    this.compactView = false,
     this.languageCode = 'en',
   });
 
@@ -20,6 +21,7 @@ class UserPreferences {
       dyslexiaFriendlyFont: json['dyslexiaFriendlyFont'] as bool? ?? false,
       largerTextAndControls: json['largerTextAndControls'] as bool? ?? false,
       useAnimation: json['useAnimation'] as bool? ?? true,
+      compactView: json['compactView'] as bool? ?? false,
       languageCode: json['languageCode'] as String? ?? 'en',
     );
   }
@@ -28,6 +30,7 @@ class UserPreferences {
   final bool dyslexiaFriendlyFont;
   final bool largerTextAndControls;
   final bool useAnimation;
+  final bool compactView;
   final String languageCode;
 
   UserPreferences copyWith({
@@ -35,6 +38,7 @@ class UserPreferences {
     bool? dyslexiaFriendlyFont,
     bool? largerTextAndControls,
     bool? useAnimation,
+    bool? compactView,
     String? languageCode,
   }) {
     return UserPreferences(
@@ -43,6 +47,7 @@ class UserPreferences {
       largerTextAndControls:
           largerTextAndControls ?? this.largerTextAndControls,
       useAnimation: useAnimation ?? this.useAnimation,
+      compactView: compactView ?? this.compactView,
       languageCode: languageCode ?? this.languageCode,
     );
   }
@@ -53,6 +58,7 @@ class UserPreferences {
     'dyslexiaFriendlyFont': dyslexiaFriendlyFont,
     'largerTextAndControls': largerTextAndControls,
     'useAnimation': useAnimation,
+    'compactView': compactView,
     'languageCode': languageCode,
   };
 }
@@ -66,6 +72,7 @@ class PreferencesService {
   static const _keyDyslexiaFont = 'pref_dyslexia_font';
   static const _keyLargerControls = 'pref_larger_controls';
   static const _keyUseAnimation = 'pref_use_animation';
+  static const _keyCompactView = 'pref_compact_view';
   static const _keyLanguageCode = 'pref_language_code';
 
   SharedPreferences? _sharedPreferences;
@@ -83,6 +90,7 @@ class PreferencesService {
       dyslexiaFriendlyFont: prefs.getBool(_keyDyslexiaFont) ?? false,
       largerTextAndControls: prefs.getBool(_keyLargerControls) ?? false,
       useAnimation: prefs.getBool(_keyUseAnimation) ?? true,
+      compactView: prefs.getBool(_keyCompactView) ?? false,
       languageCode: prefs.getString(_keyLanguageCode) ?? 'en',
     );
   }
@@ -94,6 +102,7 @@ class PreferencesService {
     await prefs.setBool(_keyDyslexiaFont, preferences.dyslexiaFriendlyFont);
     await prefs.setBool(_keyLargerControls, preferences.largerTextAndControls);
     await prefs.setBool(_keyUseAnimation, preferences.useAnimation);
+    await prefs.setBool(_keyCompactView, preferences.compactView);
     await prefs.setString(_keyLanguageCode, preferences.languageCode);
   }
 
@@ -125,6 +134,18 @@ class PreferencesService {
   Future<bool> getUseAnimation() async {
     final prefs = await _getPrefs();
     return prefs.getBool(_keyUseAnimation) ?? true;
+  }
+
+  /// Update compact view preference
+  Future<void> setCompactView(bool value) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyCompactView, value);
+  }
+
+  /// Get compact view preference
+  Future<bool> getCompactView() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_keyCompactView) ?? false;
   }
 
   /// Update language preference
