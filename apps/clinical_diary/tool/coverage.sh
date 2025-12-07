@@ -15,26 +15,38 @@ cd "$SCRIPT_DIR"
 
 # Parse command line arguments
 CONCURRENCY="10"
-RUN_FLUTTER=false
+RUN_FLUTTER_UNIT=false
+RUN_FLUTTER_INTEGRATION=false
 RUN_TYPESCRIPT=false
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -f, --flutter      Run Flutter (Dart) coverage only"
-    echo "  -t, --typescript   Run TypeScript (Functions) coverage only"
-    echo "  --concurrency N    Set Flutter test concurrency (default: 10)"
-    echo "  -h, --help         Show this help message"
+    echo "  -f,  --flutter              Run all Flutter coverage (unit + integration)"
+    echo "  -fu, --flutter-unit         Run Flutter unit tests coverage only"
+    echo "  -fi, --flutter-integration  Run Flutter integration tests coverage on desktop"
+    echo "  -t,  --typescript           Run TypeScript (Functions) coverage only"
+    echo "  --concurrency N             Set Flutter unit test concurrency (default: 10)"
+    echo "  -h,  --help                 Show this help message"
     echo ""
-    echo "If neither -f nor -t is specified, both test suites are run"
-    echo "and coverage reports are combined (if lcov is installed)."
+    echo "If no flags are specified, Flutter unit and TypeScript coverage are run."
+    echo "Integration test coverage must be explicitly requested with -fi or -f."
 }
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     -f|--flutter)
-      RUN_FLUTTER=true
+      RUN_FLUTTER_UNIT=true
+      RUN_FLUTTER_INTEGRATION=true
+      shift
+      ;;
+    -fu|--flutter-unit)
+      RUN_FLUTTER_UNIT=true
+      shift
+      ;;
+    -fi|--flutter-integration)
+      RUN_FLUTTER_INTEGRATION=true
       shift
       ;;
     -t|--typescript)
@@ -57,9 +69,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If neither flag specified, run both
-if [ "$RUN_FLUTTER" = false ] && [ "$RUN_TYPESCRIPT" = false ]; then
-    RUN_FLUTTER=true
+# If no flags specified, run Flutter unit and TypeScript (not integration by default)
+if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ] && [ "$RUN_TYPESCRIPT" = false ]; then
+    RUN_FLUTTER_UNIT=true
     RUN_TYPESCRIPT=true
 fi
 
@@ -71,32 +83,122 @@ echo "=============================================="
 rm -rf coverage
 mkdir -p coverage
 
-FLUTTER_COVERAGE=false
+FLUTTER_UNIT_COVERAGE=false
+FLUTTER_INTEGRATION_COVERAGE=false
 TS_COVERAGE=false
 
-# Run Flutter coverage
-if [ "$RUN_FLUTTER" = true ]; then
+# Run Flutter unit test coverage
+if [ "$RUN_FLUTTER_UNIT" = true ]; then
     echo ""
-    echo "📱 Running Flutter tests with coverage..."
+    echo "📱 Running Flutter unit tests with coverage..."
     echo "   Concurrency: $CONCURRENCY"
     echo ""
 
     flutter test --coverage --concurrency="$CONCURRENCY"
 
     if [ -f "coverage/lcov.info" ]; then
-        FLUTTER_COVERAGE=true
-        echo "✅ Flutter coverage generated: coverage/lcov.info"
+        FLUTTER_UNIT_COVERAGE=true
+        # Rename to lcov-unit.info for clarity when combining
+        mv coverage/lcov.info coverage/lcov-unit.info
+        echo "✅ Flutter unit coverage generated: coverage/lcov-unit.info"
 
         # Filter out generated files
         if command -v lcov &> /dev/null; then
             echo "Filtering coverage data..."
-            lcov --remove coverage/lcov.info \
+            lcov --remove coverage/lcov-unit.info \
               '**/*.g.dart' \
               '**/*.freezed.dart' \
               '**/test/**' \
               --ignore-errors unused \
-              -o coverage/lcov.info
+              -o coverage/lcov-unit.info
         fi
+    fi
+fi
+
+# Run Flutter integration test coverage on desktop
+if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
+    echo ""
+    echo "🖥️  Running Flutter integration tests with coverage on desktop..."
+    echo ""
+
+    # Detect platform and set device target
+    case "$(uname -s)" in
+        Darwin*)
+            DEVICE="macos"
+            ;;
+        Linux*)
+            DEVICE="linux"
+            ;;
+        MINGW*|CYGWIN*|MSYS*)
+            DEVICE="windows"
+            ;;
+        *)
+            echo "⚠️  Unknown platform, defaulting to linux"
+            DEVICE="linux"
+            ;;
+    esac
+
+    echo "   Target device: $DEVICE"
+
+    if [ -d "integration_test" ]; then
+        # Run each integration test file separately to avoid macOS app lifecycle issues
+        # Collect coverage for each file and merge them
+        INTEGRATION_COVERAGE_FILES=""
+        FILE_INDEX=0
+
+        for test_file in integration_test/*_test.dart; do
+            if [ -f "$test_file" ]; then
+                echo ""
+                echo "   Running: $test_file"
+                FILE_INDEX=$((FILE_INDEX + 1))
+
+                # Run with coverage, output to numbered file
+                if flutter test "$test_file" -d "$DEVICE" --coverage; then
+                    if [ -f "coverage/lcov.info" ]; then
+                        mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
+                        INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"
+                        echo "   ✅ Coverage captured for $test_file"
+                    fi
+                else
+                    echo "   ⚠️  Test failed: $test_file (continuing with other tests)"
+                fi
+            fi
+        done
+
+        # Combine integration test coverage files if lcov is available
+        if [ -n "$INTEGRATION_COVERAGE_FILES" ] && command -v lcov &> /dev/null; then
+            echo ""
+            echo "   Combining integration test coverage..."
+            # Build lcov command with all files
+            LCOV_CMD="lcov"
+            for file in $INTEGRATION_COVERAGE_FILES; do
+                LCOV_CMD="$LCOV_CMD -a $file"
+            done
+            LCOV_CMD="$LCOV_CMD -o coverage/lcov-integration.info --ignore-errors unused"
+
+            if eval "$LCOV_CMD" 2>/dev/null; then
+                FLUTTER_INTEGRATION_COVERAGE=true
+                echo "✅ Flutter integration coverage generated: coverage/lcov-integration.info"
+
+                # Clean up individual files
+                rm -f $INTEGRATION_COVERAGE_FILES
+
+                # Filter out generated files
+                lcov --remove coverage/lcov-integration.info \
+                  '**/*.g.dart' \
+                  '**/*.freezed.dart' \
+                  '**/test/**' \
+                  '**/integration_test/**' \
+                  --ignore-errors unused \
+                  -o coverage/lcov-integration.info
+            fi
+        elif [ -n "$INTEGRATION_COVERAGE_FILES" ]; then
+            echo ""
+            echo "⚠️  lcov not found - cannot combine integration coverage files"
+            echo "   Install lcov: brew install lcov (Mac) or sudo apt-get install lcov (Linux)"
+        fi
+    else
+        echo "⚠️  integration_test/ directory not found, skipping integration coverage"
     fi
 fi
 
@@ -139,38 +241,87 @@ if [ "$RUN_TYPESCRIPT" = true ]; then
     fi
 fi
 
-# Combine coverage reports if both were generated and lcov is available
-if [ "$FLUTTER_COVERAGE" = true ] && [ "$TS_COVERAGE" = true ]; then
-    if command -v lcov &> /dev/null; then
-        echo ""
-        echo "📊 Combining coverage reports..."
+# Combine all coverage reports if multiple were generated and lcov is available
+COVERAGE_FILES_TO_COMBINE=""
+if [ "$FLUTTER_UNIT_COVERAGE" = true ]; then
+    COVERAGE_FILES_TO_COMBINE="$COVERAGE_FILES_TO_COMBINE coverage/lcov-unit.info"
+fi
+if [ "$FLUTTER_INTEGRATION_COVERAGE" = true ]; then
+    COVERAGE_FILES_TO_COMBINE="$COVERAGE_FILES_TO_COMBINE coverage/lcov-integration.info"
+fi
+if [ "$TS_COVERAGE" = true ]; then
+    COVERAGE_FILES_TO_COMBINE="$COVERAGE_FILES_TO_COMBINE coverage/lcov-functions.info"
+fi
 
-        # Combine the coverage files
-        lcov -a coverage/lcov.info -a coverage/lcov-functions.info \
-             -o coverage/lcov-combined.info \
-             --ignore-errors unused 2>/dev/null || true
+# Count how many coverage files we have
+NUM_COVERAGE_FILES=$(echo "$COVERAGE_FILES_TO_COMBINE" | wc -w | tr -d ' ')
 
-        if [ -f "coverage/lcov-combined.info" ]; then
-            echo "✅ Combined coverage report: coverage/lcov-combined.info"
-        fi
+if [ "$NUM_COVERAGE_FILES" -gt 1 ] && command -v lcov &> /dev/null; then
+    echo ""
+    echo "📊 Combining coverage reports..."
+
+    # Build lcov command with all files
+    LCOV_CMD="lcov"
+    for file in $COVERAGE_FILES_TO_COMBINE; do
+        LCOV_CMD="$LCOV_CMD -a $file"
+    done
+    LCOV_CMD="$LCOV_CMD -o coverage/lcov-combined.info --ignore-errors unused"
+
+    if eval "$LCOV_CMD" 2>/dev/null; then
+        echo "✅ Combined coverage report: coverage/lcov-combined.info"
     fi
+fi
+
+# Also create a main lcov.info file (symlink to combined or first available)
+if [ -f "coverage/lcov-combined.info" ]; then
+    cp coverage/lcov-combined.info coverage/lcov.info
+elif [ -f "coverage/lcov-unit.info" ]; then
+    cp coverage/lcov-unit.info coverage/lcov.info
+elif [ -f "coverage/lcov-integration.info" ]; then
+    cp coverage/lcov-integration.info coverage/lcov.info
 fi
 
 # Generate HTML reports if lcov is available
 # Note: Flutter and TypeScript use incompatible relative paths, so we generate separate HTML reports
-FLUTTER_HTML_GENERATED=false
+FLUTTER_UNIT_HTML_GENERATED=false
+FLUTTER_INTEGRATION_HTML_GENERATED=false
 if command -v genhtml &> /dev/null; then
-    # Generate Flutter HTML report if Flutter coverage exists
-    if [ -f "coverage/lcov.info" ]; then
+    # Generate Flutter unit HTML report if unit coverage exists
+    if [ -f "coverage/lcov-unit.info" ]; then
         echo ""
-        echo "🌐 Generating Flutter HTML report..."
-        genhtml coverage/lcov.info -o coverage/html-flutter 2>/dev/null || true
+        echo "🌐 Generating Flutter unit HTML report..."
+        genhtml coverage/lcov-unit.info -o coverage/html-flutter-unit 2>/dev/null || true
+
+        if [ -f "coverage/html-flutter-unit/index.html" ]; then
+            FLUTTER_UNIT_HTML_GENERATED=true
+            echo "✅ Flutter unit HTML report: coverage/html-flutter-unit/index.html"
+        else
+            echo "⚠️  Flutter unit HTML report generation failed (genhtml couldn't resolve source paths)"
+        fi
+    fi
+
+    # Generate Flutter integration HTML report if integration coverage exists
+    if [ -f "coverage/lcov-integration.info" ]; then
+        echo ""
+        echo "🌐 Generating Flutter integration HTML report..."
+        genhtml coverage/lcov-integration.info -o coverage/html-flutter-integration 2>/dev/null || true
+
+        if [ -f "coverage/html-flutter-integration/index.html" ]; then
+            FLUTTER_INTEGRATION_HTML_GENERATED=true
+            echo "✅ Flutter integration HTML report: coverage/html-flutter-integration/index.html"
+        else
+            echo "⚠️  Flutter integration HTML report generation failed (genhtml couldn't resolve source paths)"
+        fi
+    fi
+
+    # Generate combined HTML report if combined coverage exists
+    if [ -f "coverage/lcov-combined.info" ]; then
+        echo ""
+        echo "🌐 Generating combined Flutter HTML report..."
+        genhtml coverage/lcov-combined.info -o coverage/html-flutter 2>/dev/null || true
 
         if [ -f "coverage/html-flutter/index.html" ]; then
-            FLUTTER_HTML_GENERATED=true
-            echo "✅ Flutter HTML report: coverage/html-flutter/index.html"
-        else
-            echo "⚠️  Flutter HTML report generation failed (genhtml couldn't resolve source paths)"
+            echo "✅ Combined Flutter HTML report: coverage/html-flutter/index.html"
         fi
     fi
 else
@@ -185,16 +336,25 @@ echo "=============================================="
 echo "Coverage Summary"
 echo "=============================================="
 
-if [ "$FLUTTER_COVERAGE" = true ]; then
-    echo "📱 Flutter:    coverage/lcov.info"
+if [ "$FLUTTER_UNIT_COVERAGE" = true ]; then
+    echo "📱 Flutter Unit:        coverage/lcov-unit.info"
+fi
+
+if [ "$FLUTTER_INTEGRATION_COVERAGE" = true ]; then
+    echo "🖥️  Flutter Integration: coverage/lcov-integration.info"
 fi
 
 if [ "$TS_COVERAGE" = true ]; then
-    echo "🔥 Functions:  coverage/lcov-functions.info"
+    echo "🔥 Functions:           coverage/lcov-functions.info"
 fi
 
 if [ -f "coverage/lcov-combined.info" ]; then
-    echo "📊 Combined:   coverage/lcov-combined.info"
+    echo "📊 Combined:            coverage/lcov-combined.info"
+fi
+
+if [ -f "coverage/lcov.info" ]; then
+    echo ""
+    echo "📄 Main coverage file:  coverage/lcov.info"
 fi
 
 # Show available HTML reports (check for actual file existence)
@@ -203,9 +363,25 @@ HTML_REPORTS_FOUND=false
 if [ -f "coverage/html-flutter/index.html" ]; then
     HTML_REPORTS_FOUND=true
     echo ""
-    echo "To view Flutter HTML report:"
+    echo "To view combined Flutter HTML report:"
     echo "  open coverage/html-flutter/index.html (Mac)"
     echo "  xdg-open coverage/html-flutter/index.html (Linux)"
+fi
+
+if [ -f "coverage/html-flutter-unit/index.html" ]; then
+    HTML_REPORTS_FOUND=true
+    echo ""
+    echo "To view Flutter unit HTML report:"
+    echo "  open coverage/html-flutter-unit/index.html (Mac)"
+    echo "  xdg-open coverage/html-flutter-unit/index.html (Linux)"
+fi
+
+if [ -f "coverage/html-flutter-integration/index.html" ]; then
+    HTML_REPORTS_FOUND=true
+    echo ""
+    echo "To view Flutter integration HTML report:"
+    echo "  open coverage/html-flutter-integration/index.html (Mac)"
+    echo "  xdg-open coverage/html-flutter-integration/index.html (Linux)"
 fi
 
 if [ -f "coverage/html-functions/index.html" ]; then
@@ -217,7 +393,7 @@ if [ -f "coverage/html-functions/index.html" ]; then
 fi
 
 if [ "$HTML_REPORTS_FOUND" = false ]; then
-    if [ "$FLUTTER_COVERAGE" = true ]; then
+    if [ "$FLUTTER_UNIT_COVERAGE" = true ] || [ "$FLUTTER_INTEGRATION_COVERAGE" = true ]; then
         echo ""
         echo "💡 To generate HTML coverage reports for Flutter, install lcov:"
         echo "   brew install lcov (Mac) or sudo apt-get install lcov (Linux)"

@@ -11,6 +11,7 @@
 import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
@@ -249,50 +250,62 @@ void main() {
         expect(records.first.isIncomplete, isTrue);
       });
 
-      testWidgets('does not save partial when on complete step', (
-        tester,
-      ) async {
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+      testWidgets(
+        'completing full flow behaves correctly based on useReviewScreen flag',
+        (tester) async {
+          tester.view.physicalSize = const Size(1080, 1920);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
 
-        await tester.pumpWidget(
-          _wrapWithApp(
-            RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
+          await tester.pumpWidget(
+            _wrapWithApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                initialDate: DateTime(2024, 1, 15),
+              ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
+          );
+          await tester.pumpAndSettle();
 
-        // Navigate through the full flow
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
+          // Navigate through the full flow
+          await tester.tap(find.text('Set Start Time'));
+          await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
+          await tester.tap(find.text('Dripping'));
+          await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Set End Time'));
-        await tester.pumpAndSettle();
+          await tester.tap(find.text('Set End Time'));
+          await tester.pumpAndSettle();
 
-        // Should be on complete step
-        expect(find.text('Record Complete'), findsOneWidget);
+          if (FeatureFlags.useReviewScreen) {
+            // When useReviewScreen is true: should be on complete step
+            expect(find.text('Record Complete'), findsOneWidget);
 
-        // Press back from complete step
-        await tester.tap(find.text('Back'));
-        await tester.pumpAndSettle();
+            // Press back from complete step - should NOT auto-save
+            await tester.tap(find.text('Back'));
+            await tester.pumpAndSettle();
 
-        // Should NOT auto-save (user should use the Finished button)
-        final records = await nosebleedService.getRecordsForDate(
-          DateTime(2024, 1, 15),
-        );
-        expect(records.length, 0);
-      });
+            final records = await nosebleedService.getRecordsForDate(
+              DateTime(2024, 1, 15),
+            );
+            expect(records.length, 0);
+          } else {
+            // When useReviewScreen is false: saves immediately after Set End Time
+            // and shows "Record Nosebleed" button (already saved and navigated back)
+            // The record should already be saved
+            final records = await nosebleedService.getRecordsForDate(
+              DateTime(2024, 1, 15),
+            );
+            expect(records.length, 1);
+            expect(records.first.intensity, NosebleedIntensity.dripping);
+            expect(records.first.isIncomplete, isFalse);
+          }
+        },
+      );
     });
 
     group('SimpleRecordingScreen Back Button Auto-Save', () {
@@ -307,8 +320,8 @@ void main() {
           });
 
           await tester.pumpWidget(
-            _wrapWithApp(
-              SimpleRecordingScreen(
+            _wrapWithNavigation(
+              (context) => SimpleRecordingScreen(
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 initialDate: DateTime(2024, 1, 15),
@@ -317,8 +330,14 @@ void main() {
           );
           await tester.pumpAndSettle();
 
+          // Open the recording screen
+          await tester.tap(find.text('Open Recording'));
+          await tester.pumpAndSettle();
+
           // Select an intensity to create unsaved changes
-          await tester.tap(find.text('Dripping'));
+          // Note: IntensityRow adds '\n' suffix to single-word labels for alignment
+          // Use exact text with newline to avoid matching 'Dripping\nquickly'
+          await tester.tap(find.text('Dripping\n'));
           await tester.pumpAndSettle();
 
           // Press back
@@ -338,8 +357,11 @@ void main() {
       );
 
       testWidgets(
-        'tapping back without changes navigates back without saving',
+        'tapping back immediately auto-saves partial with default start time',
         (tester) async {
+          // SimpleRecordingScreen automatically sets _userSetStart = true
+          // for new records because a start time is displayed and user expects
+          // it to be valid. Therefore, pressing back immediately should auto-save.
           tester.view.physicalSize = const Size(1080, 1920);
           tester.view.devicePixelRatio = 1.0;
           addTearDown(() {
@@ -347,39 +369,12 @@ void main() {
             tester.view.resetDevicePixelRatio();
           });
 
-          var didPop = false;
-
           await tester.pumpWidget(
-            MaterialApp(
-              locale: const Locale('en'),
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-              ],
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: Builder(
-                builder: (context) {
-                  return Scaffold(
-                    body: ElevatedButton(
-                      onPressed: () async {
-                        await Navigator.push<bool>(
-                          context,
-                          MaterialPageRoute<bool>(
-                            builder: (_) => SimpleRecordingScreen(
-                              nosebleedService: nosebleedService,
-                              enrollmentService: mockEnrollment,
-                              initialDate: DateTime(2024, 1, 15),
-                            ),
-                          ),
-                        );
-                        didPop = true;
-                      },
-                      child: const Text('Open Recording'),
-                    ),
-                  );
-                },
+            _wrapWithNavigation(
+              (context) => SimpleRecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                initialDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -393,9 +388,16 @@ void main() {
           await tester.tap(find.text('Back'));
           await tester.pumpAndSettle();
 
-          // Should NOT show any dialog - should just navigate back
+          // Should NOT show any dialog
           expect(find.text('Save as Incomplete?'), findsNothing);
-          expect(didPop, isTrue);
+
+          // Should auto-save the partial record with default start time
+          final records = await nosebleedService.getRecordsForDate(
+            DateTime(2024, 1, 15),
+          );
+          expect(records.length, 1);
+          expect(records.first.startTime, isNotNull);
+          expect(records.first.isIncomplete, isTrue);
         },
       );
 
@@ -410,8 +412,8 @@ void main() {
         });
 
         await tester.pumpWidget(
-          _wrapWithApp(
-            SimpleRecordingScreen(
+          _wrapWithNavigation(
+            (context) => SimpleRecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               initialDate: DateTime(2024, 1, 15),
@@ -420,8 +422,14 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // Open the recording screen
+        await tester.tap(find.text('Open Recording'));
+        await tester.pumpAndSettle();
+
         // Select intensity
-        await tester.tap(find.text('Spotting'));
+        // Note: IntensityRow adds '\n' suffix to single-word labels for alignment
+        // Use exact text with newline to avoid ambiguous matches
+        await tester.tap(find.text('Spotting\n'));
         await tester.pumpAndSettle();
 
         // Press back
@@ -455,8 +463,8 @@ void main() {
         );
 
         await tester.pumpWidget(
-          _wrapWithApp(
-            SimpleRecordingScreen(
+          _wrapWithNavigation(
+            (context) => SimpleRecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               existingRecord: existingRecord,
@@ -465,8 +473,14 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // Open the recording screen
+        await tester.tap(find.text('Open Recording'));
+        await tester.pumpAndSettle();
+
         // Change intensity
-        await tester.tap(find.text('Dripping'));
+        // Note: IntensityRow adds '\n' suffix to single-word labels for alignment
+        // Use exact text with newline to avoid matching 'Dripping\nquickly'
+        await tester.tap(find.text('Dripping\n'));
         await tester.pumpAndSettle();
 
         // Press back
@@ -490,8 +504,8 @@ void main() {
           });
 
           await tester.pumpWidget(
-            _wrapWithApp(
-              SimpleRecordingScreen(
+            _wrapWithNavigation(
+              (context) => SimpleRecordingScreen(
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 initialDate: DateTime(2024, 1, 15),
@@ -500,8 +514,14 @@ void main() {
           );
           await tester.pumpAndSettle();
 
+          // Open the recording screen
+          await tester.tap(find.text('Open Recording'));
+          await tester.pumpAndSettle();
+
           // Select intensity to create unsaved changes
-          await tester.tap(find.text('Dripping'));
+          // Note: IntensityRow adds '\n' suffix to single-word labels for alignment
+          // Use exact text with newline to avoid matching 'Dripping\nquickly'
+          await tester.tap(find.text('Dripping\n'));
           await tester.pumpAndSettle();
 
           // Simulate system back button
@@ -534,6 +554,36 @@ Widget _wrapWithApp(Widget child) {
       GlobalCupertinoLocalizations.delegate,
     ],
     home: child,
+  );
+}
+
+/// Helper to wrap widget with proper navigation stack so PopScope works correctly.
+/// SimpleRecordingScreen uses PopScope which requires a parent route to pop to.
+Widget _wrapWithNavigation(Widget Function(BuildContext) builder) {
+  return MaterialApp(
+    locale: const Locale('en'),
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Builder(
+      builder: (context) {
+        return Scaffold(
+          body: ElevatedButton(
+            onPressed: () {
+              Navigator.push<dynamic>(
+                context,
+                MaterialPageRoute<dynamic>(builder: (_) => builder(context)),
+              );
+            },
+            child: const Text('Open Recording'),
+          ),
+        );
+      },
+    ),
   );
 }
 
