@@ -568,12 +568,26 @@ class NosebleedService {
     return _eventRepository.verifyIntegrity();
   }
 
-  /// Clear all local data (for testing)
+  /// Clear all local data (for dev/test environments only).
+  ///
+  /// This completely deletes the local database and clears preferences.
+  /// In production, this should never be called - the append-only datastore
+  /// is designed to be immutable for FDA compliance.
+  ///
+  /// After calling this method, the Datastore is reset and ready for use
+  /// with a fresh database.
   Future<void> clearLocalData() async {
-    // Note: In production, we wouldn't allow clearing the append-only datastore
-    // This is kept for testing purposes only
+    // Clear device UUID from preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_deviceUuidKey);
+
+    // Delete and reset the datastore (clears all event records)
+    // This uses the Datastore singleton's deleteAndReset method which
+    // properly closes the database, deletes the file, and resets state.
+    // The datastore will be automatically reinitialized on next access.
+    if (Datastore.isInitialized) {
+      await Datastore.instance.deleteAndReset();
+    }
   }
 
   /// Dispose resources

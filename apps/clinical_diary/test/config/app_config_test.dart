@@ -5,7 +5,96 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('AppEnvironment', () {
+    group('fromString', () {
+      test('parses dev environment', () {
+        expect(AppEnvironment.fromString('dev'), AppEnvironment.dev);
+        expect(AppEnvironment.fromString('DEV'), AppEnvironment.dev);
+        expect(AppEnvironment.fromString('Dev'), AppEnvironment.dev);
+      });
+
+      test('parses test environment', () {
+        expect(AppEnvironment.fromString('test'), AppEnvironment.test);
+        expect(AppEnvironment.fromString('TEST'), AppEnvironment.test);
+      });
+
+      test('parses uat environment', () {
+        expect(AppEnvironment.fromString('uat'), AppEnvironment.uat);
+        expect(AppEnvironment.fromString('UAT'), AppEnvironment.uat);
+      });
+
+      test('parses prod environment', () {
+        expect(AppEnvironment.fromString('prod'), AppEnvironment.prod);
+        expect(AppEnvironment.fromString('PROD'), AppEnvironment.prod);
+      });
+
+      test('defaults to dev for null', () {
+        expect(AppEnvironment.fromString(null), AppEnvironment.dev);
+      });
+
+      test('defaults to dev for unknown value', () {
+        expect(AppEnvironment.fromString('unknown'), AppEnvironment.dev);
+        expect(AppEnvironment.fromString(''), AppEnvironment.dev);
+      });
+    });
+
+    group('showDevTools', () {
+      test('returns true for dev environment', () {
+        expect(AppEnvironment.dev.showDevTools, true);
+      });
+
+      test('returns true for test environment', () {
+        expect(AppEnvironment.test.showDevTools, true);
+      });
+
+      test('returns false for uat environment', () {
+        expect(AppEnvironment.uat.showDevTools, false);
+      });
+
+      test('returns false for prod environment', () {
+        expect(AppEnvironment.prod.showDevTools, false);
+      });
+    });
+
+    group('isProductionLike', () {
+      test('returns false for dev environment', () {
+        expect(AppEnvironment.dev.isProductionLike, false);
+      });
+
+      test('returns false for test environment', () {
+        expect(AppEnvironment.test.isProductionLike, false);
+      });
+
+      test('returns true for uat environment', () {
+        expect(AppEnvironment.uat.isProductionLike, true);
+      });
+
+      test('returns true for prod environment', () {
+        expect(AppEnvironment.prod.isProductionLike, true);
+      });
+    });
+
+    group('displayName', () {
+      test('returns human-readable names', () {
+        expect(AppEnvironment.dev.displayName, 'Development');
+        expect(AppEnvironment.test.displayName, 'Test');
+        expect(AppEnvironment.uat.displayName, 'UAT');
+        expect(AppEnvironment.prod.displayName, 'Production');
+      });
+    });
+  });
+
   group('AppConfig', () {
+    group('environment', () {
+      test('environment is a valid AppEnvironment', () {
+        expect(AppConfig.environment, isA<AppEnvironment>());
+      });
+
+      test('showDevTools matches environment setting', () {
+        expect(AppConfig.showDevTools, AppConfig.environment.showDevTools);
+      });
+    });
+
     group('URL configuration', () {
       test('enrollUrl has correct base path', () {
         expect(AppConfig.enrollUrl, contains('hht-diary-mvp.web.app'));

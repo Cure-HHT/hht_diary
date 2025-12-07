@@ -372,7 +372,13 @@ void main() {
     });
 
     group('clearLocalData', () {
-      test('clears device UUID from preferences', () async {
+      // NOTE: clearLocalData is ONLY available in dev/test environments
+      // (controlled by AppConfig.showDevTools). It completely resets
+      // the local database for testing purposes.
+      // In production, the append-only datastore is never deleted
+      // to maintain FDA 21 CFR Part 11 compliance.
+
+      test('clears device UUID and generates new one', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient(
@@ -385,14 +391,25 @@ void main() {
 
         await service.clearLocalData();
 
+        // Re-initialize datastore after reset (normally done by app restart)
+        await Datastore.initialize(
+          config: DatastoreConfig(
+            deviceId: 'test-device-id',
+            userId: 'test-user-id',
+            databasePath: tempDir.path,
+            databaseName: 'test_events.db',
+            enableEncryption: false,
+          ),
+        );
+
         // After clearing, a new UUID should be generated
         final uuid2 = await service.getDeviceUuid();
         expect(uuid1, isNot(equals(uuid2)));
       });
 
-      test('append-only datastore preserves records for audit trail', () async {
-        // This test documents that the append-only datastore does NOT delete
-        // records - this is by design for FDA 21 CFR Part 11 compliance
+      test('clears all records from datastore (dev/test only)', () async {
+        // In dev/test environments, clearLocalData removes all data
+        // to allow clean testing. This feature is disabled in prod/uat.
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient(
@@ -403,11 +420,26 @@ void main() {
         await service.addRecord(date: DateTime(2024, 1, 15));
         await service.addRecord(date: DateTime(2024, 1, 16));
 
+        // Verify records exist before clearing
+        var records = await service.getLocalRecords();
+        expect(records.length, 2);
+
         await service.clearLocalData();
 
-        // Records are preserved in the append-only datastore
-        final records = await service.getLocalRecords();
-        expect(records.length, 2);
+        // Re-initialize datastore after reset (normally done by app restart)
+        await Datastore.initialize(
+          config: DatastoreConfig(
+            deviceId: 'test-device-id',
+            userId: 'test-user-id',
+            databasePath: tempDir.path,
+            databaseName: 'test_events.db',
+            enableEncryption: false,
+          ),
+        );
+
+        // Records are cleared in dev/test mode
+        records = await service.getLocalRecords();
+        expect(records.length, 0);
       });
     });
 
