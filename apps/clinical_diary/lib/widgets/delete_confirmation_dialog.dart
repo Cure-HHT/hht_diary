@@ -106,6 +106,8 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
                 border: const OutlineInputBorder(),
               ),
               maxLines: 2,
+              // Trigger rebuild to update button enabled state
+              onChanged: (_) => setState(() {}),
             ),
           ],
         ],
