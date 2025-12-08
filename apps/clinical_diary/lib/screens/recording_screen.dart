@@ -115,7 +115,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       final initialDate = widget.initialDate ?? DateTime.now();
       _startDate = initialDate;
       _startTime = initialDate;
-      _endDate = initialDate;
+      _endDate = null;
       _endTime = null;
       // CUR-408: Removed _loadEnrollmentStatus call - notes step removed, TODO - put it back
     }
@@ -158,6 +158,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// REQ-CAL: Run all validation checks before saving
   /// Returns true if save should proceed, false if cancelled
   Future<bool> _runValidationChecks() async {
+    if (_startTime != null &&
+        _endTime != null &&
+        _endTime!.isBefore(_startTime!)) {
+      return false;
+    }
     // REQ-CAL-p00001: Old entry justification check
     if (_needsOldEntryJustification) {
       final justification = await OldEntryJustificationDialog.show(
@@ -236,10 +241,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _endTime!.difference(_startTime!).inMinutes;
   }
 
-  /// Returns the maximum DateTime allowed for time selection.
-  /// For today, returns DateTime.now() to prevent future times.
-  /// For past dates, returns end of that day (23:59:59) to allow any time.
-  /// CUR-447: Uses _currentDate to get the correct date for the current step.
   DateTime? get _maxDateTimeForTimePicker {
     return DateTime.now();
   }
@@ -287,7 +288,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     try {
       String? recordId;
       if (widget.existingRecord != null) {
-        // Update existing record (creates a new version that supersedes the original)
+        // Update existing record (creates a new record that supersedes the original)
         // CUR-447: Use _startDate as the primary date for the record
         final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
@@ -343,42 +344,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
       switch (_currentStep) {
         case RecordingStep.startTime:
           _startDate = newDate;
-          // Update start time to match new date while preserving time
-          if (_startTime != null) {
-            _startTime = DateTime(
-              newDate.year,
-              newDate.month,
-              newDate.day,
-              _startTime!.hour,
-              _startTime!.minute,
-            );
-          }
+          _startTime = dateTimeForDateAndTime(newDate, _startTime!);
           // If end date is before start date, update it to match
-          if (_endDate != null && _endDate!.isBefore(newDate)) {
+          if (_endDate == null) {
+            _endDate = newDate;
+          } else if (_endDate!.isBefore(newDate)) {
             _endDate = newDate;
             if (_endTime != null) {
-              _endTime = DateTime(
-                newDate.year,
-                newDate.month,
-                newDate.day,
-                _endTime!.hour,
-                _endTime!.minute,
-              );
+              _endTime = dateTimeForDateAndTime(newDate, _endTime!);
             }
           }
           break;
         case RecordingStep.endTime:
           _endDate = newDate;
+          _endTime ??= newDate;
           // Update end time to match new date while preserving time
-          if (_endTime != null) {
-            _endTime = DateTime(
-              newDate.year,
-              newDate.month,
-              newDate.day,
-              _endTime!.hour,
-              _endTime!.minute,
-            );
-          }
+          _endTime = dateTimeForDateAndTime(newDate, _endTime!);
           break;
         case RecordingStep.intensity:
         case RecordingStep.complete:
@@ -399,13 +380,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     } else {
       _goToStep(RecordingStep.endTime);
     }
-  }
-
-  void _handleStartTimeConfirm(DateTime time) {
-    setState(() {
-      _startTime = time;
-      _currentStep = RecordingStep.intensity;
-    });
   }
 
   void _handleIntensitySelect(NosebleedIntensity intensity) {
@@ -475,13 +449,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// REQ-p00001: Incomplete Entry Preservation - automatically saves partial
   /// records without prompting the user.
   Future<bool> _handleExit() async {
-    if (!_hasUnsavedPartialRecord) return true;
+    try {
+      if (!_hasUnsavedPartialRecord) return true;
 
-    // Auto-save the partial record without prompting
-    await _saveRecord();
-    // _saveRecord handles navigation via Navigator.pop, so return false
-    // to prevent double navigation
-    return false;
+      // Auto-save the partial record without prompting
+      final recordId = await _saveRecord();
+      if (recordId == null) {
+        return true; //we pop
+      }
+      // _saveRecord handles navigation via Navigator.pop, so return false
+      // to prevent double navigation
+      return false;
+    } catch (e, s) {
+      debugPrint('Error exiting $e');
+      debugPrintStack(stackTrace: s);
+      return true;
+    }
   }
 
   @override
@@ -684,39 +667,26 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
-        // CUR-447: Use _startDate for start time, ensuring date sync with DateHeader
         final DateTime startInitialTime;
         if (_startTime != null) {
           // Use existing start time but ensure it's on current _startDate
-          startInitialTime = DateTime(
-            _startDate.year,
-            _startDate.month,
-            _startDate.day,
-            _startTime!.hour,
-            _startTime!.minute,
-          );
+          startInitialTime = dateTimeForDateAndTime(_startDate, _startTime!);
         } else {
           // Default to current time on _startDate
-          startInitialTime = DateTime(
-            _startDate.year,
-            _startDate.month,
-            _startDate.day,
-            DateTime.now().hour,
-            DateTime.now().minute,
-          );
+          startInitialTime = dateTimeForDateAndTime(_startDate, DateTime.now());
         }
         return TimePickerDial(
-          // CUR-447: Include date in key to force rebuild when date changes
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
           initialTime: startInitialTime,
-          onConfirm: _handleStartTimeConfirm,
-          onTimeChanged: (time) {
-            // CUR-464: Update summary in real-time as user adjusts time
+          onConfirm: (DateTime time) {
+            setStartTimeState(time, startInitialTime);
             setState(() {
-              _startTime = time;
-              _startDate = time;
+              _currentStep = RecordingStep.intensity;
             });
+          },
+          onTimeChanged: (time) {
+            setStartTimeState(time, startInitialTime);
           },
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
@@ -737,10 +707,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
           initialTime: endInitialTime,
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: (time) {
-            // CUR-464: Update summary in real-time as user adjusts time
             setState(() {
-              _endTime = time;
               _endDate = time;
+              _endTime = time;
             });
           },
           confirmLabel: l10n.setEndTime,
@@ -752,6 +721,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
       case RecordingStep.complete:
         return _buildCompleteStep(l10n);
     }
+  }
+
+  void setStartTimeState(DateTime time, DateTime startInitialTime) {
+    setState(() {
+      _startTime = time;
+      _startDate = time;
+      // Crossing the date line either way sets the end date date,
+      // if the end date is not already set
+      if (_endTime == null || (!DateUtils.isSameDay(startInitialTime, time))) {
+        _endDate = dateTimeForDateAndTime(startInitialTime, time);
+      }
+    });
+  }
+
+  /// @return a DateTime where the Date is date and the time is time
+  DateTime dateTimeForDateAndTime(DateTime date, DateTime time) {
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
   Widget _buildCompleteStep(AppLocalizations l10n) {
