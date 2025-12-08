@@ -137,15 +137,22 @@ class _TimePickerDialState extends State<TimePickerDial> {
     // Check if locale uses 24-hour format
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
 
+    // CUR-488 Phase 2: Reduced horizontal padding from 24 to 23 for small screens
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 23.0, vertical: 24.0),
       child: Column(
         children: [
-          Text(
-            widget.title,
-            style: Theme.of(
+          // CUR-488 Phase 2: Don't scale title to avoid scrolling on small screens
+          MediaQuery(
+            data: MediaQuery.of(
               context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ).copyWith(textScaler: TextScaler.noScaling),
+            child: Text(
+              widget.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
 
           const Spacer(),
