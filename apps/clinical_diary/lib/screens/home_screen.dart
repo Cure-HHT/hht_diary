@@ -678,11 +678,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // Today's records (excluding incomplete - they have their own warning banner)
+    // Today's records (including incomplete - CUR-488)
     final todayRecords =
         _records.where((r) {
           final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
+          return dateStr == todayStr && r.isRealEvent;
         }).toList()..sort(
           (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
         );

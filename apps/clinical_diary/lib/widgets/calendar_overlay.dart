@@ -349,6 +349,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     );
   }
 
+  /// CUR-488: Build date cell with improved styling for future dates
   Widget _buildDateCell(
     BuildContext context,
     DateTime day,
@@ -357,12 +358,16 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     bool isDisabled = false,
     bool isOutside = false,
   }) {
-    final color = isDisabled || isOutside
-        ? const Color(0xFF6B7280).withValues(alpha: 0.5)
+    // CUR-488: Future dates should be much more faded to clearly show they're not selectable
+    final isFutureDate = _isDisabled(day);
+    final shouldFade = isDisabled || isOutside || isFutureDate;
+
+    final color = shouldFade
+        ? const Color(0xFFE5E7EB) // Light gray for disabled/future dates
         : _getDateColor(day);
 
-    final textColor = isDisabled || isOutside
-        ? Colors.white.withValues(alpha: 0.5)
+    final textColor = shouldFade
+        ? const Color(0xFF9CA3AF) // Muted gray text for disabled dates
         : (color.computeLuminance() > 0.5 ? Colors.black : Colors.white);
 
     return Container(
@@ -379,7 +384,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
           '${day.day}',
           style: TextStyle(
             color: isSelected ? Colors.white : textColor,
-            fontWeight: FontWeight.bold,
+            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),

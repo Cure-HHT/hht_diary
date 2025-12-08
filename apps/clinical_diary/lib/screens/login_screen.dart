@@ -180,11 +180,13 @@ class _LoginScreenState extends State<LoginScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Privacy notice card
+            // CUR-488: Privacy notice card - reduced padding for compact display
             Card(
               color: colorScheme.primaryContainer,
+              elevation: 1,
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -193,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen>
                         Icon(
                           Icons.privacy_tip,
                           color: colorScheme.onPrimaryContainer,
-                          size: 20,
+                          size: 18,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -205,17 +207,17 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       l10n.privacyNoticeDescription,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onPrimaryContainer,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       l10n.noAtSymbol,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onPrimaryContainer,
                       ),
                     ),
@@ -224,13 +226,15 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Security reminder card
+            // CUR-488: Security reminder card - reduced padding for compact display
             Card(
               color: Colors.orange.shade50,
+              elevation: 1,
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -239,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen>
                         Icon(
                           Icons.warning_amber,
                           color: Colors.orange.shade800,
-                          size: 20,
+                          size: 18,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -251,17 +255,17 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       l10n.storeCredentialsSecurely,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.orange.shade900,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       l10n.lostCredentialsWarning,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.orange.shade900,
                       ),
                     ),
@@ -270,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Error message
             if (_errorMessage != null) ...[

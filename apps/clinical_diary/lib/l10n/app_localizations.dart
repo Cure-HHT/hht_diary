@@ -186,7 +186,8 @@ class AppLocalizations {
       'notesPlaceholder': 'Optional notes about this nosebleed...',
       'start': 'Start',
       'end': 'End',
-      'selectIntensity': 'Select...',
+      'selectIntensity': 'Tap to set',
+      'notSet': 'Not set',
       'intensity': 'Intensity',
       'maxIntensity': 'Max Intensity',
       'nosebleedStart': 'Nosebleed Start',
@@ -471,7 +472,8 @@ class AppLocalizations {
       'notesPlaceholder': 'Notas opcionales sobre esta hemorragia nasal...',
       'start': 'Inicio',
       'end': 'Fin',
-      'selectIntensity': 'Seleccionar...',
+      'selectIntensity': 'Toca para seleccionar',
+      'notSet': 'No establecido',
       'intensity': 'Intensidad',
       'maxIntensity': 'Intensidad Máxima',
       'nosebleedStart': 'Inicio de hemorragia',
@@ -769,7 +771,8 @@ class AppLocalizations {
       'notesPlaceholder': 'Notes optionnelles sur ce saignement de nez...',
       'start': 'Debut',
       'end': 'Fin',
-      'selectIntensity': 'Selectionner...',
+      'selectIntensity': 'Appuyez pour definir',
+      'notSet': 'Non defini',
       'intensity': 'Intensite',
       'maxIntensity': 'Intensite Maximale',
       'nosebleedStart': 'Debut du saignement',
@@ -1064,7 +1067,8 @@ class AppLocalizations {
       'notesPlaceholder': 'Optionale Notizen zu diesem Nasenbluten...',
       'start': 'Start',
       'end': 'Ende',
-      'selectIntensity': 'Auswahlen...',
+      'selectIntensity': 'Tippen zum Einstellen',
+      'notSet': 'Nicht eingestellt',
       'intensity': 'Intensitat',
       'maxIntensity': 'Maximale Intensitat',
       'nosebleedStart': 'Nasenbluten-Start',
@@ -1362,6 +1366,8 @@ class AppLocalizations {
   String get start => translate('start');
   String get end => translate('end');
   String get selectIntensity => translate('selectIntensity');
+  String get notSet => translate('notSet');
+  String get incomplete => translate('incomplete');
   String get intensity => translate('intensity');
   String get maxIntensity => translate('maxIntensity');
   String get nosebleedStart => translate('nosebleedStart');

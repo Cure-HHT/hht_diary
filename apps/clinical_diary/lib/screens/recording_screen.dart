@@ -119,8 +119,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow
 
-  String _formatTime(DateTime? time, String locale) {
-    if (time == null) return '--:--';
+  /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
+  String _formatTime(DateTime? time, String locale, AppLocalizations l10n) {
+    if (time == null) return l10n.notSet;
     return DateFormat.jm(locale).format(time);
   }
 
@@ -228,9 +229,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${l10n.failedToSave}: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: SelectableText(
+              '${l10n.failedToSave}: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            duration: const Duration(seconds: 10),
+          ),
+        );
       }
       return null;
     } finally {
@@ -494,7 +501,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // Start time
           _buildSummaryItem(
             label: l10n.start,
-            value: _formatTime(_startTime, locale),
+            value: _formatTime(_startTime, locale, l10n),
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
           ),
@@ -528,7 +535,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // End time - CUR-464: use _handleEndTimeTap to flash intensity if not set
           _buildSummaryItem(
             label: l10n.end,
-            value: _formatTime(_endTime, locale),
+            value: _formatTime(_endTime, locale, l10n),
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _startTime != null ? _handleEndTimeTap : null,
           ),
