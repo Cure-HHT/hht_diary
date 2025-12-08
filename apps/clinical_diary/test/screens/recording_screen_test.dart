@@ -917,7 +917,8 @@ void main() {
         // Should show end time picker
         expect(find.text('Nosebleed End Time'), findsOneWidget);
         // End time in summary bar remains unset until user confirms
-        expect(find.text('--:--'), findsOneWidget);
+        // CUR-488: Changed from '--:--' to localized 'Not set'
+        expect(find.text('Not set'), findsOneWidget);
       });
     });
   });

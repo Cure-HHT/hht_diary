@@ -88,9 +88,17 @@ class EventListItem extends StatelessWidget {
     return endDay.isAfter(startDay);
   }
 
-  String get _duration {
+  /// CUR-488: Show "Incomplete" for ongoing events (no end time set)
+  /// Show minimum "1m" if start and end are the same (0 duration)
+  String _getDuration(AppLocalizations l10n) {
     final minutes = record.durationMinutes;
+    // If no end time set, show "Incomplete" instead of empty or 0m
+    if (record.endTime == null && record.startTime != null) {
+      return l10n.incomplete;
+    }
     if (minutes == null) return '';
+    // Show minimum 1m if start and end are the same time
+    if (minutes == 0) return '1m';
     if (minutes < 60) return '${minutes}m';
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
@@ -121,6 +129,9 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.green.shade50,
+      // CUR-488: Add subtle elevation for depth
+      elevation: 1,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -165,6 +176,9 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.yellow.shade50,
+      // CUR-488: Add subtle elevation for depth
+      elevation: 1,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -213,15 +227,20 @@ class EventListItem extends StatelessWidget {
     String locale,
   ) {
     // Fixed widths for column alignment
-    // Time column: "12:59 PM CET" needs ~95px, 24h "23:59" needs ~40px
+    // Time column: "12:59 PM" needs ~70px, 24h "23:59" needs ~40px
+    // Note: timezone suffix adds ~25px when shown, but we let it overflow into duration gap
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    final timeWidth = use24Hour ? 40.0 : 95.0;
+    final timeWidth = use24Hour ? 40.0 : 70.0;
     const iconWidth = 32.0; // 28px icon + 4px gap
-    const durationWidth = 50.0; // "12h" or "59m" - compact
+    // CUR-488: "Incomplete" / "Unvollständig" needs ~80px, "12h 59m" needs ~55px
+    const durationWidth = 80.0;
 
     return Card(
       margin: EdgeInsets.zero,
       color: highlightColor,
+      // CUR-488: Add subtle elevation for depth
+      elevation: 1,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -277,7 +296,7 @@ class EventListItem extends StatelessWidget {
                   child: SizedBox(
                     width: durationWidth,
                     child: Text(
-                      _duration,
+                      _getDuration(l10n),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(
                           context,
@@ -287,18 +306,23 @@ class EventListItem extends StatelessWidget {
                   ),
                 ),
 
-                // Multi-day indicator (left-aligned, no extra padding)
-                if (_isMultiDay)
-                  Text(
-                    l10n.translate('plusOneDay'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-
                 // Spacer to push status indicators to the right
-                const Spacer(),
+                // Use Expanded to take remaining space and prevent overflow
+                Expanded(
+                  child: _isMultiDay
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Text(
+                            l10n.translate('plusOneDay'),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
 
                 // Incomplete indicator (compact)
                 if (record.isIncomplete) ...[
