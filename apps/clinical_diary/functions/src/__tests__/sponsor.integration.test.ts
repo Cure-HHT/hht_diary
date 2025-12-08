@@ -11,7 +11,7 @@
 
 import http from "http";
 
-const EMULATOR_HOST = process.env.FUNCTIONS_EMULATOR_HOST || "localhost";
+const EMULATOR_HOST = process.env.FUNCTIONS_EMULATOR_HOST || "127.0.0.1";
 const EMULATOR_PORT = process.env.FUNCTIONS_EMULATOR_PORT || "5001";
 const PROJECT_ID = process.env.GCLOUD_PROJECT || "hht-diary-mvp";
 const REGION = "europe-west1";
@@ -60,14 +60,18 @@ async function isEmulatorRunning(): Promise<boolean> {
 }
 
 describe("SponsorConfig Integration Tests", () => {
+  let emulatorRunning = false;
+
   beforeAll(async () => {
-    const running = await isEmulatorRunning();
-    if (!running) {
-      console.warn(
-        "\n⚠️  Firebase emulator not running. Skipping integration tests.\n" +
-        "To run these tests:\n" +
+    emulatorRunning = await isEmulatorRunning();
+    if (!emulatorRunning) {
+      console.error(
+        "\n❌ Firebase emulator not running!\n" +
+        "These tests require the Firebase emulator.\n" +
+        "To run manually:\n" +
         "  1. Start emulator WITHOUT Doppler: npm run serve:no-doppler\n" +
-        "  2. In another terminal: npm run test:integration\n"
+        "  2. In another terminal: npm run test:integration\n" +
+        "\nOr use the test script: ./tool/test.sh -ti\n"
       );
     }
   });
@@ -76,11 +80,8 @@ describe("SponsorConfig Integration Tests", () => {
     it(
       "AUDIT: returns 500 when CUREHHT_QA_API_KEY is not configured",
       async () => {
-        const running = await isEmulatorRunning();
-        if (!running) {
-          console.warn("Skipping: emulator not running");
-          return;
-        }
+        // Fail if emulator is not running - this is required for CI
+        expect(emulatorRunning).toBe(true);
 
         // When emulator runs without Doppler (npm run serve:no-doppler),
         // CUREHHT_QA_API_KEY is not set, so this should return 500
@@ -101,36 +102,34 @@ describe("SponsorConfig Integration Tests", () => {
     // They verify that when the key IS configured:
     // - Wrong key returns 401
     // - Correct key returns 200
+    //
+    // NOTE: When running via test.sh/coverage.sh, the emulator runs WITHOUT
+    // Doppler, so these tests accept either 401 or 500 responses.
 
-    it("returns 401 for invalid API key", async () => {
-      const running = await isEmulatorRunning();
-      if (!running) {
-        console.warn("Skipping: emulator not running");
-        return;
+    it(
+      "returns 401 for invalid API key (or 500 if key not configured)",
+      async () => {
+        expect(emulatorRunning).toBe(true);
+
+        // This test only works when emulator has CUREHHT_QA_API_KEY set
+        // If running without Doppler, this will return 500 instead
+        const response = await makeRequest(
+          "/sponsorConfig?sponsorId=curehht&apiKey=definitely-wrong-key"
+        );
+
+        // Either 401 (key configured, wrong key) or 500 (key not configured)
+        expect([401, 500]).toContain(response.statusCode);
+
+        if (response.statusCode === 401) {
+          expect(response.body).toEqual({error: "Invalid API key"});
+        } else {
+          expect(response.body).toEqual({error: "Server configuration error"});
+        }
       }
-
-      // This test only works when emulator has CUREHHT_QA_API_KEY set
-      // If running without Doppler, this will return 500 instead
-      const response = await makeRequest(
-        "/sponsorConfig?sponsorId=curehht&apiKey=definitely-wrong-key"
-      );
-
-      // Either 401 (key configured, wrong key) or 500 (key not configured)
-      expect([401, 500]).toContain(response.statusCode);
-
-      if (response.statusCode === 401) {
-        expect(response.body).toEqual({error: "Invalid API key"});
-      } else {
-        expect(response.body).toEqual({error: "Server configuration error"});
-      }
-    });
+    );
 
     it("returns 400 for missing sponsorId", async () => {
-      const running = await isEmulatorRunning();
-      if (!running) {
-        console.warn("Skipping: emulator not running");
-        return;
-      }
+      expect(emulatorRunning).toBe(true);
 
       const response = await makeRequest("/sponsorConfig?apiKey=test");
 
@@ -139,11 +138,7 @@ describe("SponsorConfig Integration Tests", () => {
     });
 
     it("returns 401 for missing apiKey", async () => {
-      const running = await isEmulatorRunning();
-      if (!running) {
-        console.warn("Skipping: emulator not running");
-        return;
-      }
+      expect(emulatorRunning).toBe(true);
 
       const response = await makeRequest("/sponsorConfig?sponsorId=curehht");
 

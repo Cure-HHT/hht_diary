@@ -129,6 +129,20 @@ fail-closed behavior for auditors:
 
 ### Running Integration Tests
 
+The easiest way to run integration tests is via the test script:
+
+```bash
+cd apps/clinical_diary
+
+# Run only TypeScript integration tests (starts emulator automatically)
+./tool/test.sh -ti
+
+# Or run all TypeScript tests (unit + integration)
+./tool/test.sh -t
+```
+
+For manual testing:
+
 ```bash
 cd apps/clinical_diary/functions
 
