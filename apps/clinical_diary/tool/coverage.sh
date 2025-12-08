@@ -5,7 +5,10 @@
 #
 # Coverage script for clinical_diary
 # Runs Flutter (Dart) and Firebase Functions (TypeScript) coverage
-# Can combine coverage reports using lcov
+# Generates combined reports per technology stack:
+#   - Flutter: unit + integration tests combined
+#   - TypeScript: unit + integration tests combined (future)
+# Each stack has its own minimum coverage threshold
 # Works both locally and in CI/CD
 
 set -e  # Exit on any error
@@ -13,11 +16,16 @@ set -e  # Exit on any error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
+# Coverage thresholds (percentage)
+FLUTTER_MIN_COVERAGE=74
+TYPESCRIPT_MIN_COVERAGE=95
+
 # Parse command line arguments
 CONCURRENCY="10"
 RUN_FLUTTER_UNIT=false
 RUN_FLUTTER_INTEGRATION=false
 RUN_TYPESCRIPT=false
+CHECK_THRESHOLDS=true
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -28,10 +36,14 @@ usage() {
     echo "  -fi, --flutter-integration  Run Flutter integration tests coverage on desktop"
     echo "  -t,  --typescript           Run TypeScript (Functions) coverage only"
     echo "  --concurrency N             Set Flutter unit test concurrency (default: 10)"
+    echo "  --no-threshold              Skip coverage threshold checks"
     echo "  -h,  --help                 Show this help message"
     echo ""
-    echo "If no flags are specified, Flutter unit and TypeScript coverage are run."
-    echo "Integration test coverage must be explicitly requested with -fi or -f."
+    echo "If no flags are specified, all tests are run (Flutter unit + integration + TypeScript)."
+    echo ""
+    echo "Coverage Thresholds:"
+    echo "  Flutter:    ${FLUTTER_MIN_COVERAGE}%"
+    echo "  TypeScript: ${TYPESCRIPT_MIN_COVERAGE}%"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -57,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       CONCURRENCY="$2"
       shift 2
       ;;
+    --no-threshold)
+      CHECK_THRESHOLDS=false
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -69,9 +85,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no flags specified, run Flutter unit and TypeScript (not integration by default)
+# If no flags specified, run ALL tests (Flutter unit + integration + TypeScript)
 if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ] && [ "$RUN_TYPESCRIPT" = false ]; then
     RUN_FLUTTER_UNIT=true
+    RUN_FLUTTER_INTEGRATION=true
     RUN_TYPESCRIPT=true
 fi
 
@@ -254,88 +271,90 @@ if [ "$RUN_TYPESCRIPT" = true ]; then
     fi
 fi
 
-# Combine all coverage reports if multiple were generated and lcov is available
-COVERAGE_FILES_TO_COMBINE=""
+# Combine Flutter coverage reports (unit + integration) into one Flutter report
+FLUTTER_COVERAGE_FILES=""
 if [ "$FLUTTER_UNIT_COVERAGE" = true ]; then
-    COVERAGE_FILES_TO_COMBINE="$COVERAGE_FILES_TO_COMBINE coverage/lcov-unit.info"
+    FLUTTER_COVERAGE_FILES="$FLUTTER_COVERAGE_FILES coverage/lcov-unit.info"
 fi
 if [ "$FLUTTER_INTEGRATION_COVERAGE" = true ]; then
-    COVERAGE_FILES_TO_COMBINE="$COVERAGE_FILES_TO_COMBINE coverage/lcov-integration.info"
-fi
-if [ "$TS_COVERAGE" = true ]; then
-    COVERAGE_FILES_TO_COMBINE="$COVERAGE_FILES_TO_COMBINE coverage/lcov-functions.info"
+    FLUTTER_COVERAGE_FILES="$FLUTTER_COVERAGE_FILES coverage/lcov-integration.info"
 fi
 
-# Count how many coverage files we have
-NUM_COVERAGE_FILES=$(echo "$COVERAGE_FILES_TO_COMBINE" | wc -w | tr -d ' ')
+FLUTTER_COMBINED_COVERAGE=false
+NUM_FLUTTER_FILES=$(echo "$FLUTTER_COVERAGE_FILES" | wc -w | tr -d ' ')
 
-if [ "$NUM_COVERAGE_FILES" -gt 1 ] && command -v lcov &> /dev/null; then
+if [ "$NUM_FLUTTER_FILES" -gt 1 ] && command -v lcov &> /dev/null; then
     echo ""
-    echo "📊 Combining coverage reports..."
+    echo "📊 Combining Flutter coverage reports (unit + integration)..."
 
-    # Build lcov command with all files
+    # Build lcov command with all Flutter files
     LCOV_CMD="lcov"
-    for file in $COVERAGE_FILES_TO_COMBINE; do
+    for file in $FLUTTER_COVERAGE_FILES; do
         LCOV_CMD="$LCOV_CMD -a $file"
     done
-    LCOV_CMD="$LCOV_CMD -o coverage/lcov-combined.info --ignore-errors unused"
+    LCOV_CMD="$LCOV_CMD -o coverage/lcov-flutter.info --ignore-errors unused"
 
     if eval "$LCOV_CMD" 2>/dev/null; then
-        echo "✅ Combined coverage report: coverage/lcov-combined.info"
+        FLUTTER_COMBINED_COVERAGE=true
+        echo "✅ Combined Flutter coverage: coverage/lcov-flutter.info"
     fi
+elif [ "$NUM_FLUTTER_FILES" -eq 1 ]; then
+    # Only one Flutter coverage file, just copy it
+    cp $FLUTTER_COVERAGE_FILES coverage/lcov-flutter.info
+    FLUTTER_COMBINED_COVERAGE=true
+    echo "✅ Flutter coverage: coverage/lcov-flutter.info"
 fi
 
-# Also create a main lcov.info file (symlink to combined or first available)
-if [ -f "coverage/lcov-combined.info" ]; then
-    cp coverage/lcov-combined.info coverage/lcov.info
+# Create main lcov.info file from Flutter coverage (primary report)
+if [ -f "coverage/lcov-flutter.info" ]; then
+    cp coverage/lcov-flutter.info coverage/lcov.info
 elif [ -f "coverage/lcov-unit.info" ]; then
     cp coverage/lcov-unit.info coverage/lcov.info
-elif [ -f "coverage/lcov-integration.info" ]; then
-    cp coverage/lcov-integration.info coverage/lcov.info
 fi
+
+# Function to extract coverage percentage from lcov file
+get_coverage_percentage() {
+    local lcov_file="$1"
+    if [ ! -f "$lcov_file" ]; then
+        echo "0"
+        return
+    fi
+
+    local lines_found=$(grep -c "^DA:" "$lcov_file" 2>/dev/null || echo "0")
+    local lines_hit=$(grep "^DA:" "$lcov_file" 2>/dev/null | grep -v ",0$" | wc -l | tr -d ' ')
+
+    if [ "$lines_found" -eq 0 ]; then
+        echo "0"
+    else
+        # Use awk for floating point math, round to 1 decimal
+        echo "$lines_hit $lines_found" | awk '{printf "%.1f", ($1/$2)*100}'
+    fi
+}
 
 # Generate HTML reports if lcov is available
 # Note: Flutter and TypeScript use incompatible relative paths, so we generate separate HTML reports
-FLUTTER_UNIT_HTML_GENERATED=false
-FLUTTER_INTEGRATION_HTML_GENERATED=false
+FLUTTER_HTML_GENERATED=false
 if command -v genhtml &> /dev/null; then
-    # Generate Flutter unit HTML report if unit coverage exists
-    if [ -f "coverage/lcov-unit.info" ]; then
+    # Generate combined Flutter HTML report (primary report)
+    if [ -f "coverage/lcov-flutter.info" ]; then
         echo ""
-        echo "🌐 Generating Flutter unit HTML report..."
-        genhtml coverage/lcov-unit.info -o coverage/html-flutter-unit 2>/dev/null || true
-
-        if [ -f "coverage/html-flutter-unit/index.html" ]; then
-            FLUTTER_UNIT_HTML_GENERATED=true
-            echo "✅ Flutter unit HTML report: coverage/html-flutter-unit/index.html"
-        else
-            echo "⚠️  Flutter unit HTML report generation failed (genhtml couldn't resolve source paths)"
-        fi
-    fi
-
-    # Generate Flutter integration HTML report if integration coverage exists
-    if [ -f "coverage/lcov-integration.info" ]; then
-        echo ""
-        echo "🌐 Generating Flutter integration HTML report..."
-        genhtml coverage/lcov-integration.info -o coverage/html-flutter-integration 2>/dev/null || true
-
-        if [ -f "coverage/html-flutter-integration/index.html" ]; then
-            FLUTTER_INTEGRATION_HTML_GENERATED=true
-            echo "✅ Flutter integration HTML report: coverage/html-flutter-integration/index.html"
-        else
-            echo "⚠️  Flutter integration HTML report generation failed (genhtml couldn't resolve source paths)"
-        fi
-    fi
-
-    # Generate combined HTML report if combined coverage exists
-    if [ -f "coverage/lcov-combined.info" ]; then
-        echo ""
-        echo "🌐 Generating combined Flutter HTML report..."
-        genhtml coverage/lcov-combined.info -o coverage/html-flutter 2>/dev/null || true
+        echo "🌐 Generating Flutter HTML report..."
+        genhtml coverage/lcov-flutter.info -o coverage/html-flutter 2>/dev/null || true
 
         if [ -f "coverage/html-flutter/index.html" ]; then
-            echo "✅ Combined Flutter HTML report: coverage/html-flutter/index.html"
+            FLUTTER_HTML_GENERATED=true
+            echo "✅ Flutter HTML report: coverage/html-flutter/index.html"
+        else
+            echo "⚠️  Flutter HTML report generation failed (genhtml couldn't resolve source paths)"
         fi
+    fi
+
+    # Also generate separate unit/integration reports for detailed analysis
+    if [ -f "coverage/lcov-unit.info" ]; then
+        genhtml coverage/lcov-unit.info -o coverage/html-flutter-unit 2>/dev/null || true
+    fi
+    if [ -f "coverage/lcov-integration.info" ]; then
+        genhtml coverage/lcov-integration.info -o coverage/html-flutter-integration 2>/dev/null || true
     fi
 else
     echo ""
@@ -349,77 +368,82 @@ echo "=============================================="
 echo "Coverage Summary"
 echo "=============================================="
 
-if [ "$FLUTTER_UNIT_COVERAGE" = true ]; then
-    echo "📱 Flutter Unit:        coverage/lcov-unit.info"
-fi
-
-if [ "$FLUTTER_INTEGRATION_COVERAGE" = true ]; then
-    echo "🖥️  Flutter Integration: coverage/lcov-integration.info"
-fi
-
-if [ "$TS_COVERAGE" = true ]; then
-    echo "🔥 Functions:           coverage/lcov-functions.info"
-fi
-
-if [ -f "coverage/lcov-combined.info" ]; then
-    echo "📊 Combined:            coverage/lcov-combined.info"
-fi
-
-if [ -f "coverage/lcov.info" ]; then
+# Calculate and display Flutter coverage
+FLUTTER_COVERAGE_PCT="0"
+if [ -f "coverage/lcov-flutter.info" ]; then
+    FLUTTER_COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov-flutter.info")
     echo ""
-    echo "📄 Main coverage file:  coverage/lcov.info"
-fi
-
-# Show available HTML reports (check for actual file existence)
-HTML_REPORTS_FOUND=false
-
-if [ -f "coverage/html-flutter/index.html" ]; then
-    HTML_REPORTS_FOUND=true
-    echo ""
-    echo "To view combined Flutter HTML report:"
-    echo "  open coverage/html-flutter/index.html (Mac)"
-    echo "  xdg-open coverage/html-flutter/index.html (Linux)"
-fi
-
-if [ -f "coverage/html-flutter-unit/index.html" ]; then
-    HTML_REPORTS_FOUND=true
-    echo ""
-    echo "To view Flutter unit HTML report:"
-    echo "  open coverage/html-flutter-unit/index.html (Mac)"
-    echo "  xdg-open coverage/html-flutter-unit/index.html (Linux)"
-fi
-
-if [ -f "coverage/html-flutter-integration/index.html" ]; then
-    HTML_REPORTS_FOUND=true
-    echo ""
-    echo "To view Flutter integration HTML report:"
-    echo "  open coverage/html-flutter-integration/index.html (Mac)"
-    echo "  xdg-open coverage/html-flutter-integration/index.html (Linux)"
-fi
-
-if [ -f "coverage/html-functions/index.html" ]; then
-    HTML_REPORTS_FOUND=true
-    echo ""
-    echo "To view Functions (TypeScript) HTML report:"
-    echo "  open coverage/html-functions/index.html (Mac)"
-    echo "  xdg-open coverage/html-functions/index.html (Linux)"
-fi
-
-if [ "$HTML_REPORTS_FOUND" = false ]; then
-    if [ "$FLUTTER_UNIT_COVERAGE" = true ] || [ "$FLUTTER_INTEGRATION_COVERAGE" = true ]; then
-        echo ""
-        echo "💡 To generate HTML coverage reports for Flutter, install lcov:"
-        echo "   brew install lcov (Mac) or sudo apt-get install lcov (Linux)"
+    echo "📱 Flutter (unit + integration): ${FLUTTER_COVERAGE_PCT}%"
+    echo "   Report: coverage/lcov-flutter.info"
+    if [ -f "coverage/lcov-unit.info" ]; then
+        UNIT_PCT=$(get_coverage_percentage "coverage/lcov-unit.info")
+        echo "   └─ Unit tests:        ${UNIT_PCT}%"
     fi
-    if [ "$TS_COVERAGE" = true ] && [ ! -f "coverage/html-functions/index.html" ]; then
-        echo ""
-        echo "⚠️  TypeScript HTML report not generated. Check functions/coverage/lcov-report/"
+    if [ -f "coverage/lcov-integration.info" ]; then
+        INT_PCT=$(get_coverage_percentage "coverage/lcov-integration.info")
+        echo "   └─ Integration tests: ${INT_PCT}%"
+    fi
+fi
+
+# Calculate and display TypeScript coverage
+TS_COVERAGE_PCT="0"
+if [ -f "coverage/lcov-functions.info" ]; then
+    TS_COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov-functions.info")
+    echo ""
+    echo "🔥 TypeScript Functions: ${TS_COVERAGE_PCT}%"
+    echo "   Report: coverage/lcov-functions.info"
+fi
+
+# Show HTML reports
+echo ""
+echo "HTML Reports:"
+if [ -f "coverage/html-flutter/index.html" ]; then
+    echo "  📊 Flutter:    coverage/html-flutter/index.html"
+fi
+if [ -f "coverage/html-functions/index.html" ]; then
+    echo "  📊 TypeScript: coverage/html-functions/index.html"
+fi
+
+# Check coverage thresholds
+THRESHOLD_FAILED=false
+if [ "$CHECK_THRESHOLDS" = true ]; then
+    echo ""
+    echo "=============================================="
+    echo "Coverage Threshold Check"
+    echo "=============================================="
+
+    # Check Flutter threshold
+    if [ -f "coverage/lcov-flutter.info" ]; then
+        FLUTTER_PASSES=$(echo "$FLUTTER_COVERAGE_PCT $FLUTTER_MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
+        if [ "$FLUTTER_PASSES" = "1" ]; then
+            echo "✅ Flutter: ${FLUTTER_COVERAGE_PCT}% >= ${FLUTTER_MIN_COVERAGE}% (PASS)"
+        else
+            echo "❌ Flutter: ${FLUTTER_COVERAGE_PCT}% < ${FLUTTER_MIN_COVERAGE}% (FAIL)"
+            THRESHOLD_FAILED=true
+            EXIT_CODE=1
+        fi
+    fi
+
+    # Check TypeScript threshold
+    if [ -f "coverage/lcov-functions.info" ]; then
+        TS_PASSES=$(echo "$TS_COVERAGE_PCT $TYPESCRIPT_MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
+        if [ "$TS_PASSES" = "1" ]; then
+            echo "✅ TypeScript: ${TS_COVERAGE_PCT}% >= ${TYPESCRIPT_MIN_COVERAGE}% (PASS)"
+        else
+            echo "❌ TypeScript: ${TS_COVERAGE_PCT}% < ${TYPESCRIPT_MIN_COVERAGE}% (FAIL)"
+            THRESHOLD_FAILED=true
+            EXIT_CODE=1
+        fi
     fi
 fi
 
 if [ $EXIT_CODE -ne 0 ]; then
     echo ""
     echo "💥 Coverage check failed!"
+    if [ "$THRESHOLD_FAILED" = true ]; then
+        echo "   One or more coverage thresholds were not met."
+        echo "   Add more tests or use --no-threshold to skip checks."
+    fi
 fi
 
 exit $EXIT_CODE

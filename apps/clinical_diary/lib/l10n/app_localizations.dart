@@ -58,6 +58,8 @@ class AppLocalizations {
       'noEventsToday': 'no events today',
       'noEventsYesterday': 'no events yesterday',
       'incompleteRecords': 'Incomplete Records',
+      'incompleteRecordSingular': '{0} incomplete record',
+      'incompleteRecordPlural': '{0} incomplete records',
       'tapToComplete': 'Tap to complete',
       'exampleDataAdded': 'Example data added',
       'resetAllData': 'Reset All Data?',
@@ -1262,7 +1264,7 @@ class AppLocalizations {
   String get usingClassicUI => translate('usingClassicUI');
   String get noEvents => translate('noEvents');
   String incompleteRecordCount(int count) => translateWithParams(
-    count == 1 ? 'Incomplete Record' : 'Incomplete Records',
+    count == 1 ? 'incompleteRecordSingular' : 'incompleteRecordPlural',
     [count],
   );
 
