@@ -155,15 +155,22 @@ class FeatureFlagService {
   /// Load feature flags from the server for a given sponsor ID.
   /// Returns true if successful, false otherwise.
   /// Updates [lastError] with error message on failure.
-  Future<bool> loadFromServer(String sponsorId) async {
+  /// The [apiKey] parameter is required for authentication.
+  Future<bool> loadFromServer(String sponsorId, String apiKey) async {
     _isLoading = true;
     _lastError = null;
 
     try {
       debugPrint('[FeatureFlagService] Loading config for sponsor: $sponsorId');
 
+      if (apiKey.isEmpty) {
+        _lastError = 'API key is required';
+        debugPrint('[FeatureFlagService] Error: $_lastError');
+        return false;
+      }
+
       final response = await _client.get(
-        Uri.parse(AppConfig.sponsorConfigUrl(sponsorId)),
+        Uri.parse(AppConfig.sponsorConfigUrl(sponsorId, apiKey)),
         headers: {'Content-Type': 'application/json'},
       );
 
