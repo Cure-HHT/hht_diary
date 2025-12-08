@@ -448,7 +448,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
 
     // CUR-464: When useReviewScreen is false, save immediately and return
-    if (!FeatureFlags.useReviewScreen) {
+    if (!FeatureFlagService.instance.useReviewScreen) {
       await _saveRecord();
       return;
     }

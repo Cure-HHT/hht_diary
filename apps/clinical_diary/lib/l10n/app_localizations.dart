@@ -345,8 +345,14 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           'These settings are for testing only. Changes affect app behavior.',
+      'featureFlagsSectionUI': 'UI Features',
       'featureFlagsSectionValidation': 'Validation Features',
-      'featureFlagsSectionCompileTime': 'Compile-Time Flags (Read Only)',
+      'featureFlagsUseReviewScreen': 'Use Review Screen',
+      'featureFlagsUseReviewScreenDescription':
+          'Show review screen after ending a nosebleed',
+      'featureFlagsUseAnimations': 'Use Animations',
+      'featureFlagsUseAnimationsDescription':
+          'Enable animations and show user preference toggle',
       'featureFlagsOldEntryJustification': 'Old Entry Justification',
       'featureFlagsOldEntryJustificationDescription':
           'Require justification when editing entries older than one day',
@@ -359,9 +365,6 @@ class AppLocalizations {
       'featureFlagsLongDurationThreshold': 'Long Duration Threshold',
       'featureFlagsLongDurationThresholdDescription':
           'Current threshold: {0} minutes',
-      'featureFlagsUseReviewScreen': 'Use Review Screen',
-      'featureFlagsUseAnimations': 'Use Animations',
-      'featureFlagsCompileTimeOnly': 'Set at compile time, cannot be changed',
       'featureFlagsResetToDefaults': 'Reset to Defaults',
       'featureFlagsResetTitle': 'Reset Feature Flags?',
       'featureFlagsResetConfirmation':
@@ -686,8 +689,14 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           'Estos ajustes son solo para pruebas. Los cambios afectan el comportamiento de la app.',
+      'featureFlagsSectionUI': 'Funciones de Interfaz',
       'featureFlagsSectionValidation': 'Funciones de Validacion',
-      'featureFlagsSectionCompileTime': 'Flags de Compilacion (Solo Lectura)',
+      'featureFlagsUseReviewScreen': 'Usar Pantalla de Revision',
+      'featureFlagsUseReviewScreenDescription':
+          'Mostrar pantalla de revision al terminar una hemorragia',
+      'featureFlagsUseAnimations': 'Usar Animaciones',
+      'featureFlagsUseAnimationsDescription':
+          'Habilitar animaciones y mostrar preferencia de usuario',
       'featureFlagsOldEntryJustification': 'Justificacion de Entrada Antigua',
       'featureFlagsOldEntryJustificationDescription':
           'Requerir justificacion al editar entradas de mas de un dia',
@@ -700,10 +709,6 @@ class AppLocalizations {
       'featureFlagsLongDurationThreshold': 'Umbral de Duracion Larga',
       'featureFlagsLongDurationThresholdDescription':
           'Umbral actual: {0} minutos',
-      'featureFlagsUseReviewScreen': 'Usar Pantalla de Revision',
-      'featureFlagsUseAnimations': 'Usar Animaciones',
-      'featureFlagsCompileTimeOnly':
-          'Establecido en compilacion, no se puede cambiar',
       'featureFlagsResetToDefaults': 'Restablecer Valores',
       'featureFlagsResetTitle': 'Restablecer Feature Flags?',
       'featureFlagsResetConfirmation':
@@ -1039,8 +1044,14 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           "Ces parametres sont uniquement pour les tests. Les modifications affectent le comportement de l'application.",
+      'featureFlagsSectionUI': "Fonctionnalites d'Interface",
       'featureFlagsSectionValidation': 'Fonctionnalites de Validation',
-      'featureFlagsSectionCompileTime': 'Flags de Compilation (Lecture Seule)',
+      'featureFlagsUseReviewScreen': 'Utiliser Ecran de Revision',
+      'featureFlagsUseReviewScreenDescription':
+          "Afficher l'ecran de revision apres avoir termine un saignement",
+      'featureFlagsUseAnimations': 'Utiliser Animations',
+      'featureFlagsUseAnimationsDescription':
+          'Activer les animations et afficher la preference utilisateur',
       'featureFlagsOldEntryJustification': 'Justification Ancienne Entree',
       'featureFlagsOldEntryJustificationDescription':
           "Exiger une justification lors de la modification d'entrees de plus d'un jour",
@@ -1053,10 +1064,6 @@ class AppLocalizations {
       'featureFlagsLongDurationThreshold': 'Seuil de Duree Longue',
       'featureFlagsLongDurationThresholdDescription':
           'Seuil actuel: {0} minutes',
-      'featureFlagsUseReviewScreen': 'Utiliser Ecran de Revision',
-      'featureFlagsUseAnimations': 'Utiliser Animations',
-      'featureFlagsCompileTimeOnly':
-          'Defini a la compilation, ne peut pas etre modifie',
       'featureFlagsResetToDefaults': 'Reinitialiser',
       'featureFlagsResetTitle': 'Reinitialiser Feature Flags?',
       'featureFlagsResetConfirmation':
@@ -1386,8 +1393,14 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           'Diese Einstellungen sind nur fur Tests. Anderungen beeinflussen das App-Verhalten.',
+      'featureFlagsSectionUI': 'Oberflachenfunktionen',
       'featureFlagsSectionValidation': 'Validierungsfunktionen',
-      'featureFlagsSectionCompileTime': 'Kompilierzeit-Flags (Nur Lesen)',
+      'featureFlagsUseReviewScreen': 'Uberprufungsbildschirm Verwenden',
+      'featureFlagsUseReviewScreenDescription':
+          'Uberprufungsbildschirm nach Beendigung einer Blutung anzeigen',
+      'featureFlagsUseAnimations': 'Animationen Verwenden',
+      'featureFlagsUseAnimationsDescription':
+          'Animationen aktivieren und Benutzereinstellung anzeigen',
       'featureFlagsOldEntryJustification': 'Alte Eintrag Begrundung',
       'featureFlagsOldEntryJustificationDescription':
           'Begrundung bei Bearbeitung von Eintragen alter als ein Tag erforderlich',
@@ -1400,10 +1413,6 @@ class AppLocalizations {
       'featureFlagsLongDurationThreshold': 'Schwellenwert Lange Dauer',
       'featureFlagsLongDurationThresholdDescription':
           'Aktueller Schwellenwert: {0} Minuten',
-      'featureFlagsUseReviewScreen': 'Uberprufungsbildschirm Verwenden',
-      'featureFlagsUseAnimations': 'Animationen Verwenden',
-      'featureFlagsCompileTimeOnly':
-          'Bei Kompilierung festgelegt, kann nicht geandert werden',
       'featureFlagsResetToDefaults': 'Zurucksetzen',
       'featureFlagsResetTitle': 'Feature Flags Zurucksetzen?',
       'featureFlagsResetConfirmation':
@@ -1739,10 +1748,17 @@ class AppLocalizations {
   // Feature Flags
   String get featureFlagsTitle => translate('featureFlagsTitle');
   String get featureFlagsWarning => translate('featureFlagsWarning');
+  String get featureFlagsSectionUI => translate('featureFlagsSectionUI');
   String get featureFlagsSectionValidation =>
       translate('featureFlagsSectionValidation');
-  String get featureFlagsSectionCompileTime =>
-      translate('featureFlagsSectionCompileTime');
+  String get featureFlagsUseReviewScreen =>
+      translate('featureFlagsUseReviewScreen');
+  String get featureFlagsUseReviewScreenDescription =>
+      translate('featureFlagsUseReviewScreenDescription');
+  String get featureFlagsUseAnimations =>
+      translate('featureFlagsUseAnimations');
+  String get featureFlagsUseAnimationsDescription =>
+      translate('featureFlagsUseAnimationsDescription');
   String get featureFlagsOldEntryJustification =>
       translate('featureFlagsOldEntryJustification');
   String get featureFlagsOldEntryJustificationDescription =>
@@ -1761,12 +1777,6 @@ class AppLocalizations {
       translateWithParams('featureFlagsLongDurationThresholdDescription', [
         minutes,
       ]);
-  String get featureFlagsUseReviewScreen =>
-      translate('featureFlagsUseReviewScreen');
-  String get featureFlagsUseAnimations =>
-      translate('featureFlagsUseAnimations');
-  String get featureFlagsCompileTimeOnly =>
-      translate('featureFlagsCompileTimeOnly');
   String get featureFlagsResetToDefaults =>
       translate('featureFlagsResetToDefaults');
   String get featureFlagsResetTitle => translate('featureFlagsResetTitle');

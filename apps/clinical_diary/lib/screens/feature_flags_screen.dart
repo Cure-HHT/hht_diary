@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 /// Screen for viewing and modifying feature flags.
 /// Only available in dev and qa builds for testing purposes.
+/// These are sponsor-controlled settings that will be set at enrollment time.
 class FeatureFlagsScreen extends StatefulWidget {
   const FeatureFlagsScreen({super.key});
 
@@ -58,6 +59,35 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
             ),
           ),
 
+          // UI Features Section
+          _buildSectionHeader(l10n.featureFlagsSectionUI),
+
+          // Use Review Screen
+          SwitchListTile(
+            title: Text(l10n.featureFlagsUseReviewScreen),
+            subtitle: Text(l10n.featureFlagsUseReviewScreenDescription),
+            value: _featureFlagService.useReviewScreen,
+            onChanged: (value) {
+              setState(() {
+                _featureFlagService.useReviewScreen = value;
+              });
+            },
+          ),
+          const Divider(height: 1),
+
+          // Use Animations
+          SwitchListTile(
+            title: Text(l10n.featureFlagsUseAnimations),
+            subtitle: Text(l10n.featureFlagsUseAnimationsDescription),
+            value: _featureFlagService.useAnimations,
+            onChanged: (value) {
+              setState(() {
+                _featureFlagService.useAnimations = value;
+              });
+            },
+          ),
+          const Divider(height: 1),
+
           // Validation Features Section
           _buildSectionHeader(l10n.featureFlagsSectionValidation),
 
@@ -104,8 +134,9 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           ),
           const Divider(height: 1),
 
-          // Long Duration Threshold
+          // Long Duration Threshold (only enabled when Long Duration Confirmation is on)
           ListTile(
+            enabled: _featureFlagService.enableLongDurationConfirmation,
             title: Text(l10n.featureFlagsLongDurationThreshold),
             subtitle: Text(
               l10n.featureFlagsLongDurationThresholdDescription(
@@ -133,31 +164,6 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
                       }
                     : null,
               ),
-            ),
-          ),
-          const Divider(height: 1),
-
-          // Compile-time flags info section
-          _buildSectionHeader(l10n.featureFlagsSectionCompileTime),
-
-          // Use Review Screen (read-only)
-          ListTile(
-            title: Text(l10n.featureFlagsUseReviewScreen),
-            subtitle: Text(l10n.featureFlagsCompileTimeOnly),
-            trailing: const Switch(
-              value: FeatureFlags.useReviewScreen,
-              onChanged: null, // Read-only
-            ),
-          ),
-          const Divider(height: 1),
-
-          // Use Animations (read-only)
-          ListTile(
-            title: Text(l10n.featureFlagsUseAnimations),
-            subtitle: Text(l10n.featureFlagsCompileTimeOnly),
-            trailing: const Switch(
-              value: FeatureFlags.useAnimations,
-              onChanged: null, // Read-only
             ),
           ),
         ],

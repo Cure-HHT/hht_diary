@@ -199,7 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                           // Use Animation option - only show if feature flag is enabled
-                          if (FeatureFlags.useAnimations) ...[
+                          if (FeatureFlagService.instance.useAnimations) ...[
                             const SizedBox(height: 12),
                             _buildAccessibilityOption(
                               context,

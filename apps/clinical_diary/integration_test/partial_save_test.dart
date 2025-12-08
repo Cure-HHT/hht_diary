@@ -289,7 +289,7 @@ void main() {
           await tester.tap(find.text('Set End Time'));
           await tester.pumpAndSettle();
 
-          if (FeatureFlags.useReviewScreen) {
+          if (FeatureFlagService.instance.useReviewScreen) {
             // When useReviewScreen is true: should be on complete step
             expect(find.text('Record Complete'), findsOneWidget);
 
