@@ -217,13 +217,113 @@ if [ "$RUN_TYPESCRIPT_UNIT" = true ]; then
     fi
 fi
 
-# Run TypeScript/Functions integration tests (future)
+# Run TypeScript/Functions integration tests
+# These tests run against the Firebase emulator WITHOUT Doppler to prove fail-closed behavior
+# AUDIT EVIDENCE: When CUREHHT_QA_API_KEY is not configured, the function returns 500
 if [ "$RUN_TYPESCRIPT_INTEGRATION" = true ]; then
     echo ""
     echo "🔥 Running TypeScript/Functions integration tests..."
+    echo "   (Tests run WITHOUT Doppler to prove fail-closed behavior for auditors)"
     echo ""
-    echo "⚠️  TypeScript integration tests not yet implemented"
-    # Future: Add TypeScript integration test runner here
+
+    if [ -d "functions" ]; then
+        cd functions
+
+        # Install dependencies if needed
+        if [ ! -d "node_modules" ]; then
+            echo "Installing dependencies..."
+            npm install
+        fi
+
+        # Build TypeScript before starting emulator
+        echo "Building TypeScript..."
+        if ! npm run build; then
+            echo "❌ TypeScript build failed!"
+            TS_INTEGRATION_PASSED=false
+            cd ..
+        else
+            cd ..
+
+            # Start Firebase emulator in background (WITHOUT Doppler - proves fail-closed)
+            echo ""
+            echo "Starting Firebase emulator (without Doppler secrets)..."
+
+            # Create a temporary file for emulator output
+            EMULATOR_LOG=$(mktemp)
+            EMULATOR_PID=""
+
+            # Start emulator in background, redirecting output to log file
+            (cd functions && firebase emulators:start --only functions 2>&1 | tee "$EMULATOR_LOG") &
+            EMULATOR_PID=$!
+
+            # Wait for emulator to be ready (check for "All emulators ready" message)
+            echo "Waiting for emulator to start..."
+            TIMEOUT=60
+            ELAPSED=0
+            EMULATOR_READY=false
+
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                if grep -q "All emulators ready" "$EMULATOR_LOG" 2>/dev/null; then
+                    EMULATOR_READY=true
+                    break
+                fi
+                # Also check if emulator process died
+                if ! kill -0 $EMULATOR_PID 2>/dev/null; then
+                    echo "❌ Emulator process died unexpectedly"
+                    cat "$EMULATOR_LOG"
+                    break
+                fi
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+                # Show progress every 10 seconds
+                if [ $((ELAPSED % 10)) -eq 0 ]; then
+                    echo "   Still waiting... ($ELAPSED seconds)"
+                fi
+            done
+
+            if [ "$EMULATOR_READY" = true ]; then
+                echo "✅ Emulator ready!"
+                # Give functions a moment to fully initialize
+                sleep 3
+                echo ""
+
+                # Run integration tests
+                echo "Running integration tests against emulator..."
+                cd functions
+                if npm run test:integration; then
+                    echo "✅ TypeScript integration tests passed!"
+                else
+                    echo "❌ TypeScript integration tests failed!"
+                    TS_INTEGRATION_PASSED=false
+                fi
+                cd ..
+            else
+                echo "❌ Emulator failed to start within $TIMEOUT seconds"
+                echo "Emulator output:"
+                cat "$EMULATOR_LOG"
+                TS_INTEGRATION_PASSED=false
+            fi
+
+            # Stop emulator
+            echo ""
+            echo "Stopping emulator..."
+            if [ -n "$EMULATOR_PID" ] && kill -0 $EMULATOR_PID 2>/dev/null; then
+                kill $EMULATOR_PID 2>/dev/null || true
+                # Wait a moment for graceful shutdown
+                sleep 2
+                # Force kill if still running
+                kill -9 $EMULATOR_PID 2>/dev/null || true
+            fi
+
+            # Clean up
+            rm -f "$EMULATOR_LOG"
+
+            # Also kill any lingering emulator processes (sometimes they don't clean up)
+            pkill -f "firebase.*emulators" 2>/dev/null || true
+        fi
+    else
+        echo "⚠️  functions/ directory not found, skipping TypeScript integration tests"
+    fi
 fi
 
 echo ""

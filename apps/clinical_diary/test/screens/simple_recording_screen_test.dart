@@ -9,6 +9,7 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -25,6 +26,7 @@ void main() {
   group('SimpleRecordingScreen', () {
     late EnrollmentService enrollmentService;
     late NosebleedService nosebleedService;
+    late PreferencesService preferencesService;
     late Directory tempDir;
 
     setUp(() async {
@@ -57,6 +59,7 @@ void main() {
         httpClient: mockHttpClient,
         enableCloudSync: false,
       );
+      preferencesService = PreferencesService();
     });
 
     tearDown(() async {
@@ -80,6 +83,7 @@ void main() {
         SimpleRecordingScreen(
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
+          preferencesService: preferencesService,
           initialDate: initialDate,
           existingRecord: existingRecord,
           allRecords: allRecords,

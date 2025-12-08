@@ -6,6 +6,7 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
 import 'package:clinical_diary/widgets/intensity_row.dart';
@@ -17,6 +18,7 @@ class SimpleRecordingScreen extends StatefulWidget {
   const SimpleRecordingScreen({
     required this.nosebleedService,
     required this.enrollmentService,
+    required this.preferencesService,
     super.key,
     this.initialDate,
     this.existingRecord,
@@ -26,6 +28,7 @@ class SimpleRecordingScreen extends StatefulWidget {
 
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
+  final PreferencesService preferencesService;
   final DateTime? initialDate;
   final NosebleedRecord? existingRecord;
   final List<NosebleedRecord> allRecords;

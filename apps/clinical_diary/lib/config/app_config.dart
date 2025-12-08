@@ -42,7 +42,7 @@ class AppConfig {
       throw MissingConfigException(
         'apiBase',
         'API_BASE must be set via --dart-define=apiBase=<url> or flutter flavor. '
-            'Run with: flutter run --flavor dev -t lib/main_dev.dart',
+            'Run with: flutter run --flavor dev',
       );
     }
 
@@ -66,6 +66,14 @@ class AppConfig {
   /// Raw API base URL from dart-define (REQUIRED)
   static const String _apiBaseRaw = String.fromEnvironment('apiBase');
 
+  /// QA API key from dart-define (only for dev/qa environments)
+  static const String _qaApiKeyRaw = String.fromEnvironment(
+    'CUREHHT_QA_API_KEY',
+  );
+
+  /// QA API key - returns empty string if not configured
+  static String get qaApiKey => _qaApiKeyRaw;
+
   /// Test-only override for API base URL.
   /// Set this in test setUp() to avoid MissingConfigException.
   /// ignore: use_setters_to_change_properties
@@ -84,7 +92,7 @@ class AppConfig {
       throw MissingConfigException(
         'apiBase',
         'API_BASE is not configured. Run with a flavor: '
-            'flutter run --flavor dev -t lib/main_dev.dart',
+            'flutter run --flavor dev',
       );
     }
     return _apiBaseRaw;
@@ -98,6 +106,8 @@ class AppConfig {
   static String get registerUrl => '$apiBase/register';
   static String get loginUrl => '$apiBase/login';
   static String get changePasswordUrl => '$apiBase/changePassword';
+  static String sponsorConfigUrl(String sponsorId, String apiKey) =>
+      '$apiBase/sponsorConfig?sponsorId=$sponsorId&apiKey=$apiKey';
 
   // ============================================================
   // App Metadata

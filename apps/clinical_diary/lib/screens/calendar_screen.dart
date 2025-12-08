@@ -8,6 +8,7 @@ import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -17,11 +18,13 @@ class CalendarScreen extends StatefulWidget {
   const CalendarScreen({
     required this.nosebleedService,
     required this.enrollmentService,
+    required this.preferencesService,
     super.key,
   });
 
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
+  final PreferencesService preferencesService;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -188,6 +191,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (context) => RecordingScreen(
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
+          preferencesService: widget.preferencesService,
           initialDate: selectedDay,
           existingRecord: existingRecord,
           allRecords: _allRecords,

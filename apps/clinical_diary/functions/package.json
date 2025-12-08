@@ -4,14 +4,19 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "serve": "npm run build && firebase emulators:start --only functions",
-    "shell": "npm run build && firebase functions:shell",
+    "serve": "npm run build && doppler run -- firebase emulators:start --only functions",
+    "serve:no-doppler": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && doppler run -- firebase functions:shell",
+    "shell:no-doppler": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
+    "deploy": "doppler run -- firebase deploy --only functions",
+    "deploy:no-doppler": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test": "jest --testPathIgnorePatterns=integration",
+    "test:watch": "jest --watch --testPathIgnorePatterns=integration",
+    "test:coverage": "jest --coverage --testPathIgnorePatterns=integration",
+    "test:integration": "jest --config jest.integration.config.cjs",
+    "test:all": "jest"
   },
   "engines": {
     "node": "22"

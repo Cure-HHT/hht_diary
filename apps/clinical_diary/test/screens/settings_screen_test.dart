@@ -8,9 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/test_helpers.dart';
+import '../test_helpers/flavor_setup.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpTestFlavor();
 
   group('SettingsScreen', () {
     late PreferencesService preferencesService;

@@ -1,0 +1,191 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "dev Debug",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=apiBase=https://hht-diary-mvp.web.app/api",
+        "--dart-define=environment=dev",
+        "--dart-define=showDevTools=true",
+        "--dart-define=showBanner=true",
+        "--dart-define=CUREHHT_QA_API_KEY=${env:CUREHHT_QA_API_KEY}"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "dev Profile",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=apiBase=https://hht-diary-mvp.web.app/api",
+        "--dart-define=environment=dev",
+        "--dart-define=showDevTools=true",
+        "--dart-define=showBanner=true",
+        "--dart-define=CUREHHT_QA_API_KEY=${env:CUREHHT_QA_API_KEY}"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "dev Release",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--flavor",
+        "dev",
+        "--dart-define=apiBase=https://hht-diary-mvp.web.app/api",
+        "--dart-define=environment=dev",
+        "--dart-define=showDevTools=true",
+        "--dart-define=showBanner=true",
+        "--dart-define=CUREHHT_QA_API_KEY=${env:CUREHHT_QA_API_KEY}"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "qa Debug",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--flavor",
+        "qa",
+        "--dart-define=apiBase=https://hht-diary-qa.web.app/api",
+        "--dart-define=environment=qa",
+        "--dart-define=showDevTools=true",
+        "--dart-define=showBanner=true",
+        "--dart-define=CUREHHT_QA_API_KEY=${env:CUREHHT_QA_API_KEY}"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "qa Profile",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--flavor",
+        "qa",
+        "--dart-define=apiBase=https://hht-diary-qa.web.app/api",
+        "--dart-define=environment=qa",
+        "--dart-define=showDevTools=true",
+        "--dart-define=showBanner=true",
+        "--dart-define=CUREHHT_QA_API_KEY=${env:CUREHHT_QA_API_KEY}"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "qa Release",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--flavor",
+        "qa",
+        "--dart-define=apiBase=https://hht-diary-qa.web.app/api",
+        "--dart-define=environment=qa",
+        "--dart-define=showDevTools=true",
+        "--dart-define=showBanner=true",
+        "--dart-define=CUREHHT_QA_API_KEY=${env:CUREHHT_QA_API_KEY}"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "uat Debug",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--flavor",
+        "uat",
+        "--dart-define=apiBase=https://hht-diary-uat.web.app/api",
+        "--dart-define=environment=uat",
+        "--dart-define=showDevTools=false",
+        "--dart-define=showBanner=false"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "uat Profile",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--flavor",
+        "uat",
+        "--dart-define=apiBase=https://hht-diary-uat.web.app/api",
+        "--dart-define=environment=uat",
+        "--dart-define=showDevTools=false",
+        "--dart-define=showBanner=false"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "uat Release",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--flavor",
+        "uat",
+        "--dart-define=apiBase=https://hht-diary-uat.web.app/api",
+        "--dart-define=environment=uat",
+        "--dart-define=showDevTools=false",
+        "--dart-define=showBanner=false"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "prod Debug",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define=apiBase=https://hht-diary.web.app/api",
+        "--dart-define=environment=prod",
+        "--dart-define=showDevTools=false",
+        "--dart-define=showBanner=false"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "prod Profile",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define=apiBase=https://hht-diary.web.app/api",
+        "--dart-define=environment=prod",
+        "--dart-define=showDevTools=false",
+        "--dart-define=showBanner=false"
+      ],
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "prod Release",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--flavor",
+        "prod",
+        "--dart-define=apiBase=https://hht-diary.web.app/api",
+        "--dart-define=environment=prod",
+        "--dart-define=showDevTools=false",
+        "--dart-define=showBanner=false"
+      ],
+      "program": "lib/main.dart"
+    }
+  ]
+}

@@ -5,11 +5,13 @@
 import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,11 +26,13 @@ void main() {
   group('RecordingScreen', () {
     late MockEnrollmentService mockEnrollment;
     late NosebleedService nosebleedService;
+    late PreferencesService preferencesService;
     late Directory tempDir;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockEnrollment = MockEnrollmentService();
+      preferencesService = PreferencesService();
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('recording_test_');
@@ -75,6 +79,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               initialDate: DateTime(2024, 1, 15),
             ),
           ),
@@ -92,6 +97,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
@@ -108,6 +114,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
@@ -122,6 +129,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
@@ -149,6 +157,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -176,6 +185,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -204,6 +214,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: incompleteRecord,
             ),
           ),
@@ -232,6 +243,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: incompleteRecord,
             ),
           ),
@@ -259,6 +271,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -282,6 +295,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -311,6 +325,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -366,6 +381,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: overlappingRecords,
             ),
@@ -396,6 +412,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: allRecords,
             ),
@@ -441,6 +458,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: overlappingRecords,
             ),
@@ -498,6 +516,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: nonOverlappingRecords,
             ),
@@ -557,6 +576,7 @@ void main() {
               RecordingScreen(
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
                 existingRecord: todayRecord,
                 allRecords: [yesterdayRecord],
               ),
@@ -593,6 +613,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               onDelete: (_) async {},
             ),
@@ -635,6 +656,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               onDelete: (reason) async {
                 deletedReason = reason;
@@ -690,6 +712,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -732,12 +755,25 @@ void main() {
           ),
         );
 
+        // Use today's date to avoid triggering old entry validation dialog
+        final today = DateTime.now();
+
+        // Disable validation confirmations to avoid dialogs blocking the save
+        // These are now feature flags (sponsor-controlled), not user preferences
+        SharedPreferences.setMockInitialValues({
+          'ff_enable_short_duration_confirmation': false,
+          'ff_enable_long_duration_confirmation': false,
+        });
+        await FeatureFlagService.instance.initialize();
+        final testPreferencesService = PreferencesService();
+
         await tester.pumpWidget(
           wrapWithScaffold(
             RecordingScreen(
               nosebleedService: failingService,
               enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
+              preferencesService: testPreferencesService,
+              initialDate: today,
             ),
           ),
         );
@@ -775,6 +811,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
@@ -819,6 +856,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -868,6 +906,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
             ),
           ),
@@ -900,6 +939,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               initialDate: DateTime(2024, 1, 15),
             ),
           ),

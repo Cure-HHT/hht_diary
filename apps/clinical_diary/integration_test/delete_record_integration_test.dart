@@ -17,6 +17,7 @@ import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -32,11 +33,13 @@ void main() {
   group('Delete Record Integration Tests', () {
     late MockEnrollmentService mockEnrollment;
     late NosebleedService nosebleedService;
+    late PreferencesService preferencesService;
     late Directory tempDir;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockEnrollment = MockEnrollmentService();
+      preferencesService = PreferencesService();
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('delete_integration_');
@@ -111,6 +114,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: originalRecord,
               onDelete: (reason) async {
                 await nosebleedService.deleteRecord(
@@ -196,6 +200,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: originalRecord,
               // onDelete intentionally not provided to test bug scenario
             ),
@@ -253,6 +258,7 @@ void main() {
           RecordingScreen(
             nosebleedService: nosebleedService,
             enrollmentService: mockEnrollment,
+            preferencesService: preferencesService,
             existingRecord: incompleteRecord,
             onDelete: (reason) async {
               await nosebleedService.deleteRecord(
@@ -304,6 +310,7 @@ void main() {
           RecordingScreen(
             nosebleedService: nosebleedService,
             enrollmentService: mockEnrollment,
+            preferencesService: preferencesService,
             existingRecord: originalRecord,
             onDelete: (reason) async {
               await nosebleedService.deleteRecord(
@@ -356,6 +363,7 @@ void main() {
           RecordingScreen(
             nosebleedService: nosebleedService,
             enrollmentService: mockEnrollment,
+            preferencesService: preferencesService,
             existingRecord: originalRecord,
             onDelete: (reason) async {
               capturedReason = reason;

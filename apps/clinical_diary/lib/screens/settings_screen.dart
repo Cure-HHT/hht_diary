@@ -2,7 +2,9 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -197,7 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                           // Use Animation option - only show if feature flag is enabled
-                          if (FeatureFlags.useAnimations) ...[
+                          if (FeatureFlagService.instance.useAnimations) ...[
                             const SizedBox(height: 12),
                             _buildAccessibilityOption(
                               context,
@@ -267,6 +269,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             isSelected: _languageCode == 'de',
                             onTap: () => _selectLanguage('de'),
                           ),
+
+                          // Feature Flags - only available in dev/qa builds
+                          if (F.showDevTools) ...[
+                            const SizedBox(height: 32),
+                            _buildSectionHeader(
+                              context,
+                              AppLocalizations.of(context).featureFlagsTitle,
+                              AppLocalizations.of(context).featureFlagsWarning,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildNavigationOption(
+                              context,
+                              icon: Icons.science_outlined,
+                              title: AppLocalizations.of(
+                                context,
+                              ).featureFlagsTitle,
+                              subtitle: AppLocalizations.of(
+                                context,
+                              ).featureFlagsWarning,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                    builder: (context) =>
+                                        const FeatureFlagsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -527,6 +559,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationOption(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ],
         ),
       ),
     );

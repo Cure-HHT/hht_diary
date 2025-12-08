@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 ///
 /// Animation is controlled by:
 /// - `enabled` parameter (user preference, defaults to true)
-/// - `FeatureFlags.useAnimations` (overrides user preference if false)
+/// - `FeatureFlagService.useAnimations` (overrides user preference if false)
 ///
 /// If animations are disabled, the widget still calls onFlashComplete
 /// immediately so the caller knows the "flash" is done.
@@ -79,7 +79,8 @@ class _FlashHighlightState extends State<FlashHighlight>
   }
 
   /// Check if animations are enabled (both feature flag and user preference)
-  bool get _animationsEnabled => FeatureFlags.useAnimations && widget.enabled;
+  bool get _animationsEnabled =>
+      FeatureFlagService.instance.useAnimations && widget.enabled;
 
   void _startFlash() {
     _hasFlashed = true;

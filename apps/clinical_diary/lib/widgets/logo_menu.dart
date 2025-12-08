@@ -14,6 +14,7 @@ class LogoMenu extends StatefulWidget {
   const LogoMenu({
     required this.onAddExampleData,
     required this.onResetAllData,
+    required this.onFeatureFlags,
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
     this.showDevTools = true,
@@ -22,10 +23,11 @@ class LogoMenu extends StatefulWidget {
 
   final VoidCallback onAddExampleData;
   final VoidCallback onResetAllData;
+  final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
 
-  /// Whether to show developer tools (Reset All Data, Add Example Data).
+  /// Whether to show developer tools (Reset All Data, Add Example Data, Feature Flags).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
 
@@ -106,6 +108,8 @@ class _LogoMenuState extends State<LogoMenu> {
             widget.onAddExampleData();
           case 'reset_all_data':
             widget.onResetAllData();
+          case 'feature_flags':
+            widget.onFeatureFlags();
           case 'end_clinical_trial':
             widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
@@ -157,6 +161,20 @@ class _LogoMenuState extends State<LogoMenu> {
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'feature_flags',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.science_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.featureFlagsTitle)),
               ],
             ),
           ),
