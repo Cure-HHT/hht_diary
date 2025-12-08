@@ -341,18 +341,33 @@ class AppLocalizations {
       'durationHoursShort': '{0}h',
       'durationHoursMinutesShort': '{0}h {1}m',
 
-      // Validation Settings
-      'validationSettings': 'Entry Validation',
-      'validationSettingsDescription':
-          'Configure confirmation prompts for unusual entries',
-      'shortDurationConfirmation': 'Short Duration Confirmation',
-      'shortDurationConfirmationDescription':
-          'Prompt to confirm nosebleeds with duration of 1 minute or less',
-      'longDurationConfirmation': 'Long Duration Confirmation',
-      'longDurationConfirmationDescription':
-          'Prompt to confirm nosebleeds exceeding the threshold duration',
-      'longDurationThreshold': 'Long Duration Threshold',
-      'longDurationThresholdDescription': 'Duration threshold: {0}',
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          'These settings are for testing only. Changes affect app behavior.',
+      'featureFlagsSectionValidation': 'Validation Features',
+      'featureFlagsSectionCompileTime': 'Compile-Time Flags (Read Only)',
+      'featureFlagsOldEntryJustification': 'Old Entry Justification',
+      'featureFlagsOldEntryJustificationDescription':
+          'Require justification when editing entries older than one day',
+      'featureFlagsShortDurationConfirmation': 'Short Duration Confirmation',
+      'featureFlagsShortDurationConfirmationDescription':
+          'Prompt to confirm durations of 1 minute or less',
+      'featureFlagsLongDurationConfirmation': 'Long Duration Confirmation',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Prompt to confirm durations exceeding the threshold',
+      'featureFlagsLongDurationThreshold': 'Long Duration Threshold',
+      'featureFlagsLongDurationThresholdDescription':
+          'Current threshold: {0} minutes',
+      'featureFlagsUseReviewScreen': 'Use Review Screen',
+      'featureFlagsUseAnimations': 'Use Animations',
+      'featureFlagsCompileTimeOnly': 'Set at compile time, cannot be changed',
+      'featureFlagsResetToDefaults': 'Reset to Defaults',
+      'featureFlagsResetTitle': 'Reset Feature Flags?',
+      'featureFlagsResetConfirmation':
+          'Reset all feature flags to their default values?',
+      'featureFlagsResetButton': 'Reset',
+      'featureFlagsResetSuccess': 'Feature flags reset to defaults',
       'hours': 'hours',
       'hour': 'hour',
     },
@@ -667,18 +682,34 @@ class AppLocalizations {
       'durationHoursShort': '{0}h',
       'durationHoursMinutesShort': '{0}h {1}m',
 
-      // Validation Settings
-      'validationSettings': 'Validacion de Entradas',
-      'validationSettingsDescription':
-          'Configurar solicitudes de confirmacion para entradas inusuales',
-      'shortDurationConfirmation': 'Confirmacion de Duracion Corta',
-      'shortDurationConfirmationDescription':
-          'Solicitar confirmacion para hemorragias nasales de 1 minuto o menos',
-      'longDurationConfirmation': 'Confirmacion de Duracion Larga',
-      'longDurationConfirmationDescription':
-          'Solicitar confirmacion para hemorragias nasales que excedan el umbral',
-      'longDurationThreshold': 'Umbral de Duracion Larga',
-      'longDurationThresholdDescription': 'Umbral de duracion: {0}',
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          'Estos ajustes son solo para pruebas. Los cambios afectan el comportamiento de la app.',
+      'featureFlagsSectionValidation': 'Funciones de Validacion',
+      'featureFlagsSectionCompileTime': 'Flags de Compilacion (Solo Lectura)',
+      'featureFlagsOldEntryJustification': 'Justificacion de Entrada Antigua',
+      'featureFlagsOldEntryJustificationDescription':
+          'Requerir justificacion al editar entradas de mas de un dia',
+      'featureFlagsShortDurationConfirmation': 'Confirmacion Duracion Corta',
+      'featureFlagsShortDurationConfirmationDescription':
+          'Solicitar confirmacion para duraciones de 1 minuto o menos',
+      'featureFlagsLongDurationConfirmation': 'Confirmacion Duracion Larga',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Solicitar confirmacion para duraciones que excedan el umbral',
+      'featureFlagsLongDurationThreshold': 'Umbral de Duracion Larga',
+      'featureFlagsLongDurationThresholdDescription':
+          'Umbral actual: {0} minutos',
+      'featureFlagsUseReviewScreen': 'Usar Pantalla de Revision',
+      'featureFlagsUseAnimations': 'Usar Animaciones',
+      'featureFlagsCompileTimeOnly':
+          'Establecido en compilacion, no se puede cambiar',
+      'featureFlagsResetToDefaults': 'Restablecer Valores',
+      'featureFlagsResetTitle': 'Restablecer Feature Flags?',
+      'featureFlagsResetConfirmation':
+          'Restablecer todos los feature flags a sus valores predeterminados?',
+      'featureFlagsResetButton': 'Restablecer',
+      'featureFlagsResetSuccess': 'Feature flags restablecidos',
       'hours': 'horas',
       'hour': 'hora',
     },
@@ -1004,18 +1035,34 @@ class AppLocalizations {
       'durationHoursShort': '{0}h',
       'durationHoursMinutesShort': '{0}h {1}m',
 
-      // Validation Settings
-      'validationSettings': 'Validation des Entrees',
-      'validationSettingsDescription':
-          'Configurer les invites de confirmation pour les entrees inhabituelles',
-      'shortDurationConfirmation': 'Confirmation Duree Courte',
-      'shortDurationConfirmationDescription':
-          "Demander confirmation pour les saignements de nez d'une minute ou moins",
-      'longDurationConfirmation': 'Confirmation Duree Longue',
-      'longDurationConfirmationDescription':
-          'Demander confirmation pour les saignements de nez depassant le seuil',
-      'longDurationThreshold': 'Seuil de Duree Longue',
-      'longDurationThresholdDescription': 'Seuil de duree: {0}',
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          "Ces parametres sont uniquement pour les tests. Les modifications affectent le comportement de l'application.",
+      'featureFlagsSectionValidation': 'Fonctionnalites de Validation',
+      'featureFlagsSectionCompileTime': 'Flags de Compilation (Lecture Seule)',
+      'featureFlagsOldEntryJustification': 'Justification Ancienne Entree',
+      'featureFlagsOldEntryJustificationDescription':
+          "Exiger une justification lors de la modification d'entrees de plus d'un jour",
+      'featureFlagsShortDurationConfirmation': 'Confirmation Duree Courte',
+      'featureFlagsShortDurationConfirmationDescription':
+          "Demander confirmation pour les durees d'une minute ou moins",
+      'featureFlagsLongDurationConfirmation': 'Confirmation Duree Longue',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Demander confirmation pour les durees depassant le seuil',
+      'featureFlagsLongDurationThreshold': 'Seuil de Duree Longue',
+      'featureFlagsLongDurationThresholdDescription':
+          'Seuil actuel: {0} minutes',
+      'featureFlagsUseReviewScreen': 'Utiliser Ecran de Revision',
+      'featureFlagsUseAnimations': 'Utiliser Animations',
+      'featureFlagsCompileTimeOnly':
+          'Defini a la compilation, ne peut pas etre modifie',
+      'featureFlagsResetToDefaults': 'Reinitialiser',
+      'featureFlagsResetTitle': 'Reinitialiser Feature Flags?',
+      'featureFlagsResetConfirmation':
+          'Reinitialiser tous les feature flags a leurs valeurs par defaut?',
+      'featureFlagsResetButton': 'Reinitialiser',
+      'featureFlagsResetSuccess': 'Feature flags reinitialises',
       'hours': 'heures',
       'hour': 'heure',
     },
@@ -1335,18 +1382,34 @@ class AppLocalizations {
       'durationHoursShort': '{0}h',
       'durationHoursMinutesShort': '{0}h {1}m',
 
-      // Validation Settings
-      'validationSettings': 'Eingabevalidierung',
-      'validationSettingsDescription':
-          'Bestatigungsaufforderungen fur ungewohnliche Eintrage konfigurieren',
-      'shortDurationConfirmation': 'Bestatigung Kurze Dauer',
-      'shortDurationConfirmationDescription':
-          'Bestatigung fur Nasenbluten mit einer Minute oder weniger anfordern',
-      'longDurationConfirmation': 'Bestatigung Lange Dauer',
-      'longDurationConfirmationDescription':
-          'Bestatigung fur Nasenbluten uber dem Schwellenwert anfordern',
-      'longDurationThreshold': 'Schwellenwert Lange Dauer',
-      'longDurationThresholdDescription': 'Dauerschwellenwert: {0}',
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          'Diese Einstellungen sind nur fur Tests. Anderungen beeinflussen das App-Verhalten.',
+      'featureFlagsSectionValidation': 'Validierungsfunktionen',
+      'featureFlagsSectionCompileTime': 'Kompilierzeit-Flags (Nur Lesen)',
+      'featureFlagsOldEntryJustification': 'Alte Eintrag Begrundung',
+      'featureFlagsOldEntryJustificationDescription':
+          'Begrundung bei Bearbeitung von Eintragen alter als ein Tag erforderlich',
+      'featureFlagsShortDurationConfirmation': 'Bestatigung Kurze Dauer',
+      'featureFlagsShortDurationConfirmationDescription':
+          'Bestatigung fur Dauern von einer Minute oder weniger anfordern',
+      'featureFlagsLongDurationConfirmation': 'Bestatigung Lange Dauer',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Bestatigung fur Dauern uber dem Schwellenwert anfordern',
+      'featureFlagsLongDurationThreshold': 'Schwellenwert Lange Dauer',
+      'featureFlagsLongDurationThresholdDescription':
+          'Aktueller Schwellenwert: {0} Minuten',
+      'featureFlagsUseReviewScreen': 'Uberprufungsbildschirm Verwenden',
+      'featureFlagsUseAnimations': 'Animationen Verwenden',
+      'featureFlagsCompileTimeOnly':
+          'Bei Kompilierung festgelegt, kann nicht geandert werden',
+      'featureFlagsResetToDefaults': 'Zurucksetzen',
+      'featureFlagsResetTitle': 'Feature Flags Zurucksetzen?',
+      'featureFlagsResetConfirmation':
+          'Alle Feature Flags auf Standardwerte zurucksetzen?',
+      'featureFlagsResetButton': 'Zurucksetzen',
+      'featureFlagsResetSuccess': 'Feature Flags zuruckgesetzt',
       'hours': 'Stunden',
       'hour': 'Stunde',
     },
@@ -1672,6 +1735,45 @@ class AppLocalizations {
   String get sharingWithCureHHT => translate('sharingWithCureHHT');
   String get sharingNoteActive => translate('sharingNoteActive');
   String get sharingNoteEnded => translate('sharingNoteEnded');
+
+  // Feature Flags
+  String get featureFlagsTitle => translate('featureFlagsTitle');
+  String get featureFlagsWarning => translate('featureFlagsWarning');
+  String get featureFlagsSectionValidation =>
+      translate('featureFlagsSectionValidation');
+  String get featureFlagsSectionCompileTime =>
+      translate('featureFlagsSectionCompileTime');
+  String get featureFlagsOldEntryJustification =>
+      translate('featureFlagsOldEntryJustification');
+  String get featureFlagsOldEntryJustificationDescription =>
+      translate('featureFlagsOldEntryJustificationDescription');
+  String get featureFlagsShortDurationConfirmation =>
+      translate('featureFlagsShortDurationConfirmation');
+  String get featureFlagsShortDurationConfirmationDescription =>
+      translate('featureFlagsShortDurationConfirmationDescription');
+  String get featureFlagsLongDurationConfirmation =>
+      translate('featureFlagsLongDurationConfirmation');
+  String get featureFlagsLongDurationConfirmationDescription =>
+      translate('featureFlagsLongDurationConfirmationDescription');
+  String get featureFlagsLongDurationThreshold =>
+      translate('featureFlagsLongDurationThreshold');
+  String featureFlagsLongDurationThresholdDescription(int minutes) =>
+      translateWithParams('featureFlagsLongDurationThresholdDescription', [
+        minutes,
+      ]);
+  String get featureFlagsUseReviewScreen =>
+      translate('featureFlagsUseReviewScreen');
+  String get featureFlagsUseAnimations =>
+      translate('featureFlagsUseAnimations');
+  String get featureFlagsCompileTimeOnly =>
+      translate('featureFlagsCompileTimeOnly');
+  String get featureFlagsResetToDefaults =>
+      translate('featureFlagsResetToDefaults');
+  String get featureFlagsResetTitle => translate('featureFlagsResetTitle');
+  String get featureFlagsResetConfirmation =>
+      translate('featureFlagsResetConfirmation');
+  String get featureFlagsResetButton => translate('featureFlagsResetButton');
+  String get featureFlagsResetSuccess => translate('featureFlagsResetSuccess');
 }
 
 class _AppLocalizationsDelegate

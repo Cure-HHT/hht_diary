@@ -67,8 +67,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // REQ-CAL-p00001: Old entry justification if required
   OldEntryJustification? _oldEntryJustification;
 
-  // Cached user preferences for validation checks
-  UserPreferences? _userPreferences;
+  // Feature flag service for validation settings (sponsor-controlled)
+  final _featureFlagService = FeatureFlagService.instance;
 
   /// Get the currently active date based on the current step
   DateTime get _currentDate {
@@ -90,8 +90,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     _startDate = initialDate;
     _endDate = initialDate;
     // CUR-408: Removed _loadEnrollmentStatus call - notes step removed
-    // REQ-CAL: Load user preferences for validation settings
-    _loadPreferences();
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
@@ -123,14 +121,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  /// REQ-CAL: Load user preferences for validation settings
-  Future<void> _loadPreferences() async {
-    final prefs = await widget.preferencesService.getPreferences();
-    if (mounted) {
-      setState(() => _userPreferences = prefs);
-    }
-  }
-
   /// REQ-CAL-p00001: Check if this is an old entry (more than one calendar day old)
   bool get _isOldEntry {
     if (_startTime == null) return false;
@@ -146,32 +136,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   /// REQ-CAL-p00001: Check if old entry justification is required and not yet provided
   bool get _needsOldEntryJustification {
-    if (!FeatureFlags.requireOldEntryJustification) return false;
+    if (!_featureFlagService.requireOldEntryJustification) return false;
     return _isOldEntry && _oldEntryJustification == null;
   }
 
   /// REQ-CAL-p00002: Check if short duration confirmation is needed
   bool get _needsShortDurationConfirmation {
-    if (!FeatureFlags.enableShortDurationConfirmation) return false;
-    if (_userPreferences != null &&
-        !_userPreferences!.shortDurationConfirmation) {
-      return false;
-    }
+    if (!_featureFlagService.enableShortDurationConfirmation) return false;
     final duration = _durationMinutes;
     return duration != null && duration <= 1;
   }
 
   /// REQ-CAL-p00003: Check if long duration confirmation is needed
   bool get _needsLongDurationConfirmation {
-    if (!FeatureFlags.enableLongDurationConfirmation) return false;
-    if (_userPreferences != null &&
-        !_userPreferences!.longDurationConfirmation) {
-      return false;
-    }
+    if (!_featureFlagService.enableLongDurationConfirmation) return false;
     final duration = _durationMinutes;
-    final threshold =
-        _userPreferences?.longDurationThresholdMinutes ??
-        FeatureFlags.defaultLongDurationThresholdMinutes;
+    final threshold = _featureFlagService.longDurationThresholdMinutes;
     return duration != null && duration > threshold;
   }
 
@@ -205,14 +185,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     // REQ-CAL-p00003: Long duration confirmation
     if (_needsLongDurationConfirmation) {
-      final threshold =
-          _userPreferences?.longDurationThresholdMinutes ??
-          FeatureFlags.defaultLongDurationThresholdMinutes;
       final confirmed = await DurationConfirmationDialog.show(
         context: context,
         type: DurationConfirmationType.long,
         durationMinutes: _durationMinutes!,
-        thresholdMinutes: threshold,
+        thresholdMinutes: _featureFlagService.longDurationThresholdMinutes,
       );
       if (!mounted) return false;
       if (!confirmed) {

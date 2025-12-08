@@ -9,6 +9,7 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
+import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
@@ -317,6 +318,13 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  void _handleFeatureFlags() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
+    );
   }
 
   Future<void> _handleEndClinicalTrial() async {
@@ -744,6 +752,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   LogoMenu(
                     onAddExampleData: _handleAddExampleData,
                     onResetAllData: _handleResetAllData,
+                    onFeatureFlags: _handleFeatureFlags,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,

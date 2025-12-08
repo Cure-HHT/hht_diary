@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
@@ -758,10 +759,12 @@ void main() {
         final today = DateTime.now();
 
         // Disable validation confirmations to avoid dialogs blocking the save
+        // These are now feature flags (sponsor-controlled), not user preferences
         SharedPreferences.setMockInitialValues({
-          'pref_short_duration_confirmation': false,
-          'pref_long_duration_confirmation': false,
+          'ff_enable_short_duration_confirmation': false,
+          'ff_enable_long_duration_confirmation': false,
         });
+        await FeatureFlagService.instance.initialize();
         final testPreferencesService = PreferencesService();
 
         await tester.pumpWidget(
