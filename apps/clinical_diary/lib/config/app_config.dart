@@ -42,7 +42,7 @@ class AppConfig {
       throw MissingConfigException(
         'apiBase',
         'API_BASE must be set via --dart-define=apiBase=<url> or flutter flavor. '
-            'Run with: flutter run --flavor dev -t lib/main_dev.dart',
+            'Run with: flutter run --flavor dev',
       );
     }
 
@@ -84,7 +84,7 @@ class AppConfig {
       throw MissingConfigException(
         'apiBase',
         'API_BASE is not configured. Run with a flavor: '
-            'flutter run --flavor dev -t lib/main_dev.dart',
+            'flutter run --flavor dev',
       );
     }
     return _apiBaseRaw;

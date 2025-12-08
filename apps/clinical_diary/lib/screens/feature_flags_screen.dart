@@ -132,7 +132,7 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           if (_loadError != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
+              child: SelectableText(
                 _loadError!,
                 style: TextStyle(color: theme.colorScheme.error),
               ),
