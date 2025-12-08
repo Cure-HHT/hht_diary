@@ -181,10 +181,11 @@ class _LoginScreenState extends State<LoginScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // CUR-488: Privacy notice card - reduced padding for compact display
+            // CUR-488 Phase 2: Increased elevation for more visible shadows
             Card(
               color: colorScheme.primaryContainer,
-              elevation: 1,
-              shadowColor: Colors.black.withValues(alpha: 0.1),
+              elevation: 2,
+              shadowColor: Colors.black.withValues(alpha: 0.15),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -229,10 +230,11 @@ class _LoginScreenState extends State<LoginScreen>
             const SizedBox(height: 12),
 
             // CUR-488: Security reminder card - reduced padding for compact display
+            // CUR-488 Phase 2: Increased elevation for more visible shadows
             Card(
               color: Colors.orange.shade50,
-              elevation: 1,
-              shadowColor: Colors.black.withValues(alpha: 0.1),
+              elevation: 2,
+              shadowColor: Colors.black.withValues(alpha: 0.15),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(

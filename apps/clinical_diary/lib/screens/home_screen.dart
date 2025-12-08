@@ -33,6 +33,7 @@ class HomeScreen extends StatefulWidget {
     required this.authService,
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
+    required this.onLargerTextChanged,
     required this.preferencesService,
     super.key,
   });
@@ -41,6 +42,8 @@ class HomeScreen extends StatefulWidget {
   final AuthService authService;
   final ValueChanged<String> onLocaleChanged;
   final ValueChanged<bool> onThemeModeChanged;
+  // CUR-488: Callback for larger text preference changes
+  final ValueChanged<bool> onLargerTextChanged;
   final PreferencesService preferencesService;
 
   @override
@@ -731,15 +734,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
                   ),
-                  // Centered title
+                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
                   Expanded(
-                    child: Text(
-                      AppLocalizations.of(context).appTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppLocalizations.of(context).appTitle,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   // Profile menu on the right
@@ -761,6 +766,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               preferencesService: widget.preferencesService,
                               onLanguageChanged: widget.onLocaleChanged,
                               onThemeModeChanged: widget.onThemeModeChanged,
+                              onLargerTextChanged: widget.onLargerTextChanged,
                             ),
                           ),
                         );

@@ -48,22 +48,33 @@ class _NotesInputState extends State<NotesInput> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.notes,
-            style: Theme.of(
+          // CUR-488 Phase 2: Don't scale titles to avoid scrolling on small screens
+          MediaQuery(
+            data: MediaQuery.of(
               context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          if (widget.isRequired)
-            Text(
-              l10n.notesRequired,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+            ).copyWith(textScaler: TextScaler.noScaling),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.notes,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                if (widget.isRequired)
+                  Text(
+                    l10n.notesRequired,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+              ],
             ),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: TextField(

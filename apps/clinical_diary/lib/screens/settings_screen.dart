@@ -13,12 +13,15 @@ class SettingsScreen extends StatefulWidget {
     required this.preferencesService,
     this.onLanguageChanged,
     this.onThemeModeChanged,
+    this.onLargerTextChanged,
     super.key,
   });
 
   final PreferencesService preferencesService;
   final ValueChanged<String>? onLanguageChanged;
   final ValueChanged<bool>? onThemeModeChanged;
+  // CUR-488: Callback for larger text preference changes
+  final ValueChanged<bool>? onLargerTextChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -189,6 +192,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: (value) {
                               setState(() => _largerTextAndControls = value);
                               _savePreferences();
+                              // CUR-488: Notify parent to apply text scaling
+                              widget.onLargerTextChanged?.call(value);
                             },
                           ),
                           // Use Animation option - only show if feature flag is enabled

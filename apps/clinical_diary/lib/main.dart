@@ -102,6 +102,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   Locale _locale = const Locale('en');
   // CUR-424: Force light mode for alpha partners (no system/dark mode)
   ThemeMode _themeMode = ThemeMode.light;
+  // CUR-488: Larger text and controls preference
+  bool _largerTextAndControls = false;
   final PreferencesService _preferencesService = PreferencesService();
 
   @override
@@ -116,6 +118,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
       _locale = Locale(prefs.languageCode);
       // CUR-424: Always use light mode for alpha partners
       _themeMode = ThemeMode.light;
+      // CUR-488: Load larger text preference
+      _largerTextAndControls = prefs.largerTextAndControls;
     });
   }
 
@@ -129,6 +133,13 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
     // CUR-424: Ignore dark mode requests, always use light mode for alpha
     setState(() {
       _themeMode = ThemeMode.light;
+    });
+  }
+
+  // CUR-488: Update larger text preference
+  void _setLargerTextAndControls(bool value) {
+    setState(() {
+      _largerTextAndControls = value;
     });
   }
 
@@ -153,12 +164,24 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
           GlobalCupertinoLocalizations.delegate,
         ],
         // Wrap all routes with ResponsiveWebFrame to constrain width on web
+        // CUR-488: Apply text scale factor for larger text preference
         builder: (context, child) {
-          return ResponsiveWebFrame(child: child ?? const SizedBox.shrink());
+          final mediaQuery = MediaQuery.of(context);
+          // Scale text by 1.2x when larger text is enabled
+          final textScaleFactor = _largerTextAndControls
+              ? mediaQuery.textScaler.scale(1.2)
+              : 1.0;
+          return MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: TextScaler.linear(textScaleFactor),
+            ),
+            child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
+          );
         },
         home: AppRoot(
           onLocaleChanged: _setLocale,
           onThemeModeChanged: _setThemeMode,
+          onLargerTextChanged: _setLargerTextAndControls,
           preferencesService: _preferencesService,
         ),
       ),
@@ -170,12 +193,15 @@ class AppRoot extends StatefulWidget {
   const AppRoot({
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
+    required this.onLargerTextChanged,
     required this.preferencesService,
     super.key,
   });
 
   final ValueChanged<String> onLocaleChanged;
   final ValueChanged<bool> onThemeModeChanged;
+  // CUR-488: Callback for larger text preference changes
+  final ValueChanged<bool> onLargerTextChanged;
   final PreferencesService preferencesService;
 
   @override
@@ -203,6 +229,7 @@ class _AppRootState extends State<AppRoot> {
       authService: _authService,
       onLocaleChanged: widget.onLocaleChanged,
       onThemeModeChanged: widget.onThemeModeChanged,
+      onLargerTextChanged: widget.onLargerTextChanged,
       preferencesService: widget.preferencesService,
     );
   }

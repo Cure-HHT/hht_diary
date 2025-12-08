@@ -90,20 +90,21 @@ class EventListItem extends StatelessWidget {
 
   /// CUR-488: Show "Incomplete" for ongoing events (no end time set)
   /// Show minimum "1m" if start and end are the same (0 duration)
-  String _getDuration(AppLocalizations l10n) {
+  /// Returns (text, isIncomplete) tuple for styling
+  (String, bool) _getDurationInfo(AppLocalizations l10n) {
     final minutes = record.durationMinutes;
     // If no end time set, show "Incomplete" instead of empty or 0m
     if (record.endTime == null && record.startTime != null) {
-      return l10n.incomplete;
+      return (l10n.incomplete, true);
     }
-    if (minutes == null) return '';
+    if (minutes == null) return ('', false);
     // Show minimum 1m if start and end are the same time
-    if (minutes == 0) return '1m';
-    if (minutes < 60) return '${minutes}m';
+    if (minutes == 0) return ('1m', false);
+    if (minutes < 60) return ('${minutes}m', false);
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
-    if (remainingMinutes == 0) return '${hours}h';
-    return '${hours}h ${remainingMinutes}m';
+    if (remainingMinutes == 0) return ('${hours}h', false);
+    return ('${hours}h ${remainingMinutes}m', false);
   }
 
   @override
@@ -129,9 +130,9 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.green.shade50,
-      // CUR-488: Add subtle elevation for depth
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
+      // CUR-488 Phase 2: Increased elevation for more visible shadows
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -176,9 +177,9 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.yellow.shade50,
-      // CUR-488: Add subtle elevation for depth
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
+      // CUR-488 Phase 2: Increased elevation for more visible shadows
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -221,6 +222,7 @@ class EventListItem extends StatelessWidget {
   /// Build card for regular nosebleed events
   /// CUR-443: One-line format: "9:09 PM PST (icon) 1h 11m" with warning icon
   /// Fixed-width columns for alignment across rows
+  /// CUR-488 Phase 2: Enhanced styling with better shadows, colors, and incomplete tint
   Widget _buildNosebleedCard(
     BuildContext context,
     AppLocalizations l10n,
@@ -232,15 +234,22 @@ class EventListItem extends StatelessWidget {
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
     final timeWidth = use24Hour ? 40.0 : 70.0;
     const iconWidth = 32.0; // 28px icon + 4px gap
-    // CUR-488: "Incomplete" / "Unvollständig" needs ~80px, "12h 59m" needs ~55px
-    const durationWidth = 80.0;
+    // CUR-488 Phase 2: Widened to 90px to fit "Incomplete" with large text on iPhone SE
+    const durationWidth = 90.0;
+
+    // CUR-488 Phase 2: Get duration info with incomplete flag for styling
+    final (durationText, isIncompleteDuration) = _getDurationInfo(l10n);
+
+    // CUR-488 Phase 2: Subtle orange tint for incomplete records
+    final cardColor =
+        highlightColor ?? (record.isIncomplete ? Colors.orange.shade50 : null);
 
     return Card(
       margin: EdgeInsets.zero,
-      color: highlightColor,
-      // CUR-488: Add subtle elevation for depth
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
+      color: cardColor,
+      // CUR-488 Phase 2: Increased elevation for more visible shadows
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -250,13 +259,16 @@ class EventListItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               children: [
-                // Start time - fixed width, right aligned, same style as duration
+                // Start time - fixed width, right aligned
+                // CUR-488 Phase 2: Darker text for better readability
                 SizedBox(
                   width: timeWidth,
                   child: Text(
                     _startTimeFormatted(locale),
                     textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ),
 
@@ -291,16 +303,22 @@ class EventListItem extends StatelessWidget {
                 ),
 
                 // Duration - fixed width with left padding
+                // CUR-488 Phase 2: Orange text for "Incomplete", less muted for durations
+                // Use smaller font for "Incomplete" to fit on small screens (iPhone SE)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
                   child: SizedBox(
                     width: durationWidth,
                     child: Text(
-                      _getDuration(l10n),
+                      durationText,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: isIncompleteDuration
+                            ? Colors.orange.shade700
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: isIncompleteDuration
+                            ? FontWeight.w500
+                            : null,
+                        fontSize: isIncompleteDuration ? 12 : null,
                       ),
                     ),
                   ),
@@ -316,7 +334,8 @@ class EventListItem extends StatelessWidget {
                             l10n.translate('plusOneDay'),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
                                   fontWeight: FontWeight.w500,
                                 ),
                           ),

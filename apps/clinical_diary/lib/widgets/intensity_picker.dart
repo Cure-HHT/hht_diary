@@ -14,8 +14,14 @@ class IntensityPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // CUR-488 Phase 2: Reduced top padding from 8 to 4 for small screens with large text
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      padding: const EdgeInsets.only(
+        left: 12.0,
+        right: 12.0,
+        top: 4.0,
+        bottom: 8.0,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate icon size based on available height
@@ -34,27 +40,38 @@ class IntensityPicker extends StatelessWidget {
           final l10n = AppLocalizations.of(context);
           return Column(
             children: [
-              Text(
-                l10n.howSevere,
-                style: Theme.of(
+              // CUR-488 Phase 2: Don't scale titles to avoid scrolling on small screens
+              MediaQuery(
+                data: MediaQuery.of(
                   context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l10n.translate('selectBestOption'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ).copyWith(textScaler: TextScaler.noScaling),
+                child: Column(
+                  children: [
+                    Text(
+                      l10n.howSevere,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.translate('selectBestOption'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 6,
-                  crossAxisSpacing: 6,
+                  // CUR-488 Phase 2: Reduced spacing from 6 to 4 for small screens
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
                   childAspectRatio: (constraints.maxWidth / 2 - 9) / boxHeight,
                   physics: const NeverScrollableScrollPhysics(),
                   children: NosebleedIntensity.values.map((intensity) {
