@@ -63,6 +63,8 @@ jobs:
             libblkid-dev \
             liblzma-dev \
             libsecret-1-dev \
+            gnome-keyring \
+            dbus-x11 \
             xvfb
 
       - name: Setup Flutter
@@ -89,7 +91,12 @@ jobs:
       - name: Run coverage tests
         run: |
           chmod +x tool/coverage.sh
-          ./tool/coverage.sh
+          # Start dbus session and unlock gnome-keyring for flutter_secure_storage
+          # The keyring needs to be initialized with a password for libsecret to work
+          dbus-run-session -- bash -c '
+            echo "test" | gnome-keyring-daemon --unlock
+            ./tool/coverage.sh
+          '
 
   deploy-web:
     name: Deploy Web to Firebase
