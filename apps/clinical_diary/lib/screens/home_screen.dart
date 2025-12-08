@@ -139,11 +139,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 allRecords: _records,
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 allRecords: _records,
               ),
       ),
@@ -198,12 +200,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 initialDate: yesterday,
                 allRecords: _records,
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 initialDate: yesterday,
                 allRecords: _records,
               ),
@@ -527,6 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 initialDate: firstIncomplete.date,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
@@ -541,6 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 initialDate: firstIncomplete.date,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
@@ -569,6 +575,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 initialDate: record.date,
                 existingRecord: record,
                 allRecords: _records,
@@ -583,6 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 initialDate: record.date,
                 existingRecord: record,
                 allRecords: _records,
@@ -1016,6 +1024,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               builder: (context) => CalendarScreen(
                                 nosebleedService: widget.nosebleedService,
                                 enrollmentService: widget.enrollmentService,
+                                preferencesService: widget.preferencesService,
                               ),
                             );
                             unawaited(_loadRecords());

@@ -320,6 +320,41 @@ class AppLocalizations {
           'Note: The logo displayed on the homescreen of the app is a reminder that you are sharing your data with a 3rd party.',
       'sharingNoteEnded':
           'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': 'Old Entry Modification',
+      'oldEntryJustificationPrompt':
+          'This is an event more than one day old. Please explain why you are adding/changing it now:',
+      'justificationPaperRecords': 'Entered from paper records',
+      'justificationRemembered': 'Remembered specific event',
+      'justificationEstimated': 'Estimated event',
+      'confirm': 'Confirm',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Short Duration',
+      'shortDurationMessage': 'Duration is under 1 minute, is that correct?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Long Duration',
+      'longDurationMessage': 'Duration is over {0}, is that correct?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Validation Settings
+      'validationSettings': 'Entry Validation',
+      'validationSettingsDescription':
+          'Configure confirmation prompts for unusual entries',
+      'shortDurationConfirmation': 'Short Duration Confirmation',
+      'shortDurationConfirmationDescription':
+          'Prompt to confirm nosebleeds with duration of 1 minute or less',
+      'longDurationConfirmation': 'Long Duration Confirmation',
+      'longDurationConfirmationDescription':
+          'Prompt to confirm nosebleeds exceeding the threshold duration',
+      'longDurationThreshold': 'Long Duration Threshold',
+      'longDurationThresholdDescription': 'Duration threshold: {0}',
+      'hours': 'hours',
+      'hour': 'hour',
     },
     'es': {
       // General
@@ -611,6 +646,41 @@ class AppLocalizations {
           'Nota: El logo mostrado en la pantalla de inicio de la aplicacion es un recordatorio de que estas compartiendo tus datos con un tercero.',
       'sharingNoteEnded':
           'Nota: Los datos compartidos durante la participacion en el ensayo clinico permanecen con los investigadores indefinidamente para analisis cientifico.',
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': 'Modificacion de Entrada Antigua',
+      'oldEntryJustificationPrompt':
+          'Este es un evento de hace mas de un dia. Por favor explica por que lo estas agregando/cambiando ahora:',
+      'justificationPaperRecords': 'Ingresado desde registros en papel',
+      'justificationRemembered': 'Recorde un evento especifico',
+      'justificationEstimated': 'Evento estimado',
+      'confirm': 'Confirmar',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Duracion Corta',
+      'shortDurationMessage': 'La duracion es menor a 1 minuto, es correcto?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Duracion Larga',
+      'longDurationMessage': 'La duracion es mayor a {0}, es correcto?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Validation Settings
+      'validationSettings': 'Validacion de Entradas',
+      'validationSettingsDescription':
+          'Configurar solicitudes de confirmacion para entradas inusuales',
+      'shortDurationConfirmation': 'Confirmacion de Duracion Corta',
+      'shortDurationConfirmationDescription':
+          'Solicitar confirmacion para hemorragias nasales de 1 minuto o menos',
+      'longDurationConfirmation': 'Confirmacion de Duracion Larga',
+      'longDurationConfirmationDescription':
+          'Solicitar confirmacion para hemorragias nasales que excedan el umbral',
+      'longDurationThreshold': 'Umbral de Duracion Larga',
+      'longDurationThresholdDescription': 'Umbral de duracion: {0}',
+      'hours': 'horas',
+      'hour': 'hora',
     },
     'fr': {
       // General
@@ -912,6 +982,42 @@ class AppLocalizations {
           "Note: Le logo affiche sur l'ecran d'accueil de l'application est un rappel que vous partagez vos donnees avec un tiers.",
       'sharingNoteEnded':
           "Note: Les donnees partagees pendant la participation a l'essai clinique restent indefiniment avec les chercheurs pour analyse scientifique.",
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': "Modification d'une Ancienne Entree",
+      'oldEntryJustificationPrompt':
+          "Cet evenement date de plus d'un jour. Veuillez expliquer pourquoi vous l'ajoutez/modifiez maintenant:",
+      'justificationPaperRecords': 'Saisi a partir de dossiers papier',
+      'justificationRemembered': "Je me suis souvenu d'un evenement specifique",
+      'justificationEstimated': 'Evenement estime',
+      'confirm': 'Confirmer',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Duree Courte',
+      'shortDurationMessage':
+          'La duree est inferieure a 1 minute, est-ce correct?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Duree Longue',
+      'longDurationMessage': 'La duree est superieure a {0}, est-ce correct?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Validation Settings
+      'validationSettings': 'Validation des Entrees',
+      'validationSettingsDescription':
+          'Configurer les invites de confirmation pour les entrees inhabituelles',
+      'shortDurationConfirmation': 'Confirmation Duree Courte',
+      'shortDurationConfirmationDescription':
+          "Demander confirmation pour les saignements de nez d'une minute ou moins",
+      'longDurationConfirmation': 'Confirmation Duree Longue',
+      'longDurationConfirmationDescription':
+          'Demander confirmation pour les saignements de nez depassant le seuil',
+      'longDurationThreshold': 'Seuil de Duree Longue',
+      'longDurationThresholdDescription': 'Seuil de duree: {0}',
+      'hours': 'heures',
+      'hour': 'heure',
     },
     'de': {
       // General
@@ -1207,6 +1313,42 @@ class AppLocalizations {
           'Hinweis: Das Logo auf dem Startbildschirm der App erinnert Sie daran, dass Sie Ihre Daten mit einem Dritten teilen.',
       'sharingNoteEnded':
           'Hinweis: Wahrend der Teilnahme an der klinischen Studie geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': 'Alte Eintrag Anderung',
+      'oldEntryJustificationPrompt':
+          'Dieses Ereignis ist mehr als einen Tag alt. Bitte erklaren Sie, warum Sie es jetzt hinzufugen/andern:',
+      'justificationPaperRecords': 'Aus Papierunterlagen eingetragen',
+      'justificationRemembered': 'An bestimmtes Ereignis erinnert',
+      'justificationEstimated': 'Geschatztes Ereignis',
+      'confirm': 'Bestatigen',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Kurze Dauer',
+      'shortDurationMessage':
+          'Die Dauer betragt weniger als 1 Minute, ist das korrekt?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Lange Dauer',
+      'longDurationMessage': 'Die Dauer ist langer als {0}, ist das korrekt?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Validation Settings
+      'validationSettings': 'Eingabevalidierung',
+      'validationSettingsDescription':
+          'Bestatigungsaufforderungen fur ungewohnliche Eintrage konfigurieren',
+      'shortDurationConfirmation': 'Bestatigung Kurze Dauer',
+      'shortDurationConfirmationDescription':
+          'Bestatigung fur Nasenbluten mit einer Minute oder weniger anfordern',
+      'longDurationConfirmation': 'Bestatigung Lange Dauer',
+      'longDurationConfirmationDescription':
+          'Bestatigung fur Nasenbluten uber dem Schwellenwert anfordern',
+      'longDurationThreshold': 'Schwellenwert Lange Dauer',
+      'longDurationThresholdDescription': 'Dauerschwellenwert: {0}',
+      'hours': 'Stunden',
+      'hour': 'Stunde',
     },
   };
 
@@ -1456,6 +1598,7 @@ class AppLocalizations {
   String get incorrectInformation => translate('incorrectInformation');
   String get other => translate('other');
   String get pleaseSpecify => translate('pleaseSpecify');
+  String get confirm => translate('confirm');
 
   // Time picker
   String get cannotSelectFutureTime => translate('cannotSelectFutureTime');

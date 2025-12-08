@@ -1,16 +1,22 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-CAL-p00001: Old Entry Modification Justification
+//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
+//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
+import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
 // CUR-408: notes_input import removed - notes step removed from recording flow
+import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +27,7 @@ class RecordingScreen extends StatefulWidget {
   const RecordingScreen({
     required this.nosebleedService,
     required this.enrollmentService,
+    required this.preferencesService,
     super.key,
     this.initialDate,
     this.existingRecord,
@@ -30,6 +37,7 @@ class RecordingScreen extends StatefulWidget {
 
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
+  final PreferencesService preferencesService;
   final DateTime? initialDate;
   final NosebleedRecord? existingRecord;
   final List<NosebleedRecord> allRecords;
@@ -56,6 +64,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // CUR-464: Flash intensity field when user tries to set end time without intensity
   bool _flashIntensity = false;
 
+  // REQ-CAL-p00001: Old entry justification if required
+  OldEntryJustification? _oldEntryJustification;
+
+  // Cached user preferences for validation checks
+  UserPreferences? _userPreferences;
+
   /// Get the currently active date based on the current step
   DateTime get _currentDate {
     switch (_currentStep) {
@@ -76,6 +90,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
     _startDate = initialDate;
     _endDate = initialDate;
     // CUR-408: Removed _loadEnrollmentStatus call - notes step removed
+    // REQ-CAL: Load user preferences for validation settings
+    _loadPreferences();
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
@@ -105,6 +121,106 @@ class _RecordingScreenState extends State<RecordingScreen> {
         DateTime.now().minute,
       );
     }
+  }
+
+  /// REQ-CAL: Load user preferences for validation settings
+  Future<void> _loadPreferences() async {
+    final prefs = await widget.preferencesService.getPreferences();
+    if (mounted) {
+      setState(() => _userPreferences = prefs);
+    }
+  }
+
+  /// REQ-CAL-p00001: Check if this is an old entry (more than one calendar day old)
+  bool get _isOldEntry {
+    if (_startTime == null) return false;
+    final now = DateTime.now();
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    final entryDate = DateTime(
+      _startTime!.year,
+      _startTime!.month,
+      _startTime!.day,
+    );
+    return entryDate.isBefore(yesterday);
+  }
+
+  /// REQ-CAL-p00001: Check if old entry justification is required and not yet provided
+  bool get _needsOldEntryJustification {
+    if (!FeatureFlags.requireOldEntryJustification) return false;
+    return _isOldEntry && _oldEntryJustification == null;
+  }
+
+  /// REQ-CAL-p00002: Check if short duration confirmation is needed
+  bool get _needsShortDurationConfirmation {
+    if (!FeatureFlags.enableShortDurationConfirmation) return false;
+    if (_userPreferences != null &&
+        !_userPreferences!.shortDurationConfirmation) {
+      return false;
+    }
+    final duration = _durationMinutes;
+    return duration != null && duration <= 1;
+  }
+
+  /// REQ-CAL-p00003: Check if long duration confirmation is needed
+  bool get _needsLongDurationConfirmation {
+    if (!FeatureFlags.enableLongDurationConfirmation) return false;
+    if (_userPreferences != null &&
+        !_userPreferences!.longDurationConfirmation) {
+      return false;
+    }
+    final duration = _durationMinutes;
+    final threshold =
+        _userPreferences?.longDurationThresholdMinutes ??
+        FeatureFlags.defaultLongDurationThresholdMinutes;
+    return duration != null && duration > threshold;
+  }
+
+  /// REQ-CAL: Run all validation checks before saving
+  /// Returns true if save should proceed, false if cancelled
+  Future<bool> _runValidationChecks() async {
+    // REQ-CAL-p00001: Old entry justification check
+    if (_needsOldEntryJustification) {
+      final justification = await OldEntryJustificationDialog.show(
+        context: context,
+      );
+      if (!mounted) return false;
+      if (justification == null) {
+        return false; // User cancelled
+      }
+      setState(() => _oldEntryJustification = justification);
+    }
+
+    // REQ-CAL-p00002: Short duration confirmation
+    if (_needsShortDurationConfirmation) {
+      final confirmed = await DurationConfirmationDialog.show(
+        context: context,
+        type: DurationConfirmationType.short,
+        durationMinutes: _durationMinutes!,
+      );
+      if (!mounted) return false;
+      if (!confirmed) {
+        return false; // User chose to edit
+      }
+    }
+
+    // REQ-CAL-p00003: Long duration confirmation
+    if (_needsLongDurationConfirmation) {
+      final threshold =
+          _userPreferences?.longDurationThresholdMinutes ??
+          FeatureFlags.defaultLongDurationThresholdMinutes;
+      final confirmed = await DurationConfirmationDialog.show(
+        context: context,
+        type: DurationConfirmationType.long,
+        durationMinutes: _durationMinutes!,
+        thresholdMinutes: threshold,
+      );
+      if (!mounted) return false;
+      if (!confirmed) {
+        return false; // User chose to edit
+      }
+    }
+
+    return true;
   }
 
   // CUR-408: _loadEnrollmentStatus removed - notes step removed from recording flow
@@ -191,6 +307,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     // User can save and fix either record later
 
     // CUR-408: Notes validation removed - notes step removed from recording flow
+
+    // REQ-CAL: Run validation checks before saving
+    final shouldProceed = await _runValidationChecks();
+    if (!shouldProceed) return null;
 
     setState(() => _isSaving = true);
 

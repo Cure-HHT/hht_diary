@@ -16,6 +16,7 @@ import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,11 +31,13 @@ void main() {
   group('Recording Save Flow Integration Tests', () {
     late MockEnrollmentService mockEnrollment;
     late NosebleedService nosebleedService;
+    late PreferencesService preferencesService;
     late Directory tempDir;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockEnrollment = MockEnrollmentService();
+      preferencesService = PreferencesService();
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('save_flow_test_');
@@ -106,6 +109,7 @@ void main() {
                         builder: (_) => RecordingScreen(
                           nosebleedService: nosebleedService,
                           enrollmentService: mockEnrollment,
+                          preferencesService: preferencesService,
                           initialDate: DateTime(2024, 1, 15),
                         ),
                       ),
@@ -192,6 +196,7 @@ void main() {
                       builder: (_) => RecordingScreen(
                         nosebleedService: nosebleedService,
                         enrollmentService: mockEnrollment,
+                        preferencesService: preferencesService,
                         existingRecord: incompleteRecord,
                       ),
                     ),

@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
+//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -34,6 +36,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _useAnimation = true;
   bool _compactView = false;
   String _languageCode = 'en';
+  // REQ-CAL-p00002: Short duration confirmation preference
+  bool _shortDurationConfirmation = true;
+  // REQ-CAL-p00003: Long duration confirmation preference
+  bool _longDurationConfirmation = true;
+  int _longDurationThresholdHours = 1;
   bool _isLoading = true;
 
   @override
@@ -51,6 +58,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _useAnimation = prefs.useAnimation;
       _compactView = prefs.compactView;
       _languageCode = prefs.languageCode;
+      _shortDurationConfirmation = prefs.shortDurationConfirmation;
+      _longDurationConfirmation = prefs.longDurationConfirmation;
+      _longDurationThresholdHours = prefs.longDurationThresholdHours;
       _isLoading = false;
     });
   }
@@ -64,6 +74,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         useAnimation: _useAnimation,
         compactView: _compactView,
         languageCode: _languageCode,
+        shortDurationConfirmation: _shortDurationConfirmation,
+        longDurationConfirmation: _longDurationConfirmation,
+        longDurationThresholdHours: _longDurationThresholdHours,
       ),
     );
   }
@@ -267,12 +280,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             isSelected: _languageCode == 'de',
                             onTap: () => _selectLanguage('de'),
                           ),
+
+                          // REQ-CAL: Validation Settings Section
+                          // Only show if either feature flag is enabled
+                          if (FeatureFlags.enableShortDurationConfirmation ||
+                              FeatureFlags.enableLongDurationConfirmation) ...[
+                            const SizedBox(height: 32),
+
+                            _buildSectionHeader(
+                              context,
+                              AppLocalizations.of(
+                                context,
+                              ).translate('validationSettings'),
+                              AppLocalizations.of(
+                                context,
+                              ).translate('validationSettingsDescription'),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // REQ-CAL-p00002: Short duration confirmation toggle
+                            if (FeatureFlags.enableShortDurationConfirmation)
+                              _buildAccessibilityOption(
+                                context,
+                                title: AppLocalizations.of(
+                                  context,
+                                ).translate('shortDurationConfirmation'),
+                                subtitle: AppLocalizations.of(context)
+                                    .translate(
+                                      'shortDurationConfirmationDescription',
+                                    ),
+                                value: _shortDurationConfirmation,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _shortDurationConfirmation = value,
+                                  );
+                                  _savePreferences();
+                                },
+                              ),
+
+                            // REQ-CAL-p00003: Long duration confirmation toggle
+                            if (FeatureFlags
+                                .enableLongDurationConfirmation) ...[
+                              const SizedBox(height: 12),
+                              _buildAccessibilityOption(
+                                context,
+                                title: AppLocalizations.of(
+                                  context,
+                                ).translate('longDurationConfirmation'),
+                                subtitle: AppLocalizations.of(context)
+                                    .translate(
+                                      'longDurationConfirmationDescription',
+                                    ),
+                                value: _longDurationConfirmation,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _longDurationConfirmation = value,
+                                  );
+                                  _savePreferences();
+                                },
+                              ),
+
+                              // Long duration threshold slider
+                              if (_longDurationConfirmation) ...[
+                                const SizedBox(height: 12),
+                                _buildThresholdSelector(context),
+                              ],
+                            ],
+                          ],
                         ],
                       ),
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// REQ-CAL-p00003: Build the threshold selector for long duration confirmation
+  Widget _buildThresholdSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final hourLabel = _longDurationThresholdHours == 1
+        ? l10n.translate('hour')
+        : l10n.translate('hours');
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.translate('longDurationThreshold'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.translateWithParams('longDurationThresholdDescription', [
+              '$_longDurationThresholdHours $hourLabel',
+            ]),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                '${FeatureFlags.minLongDurationThresholdHours}h',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              Expanded(
+                child: Slider(
+                  value: _longDurationThresholdHours.toDouble(),
+                  min: FeatureFlags.minLongDurationThresholdHours.toDouble(),
+                  max: FeatureFlags.maxLongDurationThresholdHours.toDouble(),
+                  divisions:
+                      FeatureFlags.maxLongDurationThresholdHours -
+                      FeatureFlags.minLongDurationThresholdHours,
+                  label: '$_longDurationThresholdHours $hourLabel',
+                  onChanged: (value) {
+                    setState(() => _longDurationThresholdHours = value.round());
+                    _savePreferences();
+                  },
+                ),
+              ),
+              Text(
+                '${FeatureFlags.maxLongDurationThresholdHours}h',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

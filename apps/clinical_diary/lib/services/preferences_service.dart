@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
+//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +14,11 @@ class UserPreferences {
     this.useAnimation = true,
     this.compactView = false,
     this.languageCode = 'en',
+    // REQ-CAL-p00002: Short duration confirmation preference
+    this.shortDurationConfirmation = true,
+    // REQ-CAL-p00003: Long duration confirmation preference
+    this.longDurationConfirmation = true,
+    this.longDurationThresholdHours = 1,
   });
 
   /// Create from JSON (Firebase)
@@ -23,6 +30,12 @@ class UserPreferences {
       useAnimation: json['useAnimation'] as bool? ?? true,
       compactView: json['compactView'] as bool? ?? false,
       languageCode: json['languageCode'] as String? ?? 'en',
+      shortDurationConfirmation:
+          json['shortDurationConfirmation'] as bool? ?? true,
+      longDurationConfirmation:
+          json['longDurationConfirmation'] as bool? ?? true,
+      longDurationThresholdHours:
+          json['longDurationThresholdHours'] as int? ?? 1,
     );
   }
 
@@ -33,6 +46,18 @@ class UserPreferences {
   final bool compactView;
   final String languageCode;
 
+  /// REQ-CAL-p00002: Whether to show confirmation for durations <= 1 minute
+  final bool shortDurationConfirmation;
+
+  /// REQ-CAL-p00003: Whether to show confirmation for long durations
+  final bool longDurationConfirmation;
+
+  /// REQ-CAL-p00003: Threshold in hours for long duration confirmation (1-9)
+  final int longDurationThresholdHours;
+
+  /// Get the long duration threshold in minutes
+  int get longDurationThresholdMinutes => longDurationThresholdHours * 60;
+
   UserPreferences copyWith({
     bool? isDarkMode,
     bool? dyslexiaFriendlyFont,
@@ -40,6 +65,9 @@ class UserPreferences {
     bool? useAnimation,
     bool? compactView,
     String? languageCode,
+    bool? shortDurationConfirmation,
+    bool? longDurationConfirmation,
+    int? longDurationThresholdHours,
   }) {
     return UserPreferences(
       isDarkMode: isDarkMode ?? this.isDarkMode,
@@ -49,6 +77,12 @@ class UserPreferences {
       useAnimation: useAnimation ?? this.useAnimation,
       compactView: compactView ?? this.compactView,
       languageCode: languageCode ?? this.languageCode,
+      shortDurationConfirmation:
+          shortDurationConfirmation ?? this.shortDurationConfirmation,
+      longDurationConfirmation:
+          longDurationConfirmation ?? this.longDurationConfirmation,
+      longDurationThresholdHours:
+          longDurationThresholdHours ?? this.longDurationThresholdHours,
     );
   }
 
@@ -60,6 +94,9 @@ class UserPreferences {
     'useAnimation': useAnimation,
     'compactView': compactView,
     'languageCode': languageCode,
+    'shortDurationConfirmation': shortDurationConfirmation,
+    'longDurationConfirmation': longDurationConfirmation,
+    'longDurationThresholdHours': longDurationThresholdHours,
   };
 }
 
@@ -74,6 +111,13 @@ class PreferencesService {
   static const _keyUseAnimation = 'pref_use_animation';
   static const _keyCompactView = 'pref_compact_view';
   static const _keyLanguageCode = 'pref_language_code';
+  // REQ-CAL-p00002: Short duration confirmation
+  static const _keyShortDurationConfirmation =
+      'pref_short_duration_confirmation';
+  // REQ-CAL-p00003: Long duration confirmation
+  static const _keyLongDurationConfirmation = 'pref_long_duration_confirmation';
+  static const _keyLongDurationThresholdHours =
+      'pref_long_duration_threshold_hours';
 
   SharedPreferences? _sharedPreferences;
 
@@ -92,6 +136,12 @@ class PreferencesService {
       useAnimation: prefs.getBool(_keyUseAnimation) ?? true,
       compactView: prefs.getBool(_keyCompactView) ?? false,
       languageCode: prefs.getString(_keyLanguageCode) ?? 'en',
+      shortDurationConfirmation:
+          prefs.getBool(_keyShortDurationConfirmation) ?? true,
+      longDurationConfirmation:
+          prefs.getBool(_keyLongDurationConfirmation) ?? true,
+      longDurationThresholdHours:
+          prefs.getInt(_keyLongDurationThresholdHours) ?? 1,
     );
   }
 
@@ -104,6 +154,18 @@ class PreferencesService {
     await prefs.setBool(_keyUseAnimation, preferences.useAnimation);
     await prefs.setBool(_keyCompactView, preferences.compactView);
     await prefs.setString(_keyLanguageCode, preferences.languageCode);
+    await prefs.setBool(
+      _keyShortDurationConfirmation,
+      preferences.shortDurationConfirmation,
+    );
+    await prefs.setBool(
+      _keyLongDurationConfirmation,
+      preferences.longDurationConfirmation,
+    );
+    await prefs.setInt(
+      _keyLongDurationThresholdHours,
+      preferences.longDurationThresholdHours,
+    );
   }
 
   /// Update dark mode preference
