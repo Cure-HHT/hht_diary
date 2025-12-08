@@ -25,3 +25,4 @@ export const db = admin.firestore();
 export {health} from "./health";
 export {register, login, changePassword} from "./auth";
 export {enroll, sync, getRecords} from "./user";
+export {sponsorConfig} from "./sponsor";

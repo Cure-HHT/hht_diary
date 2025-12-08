@@ -1,7 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
+//   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-CAL-p00001: Old Entry Modification Justification
 //   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
 //   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
+
+// ignore_for_file: deprecated_member_use
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -19,6 +22,9 @@ class FeatureFlagsScreen extends StatefulWidget {
 
 class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
   final _featureFlagService = FeatureFlagService.instance;
+  String _selectedSponsor = FeatureFlags.knownSponsors.first;
+  bool _isLoading = false;
+  String? _loadError;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +64,81 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
               ],
             ),
           ),
+
+          // Sponsor Selection Section
+          _buildSectionHeader(l10n.featureFlagsSponsorSelection),
+
+          // Current sponsor display
+          if (_featureFlagService.currentSponsorId != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                l10n.featureFlagsCurrentSponsor(
+                  _featureFlagService.currentSponsorId!,
+                ),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+          // Sponsor dropdown and Load button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedSponsor,
+                    decoration: InputDecoration(
+                      labelText: l10n.featureFlagsSponsorId,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: FeatureFlags.knownSponsors
+                        .map(
+                          (sponsor) => DropdownMenuItem(
+                            value: sponsor,
+                            child: Text(sponsor),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedSponsor = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                FilledButton.icon(
+                  onPressed: _isLoading ? null : _loadFromServer,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_download),
+                  label: Text(l10n.featureFlagsLoad),
+                ),
+              ],
+            ),
+          ),
+
+          // Error message
+          if (_loadError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                _loadError!,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ),
+
+          const Divider(height: 32),
 
           // UI Features Section
           _buildSectionHeader(l10n.featureFlagsSectionUI),
@@ -184,6 +265,34 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
     );
   }
 
+  Future<void> _loadFromServer() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    final success = await _featureFlagService.loadFromServer(_selectedSponsor);
+
+    setState(() {
+      _isLoading = false;
+      if (!success) {
+        _loadError = _featureFlagService.lastError ?? 'Unknown error';
+      }
+    });
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).featureFlagsLoadSuccess(_selectedSponsor),
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _resetToDefaults() async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -205,8 +314,10 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
     );
 
     if (confirmed ?? false) {
-      await _featureFlagService.resetToDefaults();
-      setState(() {});
+      _featureFlagService.resetToDefaults();
+      setState(() {
+        _loadError = null;
+      });
       if (mounted) {
         ScaffoldMessenger.of(
           context,

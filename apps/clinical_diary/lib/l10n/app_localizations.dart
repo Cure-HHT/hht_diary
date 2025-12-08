@@ -345,6 +345,11 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           'These settings are for testing only. Changes affect app behavior.',
+      'featureFlagsSponsorSelection': 'Sponsor Configuration',
+      'featureFlagsSponsorId': 'Sponsor ID',
+      'featureFlagsCurrentSponsor': 'Current sponsor: {0}',
+      'featureFlagsLoad': 'Load',
+      'featureFlagsLoadSuccess': 'Loaded configuration for {0}',
       'featureFlagsSectionUI': 'UI Features',
       'featureFlagsSectionValidation': 'Validation Features',
       'featureFlagsUseReviewScreen': 'Use Review Screen',
@@ -689,6 +694,11 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           'Estos ajustes son solo para pruebas. Los cambios afectan el comportamiento de la app.',
+      'featureFlagsSponsorSelection': 'Configuracion del Patrocinador',
+      'featureFlagsSponsorId': 'ID del Patrocinador',
+      'featureFlagsCurrentSponsor': 'Patrocinador actual: {0}',
+      'featureFlagsLoad': 'Cargar',
+      'featureFlagsLoadSuccess': 'Configuracion cargada para {0}',
       'featureFlagsSectionUI': 'Funciones de Interfaz',
       'featureFlagsSectionValidation': 'Funciones de Validacion',
       'featureFlagsUseReviewScreen': 'Usar Pantalla de Revision',
@@ -1044,6 +1054,11 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           "Ces parametres sont uniquement pour les tests. Les modifications affectent le comportement de l'application.",
+      'featureFlagsSponsorSelection': 'Configuration du Sponsor',
+      'featureFlagsSponsorId': 'ID du Sponsor',
+      'featureFlagsCurrentSponsor': 'Sponsor actuel: {0}',
+      'featureFlagsLoad': 'Charger',
+      'featureFlagsLoadSuccess': 'Configuration chargee pour {0}',
       'featureFlagsSectionUI': "Fonctionnalites d'Interface",
       'featureFlagsSectionValidation': 'Fonctionnalites de Validation',
       'featureFlagsUseReviewScreen': 'Utiliser Ecran de Revision',
@@ -1393,6 +1408,11 @@ class AppLocalizations {
       'featureFlagsTitle': 'Feature Flags',
       'featureFlagsWarning':
           'Diese Einstellungen sind nur fur Tests. Anderungen beeinflussen das App-Verhalten.',
+      'featureFlagsSponsorSelection': 'Sponsor-Konfiguration',
+      'featureFlagsSponsorId': 'Sponsor-ID',
+      'featureFlagsCurrentSponsor': 'Aktueller Sponsor: {0}',
+      'featureFlagsLoad': 'Laden',
+      'featureFlagsLoadSuccess': 'Konfiguration fur {0} geladen',
       'featureFlagsSectionUI': 'Oberflachenfunktionen',
       'featureFlagsSectionValidation': 'Validierungsfunktionen',
       'featureFlagsUseReviewScreen': 'Uberprufungsbildschirm Verwenden',
@@ -1748,6 +1768,14 @@ class AppLocalizations {
   // Feature Flags
   String get featureFlagsTitle => translate('featureFlagsTitle');
   String get featureFlagsWarning => translate('featureFlagsWarning');
+  String get featureFlagsSponsorSelection =>
+      translate('featureFlagsSponsorSelection');
+  String get featureFlagsSponsorId => translate('featureFlagsSponsorId');
+  String featureFlagsCurrentSponsor(String sponsorId) =>
+      translateWithParams('featureFlagsCurrentSponsor', [sponsorId]);
+  String get featureFlagsLoad => translate('featureFlagsLoad');
+  String featureFlagsLoadSuccess(String sponsorId) =>
+      translateWithParams('featureFlagsLoadSuccess', [sponsorId]);
   String get featureFlagsSectionUI => translate('featureFlagsSectionUI');
   String get featureFlagsSectionValidation =>
       translate('featureFlagsSectionValidation');
