@@ -158,17 +158,25 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // CUR-489: Track GlobalKeys for each record to enable scroll-to-item
+  final Map<String, GlobalKey> _recordKeys = {};
+
+  /// Get or create a GlobalKey for a record
+  GlobalKey _getKeyForRecord(String recordId) {
+    return _recordKeys.putIfAbsent(recordId, GlobalKey.new);
+  }
+
   /// Scroll to a specific record in the list and ensure it's visible.
+  /// CUR-489: Uses Scrollable.ensureVisible to scroll to actual item position
   void _scrollToRecord(String recordId) {
-    // Scroll to top - the flash animation will draw attention to the new record
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        // Scroll to top to ensure the new record is visible
-        // (most new records appear at the top of today's section)
-        _scrollController.animateTo(
-          0,
+      final key = _recordKeys[recordId];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
+          alignment: 0.3, // Position item 30% from top for visibility
         );
       }
     });
@@ -1159,12 +1167,12 @@ class _HomeScreenState extends State<HomeScreen> {
         else
           ...group.records.map(
             (record) => Padding(
+              // CUR-489: Use GlobalKey for scroll-to-item functionality
+              key: _getKeyForRecord(record.id),
               // CUR-464: Use smaller gap when compact view is enabled
               padding: EdgeInsets.only(bottom: _compactView ? 4 : 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
-              // Key ensures new widget instance when record ID changes (e.g., on edit)
               child: FlashHighlight(
-                key: ValueKey(record.id),
                 flash: record.id == _flashRecordId,
                 enabled: _useAnimation,
                 onFlashComplete: () {
