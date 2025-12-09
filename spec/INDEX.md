@@ -13,7 +13,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 ---
 
 | Requirement ID | File | Title | Hash |
-|----------------|------|-------|------|
+| -------------- | ---- | ----- | ---- |
 | REQ-d00001 | dev-configuration.md | Sponsor-Specific Configuration Loading | cf4bce54 |
 | REQ-d00002 | dev-configuration.md | Pre-Build Configuration Validation | b551cfb0 |
 | REQ-d00003 | dev-security.md | Identity Platform Configuration Per Sponsor | 27095b5c |

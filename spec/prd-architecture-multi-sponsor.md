@@ -18,7 +18,7 @@ The Clinical Diary platform enables multiple pharmaceutical sponsors to conduct 
 **Core Architecture Principles**:
 
 | Principle | Description |
-|-----------|-------------|
+| --------- | ----------- |
 | **Shared Software** | One mobile app (REQ-p00008) and one codebase (REQ-p01050) serve all sponsors |
 | **Isolated Infrastructure** | Each sponsor has dedicated cloud resources (REQ-p01054) and web portal (REQ-p00009) |
 | **Protected Identity** | Sponsor participation remains confidential (REQ-p01055, REQ-p01056) |
