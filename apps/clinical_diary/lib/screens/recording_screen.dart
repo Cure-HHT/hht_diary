@@ -393,12 +393,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  void _handleStartTimeConfirm(DateTime time) {
-    setState(() {
-      _startDateTime = time;
-      _currentStep = RecordingStep.intensity;
-    });
-  }
+  // void _handleStartTimeConfirm(DateTime time) {
+  //   setState(() {
+  //     _startDateTime = time;
+  //     _currentStep = RecordingStep.intensity;
+  //   });
+  // }
 
   void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
