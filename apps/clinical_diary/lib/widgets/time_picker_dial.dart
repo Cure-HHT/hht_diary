@@ -129,6 +129,33 @@ class _TimePickerDialState extends State<TimePickerDial> {
     }
   }
 
+  Future<void> _showDatePicker() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedTime,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked != null) {
+      // Preserve the time, just change the date
+      final newDateTime = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+      // Clamp if needed (e.g., if picked today but time is in the future)
+      final clampedDateTime = _clampToMaxIfNeeded(newDateTime);
+      setState(() {
+        _selectedTime = clampedDateTime;
+      });
+      // Notify parent of the date change
+      widget.onTimeChanged?.call(clampedDateTime);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).languageCode;
@@ -157,46 +184,68 @@ class _TimePickerDialState extends State<TimePickerDial> {
 
           const Spacer(),
 
-          // Time display with date below (CUR-447: show date for clarity)
+          // Date display above time (tappable, DateHeader-like styling)
           GestureDetector(
-            onTap: _showTimePicker,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      use24Hour
-                          ? timeFormat.format(_selectedTime)
-                          : DateFormat('h:mm', locale).format(_selectedTime),
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontWeight: FontWeight.w300,
-                        fontSize: 72,
-                      ),
+            onTap: _showDatePicker,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    DateFormat('EEEE, MMMM d', locale).format(_selectedTime),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
                     ),
-                    if (!use24Hour) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        periodFormat.format(_selectedTime),
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w400),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // CUR-447: Show date below time for clarity in cross-day scenarios
-                Text(
-                  DateFormat.yMMMd(locale).format(_selectedTime),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Time display (tappable)
+          GestureDetector(
+            onTap: _showTimePicker,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  use24Hour
+                      ? timeFormat.format(_selectedTime)
+                      : DateFormat('h:mm', locale).format(_selectedTime),
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontWeight: FontWeight.w300,
+                    fontSize: 72,
                   ),
                 ),
+                if (!use24Hour) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    periodFormat.format(_selectedTime),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

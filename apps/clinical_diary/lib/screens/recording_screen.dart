@@ -63,7 +63,7 @@ import 'package:intl/intl.dart';
 ///         - the start time.
 ///         - the start date if different from the non-null endDate's date.
 ///         - the start timezone if different from the non-null endDate's timezone.
-/// (2) Intensity - display's the Intesity text or "Tap to Set"
+/// (2) Intensity - display's the Intensity text or "Tap to Set"
 /// (3) End DateTimeTZ, it display's:
 ///         - the end time, or if null "Not set".
 ///         - the end date if different from the startDate's date.
@@ -757,11 +757,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void setStartTimeState(DateTime time, DateTime startInitialTime) {
     setState(() {
       _startDateTime = time;
-      // Crossing the date line either way sets the end date date,
-      // if the end date is not already set
-      if (_endDateTime == null ||
-          (!DateUtils.isSameDay(startInitialTime, time))) {
-        _endDateTime = dateTimeForDateAndTime(startInitialTime, time);
+      // For new records (not editing an existing one), keep end datetime
+      // in sync with start datetime until user explicitly sets it
+      if (widget.existingRecord == null) {
+        _endDateTime = time;
       }
     });
   }
