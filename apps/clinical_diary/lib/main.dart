@@ -16,6 +16,7 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/widgets/environment_banner.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
@@ -79,6 +80,17 @@ void main() async {
         debugPrint('Datastore initialized successfully');
       } catch (e, stack) {
         debugPrint('Datastore initialization error: $e');
+        debugPrint('Stack trace:\n$stack');
+      }
+
+      // Initialize timezone service for device timezone detection
+      try {
+        await TimezoneService.instance.initialize();
+        debugPrint(
+          'TimezoneService initialized: ${TimezoneService.instance.currentTimezone}',
+        );
+      } catch (e, stack) {
+        debugPrint('TimezoneService initialization error: $e');
         debugPrint('Stack trace:\n$stack');
       }
 

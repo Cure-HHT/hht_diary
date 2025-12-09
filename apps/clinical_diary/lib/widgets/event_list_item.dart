@@ -16,6 +16,7 @@ class EventListItem extends StatelessWidget {
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
+    this.deviceTimezone,
   });
   final NosebleedRecord record;
   final VoidCallback? onTap;
@@ -26,26 +27,30 @@ class EventListItem extends StatelessWidget {
   /// Optional highlight color to apply to the card background (for flash animation)
   final Color? highlightColor;
 
+  /// Device's current IANA timezone for comparison (e.g., "Europe/Paris")
+  /// When null, timezone display logic is skipped
+  final String? deviceTimezone;
+
   /// Format start time for one-line display (e.g., "9:09 PM")
-  /// Shows timezone abbreviation when:
+  /// Shows timezone when:
   /// - Start and end time zones differ (cross-timezone event)
-  /// - Either time zone differs from device's current timezone
-  String _startTimeFormatted(String locale) {
+  /// - Start time zone differs from device's current timezone
+  String _startTimeFormatted(String locale, String? deviceTimezone) {
     final timeStr = DateFormat.jm(locale).format(record.startTime);
 
-    final deviceTzOffset = DateTime.now().timeZoneOffset;
-    final startTzOffset = record.startTime.timeZoneOffset;
-    final endTzOffset = record.endTime?.timeZoneOffset;
+    final startTz = record.startTimezone;
+    final endTz = record.endTimezone;
 
-    // Show timezone if start/end differ OR if either differs from device
-    final startDiffersFromDevice = startTzOffset != deviceTzOffset;
-    final endDiffersFromDevice =
-        endTzOffset != null && endTzOffset != deviceTzOffset;
-    final startEndDiffer = endTzOffset != null && startTzOffset != endTzOffset;
+    // No timezone stored - don't show anything
+    if (startTz == null) return timeStr;
 
-    if (startDiffersFromDevice || endDiffersFromDevice || startEndDiffer) {
-      final tz = record.startTime.timeZoneName;
-      return '$timeStr $tz';
+    // Show timezone if start/end differ OR if start differs from device
+    final startEndDiffer = endTz != null && startTz != endTz;
+    final startDiffersFromDevice =
+        deviceTimezone != null && startTz != deviceTimezone;
+
+    if (startDiffersFromDevice || startEndDiffer) {
+      return '$timeStr\n$startTz';
     }
     return timeStr;
   }
@@ -263,7 +268,7 @@ class EventListItem extends StatelessWidget {
                 SizedBox(
                   width: timeWidth,
                   child: Text(
-                    _startTimeFormatted(locale),
+                    _startTimeFormatted(locale, deviceTimezone),
                     textAlign: TextAlign.right,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,

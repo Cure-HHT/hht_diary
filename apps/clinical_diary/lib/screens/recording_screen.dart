@@ -10,6 +10,7 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
@@ -21,7 +22,6 @@ import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:intl/intl.dart';
 
 /// Recording flow screen for creating new nosebleed records.
@@ -168,8 +168,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    // Use a placeholder until we detect the IANA timezone
-    const fallbackTz = 'UTC';
+    // Use device timezone from service, fallback to UTC if not available
+    final deviceTz = TimezoneService.instance.currentTimezone ?? 'UTC';
     if (widget.existingRecord == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
@@ -179,62 +179,19 @@ class _RecordingScreenState extends State<RecordingScreen> {
       // Leave _endDateTime null for new records - it will be set when user
       // explicitly sets it. The end time picker will use _startDateTime as default.
       _endDateTime = null;
-      _startTimezone = fallbackTz;
+      _startTimezone = deviceTz;
       _endTimezone = null;
       _intensity = null;
       _currentStep = RecordingStep.startTime;
-      // Detect the IANA timezone asynchronously
-      _detectLocalTimezone();
     } else {
       //defensive, startTime should always be set but json conversion could fail
       _startDateTime = widget.existingRecord?.startTime ?? now;
       _endDateTime = widget.existingRecord?.endTime;
-      _startTimezone = widget.existingRecord?.startTimezone ?? fallbackTz;
+      _startTimezone = widget.existingRecord?.startTimezone ?? deviceTz;
       _endTimezone = widget.existingRecord?.endTimezone;
       _intensity = widget.existingRecord!.intensity;
       _currentStep = _getInitialStepForExisting();
-      // If existing record has no timezone, detect it
-      if (widget.existingRecord?.startTimezone == null) {
-        _detectLocalTimezone();
-      }
     }
-  }
-
-  /// Detect the local IANA timezone and update state
-  Future<void> _detectLocalTimezone() async {
-    try {
-      final localTz = await FlutterTimezone.getLocalTimezone();
-      if (mounted) {
-        setState(() {
-          _startTimezone = _normalizeTimezone(localTz.identifier);
-        });
-      }
-    } catch (e) {
-      // Fallback to UTC if detection fails
-      debugPrint('Failed to detect timezone: $e');
-    }
-  }
-
-  /// Normalize POSIX-style timezones to IANA format.
-  /// Some platforms (iOS simulator) return POSIX format like "EST5EDT" instead
-  /// of IANA format like "America/New_York".
-  String _normalizeTimezone(String tz) {
-    const posixToIana = {
-      'EST5EDT': 'America/New_York',
-      'CST6CDT': 'America/Chicago',
-      'MST7MDT': 'America/Denver',
-      'PST8PDT': 'America/Los_Angeles',
-      'EST': 'America/New_York',
-      'CST': 'America/Chicago',
-      'MST': 'America/Denver',
-      'PST': 'America/Los_Angeles',
-      'CET': 'Europe/Paris',
-      'CEST': 'Europe/Paris',
-      'EET': 'Europe/Helsinki',
-      'WET': 'Europe/Lisbon',
-      'GMT': 'Europe/London',
-    };
-    return posixToIana[tz] ?? tz;
   }
 
   /// REQ-CAL-p00001: Check if this is an old entry (more than one calendar day old)

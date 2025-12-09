@@ -3,6 +3,7 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -149,6 +150,7 @@ class DateRecordsScreen extends StatelessWidget {
           record: record,
           onTap: () => onEditEvent(record),
           hasOverlap: _hasOverlap(record),
+          deviceTimezone: TimezoneService.instance.currentTimezone,
         );
       },
     );

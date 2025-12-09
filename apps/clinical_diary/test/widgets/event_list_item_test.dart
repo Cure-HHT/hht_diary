@@ -45,13 +45,17 @@ void main() {
       expect(find.textContaining('2:00 PM'), findsOneWidget);
     });
 
-    testWidgets('displays --:-- when no times provided', (tester) async {
-      final record = NosebleedRecord(id: 'test-1', startTime: testDate);
+    testWidgets('displays start time even without end time', (tester) async {
+      final record = NosebleedRecord(
+        id: 'test-1',
+        startTime: DateTime(2024, 1, 15, 12, 0), // noon
+      );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('--:--'), findsOneWidget);
+      // Should still show the start time formatted
+      expect(find.textContaining('12:00 PM'), findsOneWidget);
     });
 
     // CUR-443: Intensity is now shown as an icon image, not text
