@@ -233,10 +233,10 @@ class EventListItem extends StatelessWidget {
     String locale,
   ) {
     // Fixed widths for column alignment
-    // Time column: "12:59 PM" needs ~70px, 24h "23:59" needs ~40px
-    // Note: timezone suffix adds ~25px when shown, but we let it overflow into duration gap
+    // Time column: "12:59 AM" needs ~80px, 24h "23:59" needs ~45px
+    // Note: timezone can be shown on second line when different from device
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    final timeWidth = use24Hour ? 40.0 : 70.0;
+    final timeWidth = use24Hour ? 45.0 : 80.0;
     const iconWidth = 32.0; // 28px icon + 4px gap
     // CUR-488 Phase 2: Widened to 90px to fit "Incomplete" with large text on iPhone SE
     const durationWidth = 90.0;

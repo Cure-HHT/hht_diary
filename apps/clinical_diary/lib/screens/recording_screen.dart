@@ -305,25 +305,28 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow - TODO - put back
 
   /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
-  /// Shows timezone abbreviation if different from end time's timezone or current timezone.
+  /// Shows timezone when start and end timezones differ, or when different from device.
   String _formatTime(DateTime? time, String locale, AppLocalizations l10n) {
     if (time == null) {
       return l10n.notSet;
     }
     final timeStr = DateFormat.jm(locale).format(time);
-    final currentTz = DateTime.now().timeZoneName;
-    // Show timezone if different from end time or current timezone
-    if ((_endDateTime != null &&
-            time.timeZoneName != _endDateTime!.timeZoneName) ||
-        time.timeZoneName != currentTz) {
-      return '$timeStr ${time.timeZoneName}';
+    final deviceTz = TimezoneService.instance.currentTimezone;
+
+    // Show timezone if different from end timezone or device timezone
+    final startEndDiffer =
+        _endTimezone != null && _startTimezone != _endTimezone;
+    final differsFromDevice = deviceTz != null && _startTimezone != deviceTz;
+
+    if (startEndDiffer || differsFromDevice) {
+      return '$timeStr $_startTimezone';
     }
     return timeStr;
   }
 
   /// Format end time with day offset indicator if dates differ from start.
   /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
-  /// Shows timezone abbreviation if different from start time's timezone or current timezone.
+  /// Shows timezone when start and end timezones differ, or when different from device.
   String _formatEndTime(
     DateTime? endTime,
     String locale,
@@ -335,7 +338,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     final timeStr = DateFormat.jm(locale).format(endTime);
     final suffixes = <String>[];
-    final currentTz = DateTime.now().timeZoneName;
+    final deviceTz = TimezoneService.instance.currentTimezone;
 
     // Add day difference suffix
     final startDate = DateUtils.dateOnly(_startDateTime);
@@ -348,10 +351,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
       suffixes.add('+$dayDiff days');
     }
 
-    // Add timezone if different from start time or current timezone
-    if (_startDateTime.timeZoneName != endTime.timeZoneName ||
-        endTime.timeZoneName != currentTz) {
-      suffixes.add(endTime.timeZoneName);
+    // Add timezone if different from start timezone or device timezone
+    // When endTimezone is null, treat it as same as startTimezone
+    final effectiveEndTz = _endTimezone ?? _startTimezone;
+    final startEndDiffer = _startTimezone != effectiveEndTz;
+    final differsFromDevice = deviceTz != null && effectiveEndTz != deviceTz;
+
+    if (startEndDiffer || differsFromDevice) {
+      suffixes.add(effectiveEndTz);
     }
 
     if (suffixes.isEmpty) {
