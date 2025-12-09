@@ -31,11 +31,10 @@ class EventListItem extends StatelessWidget {
   /// - Start and end time zones differ (cross-timezone event)
   /// - Either time zone differs from device's current timezone
   String _startTimeFormatted(String locale) {
-    if (record.startTime == null) return '--:--';
-    final timeStr = DateFormat.jm(locale).format(record.startTime!);
+    final timeStr = DateFormat.jm(locale).format(record.startTime);
 
     final deviceTzOffset = DateTime.now().timeZoneOffset;
-    final startTzOffset = record.startTime!.timeZoneOffset;
+    final startTzOffset = record.startTime.timeZoneOffset;
     final endTzOffset = record.endTime?.timeZoneOffset;
 
     // Show timezone if start/end differ OR if either differs from device
@@ -45,7 +44,7 @@ class EventListItem extends StatelessWidget {
     final startEndDiffer = endTzOffset != null && startTzOffset != endTzOffset;
 
     if (startDiffersFromDevice || endDiffersFromDevice || startEndDiffer) {
-      final tz = record.startTime!.timeZoneName;
+      final tz = record.startTime.timeZoneName;
       return '$timeStr $tz';
     }
     return timeStr;
@@ -72,12 +71,12 @@ class EventListItem extends StatelessWidget {
 
   /// Check if the event crosses midnight (ends on a different day)
   bool get _isMultiDay {
-    if (record.startTime == null || record.endTime == null) return false;
+    if (record.endTime == null) return false;
 
     final startDay = DateTime(
-      record.startTime!.year,
-      record.startTime!.month,
-      record.startTime!.day,
+      record.startTime.year,
+      record.startTime.month,
+      record.startTime.day,
     );
     final endDay = DateTime(
       record.endTime!.year,
@@ -94,7 +93,7 @@ class EventListItem extends StatelessWidget {
   (String, bool) _getDurationInfo(AppLocalizations l10n) {
     final minutes = record.durationMinutes;
     // If no end time set, show "Incomplete" instead of empty or 0m
-    if (record.endTime == null && record.startTime != null) {
+    if (record.endTime == null) {
       return (l10n.incomplete, true);
     }
     if (minutes == null) return ('', false);

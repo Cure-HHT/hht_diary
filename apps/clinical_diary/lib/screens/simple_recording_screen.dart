@@ -20,7 +20,7 @@ class SimpleRecordingScreen extends StatefulWidget {
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
-    this.initialDate,
+    this.initialStartDate,
     this.existingRecord,
     this.allRecords = const [],
     this.onDelete,
@@ -29,7 +29,7 @@ class SimpleRecordingScreen extends StatefulWidget {
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
-  final DateTime? initialDate;
+  final DateTime? initialStartDate;
   final NosebleedRecord? existingRecord;
   final List<NosebleedRecord> allRecords;
   final Future<void> Function(String)? onDelete;
@@ -41,7 +41,7 @@ class SimpleRecordingScreen extends StatefulWidget {
 class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   late DateTime _startDate;
   late DateTime _endDate;
-  DateTime? _startTime;
+  DateTime _startTime = DateTime.now();
   DateTime? _endTime;
   NosebleedIntensity? _intensity;
   bool _isSaving = false;
@@ -58,7 +58,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   @override
   void initState() {
     super.initState();
-    final initialDate = widget.initialDate ?? DateTime.now();
+    final initialDate = widget.initialStartDate ?? DateTime.now();
     _startDate = initialDate;
     _endDate = initialDate;
 
@@ -67,18 +67,12 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       _endTime = widget.existingRecord!.endTime;
       _intensity = widget.existingRecord!.intensity;
       // Set dates from existing record times
-      if (_startTime != null) {
-        _startDate = DateTime(
-          _startTime!.year,
-          _startTime!.month,
-          _startTime!.day,
-        );
-      }
+      _startDate = DateTime(_startTime.year, _startTime.month, _startTime.day);
       if (_endTime != null) {
         _endDate = DateTime(_endTime!.year, _endTime!.month, _endTime!.day);
       }
       // Existing record means all present fields were "set"
-      _userSetStart = _startTime != null;
+      _userSetStart = true;
       _userSetEnd = _endTime != null;
       _userSetIntensity = _intensity != null;
     } else {
@@ -97,9 +91,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       _endTime = null;
     }
   }
-
-  /// Get the primary date for the record (used for grouping/display)
-  DateTime get _date => _startDate;
 
   /// Returns the maximum DateTime allowed for start time selection.
   DateTime? get _maxStartDateTime {
@@ -141,7 +132,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
-    if (_startTime == null || _endTime == null) return [];
+    if (_endTime == null) return [];
 
     return widget.allRecords.where((record) {
       // Skip the current record if editing
@@ -151,15 +142,13 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       }
 
       // Only check real events with both start and end times
-      if (!record.isRealEvent ||
-          record.startTime == null ||
-          record.endTime == null) {
+      if (!record.isRealNosebleedEvent || record.endTime == null) {
         return false;
       }
 
       // Check if events overlap
-      return _startTime!.isBefore(record.endTime!) &&
-          _endTime!.isAfter(record.startTime!);
+      return _startTime.isBefore(record.endTime!) &&
+          _endTime!.isAfter(record.startTime);
     }).toList();
   }
 
@@ -216,7 +205,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         // Update existing record
         final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
-          date: _date,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
@@ -225,7 +213,6 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       } else {
         // Create new record (isIncomplete is calculated automatically by service)
         final record = await widget.nosebleedService.addRecord(
-          date: _date,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
@@ -254,15 +241,13 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() {
       _startDate = newDate;
       // Update start time to match new date while preserving time
-      if (_startTime != null) {
-        _startTime = DateTime(
-          newDate.year,
-          newDate.month,
-          newDate.day,
-          _startTime!.hour,
-          _startTime!.minute,
-        );
-      }
+      _startTime = DateTime(
+        newDate.year,
+        newDate.month,
+        newDate.day,
+        _startTime.hour,
+        _startTime.minute,
+      );
       // If end date is before start date, update it to match
       if (_endDate.isBefore(newDate)) {
         _endDate = newDate;
@@ -310,7 +295,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
   void _handleEndTimeChange(DateTime time, AppLocalizations l10n) {
     // Validate end time is after start time
-    if (_startTime != null && time.isBefore(_startTime!)) {
+    if (time.isBefore(_startTime)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
@@ -451,15 +436,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       const SizedBox(height: 8),
                       InlineTimePicker(
                         key: _startTimePickerKey,
-                        initialTime:
-                            _startTime ??
-                            DateTime(
-                              _startDate.year,
-                              _startDate.month,
-                              _startDate.day,
-                              DateTime.now().hour,
-                              DateTime.now().minute,
-                            ),
+                        initialTime: _startTime,
                         onTimeChanged: _handleStartTimeChange,
                         allowFutureTimes: false,
                         maxDateTime: _maxStartDateTime,

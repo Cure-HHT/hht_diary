@@ -41,8 +41,7 @@ enum NosebleedIntensity {
 class NosebleedRecord {
   NosebleedRecord({
     required this.id,
-    required this.date,
-    this.startTime,
+    required this.startTime,
     this.endTime,
     this.intensity,
     this.notes,
@@ -61,10 +60,7 @@ class NosebleedRecord {
   factory NosebleedRecord.fromJson(Map<String, dynamic> json) {
     return NosebleedRecord(
       id: json['id'] as String,
-      date: DateTime.parse(json['date'] as String),
-      startTime: json['startTime'] != null
-          ? DateTime.parse(json['startTime'] as String)
-          : null,
+      startTime: DateTime.parse(json['startTime'] as String),
       endTime: json['endTime'] != null
           ? DateTime.parse(json['endTime'] as String)
           : null,
@@ -87,8 +83,7 @@ class NosebleedRecord {
   }
 
   final String id;
-  final DateTime date;
-  final DateTime? startTime;
+  final DateTime startTime;
   final DateTime? endTime;
   final NosebleedIntensity? intensity;
   final String? notes;
@@ -103,24 +98,29 @@ class NosebleedRecord {
   final DateTime? syncedAt;
 
   /// Check if this is a real nosebleed event (not a "no nosebleed" or "unknown" marker)
-  bool get isRealEvent => !isNoNosebleedsEvent && !isUnknownEvent;
+  bool get isRealNosebleedEvent => !isNoNosebleedsEvent && !isUnknownEvent;
 
   /// Check if the record has all required data
   bool get isComplete =>
       isNoNosebleedsEvent ||
       isUnknownEvent ||
-      (startTime != null && endTime != null && intensity != null);
+      (endTime != null && intensity != null);
 
   /// Calculate duration in minutes
   int? get durationMinutes {
-    if (startTime == null || endTime == null) return null;
-    return endTime!.difference(startTime!).inMinutes;
+    if (endTime == null) {
+      return null;
+    }
+    if (endTime!.isBefore(startTime)) {
+      return null;
+    }
+    return endTime!.difference(startTime).inMinutes;
   }
 
   /// Create a copy with updated fields
   NosebleedRecord copyWith({
     String? id,
-    DateTime? date,
+    DateTime? recordDate,
     DateTime? startTime,
     DateTime? endTime,
     NosebleedIntensity? intensity,
@@ -137,7 +137,6 @@ class NosebleedRecord {
   }) {
     return NosebleedRecord(
       id: id ?? this.id,
-      date: date ?? this.date,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       intensity: intensity ?? this.intensity,
@@ -158,8 +157,7 @@ class NosebleedRecord {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'date': date.toIso8601String(),
-      'startTime': startTime?.toIso8601String(),
+      'startTime': startTime.toIso8601String(),
       'endTime': endTime?.toIso8601String(),
       'intensity': intensity?.name,
       'notes': notes,

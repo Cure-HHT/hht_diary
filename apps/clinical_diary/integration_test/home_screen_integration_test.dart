@@ -131,7 +131,6 @@ void main() {
         // Add a record for today
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -153,7 +152,6 @@ void main() {
         // Add an incomplete record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           // No end time or intensity - incomplete
         );
@@ -175,13 +173,11 @@ void main() {
 
         // Add two records at different times
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 14, 0),
           endTime: DateTime(today.year, today.month, today.day, 14, 30),
           intensity: NosebleedIntensity.spotting,
         );
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 9, 0),
           endTime: DateTime(today.year, today.month, today.day, 9, 15),
           intensity: NosebleedIntensity.dripping,
@@ -205,7 +201,6 @@ void main() {
         // Add a record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -233,7 +228,6 @@ void main() {
         // Add a record for yesterday
         final yesterday = DateTime.now().subtract(const Duration(days: 1));
         await nosebleedService.addRecord(
-          date: yesterday,
           startTime: DateTime(
             yesterday.year,
             yesterday.month,
@@ -269,7 +263,6 @@ void main() {
         // Add an incomplete record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           // No end time - incomplete
         );
@@ -291,7 +284,6 @@ void main() {
         // Add a complete record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -313,7 +305,6 @@ void main() {
         // Add a record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -337,13 +328,11 @@ void main() {
         // Add multiple records
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 9, 0),
           endTime: DateTime(today.year, today.month, today.day, 9, 30),
           intensity: NosebleedIntensity.spotting,
         );
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 14, 0),
           endTime: DateTime(today.year, today.month, today.day, 14, 30),
           intensity: NosebleedIntensity.dripping,
@@ -382,13 +371,11 @@ void main() {
         // Add overlapping records
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.spotting,
         );
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 15),
           endTime: DateTime(today.year, today.month, today.day, 10, 45),
           intensity: NosebleedIntensity.dripping,

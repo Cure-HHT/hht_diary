@@ -80,7 +80,7 @@ void main() {
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               preferencesService: preferencesService,
-              initialDate: DateTime(2024, 1, 15),
+              diaryEntryDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -145,7 +145,6 @@ void main() {
       testWidgets('pre-fills fields from existing record', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -174,7 +173,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -203,7 +201,6 @@ void main() {
       ) async {
         final incompleteRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           isIncomplete: true,
           // Missing intensity and endTime
@@ -231,7 +228,6 @@ void main() {
       ) async {
         final incompleteRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
@@ -260,7 +256,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -284,7 +279,6 @@ void main() {
       testWidgets('summary bar shows existing record values', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -314,7 +308,6 @@ void main() {
       testWidgets('can navigate between steps via summary bar', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -361,7 +354,6 @@ void main() {
         final overlappingRecords = [
           NosebleedRecord(
             id: 'other-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
             intensity: NosebleedIntensity.spotting,
@@ -370,7 +362,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -398,7 +389,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -438,7 +428,6 @@ void main() {
         final overlappingRecords = [
           NosebleedRecord(
             id: 'other-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
             intensity: NosebleedIntensity.spotting,
@@ -447,7 +436,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -496,7 +484,6 @@ void main() {
         final nonOverlappingRecords = [
           NosebleedRecord(
             id: 'other-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 8, 0), // Does not overlap
             endTime: DateTime(2024, 1, 15, 8, 30),
             intensity: NosebleedIntensity.spotting,
@@ -505,7 +492,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -556,7 +542,6 @@ void main() {
           // Record from yesterday at 10:00-10:30
           final yesterdayRecord = NosebleedRecord(
             id: 'yesterday-1',
-            date: DateTime(2024, 1, 14),
             startTime: DateTime(2024, 1, 14, 10, 0),
             endTime: DateTime(2024, 1, 14, 10, 30),
             intensity: NosebleedIntensity.spotting,
@@ -565,7 +550,6 @@ void main() {
           // Current record is today at same time (10:00-10:30)
           final todayRecord = NosebleedRecord(
             id: 'today-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
             intensity: NosebleedIntensity.dripping,
@@ -602,7 +586,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -645,7 +628,6 @@ void main() {
         String? deletedReason;
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -701,7 +683,6 @@ void main() {
         // Provide an existing record directly
         final existingRecord = NosebleedRecord(
           id: 'edit-test-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.spotting,
@@ -773,7 +754,7 @@ void main() {
               nosebleedService: failingService,
               enrollmentService: mockEnrollment,
               preferencesService: testPreferencesService,
-              initialDate: today,
+              diaryEntryDate: today,
             ),
           ),
         );
@@ -844,7 +825,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 14, 0), // 2:00 PM
           endTime: DateTime(2024, 1, 15, 14, 30),
           intensity: NosebleedIntensity.dripping,
@@ -895,7 +875,6 @@ void main() {
       testWidgets('can navigate to end time via summary bar', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -940,7 +919,7 @@ void main() {
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               preferencesService: preferencesService,
-              initialDate: DateTime(2024, 1, 15),
+              diaryEntryDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -1002,8 +981,8 @@ class FailingNosebleedService extends NosebleedService {
 
   @override
   Future<NosebleedRecord> addRecord({
-    required DateTime date,
-    DateTime? startTime,
+    required DateTime startTime,
+    DateTime? recordDate,
     DateTime? endTime,
     NosebleedIntensity? intensity,
     String? notes,
@@ -1017,8 +996,8 @@ class FailingNosebleedService extends NosebleedService {
   @override
   Future<NosebleedRecord> updateRecord({
     required String originalRecordId,
-    required DateTime date,
-    DateTime? startTime,
+    required DateTime startTime,
+    DateTime? recordDate,
     DateTime? endTime,
     NosebleedIntensity? intensity,
     String? notes,

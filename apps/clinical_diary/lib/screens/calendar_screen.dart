@@ -56,7 +56,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
 
     // Also load all records for overlap checking
-    final allRecords = await widget.nosebleedService.getLocalRecords();
+    final allRecords = await widget.nosebleedService
+        .getLocalMaterializedRecords();
 
     setState(() {
       _dayStatuses = statuses;
@@ -118,7 +119,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
     // Fetch records for the selected day
-    final records = await widget.nosebleedService.getRecordsForDate(
+    final records = await widget.nosebleedService.getRecordsForStartDate(
       selectedDay,
     );
 
@@ -192,7 +193,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
-          initialDate: selectedDay,
+          diaryEntryDate: selectedDay,
           existingRecord: existingRecord,
           allRecords: _allRecords,
         ),
