@@ -78,6 +78,11 @@ import 'package:intl/intl.dart';
 /// Content
 /// (1) Start DateTimeTZ Content
 ///     Title: Nosebleed Start Time
+///     Date Display:
+///         When clicked, shows the calendar picker widget.
+///         When the user picks a new date, it changes _startDateTime's
+///         y/m/d (keeping the time) and sets diaryEntryDate to _startDateTime
+///         If _endDateTime is null, it sets _endDateTime to _startDateTime
 ///     Time Display: Displays:
 ///         - the start time.
 ///         - the date if different from the non-null endDate's date.
@@ -85,10 +90,6 @@ import 'package:intl/intl.dart';
 ///         When clicked, shows the time picker widget.
 ///         When the user picks a new time, it changes _startDateTime
 ///             and set the diaryEntryDate to the new _startDateTime
-///     Date Display:
-///         When clicked, shows the calendar picker widget.
-///         When the user picks a new date, it changes _startDateTime's
-///         y/m/d (keeping the time) and sets diaryEntryDate to _startDateTime
 ///     Decrement/Increment Buttons: when clicked, moves _startDateTime
 ///         forward or backwards by the number of minutes on the button
 /// (2) Intensity Content - a grid of Intensity's, when click, sets _intensity.
@@ -165,11 +166,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (widget.existingRecord == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
-        _endDateTime = now;
       } else {
         _startDateTime = widget.diaryEntryDate!;
-        _endDateTime = widget.diaryEntryDate;
       }
+      // Leave _endDateTime null for new records - it will be set when user
+      // explicitly sets it. The end time picker will use _startDateTime as default.
+      _endDateTime = null;
       _intensity = null;
       _currentStep = RecordingStep.startTime;
     } else {
@@ -293,6 +295,33 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return l10n.notSet;
     }
     return DateFormat.jm(locale).format(time);
+  }
+
+  /// Format end time with day offset indicator if dates differ from start.
+  /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
+  String _formatEndTime(
+    DateTime? endTime,
+    String locale,
+    AppLocalizations l10n,
+  ) {
+    if (endTime == null) {
+      return l10n.notSet;
+    }
+
+    final timeStr = DateFormat.jm(locale).format(endTime);
+
+    // Calculate day difference
+    final startDate = DateUtils.dateOnly(_startDateTime);
+    final endDate = DateUtils.dateOnly(endTime);
+    final dayDiff = endDate.difference(startDate).inDays;
+
+    if (dayDiff == 0) {
+      return timeStr;
+    } else if (dayDiff == 1) {
+      return '$timeStr (+1 day)';
+    } else {
+      return '$timeStr (+$dayDiff days)';
+    }
   }
 
   int? _durationMinutes() {
@@ -636,7 +665,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // End time - CUR-464: use _handleEndTimeTap to flash intensity if not set
           _buildSummaryItem(
             label: l10n.end,
-            value: _formatTime(_endDateTime, locale, l10n),
+            value: _formatEndTime(_endDateTime, locale, l10n),
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _handleEndTimeTap,
           ),
@@ -731,7 +760,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
         );
 
       case RecordingStep.endTime:
-        final endInitialTime = _endDateTime ?? DateTime.now();
+        // Use start time as default for end time picker when not yet set
+        final endInitialTime = _endDateTime ?? _startDateTime;
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
@@ -739,7 +769,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: (time) {
             setState(() {
-              _endDateTime = time;
               _endDateTime = time;
             });
           },
@@ -757,11 +786,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void setStartTimeState(DateTime time, DateTime startInitialTime) {
     setState(() {
       _startDateTime = time;
-      // For new records (not editing an existing one), keep end datetime
-      // in sync with start datetime until user explicitly sets it
-      if (widget.existingRecord == null) {
-        _endDateTime = time;
-      }
+      // _endDateTime remains null for new records until user explicitly sets it.
+      // The end time picker will use _startDateTime as the default initial value.
     });
   }
 

@@ -901,6 +901,135 @@ void main() {
       });
     });
 
+    group('End Time Display in Summary', () {
+      testWidgets('shows "Not set" when end time is null for new record', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // End time should show "Not set" for new records
+        expect(find.text('Not set'), findsOneWidget);
+      });
+
+      testWidgets('shows (+1 day) when end date is one day after start', (
+        tester,
+      ) async {
+        // Record spans from 11pm to 1am next day
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          startTime: DateTime(2024, 1, 15, 23, 0), // 11:00 PM Jan 15
+          endTime: DateTime(2024, 1, 16, 1, 0), // 1:00 AM Jan 16
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              existingRecord: existingRecord,
+              onDelete: (_) async {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // End time summary should show "(+1 day)"
+        expect(find.textContaining('(+1 day)'), findsOneWidget);
+      });
+
+      testWidgets('shows (+2 days) when end date is two days after start', (
+        tester,
+      ) async {
+        // Record spans multiple days
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          startTime: DateTime(2024, 1, 15, 23, 0), // 11:00 PM Jan 15
+          endTime: DateTime(2024, 1, 17, 1, 0), // 1:00 AM Jan 17
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              existingRecord: existingRecord,
+              onDelete: (_) async {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // End time summary should show "(+2 days)"
+        expect(find.textContaining('(+2 days)'), findsOneWidget);
+      });
+
+      testWidgets('does not show day offset when dates are same', (
+        tester,
+      ) async {
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          startTime: DateTime(2024, 1, 15, 10, 0),
+          endTime: DateTime(2024, 1, 15, 10, 30),
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              existingRecord: existingRecord,
+              onDelete: (_) async {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Should NOT show any day offset
+        expect(find.textContaining('(+'), findsNothing);
+      });
+
+      testWidgets(
+        'end time tracks start time changes for new records until explicitly set',
+        (tester) async {
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Initially end time should be "Not set"
+          expect(find.text('Not set'), findsOneWidget);
+
+          // Tap +15 to adjust start time - end should still be "Not set"
+          await tester.tap(find.text('+15'));
+          await tester.pumpAndSettle();
+
+          // End time should still show "Not set" (tracking is implicit, not displayed)
+          expect(find.text('Not set'), findsOneWidget);
+        },
+      );
+    });
+
     group('Intensity Selection', () {
       testWidgets('navigates to end time picker when intensity is selected', (
         tester,
