@@ -599,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: record.date,
+                initialDate: null,
                 existingRecord: record,
                 allRecords: _records,
                 onDelete: (reason) async {

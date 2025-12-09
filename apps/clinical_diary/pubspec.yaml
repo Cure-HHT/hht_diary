@@ -1,7 +1,7 @@
 name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
-version: 0.7.49
+version: 0.7.51
 
 environment:
   sdk: ^3.10.1
@@ -16,41 +16,18 @@ dependencies:
   append_only_datastore:
     path: ../common-dart/append_only_datastore
 
-  # Firebase (core only - no auth, using custom JWT)
-  firebase_core: ^4.2.1
-  cloud_firestore: ^6.1.0
-
-  # Cryptography for password hashing
-  crypto: ^3.0.7
-
-  # State Management
-  signals: ^6.2.0
-
-  # Local Storage
-  shared_preferences: ^2.5.3
-  flutter_secure_storage: ^9.2.4
-
-  # UUID generation
-  uuid: ^4.5.2
-
-  # JWT handling (for token verification on client)
-  dart_jsonwebtoken: ^3.3.1
-
-  # HTTP
-  http: ^1.4.0
-
-  # Utilities
-  intl: ^0.20.2
   collection: ^1.19.1
-
-  # Calendar
-  table_calendar: ^3.1.2
-
-  # URL launching (for external links)
-  url_launcher: ^6.3.1
-
-  # App version info from pubspec.yaml
-  package_info_plus: ^8.3.0
+  crypto: ^3.0.7
+  dart_jsonwebtoken: ^3.3.1
+  firebase_core: ^4.2.1
+  flutter_secure_storage: ^9.2.4
+  http: ^1.6.0
+  intl: ^0.20.2
+  package_info_plus: ^9.0.0
+  shared_preferences: ^2.5.3
+  table_calendar: ^3.2.0
+  url_launcher: ^6.3.2
+  uuid: ^4.5.2
 
 dev_dependencies:
   flutter_test:

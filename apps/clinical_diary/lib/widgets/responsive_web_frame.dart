@@ -15,7 +15,7 @@ class ResponsiveWebFrame extends StatelessWidget {
   /// Creates a responsive web frame that constrains width on web.
   const ResponsiveWebFrame({
     required this.child,
-    this.maxWidth = 430,
+    this.maxWidth = 540,
     this.backgroundColor,
     super.key,
   });

@@ -113,7 +113,7 @@ packages:
     source: hosted
     version: "1.1.2"
   cloud_firestore:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: cloud_firestore
       sha256: fc1de79a62fe21615e9012f396070e6121838ef0d879475a4ec8320e79378208
@@ -599,10 +599,10 @@ packages:
     dependency: "direct main"
     description:
       name: package_info_plus
-      sha256: "16eee997588c60225bda0488b6dcfac69280a6b7a3cf02c741895dd370a02968"
+      sha256: f69da0d3189a4b4ceaeb1a3defb0f329b3b352517f52bed4290f83d4f06bc08d
       url: "https://pub.dev"
     source: hosted
-    version: "8.3.1"
+    version: "9.0.0"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -828,7 +828,7 @@ packages:
     source: hosted
     version: "2.4.1"
   signals:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: signals
       sha256: a7f5fea3f27708b2705cff501aa0eb32f893552943a7fa8b2851401164459d13
