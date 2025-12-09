@@ -28,6 +28,10 @@ dependencies:
   table_calendar: ^3.2.0
   url_launcher: ^6.3.2
   uuid: ^4.5.2
+  sugar: ^4.0.0
+  timezone_button_dropdown: ^1.0.2
+  timezone: ^0.10.1
+  flutter_timezone: ^5.0.1
 
 dev_dependencies:
   flutter_test:

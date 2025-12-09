@@ -192,6 +192,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.8.8"
+  dropdown_button2:
+    dependency: transitive
+    description:
+      name: dropdown_button2
+      sha256: b0fe8d49a030315e9eef6c7ac84ca964250155a6224d491c1365061bc974a9e1
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.9"
   ed25519_edwards:
     dependency: transitive
     description:
@@ -380,6 +388,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_timezone:
+    dependency: "direct main"
+    description:
+      name: flutter_timezone
+      sha256: "978192f2f9ea6d019a4de4f0211d76a9af955ca24865828fa98ca4e20cf0cb3c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.1"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -904,6 +920,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  sugar:
+    dependency: "direct main"
+    description:
+      name: sugar
+      sha256: a0a97f1d3552a3ef4cbec7c6e62c7b52c151cd5c11e984e8311700a918f73dc5
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
   sync_http:
     dependency: transitive
     description:
@@ -944,6 +968,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.7"
+  timezone:
+    dependency: "direct main"
+    description:
+      name: timezone
+      sha256: dd14a3b83cfd7cb19e7888f1cbc20f258b8d71b54c06f79ac585f14093a287d1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.10.1"
+  timezone_button_dropdown:
+    dependency: "direct main"
+    description:
+      name: timezone_button_dropdown
+      sha256: "99add853462330b5e9ec8b83f995217ce5c6fb980ecb1c55fcd4fcaef0ecfb06"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   tuple:
     dependency: transitive
     description:

@@ -139,7 +139,9 @@ class NosebleedService {
   /// This is the primary way to create records - no updates allowed
   Future<NosebleedRecord> addRecord({
     required DateTime startTime,
+    String? startTimezone,
     DateTime? endTime,
+    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
@@ -150,7 +152,9 @@ class NosebleedService {
     final record = NosebleedRecord(
       id: generateRecordId(),
       startTime: startTime,
+      startTimezone: startTimezone,
       endTime: endTime,
+      endTimezone: endTimezone,
       intensity: intensity,
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
@@ -173,9 +177,11 @@ class NosebleedService {
       data: {
         'recordId':
             record.id, // Store user-visible record ID for materialization
-        'startTime': record.startTime.toIso8601String(),
+        'startTime': record.startTime.toUtc().toIso8601String(),
         if (record.endTime != null)
-          'endTime': record.endTime!.toIso8601String(),
+          'endTime': record.endTime!.toUtc().toIso8601String(),
+        if (record.startTimezone != null) 'startTimezone': record.startTimezone,
+        if (record.endTimezone != null) 'endTimezone': record.endTimezone,
         if (record.intensity != null) 'intensity': record.intensity!.name,
         if (record.notes != null) 'notes': record.notes,
         'isNoNosebleedsEvent': record.isNoNosebleedsEvent,
@@ -200,7 +206,9 @@ class NosebleedService {
   Future<NosebleedRecord> updateRecord({
     required String originalRecordId,
     required DateTime startTime,
+    String? startTimezone,
     DateTime? endTime,
+    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
@@ -208,7 +216,9 @@ class NosebleedService {
   }) async {
     return addRecord(
       startTime: startTime,
+      startTimezone: startTimezone,
       endTime: endTime,
+      endTimezone: endTimezone,
       intensity: intensity,
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,

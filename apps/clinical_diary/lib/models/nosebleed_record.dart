@@ -42,7 +42,9 @@ class NosebleedRecord {
   NosebleedRecord({
     required this.id,
     required this.startTime,
+    this.startTimezone,
     this.endTime,
+    this.endTimezone,
     this.intensity,
     this.notes,
     this.isNoNosebleedsEvent = false,
@@ -64,6 +66,8 @@ class NosebleedRecord {
       endTime: json['endTime'] != null
           ? DateTime.parse(json['endTime'] as String)
           : null,
+      startTimezone: json['startTimezone'] as String?,
+      endTimezone: json['endTimezone'] as String?,
       intensity: NosebleedIntensity.fromString(json['intensity'] as String?),
       notes: json['notes'] as String?,
       isNoNosebleedsEvent: json['isNoNosebleedsEvent'] as bool? ?? false,
@@ -85,6 +89,16 @@ class NosebleedRecord {
   final String id;
   final DateTime startTime;
   final DateTime? endTime;
+
+  /// IANA timezone string for start time (e.g., "America/New_York")
+  /// If null, assumes device's current timezone for legacy records.
+  final String? startTimezone;
+
+  /// IANA timezone string for end time (e.g., "America/Los_Angeles")
+  /// May differ from startTimezone if user traveled during the event.
+  /// If null, assumes same as startTimezone.
+  final String? endTimezone;
+
   final NosebleedIntensity? intensity;
   final String? notes;
   final bool isNoNosebleedsEvent;
@@ -123,6 +137,8 @@ class NosebleedRecord {
     DateTime? recordDate,
     DateTime? startTime,
     DateTime? endTime,
+    String? startTimezone,
+    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool? isNoNosebleedsEvent,
@@ -139,6 +155,8 @@ class NosebleedRecord {
       id: id ?? this.id,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
+      startTimezone: startTimezone ?? this.startTimezone,
+      endTimezone: endTimezone ?? this.endTimezone,
       intensity: intensity ?? this.intensity,
       notes: notes ?? this.notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent ?? this.isNoNosebleedsEvent,
@@ -154,11 +172,14 @@ class NosebleedRecord {
   }
 
   /// Convert to JSON for local storage and API calls
+  /// Times are stored as UTC ISO8601 strings for timezone-safe storage.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'startTime': startTime.toIso8601String(),
-      'endTime': endTime?.toIso8601String(),
+      'startTime': startTime.toUtc().toIso8601String(),
+      'endTime': endTime?.toUtc().toIso8601String(),
+      'startTimezone': startTimezone,
+      'endTimezone': endTimezone,
       'intensity': intensity?.name,
       'notes': notes,
       'isNoNosebleedsEvent': isNoNosebleedsEvent,
@@ -168,8 +189,8 @@ class NosebleedRecord {
       'deleteReason': deleteReason,
       'parentRecordId': parentRecordId,
       'deviceUuid': deviceUuid,
-      'createdAt': createdAt.toIso8601String(),
-      'syncedAt': syncedAt?.toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'syncedAt': syncedAt?.toUtc().toIso8601String(),
     };
   }
 }

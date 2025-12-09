@@ -21,6 +21,7 @@ import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:intl/intl.dart';
 
 /// Recording flow screen for creating new nosebleed records.
@@ -148,6 +149,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // The end date/time shown in the summary, timepicker and clock
   DateTime? _endDateTime;
 
+  // IANA timezone strings for start and end times
+  late String _startTimezone;
+  String? _endTimezone;
+
   // CUR-408: Notes field removed from recording flow TODO - needs to be put back
 
   RecordingStep _currentStep = RecordingStep.startTime;
@@ -163,6 +168,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
+    // Use a placeholder until we detect the IANA timezone
+    const fallbackTz = 'UTC';
     if (widget.existingRecord == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
@@ -172,15 +179,62 @@ class _RecordingScreenState extends State<RecordingScreen> {
       // Leave _endDateTime null for new records - it will be set when user
       // explicitly sets it. The end time picker will use _startDateTime as default.
       _endDateTime = null;
+      _startTimezone = fallbackTz;
+      _endTimezone = null;
       _intensity = null;
       _currentStep = RecordingStep.startTime;
+      // Detect the IANA timezone asynchronously
+      _detectLocalTimezone();
     } else {
       //defensive, startTime should always be set but json conversion could fail
       _startDateTime = widget.existingRecord?.startTime ?? now;
       _endDateTime = widget.existingRecord?.endTime;
+      _startTimezone = widget.existingRecord?.startTimezone ?? fallbackTz;
+      _endTimezone = widget.existingRecord?.endTimezone;
       _intensity = widget.existingRecord!.intensity;
       _currentStep = _getInitialStepForExisting();
+      // If existing record has no timezone, detect it
+      if (widget.existingRecord?.startTimezone == null) {
+        _detectLocalTimezone();
+      }
     }
+  }
+
+  /// Detect the local IANA timezone and update state
+  Future<void> _detectLocalTimezone() async {
+    try {
+      final localTz = await FlutterTimezone.getLocalTimezone();
+      if (mounted) {
+        setState(() {
+          _startTimezone = _normalizeTimezone(localTz.identifier);
+        });
+      }
+    } catch (e) {
+      // Fallback to UTC if detection fails
+      debugPrint('Failed to detect timezone: $e');
+    }
+  }
+
+  /// Normalize POSIX-style timezones to IANA format.
+  /// Some platforms (iOS simulator) return POSIX format like "EST5EDT" instead
+  /// of IANA format like "America/New_York".
+  String _normalizeTimezone(String tz) {
+    const posixToIana = {
+      'EST5EDT': 'America/New_York',
+      'CST6CDT': 'America/Chicago',
+      'MST7MDT': 'America/Denver',
+      'PST8PDT': 'America/Los_Angeles',
+      'EST': 'America/New_York',
+      'CST': 'America/Chicago',
+      'MST': 'America/Denver',
+      'PST': 'America/Los_Angeles',
+      'CET': 'Europe/Paris',
+      'CEST': 'Europe/Paris',
+      'EET': 'Europe/Helsinki',
+      'WET': 'Europe/Lisbon',
+      'GMT': 'Europe/London',
+    };
+    return posixToIana[tz] ?? tz;
   }
 
   /// REQ-CAL-p00001: Check if this is an old entry (more than one calendar day old)
@@ -284,21 +338,35 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (widget.existingRecord!.endTime == null) {
       return RecordingStep.endTime;
     }
+    // For complete records: show review screen if enabled, otherwise start time
+    if (FeatureFlagService.instance.useReviewScreen) {
+      return RecordingStep.complete;
+    }
     return RecordingStep.startTime;
   }
 
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow - TODO - put back
 
   /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
+  /// Shows timezone abbreviation if different from end time's timezone or current timezone.
   String _formatTime(DateTime? time, String locale, AppLocalizations l10n) {
     if (time == null) {
       return l10n.notSet;
     }
-    return DateFormat.jm(locale).format(time);
+    final timeStr = DateFormat.jm(locale).format(time);
+    final currentTz = DateTime.now().timeZoneName;
+    // Show timezone if different from end time or current timezone
+    if ((_endDateTime != null &&
+            time.timeZoneName != _endDateTime!.timeZoneName) ||
+        time.timeZoneName != currentTz) {
+      return '$timeStr ${time.timeZoneName}';
+    }
+    return timeStr;
   }
 
   /// Format end time with day offset indicator if dates differ from start.
   /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
+  /// Shows timezone abbreviation if different from start time's timezone or current timezone.
   String _formatEndTime(
     DateTime? endTime,
     String locale,
@@ -309,19 +377,30 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
 
     final timeStr = DateFormat.jm(locale).format(endTime);
+    final suffixes = <String>[];
+    final currentTz = DateTime.now().timeZoneName;
 
-    // Calculate day difference
+    // Add day difference suffix
     final startDate = DateUtils.dateOnly(_startDateTime);
     final endDate = DateUtils.dateOnly(endTime);
     final dayDiff = endDate.difference(startDate).inDays;
 
-    if (dayDiff == 0) {
-      return timeStr;
-    } else if (dayDiff == 1) {
-      return '$timeStr (+1 day)';
-    } else {
-      return '$timeStr (+$dayDiff days)';
+    if (dayDiff == 1) {
+      suffixes.add('+1 day');
+    } else if (dayDiff > 1) {
+      suffixes.add('+$dayDiff days');
     }
+
+    // Add timezone if different from start time or current timezone
+    if (_startDateTime.timeZoneName != endTime.timeZoneName ||
+        endTime.timeZoneName != currentTz) {
+      suffixes.add(endTime.timeZoneName);
+    }
+
+    if (suffixes.isEmpty) {
+      return timeStr;
+    }
+    return '$timeStr (${suffixes.join(', ')})';
   }
 
   int? _durationMinutes() {
@@ -376,6 +455,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
           originalRecordId: widget.existingRecord!.id,
           startTime: _startDateTime,
           endTime: _endDateTime,
+          startTimezone: _startTimezone,
+          endTimezone: _endTimezone,
           intensity: _intensity,
           // CUR-408: notes parameter removed - TODO putback
         );
@@ -386,6 +467,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
         final record = await widget.nosebleedService.addRecord(
           startTime: _startDateTime,
           endTime: _endDateTime,
+          startTimezone: _startTimezone,
+          endTimezone: _endTimezone,
           intensity: _intensity,
           // CUR-408: notes parameter removed
         );
@@ -400,6 +483,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
     } catch (e, s) {
       debugPrint('$e');
       debugPrintStack(stackTrace: s);
+      // Show error snackbar to user
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.failedToSave),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
       return null;
     } finally {
       if (mounted) {
@@ -739,6 +832,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
           initialTime: _startDateTime,
+          initialTimezone: _startTimezone,
           onConfirm: (DateTime time) {
             setStartTimeState(time, _startDateTime);
             setState(() {
@@ -747,6 +841,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
           },
           onTimeChanged: (time) {
             setStartTimeState(time, _startDateTime);
+          },
+          onTimezoneChanged: (tz) {
+            setState(() {
+              _startTimezone = tz;
+            });
           },
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
@@ -762,14 +861,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
       case RecordingStep.endTime:
         // Use start time as default for end time picker when not yet set
         final endInitialTime = _endDateTime ?? _startDateTime;
+        final endInitialTz = _endTimezone ?? _startTimezone;
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
+          initialTimezone: endInitialTz,
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: (time) {
             setState(() {
               _endDateTime = time;
+            });
+          },
+          onTimezoneChanged: (tz) {
+            setState(() {
+              _endTimezone = tz;
             });
           },
           confirmLabel: l10n.setEndTime,
