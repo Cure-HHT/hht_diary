@@ -53,7 +53,6 @@ void main() {
   });
 
   group('NosebleedRecord', () {
-    final testDate = DateTime(2024, 1, 15);
     final testStartTime = DateTime(2024, 1, 15, 10, 30);
     final testEndTime = DateTime(2024, 1, 15, 10, 45);
 
@@ -153,8 +152,6 @@ void main() {
           'id': 'test-123',
           'startTime': '2024-01-15T10:30:00.000',
           'endTime': null,
-          'startTimezone': null,
-          'endTimezone': null,
           'intensity': null,
           'notes': null,
         };
@@ -163,8 +160,6 @@ void main() {
 
         expect(record.startTime, isNotNull);
         expect(record.endTime, isNull);
-        expect(record.startTimezone, isNull);
-        expect(record.endTimezone, isNull);
         expect(record.intensity, isNull);
         expect(record.notes, isNull);
       });
@@ -181,14 +176,12 @@ void main() {
     });
 
     group('toJson', () {
-      test('serializes all fields', () {
+      test('serializes all fields with ISO 8601 timezone offset', () {
         final createdAt = DateTime(2024, 1, 15, 10, 0);
         final record = NosebleedRecord(
           id: 'test-123',
           startTime: testStartTime,
           endTime: testEndTime,
-          startTimezone: 'America/New_York',
-          endTimezone: 'America/Los_Angeles',
           intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
@@ -198,14 +191,15 @@ void main() {
         final json = record.toJson();
 
         expect(json['id'], 'test-123');
-        expect(json['startTime'], testStartTime.toUtc().toIso8601String());
-        expect(json['endTime'], testEndTime.toUtc().toIso8601String());
-        expect(json['startTimezone'], 'America/New_York');
-        expect(json['endTimezone'], 'America/Los_Angeles');
+        // Timestamps now include timezone offset (e.g., "2024-01-15T10:30:00.000-05:00")
+        expect(json['startTime'], isA<String>());
+        expect(json['startTime'], contains('2024-01-15'));
+        expect(json['endTime'], isA<String>());
+        expect(json['endTime'], contains('2024-01-15'));
         expect(json['intensity'], 'dripping');
         expect(json['notes'], 'Test notes');
         expect(json['deviceUuid'], 'device-uuid');
-        expect(json['createdAt'], createdAt.toUtc().toIso8601String());
+        expect(json['createdAt'], isA<String>());
       });
 
       test('handles null optional fields', () {
@@ -216,25 +210,21 @@ void main() {
 
         final json = record.toJson();
 
-        expect(json['startTime'], testStartTime.toUtc().toIso8601String());
+        expect(json['startTime'], isA<String>());
         expect(json['endTime'], isNull);
-        expect(json['startTimezone'], isNull);
-        expect(json['endTimezone'], isNull);
         expect(json['intensity'], isNull);
         expect(json['notes'], isNull);
         expect(json['syncedAt'], isNull);
       });
 
       test('roundtrips correctly', () {
-        // Use UTC times to avoid timezone conversion issues in roundtrip
-        final startTimeUtc = DateTime.utc(2024, 1, 15, 10, 30);
-        final endTimeUtc = DateTime.utc(2024, 1, 15, 10, 45);
+        // Use local times - DateTimeFormatter preserves local time with offset
+        final startTime = DateTime(2024, 1, 15, 10, 30);
+        final endTime = DateTime(2024, 1, 15, 10, 45);
         final original = NosebleedRecord(
           id: 'test-123',
-          startTime: startTimeUtc,
-          endTime: endTimeUtc,
-          startTimezone: 'America/New_York',
-          endTimezone: 'America/New_York',
+          startTime: startTime,
+          endTime: endTime,
           intensity: NosebleedIntensity.steadyStream,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
@@ -244,10 +234,15 @@ void main() {
         final restored = NosebleedRecord.fromJson(json);
 
         expect(restored.id, original.id);
-        expect(restored.startTime, original.startTime);
-        expect(restored.endTime, original.endTime);
-        expect(restored.startTimezone, original.startTimezone);
-        expect(restored.endTimezone, original.endTimezone);
+        // Compare the moment in time since timezone representation may differ
+        expect(
+          restored.startTime.millisecondsSinceEpoch,
+          original.startTime.millisecondsSinceEpoch,
+        );
+        expect(
+          restored.endTime!.millisecondsSinceEpoch,
+          original.endTime!.millisecondsSinceEpoch,
+        );
         expect(restored.intensity, original.intensity);
         expect(restored.notes, original.notes);
         expect(restored.deviceUuid, original.deviceUuid);

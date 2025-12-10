@@ -10,7 +10,6 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
-import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
@@ -149,10 +148,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // The end date/time shown in the summary, timepicker and clock
   DateTime? _endDateTime;
 
-  // IANA timezone strings for start and end times
-  late String _startTimezone;
-  String? _endTimezone;
-
   // CUR-408: Notes field removed from recording flow TODO - needs to be put back
 
   RecordingStep _currentStep = RecordingStep.startTime;
@@ -168,8 +163,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    // Use device timezone from service, fallback to UTC if not available
-    final deviceTz = TimezoneService.instance.currentTimezone ?? 'UTC';
+    // Timezone is now embedded in ISO 8601 strings via DateTimeFormatter.
+    // No separate timezone tracking needed.
     if (widget.existingRecord == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
@@ -179,16 +174,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
       // Leave _endDateTime null for new records - it will be set when user
       // explicitly sets it. The end time picker will use _startDateTime as default.
       _endDateTime = null;
-      _startTimezone = deviceTz;
-      _endTimezone = null;
       _intensity = null;
       _currentStep = RecordingStep.startTime;
     } else {
       //defensive, startTime should always be set but json conversion could fail
       _startDateTime = widget.existingRecord?.startTime ?? now;
       _endDateTime = widget.existingRecord?.endTime;
-      _startTimezone = widget.existingRecord?.startTimezone ?? deviceTz;
-      _endTimezone = widget.existingRecord?.endTimezone;
       _intensity = widget.existingRecord!.intensity;
       _currentStep = _getInitialStepForExisting();
     }
@@ -305,28 +296,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow - TODO - put back
 
   /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
-  /// Shows timezone when start and end timezones differ, or when different from device.
+  /// Times are displayed in the user's current local timezone.
   String _formatTime(DateTime? time, String locale, AppLocalizations l10n) {
     if (time == null) {
       return l10n.notSet;
     }
-    final timeStr = DateFormat.jm(locale).format(time);
-    final deviceTz = TimezoneService.instance.currentTimezone;
-
-    // Show timezone if different from end timezone or device timezone
-    final startEndDiffer =
-        _endTimezone != null && _startTimezone != _endTimezone;
-    final differsFromDevice = deviceTz != null && _startTimezone != deviceTz;
-
-    if (startEndDiffer || differsFromDevice) {
-      return '$timeStr $_startTimezone';
-    }
-    return timeStr;
+    return DateFormat.jm(locale).format(time);
   }
 
   /// Format end time with day offset indicator if dates differ from start.
   /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
-  /// Shows timezone when start and end timezones differ, or when different from device.
+  /// Times are displayed in the user's current local timezone.
   String _formatEndTime(
     DateTime? endTime,
     String locale,
@@ -337,8 +317,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
 
     final timeStr = DateFormat.jm(locale).format(endTime);
-    final suffixes = <String>[];
-    final deviceTz = TimezoneService.instance.currentTimezone;
 
     // Add day difference suffix
     final startDate = DateUtils.dateOnly(_startDateTime);
@@ -346,25 +324,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final dayDiff = endDate.difference(startDate).inDays;
 
     if (dayDiff == 1) {
-      suffixes.add('+1 day');
+      return '$timeStr (+1 day)';
     } else if (dayDiff > 1) {
-      suffixes.add('+$dayDiff days');
+      return '$timeStr (+$dayDiff days)';
     }
 
-    // Add timezone if different from start timezone or device timezone
-    // When endTimezone is null, treat it as same as startTimezone
-    final effectiveEndTz = _endTimezone ?? _startTimezone;
-    final startEndDiffer = _startTimezone != effectiveEndTz;
-    final differsFromDevice = deviceTz != null && effectiveEndTz != deviceTz;
-
-    if (startEndDiffer || differsFromDevice) {
-      suffixes.add(effectiveEndTz);
-    }
-
-    if (suffixes.isEmpty) {
-      return timeStr;
-    }
-    return '$timeStr (${suffixes.join(', ')})';
+    return timeStr;
   }
 
   int? _durationMinutes() {
@@ -420,12 +385,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
       if (widget.existingRecord != null) {
         // Update existing record (creates a new record that supersedes the original)
         // CUR-447: Use _startDateTime as the primary date for the record
+        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
         final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           startTime: _startDateTime,
           endTime: _endDateTime,
-          startTimezone: _startTimezone,
-          endTimezone: _endTimezone,
           intensity: _intensity,
           // CUR-408: notes parameter removed - TODO putback
         );
@@ -433,11 +397,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
       } else {
         // Create new record
         // CUR-447: Use _startDateTime as the primary date for the record
+        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
         final record = await widget.nosebleedService.addRecord(
           startTime: _startDateTime,
           endTime: _endDateTime,
-          startTimezone: _startTimezone,
-          endTimezone: _endTimezone,
           intensity: _intensity,
           // CUR-408: notes parameter removed
         );
@@ -803,11 +766,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
+        // Timezone is now automatically embedded in ISO 8601 strings
+        // when saving via DateTimeFormatter. No separate timezone tracking needed.
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
           initialTime: _startDateTime,
-          initialTimezone: _startTimezone,
           onConfirm: (DateTime time) {
             setStartTimeState(time, _startDateTime);
             setState(() {
@@ -816,11 +780,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           },
           onTimeChanged: (time) {
             setStartTimeState(time, _startDateTime);
-          },
-          onTimezoneChanged: (tz) {
-            setState(() {
-              _startTimezone = tz;
-            });
           },
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
@@ -836,21 +795,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
       case RecordingStep.endTime:
         // Use start time as default for end time picker when not yet set
         final endInitialTime = _endDateTime ?? _startDateTime;
-        final endInitialTz = _endTimezone ?? _startTimezone;
+        // Timezone is now automatically embedded in ISO 8601 strings
+        // when saving via DateTimeFormatter. No separate timezone tracking needed.
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
-          initialTimezone: endInitialTz,
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: (time) {
             setState(() {
               _endDateTime = time;
-            });
-          },
-          onTimezoneChanged: (tz) {
-            setState(() {
-              _endTimezone = tz;
             });
           },
           confirmLabel: l10n.setEndTime,

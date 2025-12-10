@@ -2,6 +2,8 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-d00013: Application Instance UUID Generation
 
+import 'package:clinical_diary/utils/date_time_formatter.dart';
+
 /// Intensity levels for nosebleed events
 enum NosebleedIntensity {
   spotting,
@@ -38,13 +40,15 @@ enum NosebleedIntensity {
 }
 
 /// Represents a nosebleed event record
+///
+/// All timestamp fields (startTime, endTime, createdAt, syncedAt) are stored
+/// as ISO 8601 strings with timezone offset embedded (e.g., "2025-10-15T14:30:00.000-05:00").
+/// This preserves the user's local timezone at the time of entry for clinical accuracy.
 class NosebleedRecord {
   NosebleedRecord({
     required this.id,
     required this.startTime,
-    this.startTimezone,
     this.endTime,
-    this.endTimezone,
     this.intensity,
     this.notes,
     this.isNoNosebleedsEvent = false,
@@ -59,6 +63,10 @@ class NosebleedRecord {
   }) : createdAt = createdAt ?? DateTime.now();
 
   /// Create from JSON (local storage and API responses)
+  ///
+  /// Timestamps are expected in ISO 8601 format with timezone offset
+  /// (e.g., "2025-10-15T14:30:00.000-05:00"). Legacy formats without
+  /// offset are also supported for backwards compatibility.
   factory NosebleedRecord.fromJson(Map<String, dynamic> json) {
     return NosebleedRecord(
       id: json['id'] as String,
@@ -66,8 +74,6 @@ class NosebleedRecord {
       endTime: json['endTime'] != null
           ? DateTime.parse(json['endTime'] as String)
           : null,
-      startTimezone: json['startTimezone'] as String?,
-      endTimezone: json['endTimezone'] as String?,
       intensity: NosebleedIntensity.fromString(json['intensity'] as String?),
       notes: json['notes'] as String?,
       isNoNosebleedsEvent: json['isNoNosebleedsEvent'] as bool? ?? false,
@@ -89,16 +95,6 @@ class NosebleedRecord {
   final String id;
   final DateTime startTime;
   final DateTime? endTime;
-
-  /// IANA timezone string for start time (e.g., "America/New_York")
-  /// If null, assumes device's current timezone for legacy records.
-  final String? startTimezone;
-
-  /// IANA timezone string for end time (e.g., "America/Los_Angeles")
-  /// May differ from startTimezone if user traveled during the event.
-  /// If null, assumes same as startTimezone.
-  final String? endTimezone;
-
   final NosebleedIntensity? intensity;
   final String? notes;
   final bool isNoNosebleedsEvent;
@@ -134,11 +130,8 @@ class NosebleedRecord {
   /// Create a copy with updated fields
   NosebleedRecord copyWith({
     String? id,
-    DateTime? recordDate,
     DateTime? startTime,
     DateTime? endTime,
-    String? startTimezone,
-    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool? isNoNosebleedsEvent,
@@ -155,8 +148,6 @@ class NosebleedRecord {
       id: id ?? this.id,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
-      startTimezone: startTimezone ?? this.startTimezone,
-      endTimezone: endTimezone ?? this.endTimezone,
       intensity: intensity ?? this.intensity,
       notes: notes ?? this.notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent ?? this.isNoNosebleedsEvent,
@@ -171,15 +162,16 @@ class NosebleedRecord {
     );
   }
 
-  /// Convert to JSON for local storage and API calls
-  /// Times are stored as UTC ISO8601 strings for timezone-safe storage.
+  /// Convert to JSON for local storage and API calls.
+  ///
+  /// All timestamps are stored as ISO 8601 strings with timezone offset
+  /// (e.g., "2025-10-15T14:30:00.000-05:00"). This preserves the user's
+  /// local timezone at the time of entry for clinical accuracy.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'startTime': startTime.toUtc().toIso8601String(),
-      'endTime': endTime?.toUtc().toIso8601String(),
-      'startTimezone': startTimezone,
-      'endTimezone': endTimezone,
+      'startTime': DateTimeFormatter.format(startTime),
+      'endTime': endTime != null ? DateTimeFormatter.format(endTime!) : null,
       'intensity': intensity?.name,
       'notes': notes,
       'isNoNosebleedsEvent': isNoNosebleedsEvent,
@@ -189,8 +181,8 @@ class NosebleedRecord {
       'deleteReason': deleteReason,
       'parentRecordId': parentRecordId,
       'deviceUuid': deviceUuid,
-      'createdAt': createdAt.toUtc().toIso8601String(),
-      'syncedAt': syncedAt?.toUtc().toIso8601String(),
+      'createdAt': DateTimeFormatter.format(createdAt),
+      'syncedAt': syncedAt != null ? DateTimeFormatter.format(syncedAt!) : null,
     };
   }
 }

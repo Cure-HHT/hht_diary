@@ -18,7 +18,6 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
-import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
@@ -1192,7 +1191,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => _navigateToEditRecord(record),
                   hasOverlap: _hasOverlap(record),
                   highlightColor: highlightColor,
-                  deviceTimezone: TimezoneService.instance.currentTimezone,
                 ),
               ),
             ),

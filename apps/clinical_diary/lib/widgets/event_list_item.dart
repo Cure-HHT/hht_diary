@@ -16,6 +16,9 @@ class EventListItem extends StatelessWidget {
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
+    @Deprecated(
+      'Timezone is now embedded in ISO 8601 strings. This parameter is ignored.',
+    )
     this.deviceTimezone,
   });
   final NosebleedRecord record;
@@ -27,32 +30,14 @@ class EventListItem extends StatelessWidget {
   /// Optional highlight color to apply to the card background (for flash animation)
   final Color? highlightColor;
 
-  /// Device's current IANA timezone for comparison (e.g., "Europe/Paris")
-  /// When null, timezone display logic is skipped
+  /// @deprecated Timezone is now embedded in ISO 8601 timestamp strings.
+  /// Times are displayed in the user's current local timezone.
   final String? deviceTimezone;
 
   /// Format start time for one-line display (e.g., "9:09 PM")
-  /// Shows timezone when:
-  /// - Start and end time zones differ (cross-timezone event)
-  /// - Start time zone differs from device's current timezone
-  String _startTimeFormatted(String locale, String? deviceTimezone) {
-    final timeStr = DateFormat.jm(locale).format(record.startTime);
-
-    final startTz = record.startTimezone;
-    final endTz = record.endTimezone;
-
-    // No timezone stored - don't show anything
-    if (startTz == null) return timeStr;
-
-    // Show timezone if start/end differ OR if start differs from device
-    final startEndDiffer = endTz != null && startTz != endTz;
-    final startDiffersFromDevice =
-        deviceTimezone != null && startTz != deviceTimezone;
-
-    if (startDiffersFromDevice || startEndDiffer) {
-      return '$timeStr\n$startTz';
-    }
-    return timeStr;
+  /// Times are displayed in the user's current local timezone.
+  String _startTimeFormatted(String locale) {
+    return DateFormat.jm(locale).format(record.startTime);
   }
 
   /// Get the intensity icon image path
@@ -268,7 +253,7 @@ class EventListItem extends StatelessWidget {
                 SizedBox(
                   width: timeWidth,
                   child: Text(
-                    _startTimeFormatted(locale, deviceTimezone),
+                    _startTimeFormatted(locale),
                     textAlign: TextAlign.right,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,

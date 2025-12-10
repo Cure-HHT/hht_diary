@@ -10,6 +10,7 @@ import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -137,11 +138,13 @@ class NosebleedService {
 
   /// Add a new nosebleed record (append-only)
   /// This is the primary way to create records - no updates allowed
+  ///
+  /// All timestamps are stored in ISO 8601 format with timezone offset
+  /// embedded (e.g., "2025-10-15T14:30:00.000-05:00"). This preserves
+  /// the user's local timezone at the time of entry for clinical accuracy.
   Future<NosebleedRecord> addRecord({
     required DateTime startTime,
-    String? startTimezone,
     DateTime? endTime,
-    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
@@ -152,9 +155,7 @@ class NosebleedService {
     final record = NosebleedRecord(
       id: generateRecordId(),
       startTime: startTime,
-      startTimezone: startTimezone,
       endTime: endTime,
-      endTimezone: endTimezone,
       intensity: intensity,
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
@@ -169,6 +170,7 @@ class NosebleedService {
     );
 
     // Save to append-only datastore
+    // Timestamps are stored in ISO 8601 with timezone offset
     final userId = await _enrollmentService.getUserId() ?? 'anonymous';
     await _eventRepository.append(
       aggregateId:
@@ -177,11 +179,9 @@ class NosebleedService {
       data: {
         'recordId':
             record.id, // Store user-visible record ID for materialization
-        'startTime': record.startTime.toUtc().toIso8601String(),
+        'startTime': DateTimeFormatter.format(record.startTime),
         if (record.endTime != null)
-          'endTime': record.endTime!.toUtc().toIso8601String(),
-        if (record.startTimezone != null) 'startTimezone': record.startTimezone,
-        if (record.endTimezone != null) 'endTimezone': record.endTimezone,
+          'endTime': DateTimeFormatter.format(record.endTime!),
         if (record.intensity != null) 'intensity': record.intensity!.name,
         if (record.notes != null) 'notes': record.notes,
         'isNoNosebleedsEvent': record.isNoNosebleedsEvent,
@@ -206,9 +206,7 @@ class NosebleedService {
   Future<NosebleedRecord> updateRecord({
     required String originalRecordId,
     required DateTime startTime,
-    String? startTimezone,
     DateTime? endTime,
-    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
@@ -216,9 +214,7 @@ class NosebleedService {
   }) async {
     return addRecord(
       startTime: startTime,
-      startTimezone: startTimezone,
       endTime: endTime,
-      endTimezone: endTimezone,
       intensity: intensity,
       notes: notes,
       isNoNosebleedsEvent: isNoNosebleedsEvent,
@@ -252,7 +248,7 @@ class NosebleedService {
       data: {
         'recordId':
             record.id, // Store user-visible record ID for materialization
-        'startTime': record.startTime.toIso8601String(),
+        'startTime': DateTimeFormatter.format(record.startTime),
         'isDeleted': true,
         'deleteReason': reason,
         'parentRecordId': recordId,
@@ -455,15 +451,16 @@ class NosebleedService {
         for (final cloudRecord in cloudRecords) {
           if (!existingIds.contains(cloudRecord.id)) {
             // Append cloud record to local datastore
+            // Use DateTimeFormatter to preserve timezone offset in storage
             await _eventRepository.append(
               aggregateId:
                   'diary-${cloudRecord.startTime.year}-${cloudRecord.startTime.month}-${cloudRecord.startTime.day}',
               eventType: 'NosebleedRecorded',
               data: {
                 'recordId': cloudRecord.id, // Preserve cloud record ID
-                'startTime': cloudRecord.startTime.toIso8601String(),
+                'startTime': DateTimeFormatter.format(cloudRecord.startTime),
                 if (cloudRecord.endTime != null)
-                  'endTime': cloudRecord.endTime!.toIso8601String(),
+                  'endTime': DateTimeFormatter.format(cloudRecord.endTime!),
                 if (cloudRecord.intensity != null)
                   'intensity': cloudRecord.intensity!.name,
                 if (cloudRecord.notes != null) 'notes': cloudRecord.notes,

@@ -338,8 +338,8 @@ void main() {
           intensity: NosebleedIntensity.dripping,
         );
 
-        // Incomplete record - use UTC to match storage format
-        final incompleteStartTime = DateTime.utc(2024, 1, 16, 10, 0);
+        // Incomplete record - use local time since DateTimeFormatter preserves local time
+        final incompleteStartTime = DateTime(2024, 1, 16, 10, 0);
         await service.addRecord(
           startTime: incompleteStartTime,
           // Missing endTime and intensity
@@ -351,7 +351,11 @@ void main() {
         final incomplete = await service.getIncompleteRecords();
 
         expect(incomplete.length, 1);
-        expect(incomplete.first.startTime, incompleteStartTime);
+        // Compare the moment in time (millisecondsSinceEpoch) since timezone may differ
+        expect(
+          incomplete.first.startTime.millisecondsSinceEpoch,
+          incompleteStartTime.millisecondsSinceEpoch,
+        );
       });
     });
 
