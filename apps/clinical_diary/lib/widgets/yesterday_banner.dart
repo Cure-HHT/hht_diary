@@ -67,11 +67,7 @@ class YesterdayBanner extends StatelessWidget {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(l10n.no),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.check, size: 16),
-                    ],
+                    children: [Text(l10n.no), const SizedBox(width: 4)],
                   ),
                 ),
               ),

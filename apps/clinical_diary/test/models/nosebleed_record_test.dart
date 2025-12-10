@@ -121,6 +121,38 @@ void main() {
         expect(record.startTime.day, 15);
       });
 
+      // CUR-512: Verify that times are parsed as local time, not UTC
+      test('parses ISO 8601 with timezone offset as local time', () {
+        // This is how times are stored: ISO 8601 with timezone offset
+        // e.g., 10:30 AM in PST (UTC-8)
+        final json = {
+          'id': 'test-123',
+          'startTime': '2024-01-15T10:30:00.000-08:00',
+          'endTime': '2024-01-15T10:45:00.000-08:00',
+        };
+
+        final record = NosebleedRecord.fromJson(json);
+
+        // The time should be parsed as local time, preserving the original
+        // hour/minute for display. When user entered 10:30 AM, it should
+        // display as 10:30 AM, not be converted to a different timezone.
+        // Since we're storing and displaying in local time, isUtc should be false.
+        expect(
+          record.startTime.isUtc,
+          false,
+          reason: 'startTime should be local time, not UTC',
+        );
+        expect(
+          record.endTime!.isUtc,
+          false,
+          reason: 'endTime should be local time, not UTC',
+        );
+
+        // The hour should match what was stored (10:30) when in the same timezone
+        // Note: This test assumes the test environment is in a consistent timezone.
+        // The key assertion is that times are NOT in UTC.
+      });
+
       test('parses complete JSON', () {
         final json = {
           'id': 'test-123',
