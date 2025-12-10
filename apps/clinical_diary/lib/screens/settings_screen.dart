@@ -17,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
     this.onLanguageChanged,
     this.onThemeModeChanged,
     this.onLargerTextChanged,
+    this.onDyslexicFontChanged,
     super.key,
   });
 
@@ -25,6 +26,8 @@ class SettingsScreen extends StatefulWidget {
   final ValueChanged<bool>? onThemeModeChanged;
   // CUR-488: Callback for larger text preference changes
   final ValueChanged<bool>? onLargerTextChanged;
+  // CUR-509: Callback for dyslexia-friendly font preference changes
+  final ValueChanged<bool>? onDyslexicFontChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -180,6 +183,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: (value) {
                               setState(() => _dyslexiaFriendlyFont = value);
                               _savePreferences();
+                              // CUR-509: Notify parent to update theme font
+                              widget.onDyslexicFontChanged?.call(value);
                             },
                           ),
                           const SizedBox(height: 12),

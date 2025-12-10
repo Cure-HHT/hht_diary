@@ -1,7 +1,7 @@
 name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
-version: 0.7.64
+version: 0.7.67
 
 environment:
   sdk: ^3.10.1
@@ -50,6 +50,11 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+  fonts:
+    - family: OpenDyslexic
+      fonts:
+        - asset: assets/fonts/OpenDyslexic-Regular.otf
 
 # App Icon Configuration (flutter_launcher_icons)
 # Run: dart run flutter_launcher_icons
