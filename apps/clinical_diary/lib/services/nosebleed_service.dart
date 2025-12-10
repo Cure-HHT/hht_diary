@@ -81,14 +81,17 @@ class NosebleedService {
   }
 
   /// Convert a StoredEvent to a NosebleedRecord
+  ///
+  /// Uses DateTimeFormatter.parse() to ensure timestamps are converted to
+  /// local time for correct display in the user's timezone (CUR-512).
   NosebleedRecord _eventToNosebleedRecord(StoredEvent event) {
     final data = event.data;
     return NosebleedRecord(
       // Use stored recordId if available, fallback to eventId for backwards compatibility
       id: data['recordId'] as String? ?? event.eventId,
-      startTime: DateTime.parse(data['startTime'] as String),
+      startTime: DateTimeFormatter.parse(data['startTime'] as String),
       endTime: data['endTime'] != null
-          ? DateTime.parse(data['endTime'] as String)
+          ? DateTimeFormatter.parse(data['endTime'] as String)
           : null,
       intensity: data['intensity'] != null
           ? NosebleedIntensity.values.firstWhere(

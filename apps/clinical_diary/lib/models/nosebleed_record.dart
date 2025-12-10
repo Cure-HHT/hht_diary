@@ -67,12 +67,15 @@ class NosebleedRecord {
   /// Timestamps are expected in ISO 8601 format with timezone offset
   /// (e.g., "2025-10-15T14:30:00.000-05:00"). Legacy formats without
   /// offset are also supported for backwards compatibility.
+  ///
+  /// All timestamps are converted to local time using DateTimeFormatter.parse()
+  /// to ensure times display correctly in the user's timezone (CUR-512).
   factory NosebleedRecord.fromJson(Map<String, dynamic> json) {
     return NosebleedRecord(
       id: json['id'] as String,
-      startTime: DateTime.parse(json['startTime'] as String),
+      startTime: DateTimeFormatter.parse(json['startTime'] as String),
       endTime: json['endTime'] != null
-          ? DateTime.parse(json['endTime'] as String)
+          ? DateTimeFormatter.parse(json['endTime'] as String)
           : null,
       intensity: NosebleedIntensity.fromString(json['intensity'] as String?),
       notes: json['notes'] as String?,
@@ -84,10 +87,10 @@ class NosebleedRecord {
       parentRecordId: json['parentRecordId'] as String?,
       deviceUuid: json['deviceUuid'] as String?,
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String)
+          ? DateTimeFormatter.parse(json['createdAt'] as String)
           : DateTime.now(),
       syncedAt: json['syncedAt'] != null
-          ? DateTime.parse(json['syncedAt'] as String)
+          ? DateTimeFormatter.parse(json['syncedAt'] as String)
           : null,
     );
   }
