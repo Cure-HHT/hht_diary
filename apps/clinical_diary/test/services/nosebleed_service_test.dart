@@ -338,9 +338,10 @@ void main() {
           intensity: NosebleedIntensity.dripping,
         );
 
-        // Incomplete record
+        // Incomplete record - use UTC to match storage format
+        final incompleteStartTime = DateTime.utc(2024, 1, 16, 10, 0);
         await service.addRecord(
-          startTime: DateTime(2024, 1, 16, 10, 0),
+          startTime: incompleteStartTime,
           // Missing endTime and intensity
         );
 
@@ -350,7 +351,7 @@ void main() {
         final incomplete = await service.getIncompleteRecords();
 
         expect(incomplete.length, 1);
-        expect(incomplete.first.startTime, DateTime(2024, 1, 16));
+        expect(incomplete.first.startTime, incompleteStartTime);
       });
     });
 
@@ -711,7 +712,7 @@ void main() {
         expect(recent.first.intensity, NosebleedIntensity.spotting);
       });
 
-      test('excludes records without startTime', () async {
+      test('excludes records older than 24 hours', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient(
@@ -719,10 +720,14 @@ void main() {
           ),
         );
 
-        final now = DateTime.now();
+        final twoDaysAgo = DateTime.now().subtract(const Duration(hours: 48));
 
-        // Record without startTime
-        await service.addRecord(startTime: now);
+        // Record from 48 hours ago should not appear in recent
+        await service.addRecord(
+          startTime: twoDaysAgo,
+          endTime: twoDaysAgo.add(const Duration(minutes: 15)),
+          intensity: NosebleedIntensity.dripping,
+        );
 
         final recent = await service.getRecentRecords();
 
@@ -997,7 +1002,7 @@ void main() {
                 'records': [
                   {
                     'id': 'cloud-record-1',
-                    'recordDate': '2024-01-20T00:00:00.000',
+                    'startTime': '2024-01-20T00:00:00.000Z',
                     'isNoNosebleedsEvent': true,
                   },
                 ],
@@ -1049,7 +1054,7 @@ void main() {
                 'records': [
                   {
                     'id': 'cloud-record-different-id',
-                    'recordDate': '2024-01-15T00:00:00.000',
+                    'startTime': '2024-01-15T00:00:00.000Z',
                     'isNoNosebleedsEvent': true,
                   },
                 ],

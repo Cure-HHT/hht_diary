@@ -151,17 +151,20 @@ void main() {
       test('handles null optional fields', () {
         final json = {
           'id': 'test-123',
-          'recordDate': '2024-01-15T00:00:00.000',
-          'startTime': null,
+          'startTime': '2024-01-15T10:30:00.000',
           'endTime': null,
+          'startTimezone': null,
+          'endTimezone': null,
           'intensity': null,
           'notes': null,
         };
 
         final record = NosebleedRecord.fromJson(json);
 
-        expect(record.startTime, isNull);
+        expect(record.startTime, isNotNull);
         expect(record.endTime, isNull);
+        expect(record.startTimezone, isNull);
+        expect(record.endTimezone, isNull);
         expect(record.intensity, isNull);
         expect(record.notes, isNull);
       });
@@ -184,6 +187,8 @@ void main() {
           id: 'test-123',
           startTime: testStartTime,
           endTime: testEndTime,
+          startTimezone: 'America/New_York',
+          endTimezone: 'America/Los_Angeles',
           intensity: NosebleedIntensity.dripping,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
@@ -193,13 +198,14 @@ void main() {
         final json = record.toJson();
 
         expect(json['id'], 'test-123');
-        expect(json['date'], testDate.toIso8601String());
-        expect(json['startTime'], testStartTime.toIso8601String());
-        expect(json['endTime'], testEndTime.toIso8601String());
+        expect(json['startTime'], testStartTime.toUtc().toIso8601String());
+        expect(json['endTime'], testEndTime.toUtc().toIso8601String());
+        expect(json['startTimezone'], 'America/New_York');
+        expect(json['endTimezone'], 'America/Los_Angeles');
         expect(json['intensity'], 'dripping');
         expect(json['notes'], 'Test notes');
         expect(json['deviceUuid'], 'device-uuid');
-        expect(json['createdAt'], createdAt.toIso8601String());
+        expect(json['createdAt'], createdAt.toUtc().toIso8601String());
       });
 
       test('handles null optional fields', () {
@@ -210,18 +216,25 @@ void main() {
 
         final json = record.toJson();
 
-        expect(json['startTime'], testStartTime);
+        expect(json['startTime'], testStartTime.toUtc().toIso8601String());
         expect(json['endTime'], isNull);
+        expect(json['startTimezone'], isNull);
+        expect(json['endTimezone'], isNull);
         expect(json['intensity'], isNull);
         expect(json['notes'], isNull);
         expect(json['syncedAt'], isNull);
       });
 
       test('roundtrips correctly', () {
+        // Use UTC times to avoid timezone conversion issues in roundtrip
+        final startTimeUtc = DateTime.utc(2024, 1, 15, 10, 30);
+        final endTimeUtc = DateTime.utc(2024, 1, 15, 10, 45);
         final original = NosebleedRecord(
           id: 'test-123',
-          startTime: testStartTime,
-          endTime: testEndTime,
+          startTime: startTimeUtc,
+          endTime: endTimeUtc,
+          startTimezone: 'America/New_York',
+          endTimezone: 'America/New_York',
           intensity: NosebleedIntensity.steadyStream,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
@@ -233,6 +246,8 @@ void main() {
         expect(restored.id, original.id);
         expect(restored.startTime, original.startTime);
         expect(restored.endTime, original.endTime);
+        expect(restored.startTimezone, original.startTimezone);
+        expect(restored.endTimezone, original.endTimezone);
         expect(restored.intensity, original.intensity);
         expect(restored.notes, original.notes);
         expect(restored.deviceUuid, original.deviceUuid);
@@ -300,11 +315,10 @@ void main() {
         expect(record.isComplete, true);
       });
 
-      test('isComplete returns false when startTime is missing', () {
+      test('isComplete returns false when only startTime is set', () {
+        // A record with only startTime (no endTime, no intensity) is incomplete
         final record = NosebleedRecord(
           id: 'test-123',
-          endTime: testEndTime,
-          intensity: NosebleedIntensity.dripping,
           startTime: testStartTime,
         );
 

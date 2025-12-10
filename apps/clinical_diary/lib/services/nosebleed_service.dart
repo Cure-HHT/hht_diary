@@ -297,13 +297,16 @@ class NosebleedService {
     );
   }
 
-  /// Get records for a specific staart date
+  /// Get records for a specific start date
+  /// Compares using local time to handle UTC storage correctly
   Future<List<NosebleedRecord>> getRecordsForStartDate(DateTime date) async {
     final records = await getLocalMaterializedRecords();
+    final localDate = date.toLocal();
     return records.where((r) {
-      return r.startTime.year == date.year &&
-          r.startTime.month == date.month &&
-          r.startTime.day == date.day;
+      final localStartTime = r.startTime.toLocal();
+      return localStartTime.year == localDate.year &&
+          localStartTime.month == localDate.month &&
+          localStartTime.day == localDate.day;
     }).toList();
   }
 
@@ -512,6 +515,7 @@ class NosebleedService {
   }
 
   /// Get status for a range of dates (for calendar view)
+  /// Compares using local time to handle UTC storage correctly
   Future<Map<DateTime, DayStatus>> getDayStatusRange(
     DateTime start,
     DateTime end,
@@ -524,10 +528,12 @@ class NosebleedService {
       date.isBefore(end) || date.isAtSameMomentAs(end);
       date = date.add(const Duration(days: 1))
     ) {
+      final localDate = date.toLocal();
       final dayRecords = records.where((r) {
-        return r.startTime.year == date.year &&
-            r.startTime.month == date.month &&
-            r.startTime.day == date.day;
+        final localStartTime = r.startTime.toLocal();
+        return localStartTime.year == localDate.year &&
+            localStartTime.month == localDate.month &&
+            localStartTime.day == localDate.day;
       }).toList();
 
       if (dayRecords.isEmpty) {
