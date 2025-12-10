@@ -37,6 +37,7 @@ class HomeScreen extends StatefulWidget {
     required this.onThemeModeChanged,
     required this.onLargerTextChanged,
     required this.preferencesService,
+    this.onDyslexicFontChanged,
     super.key,
   });
   final NosebleedService nosebleedService;
@@ -46,6 +47,8 @@ class HomeScreen extends StatefulWidget {
   final ValueChanged<bool> onThemeModeChanged;
   // CUR-488: Callback for larger text preference changes
   final ValueChanged<bool> onLargerTextChanged;
+  // CUR-509: Callback for dyslexia-friendly font preference changes
+  final ValueChanged<bool>? onDyslexicFontChanged;
   final PreferencesService preferencesService;
 
   @override
@@ -779,6 +782,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               onLanguageChanged: widget.onLocaleChanged,
                               onThemeModeChanged: widget.onThemeModeChanged,
                               onLargerTextChanged: widget.onLargerTextChanged,
+                              onDyslexicFontChanged:
+                                  widget.onDyslexicFontChanged,
                             ),
                           ),
                         );
