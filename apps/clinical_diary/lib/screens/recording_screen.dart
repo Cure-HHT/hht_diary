@@ -400,10 +400,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   /// Saves the record and returns the record ID, or null if save failed.
   Future<String?> _saveRecord() async {
+    debugPrint(
+      '[RecordingScreen] _saveRecord: start=$_startDateTime, '
+      'intensity=$_intensity, end=$_endDateTime',
+    );
     // CUR-408: Notes validation removed - notes step removed from recording flow - TODO - put back
 
     // REQ-CAL: Run validation checks before saving
     final shouldProceed = await _runValidationChecks();
+    debugPrint('[RecordingScreen] _saveRecord: shouldProceed=$shouldProceed');
     if (!shouldProceed) {
       return null;
     }
@@ -557,11 +562,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// records without prompting the user.
   Future<bool> _handleExit() async {
     try {
-      if (!_hasUnsavedPartialRecord()) {
+      final hasUnsaved = _hasUnsavedPartialRecord();
+      debugPrint(
+        '[RecordingScreen] _handleExit: hasUnsavedPartialRecord=$hasUnsaved, '
+        'step=$_currentStep, intensity=$_intensity, endTime=$_endDateTime',
+      );
+      if (!hasUnsaved) {
         return true;
       }
 
       // Auto-save the partial record without prompting
+      debugPrint('[RecordingScreen] _handleExit: calling _saveRecord()');
       final recordId = await _saveRecord();
       if (recordId == null) {
         if (mounted) {
