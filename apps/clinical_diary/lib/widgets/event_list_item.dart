@@ -16,10 +16,6 @@ class EventListItem extends StatelessWidget {
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
-    @Deprecated(
-      'Timezone is now embedded in ISO 8601 strings. This parameter is ignored.',
-    )
-    this.deviceTimezone,
   });
   final NosebleedRecord record;
   final VoidCallback? onTap;
@@ -29,10 +25,6 @@ class EventListItem extends StatelessWidget {
 
   /// Optional highlight color to apply to the card background (for flash animation)
   final Color? highlightColor;
-
-  /// @deprecated Timezone is now embedded in ISO 8601 timestamp strings.
-  /// Times are displayed in the user's current local timezone.
-  final String? deviceTimezone;
 
   /// Format start time for one-line display (e.g., "9:09 PM")
   /// Times are displayed in the user's current local timezone.

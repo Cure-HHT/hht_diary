@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="prod" type="FlutterRunConfigurationType" factoryName="Flutter">
-    <option name="additionalArgs" value="--dart-define=apiBase=https://hht-diary.web.app/api --dart-define=environment=prod --dart-define=showDevTools=false --dart-define=showBanner=false" />
+    <option name="additionalArgs" value="--dart-define=APP_FLAVOR=prod" />
     <option name="buildFlavor" value="prod" />
     <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />
     <method v="2" />

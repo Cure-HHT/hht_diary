@@ -181,21 +181,11 @@ void main() {
   });
 
   group('FlavorValues', () {
-    test('dartDefines generates correct arguments', () {
-      final defines = FlavorConfig.dev.dartDefines;
-      expect(
-        defines,
-        contains('--dart-define=apiBase=https://hht-diary-mvp.web.app/api'),
-      );
-      expect(defines, contains('--dart-define=environment=dev'));
-      expect(defines, contains('--dart-define=showDevTools=true'));
-      expect(defines, contains('--dart-define=showBanner=true'));
-    });
-
-    test('dartDefineString joins arguments', () {
-      final defineString = FlavorConfig.dev.dartDefineString;
-      expect(defineString, contains('--dart-define=apiBase='));
-      expect(defineString, contains(' --dart-define=environment='));
+    test('dartDefine generates correct APP_FLAVOR argument', () {
+      expect(FlavorConfig.dev.dartDefine, '--dart-define=APP_FLAVOR=dev');
+      expect(FlavorConfig.qa.dartDefine, '--dart-define=APP_FLAVOR=qa');
+      expect(FlavorConfig.uat.dartDefine, '--dart-define=APP_FLAVOR=uat');
+      expect(FlavorConfig.prod.dartDefine, '--dart-define=APP_FLAVOR=prod');
     });
   });
 
@@ -245,6 +235,98 @@ void main() {
         // Without DEBUG environment variable set, should default to false
         expect(AppConfig.isDebug, false);
       });
+    });
+
+    group('API configuration', () {
+      tearDown(() {
+        AppConfig.testApiBaseOverride = null;
+      });
+
+      test('apiBase returns value from FlavorConfig when no override', () {
+        AppConfig.testApiBaseOverride = null;
+        F.appFlavor = Flavor.dev;
+        expect(AppConfig.apiBase, FlavorConfig.dev.apiBase);
+
+        F.appFlavor = Flavor.prod;
+        expect(AppConfig.apiBase, FlavorConfig.prod.apiBase);
+      });
+
+      test('apiBase returns test override when set', () {
+        AppConfig.testApiBaseOverride = 'https://test-api.example.com';
+        expect(AppConfig.apiBase, 'https://test-api.example.com');
+      });
+
+      group('endpoint URLs', () {
+        setUp(() {
+          AppConfig.testApiBaseOverride = 'https://test-api.example.com';
+        });
+
+        test('enrollUrl appends /enroll to apiBase', () {
+          expect(AppConfig.enrollUrl, 'https://test-api.example.com/enroll');
+        });
+
+        test('healthUrl appends /health to apiBase', () {
+          expect(AppConfig.healthUrl, 'https://test-api.example.com/health');
+        });
+
+        test('syncUrl appends /sync to apiBase', () {
+          expect(AppConfig.syncUrl, 'https://test-api.example.com/sync');
+        });
+
+        test('getRecordsUrl appends /getRecords to apiBase', () {
+          expect(
+            AppConfig.getRecordsUrl,
+            'https://test-api.example.com/getRecords',
+          );
+        });
+
+        test('registerUrl appends /register to apiBase', () {
+          expect(
+            AppConfig.registerUrl,
+            'https://test-api.example.com/register',
+          );
+        });
+
+        test('loginUrl appends /login to apiBase', () {
+          expect(AppConfig.loginUrl, 'https://test-api.example.com/login');
+        });
+
+        test('changePasswordUrl appends /changePassword to apiBase', () {
+          expect(
+            AppConfig.changePasswordUrl,
+            'https://test-api.example.com/changePassword',
+          );
+        });
+
+        test('sponsorConfigUrl builds URL with sponsorId and apiKey', () {
+          final url = AppConfig.sponsorConfigUrl('curehht', 'my-api-key');
+          expect(
+            url,
+            'https://test-api.example.com/sponsorConfig?sponsorId=curehht&apiKey=my-api-key',
+          );
+        });
+      });
+
+      test('qaApiKey returns empty string when not configured', () {
+        // Since CUREHHT_QA_API_KEY is not set in test environment
+        expect(AppConfig.qaApiKey, isEmpty);
+      });
+    });
+  });
+
+  group('MissingConfigException', () {
+    test('creates exception with configName and message', () {
+      final exception = MissingConfigException('testConfig', 'Test message');
+      expect(exception.configName, 'testConfig');
+      expect(exception.message, 'Test message');
+    });
+
+    test('toString returns formatted string', () {
+      final exception = MissingConfigException('myConfig', 'Not set');
+      expect(
+        exception.toString(),
+        'MissingConfigException: myConfig - Not set',
+      );
     });
   });
 }

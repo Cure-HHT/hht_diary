@@ -18,6 +18,7 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
@@ -135,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // CUR-464: Result is now record ID (String) instead of bool
     final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -196,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // CUR-464: Result is now record ID (String) instead of bool
     final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -322,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleFeatureFlags() {
     Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
+      AppPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
     );
   }
 
@@ -374,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleLogin() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (context) => LoginScreen(
           authService: widget.authService,
           onLoginSuccess: () {
@@ -519,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleShowAccountProfile() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (context) =>
             AccountProfileScreen(authService: widget.authService),
       ),
@@ -533,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstIncomplete = _incompleteRecords.first;
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -577,7 +578,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // CUR-464: Result is now record ID (String) instead of bool
     final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -772,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'accessibility') {
                         await Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
+                          AppPageRoute<void>(
                             builder: (context) => SettingsScreen(
                               preferencesService: widget.preferencesService,
                               onLanguageChanged: widget.onLocaleChanged,
@@ -796,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'enroll') {
                         await Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
+                          AppPageRoute<void>(
                             builder: (context) => ClinicalTrialEnrollmentScreen(
                               enrollmentService: widget.enrollmentService,
                             ),

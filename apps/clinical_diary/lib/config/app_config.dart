@@ -17,43 +17,23 @@ class MissingConfigException implements Exception {
 
 /// Application configuration.
 ///
-/// Configuration values are set at compile time via flutter_flavorizr.
-/// Run with: flutter run --flavor dev -t lib/main_dev.dart
+/// Configuration is derived from the app flavor set at compile time.
+/// Run with: flutter run --dart-define=APP_FLAVOR=dev
 ///
-/// Required dart-define variables (set by flavorizr):
-/// - apiBase: API endpoint URL (REQUIRED - throws if missing)
-/// - environment: dev, test, uat, or prod
-/// - showDevTools: true/false
-/// - showBanner: true/false (shows DEV/TEST banner overlay)
+/// For mobile builds, --flavor dev also works (sets FLUTTER_APP_FLAVOR).
+/// For web builds, use --dart-define=APP_FLAVOR=dev.
+///
+/// All other configuration (apiBase, showDevTools, showBanner) is derived
+/// from the flavor via [FlavorConfig].
 class AppConfig {
   // Private constructor - this is a static utility class
   AppConfig._();
 
-  /// Flag to track if config has been validated
-  static bool _validated = false;
-
-  /// Validate that all required configuration is present.
-  /// Call this early in app startup (e.g., in main()).
-  /// Throws [MissingConfigException] if required config is missing.
-  static void validate() {
-    if (_validated) return;
-
-    if (_apiBaseRaw.isEmpty) {
-      throw MissingConfigException(
-        'apiBase',
-        'API_BASE must be set via --dart-define=apiBase=<url> or flutter flavor. '
-            'Run with: flutter run --flavor dev',
-      );
-    }
-
-    _validated = true;
-  }
-
   // ============================================================
-  // Environment Configuration (from flavorizr via F class)
+  // Environment Configuration (from F class)
   // ============================================================
 
-  /// Current flavor/environment - delegates to F class set by flavorizr
+  /// Current flavor/environment - delegates to F class
   static Flavor get environment => F.appFlavor;
 
   /// Whether to show the environment banner (DEV/TEST ribbon)
@@ -62,9 +42,6 @@ class AppConfig {
   // ============================================================
   // API Configuration
   // ============================================================
-
-  /// Raw API base URL from dart-define (REQUIRED)
-  static const String _apiBaseRaw = String.fromEnvironment('apiBase');
 
   /// QA API key from dart-define (only for dev/qa environments)
   static const String _qaApiKeyRaw = String.fromEnvironment(
@@ -75,12 +52,11 @@ class AppConfig {
   static String get qaApiKey => _qaApiKeyRaw;
 
   /// Test-only override for API base URL.
-  /// Set this in test setUp() to avoid MissingConfigException.
-  /// ignore: use_setters_to_change_properties
+  /// Set this in test setUp() to override the flavor-based apiBase.
   @visibleForTesting
   static String? testApiBaseOverride;
 
-  /// API base URL - throws if not configured
+  /// API base URL - derived from the current flavor.
   /// Uses Firebase Hosting rewrites to proxy to functions,
   /// avoiding CORS issues and org policy restrictions.
   static String get apiBase {
@@ -88,14 +64,7 @@ class AppConfig {
     if (testApiBaseOverride != null) {
       return testApiBaseOverride!;
     }
-    if (_apiBaseRaw.isEmpty) {
-      throw MissingConfigException(
-        'apiBase',
-        'API_BASE is not configured. Run with a flavor: '
-            'flutter run --flavor dev',
-      );
-    }
-    return _apiBaseRaw;
+    return FlavorConfig.byName(F.name).apiBase;
   }
 
   // API Endpoints

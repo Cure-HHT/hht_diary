@@ -6,6 +6,7 @@ import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -291,7 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute<void>(
+                                  AppPageRoute<void>(
                                     builder: (context) =>
                                         const FeatureFlagsScreen(),
                                   ),
