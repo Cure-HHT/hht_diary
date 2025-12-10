@@ -23,26 +23,110 @@ import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Recording flow screen for creating new nosebleed records
+/// Recording flow screen for creating new nosebleed records.
+/// Creation
+/// The screen is created in three ways:
+/// 1) The "Record Nosebleed" button on the home page to create a new entry for today.
+///    The diaryEntryDate is null
+///    The existingRecord is null
+///    The onDelete callback is null
+///    The State\<RecordingScreen>'s _startDateTime initializes to DateTime.now()
+///    The State\<RecordingScreen>'s _endDateTime initializes to null
+///
+/// 2) The a selected date from the "Calendar" button on the home page.
+///    The diaryEntryDate is the selected date from the Calendar
+///    The existingRecord is null
+///    The onDelete callback is null
+///    The State\<RecordingScreen>'s _startTime initializes to diaryEntryDate with DateTime.now()'s time
+///    The State\<RecordingScreen>'s _endDateTime initializes to null
+///
+/// 3) Editing an existing record.
+///    The diaryEntryDate is null
+///    The existingRecord is not null
+///    The onDelete callback is not null
+///    The State\<RecordingScreen>'s _startDateTime initializes to the existingRecords' startTime
+///    The State\<RecordingScreen>'s _endDateTime initializes to the existingRecords' endDateTime
+///
+/// Widgets - all text is i18n'ed, all times and dates are l10n'ed.
+/// Navigation
+///     Top left: a Back button that goes back to the previous page, saving
+///         the record, which might be an incomplete record.
+///     Top reight: a Delete button which either calls
+///         the record, which might be an incomplete record.
+/// DateHeader - This is the dairy entry date, which is always the start date.
+/// It's not editable (any longer, editable: false).
+/// The displayed value changes when _startDateTime changes
+/// (See Start DateTimeTZ Content)
+///
+/// Summary Row - the Summary Row is 3 widgets that track the user's progress.
+/// (1) Start DateTimeTZ, it display's:
+///         - the start time.
+///         - the start date if different from the non-null endDate's date.
+///         - the start timezone if different from the non-null endDate's timezone.
+/// (2) Intensity - display's the Intensity text or "Tap to Set"
+/// (3) End DateTimeTZ, it display's:
+///         - the end time, or if null "Not set".
+///         - the end date if different from the startDate's date.
+///         - the end timezone if different from the startDate's timezone.
+/// The Start DateTimeTZ content is always initially selected.
+/// Clicking on a summary widget changes the content container below it so the user
+/// can enter a datum into the nosebleed record. Exception: If user clicks the
+/// end date and the Intensity is null, the content is not changed and the
+/// Intensity summary block flashes twice to remind the user that Intensity
+/// is required.
+///
+/// Content
+/// (1) Start DateTimeTZ Content
+///     Title: Nosebleed Start Time
+///     Date Display:
+///         When clicked, shows the calendar picker widget.
+///         When the user picks a new date, it changes _startDateTime's
+///         y/m/d (keeping the time) and sets diaryEntryDate to _startDateTime
+///         If _endDateTime is null, it sets _endDateTime to _startDateTime
+///     Time Display: Displays:
+///         - the start time.
+///         - the date if different from the non-null endDate's date.
+///         - the timezone if different from the non-null endDate's timezone.
+///         When clicked, shows the time picker widget.
+///         When the user picks a new time, it changes _startDateTime
+///             and set the diaryEntryDate to the new _startDateTime
+///     Decrement/Increment Buttons: when clicked, moves _startDateTime
+///         forward or backwards by the number of minutes on the button
+/// (2) Intensity Content - a grid of Intensity's, when click, sets _intensity.
+/// (3) End DateTimeTZ Content
+///     Title: Nosebleed End Time
+///     Time Display: When clicked, shows the time picker widget.
+///         When the user picks a new time, it changes _endDateTime
+///     Date Display: When clicked, shows the calendar picker widget.
+///         When the user picks a new date, it changes _endDateTime's
+///         y/m/d (keeping the old date's time)
+///     Decrement/Increment Buttons: when clicked, moves the _endDateTime
+///         forward or backwards by the number of minutes on the button
 class RecordingScreen extends StatefulWidget {
   const RecordingScreen({
     required this.nosebleedService,
     required this.enrollmentService,
     required this.preferencesService,
     super.key,
-    this.initialDate,
+    // from calendar
+    this.diaryEntryDate,
+    // edit mode
     this.existingRecord,
     this.allRecords = const [],
     this.onDelete,
   }) : assert(
-         initialDate == null || existingRecord == null,
+         diaryEntryDate == null || existingRecord == null,
          'Cannot specify both initialDate and existingRecord',
+       ),
+       assert(
+         existingRecord == null || onDelete != null,
+         'Must specify an onDelete callback when existingRecord is non null.',
        );
 
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
   final PreferencesService preferencesService;
-  final DateTime? initialDate;
+  final DateTime? diaryEntryDate;
   final NosebleedRecord? existingRecord;
   final List<NosebleedRecord> allRecords;
   final Future<void> Function(String)? onDelete;
@@ -55,26 +139,18 @@ class RecordingScreen extends StatefulWidget {
 enum RecordingStep { startTime, intensity, endTime, complete }
 
 class _RecordingScreenState extends State<RecordingScreen> {
-  // CUR-447: Separate dates for start and end to support cross-day nosebleeds
-  // The top date field when setting the start time
-  late DateTime _startDate;
-
-  // The top date field when setting the end time
-  late DateTime? _endDate;
-
-  // The start time shown in the summary and the clock
-  DateTime? _startTime;
-
-  // The end time shown in the summary and the clock
-  DateTime? _endTime;
+  // The start date/time shown in the summary, timepicker and clock
+  DateTime _startDateTime = DateTime.now();
 
   // The intensity shown in the summary and intensity display
   NosebleedIntensity? _intensity;
 
+  // The end date/time shown in the summary, timepicker and clock
+  DateTime? _endDateTime;
+
   // CUR-408: Notes field removed from recording flow TODO - needs to be put back
 
   RecordingStep _currentStep = RecordingStep.startTime;
-
   bool _isSaving = false;
 
   // CUR-464: Flash intensity field when user tries to set end time without intensity
@@ -83,86 +159,72 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // REQ-CAL-p00001: Old entry justification if required
   OldEntryJustification? _oldEntryJustification;
 
-  // Feature flag service for validation settings (sponsor-controlled)
-  final _featureFlagService = FeatureFlagService.instance;
-
-  /// Get the currently active date based on the current step
-  DateTime get _headerDate {
-    switch (_currentStep) {
-      case RecordingStep.startTime:
-        return _startDate;
-      case RecordingStep.endTime:
-        return _endDate ?? _startDate;
-      case RecordingStep.intensity:
-      case RecordingStep.complete:
-        return _startDate;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    if (widget.existingRecord != null) {
-      _startTime = widget.existingRecord!.startTime;
-      _endTime = widget.existingRecord!.endTime;
-      _startDate = widget.existingRecord!.startTime ?? DateTime.now();
-      _endDate =
-          widget.existingRecord!.endTime ?? widget.existingRecord!.startTime;
-      _intensity = widget.existingRecord!.intensity;
-      // CUR-408: Notes field no longer loaded from existing record TOD - put back
-      _currentStep = _getInitialStepForExisting();
+    final now = DateTime.now();
+    // Timezone is now embedded in ISO 8601 strings via DateTimeFormatter.
+    // No separate timezone tracking needed.
+    if (widget.existingRecord == null) {
+      if (widget.diaryEntryDate == null) {
+        _startDateTime = now;
+      } else {
+        _startDateTime = widget.diaryEntryDate!;
+      }
+      // Leave _endDateTime null for new records - it will be set when user
+      // explicitly sets it. The end time picker will use _startDateTime as default.
+      _endDateTime = null;
+      _intensity = null;
+      _currentStep = RecordingStep.startTime;
     } else {
-      final initialDate = widget.initialDate ?? DateTime.now();
-      _startDate = initialDate;
-      _startTime = initialDate;
-      _endDate = null;
-      _endTime = null;
-      // CUR-408: Removed _loadEnrollmentStatus call - notes step removed, TODO - put it back
+      //defensive, startTime should always be set but json conversion could fail
+      _startDateTime = widget.existingRecord?.startTime ?? now;
+      _endDateTime = widget.existingRecord?.endTime;
+      _intensity = widget.existingRecord!.intensity;
+      _currentStep = _getInitialStepForExisting();
     }
   }
 
   /// REQ-CAL-p00001: Check if this is an old entry (more than one calendar day old)
-  bool get _isOldEntry {
-    if (_startTime == null) return false;
-    final now = DateTime.now();
-    final yesterday = DateTime(now.year, now.month, now.day - 1);
-    final entryDate = DateTime(
-      _startTime!.year,
-      _startTime!.month,
-      _startTime!.day,
+  bool _isOldEntry() {
+    final yesterday = DateUtils.addDaysToDate(
+      DateUtils.dateOnly(DateTime.now()),
+      -1,
     );
+    final entryDate = DateUtils.dateOnly(_startDateTime);
     return entryDate.isBefore(yesterday);
   }
 
   /// REQ-CAL-p00001: Check if old entry justification is required and not yet provided
   bool get _needsOldEntryJustification {
-    if (!_featureFlagService.requireOldEntryJustification) return false;
-    return _isOldEntry && _oldEntryJustification == null;
+    if (!FeatureFlagService.instance.requireOldEntryJustification) {
+      return false;
+    }
+    return _isOldEntry() && _oldEntryJustification == null;
   }
 
   /// REQ-CAL-p00002: Check if short duration confirmation is needed
   bool get _needsShortDurationConfirmation {
-    if (!_featureFlagService.enableShortDurationConfirmation) return false;
-    final duration = _durationMinutes;
+    if (!FeatureFlagService.instance.enableShortDurationConfirmation) {
+      return false;
+    }
+    final duration = _durationMinutes();
     return duration != null && duration <= 1;
   }
 
   /// REQ-CAL-p00003: Check if long duration confirmation is needed
   bool get _needsLongDurationConfirmation {
-    if (!_featureFlagService.enableLongDurationConfirmation) return false;
-    final duration = _durationMinutes;
-    final threshold = _featureFlagService.longDurationThresholdMinutes;
+    if (!FeatureFlagService.instance.enableLongDurationConfirmation) {
+      return false;
+    }
+    final duration = _durationMinutes();
+    final threshold = FeatureFlagService.instance.longDurationThresholdMinutes;
     return duration != null && duration > threshold;
   }
 
   /// REQ-CAL: Run all validation checks before saving
   /// Returns true if save should proceed, false if cancelled
   Future<bool> _runValidationChecks() async {
-    if (_startTime != null &&
-        _endTime != null &&
-        _endTime!.isBefore(_startTime!)) {
-      return false;
-    }
     // REQ-CAL-p00001: Old entry justification check
     if (_needsOldEntryJustification) {
       final justification = await OldEntryJustificationDialog.show(
@@ -182,7 +244,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       final confirmed = await DurationConfirmationDialog.show(
         context: context,
         type: DurationConfirmationType.short,
-        durationMinutes: _durationMinutes!,
+        durationMinutes: _durationMinutes() ?? 0,
       );
       if (!mounted) {
         return false;
@@ -197,8 +259,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
       final confirmed = await DurationConfirmationDialog.show(
         context: context,
         type: DurationConfirmationType.long,
-        durationMinutes: _durationMinutes!,
-        thresholdMinutes: _featureFlagService.longDurationThresholdMinutes,
+        durationMinutes: _durationMinutes() ?? 0,
+        thresholdMinutes:
+            FeatureFlagService.instance.longDurationThresholdMinutes,
       );
       if (!mounted) {
         return false;
@@ -217,95 +280,127 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (widget.existingRecord == null) {
       return RecordingStep.startTime;
     }
-    final record = widget.existingRecord!;
-    if (record.intensity == null) {
+    if (widget.existingRecord!.intensity == null) {
       return RecordingStep.intensity;
     }
-    if (record.endTime == null) {
+    if (widget.existingRecord!.endTime == null) {
       return RecordingStep.endTime;
     }
-    // For editing existing records, go to complete step
-    return RecordingStep.complete; //TODO -check this, not start time?
+    // For complete records: show review screen if enabled, otherwise start time
+    if (FeatureFlagService.instance.useReviewScreen) {
+      return RecordingStep.complete;
+    }
+    return RecordingStep.startTime;
   }
 
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow - TODO - put back
 
   /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
+  /// Times are displayed in the user's current local timezone.
   String _formatTime(DateTime? time, String locale, AppLocalizations l10n) {
-    if (time == null) return l10n.notSet;
+    if (time == null) {
+      return l10n.notSet;
+    }
     return DateFormat.jm(locale).format(time);
   }
 
-  int? get _durationMinutes {
-    if (_startTime == null || _endTime == null) return null;
-    return _endTime!.difference(_startTime!).inMinutes;
+  /// Format end time with day offset indicator if dates differ from start.
+  /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
+  /// Times are displayed in the user's current local timezone.
+  String _formatEndTime(
+    DateTime? endTime,
+    String locale,
+    AppLocalizations l10n,
+  ) {
+    if (endTime == null) {
+      return l10n.notSet;
+    }
+
+    final timeStr = DateFormat.jm(locale).format(endTime);
+
+    // Add day difference suffix
+    final startDate = DateUtils.dateOnly(_startDateTime);
+    final endDate = DateUtils.dateOnly(endTime);
+    final dayDiff = endDate.difference(startDate).inDays;
+
+    if (dayDiff == 1) {
+      return '$timeStr (+1 day)';
+    } else if (dayDiff > 1) {
+      return '$timeStr (+$dayDiff days)';
+    }
+
+    return timeStr;
   }
 
-  DateTime? get _maxDateTimeForTimePicker {
-    return DateTime.now();
+  int? _durationMinutes() {
+    if (_endDateTime == null) {
+      return null;
+    }
+    return _endDateTime!.difference(_startDateTime).inMinutes;
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
-    if (_startTime == null || _endTime == null) return [];
+    if (_endDateTime == null) {
+      return [];
+    }
 
     return widget.allRecords.where((record) {
-      // Skip the current record if editing
+      // You can't overlap yourself
       if (widget.existingRecord != null &&
           record.id == widget.existingRecord!.id) {
         return false;
       }
 
-      // Only check real events with both start and end times
-      if (!record.isRealEvent ||
-          record.startTime == null ||
-          record.endTime == null) {
+      // Only check real (not unknown or no nosebleed) events with
+      // both start and end times
+      if (!record.isRealNosebleedEvent || record.endTime == null) {
         return false;
       }
 
       // Check if events overlap
-      return _startTime!.isBefore(record.endTime!) &&
-          _endTime!.isAfter(record.startTime!);
+      return _startDateTime.isBefore(record.endTime!) &&
+          _endDateTime!.isAfter(record.startTime);
     }).toList();
   }
 
   /// Saves the record and returns the record ID, or null if save failed.
   Future<String?> _saveRecord() async {
-    // At minimum, we need a start time to save a record
-    // Records without all fields will be marked as incomplete by the service
-    if (_startTime == null) return null;
-
-    // CUR-443: Overlapping events are allowed - warning shown in UI but doesn't block save
-    // User can save and fix either record later
-
-    // CUR-408: Notes validation removed - notes step removed from recording flow
+    debugPrint(
+      '[RecordingScreen] _saveRecord: start=$_startDateTime, '
+      'intensity=$_intensity, end=$_endDateTime',
+    );
+    // CUR-408: Notes validation removed - notes step removed from recording flow - TODO - put back
 
     // REQ-CAL: Run validation checks before saving
     final shouldProceed = await _runValidationChecks();
-    if (!shouldProceed) return null;
+    debugPrint('[RecordingScreen] _saveRecord: shouldProceed=$shouldProceed');
+    if (!shouldProceed) {
+      return null;
+    }
 
     setState(() => _isSaving = true);
 
     try {
-      String? recordId;
+      String recordId;
       if (widget.existingRecord != null) {
         // Update existing record (creates a new record that supersedes the original)
-        // CUR-447: Use _startDate as the primary date for the record
+        // CUR-447: Use _startDateTime as the primary date for the record
+        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
         final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
-          date: _startDate,
-          startTime: _startTime,
-          endTime: _endTime,
+          startTime: _startDateTime,
+          endTime: _endDateTime,
           intensity: _intensity,
-          // CUR-408: notes parameter removed
+          // CUR-408: notes parameter removed - TODO putback
         );
         recordId = record.id;
       } else {
         // Create new record
-        // CUR-447: Use _startDate as the primary date for the record
+        // CUR-447: Use _startDateTime as the primary date for the record
+        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
         final record = await widget.nosebleedService.addRecord(
-          date: _startDate,
-          startTime: _startTime,
-          endTime: _endTime,
+          startTime: _startDateTime,
+          endTime: _endDateTime,
           intensity: _intensity,
           // CUR-408: notes parameter removed
         );
@@ -317,16 +412,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
         Navigator.pop(context, recordId);
       }
       return recordId;
-    } catch (e) {
+    } catch (e, s) {
+      debugPrint('$e');
+      debugPrintStack(stackTrace: s);
+      // Show error snackbar to user
       if (mounted) {
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: SelectableText(
-              '${l10n.failedToSave}: $e',
-              style: const TextStyle(color: Colors.white),
-            ),
-            duration: const Duration(seconds: 10),
+            content: Text(l10n.failedToSave),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -336,36 +431,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
         setState(() => _isSaving = false);
       }
     }
-  }
-
-  void _handleHeaderDateChange(DateTime newDate) {
-    setState(() {
-      // CUR-447: Update the date for the current step only
-      switch (_currentStep) {
-        case RecordingStep.startTime:
-          _startDate = newDate;
-          _startTime = dateTimeForDateAndTime(newDate, _startTime!);
-          // If end date is before start date, update it to match
-          if (_endDate == null) {
-            _endDate = newDate;
-          } else if (_endDate!.isBefore(newDate)) {
-            _endDate = newDate;
-            if (_endTime != null) {
-              _endTime = dateTimeForDateAndTime(newDate, _endTime!);
-            }
-          }
-          break;
-        case RecordingStep.endTime:
-          _endDate = newDate;
-          _endTime ??= newDate;
-          // Update end time to match new date while preserving time
-          _endTime = dateTimeForDateAndTime(newDate, _endTime!);
-          break;
-        case RecordingStep.intensity:
-        case RecordingStep.complete:
-          break;
-      }
-    });
   }
 
   void _goToStep(RecordingStep step) {
@@ -382,6 +447,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
+  // void _handleStartTimeConfirm(DateTime time) {
+  //   setState(() {
+  //     _startDateTime = time;
+  //     _currentStep = RecordingStep.intensity;
+  //   });
+  // }
+
   void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
       _intensity = intensity;
@@ -389,9 +461,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  Future<void> _handleEndTimeConfirm(DateTime time) async {
+  Future<void> _handleEndTimeConfirm(DateTime endTime) async {
     // Validate end time is after start time
-    if (_startTime != null && time.isBefore(_startTime!)) {
+    if (endTime.isBefore(_startDateTime)) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
@@ -400,7 +472,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
 
     setState(() {
-      _endTime = time;
+      _endDateTime = endTime;
     });
 
     // CUR-464: When useReviewScreen is false, save immediately and return
@@ -409,7 +481,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return;
     }
 
-    // CUR-408: Go directly to complete step, notes step removed
+    // CUR-408: Go directly to complete step, notes step removed (TODO - put back)
     setState(() {
       _currentStep = RecordingStep.complete;
     });
@@ -425,6 +497,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           await widget.onDelete!(reason);
         }
         // Pop the recording screen after the dialog closes
+        //If no existing record/onDelete, pop without saving the partial.
         if (mounted) {
           Navigator.pop(context, true);
         }
@@ -433,16 +506,18 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   /// Check if we have unsaved changes that could be saved as a partial record
-  bool get _hasUnsavedPartialRecord {
+  /// Save even if the user just comes in and goes back.  The nosebleed started,
+  /// it records the start, they can pick it up later, easy-peasy
+  bool _hasUnsavedPartialRecord() {
     // If we're editing an existing record, check if values changed
     if (widget.existingRecord != null) {
-      return _startTime != widget.existingRecord!.startTime ||
-          _endTime != widget.existingRecord!.endTime ||
+      return _startDateTime != widget.existingRecord!.startTime ||
+          _endDateTime != widget.existingRecord!.endTime ||
           _intensity != widget.existingRecord!.intensity;
     }
-    // For new records, we have unsaved data if start time is set
-    // and we're not at the complete step (which has its own save button)
-    return _startTime != null && _currentStep != RecordingStep.complete;
+    // For new records, we have unsaved data if
+    // we're not at the complete step (which has its own save button)
+    return _currentStep != RecordingStep.complete;
   }
 
   /// Auto-save partial record when user navigates away with unsaved changes.
@@ -450,17 +525,41 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// records without prompting the user.
   Future<bool> _handleExit() async {
     try {
-      if (!_hasUnsavedPartialRecord) return true;
+      final hasUnsaved = _hasUnsavedPartialRecord();
+      debugPrint(
+        '[RecordingScreen] _handleExit: hasUnsavedPartialRecord=$hasUnsaved, '
+        'step=$_currentStep, intensity=$_intensity, endTime=$_endDateTime',
+      );
+      if (!hasUnsaved) {
+        return true;
+      }
 
       // Auto-save the partial record without prompting
+      debugPrint('[RecordingScreen] _handleExit: calling _saveRecord()');
       final recordId = await _saveRecord();
       if (recordId == null) {
-        return true; //we pop
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          // TODO - need an error dialog with an error id and o11y
+          final controller = ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: SelectableText(
+                l10n.failedToSave,
+                style: const TextStyle(color: Colors.white),
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          await controller.closed;
+        }
+        // _saveRecord won't pop on error so we have to
+        return true;
       }
       // _saveRecord handles navigation via Navigator.pop, so return false
       // to prevent double navigation
       return false;
     } catch (e, s) {
+      //TODO - improve error handling
       debugPrint('Error exiting $e');
       debugPrintStack(stackTrace: s);
       return true;
@@ -501,21 +600,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
                       icon: const Icon(Icons.arrow_back),
                       label: Text(l10n.back),
                     ),
-                    // Delete button only for existing records
-                    if (widget.existingRecord != null)
-                      IconButton(
-                        onPressed: _handleDelete,
-                        icon: const Icon(Icons.delete_outline),
-                        color: Theme.of(context).colorScheme.error,
-                        tooltip: l10n.deleteRecordTooltip,
-                      ),
+                    // Delete button
+                    IconButton(
+                      onPressed: _handleDelete,
+                      icon: const Icon(Icons.delete_outline),
+                      color: Theme.of(context).colorScheme.error,
+                      tooltip: l10n.deleteRecordTooltip,
+                    ),
                   ],
                 ),
               ),
 
-              // Date header (tappable)
-              // CUR-447: Show date for current step (start date or end date)
-              DateHeader(date: _headerDate, onChange: _handleHeaderDateChange),
+              // Date header - not editable
+              DateHeader(
+                date: _startDateTime,
+                editable: false,
+                onChange: (newDate) => {},
+              ),
 
               const SizedBox(height: 16),
 
@@ -563,7 +664,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // Start time
           _buildSummaryItem(
             label: l10n.start,
-            value: _formatTime(_startTime, locale, l10n),
+            value: _formatTime(_startDateTime, locale, l10n),
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
           ),
@@ -585,9 +686,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   ? l10n.intensityName(_intensity!.name)
                   : l10n.selectIntensity,
               isActive: _currentStep == RecordingStep.intensity,
-              onTap: _startTime != null
-                  ? () => _goToStep(RecordingStep.intensity)
-                  : null,
+              onTap: () => _goToStep(RecordingStep.intensity),
               highlightColor: highlightColor,
             ),
           ),
@@ -597,9 +696,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // End time - CUR-464: use _handleEndTimeTap to flash intensity if not set
           _buildSummaryItem(
             label: l10n.end,
-            value: _formatTime(_endTime, locale, l10n),
+            value: _formatEndTime(_endDateTime, locale, l10n),
             isActive: _currentStep == RecordingStep.endTime,
-            onTap: _startTime != null ? _handleEndTimeTap : null,
+            onTap: _handleEndTimeTap,
           ),
         ],
       ),
@@ -624,7 +723,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
               (isActive
                   ? Theme.of(context).colorScheme.primaryContainer
                   : Colors.transparent),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           children: [
@@ -667,26 +766,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
-        final DateTime startInitialTime;
-        if (_startTime != null) {
-          // Use existing start time but ensure it's on current _startDate
-          startInitialTime = dateTimeForDateAndTime(_startDate, _startTime!);
-        } else {
-          // Default to current time on _startDate
-          startInitialTime = dateTimeForDateAndTime(_startDate, DateTime.now());
-        }
+        // Timezone is now automatically embedded in ISO 8601 strings
+        // when saving via DateTimeFormatter. No separate timezone tracking needed.
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
-          initialTime: startInitialTime,
+          initialTime: _startDateTime,
           onConfirm: (DateTime time) {
-            setStartTimeState(time, startInitialTime);
+            setStartTimeState(time, _startDateTime);
             setState(() {
               _currentStep = RecordingStep.intensity;
             });
           },
           onTimeChanged: (time) {
-            setStartTimeState(time, startInitialTime);
+            setStartTimeState(time, _startDateTime);
           },
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
@@ -700,7 +793,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
         );
 
       case RecordingStep.endTime:
-        final endInitialTime = _endTime ?? _startTime ?? DateTime.now();
+        // Use start time as default for end time picker when not yet set
+        final endInitialTime = _endDateTime ?? _startDateTime;
+        // Timezone is now automatically embedded in ISO 8601 strings
+        // when saving via DateTimeFormatter. No separate timezone tracking needed.
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
@@ -708,12 +804,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: (time) {
             setState(() {
-              _endDate = time;
-              _endTime = time;
+              _endDateTime = time;
             });
           },
           confirmLabel: l10n.setEndTime,
-          maxDateTime: _maxDateTimeForTimePicker,
+          maxDateTime: DateTime.now(),
         );
 
       // CUR-408: Notes case removed from recording flow - TODO PUT BACK
@@ -725,13 +820,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   void setStartTimeState(DateTime time, DateTime startInitialTime) {
     setState(() {
-      _startTime = time;
-      _startDate = time;
-      // Crossing the date line either way sets the end date date,
-      // if the end date is not already set
-      if (_endTime == null || (!DateUtils.isSameDay(startInitialTime, time))) {
-        _endDate = dateTimeForDateAndTime(startInitialTime, time);
-      }
+      _startDateTime = time;
+      // _endDateTime remains null for new records until user explicitly sets it.
+      // The end time picker will use _startDateTime as the default initial value.
     });
   }
 
@@ -753,6 +844,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
         : l10n.finished;
 
+    final durationMinutes = _durationMinutes();
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -782,7 +874,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ),
           ),
 
-          if (_durationMinutes != null) ...[
+          if (durationMinutes != null) ...[
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -791,7 +883,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                l10n.durationMinutes(_durationMinutes!),
+                l10n.durationMinutes(durationMinutes),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),

@@ -106,14 +106,12 @@ void main() {
       final records = [
         NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
         NosebleedRecord(
           id: 'test-2',
-          date: testDate,
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -144,7 +142,6 @@ void main() {
       NosebleedRecord? tappedRecord;
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2025, 11, 28, 10, 30),
         endTime: DateTime(2025, 11, 28, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -173,8 +170,8 @@ void main() {
     testWidgets('displays No nosebleed event card correctly', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         isNoNosebleedsEvent: true,
+        startTime: DateTime.now(),
       );
 
       await tester.pumpWidget(
@@ -195,8 +192,8 @@ void main() {
     testWidgets('displays Unknown event card correctly', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         isUnknownEvent: true,
+        startTime: testDate,
       );
 
       await tester.pumpWidget(
@@ -218,14 +215,12 @@ void main() {
       final records = [
         NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
         NosebleedRecord(
           id: 'test-2',
-          date: testDate,
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -251,7 +246,6 @@ void main() {
       final records = [
         NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,

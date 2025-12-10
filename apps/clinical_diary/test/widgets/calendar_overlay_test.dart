@@ -200,7 +200,6 @@ void main() {
       final records = [
         NosebleedRecord(
           id: 'test-1',
-          date: DateTime.now(),
           startTime: DateTime.now(),
           endTime: DateTime.now().add(const Duration(minutes: 15)),
           intensity: NosebleedIntensity.dripping,

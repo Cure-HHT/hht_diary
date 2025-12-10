@@ -3,18 +3,24 @@
 
 /// Flavor configuration for the Clinical Diary app.
 ///
-/// This file defines the flavor-specific settings that are passed
-/// via --dart-define flags when building/running the app.
+/// This file defines the flavor-specific settings. All configuration
+/// (API endpoints, feature flags) is derived from the flavor name.
 ///
 /// Usage:
-///   flutter run --flavor dev \
-///     --dart-define=apiBase=https://hht-diary-mvp.web.app/api \
-///     --dart-define=environment=dev \
-///     --dart-define=showDevTools=true \
-///     --dart-define=showBanner=true
+///   # For web builds (--flavor doesn't work on web):
+///   flutter run -d chrome --dart-define=APP_FLAVOR=dev
 ///
-/// Or use the generated VS Code launch configurations after running:
-///   dart run flutter_flavorizr
+///   # For mobile builds (both work, --flavor sets FLUTTER_APP_FLAVOR):
+///   flutter run --flavor dev --dart-define=APP_FLAVOR=dev
+///
+/// The app reads APP_FLAVOR (or FLUTTER_APP_FLAVOR on mobile) in main.dart
+/// and uses FlavorConfig to derive all other settings (apiBase, etc.).
+///
+/// See also:
+/// - lib/main.dart - Flavor initialization
+/// - lib/config/app_config.dart - App configuration (uses FlavorConfig)
+/// - .idea/runConfigurations/ - IntelliJ IDEA configurations
+/// - .vscode/launch.json - VSCode configurations
 library;
 
 /// Available app flavors/environments.
@@ -150,14 +156,7 @@ class FlavorValues {
   final bool showDevTools;
   final bool showBanner;
 
-  /// Generate dart-define arguments for this flavor
-  List<String> get dartDefines => [
-    '--dart-define=apiBase=$apiBase',
-    '--dart-define=environment=$environment',
-    '--dart-define=showDevTools=$showDevTools',
-    '--dart-define=showBanner=$showBanner',
-  ];
-
-  /// Generate dart-define string for shell commands
-  String get dartDefineString => dartDefines.join(' ');
+  /// Generate dart-define argument for this flavor.
+  /// Only APP_FLAVOR is needed - all other config is derived from FlavorConfig.
+  String get dartDefine => '--dart-define=APP_FLAVOR=$name';
 }

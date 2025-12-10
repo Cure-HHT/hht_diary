@@ -10,6 +10,7 @@ import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -85,10 +86,7 @@ class NosebleedService {
     return NosebleedRecord(
       // Use stored recordId if available, fallback to eventId for backwards compatibility
       id: data['recordId'] as String? ?? event.eventId,
-      date: DateTime.parse(data['date'] as String),
-      startTime: data['startTime'] != null
-          ? DateTime.parse(data['startTime'] as String)
-          : null,
+      startTime: DateTime.parse(data['startTime'] as String),
       endTime: data['endTime'] != null
           ? DateTime.parse(data['endTime'] as String)
           : null,
@@ -113,7 +111,7 @@ class NosebleedService {
 
   /// Get local records with materialized view (latest version of each record)
   /// This "crunches" the append-only log to show only the current state
-  Future<List<NosebleedRecord>> getLocalRecords() async {
+  Future<List<NosebleedRecord>> getLocalMaterializedRecords() async {
     final allRecords = await getAllLocalRecords();
     return _materializeRecords(allRecords);
   }
@@ -140,9 +138,12 @@ class NosebleedService {
 
   /// Add a new nosebleed record (append-only)
   /// This is the primary way to create records - no updates allowed
+  ///
+  /// All timestamps are stored in ISO 8601 format with timezone offset
+  /// embedded (e.g., "2025-10-15T14:30:00.000-05:00"). This preserves
+  /// the user's local timezone at the time of entry for clinical accuracy.
   Future<NosebleedRecord> addRecord({
-    required DateTime date,
-    DateTime? startTime,
+    required DateTime startTime,
     DateTime? endTime,
     NosebleedIntensity? intensity,
     String? notes,
@@ -153,7 +154,6 @@ class NosebleedService {
     final deviceUuid = await getDeviceUuid();
     final record = NosebleedRecord(
       id: generateRecordId(),
-      date: date,
       startTime: startTime,
       endTime: endTime,
       intensity: intensity,
@@ -163,25 +163,25 @@ class NosebleedService {
       isIncomplete:
           !isNoNosebleedsEvent &&
           !isUnknownEvent &&
-          (startTime == null || endTime == null || intensity == null),
+          (endTime == null || intensity == null),
       parentRecordId: parentRecordId,
       deviceUuid: deviceUuid,
       createdAt: DateTime.now(),
     );
 
     // Save to append-only datastore
+    // Timestamps are stored in ISO 8601 with timezone offset
     final userId = await _enrollmentService.getUserId() ?? 'anonymous';
     await _eventRepository.append(
-      aggregateId: 'diary-${date.year}-${date.month}-${date.day}',
+      aggregateId:
+          'diary-${startTime.year}-${startTime.month}-${startTime.day}',
       eventType: 'NosebleedRecorded',
       data: {
         'recordId':
             record.id, // Store user-visible record ID for materialization
-        'date': record.date.toIso8601String(),
-        if (record.startTime != null)
-          'startTime': record.startTime!.toIso8601String(),
+        'startTime': DateTimeFormatter.format(record.startTime),
         if (record.endTime != null)
-          'endTime': record.endTime!.toIso8601String(),
+          'endTime': DateTimeFormatter.format(record.endTime!),
         if (record.intensity != null) 'intensity': record.intensity!.name,
         if (record.notes != null) 'notes': record.notes,
         'isNoNosebleedsEvent': record.isNoNosebleedsEvent,
@@ -205,8 +205,7 @@ class NosebleedService {
   /// Creates a new record that supersedes the original
   Future<NosebleedRecord> updateRecord({
     required String originalRecordId,
-    required DateTime date,
-    DateTime? startTime,
+    required DateTime startTime,
     DateTime? endTime,
     NosebleedIntensity? intensity,
     String? notes,
@@ -214,7 +213,6 @@ class NosebleedService {
     bool isUnknownEvent = false,
   }) async {
     return addRecord(
-      date: date,
       startTime: startTime,
       endTime: endTime,
       intensity: intensity,
@@ -234,7 +232,7 @@ class NosebleedService {
     final deviceUuid = await getDeviceUuid();
     final record = NosebleedRecord(
       id: generateRecordId(),
-      date: DateTime.now(),
+      startTime: DateTime.now(),
       isDeleted: true,
       deleteReason: reason,
       parentRecordId: recordId,
@@ -250,7 +248,7 @@ class NosebleedService {
       data: {
         'recordId':
             record.id, // Store user-visible record ID for materialization
-        'date': record.date.toIso8601String(),
+        'startTime': DateTimeFormatter.format(record.startTime),
         'isDeleted': true,
         'deleteReason': reason,
         'parentRecordId': recordId,
@@ -268,19 +266,18 @@ class NosebleedService {
 
   /// Mark a day as having no nosebleeds
   Future<NosebleedRecord> markNoNosebleeds(DateTime date) async {
-    return addRecord(date: date, startTime: date, isNoNosebleedsEvent: true);
+    return addRecord(startTime: date, isNoNosebleedsEvent: true);
   }
 
   /// Mark a day as unknown (don't remember)
   Future<NosebleedRecord> markUnknown(DateTime date) async {
-    return addRecord(date: date, startTime: date, isUnknownEvent: true);
+    return addRecord(startTime: date, isUnknownEvent: true);
   }
 
   /// Complete an incomplete record by adding a new complete version
   /// The original incomplete record is kept for audit trail
   Future<NosebleedRecord> completeRecord({
     required String originalRecordId,
-    required DateTime date,
     required DateTime startTime,
     required DateTime endTime,
     required NosebleedIntensity intensity,
@@ -289,7 +286,6 @@ class NosebleedService {
     // Mark the original as completed by adding a new complete record
     // We don't modify the original - append-only pattern
     return addRecord(
-      date: date,
       startTime: startTime,
       endTime: endTime,
       intensity: intensity,
@@ -297,42 +293,42 @@ class NosebleedService {
     );
   }
 
-  /// Get records for a specific date
-  Future<List<NosebleedRecord>> getRecordsForDate(DateTime date) async {
-    final records = await getLocalRecords();
+  /// Get records for a specific start date
+  /// Compares using local time to handle UTC storage correctly
+  Future<List<NosebleedRecord>> getRecordsForStartDate(DateTime date) async {
+    final records = await getLocalMaterializedRecords();
+    final localDate = date.toLocal();
     return records.where((r) {
-      return r.date.year == date.year &&
-          r.date.month == date.month &&
-          r.date.day == date.day;
+      final localStartTime = r.startTime.toLocal();
+      return localStartTime.year == localDate.year &&
+          localStartTime.month == localDate.month &&
+          localStartTime.day == localDate.day;
     }).toList();
   }
 
   /// Get records from the last 24 hours
   Future<List<NosebleedRecord>> getRecentRecords() async {
-    final records = await getLocalRecords();
+    final records = await getLocalMaterializedRecords();
     final yesterday = DateTime.now().subtract(const Duration(hours: 24));
-    return records
-        .where((r) => r.startTime?.isAfter(yesterday) ?? false)
-        .toList()
-      ..sort(
-        (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-      );
+    return records.where((r) => r.startTime.isAfter(yesterday)).toList()
+      ..sort((a, b) => (a.startTime).compareTo(b.startTime));
   }
 
   /// Get incomplete records
   Future<List<NosebleedRecord>> getIncompleteRecords() async {
-    final records = await getLocalRecords();
+    final records = await getLocalMaterializedRecords();
     return records.where((r) => r.isIncomplete).toList();
   }
 
   /// Check if there are records for yesterday
   Future<bool> hasRecordsForYesterday() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final records = await getRecordsForDate(yesterday);
+    final records = await getRecordsForStartDate(yesterday);
     return records.isNotEmpty;
   }
 
   /// Sync a single record to cloud via HTTP
+  /// TODO make a syncService, mock in unit tests
   Future<void> _syncRecordToCloud(NosebleedRecord record) async {
     // Skip sync in unit tests
     if (!_enableCloudSync) return;
@@ -455,17 +451,16 @@ class NosebleedService {
         for (final cloudRecord in cloudRecords) {
           if (!existingIds.contains(cloudRecord.id)) {
             // Append cloud record to local datastore
+            // Use DateTimeFormatter to preserve timezone offset in storage
             await _eventRepository.append(
               aggregateId:
-                  'diary-${cloudRecord.date.year}-${cloudRecord.date.month}-${cloudRecord.date.day}',
+                  'diary-${cloudRecord.startTime.year}-${cloudRecord.startTime.month}-${cloudRecord.startTime.day}',
               eventType: 'NosebleedRecorded',
               data: {
                 'recordId': cloudRecord.id, // Preserve cloud record ID
-                'date': cloudRecord.date.toIso8601String(),
-                if (cloudRecord.startTime != null)
-                  'startTime': cloudRecord.startTime!.toIso8601String(),
+                'startTime': DateTimeFormatter.format(cloudRecord.startTime),
                 if (cloudRecord.endTime != null)
-                  'endTime': cloudRecord.endTime!.toIso8601String(),
+                  'endTime': DateTimeFormatter.format(cloudRecord.endTime!),
                 if (cloudRecord.intensity != null)
                   'intensity': cloudRecord.intensity!.name,
                 if (cloudRecord.notes != null) 'notes': cloudRecord.notes,
@@ -497,10 +492,14 @@ class NosebleedService {
 
   /// Get status for a specific date (for calendar view)
   Future<DayStatus> getDayStatus(DateTime date) async {
-    final records = await getRecordsForDate(date);
-    if (records.isEmpty) return DayStatus.notRecorded;
+    final records = await getRecordsForStartDate(date);
+    if (records.isEmpty) {
+      return DayStatus.notRecorded;
+    }
 
-    final hasNosebleed = records.any((r) => r.isRealEvent && !r.isIncomplete);
+    final hasNosebleed = records.any(
+      (r) => r.isRealNosebleedEvent && !r.isIncomplete,
+    );
     final hasNoNosebleed = records.any((r) => r.isNoNosebleedsEvent);
     final hasUnknown = records.any((r) => r.isUnknownEvent);
     final hasIncomplete = records.any((r) => r.isIncomplete);
@@ -513,22 +512,25 @@ class NosebleedService {
   }
 
   /// Get status for a range of dates (for calendar view)
+  /// Compares using local time to handle UTC storage correctly
   Future<Map<DateTime, DayStatus>> getDayStatusRange(
     DateTime start,
     DateTime end,
   ) async {
     final result = <DateTime, DayStatus>{};
-    final records = await getLocalRecords();
+    final records = await getLocalMaterializedRecords();
 
     for (
       var date = start;
       date.isBefore(end) || date.isAtSameMomentAs(end);
       date = date.add(const Duration(days: 1))
     ) {
+      final localDate = date.toLocal();
       final dayRecords = records.where((r) {
-        return r.date.year == date.year &&
-            r.date.month == date.month &&
-            r.date.day == date.day;
+        final localStartTime = r.startTime.toLocal();
+        return localStartTime.year == localDate.year &&
+            localStartTime.month == localDate.month &&
+            localStartTime.day == localDate.day;
       }).toList();
 
       if (dayRecords.isEmpty) {
@@ -538,7 +540,7 @@ class NosebleedService {
       }
 
       final hasNosebleed = dayRecords.any(
-        (r) => r.isRealEvent && !r.isIncomplete,
+        (r) => r.isRealNosebleedEvent && !r.isIncomplete,
       );
       final hasNoNosebleed = dayRecords.any((r) => r.isNoNosebleedsEvent);
       final hasUnknown = dayRecords.any((r) => r.isUnknownEvent);
@@ -579,6 +581,7 @@ class NosebleedService {
   ///
   /// Set [reinitialize] to false in unit tests where Datastore initialization
   /// is handled manually with a test-specific config.
+  @visibleForTesting
   Future<void> clearLocalData({bool reinitialize = true}) async {
     // Clear device UUID from preferences
     final prefs = await SharedPreferences.getInstance();

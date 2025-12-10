@@ -26,7 +26,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:uuid/uuid.dart';
 
 /// Flavor name passed from native code via --dart-define or Xcode/Gradle config.
-const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR');
+/// For iOS/Android, Flutter sets FLUTTER_APP_FLAVOR when using --flavor flag.
+/// For web builds (where --flavor isn't supported), use APP_FLAVOR instead.
+const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR') != ''
+    ? String.fromEnvironment('FLUTTER_APP_FLAVOR')
+    : String.fromEnvironment('APP_FLAVOR');
 
 void main() async {
   // Initialize flavor from native platform configuration
@@ -81,6 +85,9 @@ void main() async {
         debugPrint('Datastore initialization error: $e');
         debugPrint('Stack trace:\n$stack');
       }
+
+      // Timezone is now embedded in ISO 8601 timestamp strings via DateTimeFormatter.
+      // No separate TimezoneService initialization needed.
 
       runApp(const ClinicalDiaryApp());
     },

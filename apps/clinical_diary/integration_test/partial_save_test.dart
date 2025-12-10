@@ -95,7 +95,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                diaryEntryDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -112,7 +112,7 @@ void main() {
           expect(find.text('Save as incomplete?'), findsNothing);
 
           // Verify the partial record was saved
-          final records = await nosebleedService.getRecordsForDate(
+          final records = await nosebleedService.getRecordsForStartDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
@@ -137,7 +137,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                diaryEntryDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -158,7 +158,7 @@ void main() {
           expect(find.text('Save as incomplete?'), findsNothing);
 
           // Verify the partial record was saved
-          final records = await nosebleedService.getRecordsForDate(
+          final records = await nosebleedService.getRecordsForStartDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
@@ -183,7 +183,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                diaryEntryDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -208,7 +208,7 @@ void main() {
           expect(find.text('Save as incomplete?'), findsNothing);
 
           // Verify the partial record was saved with intensity
-          final records = await nosebleedService.getRecordsForDate(
+          final records = await nosebleedService.getRecordsForStartDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
@@ -231,7 +231,7 @@ void main() {
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               preferencesService: preferencesService,
-              initialDate: DateTime(2024, 1, 15),
+              diaryEntryDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -250,7 +250,7 @@ void main() {
         expect(find.text('Save as incomplete?'), findsNothing);
 
         // Verify the partial record was saved
-        final records = await nosebleedService.getRecordsForDate(
+        final records = await nosebleedService.getRecordsForStartDate(
           DateTime(2024, 1, 15),
         );
         expect(records.length, 1);
@@ -273,7 +273,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                diaryEntryDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -297,7 +297,7 @@ void main() {
             await tester.tap(find.text('Back'));
             await tester.pumpAndSettle();
 
-            final records = await nosebleedService.getRecordsForDate(
+            final records = await nosebleedService.getRecordsForStartDate(
               DateTime(2024, 1, 15),
             );
             expect(records.length, 0);
@@ -305,7 +305,7 @@ void main() {
             // When useReviewScreen is false: saves immediately after Set End Time
             // and shows "Record Nosebleed" button (already saved and navigated back)
             // The record should already be saved
-            final records = await nosebleedService.getRecordsForDate(
+            final records = await nosebleedService.getRecordsForStartDate(
               DateTime(2024, 1, 15),
             );
             expect(records.length, 1);
@@ -333,7 +333,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                initialStartDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -357,7 +357,7 @@ void main() {
           expect(find.text('Save as Incomplete?'), findsNothing);
 
           // Verify record was saved
-          final records = await nosebleedService.getRecordsForDate(
+          final records = await nosebleedService.getRecordsForStartDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
@@ -384,7 +384,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                initialStartDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -402,7 +402,7 @@ void main() {
           expect(find.text('Save as Incomplete?'), findsNothing);
 
           // Should auto-save the partial record with default start time
-          final records = await nosebleedService.getRecordsForDate(
+          final records = await nosebleedService.getRecordsForStartDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);
@@ -427,7 +427,7 @@ void main() {
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               preferencesService: preferencesService,
-              initialDate: DateTime(2024, 1, 15),
+              initialStartDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -448,7 +448,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Verify auto-save occurred
-        final records = await nosebleedService.getRecordsForDate(
+        final records = await nosebleedService.getRecordsForStartDate(
           DateTime(2024, 1, 15),
         );
         expect(records.length, 1);
@@ -467,7 +467,6 @@ void main() {
 
         // Create an existing record first
         final existingRecord = await nosebleedService.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.spotting,
@@ -500,7 +499,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Verify auto-save occurred with new intensity
-        final records = await nosebleedService.getLocalRecords();
+        final records = await nosebleedService.getLocalMaterializedRecords();
         expect(records.length, 1);
         expect(records.first.intensity, NosebleedIntensity.dripping);
       });
@@ -521,7 +520,7 @@ void main() {
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
                 preferencesService: preferencesService,
-                initialDate: DateTime(2024, 1, 15),
+                initialStartDate: DateTime(2024, 1, 15),
               ),
             ),
           );
@@ -544,7 +543,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // Verify auto-save occurred
-          final records = await nosebleedService.getRecordsForDate(
+          final records = await nosebleedService.getRecordsForStartDate(
             DateTime(2024, 1, 15),
           );
           expect(records.length, 1);

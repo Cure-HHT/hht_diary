@@ -18,6 +18,7 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
@@ -115,12 +116,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadRecords() async {
     setState(() => _isLoading = true);
 
-    final records = await widget.nosebleedService.getLocalRecords();
+    final records = await widget.nosebleedService.getLocalMaterializedRecords();
     final hasYesterday = await widget.nosebleedService.hasRecordsForYesterday();
 
     // Get incomplete records
     final incomplete = records
-        .where((r) => r.isIncomplete && r.isRealEvent)
+        .where((r) => r.isIncomplete && r.isRealNosebleedEvent)
         .toList();
 
     setState(() {
@@ -135,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // CUR-464: Result is now record ID (String) instead of bool
     final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
@@ -196,20 +197,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // CUR-464: Result is now record ID (String) instead of bool
     final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: yesterday,
+                initialStartDate: yesterday,
                 allRecords: _records,
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: yesterday,
+                diaryEntryDate: yesterday,
                 allRecords: _records,
               ),
       ),
@@ -237,7 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final twoDaysAgo = now.subtract(const Duration(days: 2));
 
     await widget.nosebleedService.addRecord(
-      date: twoDaysAgo,
       startTime: DateTime(
         twoDaysAgo.year,
         twoDaysAgo.month,
@@ -257,7 +257,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     await widget.nosebleedService.addRecord(
-      date: yesterday,
       startTime: DateTime(
         yesterday.year,
         yesterday.month,
@@ -306,6 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed ?? false) {
+      // ignore: invalid_use_of_visible_for_testing_member
       await widget.nosebleedService.clearLocalData();
       unawaited(_loadRecords());
 
@@ -323,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleFeatureFlags() {
     Navigator.push(
       context,
-      MaterialPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
+      AppPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
     );
   }
 
@@ -375,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleLogin() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (context) => LoginScreen(
           authService: widget.authService,
           onLoginSuccess: () {
@@ -520,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleShowAccountProfile() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (context) =>
             AccountProfileScreen(authService: widget.authService),
       ),
@@ -534,13 +534,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstIncomplete = _incompleteRecords.first;
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: firstIncomplete.date,
+                initialStartDate: firstIncomplete.startTime,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -555,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: firstIncomplete.date,
+                diaryEntryDate: firstIncomplete.startTime,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -578,13 +578,13 @@ class _HomeScreenState extends State<HomeScreen> {
     // CUR-464: Result is now record ID (String) instead of bool
     final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => _useSimpleRecordingScreen
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: record.date,
+                initialStartDate: null,
                 existingRecord: record,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -599,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
                 preferencesService: widget.preferencesService,
-                initialDate: null,
+                diaryEntryDate: null,
                 existingRecord: record,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -625,9 +625,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Check if a record overlaps with any other record in the list
   /// CUR-443: Used to show warning icon on overlapping events
   bool _hasOverlap(NosebleedRecord record) {
-    if (!record.isRealEvent ||
-        record.startTime == null ||
-        record.endTime == null) {
+    if (!record.isRealNosebleedEvent || record.endTime == null) {
       return false;
     }
 
@@ -636,15 +634,13 @@ class _HomeScreenState extends State<HomeScreen> {
       if (other.id == record.id) continue;
 
       // Only check real events with both start and end times
-      if (!other.isRealEvent ||
-          other.startTime == null ||
-          other.endTime == null) {
+      if (!other.isRealNosebleedEvent || other.endTime == null) {
         continue;
       }
 
       // Check if events overlap
-      if (record.startTime!.isBefore(other.endTime!) &&
-          record.endTime!.isAfter(other.startTime!)) {
+      if (record.startTime.isBefore(other.endTime!) &&
+          record.endTime!.isAfter(other.startTime)) {
         return true;
       }
     }
@@ -662,14 +658,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final groups = <_GroupedRecords>[];
 
     // Get incomplete records that are older than yesterday
-    final olderIncompleteRecords =
-        _records.where((r) {
-          if (!r.isIncomplete || !r.isRealEvent) return false;
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr != todayStr && dateStr != yesterdayStr;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    final olderIncompleteRecords = _records.where((r) {
+      if (!r.isIncomplete || !r.isRealNosebleedEvent) return false;
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+      return dateStr != todayStr && dateStr != yesterdayStr;
+    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
 
     if (olderIncompleteRecords.isNotEmpty) {
       groups.add(
@@ -682,17 +675,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // Yesterday's records (excluding incomplete ones shown above)
-    final yesterdayRecords =
-        _records.where((r) {
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr == yesterdayStr && r.isRealEvent;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    final yesterdayRecords = _records.where((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+      return dateStr == yesterdayStr && r.isRealNosebleedEvent;
+    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
 
     // Check if there are ANY records for yesterday (including special events)
     final hasAnyYesterdayRecords = _records.any((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
       return dateStr == yesterdayStr;
     });
 
@@ -706,17 +696,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     // Today's records (including incomplete - CUR-488)
-    final todayRecords =
-        _records.where((r) {
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr == todayStr && r.isRealEvent;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    final todayRecords = _records.where((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+      return dateStr == todayStr && r.isRealNosebleedEvent;
+    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
 
     // Check if there are ANY records for today (including special events)
     final hasAnyTodayRecords = _records.any((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
       return dateStr == todayStr;
     });
 
@@ -786,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'accessibility') {
                         await Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
+                          AppPageRoute<void>(
                             builder: (context) => SettingsScreen(
                               preferencesService: widget.preferencesService,
                               onLanguageChanged: widget.onLocaleChanged,
@@ -810,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'enroll') {
                         await Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
+                          AppPageRoute<void>(
                             builder: (context) => ClinicalTrialEnrollmentScreen(
                               enrollmentService: widget.enrollmentService,
                             ),

@@ -27,28 +27,9 @@ class EventListItem extends StatelessWidget {
   final Color? highlightColor;
 
   /// Format start time for one-line display (e.g., "9:09 PM")
-  /// Shows timezone abbreviation when:
-  /// - Start and end time zones differ (cross-timezone event)
-  /// - Either time zone differs from device's current timezone
+  /// Times are displayed in the user's current local timezone.
   String _startTimeFormatted(String locale) {
-    if (record.startTime == null) return '--:--';
-    final timeStr = DateFormat.jm(locale).format(record.startTime!);
-
-    final deviceTzOffset = DateTime.now().timeZoneOffset;
-    final startTzOffset = record.startTime!.timeZoneOffset;
-    final endTzOffset = record.endTime?.timeZoneOffset;
-
-    // Show timezone if start/end differ OR if either differs from device
-    final startDiffersFromDevice = startTzOffset != deviceTzOffset;
-    final endDiffersFromDevice =
-        endTzOffset != null && endTzOffset != deviceTzOffset;
-    final startEndDiffer = endTzOffset != null && startTzOffset != endTzOffset;
-
-    if (startDiffersFromDevice || endDiffersFromDevice || startEndDiffer) {
-      final tz = record.startTime!.timeZoneName;
-      return '$timeStr $tz';
-    }
-    return timeStr;
+    return DateFormat.jm(locale).format(record.startTime);
   }
 
   /// Get the intensity icon image path
@@ -72,12 +53,12 @@ class EventListItem extends StatelessWidget {
 
   /// Check if the event crosses midnight (ends on a different day)
   bool get _isMultiDay {
-    if (record.startTime == null || record.endTime == null) return false;
+    if (record.endTime == null) return false;
 
     final startDay = DateTime(
-      record.startTime!.year,
-      record.startTime!.month,
-      record.startTime!.day,
+      record.startTime.year,
+      record.startTime.month,
+      record.startTime.day,
     );
     final endDay = DateTime(
       record.endTime!.year,
@@ -94,7 +75,7 @@ class EventListItem extends StatelessWidget {
   (String, bool) _getDurationInfo(AppLocalizations l10n) {
     final minutes = record.durationMinutes;
     // If no end time set, show "Incomplete" instead of empty or 0m
-    if (record.endTime == null && record.startTime != null) {
+    if (record.endTime == null) {
       return (l10n.incomplete, true);
     }
     if (minutes == null) return ('', false);
@@ -229,10 +210,10 @@ class EventListItem extends StatelessWidget {
     String locale,
   ) {
     // Fixed widths for column alignment
-    // Time column: "12:59 PM" needs ~70px, 24h "23:59" needs ~40px
-    // Note: timezone suffix adds ~25px when shown, but we let it overflow into duration gap
+    // Time column: "12:59 AM" needs ~80px, 24h "23:59" needs ~45px
+    // Note: timezone can be shown on second line when different from device
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    final timeWidth = use24Hour ? 40.0 : 70.0;
+    final timeWidth = use24Hour ? 45.0 : 80.0;
     const iconWidth = 32.0; // 28px icon + 4px gap
     // CUR-488 Phase 2: Widened to 90px to fit "Incomplete" with large text on iPhone SE
     const durationWidth = 90.0;

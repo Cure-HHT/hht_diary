@@ -110,7 +110,7 @@ void main() {
                           nosebleedService: nosebleedService,
                           enrollmentService: mockEnrollment,
                           preferencesService: preferencesService,
-                          initialDate: DateTime(2024, 1, 15),
+                          diaryEntryDate: DateTime(2024, 1, 15),
                         ),
                       ),
                     );
@@ -144,7 +144,7 @@ void main() {
         expect(popResult, isNotEmpty);
 
         // Verify record was actually saved to datastore
-        final records = await nosebleedService.getLocalRecords();
+        final records = await nosebleedService.getLocalMaterializedRecords();
         expect(records.length, 1);
         expect(records.first.id, popResult);
         expect(records.first.intensity, NosebleedIntensity.dripping);
@@ -164,14 +164,13 @@ void main() {
 
       // First, add an incomplete record to the datastore
       final incompleteRecord = await nosebleedService.addRecord(
-        date: DateTime(2024, 1, 15),
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
         // Missing intensity - will be marked incomplete
       );
 
       // Verify record is incomplete
-      var records = await nosebleedService.getLocalRecords();
+      var records = await nosebleedService.getLocalMaterializedRecords();
       expect(records.length, 1);
       expect(records.first.isIncomplete, true);
 
@@ -230,7 +229,7 @@ void main() {
       expect(popResult, isNotEmpty);
 
       // Verify record was updated in datastore (now complete)
-      records = await nosebleedService.getLocalRecords();
+      records = await nosebleedService.getLocalMaterializedRecords();
       expect(records.length, 1);
       expect(records.first.isIncomplete, false);
       expect(records.first.intensity, NosebleedIntensity.dripping);

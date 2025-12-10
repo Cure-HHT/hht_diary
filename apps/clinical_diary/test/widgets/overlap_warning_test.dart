@@ -18,7 +18,6 @@ void main() {
     }) {
       return NosebleedRecord(
         id: 'test-${startTime.millisecondsSinceEpoch}',
-        date: startTime,
         startTime: startTime,
         endTime: endTime,
         intensity: NosebleedIntensity.spotting,
