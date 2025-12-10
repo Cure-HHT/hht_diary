@@ -178,11 +178,13 @@ void main() {
         // Initially false (default)
         expect(featureFlagService.requireOldEntryJustification, false);
 
-        // Find and tap the Old Entry Justification SwitchListTile
+        // Scroll to and tap the Old Entry Justification SwitchListTile
         final switchTile = find.widgetWithText(
           SwitchListTile,
           'Old Entry Justification',
         );
+        await tester.scrollUntilVisible(switchTile, 100);
+        await tester.pumpAndSettle();
         await tester.tap(switchTile);
         await tester.pumpAndSettle();
 
@@ -394,9 +396,15 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.widgetWithText(SwitchListTile, 'Use Animations'));
         await tester.pumpAndSettle();
-        await tester.tap(
-          find.widgetWithText(SwitchListTile, 'Old Entry Justification'),
+
+        // Scroll to Old Entry Justification and tap it
+        final oldEntrySwitch = find.widgetWithText(
+          SwitchListTile,
+          'Old Entry Justification',
         );
+        await tester.scrollUntilVisible(oldEntrySwitch, 100);
+        await tester.pumpAndSettle();
+        await tester.tap(oldEntrySwitch);
         await tester.pumpAndSettle();
 
         expect(featureFlagService.useReviewScreen, true);
@@ -495,6 +503,10 @@ void main() {
           FeatureFlags.defaultUseAnimations,
         );
         expect(
+          featureFlagService.useOnePageRecordingScreen,
+          FeatureFlags.defaultUseOnePageRecordingScreen,
+        );
+        expect(
           featureFlagService.requireOldEntryJustification,
           FeatureFlags.defaultRequireOldEntryJustification,
         );
@@ -521,9 +533,15 @@ void main() {
           find.widgetWithText(SwitchListTile, 'Use Review Screen'),
         );
         await tester.pumpAndSettle();
-        await tester.tap(
-          find.widgetWithText(SwitchListTile, 'Old Entry Justification'),
+
+        // Scroll to Old Entry Justification and tap it
+        final oldEntrySwitch = find.widgetWithText(
+          SwitchListTile,
+          'Old Entry Justification',
         );
+        await tester.scrollUntilVisible(oldEntrySwitch, 100);
+        await tester.pumpAndSettle();
+        await tester.tap(oldEntrySwitch);
         await tester.pumpAndSettle();
 
         // Verify changes were made

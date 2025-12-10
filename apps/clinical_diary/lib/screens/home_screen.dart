@@ -4,6 +4,7 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/account_profile_screen.dart';
@@ -62,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
   bool _isLoggedIn = false;
-  bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
   bool _useAnimation = true; // User preference for animations
   bool _compactView = false; // User preference for compact list view
 
@@ -137,10 +137,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _navigateToRecording() async {
     // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
@@ -198,10 +200,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleYesterdayHadNosebleeds() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
@@ -534,11 +538,13 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_incompleteRecords.isEmpty) return;
 
     // Navigate to edit the first incomplete record
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final firstIncomplete = _incompleteRecords.first;
     final result = await Navigator.push<bool>(
       context,
       AppPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
@@ -579,10 +585,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _navigateToEditRecord(NosebleedRecord record) async {
     // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
@@ -1014,75 +1022,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Calendar button with demo toggle
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await showDialog<void>(
-                              context: context,
-                              builder: (context) => CalendarScreen(
-                                nosebleedService: widget.nosebleedService,
-                                enrollmentService: widget.enrollmentService,
-                                preferencesService: widget.preferencesService,
-                              ),
-                            );
-                            unawaited(_loadRecords());
-                          },
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(AppLocalizations.of(context).calendar),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 48),
-                          ),
+                  // Calendar button
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await showDialog<void>(
+                        context: context,
+                        builder: (context) => CalendarScreen(
+                          nosebleedService: widget.nosebleedService,
+                          enrollmentService: widget.enrollmentService,
+                          preferencesService: widget.preferencesService,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Demo toggle for simple recording screen
-                      Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context);
-                          return Tooltip(
-                            message: _useSimpleRecordingScreen
-                                ? l10n.usingSimpleUI
-                                : l10n.usingClassicUI,
-                            child: IconButton.outlined(
-                              onPressed: () {
-                                setState(() {
-                                  _useSimpleRecordingScreen =
-                                      !_useSimpleRecordingScreen;
-                                });
-                                final l10nSnack = AppLocalizations.of(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      _useSimpleRecordingScreen
-                                          ? l10nSnack.switchedToSimpleUI
-                                          : l10nSnack.switchedToClassicUI,
-                                    ),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-
-                              icon: Icon(
-                                _useSimpleRecordingScreen
-                                    ? Icons.view_agenda
-                                    : Icons.dashboard,
-                              ),
-                              style: IconButton.styleFrom(
-                                minimumSize: const Size(48, 48),
-                                side: BorderSide(
-                                  color: _useSimpleRecordingScreen
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                      );
+                      unawaited(_loadRecords());
+                    },
+                    icon: const Icon(Icons.calendar_today),
+                    label: Text(AppLocalizations.of(context).calendar),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
                   ),
                 ],
               ),

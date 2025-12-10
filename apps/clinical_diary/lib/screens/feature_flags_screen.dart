@@ -170,6 +170,21 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           ),
           const Divider(height: 1),
 
+          // CUR-508: Use One-Page Recording Screen
+          SwitchListTile(
+            title: Text(l10n.featureFlagsUseOnePageRecordingScreen),
+            subtitle: Text(
+              l10n.featureFlagsUseOnePageRecordingScreenDescription,
+            ),
+            value: _featureFlagService.useOnePageRecordingScreen,
+            onChanged: (value) {
+              setState(() {
+                _featureFlagService.useOnePageRecordingScreen = value;
+              });
+            },
+          ),
+          const Divider(height: 1),
+
           // Validation Features Section
           _buildSectionHeader(l10n.featureFlagsSectionValidation),
 

@@ -358,6 +358,9 @@ class AppLocalizations {
       'featureFlagsUseAnimations': 'Use Animations',
       'featureFlagsUseAnimationsDescription':
           'Enable animations and show user preference toggle',
+      'featureFlagsUseOnePageRecordingScreen': 'Use One-Page Recording Screen',
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          'Use simplified one-page recording screen instead of multi-page flow',
       'featureFlagsOldEntryJustification': 'Old Entry Justification',
       'featureFlagsOldEntryJustificationDescription':
           'Require justification when editing entries older than one day',
@@ -707,6 +710,10 @@ class AppLocalizations {
       'featureFlagsUseAnimations': 'Usar Animaciones',
       'featureFlagsUseAnimationsDescription':
           'Habilitar animaciones y mostrar preferencia de usuario',
+      'featureFlagsUseOnePageRecordingScreen':
+          'Usar Pantalla de Registro de Una Pagina',
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          'Usar pantalla de registro simplificada en lugar de flujo de varias paginas',
       'featureFlagsOldEntryJustification': 'Justificacion de Entrada Antigua',
       'featureFlagsOldEntryJustificationDescription':
           'Requerir justificacion al editar entradas de mas de un dia',
@@ -1067,6 +1074,10 @@ class AppLocalizations {
       'featureFlagsUseAnimations': 'Utiliser Animations',
       'featureFlagsUseAnimationsDescription':
           'Activer les animations et afficher la preference utilisateur',
+      'featureFlagsUseOnePageRecordingScreen':
+          "Utiliser Ecran d'Enregistrement Une Page",
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          "Utiliser l'ecran d'enregistrement simplifie au lieu du flux multi-pages",
       'featureFlagsOldEntryJustification': 'Justification Ancienne Entree',
       'featureFlagsOldEntryJustificationDescription':
           "Exiger une justification lors de la modification d'entrees de plus d'un jour",
@@ -1421,6 +1432,10 @@ class AppLocalizations {
       'featureFlagsUseAnimations': 'Animationen Verwenden',
       'featureFlagsUseAnimationsDescription':
           'Animationen aktivieren und Benutzereinstellung anzeigen',
+      'featureFlagsUseOnePageRecordingScreen':
+          'Einseitigen Aufnahmebildschirm Verwenden',
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          'Vereinfachten einseitigen Aufnahmebildschirm statt mehrseitigem Ablauf verwenden',
       'featureFlagsOldEntryJustification': 'Alte Eintrag Begrundung',
       'featureFlagsOldEntryJustificationDescription':
           'Begrundung bei Bearbeitung von Eintragen alter als ein Tag erforderlich',
@@ -1787,6 +1802,10 @@ class AppLocalizations {
       translate('featureFlagsUseAnimations');
   String get featureFlagsUseAnimationsDescription =>
       translate('featureFlagsUseAnimationsDescription');
+  String get featureFlagsUseOnePageRecordingScreen =>
+      translate('featureFlagsUseOnePageRecordingScreen');
+  String get featureFlagsUseOnePageRecordingScreenDescription =>
+      translate('featureFlagsUseOnePageRecordingScreenDescription');
   String get featureFlagsOldEntryJustification =>
       translate('featureFlagsOldEntryJustification');
   String get featureFlagsOldEntryJustificationDescription =>

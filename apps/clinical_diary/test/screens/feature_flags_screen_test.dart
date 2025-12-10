@@ -127,20 +127,43 @@ void main() {
       });
 
       testWidgets(
-        'toggling third switch (Old Entry Justification) updates service',
+        'toggling third switch (One-Page Recording Screen) updates service',
         (tester) async {
           await tester.pumpWidget(buildTestWidget());
           await tester.pumpAndSettle();
 
-          expect(featureFlagService.requireOldEntryJustification, false);
+          expect(featureFlagService.useOnePageRecordingScreen, false);
 
+          // Find the third SwitchListTile and tap it
           final switchTiles = find.byType(SwitchListTile);
           await tester.tap(switchTiles.at(2));
           await tester.pumpAndSettle();
 
-          expect(featureFlagService.requireOldEntryJustification, true);
+          expect(featureFlagService.useOnePageRecordingScreen, true);
         },
       );
+
+      testWidgets('toggling Old Entry Justification switch updates service', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        expect(featureFlagService.requireOldEntryJustification, false);
+
+        // Scroll to make the Old Entry Justification switch visible
+        final oldEntrySwitch = find.widgetWithText(
+          SwitchListTile,
+          'Old Entry Justification',
+        );
+        await tester.scrollUntilVisible(oldEntrySwitch, 100);
+        await tester.pumpAndSettle();
+
+        await tester.tap(oldEntrySwitch);
+        await tester.pumpAndSettle();
+
+        expect(featureFlagService.requireOldEntryJustification, true);
+      });
     });
 
     group('Sponsor Dropdown', () {
@@ -310,8 +333,15 @@ void main() {
 
         expect(featureFlagService.useAnimations, false);
 
-        // Toggle third switch
-        await tester.tap(find.byType(SwitchListTile).at(2));
+        // Scroll to and toggle Old Entry Justification switch
+        final oldEntrySwitch = find.widgetWithText(
+          SwitchListTile,
+          'Old Entry Justification',
+        );
+        await tester.scrollUntilVisible(oldEntrySwitch, 100);
+        await tester.pumpAndSettle();
+
+        await tester.tap(oldEntrySwitch);
         await tester.pumpAndSettle();
 
         expect(featureFlagService.requireOldEntryJustification, true);

@@ -37,6 +37,10 @@ class FeatureFlags {
   /// Default threshold for long duration confirmation (in minutes).
   static const int defaultLongDurationThresholdMinutes = 60;
 
+  /// CUR-508: Default: false - use classic multi-page recording screen
+  /// When true, uses simplified one-page recording screen
+  static const bool defaultUseOnePageRecordingScreen = false;
+
   // === Constraints ===
 
   /// Minimum configurable long duration threshold (1 hour)
@@ -80,6 +84,9 @@ class FeatureFlagService {
       FeatureFlags.defaultEnableLongDurationConfirmation;
   int _longDurationThresholdMinutes =
       FeatureFlags.defaultLongDurationThresholdMinutes;
+  // CUR-508: One-page recording screen flag
+  bool _useOnePageRecordingScreen =
+      FeatureFlags.defaultUseOnePageRecordingScreen;
 
   // Current sponsor ID (null if not loaded from server)
   String? _currentSponsorId;
@@ -152,6 +159,15 @@ class FeatureFlagService {
     _longDurationThresholdMinutes = value;
   }
 
+  /// CUR-508: One-page recording screen
+  /// When true, uses simplified one-page recording screen instead of multi-page.
+  /// When false (default), uses classic multi-page recording flow.
+  bool get useOnePageRecordingScreen => _useOnePageRecordingScreen;
+
+  set useOnePageRecordingScreen(bool value) {
+    _useOnePageRecordingScreen = value;
+  }
+
   /// Load feature flags from the server for a given sponsor ID.
   /// Returns true if successful, false otherwise.
   /// Updates [lastError] with error message on failure.
@@ -206,6 +222,9 @@ class FeatureFlagService {
       _longDurationThresholdMinutes =
           flags['longDurationThresholdMinutes'] as int? ??
           FeatureFlags.defaultLongDurationThresholdMinutes;
+      _useOnePageRecordingScreen =
+          flags['useOnePageRecordingScreen'] as bool? ??
+          FeatureFlags.defaultUseOnePageRecordingScreen;
 
       _currentSponsorId = sponsorId;
 
@@ -229,6 +248,10 @@ class FeatureFlagService {
       debugPrint(
         '[FeatureFlagService] longDurationThresholdMinutes: '
         '$_longDurationThresholdMinutes',
+      );
+      debugPrint(
+        '[FeatureFlagService] useOnePageRecordingScreen: '
+        '$_useOnePageRecordingScreen',
       );
 
       return true;
@@ -258,6 +281,7 @@ class FeatureFlagService {
         FeatureFlags.defaultEnableLongDurationConfirmation;
     _longDurationThresholdMinutes =
         FeatureFlags.defaultLongDurationThresholdMinutes;
+    _useOnePageRecordingScreen = FeatureFlags.defaultUseOnePageRecordingScreen;
     _currentSponsorId = null;
     _lastError = null;
   }
