@@ -1110,7 +1110,7 @@ class TraceabilityGenerator:
         # Add requirements as flat list (hierarchy via indentation)
         flat_list = self._build_flat_requirement_list()
         for req_data in flat_list:
-            html += self._format_req_flat_html(req_data)
+            html += self._format_req_flat_html(req_data, embed_content=embed_content)
 
         html += """        </div>
     </div>
@@ -1373,8 +1373,13 @@ class TraceabilityGenerator:
         for child in children:
             self._add_requirement_and_children(child, flat_list, indent + 1, instance_id)
 
-    def _format_req_flat_html(self, req_data: dict) -> str:
-        """Format a single requirement as flat HTML row"""
+    def _format_req_flat_html(self, req_data: dict, embed_content: bool = False) -> str:
+        """Format a single requirement as flat HTML row
+
+        Args:
+            req_data: Dictionary containing requirement data
+            embed_content: If True, use onclick handlers instead of href links for portability
+        """
         req = req_data['req']
         indent = req_data['indent']
         instance_id = req_data['instance_id']
@@ -1429,10 +1434,13 @@ class TraceabilityGenerator:
             impl_section += '</div>'
 
         # Create link to source file with REQ anchor
-        req_link = f'<a href="../spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
-
-        # Create link to source file with line anchor
-        file_line_link = f'<a href="../spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+        # In embedded mode, use onclick to open side panel instead of navigating away
+        if embed_content:
+            req_link = f'<a href="#" onclick="openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">REQ-{req.id}</a>'
+            file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
+        else:
+            req_link = f'<a href="../spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
+            file_line_link = f'<a href="../spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
 
         # Build HTML for single flat row with unique instance ID
         html = f"""

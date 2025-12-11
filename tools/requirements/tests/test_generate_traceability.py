@@ -661,6 +661,16 @@ class TestEmbeddedContentMode(unittest.TestCase):
         self.assertIn('closeReqCard', html)
         self.assertIn('closeAllCards', html)
 
+    def test_embedded_mode_uses_onclick_not_href(self):
+        """In embedded mode, REQ clicks should open side panel, not navigate away"""
+        html = self.gen._generate_html(embed_content=True)
+        # Should have onclick handler to open panel
+        self.assertIn("onclick", html)
+        self.assertIn("openReqPanel", html)
+        # REQ title clicks should NOT navigate to external file in embedded mode
+        # (links should either use onclick or href="#" to prevent navigation)
+        self.assertNotIn('href="../spec/', html)
+
 
 class TestDeepLinksAndLegend(unittest.TestCase):
     """Test Phase 1: Deep links to source files and symbol legend"""
