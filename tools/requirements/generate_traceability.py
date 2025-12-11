@@ -101,7 +101,7 @@ class TraceabilityGenerator:
     }
 
     def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None, impl_dirs: Optional[List[Path]] = None,
-                 sponsor: Optional[str] = None, mode: str = 'core'):
+                 sponsor: Optional[str] = None, mode: str = 'core', repo_root: Optional[Path] = None):
         self.spec_dir = spec_dir
         self.requirements: Dict[str, Requirement] = {}
         self.test_mapping_file = test_mapping_file
@@ -109,6 +109,8 @@ class TraceabilityGenerator:
         self.impl_dirs = impl_dirs or []  # Directories containing implementation files
         self.sponsor = sponsor  # Sponsor name (e.g., 'callisto', 'titan')
         self.mode = mode  # Report mode: 'core', 'sponsor', 'combined'
+        self.repo_root = repo_root or spec_dir.parent  # Repository root for relative path calculation
+        self._base_path = ''  # Relative path from output file to repo root (set during generate)
 
     def generate(self, format: str = 'markdown', output_file: Path = None, embed_content: bool = False):
         """Generate traceability matrix in specified format
@@ -141,21 +143,57 @@ class TraceabilityGenerator:
         print(f"📝 Generating {format.upper()} traceability matrix...")
 
         if format == 'html':
-            content = self._generate_html(embed_content=embed_content)
             ext = '.html'
         elif format == 'csv':
-            content = self._generate_csv()
             ext = '.csv'
         else:
-            content = self._generate_markdown()
             ext = '.md'
 
         # Determine output path
         if output_file is None:
             output_file = Path(f'traceability_matrix{ext}')
 
+        # Calculate relative path from output file to repo root for links
+        self._calculate_base_path(output_file)
+
+        if format == 'html':
+            content = self._generate_html(embed_content=embed_content)
+        elif format == 'csv':
+            content = self._generate_csv()
+        else:
+            content = self._generate_markdown()
+
         output_file.write_text(content)
         print(f"✅ Traceability matrix written to: {output_file}")
+
+    def _calculate_base_path(self, output_file: Path):
+        """Calculate relative path from output file location to repo root.
+
+        This ensures links work correctly regardless of where the output file is placed.
+        For example:
+        - Output at repo_root/my.html -> base_path = '' (links are 'spec/file.md')
+        - Output at repo_root/docs/report.html -> base_path = '../' (links are '../spec/file.md')
+        - Output at ~/my.html (outside repo) -> base_path = 'file:///abs/path/' (absolute URLs)
+        """
+        try:
+            output_dir = output_file.resolve().parent
+            repo_root = self.repo_root.resolve()
+
+            # Check if output is within repo
+            try:
+                rel_path = output_dir.relative_to(repo_root)
+                # Count directory levels from output to repo root
+                depth = len(rel_path.parts)
+                if depth == 0:
+                    self._base_path = ''  # Output is at repo root
+                else:
+                    self._base_path = '../' * depth
+            except ValueError:
+                # Output is outside repo - use absolute file:// URLs
+                self._base_path = f'file://{repo_root}/'
+        except Exception:
+            # Fallback to relative path from docs/ (legacy behavior)
+            self._base_path = '../'
 
     def _parse_requirements(self):
         """Parse all requirements from spec files using shared parser"""
@@ -363,7 +401,7 @@ class TraceabilityGenerator:
         emoji = status_emoji.get(req.status, '❓')
 
         # Create link to source file with REQ anchor
-        req_link = f"[REQ-{req.id}](../spec/{req.file_path.name}#REQ-{req.id})"
+        req_link = f"[REQ-{req.id}]({self._base_path}spec/{req.file_path.name}#REQ-{req.id})"
 
         lines.append(
             f"{prefix}- {emoji} **{req_link}**: {req.title}\n"
@@ -376,8 +414,8 @@ class TraceabilityGenerator:
             lines.append(f"{prefix}  - **Implemented in**:")
             for file_path, line_num in req.implementation_files:
                 # Create markdown link to file with line number anchor
-                # Format: [database/schema.sql:42](../database/schema.sql#L42)
-                link = f"[{file_path}:{line_num}](../{file_path}#L{line_num})"
+                # Format: [database/schema.sql:42](database/schema.sql#L42)
+                link = f"[{file_path}:{line_num}]({self._base_path}{file_path}#L{line_num})"
                 lines.append(f"{prefix}    - {link}")
 
         # Find and format children
@@ -1432,8 +1470,8 @@ class TraceabilityGenerator:
             impl_section = '<div class="impl-files">'
             impl_section += '<div class="impl-files-header">Implemented in:</div>'
             for file_path, line_num in req.implementation_files:
-                # Create clickable link to file (relative path)
-                link = f"../{file_path}#L{line_num}"
+                # Create clickable link to file (use calculated base path)
+                link = f"{self._base_path}{file_path}#L{line_num}"
                 impl_section += f'<div class="impl-file-item"><a href="{link}">{file_path}:{line_num}</a></div>'
             impl_section += '</div>'
 
@@ -1444,8 +1482,8 @@ class TraceabilityGenerator:
             req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">REQ-{req.id}</a>'
             file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
         else:
-            req_link = f'<a href="../spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
-            file_line_link = f'<a href="../spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+            req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
+            file_line_link = f'<a href="{self._base_path}spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
 
         # Build HTML for single flat row with unique instance ID
         html = f"""
@@ -1985,7 +2023,8 @@ Examples:
         test_mapping_file=test_mapping_file,
         impl_dirs=impl_dirs,
         sponsor=args.sponsor,
-        mode=args.mode
+        mode=args.mode,
+        repo_root=repo_root
     )
 
     # Determine output path based on --output-dir, --output, or defaults

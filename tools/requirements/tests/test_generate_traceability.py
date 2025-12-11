@@ -697,15 +697,15 @@ class TestDeepLinksAndLegend(unittest.TestCase):
         """REQ title should link to source file with anchor"""
         html = self.gen._generate_html()
         # Should have link to source file with REQ anchor
-        # Format: href="../spec/prd-test.md#REQ-p00001"
-        self.assertIn('href="../spec/prd-test.md#REQ-p00001"', html)
+        # Path is relative to output file location (which defaults to repo root in tests)
+        self.assertIn('href="spec/prd-test.md#REQ-p00001"', html)
 
     def test_html_file_line_is_link(self):
         """File:Line should link to source with line anchor"""
         html = self.gen._generate_html()
         # Should have link to source file with line anchor
         # The requirement is at line 1 in the test file
-        self.assertIn('href="../spec/prd-test.md#L', html)
+        self.assertIn('href="spec/prd-test.md#L', html)
 
     def test_html_has_legend_section(self):
         """HTML output should include symbol legend"""
@@ -720,8 +720,9 @@ class TestDeepLinksAndLegend(unittest.TestCase):
         """Markdown REQ should have clickable link to source"""
         markdown = self.gen._generate_markdown()
         # Should have markdown link format
+        # Path is relative to output file location (which defaults to repo root in tests)
         self.assertIn('[REQ-p00001', markdown)
-        self.assertIn('../spec/prd-test.md', markdown)
+        self.assertIn('spec/prd-test.md', markdown)
 
     def test_markdown_has_legend_section(self):
         """Markdown output should include symbol legend"""
