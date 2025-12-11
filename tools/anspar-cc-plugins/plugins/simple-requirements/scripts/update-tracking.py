@@ -25,12 +25,34 @@ import sys
 import json
 import argparse
 import fcntl
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
+
+def get_repo_root() -> Path:
+    """
+    Get the repository root using git.
+
+    This works even when the script is run from the Claude Code plugin cache,
+    as long as the current working directory is within a git repository.
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return Path(result.stdout.strip())
+    except subprocess.CalledProcessError:
+        # Fallback to relative path traversal (works when run from repo directly)
+        return Path(__file__).resolve().parents[5]
+
+
 # Add tools/requirements to Python path
-repo_root = Path(__file__).resolve().parents[5]
+repo_root = get_repo_root()
 sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
 
 from validate_requirements import RequirementValidator

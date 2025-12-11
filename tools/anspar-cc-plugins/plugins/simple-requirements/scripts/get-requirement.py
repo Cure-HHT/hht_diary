@@ -18,12 +18,32 @@ Formats:
 import sys
 import json
 import argparse
+import subprocess
 from pathlib import Path
 
+
+def get_repo_root() -> Path:
+    """
+    Get the repository root using git.
+
+    This works even when the script is run from the Claude Code plugin cache,
+    as long as the current working directory is within a git repository.
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return Path(result.stdout.strip())
+    except subprocess.CalledProcessError:
+        # Fallback to relative path traversal (works when run from repo directly)
+        return Path(__file__).resolve().parents[5]
+
+
 # Add tools/requirements to Python path for imports
-# __file__ is in: tools/anspar-cc-plugins/plugins/simple-requirements/scripts/get-requirement.py
-# repo_root is 5 levels up
-repo_root = Path(__file__).resolve().parents[5]
+repo_root = get_repo_root()
 sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
 
 from validate_requirements import RequirementValidator, Requirement
