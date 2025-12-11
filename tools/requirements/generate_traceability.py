@@ -1435,8 +1435,9 @@ class TraceabilityGenerator:
 
         # Create link to source file with REQ anchor
         # In embedded mode, use onclick to open side panel instead of navigating away
+        # event.stopPropagation() prevents the parent toggle handler from firing
         if embed_content:
-            req_link = f'<a href="#" onclick="openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">REQ-{req.id}</a>'
+            req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">REQ-{req.id}</a>'
             file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
         else:
             req_link = f'<a href="../spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
