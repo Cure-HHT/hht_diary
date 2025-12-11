@@ -306,8 +306,7 @@ class TestOutputValidation(unittest.TestCase):
         self.assertIn('</html>', html)
 
         # Check for traceability-specific elements
-        self.assertIn('impl-files', html)  # Implementation section CSS
-        self.assertIn('impl-files-header', html)  # Implementation header class
+        self.assertIn('impl-file', html)  # Implementation file class for child items
 
     def test_csv_format_valid(self):
         """Test that CSV output is valid CSV format"""

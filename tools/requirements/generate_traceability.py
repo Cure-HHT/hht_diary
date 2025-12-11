@@ -261,7 +261,7 @@ class TraceabilityGenerator:
 
         # Find all requirement IDs referenced in this file with their line numbers
         referenced_reqs = set()
-        rel_path = file_path.relative_to(file_path.parent.parent)  # Relative to repo root
+        rel_path = file_path.relative_to(self.repo_root)  # Relative to repo root
 
         for match in pattern.finditer(content):
             sponsor_prefix = match.group(1)  # May be None for core requirements
@@ -482,7 +482,9 @@ class TraceabilityGenerator:
                 'body': req.body.strip(),
                 'rationale': req.rationale.strip(),
                 'file': req.file_path.name,
-                'line': req.line_number
+                'filePath': f"spec/{req.file_path.name}",
+                'line': req.line_number,
+                'implements': list(req.implements) if req.implements else []
             }
         json_str = json.dumps(req_data, indent=2)
         # Escape </script> to prevent premature closing of the script tag
@@ -522,6 +524,20 @@ class TraceabilityGenerator:
             const card = document.createElement('div');
             card.className = 'req-card';
             card.id = `req-card-${reqId}`;
+
+            // Render markdown content
+            const bodyHtml = window.marked ? marked.parse(req.body) : req.body;
+            const rationaleHtml = req.rationale ? (window.marked ? marked.parse(req.rationale) : req.rationale) : '';
+
+            // Build implements links
+            let implementsHtml = '';
+            if (req.implements && req.implements.length > 0) {
+                const implLinks = req.implements.sort().map(parentId =>
+                    `<a href="#" onclick="openReqPanel('${parentId}'); return false;" class="implements-link">${parentId}</a>`
+                ).join(', ');
+                implementsHtml = `<div class="req-card-implements">Implements: ${implLinks}</div>`;
+            }
+
             card.innerHTML = `
                 <div class="req-card-header">
                     <span class="req-card-title">REQ-${reqId}: ${req.title}</span>
@@ -531,11 +547,12 @@ class TraceabilityGenerator:
                     <div class="req-card-meta">
                         <span class="badge">${req.level}</span>
                         <span class="badge">${req.status}</span>
-                        <span class="file-ref">${req.file}:${req.line}</span>
+                        <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); return false;" class="file-ref-link">${req.file}:${req.line}</a>
                     </div>
-                    <div class="req-card-content">
-                        <div class="req-body">${req.body}</div>
-                        ${req.rationale ? `<div class="req-rationale"><strong>Rationale:</strong> ${req.rationale}</div>` : ''}
+                    ${implementsHtml}
+                    <div class="req-card-content markdown-body">
+                        <div class="req-body">${bodyHtml}</div>
+                        ${rationaleHtml ? `<div class="req-rationale"><strong>Rationale:</strong> ${rationaleHtml}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -566,6 +583,401 @@ class TraceabilityGenerator:
             reqCardStack.length = 0;
             document.getElementById('req-panel').classList.add('hidden');
         }
+
+        // Code viewer functions
+        async function openCodeViewer(filePath, lineNum) {
+            const modal = document.getElementById('code-viewer-modal');
+            const content = document.getElementById('code-viewer-content');
+            const title = document.getElementById('code-viewer-title');
+            const lineInfo = document.getElementById('code-viewer-line');
+
+            title.textContent = filePath;
+            lineInfo.textContent = `Line ${lineNum}`;
+            content.innerHTML = '<div class="loading">Loading...</div>';
+            modal.classList.remove('hidden');
+
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const text = await response.text();
+
+                const ext = filePath.split('.').pop().toLowerCase();
+
+                // For markdown files, render as formatted markdown with line anchors
+                if (ext === 'md' && window.marked) {
+                    // Wrap each source line in a span with line ID before parsing
+                    const lines = text.split('\\n');
+                    const wrappedText = lines.map((line, idx) =>
+                        `<span id="md-line-${idx + 1}" class="md-line">${line}</span>`
+                    ).join('\\n');
+
+                    // Use custom renderer to preserve line spans through markdown parsing
+                    // Simpler approach: render markdown, then inject line markers
+                    const renderedHtml = marked.parse(text);
+                    content.innerHTML = `<div class="markdown-viewer markdown-body">${renderedHtml}</div>`;
+                    content.classList.add('markdown-mode');
+
+                    // Find the element containing the target line by searching the raw text position
+                    setTimeout(() => {
+                        // Calculate which heading or paragraph contains our target line
+                        const targetLine = lineNum;
+                        let currentLine = 1;
+                        let targetElement = null;
+
+                        // Find the nearest heading at or before the target line
+                        const headings = content.querySelectorAll('h1, h2, h3, h4');
+                        for (const heading of headings) {
+                            // Search for this heading's text in the source to find its line
+                            const headingText = heading.textContent.trim();
+                            for (let i = 0; i < lines.length; i++) {
+                                if (lines[i].includes(headingText)) {
+                                    if (i + 1 <= targetLine) {
+                                        targetElement = heading;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                        // If no heading found, try to find by searching for the actual line content
+                        if (!targetElement && targetLine <= lines.length) {
+                            const targetText = lines[targetLine - 1].trim();
+                            if (targetText) {
+                                // Search all text nodes for this content
+                                const walker = document.createTreeWalker(
+                                    content,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    if (node.textContent.includes(targetText)) {
+                                        targetElement = node.parentElement;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Fallback to first heading
+                        if (!targetElement) {
+                            targetElement = content.querySelector('h1, h2, h3');
+                        }
+
+                        if (targetElement) {
+                            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            // Briefly highlight the element
+                            targetElement.classList.add('highlight-target');
+                            setTimeout(() => targetElement.classList.remove('highlight-target'), 2000);
+                        }
+                    }, 100);
+                } else {
+                    // For code files, show with line numbers
+                    content.classList.remove('markdown-mode');
+                    const lines = text.split('\\n');
+                    const langClass = getLangClass(ext);
+
+                    let html = '<table class="code-table"><tbody>';
+                    lines.forEach((line, idx) => {
+                        const lineNumber = idx + 1;
+                        const isHighlighted = lineNumber === lineNum;
+                        const highlightClass = isHighlighted ? 'highlighted-line' : '';
+                        const lineId = `L${lineNumber}`;
+                        // Escape HTML entities
+                        const escapedLine = line
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+                        html += `<tr id="${lineId}" class="${highlightClass}">`;
+                        html += `<td class="line-num">${lineNumber}</td>`;
+                        html += `<td class="line-code"><pre><code class="${langClass}">${escapedLine || ' '}</code></pre></td>`;
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+
+                    content.innerHTML = html;
+
+                    // Scroll to highlighted line
+                    setTimeout(() => {
+                        const highlightedRow = content.querySelector('.highlighted-line');
+                        if (highlightedRow) {
+                            highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
+
+                    // Apply syntax highlighting if hljs is available
+                    if (window.hljs) {
+                        content.querySelectorAll('code').forEach(block => {
+                            hljs.highlightElement(block);
+                        });
+                    }
+                }
+            } catch (err) {
+                content.innerHTML = `<div class="error">Failed to load file: ${err.message}</div>`;
+            }
+        }
+
+        function getLangClass(ext) {
+            const langMap = {
+                'dart': 'language-dart',
+                'sql': 'language-sql',
+                'py': 'language-python',
+                'js': 'language-javascript',
+                'ts': 'language-typescript',
+                'json': 'language-json',
+                'md': 'language-markdown',
+                'yaml': 'language-yaml',
+                'yml': 'language-yaml',
+                'sh': 'language-bash',
+                'bash': 'language-bash'
+            };
+            return langMap[ext] || 'language-plaintext';
+        }
+
+        function closeCodeViewer() {
+            document.getElementById('code-viewer-modal').classList.add('hidden');
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCodeViewer();
+            }
+        });
+"""
+
+    def _generate_code_viewer_css(self) -> str:
+        """Generate CSS styles for code viewer modal"""
+        return """
+        /* Code Viewer Modal */
+        .code-viewer-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .code-viewer-modal.hidden {
+            display: none;
+        }
+        .code-viewer-container {
+            width: 85%;
+            height: 85%;
+            background: #1e1e1e;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .code-viewer-header {
+            background: #333;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+        .code-viewer-title {
+            color: #e0e0e0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+        }
+        .code-viewer-line {
+            color: #888;
+            font-size: 12px;
+            margin-left: 15px;
+        }
+        .code-viewer-close {
+            background: #dc3545;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .code-viewer-close:hover {
+            background: #c82333;
+        }
+        .code-viewer-body {
+            flex: 1;
+            overflow: auto;
+            background: #1e1e1e;
+        }
+        .code-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .code-table tr {
+            background: #1e1e1e;
+        }
+        .code-table tr.highlighted-line {
+            background: #3a3a00 !important;
+        }
+        .code-table tr.highlighted-line .line-num {
+            background: #5a5a00;
+            color: #fff;
+        }
+        .line-num {
+            text-align: right;
+            padding: 0 12px;
+            color: #606060;
+            background: #252526;
+            user-select: none;
+            min-width: 50px;
+            border-right: 1px solid #333;
+            vertical-align: top;
+        }
+        .line-code {
+            padding: 0 16px;
+            white-space: pre;
+            color: #d4d4d4;
+        }
+        .line-code pre {
+            margin: 0;
+            padding: 0;
+        }
+        .line-code code {
+            font-family: inherit;
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        .code-viewer-body .loading {
+            color: #888;
+            padding: 20px;
+            text-align: center;
+        }
+        .code-viewer-body .error {
+            color: #ff6b6b;
+            padding: 20px;
+            text-align: center;
+        }
+        /* Markdown rendering in code viewer */
+        .code-viewer-body.markdown-mode {
+            background: #ffffff;
+        }
+        .markdown-viewer {
+            padding: 20px 30px;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .markdown-viewer h1 {
+            font-size: 24px;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 8px;
+            margin-top: 30px;
+        }
+        .markdown-viewer h2 {
+            font-size: 20px;
+            margin-top: 25px;
+            color: #2c3e50;
+        }
+        .markdown-viewer h3 {
+            font-size: 16px;
+            margin-top: 20px;
+            color: #34495e;
+        }
+        .markdown-viewer p {
+            margin: 12px 0;
+            line-height: 1.7;
+        }
+        .markdown-viewer ul, .markdown-viewer ol {
+            margin: 12px 0;
+            padding-left: 25px;
+        }
+        .markdown-viewer li {
+            margin: 6px 0;
+            line-height: 1.6;
+        }
+        .markdown-viewer code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+        }
+        .markdown-viewer pre {
+            background: #2d2d2d;
+            color: #ccc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .markdown-viewer pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        .markdown-viewer blockquote {
+            margin: 15px 0;
+            padding: 10px 15px;
+            border-left: 4px solid #0066cc;
+            background: #f8f9fa;
+            color: #555;
+        }
+        .markdown-viewer table {
+            border-collapse: collapse;
+            margin: 15px 0;
+            width: 100%;
+        }
+        .markdown-viewer th, .markdown-viewer td {
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .markdown-viewer th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .markdown-viewer strong {
+            font-weight: 600;
+        }
+        .markdown-viewer a {
+            color: #0066cc;
+        }
+        .markdown-viewer hr {
+            border: none;
+            border-top: 1px solid #dee2e6;
+            margin: 20px 0;
+        }
+        .markdown-viewer .highlight-target {
+            background: #fff3cd;
+            animation: highlight-fade 2s ease-out;
+        }
+        @keyframes highlight-fade {
+            0% { background: #fff3cd; }
+            100% { background: transparent; }
+        }
+"""
+
+    def _generate_code_viewer_html(self) -> str:
+        """Generate HTML for code viewer modal"""
+        return """
+    <!-- Code Viewer Modal -->
+    <div id="code-viewer-modal" class="code-viewer-modal hidden">
+        <div class="code-viewer-container">
+            <div class="code-viewer-header">
+                <div>
+                    <span id="code-viewer-title" class="code-viewer-title"></span>
+                    <span id="code-viewer-line" class="code-viewer-line"></span>
+                </div>
+                <button class="code-viewer-close" onclick="closeCodeViewer()">Close (Esc)</button>
+            </div>
+            <div id="code-viewer-content" class="code-viewer-body"></div>
+        </div>
+    </div>
 """
 
     def _generate_side_panel_css(self) -> str:
@@ -672,8 +1084,32 @@ class TraceabilityGenerator:
             color: #6c757d;
             font-family: 'Consolas', 'Monaco', monospace;
         }
+        .file-ref-link {
+            font-size: 10px;
+            color: #0066cc;
+            font-family: 'Consolas', 'Monaco', monospace;
+            text-decoration: none;
+        }
+        .file-ref-link:hover {
+            text-decoration: underline;
+        }
+        .req-card-implements {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            padding: 6px 8px;
+            background: #f8f9fa;
+            border-radius: 3px;
+        }
+        .req-card-implements .implements-link {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .req-card-implements .implements-link:hover {
+            text-decoration: underline;
+        }
         .req-card-content {
-            font-size: 12px;
+            font-size: 13px;
             line-height: 1.6;
         }
         .req-body {
@@ -683,7 +1119,79 @@ class TraceabilityGenerator:
             padding: 8px;
             background: #fff3cd;
             border-left: 3px solid #ffc107;
-            font-size: 11px;
+            font-size: 12px;
+        }
+        /* Markdown content styling */
+        .markdown-body p {
+            margin: 0 0 10px 0;
+        }
+        .markdown-body ul, .markdown-body ol {
+            margin: 0 0 10px 0;
+            padding-left: 20px;
+        }
+        .markdown-body li {
+            margin: 4px 0;
+        }
+        .markdown-body code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+        .markdown-body pre {
+            background: #2d2d2d;
+            color: #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .markdown-body pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        .markdown-body strong {
+            font-weight: 600;
+        }
+        .markdown-body em {
+            font-style: italic;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            margin: 15px 0 10px 0;
+            font-weight: 600;
+        }
+        .markdown-body h1 { font-size: 18px; }
+        .markdown-body h2 { font-size: 16px; }
+        .markdown-body h3 { font-size: 14px; }
+        .markdown-body blockquote {
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-left: 3px solid #dee2e6;
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+        .markdown-body a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+        .markdown-body table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            width: 100%;
+        }
+        .markdown-body th, .markdown-body td {
+            border: 1px solid #dee2e6;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .markdown-body th {
+            background: #f8f9fa;
+            font-weight: 600;
         }
 """
 
@@ -911,30 +1419,15 @@ class TraceabilityGenerator:
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
-        .impl-files {{
-            margin: 8px 0 8px 40px;
-            padding: 8px 12px;
-            background: #f8f9fa;
+        .req-item.impl-file {{
             border-left: 3px solid #6c757d;
-            font-size: 11px;
+            background: #f8f9fa;
         }}
-        .impl-files-header {{
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 6px;
-            font-size: 10px;
-            text-transform: uppercase;
+        .req-item.impl-file .req-header-container {{
+            cursor: default;
         }}
-        .impl-file-item {{
-            padding: 3px 0;
-            font-family: 'Consolas', 'Monaco', monospace;
-        }}
-        .impl-file-item a {{
-            color: #0066cc;
-            text-decoration: none;
-        }}
-        .impl-file-item a:hover {{
-            text-decoration: underline;
+        .req-item.impl-file .req-header-container:hover {{
+            background: #f0f0f0;
         }}
         .status-badge {{
             display: inline-block;
@@ -967,9 +1460,6 @@ class TraceabilityGenerator:
         }}
         /* Collapsed items hidden via class */
         .req-item.collapsed-by-parent {{
-            display: none;
-        }}
-        .impl-files.collapsed-by-parent {{
             display: none;
         }}
         .filter-header {{
@@ -1051,7 +1541,9 @@ class TraceabilityGenerator:
         .legend-color.ops {{ background: #fd7e14; }}
         .legend-color.dev {{ background: #28a745; }}
         {self._generate_side_panel_css() if embed_content else ''}
+        {self._generate_code_viewer_css() if embed_content else ''}
     </style>
+    {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>') if embed_content else ''}
 </head>
 <body>
     <div class="container">
@@ -1149,10 +1641,10 @@ class TraceabilityGenerator:
         <div class="req-tree" id="reqTree">
 """
 
-        # Add requirements as flat list (hierarchy via indentation)
+        # Add requirements and implementation files as flat list (hierarchy via indentation)
         flat_list = self._build_flat_requirement_list()
-        for req_data in flat_list:
-            html += self._format_req_flat_html(req_data, embed_content=embed_content)
+        for item_data in flat_list:
+            html += self._format_item_flat_html(item_data, embed_content=embed_content)
 
         html += """        </div>
     </div>
@@ -1220,15 +1712,8 @@ class TraceabilityGenerator:
                 // Recursively hide descendants' descendants
                 hideDescendants(child.dataset.instanceId);
             });
-
-            // Also hide implementation files of the parent requirement
-            const parentItem = document.querySelector(`[data-instance-id="${parentInstanceId}"]`);
-            if (parentItem) {
-                const implFiles = parentItem.querySelector('.impl-files');
-                if (implFiles) {
-                    implFiles.classList.add('collapsed-by-parent');
-                }
-            }
+            // Note: impl-files sections are always visible as part of their requirement row
+            // They are not affected by collapse state - only child requirements are hidden
         }
 
         // Show immediate children of a requirement instance only (not grandchildren)
@@ -1238,15 +1723,7 @@ class TraceabilityGenerator:
                 child.classList.remove('collapsed-by-parent');
                 // Do NOT recursively show grandchildren - they stay hidden until their parent is expanded
             });
-
-            // Also show implementation files of the parent requirement
-            const parentItem = document.querySelector(`[data-instance-id="${parentInstanceId}"]`);
-            if (parentItem) {
-                const implFiles = parentItem.querySelector('.impl-files');
-                if (implFiles) {
-                    implFiles.classList.remove('collapsed-by-parent');
-                }
-            }
+            // Note: impl-files sections are always visible as part of their requirement row
         }
 
         // Expand all requirements
@@ -1370,6 +1847,12 @@ class TraceabilityGenerator:
 
         html += """
     </script>
+"""
+        # Add code viewer modal if embedded mode
+        if embed_content:
+            html += self._generate_code_viewer_html()
+
+        html += """
 </body>
 </html>
 """
@@ -1395,12 +1878,15 @@ class TraceabilityGenerator:
         instance_id = f"inst_{self._instance_counter}"
         self._instance_counter += 1
 
-        # Find children
+        # Find child requirements
         children = [
             r for r in self.requirements.values()
             if req.id in r.implements
         ]
         children.sort(key=lambda r: r.id)
+
+        # Check if this requirement has children (either child reqs or implementation files)
+        has_children = len(children) > 0 or len(req.implementation_files) > 0
 
         # Add this requirement
         flat_list.append({
@@ -1408,14 +1894,77 @@ class TraceabilityGenerator:
             'indent': indent,
             'instance_id': instance_id,
             'parent_instance_id': parent_instance_id,
-            'has_children': len(children) > 0
+            'has_children': has_children,
+            'item_type': 'requirement'
         })
 
-        # Recursively add children
+        # Add implementation files as child items
+        for file_path, line_num in req.implementation_files:
+            impl_instance_id = f"inst_{self._instance_counter}"
+            self._instance_counter += 1
+            flat_list.append({
+                'file_path': file_path,
+                'line_num': line_num,
+                'indent': indent + 1,
+                'instance_id': impl_instance_id,
+                'parent_instance_id': instance_id,
+                'has_children': False,
+                'item_type': 'implementation'
+            })
+
+        # Recursively add child requirements
         for child in children:
             self._add_requirement_and_children(child, flat_list, indent + 1, instance_id)
 
-    def _format_req_flat_html(self, req_data: dict, embed_content: bool = False) -> str:
+    def _format_item_flat_html(self, item_data: dict, embed_content: bool = False) -> str:
+        """Format a single item (requirement or implementation file) as flat HTML row
+
+        Args:
+            item_data: Dictionary containing item data
+            embed_content: If True, use onclick handlers instead of href links for portability
+        """
+        item_type = item_data.get('item_type', 'requirement')
+
+        if item_type == 'implementation':
+            return self._format_impl_file_html(item_data, embed_content)
+        else:
+            return self._format_req_html(item_data, embed_content)
+
+    def _format_impl_file_html(self, item_data: dict, embed_content: bool = False) -> str:
+        """Format an implementation file as a child row"""
+        file_path = item_data['file_path']
+        line_num = item_data['line_num']
+        indent = item_data['indent']
+        instance_id = item_data['instance_id']
+        parent_instance_id = item_data['parent_instance_id']
+
+        # Create link or onclick handler
+        if embed_content:
+            file_url = f"{self._base_path}{file_path}"
+            file_link = f'<a href="#" onclick="openCodeViewer(\'{file_url}\', {line_num}); return false;" style="color: #0066cc;">{file_path}:{line_num}</a>'
+        else:
+            link = f"{self._base_path}{file_path}#L{line_num}"
+            file_link = f'<a href="{link}" style="color: #0066cc;">{file_path}:{line_num}</a>'
+
+        # Build HTML for implementation file row
+        html = f"""
+        <div class="req-item impl-file" data-instance-id="{instance_id}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}">
+            <div class="req-header-container">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id" style="color: #6c757d;">📄</div>
+                    <div class="req-header" style="font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;">{file_link}</div>
+                    <div class="req-level"></div>
+                    <div class="req-badges"></div>
+                    <div class="req-status"></div>
+                    <div class="req-location"></div>
+                </div>
+            </div>
+        </div>
+"""
+        return html
+
+    def _format_req_html(self, req_data: dict, embed_content: bool = False) -> str:
         """Format a single requirement as flat HTML row
 
         Args:
@@ -1464,17 +2013,6 @@ class TraceabilityGenerator:
         # Extract topic from filename
         topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
 
-        # Format implementation files as nested section
-        impl_section = ''
-        if req.implementation_files:
-            impl_section = '<div class="impl-files">'
-            impl_section += '<div class="impl-files-header">Implemented in:</div>'
-            for file_path, line_num in req.implementation_files:
-                # Create clickable link to file (use calculated base path)
-                link = f"{self._base_path}{file_path}#L{line_num}"
-                impl_section += f'<div class="impl-file-item"><a href="{link}">{file_path}:{line_num}</a></div>'
-            impl_section += '</div>'
-
         # Create link to source file with REQ anchor
         # In embedded mode, use onclick to open side panel instead of navigating away
         # event.stopPropagation() prevents the parent toggle handler from firing
@@ -1502,7 +2040,6 @@ class TraceabilityGenerator:
                     <div class="req-location">{file_line_link}</div>
                 </div>
             </div>
-            {impl_section}
         </div>
 """
         return html
