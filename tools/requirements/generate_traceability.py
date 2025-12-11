@@ -110,8 +110,14 @@ class TraceabilityGenerator:
         self.sponsor = sponsor  # Sponsor name (e.g., 'callisto', 'titan')
         self.mode = mode  # Report mode: 'core', 'sponsor', 'combined'
 
-    def generate(self, format: str = 'markdown', output_file: Path = None):
-        """Generate traceability matrix in specified format"""
+    def generate(self, format: str = 'markdown', output_file: Path = None, embed_content: bool = False):
+        """Generate traceability matrix in specified format
+
+        Args:
+            format: Output format ('markdown', 'html', 'csv')
+            output_file: Path to write output (default: traceability_matrix.{ext})
+            embed_content: If True, embed full requirement content in HTML for portable viewing
+        """
         print(f"🔍 Scanning {self.spec_dir} for requirements...")
         self._parse_requirements()
 
@@ -135,7 +141,7 @@ class TraceabilityGenerator:
         print(f"📝 Generating {format.upper()} traceability matrix...")
 
         if format == 'html':
-            content = self._generate_html()
+            content = self._generate_html(embed_content=embed_content)
             ext = '.html'
         elif format == 'csv':
             content = self._generate_csv()
@@ -1863,6 +1869,21 @@ Examples:
         type=Path,
         help='Path to repository root (default: auto-detect from script location)'
     )
+    parser.add_argument(
+        '--embed-content',
+        action='store_true',
+        help='Embed full requirement content in HTML for portable/offline viewing (includes side panel)'
+    )
+    parser.add_argument(
+        '--export-planning',
+        action='store_true',
+        help='Generate planning CSV with actionable requirements for sprint planning'
+    )
+    parser.add_argument(
+        '--coverage-report',
+        action='store_true',
+        help='Generate coverage report showing implementation status statistics'
+    )
 
     args = parser.parse_args()
 
@@ -1984,6 +2005,33 @@ Examples:
             ext = '.html' if args.format == 'html' else ('.csv' if args.format == 'csv' else '.md')
             output_file = output_dir / f'traceability_matrix{ext}'
 
+    # Handle special export options first
+    if args.export_planning:
+        print("📋 Generating planning CSV...")
+        generator._parse_requirements()
+        if generator.impl_dirs:
+            generator._scan_implementation_files()
+        planning_csv = generator._generate_planning_csv()
+        planning_file = output_file.parent / 'planning_export.csv' if output_file else Path('planning_export.csv')
+        planning_file.write_text(planning_csv)
+        print(f"✅ Planning CSV written to: {planning_file}")
+
+    if args.coverage_report:
+        print("📊 Generating coverage report...")
+        if not generator.requirements:
+            generator._parse_requirements()
+            if generator.impl_dirs:
+                generator._scan_implementation_files()
+        coverage_report = generator._generate_coverage_report()
+        report_file = output_file.parent / 'coverage_report.txt' if output_file else Path('coverage_report.txt')
+        report_file.write_text(coverage_report)
+        print(f"✅ Coverage report written to: {report_file}")
+
+    # Skip matrix generation if only special exports requested
+    if args.export_planning or args.coverage_report:
+        if not (args.format or args.output):
+            return  # Only special exports requested, no matrix
+
     # Handle 'both' format option
     if args.format == 'both':
         print("Generating both Markdown and HTML formats...")
@@ -1991,11 +2039,11 @@ Examples:
         md_output = output_file if output_file.suffix == '.md' else output_file.with_suffix('.md')
         generator.generate(format='markdown', output_file=md_output)
 
-        # Generate HTML
+        # Generate HTML (with embed_content if requested)
         html_output = md_output.with_suffix('.html')
-        generator.generate(format='html', output_file=html_output)
+        generator.generate(format='html', output_file=html_output, embed_content=args.embed_content)
     else:
-        generator.generate(format=args.format, output_file=output_file)
+        generator.generate(format=args.format, output_file=output_file, embed_content=args.embed_content)
 
 
 if __name__ == '__main__':
