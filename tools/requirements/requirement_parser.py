@@ -29,6 +29,7 @@ class Requirement:
     file_path: Path
     line_number: int
     heading_level: int  # Heading level (1-6)
+    rationale: str = ''  # Rationale section extracted from body
 
     @property
     def level_prefix(self) -> str:
@@ -222,7 +223,16 @@ class RequirementParser:
             body_text = remaining[body_start:body_end]
 
             # Clean body using shared function
-            body = clean_requirement_body(body_text)
+            full_body = clean_requirement_body(body_text)
+
+            # Extract rationale if present
+            rationale = ''
+            body = full_body
+            rationale_marker = '\n\n**Rationale**:'
+            if rationale_marker in full_body:
+                parts = full_body.split(rationale_marker, 1)
+                body = parts[0]
+                rationale = parts[1].strip()
 
             # Parse implements list
             implements = []
@@ -239,7 +249,8 @@ class RequirementParser:
                 body=body,
                 file_path=file_path,
                 line_number=line_num,
-                heading_level=heading_level
+                heading_level=heading_level,
+                rationale=rationale
             )
 
             result.requirements[req_id] = req

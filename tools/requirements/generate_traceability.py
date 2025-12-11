@@ -63,6 +63,8 @@ class TraceabilityRequirement:
     status: str
     file_path: Path
     line_number: int
+    body: str = ''
+    rationale: str = ''
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
 
@@ -78,7 +80,9 @@ class TraceabilityRequirement:
             implements=base_req.implements,
             status=base_req.status,
             file_path=base_req.file_path,
-            line_number=base_req.line_number
+            line_number=base_req.line_number,
+            body=base_req.body,
+            rationale=base_req.rationale
         )
 
 
@@ -284,6 +288,24 @@ class TraceabilityGenerator:
         except (ValueError, IndexError):
             return False
 
+    def _generate_legend_markdown(self) -> str:
+        """Generate markdown legend section"""
+        return """## Legend
+
+**Requirement Status:**
+- ✅ Active requirement
+- 🚧 Draft requirement
+- ⚠️ Deprecated requirement
+
+**Traceability:**
+- 🔗 Has implementation file(s)
+- ○ No implementation found
+
+**Interactive (HTML only):**
+- ▼ Expandable (has child requirements)
+- ▶ Collapsed (click to expand)
+"""
+
     def _generate_markdown(self) -> str:
         """Generate markdown traceability matrix"""
         lines = []
@@ -297,6 +319,9 @@ class TraceabilityGenerator:
         lines.append(f"- **PRD Requirements**: {by_level['PRD']}")
         lines.append(f"- **OPS Requirements**: {by_level['OPS']}")
         lines.append(f"- **DEV Requirements**: {by_level['DEV']}\n")
+
+        # Add legend
+        lines.append(self._generate_legend_markdown())
 
         # Full traceability tree
         lines.append("## Traceability Tree\n")
@@ -331,8 +356,11 @@ class TraceabilityGenerator:
         }
         emoji = status_emoji.get(req.status, '❓')
 
+        # Create link to source file with REQ anchor
+        req_link = f"[REQ-{req.id}](../spec/{req.file_path.name}#REQ-{req.id})"
+
         lines.append(
-            f"{prefix}- {emoji} **REQ-{req.id}**: {req.title}\n"
+            f"{prefix}- {emoji} **{req_link}**: {req.title}\n"
             f"{prefix}  - Level: {req.level} | Status: {req.status}\n"
             f"{prefix}  - File: {req.file_path.name}:{req.line_number}"
         )
@@ -359,8 +387,264 @@ class TraceabilityGenerator:
 
         return '\n'.join(lines)
 
-    def _generate_html(self) -> str:
-        """Generate interactive HTML traceability matrix from markdown source"""
+    def _generate_legend_html(self) -> str:
+        """Generate HTML legend section"""
+        return """
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h2 style="margin-top: 0;">Legend</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px;">Requirement Status:</h3>
+                    <ul style="list-style: none; padding: 0; font-size: 12px;">
+                        <li style="margin: 4px 0;">✅ Active requirement</li>
+                        <li style="margin: 4px 0;">🚧 Draft requirement</li>
+                        <li style="margin: 4px 0;">⚠️ Deprecated requirement</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px;">Traceability:</h3>
+                    <ul style="list-style: none; padding: 0; font-size: 12px;">
+                        <li style="margin: 4px 0;">🔗 Has implementation file(s)</li>
+                        <li style="margin: 4px 0;">○ No implementation found</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px;">Implementation Coverage:</h3>
+                    <ul style="list-style: none; padding: 0; font-size: 12px;">
+                        <li style="margin: 4px 0;">● Full coverage</li>
+                        <li style="margin: 4px 0;">◐ Partial coverage</li>
+                        <li style="margin: 4px 0;">○ Unimplemented</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <h3 style="font-size: 13px; margin-bottom: 8px;">Interactive Controls:</h3>
+                <ul style="list-style: none; padding: 0; font-size: 12px;">
+                    <li style="margin: 4px 0;">▼ Expandable (has child requirements)</li>
+                    <li style="margin: 4px 0;">▶ Collapsed (click to expand)</li>
+                </ul>
+            </div>
+        </div>
+"""
+
+    def _generate_req_json_data(self) -> str:
+        """Generate JSON data containing all requirement content for embedded mode"""
+        req_data = {}
+        for req_id, req in self.requirements.items():
+            req_data[req_id] = {
+                'title': req.title,
+                'status': req.status,
+                'level': req.level,
+                'body': req.body.strip(),
+                'rationale': req.rationale.strip(),
+                'file': req.file_path.name,
+                'line': req.line_number
+            }
+        return json.dumps(req_data, indent=2)
+
+    def _generate_side_panel_js(self) -> str:
+        """Generate JavaScript functions for side panel interaction"""
+        return """
+        // Side panel state management
+        const reqCardStack = [];
+
+        function openReqPanel(reqId) {
+            const panel = document.getElementById('req-panel');
+            const cardStack = document.getElementById('req-card-stack');
+            const reqData = window.REQ_CONTENT_DATA;
+
+            if (!reqData || !reqData[reqId]) {
+                console.error('Requirement data not found:', reqId);
+                return;
+            }
+
+            // Show panel if hidden
+            panel.classList.remove('hidden');
+
+            // Check if card already exists
+            if (reqCardStack.includes(reqId)) {
+                return; // Already open
+            }
+
+            // Add to stack
+            reqCardStack.unshift(reqId);
+
+            // Create card element
+            const req = reqData[reqId];
+            const card = document.createElement('div');
+            card.className = 'req-card';
+            card.id = `req-card-${reqId}`;
+            card.innerHTML = `
+                <div class="req-card-header">
+                    <span class="req-card-title">REQ-${reqId}: ${req.title}</span>
+                    <button class="close-btn" onclick="closeReqCard('${reqId}')">×</button>
+                </div>
+                <div class="req-card-body">
+                    <div class="req-card-meta">
+                        <span class="badge">${req.level}</span>
+                        <span class="badge">${req.status}</span>
+                        <span class="file-ref">${req.file}:${req.line}</span>
+                    </div>
+                    <div class="req-card-content">
+                        <div class="req-body">${req.body}</div>
+                        ${req.rationale ? `<div class="req-rationale"><strong>Rationale:</strong> ${req.rationale}</div>` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Add to top of stack
+            cardStack.insertBefore(card, cardStack.firstChild);
+        }
+
+        function closeReqCard(reqId) {
+            const card = document.getElementById(`req-card-${reqId}`);
+            if (card) {
+                card.remove();
+            }
+            const index = reqCardStack.indexOf(reqId);
+            if (index > -1) {
+                reqCardStack.splice(index, 1);
+            }
+
+            // Hide panel if empty
+            if (reqCardStack.length === 0) {
+                document.getElementById('req-panel').classList.add('hidden');
+            }
+        }
+
+        function closeAllCards() {
+            const cardStack = document.getElementById('req-card-stack');
+            cardStack.innerHTML = '';
+            reqCardStack.length = 0;
+            document.getElementById('req-panel').classList.add('hidden');
+        }
+"""
+
+    def _generate_side_panel_css(self) -> str:
+        """Generate CSS styles for side panel"""
+        return """
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 30%;
+            height: 100vh;
+            background: white;
+            border-left: 2px solid #dee2e6;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        .side-panel.hidden {
+            transform: translateX(100%);
+        }
+        .panel-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .panel-header button {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            background: #dc3545;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .panel-header button:hover {
+            background: #c82333;
+        }
+        #req-card-stack {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .req-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .req-card-header {
+            background: #e9ecef;
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .req-card-title {
+            font-weight: 600;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            line-height: 20px;
+        }
+        .close-btn:hover {
+            color: #dc3545;
+        }
+        .req-card-body {
+            padding: 12px;
+        }
+        .req-card-meta {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .req-card-meta .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #0066cc;
+            color: white;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .req-card-meta .file-ref {
+            font-size: 10px;
+            color: #6c757d;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .req-card-content {
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .req-body {
+            margin-bottom: 10px;
+        }
+        .req-rationale {
+            padding: 8px;
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            font-size: 11px;
+        }
+"""
+
+    def _generate_html(self, embed_content: bool = False) -> str:
+        """Generate interactive HTML traceability matrix from markdown source
+
+        Args:
+            embed_content: If True, embed full requirement content as JSON and include side panel
+        """
         # First generate markdown to ensure consistency
         markdown_content = self._generate_markdown()
 
@@ -628,6 +912,11 @@ class TraceabilityGenerator:
         .test-not-tested {{ background: #fff3cd; color: #856404; }}
         .test-error {{ background: #f5c2c7; color: #842029; }}
         .test-skipped {{ background: #e2e3e5; color: #41464b; }}
+        .coverage-badge {{
+            display: inline-block;
+            font-size: 14px;
+            cursor: help;
+        }}
         /* Collapsed items hidden via class */
         .req-item.collapsed-by-parent {{
             display: none;
@@ -713,6 +1002,7 @@ class TraceabilityGenerator:
         .legend-color.prd {{ background: #0066cc; }}
         .legend-color.ops {{ background: #fd7e14; }}
         .legend-color.dev {{ background: #28a745; }}
+        {self._generate_side_panel_css() if embed_content else ''}
     </style>
 </head>
 <body>
@@ -752,6 +1042,8 @@ class TraceabilityGenerator:
                 <span>Dev (Development)</span>
             </div>
         </div>
+
+        {self._generate_legend_html()}
 
         <div class="filter-controls">
             <button class="btn" onclick="expandAll()">▼ Expand All</button>
@@ -816,7 +1108,37 @@ class TraceabilityGenerator:
 
         html += """        </div>
     </div>
+"""
 
+        # Add side panel HTML if embedded mode
+        if embed_content:
+            html += """
+    <div id="req-panel" class="side-panel hidden">
+        <div class="panel-header">
+            <span>Requirements</span>
+            <button onclick="closeAllCards()">Close All</button>
+        </div>
+        <div id="req-card-stack"></div>
+    </div>
+"""
+
+        # Add JSON data script if embedded mode
+        if embed_content:
+            json_data = self._generate_req_json_data()
+            # Properly escape JSON for HTML embedding
+            import html as html_module
+            escaped_json = html_module.escape(json_data)
+            html += f"""
+    <script id="req-content-data" type="application/json">
+{json_data}
+    </script>
+    <script>
+        // Load REQ content data into global scope
+        window.REQ_CONTENT_DATA = JSON.parse(document.getElementById('req-content-data').textContent);
+    </script>
+"""
+
+        html += """
     <script>
         // Track collapsed state for each requirement instance
         const collapsedInstances = new Set();
@@ -992,6 +1314,13 @@ class TraceabilityGenerator:
             // Initialize filter stats
             applyFilters();
         });
+"""
+
+        # Add side panel JavaScript functions if embedded mode
+        if embed_content:
+            html += self._generate_side_panel_js()
+
+        html += """
     </script>
 </body>
 </html>
@@ -1052,6 +1381,18 @@ class TraceabilityGenerator:
         # Only show collapse icon if there are children
         collapse_icon = '▼' if has_children else ''
 
+        # Determine implementation coverage status
+        impl_status = self._get_implementation_status(req.id)
+        if impl_status == 'Full':
+            coverage_icon = '●'  # Filled circle
+            coverage_title = 'Full implementation coverage'
+        elif impl_status == 'Partial':
+            coverage_icon = '◐'  # Half-filled circle
+            coverage_title = 'Partial implementation coverage'
+        else:  # Unimplemented
+            coverage_icon = '○'  # Empty circle
+            coverage_title = 'Unimplemented'
+
         # Determine test status
         test_badge = ''
         if req.test_info:
@@ -1081,20 +1422,27 @@ class TraceabilityGenerator:
                 impl_section += f'<div class="impl-file-item"><a href="{link}">{file_path}:{line_num}</a></div>'
             impl_section += '</div>'
 
+        # Create link to source file with REQ anchor
+        req_link = f'<a href="../spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
+
+        # Create link to source file with line anchor
+        file_line_link = f'<a href="../spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
         <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}">
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-id">REQ-{req.id}</div>
+                    <div class="req-id">{req_link}</div>
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
                         <span class="status-badge status-{status_class}">{req.status}</span>
+                        <span class="coverage-badge" title="{coverage_title}">{coverage_icon}</span>
                     </div>
                     <div class="req-status">{test_badge}</div>
-                    <div class="req-location">{req.file_path.name}:{req.line_number}</div>
+                    <div class="req-location">{file_line_link}</div>
                 </div>
             </div>
             {impl_section}
@@ -1301,6 +1649,160 @@ class TraceabilityGenerator:
                 orphaned.append(req)
 
         return sorted(orphaned, key=lambda r: r.id)
+
+    def _calculate_coverage(self, req_id: str) -> dict:
+        """Calculate coverage for a requirement
+
+        Returns:
+            dict with 'children' (total child count) and 'traced' (children with implementation)
+        """
+        # Find all requirements that implement this requirement (children)
+        children = [
+            r for r in self.requirements.values()
+            if req_id in r.implements
+        ]
+
+        # Count how many children have implementation files or their own children with implementation
+        traced = 0
+        for child in children:
+            child_status = self._get_implementation_status(child.id)
+            if child_status in ['Full', 'Partial']:
+                traced += 1
+
+        return {
+            'children': len(children),
+            'traced': traced
+        }
+
+    def _get_implementation_status(self, req_id: str) -> str:
+        """Get implementation status for a requirement
+
+        Returns:
+            'Unimplemented': No children AND no implementation_files
+            'Partial': Some but not all children traced
+            'Full': Has implementation_files OR all children traced
+        """
+        req = self.requirements.get(req_id)
+        if not req:
+            return 'Unimplemented'
+
+        # If requirement has implementation files, it's fully implemented
+        if req.implementation_files:
+            return 'Full'
+
+        # Find children
+        children = [
+            r for r in self.requirements.values()
+            if req_id in r.implements
+        ]
+
+        # No children and no implementation files = Unimplemented
+        if not children:
+            return 'Unimplemented'
+
+        # Check how many children are traced
+        coverage = self._calculate_coverage(req_id)
+
+        if coverage['traced'] == 0:
+            return 'Unimplemented'
+        elif coverage['traced'] == coverage['children']:
+            return 'Full'
+        else:
+            return 'Partial'
+
+    def _generate_planning_csv(self) -> str:
+        """Generate CSV for sprint planning (actionable items only)
+
+        Returns CSV with columns: REQ ID, Title, Level, Status, Impl Status, Coverage, Code Refs
+        Includes only actionable items (Active or Draft status, not deprecated)
+        """
+        from io import StringIO
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Header
+        writer.writerow([
+            'REQ ID',
+            'Title',
+            'Level',
+            'Status',
+            'Impl Status',
+            'Coverage',
+            'Code Refs'
+        ])
+
+        # Filter to actionable requirements (Active or Draft status)
+        actionable_reqs = [
+            req for req in self.requirements.values()
+            if req.status in ['Active', 'Draft']
+        ]
+
+        # Sort by ID
+        actionable_reqs.sort(key=lambda r: r.id)
+
+        for req in actionable_reqs:
+            impl_status = self._get_implementation_status(req.id)
+            coverage = self._calculate_coverage(req.id)
+            code_refs = len(req.implementation_files)
+
+            writer.writerow([
+                req.id,
+                req.title,
+                req.level,
+                req.status,
+                impl_status,
+                f"{coverage['traced']}/{coverage['children']}",
+                code_refs
+            ])
+
+        return output.getvalue()
+
+    def _generate_coverage_report(self) -> str:
+        """Generate text-based coverage report with summary statistics
+
+        Returns a formatted text report showing:
+        - Total requirements count
+        - Breakdown by level (PRD, OPS, DEV) with percentages
+        - Breakdown by implementation status (Full/Partial/Unimplemented)
+        """
+        lines = []
+        lines.append("=== Coverage Report ===")
+        lines.append(f"Total Requirements: {len(self.requirements)}")
+        lines.append("")
+
+        # Count by level
+        by_level = {'PRD': 0, 'OPS': 0, 'DEV': 0}
+        implemented_by_level = {'PRD': 0, 'OPS': 0, 'DEV': 0}
+
+        for req in self.requirements.values():
+            level = req.level
+            by_level[level] = by_level.get(level, 0) + 1
+
+            impl_status = self._get_implementation_status(req.id)
+            if impl_status in ['Full', 'Partial']:
+                implemented_by_level[level] = implemented_by_level.get(level, 0) + 1
+
+        lines.append("By Level:")
+        for level in ['PRD', 'OPS', 'DEV']:
+            total = by_level[level]
+            implemented = implemented_by_level[level]
+            percentage = (implemented / total * 100) if total > 0 else 0
+            lines.append(f"  {level}: {total} ({percentage:.0f}% implemented)")
+
+        lines.append("")
+
+        # Count by implementation status
+        status_counts = {'Full': 0, 'Partial': 0, 'Unimplemented': 0}
+        for req in self.requirements.values():
+            impl_status = self._get_implementation_status(req.id)
+            status_counts[impl_status] = status_counts.get(impl_status, 0) + 1
+
+        lines.append("By Status:")
+        lines.append(f"  Full: {status_counts['Full']}")
+        lines.append(f"  Partial: {status_counts['Partial']}")
+        lines.append(f"  Unimplemented: {status_counts['Unimplemented']}")
+
+        return '\n'.join(lines)
 
 
 def main():
