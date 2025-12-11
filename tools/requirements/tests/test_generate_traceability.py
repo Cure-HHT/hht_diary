@@ -24,9 +24,26 @@ from html.parser import HTMLParser
 from io import StringIO
 
 # Add tools/requirements to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from generate_traceability import TraceabilityGenerator, Requirement
+from requirement_hash import calculate_requirement_hash
+
+
+def make_requirement(req_id: str, title: str, level: str, implements: str, status: str, body: str) -> str:
+    """Helper to create a requirement in the new format with end marker"""
+    # Body should NOT include leading/trailing newlines for hash calculation
+    # but when written to file, it will have surrounding newlines
+    parsed_body = f"\n{body}"  # Leading newline as parser extracts it
+    req_hash = calculate_requirement_hash(parsed_body)
+    return f"""# REQ-{req_id}: {title}
+
+**Level**: {level} | **Implements**: {implements} | **Status**: {status}
+
+{body}
+
+*End* *{title}* | **Hash**: {req_hash}
+"""
 
 
 class HTMLValidator(HTMLParser):
@@ -64,18 +81,13 @@ class TestRequirementParsing(unittest.TestCase):
         self.spec_dir = Path(self.test_dir) / "spec"
         self.spec_dir.mkdir()
 
-        # Create test requirement file
+        # Create test requirement file with new format
         test_req_file = self.spec_dir / "test-requirements.md"
-        test_req_file.write_text("""# REQ-p00001: Test Requirement One
-**Level**: PRD | **Implements**: - | **Status**: Active
-
-This is a test requirement.
-
-# REQ-d00001: Dev Implementation
-**Level**: Dev | **Implements**: p00001 | **Status**: Active
-
-Implementation of test requirement.
-""")
+        content = make_requirement('p00001', 'Test Requirement One', 'PRD', '-', 'Active',
+                                   'This is a test requirement.')
+        content += "\n" + make_requirement('d00001', 'Dev Implementation', 'Dev', 'p00001', 'Active',
+                                           'Implementation of test requirement.')
+        test_req_file.write_text(content)
 
     def tearDown(self):
         """Clean up temporary directory"""
@@ -117,13 +129,10 @@ class TestImplementationFileTracking(unittest.TestCase):
         self.spec_dir.mkdir()
         self.impl_dir.mkdir()
 
-        # Create test requirement
+        # Create test requirement with new format
         test_req = self.spec_dir / "test-req.md"
-        test_req.write_text("""# REQ-d00001: Database Schema
-**Level**: Dev | **Implements**: - | **Status**: Active
-
-Schema implementation.
-""")
+        test_req.write_text(make_requirement('d00001', 'Database Schema', 'Dev', '-', 'Active',
+                                             'Schema implementation.'))
 
         # Create implementation file with requirement reference
         impl_file = self.impl_dir / "schema.sql"
@@ -165,13 +174,10 @@ class TestOutputFormats(unittest.TestCase):
         self.spec_dir.mkdir()
         self.impl_dir.mkdir()
 
-        # Create test requirement
+        # Create test requirement with new format
         test_req = self.spec_dir / "test-req.md"
-        test_req.write_text("""# REQ-p00001: Test Requirement
-**Level**: PRD | **Implements**: - | **Status**: Active
-
-Test requirement.
-""")
+        test_req.write_text(make_requirement('p00001', 'Test Requirement', 'PRD', '-', 'Active',
+                                             'Test requirement.'))
 
         # Create implementation file
         impl_file = self.impl_dir / "impl.py"
@@ -244,11 +250,7 @@ class TestEdgeCases(unittest.TestCase):
             spec_dir.mkdir()
 
             test_req = spec_dir / "test.md"
-            test_req.write_text("""# REQ-p00001: Test
-**Level**: PRD | **Implements**: - | **Status**: Active
-
-Test.
-""")
+            test_req.write_text(make_requirement('p00001', 'Test', 'PRD', '-', 'Active', 'Test.'))
 
             gen = TraceabilityGenerator(spec_dir)
             gen._parse_requirements()
@@ -270,13 +272,10 @@ class TestOutputValidation(unittest.TestCase):
         self.spec_dir = Path(self.test_dir) / "spec"
         self.spec_dir.mkdir()
 
-        # Create test requirement
+        # Create test requirement with new format
         test_req = self.spec_dir / "test.md"
-        test_req.write_text("""# REQ-p00001: Test Requirement
-**Level**: PRD | **Implements**: - | **Status**: Active
-
-Test requirement for validation.
-""")
+        test_req.write_text(make_requirement('p00001', 'Test Requirement', 'PRD', '-', 'Active',
+                                             'Test requirement for validation.'))
 
         self.gen = TraceabilityGenerator(self.spec_dir)
         self.gen._parse_requirements()

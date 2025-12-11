@@ -41,6 +41,9 @@ from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
+# Import shared parser
+from requirement_parser import RequirementParser, Requirement as BaseRequirement
+
 @dataclass
 class TestInfo:
     """Represents test coverage for a requirement"""
@@ -51,8 +54,8 @@ class TestInfo:
     notes: str = ""
 
 @dataclass
-class Requirement:
-    """Represents a parsed requirement"""
+class TraceabilityRequirement:
+    """Extended requirement with traceability-specific fields"""
     id: str
     title: str
     level: str
@@ -61,19 +64,30 @@ class Requirement:
     file_path: Path
     line_number: int
     test_info: Optional[TestInfo] = None
-    implementation_files: List[Tuple[str, int]] = field(default_factory=list)  # (file_path, line_number) tuples for files that implement this requirement
+    implementation_files: List[Tuple[str, int]] = field(default_factory=list)
+
+    @classmethod
+    def from_base(cls, base_req: BaseRequirement) -> 'TraceabilityRequirement':
+        """Create TraceabilityRequirement from shared parser Requirement"""
+        # Map level to uppercase for consistency
+        level_map = {'PRD': 'PRD', 'Ops': 'OPS', 'Dev': 'DEV'}
+        return cls(
+            id=base_req.id,
+            title=base_req.title,
+            level=level_map.get(base_req.level, base_req.level),
+            implements=base_req.implements,
+            status=base_req.status,
+            file_path=base_req.file_path,
+            line_number=base_req.line_number
+        )
+
+
+# Alias for backward compatibility within this file
+Requirement = TraceabilityRequirement
 
 
 class TraceabilityGenerator:
     """Generates traceability matrices"""
-
-    # Updated to support sponsor-specific REQ IDs: REQ-{SPONSOR}-{p|o|d}NNNNN (e.g., REQ-CAL-d00001)
-    # Also supports core REQ IDs: REQ-{p|o|d}NNNNN (e.g., REQ-d00027)
-    REQ_HEADER_PATTERN = re.compile(r'^#+\s+REQ-(?:([A-Z]+)-)?([pod]\d{5}):\s+(.+)$', re.MULTILINE)
-    METADATA_PATTERN = re.compile(
-        r'\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+\*\*Implements\*\*:\s+([^\|]+)\s+\|\s+\*\*Status\*\*:\s+(Active|Draft|Deprecated)',
-        re.MULTILINE
-    )
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -134,63 +148,18 @@ class TraceabilityGenerator:
         print(f"✅ Traceability matrix written to: {output_file}")
 
     def _parse_requirements(self):
-        """Parse all requirements from spec files"""
-        for spec_file in self.spec_dir.glob('*.md'):
-            if spec_file.name == 'requirements-format.md':
-                continue
+        """Parse all requirements from spec files using shared parser"""
+        parser = RequirementParser(self.spec_dir)
+        result = parser.parse_all()
 
-            self._parse_file(spec_file)
+        # Convert base requirements to traceability requirements
+        for req_id, base_req in result.requirements.items():
+            self.requirements[req_id] = TraceabilityRequirement.from_base(base_req)
 
-    def _parse_file(self, file_path: Path):
-        """Parse requirements from a single file"""
-        try:
-            content = file_path.read_text(encoding='utf-8')
-        except UnicodeDecodeError:
-            # Try with error handling for non-UTF8 files
-            content = file_path.read_text(encoding='utf-8', errors='ignore')
-
-        for match in self.REQ_HEADER_PATTERN.finditer(content):
-            sponsor_prefix = match.group(1)  # May be None for core requirements
-            req_id_core = match.group(2)  # The core part (e.g., 'd00027')
-            title = match.group(3).strip()
-            line_num = content[:match.start()].count('\n') + 1
-
-            # Build full requirement ID (with sponsor prefix if present)
-            if sponsor_prefix:
-                req_id = f"{sponsor_prefix}-{req_id_core}"
-            else:
-                req_id = req_id_core
-
-            remaining_content = content[match.end():]
-            metadata_match = self.METADATA_PATTERN.search(remaining_content[:500])
-
-            if not metadata_match:
-                continue
-
-            level_raw = metadata_match.group(1)
-            level = self.LEVEL_MAP.get(level_raw, level_raw)  # Normalize to uppercase
-            implements_str = metadata_match.group(2).strip()
-            status = metadata_match.group(3)
-
-            implements = []
-            if implements_str != '-':
-                implements = [
-                    impl.strip()
-                    for impl in implements_str.split(',')
-                    if impl.strip()
-                ]
-
-            req = Requirement(
-                id=req_id,
-                title=title,
-                level=level,
-                implements=implements,
-                status=status,
-                file_path=file_path,
-                line_number=line_num
-            )
-
-            self.requirements[req_id] = req
+        # Log any parse errors (but don't fail - traceability is best-effort)
+        if result.errors:
+            for error in result.errors:
+                print(f"   ⚠️  Parse warning: {error}")
 
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
