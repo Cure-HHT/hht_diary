@@ -1515,6 +1515,47 @@ class TraceabilityGenerator:
             color: #6c757d;
             font-weight: 500;
         }}
+        .view-toggle {{
+            display: flex;
+            gap: 0;
+            margin-right: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+        }}
+        .view-btn {{
+            border-radius: 0;
+            border: 1px solid #0066cc;
+            background: white;
+            color: #0066cc;
+        }}
+        .view-btn:first-child {{
+            border-radius: 4px 0 0 4px;
+        }}
+        .view-btn:last-child {{
+            border-radius: 0 4px 4px 0;
+            border-left: none;
+        }}
+        .view-btn.active {{
+            background: #0066cc;
+            color: white;
+        }}
+        .view-btn:hover:not(.active) {{
+            background: #e6f0ff;
+        }}
+        /* Hierarchical view: hide non-root items initially */
+        .req-tree.hierarchy-view .req-item:not([data-is-root="true"]) {{
+            display: none;
+        }}
+        .req-tree.hierarchy-view .req-item[data-is-root="true"] {{
+            display: block;
+        }}
+        /* But show children of expanded roots */
+        .req-tree.hierarchy-view .req-item.hierarchy-visible {{
+            display: block;
+        }}
+        .req-tree.hierarchy-view .req-item.hierarchy-visible.collapsed-by-parent {{
+            display: none;
+        }}
         .req-item.filtered-out {{
             display: none !important;
         }}
@@ -1586,13 +1627,17 @@ class TraceabilityGenerator:
         {self._generate_legend_html()}
 
         <div class="filter-controls">
+            <div class="view-toggle">
+                <button class="btn view-btn active" id="btnFlatView" onclick="switchView('flat')">Flat View</button>
+                <button class="btn view-btn" id="btnHierarchyView" onclick="switchView('hierarchy')">Hierarchical View</button>
+            </div>
             <button class="btn" onclick="expandAll()">▼ Expand All</button>
             <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
             <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
             <span class="filter-stats" id="filterStats"></span>
         </div>
 
-        <h2>Traceability Tree</h2>
+        <h2 id="treeTitle">Traceability Tree - Flat View</h2>
 
         <div class="filter-header">
             <div class="filter-column">
@@ -1691,16 +1736,27 @@ class TraceabilityGenerator:
 
             if (!icon.textContent) return; // No children to collapse
 
-            if (collapsedInstances.has(instanceId)) {
+            const isExpanding = collapsedInstances.has(instanceId);
+
+            if (isExpanding) {
                 // Expand
                 collapsedInstances.delete(instanceId);
                 icon.classList.remove('collapsed');
-                showDescendants(instanceId);
             } else {
                 // Collapse
                 collapsedInstances.add(instanceId);
                 icon.classList.add('collapsed');
-                hideDescendants(instanceId);
+            }
+
+            // Use different behavior based on view mode
+            if (currentView === 'hierarchy') {
+                toggleRequirementHierarchy(instanceId, isExpanding);
+            } else {
+                if (isExpanding) {
+                    showDescendants(instanceId);
+                } else {
+                    hideDescendants(instanceId);
+                }
             }
         }
 
@@ -1744,6 +1800,74 @@ class TraceabilityGenerator:
                     collapsedInstances.add(item.dataset.instanceId);
                     hideDescendants(item.dataset.instanceId);
                     item.querySelector('.collapse-icon').classList.add('collapsed');
+                }
+            });
+        }
+
+        // View mode state
+        let currentView = 'flat';
+
+        // Switch between flat and hierarchical views
+        function switchView(viewMode) {
+            currentView = viewMode;
+            const reqTree = document.getElementById('reqTree');
+            const btnFlat = document.getElementById('btnFlatView');
+            const btnHierarchy = document.getElementById('btnHierarchyView');
+            const treeTitle = document.getElementById('treeTitle');
+
+            if (viewMode === 'hierarchy') {
+                reqTree.classList.add('hierarchy-view');
+                btnFlat.classList.remove('active');
+                btnHierarchy.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Hierarchical View';
+
+                // Reset all items and collapse state for hierarchy view
+                collapsedInstances.clear();
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('collapsed-by-parent');
+                    item.classList.remove('hierarchy-visible');
+                    // Collapse all root items initially
+                    const icon = item.querySelector('.collapse-icon');
+                    if (icon && icon.textContent && item.dataset.isRoot === 'true') {
+                        collapsedInstances.add(item.dataset.instanceId);
+                        icon.classList.add('collapsed');
+                    }
+                });
+            } else {
+                reqTree.classList.remove('hierarchy-view');
+                btnFlat.classList.add('active');
+                btnHierarchy.classList.remove('active');
+                treeTitle.textContent = 'Traceability Tree - Flat View';
+
+                // Reset visibility classes
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+
+                // Collapse all for flat view too
+                collapseAll();
+            }
+
+            applyFilters();
+        }
+
+        // Modified toggle for hierarchy view
+        function toggleRequirementHierarchy(parentInstanceId, isExpanding) {
+            // Show/hide immediate children in hierarchy view
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                if (isExpanding) {
+                    child.classList.add('hierarchy-visible');
+                    child.classList.remove('collapsed-by-parent');
+                } else {
+                    child.classList.remove('hierarchy-visible');
+                    child.classList.add('collapsed-by-parent');
+                    // Also collapse any expanded children
+                    const childIcon = child.querySelector('.collapse-icon');
+                    if (childIcon && childIcon.textContent) {
+                        collapsedInstances.add(child.dataset.instanceId);
+                        childIcon.classList.add('collapsed');
+                        toggleRequirementHierarchy(child.dataset.instanceId, false);
+                    }
                 }
             });
         }
@@ -2023,9 +2147,13 @@ class TraceabilityGenerator:
             req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
             file_line_link = f'<a href="{self._base_path}spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
 
+        # Check if this is a root requirement (no parents)
+        is_root = not req.implements or len(req.implements) == 0
+        is_root_attr = 'data-is-root="true"' if is_root else 'data-is-root="false"'
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}">
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
