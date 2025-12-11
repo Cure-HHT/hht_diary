@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 """
-Test suite for requirement hash system (Phase 2)
+Test suite for requirement hash system.
 
 Tests:
 1. Hash calculation consistency
-2. Hash detection in validation
-3. Hash update script functionality
-4. INDEX.md hash synchronization
-5. Edge cases and error handling
+2. Requirement parsing with new format (end markers)
+3. Hash validation
+4. TBD hash warnings
+5. Script existence checks
+6. INDEX.md schema validation
+7. Real requirements coverage
+8. Format documentation
 
 Usage:
     python3 tools/requirements/test_hash_system.py
 """
 
 import sys
-import hashlib
 import tempfile
-import shutil
 from pathlib import Path
-from typing import Tuple
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from validate_requirements import calculate_requirement_hash, RequirementValidator
+from requirement_hash import calculate_requirement_hash
+from requirement_parser import RequirementParser
+from validate_requirements import RequirementValidator
 
 
 class TestHashSystem:
@@ -85,42 +87,44 @@ class TestHashSystem:
         hash4 = calculate_requirement_hash(body_with_space)
         self.assert_true(hash1 != hash4, "Hash is whitespace-sensitive")
 
-    def test_validator_parsing(self):
-        """Test validator can parse requirements with Hash field"""
-        print("\n2. Testing validator parsing...")
+    def test_parser_with_new_format(self):
+        """Test parser can parse requirements with new end-marker format"""
+        print("\n2. Testing parser with new format...")
 
         # Create temporary spec directory
         with tempfile.TemporaryDirectory() as tmpdir:
             spec_dir = Path(tmpdir) / 'spec'
             spec_dir.mkdir()
 
-            # Create test requirement file
-            test_file = spec_dir / 'test-req.md'
-            test_content = """# Test Requirements
+            # Create test requirement file with NEW format (end markers)
+            test_file = spec_dir / 'prd-test.md'
+            body = "This is a test requirement body.\n\n**Rationale**: For testing"
+            correct_hash = calculate_requirement_hash(body)
 
-### REQ-p00001: Test Requirement
+            test_content = f"""# Test Requirements
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: abc12345
+# REQ-p00001: Test Requirement
 
-This is a test requirement body.
+**Level**: PRD | **Implements**: - | **Status**: Active
 
-**Rationale**: For testing
+{body}
 
-**Acceptance Criteria**:
-- Test criterion 1
+*End* *Test Requirement* | **Hash**: {correct_hash}
 """
             test_file.write_text(test_content)
 
-            # Parse with validator
-            validator = RequirementValidator(spec_dir)
-            validator._parse_requirements()
+            # Parse with shared parser
+            parser = RequirementParser(spec_dir)
+            result = parser.parse_all()
 
-            self.assert_equal(len(validator.requirements), 1, "Parsed 1 requirement")
+            self.assert_equal(len(result.requirements), 1, "Parsed 1 requirement")
+            self.assert_equal(len(result.errors), 0, "No parsing errors")
 
-            if 'p00001' in validator.requirements:
-                req = validator.requirements['p00001']
-                self.assert_equal(req.hash, 'abc12345', "Hash field parsed correctly")
+            if 'p00001' in result.requirements:
+                req = result.requirements['p00001']
+                self.assert_equal(req.hash, correct_hash, "Hash field parsed correctly")
                 self.assert_true(len(req.body) > 0, "Body text extracted")
+                self.assert_equal(req.title, "Test Requirement", "Title parsed correctly")
 
     def test_hash_validation(self):
         """Test validator detects hash mismatches"""
@@ -131,40 +135,44 @@ This is a test requirement body.
             spec_dir.mkdir()
 
             # Create requirement with correct hash
-            test_file = spec_dir / 'test-req.md'
-            body = "This is a test requirement body."
-            correct_hash = calculate_requirement_hash(body)
+            # Note: The parser extracts body INCLUDING the newline after status line
+            # So we need to calculate hash with the leading newline
+            test_file = spec_dir / 'prd-test.md'
+            body_in_file = "This is a test requirement body."
+            # Body as parsed: newline + body content (trailing newlines stripped)
+            parsed_body = f"\n{body_in_file}"
+            correct_hash = calculate_requirement_hash(parsed_body)
 
-            test_content = f"""# Test Requirements
+            test_content = f"""# REQ-p00001: Test Requirement
 
-### REQ-p00001: Test Requirement
+**Level**: PRD | **Implements**: - | **Status**: Active
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: {correct_hash}
+{body_in_file}
 
-{body}
+*End* *Test Requirement* | **Hash**: {correct_hash}
 """
             test_file.write_text(test_content)
 
             validator = RequirementValidator(spec_dir)
             validator._parse_requirements()
-            validator._check_hash_accuracy()
+            validator._check_hash_validity()
 
             self.assert_equal(len(validator.errors), 0, "No errors for correct hash")
 
-            # Now test with incorrect hash (overwrite file with just the bad one)
-            test_content2 = f"""# Test Requirements
+            # Now test with incorrect hash
+            test_content2 = f"""# REQ-p00002: Test Requirement 2
 
-### REQ-p00002: Test Requirement 2
+**Level**: PRD | **Implements**: - | **Status**: Active
 
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: deadbeef
+{body_in_file}
 
-{body}
+*End* *Test Requirement 2* | **Hash**: deadbeef
 """
             test_file.write_text(test_content2)
 
             validator2 = RequirementValidator(spec_dir)
             validator2._parse_requirements()
-            validator2._check_hash_accuracy()
+            validator2._check_hash_validity()
 
             self.assert_true(len(validator2.errors) >= 1, "Error detected for wrong hash")
 
@@ -176,20 +184,20 @@ This is a test requirement body.
             spec_dir = Path(tmpdir) / 'spec'
             spec_dir.mkdir()
 
-            test_file = spec_dir / 'test-req.md'
-            test_content = """# Test Requirements
+            test_file = spec_dir / 'prd-test.md'
+            test_content = """# REQ-p00001: Test Requirement
 
-### REQ-p00001: Test Requirement
-
-**Level**: PRD | **Implements**: - | **Status**: Active | **Hash**: TBD
+**Level**: PRD | **Implements**: - | **Status**: Active
 
 This is a test requirement body.
+
+*End* *Test Requirement* | **Hash**: TBD
 """
             test_file.write_text(test_content)
 
             validator = RequirementValidator(spec_dir)
             validator._parse_requirements()
-            validator._check_hash_accuracy()
+            validator._check_hash_validity()
 
             self.assert_equal(len(validator.errors), 0, "TBD is not an error")
             self.assert_equal(len(validator.warnings), 1, "TBD generates warning")
@@ -198,7 +206,7 @@ This is a test requirement body.
         """Test update-REQ-hashes.py script exists and is executable"""
         print("\n5. Testing update script...")
 
-        script_path = Path(__file__).parent / 'update-REQ-hashes.py'
+        script_path = Path(__file__).parent.parent / 'update-REQ-hashes.py'
         self.assert_true(script_path.exists(), "update-REQ-hashes.py exists")
         self.assert_true(script_path.stat().st_mode & 0o111, "Script is executable")
 
@@ -206,7 +214,7 @@ This is a test requirement body.
         """Test INDEX.md has Hash column"""
         print("\n6. Testing INDEX.md schema...")
 
-        spec_dir = Path(__file__).parent.parent.parent / 'spec'
+        spec_dir = Path(__file__).parent.parent.parent.parent / 'spec'
         index_path = spec_dir / 'INDEX.md'
 
         if index_path.exists():
@@ -223,10 +231,10 @@ This is a test requirement body.
             print(f"  ⚠️  INDEX.md not found at {index_path}")
 
     def test_real_requirements_have_hashes(self):
-        """Test actual spec files have Hash fields"""
+        """Test actual spec files have Hash fields in end markers"""
         print("\n7. Testing real requirements have hashes...")
 
-        spec_dir = Path(__file__).parent.parent.parent / 'spec'
+        spec_dir = Path(__file__).parent.parent.parent.parent / 'spec'
 
         if not spec_dir.exists():
             print(f"  ⚠️  Spec directory not found at {spec_dir}")
@@ -241,8 +249,9 @@ This is a test requirement body.
             return
 
         import re
-        hash_pattern = re.compile(r'\*\*Hash\*\*:\s*([a-f0-9]{8}|TBD)', re.MULTILINE)
-        req_pattern = re.compile(r'###\s+REQ-[pod]\d{5}', re.MULTILINE)
+        # New format: end marker with hash
+        end_marker_pattern = re.compile(r'\*End\*\s+\*.+?\*\s+\|\s+\*\*Hash\*\*:\s*([a-f0-9]{8}|TBD)', re.MULTILINE)
+        req_pattern = re.compile(r'^#\s+REQ-[pod]\d{5}', re.MULTILINE)
 
         files_with_hashes = 0
         files_with_requirements = 0
@@ -252,7 +261,7 @@ This is a test requirement body.
             # Only count files that have requirements
             if req_pattern.search(content):
                 files_with_requirements += 1
-                if hash_pattern.search(content):
+                if end_marker_pattern.search(content):
                     files_with_hashes += 1
 
         if files_with_requirements == 0:
@@ -267,7 +276,7 @@ This is a test requirement body.
         """Test requirements format documentation includes Hash"""
         print("\n8. Testing format documentation...")
 
-        spec_dir = Path(__file__).parent.parent.parent / 'spec'
+        spec_dir = Path(__file__).parent.parent.parent.parent / 'spec'
         format_doc = spec_dir / 'requirements-format.md'
 
         if format_doc.exists():
@@ -278,6 +287,20 @@ This is a test requirement body.
         else:
             print(f"  ⚠️  requirements-format.md not found")
 
+    def test_shared_parser_module(self):
+        """Test shared parser module exists and exports correct classes"""
+        print("\n9. Testing shared parser module...")
+
+        parser_path = Path(__file__).parent.parent / 'requirement_parser.py'
+        self.assert_true(parser_path.exists(), "requirement_parser.py exists")
+
+        # Test imports work
+        try:
+            from requirement_parser import Requirement, RequirementParser, ParseResult, ParseError, make_req_filter
+            self.assert_true(True, "All expected classes/functions importable")
+        except ImportError as e:
+            self.assert_true(False, f"Import failed: {e}")
+
     def run_all_tests(self):
         """Run all tests"""
         print("="*70)
@@ -285,13 +308,14 @@ This is a test requirement body.
         print("="*70)
 
         self.test_hash_calculation()
-        self.test_validator_parsing()
+        self.test_parser_with_new_format()
         self.test_hash_validation()
         self.test_tbd_hash_warning()
         self.test_hash_update_script_exists()
         self.test_index_md_schema()
         self.test_real_requirements_have_hashes()
         self.test_hash_format_documentation()
+        self.test_shared_parser_module()
 
         print("\n" + "="*70)
         print(f"RESULTS: {self.passed}/{self.tests_run} tests passed")

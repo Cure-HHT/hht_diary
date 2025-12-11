@@ -15,70 +15,13 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
-from dataclasses import dataclass
-from requirement_hash import calculate_requirement_hash, clean_requirement_body
-
-@dataclass
-class Requirement:
-    """Represents a parsed requirement"""
-    id: str
-    title: str
-    level: str
-    implements: List[str]
-    status: str
-    hash: str  # SHA-256 hash (first 8 chars)
-    body: str  # Body text for hash calculation (between status and end marker)
-    file_path: Path
-    line_number: int
-    heading_level: int  # Heading level (1-6)
-
-    @property
-    def level_prefix(self) -> str:
-        """Extract level prefix (p, o, d) from ID
-
-        Supports both core IDs (d00001) and sponsor-specific IDs (CAL-d00001)
-        """
-        # Match optional sponsor prefix + level prefix
-        match = re.match(r'^(?:[A-Z]{2,4}-)?([pod])(\d{5})$', self.id)
-        return match.group(1) if match else ''
-
-    @property
-    def number(self) -> int:
-        """Extract numeric part of ID
-
-        Supports both core IDs (d00001) and sponsor-specific IDs (CAL-d00001)
-        """
-        match = re.match(r'^(?:[A-Z]{2,4}-)?([pod])(\d{5})$', self.id)
-        return int(match.group(2)) if match else 0
-
-    @property
-    def sponsor_prefix(self) -> str:
-        """Extract sponsor prefix if present (e.g., 'CAL' from 'CAL-d00001')"""
-        match = re.match(r'^([A-Z]{2,4})-[pod]\d{5}$', self.id)
-        return match.group(1) if match else ''
-
-
-# calculate_requirement_hash is now imported from requirement_hash module
+from typing import Dict, List, Set
+from requirement_hash import calculate_requirement_hash
+from requirement_parser import Requirement, RequirementParser
 
 
 class RequirementValidator:
     """Validates requirements across all spec files"""
-
-    # Regex patterns for new format
-    # Convention (not enforced): REQ headers typically use level 1 (#), freeing up levels 2-6 for body structure
-    # Supports both core REQs (REQ-d00001) and sponsor-specific REQs (REQ-CAL-d00001)
-    REQ_HEADER_PATTERN = re.compile(r'^(#{1,6})\s+REQ-(?:([A-Z]{2,4})-)?([pod]\d{5}):\s+(.+)$', re.MULTILINE)
-    STATUS_PATTERN = re.compile(
-        r'^\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
-        r'\*\*Implements\*\*:\s+([^\|]+?)\s+\|\s+'
-        r'\*\*Status\*\*:\s+(Active|Draft|Deprecated)\s*$',
-        re.MULTILINE
-    )
-    END_MARKER_PATTERN = re.compile(
-        r'^\*End\*\s+\*(.+?)\*\s+\|\s+\*\*Hash\*\*:\s+([a-f0-9]{8}|TBD)\s*$',
-        re.MULTILINE
-    )
 
     VALID_STATUSES = {'Active', 'Draft', 'Deprecated'}
     VALID_LEVELS = {'PRD', 'Ops', 'Dev'}
@@ -117,6 +60,7 @@ class RequirementValidator:
         self._check_orphaned_requirements()
         self._check_level_consistency()
         self._check_hash_validity()
+        self._check_body_headings_all()
 
         # Print results
         self._print_results()
@@ -124,117 +68,35 @@ class RequirementValidator:
         return len(self.errors) == 0
 
     def _parse_requirements(self):
-        """Parse all requirements from spec files"""
-        for file_path in self.spec_dir.glob("*.md"):
-            if file_path.name in ['INDEX.md', 'README.md', 'requirements-format.md']:
-                continue
+        """Parse all requirements from spec files using shared parser"""
+        parser = RequirementParser(self.spec_dir)
+        result = parser.parse_all()
 
-            content = file_path.read_text(encoding='utf-8')
-            self._parse_file(file_path, content)
+        self.requirements = result.requirements
 
-    def _parse_file(self, file_path: Path, content: str):
-        """Parse all requirements from a single file"""
+        # Convert parse errors to validation errors
+        for error in result.errors:
+            self.errors.append(str(error))
 
-        # Find all REQ headers
-        for header_match in self.REQ_HEADER_PATTERN.finditer(content):
-            heading_marks = header_match.group(1)
-            heading_level = len(heading_marks)
-            sponsor_prefix = header_match.group(2)  # Optional, e.g., "CAL"
-            base_id = header_match.group(3)  # e.g., "d00001"
-            title = header_match.group(4).strip()
-            line_num = content[:header_match.start()].count('\n') + 1
+    def _check_body_headings_all(self):
+        """Check for headings at same or higher level in all requirement bodies"""
+        for req_id, req in self.requirements.items():
+            self._check_body_headings(req)
 
-            # Construct full req_id (with or without sponsor prefix)
-            req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
-
-            # Extract content after header until end of file
-            req_start = header_match.end()
-            remaining = content[req_start:]
-
-            # Find status line (should be first after whitespace)
-            status_match = self.STATUS_PATTERN.search(remaining)
-            if not status_match:
-                self.errors.append(
-                    f"{file_path.name}:{line_num} - REQ-{req_id}: Missing or malformed status line"
-                )
-                continue
-
-            # Check whitespace-only between header and status
-            between_header_status = remaining[:status_match.start()]
-            if between_header_status.strip():
-                self.errors.append(
-                    f"{file_path.name}:{line_num} - REQ-{req_id}: Non-whitespace content between header and status line"
-                )
-
-            level = status_match.group(1)
-            implements_str = status_match.group(2).strip()
-            status = status_match.group(3)
-
-            # Find end marker
-            end_marker_match = self.END_MARKER_PATTERN.search(remaining[status_match.end():])
-            if not end_marker_match:
-                self.errors.append(
-                    f"{file_path.name}:{line_num} - REQ-{req_id}: Missing end marker with hash"
-                )
-                continue
-
-            end_title = end_marker_match.group(1).strip()
-            hash_value = end_marker_match.group(2)
-
-            # Validate title matches
-            if end_title != title:
-                self.errors.append(
-                    f"{file_path.name}:{line_num} - REQ-{req_id}: Title mismatch - "
-                    f"header='{title}' vs end='{end_title}' (MANUAL FIX REQUIRED: likely parsing error from before end markers existed)"
-                )
-
-            # Extract body (between status line and end marker)
-            body_start = status_match.end()
-            # end_marker_match.start() is relative to remaining[status_match.end():], so add offset
-            body_end = status_match.end() + end_marker_match.start()
-            body_text = remaining[body_start:body_end]
-
-            # Clean body using shared function
-            body = clean_requirement_body(body_text)
-
-            # Validate no high-level headings in body
-            self._check_body_headings(file_path, line_num, req_id, body, heading_level)
-
-            # Parse implements list
-            implements = []
-            if implements_str != '-':
-                implements = [impl.strip() for impl in implements_str.split(',') if impl.strip()]
-
-            req = Requirement(
-                id=req_id,
-                title=title,
-                level=level,
-                implements=implements,
-                status=status,
-                hash=hash_value,
-                body=body,
-                file_path=file_path,
-                line_number=line_num,
-                heading_level=heading_level
-            )
-
-            self.requirements[req_id] = req
-
-    def _check_body_headings(self, file_path: Path, line_num: int, req_id: str,
-                            body: str, req_heading_level: int):
+    def _check_body_headings(self, req: Requirement):
         """Check for headings at same or higher level in requirement body
 
         Requirement bodies should only contain headings at a LOWER level than
         the requirement heading itself. For example, if requirement is level 1 (#),
         body can use ##, ###, etc., but not #.
         """
-        for line in body.split('\n'):
+        for line in req.body.split('\n'):
             match = re.match(r'^(#{1,6})\s+', line)
             if match:
                 heading_level = len(match.group(1))
-                if heading_level <= req_heading_level:
+                if heading_level <= req.heading_level:
                     self.errors.append(
-                        f"{file_path.name}:{line_num} - REQ-{req_id}: "
+                        f"{req.file_path.name}:{req.line_number} - REQ-{req.id}: "
                         f"Invalid heading level in body: {line.strip()[:50]}..."
                     )
 
@@ -373,7 +235,11 @@ class RequirementValidator:
                 )
                 continue
 
-            calculated_hash = calculate_requirement_hash(req.body)
+            # Calculate hash from full content (body + rationale) for backward compatibility
+            full_content = req.body
+            if hasattr(req, 'rationale') and req.rationale:
+                full_content = f"{req.body}\n\n**Rationale**: {req.rationale}"
+            calculated_hash = calculate_requirement_hash(full_content)
             if req.hash != calculated_hash:
                 self.errors.append(
                     f"{req.file_path.name}:{req.line_number} - "
