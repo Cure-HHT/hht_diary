@@ -446,7 +446,11 @@ class TraceabilityGenerator:
                 'file': req.file_path.name,
                 'line': req.line_number
             }
-        return json.dumps(req_data, indent=2)
+        json_str = json.dumps(req_data, indent=2)
+        # Escape </script> to prevent premature closing of the script tag
+        # This is safe because JSON strings already escape the backslash
+        json_str = json_str.replace('</script>', '<\\/script>')
+        return json_str
 
     def _generate_side_panel_js(self) -> str:
         """Generate JavaScript functions for side panel interaction"""
