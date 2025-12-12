@@ -24,96 +24,23 @@ Features:
 import sys
 import json
 import argparse
-import fcntl
-import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List
 
+# Import shared utilities
+from common import (
+    normalize_req_id,
+    load_tracking_file,
+    save_tracking_file,
+    get_tracking_file_path,
+    get_repo_root,
+    setup_python_path,
+)
 
-def get_repo_root() -> Path:
-    """
-    Get the repository root using git.
-
-    This works even when the script is run from the Claude Code plugin cache,
-    as long as the current working directory is within a git repository.
-    """
-    try:
-        result = subprocess.run(
-            ['git', 'rev-parse', '--show-toplevel'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return Path(result.stdout.strip())
-    except subprocess.CalledProcessError:
-        # Fallback to relative path traversal (works when run from repo directly)
-        return Path(__file__).resolve().parents[5]
-
-
-# Add tools/requirements to Python path
-repo_root = get_repo_root()
-sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
-
+# Setup Python path for importing from tools/requirements
+setup_python_path()
 from validate_requirements import RequirementValidator
-
-# Tracking file location
-TRACKING_FILE = repo_root / 'untracked-notes' / 'outdated-implementations.json'
-
-# Current tracking file schema version
-TRACKING_VERSION = "1.0"
-
-
-def load_tracking_file() -> Dict:
-    """
-    Load tracking file with proper locking.
-
-    Returns:
-        Dict with version, last_updated, outdated_requirements
-    """
-    if not TRACKING_FILE.exists():
-        # Initialize new tracking file
-        return {
-            'version': TRACKING_VERSION,
-            'last_updated': datetime.now(timezone.utc).isoformat(),
-            'outdated_requirements': []
-        }
-
-    with TRACKING_FILE.open('r') as f:
-        # Acquire shared lock for reading
-        fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-        try:
-            data = json.load(f)
-            return data
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-
-def save_tracking_file(data: Dict) -> None:
-    """
-    Save tracking file with proper locking.
-
-    Args:
-        data: Tracking data to save
-    """
-    # Ensure directory exists
-    TRACKING_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    # Update timestamp
-    data['last_updated'] = datetime.now(timezone.utc).isoformat()
-
-    # Write atomically with exclusive lock
-    temp_file = TRACKING_FILE.with_suffix('.tmp')
-    with temp_file.open('w') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        try:
-            json.dump(data, f, indent=2)
-            f.write('\n')  # Trailing newline
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-    # Atomic rename
-    temp_file.replace(TRACKING_FILE)
 
 
 def add_changed_requirement(
@@ -175,14 +102,11 @@ def update_from_json(json_file: Path, dry_run: bool = False) -> int:
     Returns:
         Number of requirements added/updated
     """
-    # Load change detection results
     with json_file.open('r') as f:
         changes = json.load(f)
 
-    # Load current tracking data
-    tracking_data = load_tracking_file()
+    tracking_data = load_tracking_file(create_if_missing=True)
 
-    # Add changed requirements
     added_count = 0
     for item in changes.get('changed_requirements', []):
         if add_changed_requirement(
@@ -200,14 +124,13 @@ def update_from_json(json_file: Path, dry_run: bool = False) -> int:
         if add_changed_requirement(
             tracking_data,
             item['req_id'],
-            'TBD',  # No previous hash
+            'TBD',
             item['hash'],
             item['file'],
             item['title']
         ):
             added_count += 1
 
-    # Save if changes made and not dry run
     if added_count > 0 and not dry_run:
         save_tracking_file(tracking_data)
 
@@ -232,10 +155,8 @@ def update_single_requirement(
     Returns:
         True if added/updated, False otherwise
     """
-    # Normalize req_id
-    if req_id.upper().startswith('REQ-'):
-        req_id = req_id[4:]
-    req_id = req_id.lower()
+    req_id = normalize_req_id(req_id)
+    repo_root = get_repo_root()
 
     # Fetch requirement to get file and title
     spec_dir = repo_root / 'spec'
@@ -246,11 +167,8 @@ def update_single_requirement(
         raise ValueError(f"Requirement '{req_id}' not found")
 
     req = validator.requirements[req_id]
+    tracking_data = load_tracking_file(create_if_missing=True)
 
-    # Load tracking data
-    tracking_data = load_tracking_file()
-
-    # Add/update
     result = add_changed_requirement(
         tracking_data,
         req_id,
@@ -260,7 +178,6 @@ def update_single_requirement(
         req.title
     )
 
-    # Save if changed and not dry run
     if result and not dry_run:
         save_tracking_file(tracking_data)
 
@@ -285,38 +202,17 @@ Examples:
         """
     )
 
-    parser.add_argument(
-        '--input',
-        type=Path,
-        help='JSON file from detect-changes.py'
-    )
-
-    parser.add_argument(
-        '--req-id',
-        help='Single requirement ID to update (e.g., REQ-d00027 or d00027)'
-    )
-
-    parser.add_argument(
-        '--old-hash',
-        help='Previous hash value (8-char hex)'
-    )
-
-    parser.add_argument(
-        '--new-hash',
-        help='Current hash value (8-char hex)'
-    )
-
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Show what would be updated without writing'
-    )
+    parser.add_argument('--input', type=Path, help='JSON file from detect-changes.py')
+    parser.add_argument('--req-id', help='Single requirement ID to update')
+    parser.add_argument('--old-hash', help='Previous hash value (8-char hex)')
+    parser.add_argument('--new-hash', help='Current hash value (8-char hex)')
+    parser.add_argument('--dry-run', action='store_true', help='Show what would be updated')
 
     args = parser.parse_args()
+    tracking_file = get_tracking_file_path()
 
     try:
         if args.input:
-            # Update from JSON file
             if not args.input.exists():
                 print(f"❌ Error: File not found: {args.input}", file=sys.stderr)
                 return 1
@@ -328,19 +224,15 @@ Examples:
             else:
                 if added_count > 0:
                     print(f"✅ Updated tracking file: {added_count} requirement(s) added/updated")
-                    print(f"   File: {TRACKING_FILE}")
+                    print(f"   File: {tracking_file}")
                 else:
                     print("ℹ️  No new changes to track")
 
             return 0
 
         elif args.req_id and args.old_hash and args.new_hash:
-            # Update single requirement
             result = update_single_requirement(
-                args.req_id,
-                args.old_hash,
-                args.new_hash,
-                args.dry_run
+                args.req_id, args.old_hash, args.new_hash, args.dry_run
             )
 
             if args.dry_run:

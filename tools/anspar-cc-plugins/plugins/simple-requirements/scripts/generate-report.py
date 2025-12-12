@@ -13,34 +13,12 @@ Usage:
 import sys
 import json
 import argparse
-import subprocess
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 
-
-def get_repo_root() -> Path:
-    """
-    Get the repository root using git.
-
-    This works even when the script is run from the Claude Code plugin cache,
-    as long as the current working directory is within a git repository.
-    """
-    try:
-        result = subprocess.run(
-            ['git', 'rev-parse', '--show-toplevel'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return Path(result.stdout.strip())
-    except subprocess.CalledProcessError:
-        # Fallback to relative path traversal (works when run from repo directly)
-        return Path(__file__).resolve().parents[5]
-
-
-# Repo root
-repo_root = get_repo_root()
+# Import shared utilities
+from common import load_tracking_file
 
 
 def load_analyses_from_file(file_path: Path) -> List[Dict]:
@@ -52,14 +30,11 @@ def load_analyses_from_file(file_path: Path) -> List[Dict]:
 
 def load_from_tracking_file() -> List[Dict]:
     """Load outdated requirements from tracking file"""
-    tracking_file = repo_root / 'untracked-notes' / 'outdated-implementations.json'
-
-    if not tracking_file.exists():
-        return []
-
-    with tracking_file.open('r') as f:
-        data = json.load(f)
+    try:
+        data = load_tracking_file()
         return data.get('outdated_requirements', [])
+    except FileNotFoundError:
+        return []
 
 
 def generate_markdown_report(analyses: List[Dict], title: str = "Requirement Verification Report") -> str:
