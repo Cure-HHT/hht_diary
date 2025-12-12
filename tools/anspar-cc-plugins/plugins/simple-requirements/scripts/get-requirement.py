@@ -18,52 +18,16 @@ Formats:
 import sys
 import json
 import argparse
-import subprocess
 from pathlib import Path
 
-
-def get_repo_root() -> Path:
-    """
-    Get the repository root using git.
-
-    This works even when the script is run from the Claude Code plugin cache,
-    as long as the current working directory is within a git repository.
-    """
-    try:
-        result = subprocess.run(
-            ['git', 'rev-parse', '--show-toplevel'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return Path(result.stdout.strip())
-    except subprocess.CalledProcessError:
-        # Fallback to relative path traversal (works when run from repo directly)
-        return Path(__file__).resolve().parents[5]
-
+# Import shared utilities
+from common import get_repo_root, setup_python_path, normalize_req_id
 
 # Add tools/requirements to Python path for imports
+setup_python_path()
 repo_root = get_repo_root()
-sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
 
 from validate_requirements import RequirementValidator, Requirement
-
-
-def normalize_req_id(req_id: str) -> str:
-    """
-    Normalize requirement ID to standard format (without REQ- prefix).
-
-    Args:
-        req_id: Requirement ID (e.g., "REQ-d00027" or "d00027")
-
-    Returns:
-        Normalized ID (e.g., "d00027")
-    """
-    # Remove REQ- prefix if present
-    if req_id.upper().startswith('REQ-'):
-        req_id = req_id[4:]
-
-    return req_id.lower()
 
 
 def format_requirement_markdown(req: Requirement) -> str:
