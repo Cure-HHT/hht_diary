@@ -36,6 +36,7 @@ class LogoMenu extends StatefulWidget {
 class _LogoMenuState extends State<LogoMenu> {
   String _version = '';
   bool _hasUpdate = false;
+  bool _isCheckingForUpdates = false;
   late final VersionCheckService _versionService;
 
   @override
@@ -84,6 +85,63 @@ class _LogoMenuState extends State<LogoMenu> {
       }
     } catch (e) {
       debugPrint('Update check error: $e');
+    }
+  }
+
+  /// Manually check for updates (bypasses 24-hour interval)
+  Future<void> _manualCheckForUpdates(BuildContext context) async {
+    if (_isCheckingForUpdates) return;
+
+    // Capture these before any async gaps
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    setState(() {
+      _isCheckingForUpdates = true;
+    });
+
+    try {
+      final result = await _versionService.checkForUpdate();
+      await _versionService.recordCheckTime();
+
+      if (!mounted) return;
+
+      if (result.hasUpdate &&
+          result.remoteVersion != null &&
+          result.localVersion != '0.0.0') {
+        // Clear any previous dismissal so the update shows
+        await _versionService.clearDismissedVersion();
+        if (!mounted) return;
+        setState(() {
+          _hasUpdate = true;
+        });
+        // Show snackbar that update is available
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.newVersionAvailable(result.remoteVersion!)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        setState(() {
+          _hasUpdate = false;
+        });
+        // Show snackbar that no update is available
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.youAreUpToDate),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Manual update check error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingForUpdates = false;
+        });
+      }
     }
   }
 
@@ -145,6 +203,8 @@ class _LogoMenuState extends State<LogoMenu> {
             widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
             widget.onInstructionsAndFeedback();
+          case 'check_for_updates':
+            _manualCheckForUpdates(context);
         }
       },
       itemBuilder: (context) => [
@@ -262,6 +322,53 @@ class _LogoMenuState extends State<LogoMenu> {
 
         // Version info at bottom
         const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'check_for_updates',
+          child: Row(
+            children: [
+              if (_isCheckingForUpdates)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                )
+              else
+                Icon(
+                  _hasUpdate ? Icons.system_update : Icons.refresh,
+                  size: 20,
+                  color: _hasUpdate
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  l10n.checkForUpdates,
+                  style: _hasUpdate
+                      ? TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        )
+                      : null,
+                ),
+              ),
+              if (_hasUpdate) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
         PopupMenuItem<String>(
           enabled: false,
           height: 32,
