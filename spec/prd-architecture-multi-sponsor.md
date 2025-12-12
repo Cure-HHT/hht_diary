@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-01-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: dev-architecture-multi-sponsor.md for implementation details
 > **See**: prd-database.md for database architecture
@@ -35,7 +35,7 @@ The Clinical Diary system serves multiple pharmaceutical sponsors using a single
 
 # REQ-p00008: Single Mobile App for All Sponsors
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p00001 | **Status**: Draft
 
 One mobile application in app stores SHALL serve all pharmaceutical sponsors, with each sponsor's configuration and branding loaded dynamically based on patient enrollment.
 
@@ -60,7 +60,7 @@ Single app approach SHALL ensure:
 
 # REQ-p00009: Sponsor-Specific Web Portals
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p00001 | **Status**: Draft
 
 Each sponsor SHALL have a dedicated web portal at a unique URL, accessible only to that sponsor's authorized personnel and displaying only that sponsor's clinical trial data.
 
@@ -97,7 +97,7 @@ The patient never needs to know which technical system they're using - it just w
 
 # REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 Each sponsor SHALL support multiple clinical trial sites within their isolated environment, with site-level access control ensuring investigators and analysts access only data from their assigned sites.
 

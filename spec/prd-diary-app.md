@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-system.md for platform overview
 > **See**: dev-app.md for implementation details
@@ -14,7 +14,7 @@
 
 # REQ-p00043: Clinical Diary Mobile Application
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 A smartphone application for iOS and Android enabling clinical trial patients to record daily health observations with offline capability and automatic synchronization.
 
@@ -55,7 +55,7 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 
 # REQ-p00007: Automatic Sponsor Configuration
 
-**Level**: PRD | **Implements**: p00043, p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p00043, p00001 | **Status**: Draft
 
 The app SHALL automatically configure itself for the correct sponsor and study based on the enrollment link provided to the patient, eliminating manual sponsor/study selection.
 
@@ -102,7 +102,7 @@ Automatic configuration SHALL ensure:
 
 # REQ-p00006: Offline-First Data Entry
 
-**Level**: PRD | **Implements**: p00043 | **Status**: Active
+**Level**: PRD | **Implements**: p00043 | **Status**: Draft
 
 Patients SHALL be able to record diary entries without requiring internet connectivity, ensuring clinical trial participation is not dependent on network availability.
 
@@ -187,7 +187,7 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 # REQ-p00050: Temporal Entry Validation
 
-**Level**: PRD | **Implements**: p00043 | **Status**: Active
+**Level**: PRD | **Implements**: p00043 | **Status**: Draft
 
 The system SHALL enforce temporal boundaries for nosebleed entries to maintain data integrity and prevent invalid records.
 
@@ -235,7 +235,7 @@ Temporal validation SHALL ensure:
 
 # REQ-p01039: Diary Start Day Definition
 
-**Level**: PRD | **Implements**: p00043, p00050 | **Status**: Active
+**Level**: PRD | **Implements**: p00043, p00050 | **Status**: Draft
 
 The system SHALL establish and maintain a "diary start day" representing the earliest date for which diary entries are valid, enabling users to record historical events while maintaining data integrity boundaries.
 
@@ -280,7 +280,7 @@ Diary start day SHALL ensure:
 
 # REQ-p01040: Calendar Visual Indicators for Entry Status
 
-**Level**: PRD | **Implements**: p00043, p01039 | **Status**: Active
+**Level**: PRD | **Implements**: p00043, p01039 | **Status**: Draft
 
 The calendar view SHALL provide clear visual indicators distinguishing between dates with recorded entries, dates with no entries within the diary period, and dates outside the diary period.
 

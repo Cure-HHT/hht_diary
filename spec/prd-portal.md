@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-system.md for platform overview
 > **See**: ops-portal.md for deployment and operations procedures
@@ -16,7 +16,7 @@
 
 # REQ-p00045: Sponsor Portal Application
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 A sponsor-specific web application enabling clinical trial staff to manage users, enroll patients, monitor engagement, and access audit trails with complete sponsor data isolation.
 
@@ -290,7 +290,7 @@ Auditor capabilities SHALL ensure:
 
 # REQ-p00030: Role-Based Visual Indicators
 
-**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Active
+**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Draft
 
 The portal SHALL display a color-coded banner at the top of the interface indicating the user's current role to prevent accidental actions in the wrong role context.
 

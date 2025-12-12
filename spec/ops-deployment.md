@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Operations (DevOps, Release Managers, Platform Engineers)
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture overview
 > **See**: dev-database.md for database implementation details
@@ -399,7 +399,7 @@ jobs:
 
 # REQ-o00001: Separate GCP Projects Per Sponsor
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active
+**Level**: Ops | **Implements**: p00001 | **Status**: Draft
 
 Each sponsor SHALL be provisioned with dedicated GCP projects for staging and production environments, ensuring complete infrastructure isolation.
 
@@ -424,7 +424,7 @@ Each GCP project SHALL provide:
 
 # REQ-o00002: Environment-Specific Configuration Management
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active
+**Level**: Ops | **Implements**: p00001 | **Status**: Draft
 
 Configuration containing environment-specific credentials SHALL be stored securely via Doppler and GCP Secret Manager, and SHALL NOT be committed to version control.
 
@@ -806,7 +806,7 @@ git push origin --delete release/1.2.3
 
 # REQ-o00010: Mobile App Release Process
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Active
+**Level**: Ops | **Implements**: p00008 | **Status**: Draft
 
 The mobile application SHALL be released as a single app package containing all sponsor configurations, with releases coordinated across iOS App Store and Google Play Store.
 
@@ -857,7 +857,7 @@ fastlane supply \
 
 # REQ-o00009: Portal Deployment Per Sponsor
 
-**Level**: Ops | **Implements**: p00009 | **Status**: Active
+**Level**: Ops | **Implements**: p00009 | **Status**: Draft
 
 Each sponsor SHALL have their web portal deployed to a unique URL with sponsor-specific configuration, ensuring complete portal isolation between sponsors.
 

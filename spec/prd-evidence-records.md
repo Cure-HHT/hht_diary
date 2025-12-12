@@ -3,7 +3,7 @@
 **Version**: 1.1
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-03
-**Status**: Active
+**Status**: Draft
 
 ---
 
@@ -86,7 +86,7 @@ Third-party timestamps strengthen compliance by providing evidence that:
 
 ## REQ-p01025: Third-Party Timestamp Attestation Capability
 
-**Level**: PRD | **Implements**: p00010, p00011 | **Status**: Active
+**Level**: PRD | **Implements**: p00010, p00011 | **Status**: Draft
 
 The system SHALL provide third-party timestamp attestation for clinical trial diary data, creating independently verifiable proof that data existed at the time of recording.
 
@@ -112,7 +112,7 @@ Third-party timestamp attestation SHALL ensure:
 
 ## REQ-p01026: Bitcoin-Based Timestamp Implementation
 
-**Level**: PRD | **Implements**: p01025 | **Status**: Active
+**Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL use Bitcoin blockchain via OpenTimestamps protocol as the primary third-party timestamp mechanism.
 
@@ -138,7 +138,7 @@ Bitcoin-based timestamps SHALL provide:
 
 ## REQ-p01027: Timestamp Verification Interface
 
-**Level**: PRD | **Implements**: p01025 | **Status**: Active
+**Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL provide verification capability for all timestamp proofs, enabling users and regulators to confirm data integrity.
 
@@ -164,7 +164,7 @@ Verification interface SHALL support:
 
 ## REQ-p01028: Timestamp Proof Archival
 
-**Level**: PRD | **Implements**: p01025, p00012 | **Status**: Active
+**Level**: PRD | **Implements**: p01025, p00012 | **Status**: Draft
 
 The system SHALL archive all timestamp proofs alongside clinical trial data for the required retention period.
 
@@ -190,7 +190,7 @@ Proof archival SHALL ensure:
 
 ## REQ-p01029: Device Fingerprinting
 
-**Level**: PRD | **Implements**: p01025 | **Status**: Active
+**Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL record a device fingerprint with each data submission to establish the collection method and enable traceability to the originating device.
 
@@ -215,7 +215,7 @@ Device fingerprinting SHALL:
 
 ## REQ-p01030: Patient Authentication for Data Attribution
 
-**Level**: PRD | **Implements**: p01025 | **Status**: Active
+**Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL authenticate patients before data entry to establish that the person entering data had privileged access to the enrolled device.
 
@@ -242,7 +242,7 @@ Patient authentication SHALL:
 
 ## REQ-p01031: Optional Geolocation Tagging
 
-**Level**: PRD | **Implements**: p01025 | **Status**: Active
+**Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL support optional geolocation tagging of data submissions when enabled by the Sponsor and permitted by the device.
 
@@ -269,7 +269,7 @@ Geolocation tagging SHALL:
 
 ## REQ-p01032: Hashed Email Identity Verification
 
-**Level**: PRD | **Implements**: p01025 | **Status**: Active
+**Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL record a hashed patient email address as an identity fingerprint to enable upstream traceability without exposing PII.
 

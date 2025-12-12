@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Software Developers
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-database.md for database architecture
 > **See**: prd-database-event-sourcing.md for Event Sourcing pattern

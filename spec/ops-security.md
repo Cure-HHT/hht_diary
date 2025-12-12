@@ -166,7 +166,7 @@ SELECT COUNT(*) FROM record_state; -- Should see all data
 
 # REQ-o00007: Role-Based Permission Configuration
 
-**Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Active
+**Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Draft
 
 User roles and permissions SHALL be configured in the database and authentication system, enforcing role-based access control at both application and database layers.
 

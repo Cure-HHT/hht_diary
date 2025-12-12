@@ -2,7 +2,7 @@
 
 **Audience**: Operations team
 **Purpose**: Define monitoring, error tracking, and observability requirements
-**Status**: Active
+**Status**: Draft
 **Version**: 2.0.0
 **Last Updated**: 2025-11-24
 
@@ -29,7 +29,7 @@ This document specifies the monitoring and observability stack for the Clinical 
 
 # REQ-o00045: Error Tracking and Monitoring
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Active
+**Level**: Ops | **Implements**: p00005 | **Status**: Draft
 
 **Specification**:
 
@@ -85,7 +85,7 @@ The system SHALL provide comprehensive error tracking and monitoring that:
 
 # REQ-o00046: Uptime Monitoring
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Active
+**Level**: Ops | **Implements**: p00005 | **Status**: Draft
 
 **Specification**:
 
@@ -136,7 +136,7 @@ The system SHALL provide uptime monitoring that:
 
 # REQ-o00047: Performance Monitoring
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Active
+**Level**: Ops | **Implements**: p00005 | **Status**: Draft
 
 **Specification**:
 
@@ -183,7 +183,7 @@ The system SHALL monitor application performance with:
 
 # REQ-o00048: Audit Log Monitoring
 
-**Level**: Ops | **Implements**: p00004 | **Status**: Active
+**Level**: Ops | **Implements**: p00004 | **Status**: Draft
 
 **Specification**:
 

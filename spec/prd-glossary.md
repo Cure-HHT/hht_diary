@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **Purpose**: Establishes canonical terminology for the Diary Platform across all documentation, requirements, and communication.
 
@@ -11,7 +11,7 @@
 
 # REQ-p01020: Privacy Policy and Regulatory Compliance Documentation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The Diary Platform SHALL provide comprehensive privacy policy documentation that complies with all applicable privacy and data protection regulations, including GDPR, HIPAA, FDA 21 CFR Part 11, and EU data protection regulations.
 
