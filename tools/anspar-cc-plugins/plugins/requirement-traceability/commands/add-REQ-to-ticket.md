@@ -241,7 +241,7 @@ REQ-p00042 | prd-authentication.md | Multi-factor authentication via TOTP | a3f9
 
 ### Step 3: Fetch Ticket from Linear
 
-Use linear-api plugin:
+Use `linear-api:linear-api` sub-agent (or the script directly):
 
 ```bash
 node tools/anspar-cc-plugins/plugins/linear-api/scripts/fetch-tickets.js CUR-123

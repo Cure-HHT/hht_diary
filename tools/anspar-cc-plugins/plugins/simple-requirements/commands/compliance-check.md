@@ -68,7 +68,7 @@ Prompt to create Linear tickets for issues:
    - "Would you like to create Linear tickets for these issues?"
    - Options: Yes (create tickets), No (skip), Select specific issues
 
-4. **If user confirms**, create tickets via `linear-api` sub-agent:
+4. **If user confirms**, create tickets via `linear-api:linear-api` sub-agent:
    - Title: `[REQ-{id}] Compliance: {summary}`
    - Description: Analysis details and required changes
    - Labels: `compliance`, `requirement-change`
@@ -147,7 +147,7 @@ Options:
 
 For each issue the user wants tracked:
 
-1. Use the `linear-api` sub-agent to create a ticket:
+1. Use the `linear-api:linear-api` sub-agent to create a ticket:
    ```
    Title: [REQ-{req_id}] Compliance Review: {title}
 

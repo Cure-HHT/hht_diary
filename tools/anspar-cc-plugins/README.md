@@ -211,7 +211,7 @@ Auto-regenerates requirement traceability matrices on spec/ changes.
 # Via slash command:
 /workflow:claim CUR-123
 
-# Or use the workflow sub-agent:
+# Or use the workflow:workflow sub-agent:
 # "I need to start work on ticket CUR-123"
 ```
 
@@ -221,7 +221,7 @@ Auto-regenerates requirement traceability matrices on spec/ changes.
 # Via slash command:
 /linear:fetch CUR-123
 
-# Or use the linear-api sub-agent:
+# Or use the linear-api:linear-api sub-agent:
 # "Show me the details for ticket CUR-123"
 ```
 
@@ -229,7 +229,7 @@ Auto-regenerates requirement traceability matrices on spec/ changes.
 
 ```bash
 # Automatically runs on pre-commit hook
-# Or use the spec-compliance sub-agent:
+# Or use the spec-compliance:spec-compliance sub-agent:
 # "Check if my spec files are compliant"
 ```
 
