@@ -16,7 +16,6 @@ void main() {
     testWidgets('displays start time only (one-line format)', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -29,12 +28,12 @@ void main() {
       expect(find.textContaining('10:30 AM'), findsOneWidget);
     });
 
+    // CUR-447: Time now includes timezone abbreviation for 12-hour locales
     testWidgets('displays only start time when end time is missing', (
       tester,
     ) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 14, 0),
         intensity: NosebleedIntensity.dripping,
       );
@@ -42,23 +41,27 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('2:00 PM'), findsOneWidget);
+      // Time includes timezone abbreviation (e.g., "2:00 PM PST")
+      expect(find.textContaining('2:00 PM'), findsOneWidget);
     });
 
-    testWidgets('displays --:-- when no times provided', (tester) async {
-      final record = NosebleedRecord(id: 'test-1', date: testDate);
+    testWidgets('displays start time even without end time', (tester) async {
+      final record = NosebleedRecord(
+        id: 'test-1',
+        startTime: DateTime(2024, 1, 15, 12, 0), // noon
+      );
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
 
-      expect(find.text('--:--'), findsOneWidget);
+      // Should still show the start time formatted
+      expect(find.textContaining('12:00 PM'), findsOneWidget);
     });
 
     // CUR-443: Intensity is now shown as an icon image, not text
     testWidgets('displays intensity icon image', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
         intensity: NosebleedIntensity.steadyStream,
@@ -74,7 +77,6 @@ void main() {
     testWidgets('does not display intensity icon when null', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
       );
 
@@ -88,7 +90,6 @@ void main() {
     testWidgets('displays duration in minutes', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45), // 15 minutes
         intensity: NosebleedIntensity.dripping,
@@ -103,7 +104,6 @@ void main() {
     testWidgets('displays duration in hours and minutes', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 11, 30), // 1 hour 30 minutes
         intensity: NosebleedIntensity.dripping,
@@ -120,7 +120,6 @@ void main() {
     ) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 12, 0), // 2 hours exactly
         intensity: NosebleedIntensity.dripping,
@@ -136,7 +135,6 @@ void main() {
     testWidgets('shows edit icon for incomplete records', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         isIncomplete: true,
       );
@@ -150,7 +148,6 @@ void main() {
     testWidgets('does not show edit icon for complete records', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -166,7 +163,6 @@ void main() {
     testWidgets('shows chevron icon when onTap is provided', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
       );
 
@@ -183,7 +179,6 @@ void main() {
     ) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
       );
 
@@ -197,7 +192,6 @@ void main() {
       var tapped = false;
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
       );
 
@@ -215,7 +209,7 @@ void main() {
     });
 
     testWidgets('renders as a Card', (tester) async {
-      final record = NosebleedRecord(id: 'test-1', date: testDate);
+      final record = NosebleedRecord(id: 'test-1', startTime: testDate);
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(record: record)));
       await tester.pumpAndSettle();
@@ -227,7 +221,6 @@ void main() {
     testWidgets('displays intensity as image not bar', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         intensity: NosebleedIntensity.dripping,
       );
@@ -243,7 +236,6 @@ void main() {
     testWidgets('shows warning icon when hasOverlap is true', (tester) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -262,7 +254,6 @@ void main() {
     ) async {
       final record = NosebleedRecord(
         id: 'test-1',
-        date: testDate,
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -280,7 +271,7 @@ void main() {
       testWidgets('displays green checkmark icon', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isNoNosebleedsEvent: true,
         );
 
@@ -295,7 +286,7 @@ void main() {
       testWidgets('displays "No nosebleeds" title', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isNoNosebleedsEvent: true,
         );
 
@@ -310,7 +301,7 @@ void main() {
       testWidgets('displays confirmation subtitle', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isNoNosebleedsEvent: true,
         );
 
@@ -325,7 +316,7 @@ void main() {
       testWidgets('has green background', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isNoNosebleedsEvent: true,
         );
 
@@ -343,7 +334,6 @@ void main() {
       testWidgets('shows (+1 day) when event crosses midnight', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
           endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day
           intensity: NosebleedIntensity.dripping,
@@ -360,7 +350,6 @@ void main() {
       testWidgets('does not show (+1 day) for same-day events', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -379,7 +368,6 @@ void main() {
       ) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30),
           intensity: NosebleedIntensity.dripping,
         );
@@ -397,7 +385,6 @@ void main() {
       ) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
           startTime: DateTime(2024, 1, 15, 23, 30), // 11:30 PM
           endTime: DateTime(2024, 1, 16, 0, 15), // 12:15 AM next day = 45 min
           intensity: NosebleedIntensity.dripping,
@@ -416,7 +403,7 @@ void main() {
       testWidgets('displays yellow question mark icon', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isUnknownEvent: true,
         );
 
@@ -431,7 +418,7 @@ void main() {
       testWidgets('displays "Unknown" title', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isUnknownEvent: true,
         );
 
@@ -446,7 +433,7 @@ void main() {
       testWidgets('displays unable to recall subtitle', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isUnknownEvent: true,
         );
 
@@ -464,7 +451,7 @@ void main() {
       testWidgets('has yellow background', (tester) async {
         final record = NosebleedRecord(
           id: 'test-1',
-          date: testDate,
+          startTime: testDate,
           isUnknownEvent: true,
         );
 

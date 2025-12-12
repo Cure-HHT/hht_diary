@@ -387,7 +387,7 @@ Revalidation required when:
 
 ### Requirements
 
-- `spec/prd-app.md` - Mobile app product requirements
+- `spec/prd-diary-app.md` - Mobile app product requirements
 - `spec/dev-app.md` - Mobile app implementation requirements
 - `spec/prd-clinical-trials.md` - FDA compliance requirements
 

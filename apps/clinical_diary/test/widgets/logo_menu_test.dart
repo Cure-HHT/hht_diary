@@ -17,6 +17,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -39,6 +40,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -60,6 +62,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -79,6 +82,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -98,6 +102,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -119,6 +124,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () => called = true,
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -143,6 +149,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () => called = true,
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -165,6 +172,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -186,6 +194,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () => called = true,
           ),
@@ -208,6 +217,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: () {},
             onInstructionsAndFeedback: () {},
           ),
@@ -227,6 +237,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -248,6 +259,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: () => called = true,
             onInstructionsAndFeedback: () {},
           ),
@@ -270,6 +282,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: () {},
             onInstructionsAndFeedback: () {},
           ),
@@ -291,6 +304,7 @@ void main() {
           LogoMenu(
             onAddExampleData: () {},
             onResetAllData: () {},
+            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),

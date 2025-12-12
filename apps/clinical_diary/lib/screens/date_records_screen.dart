@@ -31,9 +31,7 @@ class DateRecordsScreen extends StatelessWidget {
   /// Check if a record overlaps with any other record in the list
   /// CUR-443: Used to show warning icon on overlapping events
   bool _hasOverlap(NosebleedRecord record) {
-    if (!record.isRealEvent ||
-        record.startTime == null ||
-        record.endTime == null) {
+    if (!record.isRealNosebleedEvent || record.endTime == null) {
       return false;
     }
 
@@ -42,15 +40,13 @@ class DateRecordsScreen extends StatelessWidget {
       if (other.id == record.id) continue;
 
       // Only check real events with both start and end times
-      if (!other.isRealEvent ||
-          other.startTime == null ||
-          other.endTime == null) {
+      if (!other.isRealNosebleedEvent || other.endTime == null) {
         continue;
       }
 
       // Check if events overlap
-      if (record.startTime!.isBefore(other.endTime!) &&
-          record.endTime!.isAfter(other.startTime!)) {
+      if (record.startTime.isBefore(other.endTime!) &&
+          record.endTime!.isAfter(other.startTime)) {
         return true;
       }
     }

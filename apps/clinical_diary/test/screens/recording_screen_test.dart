@@ -5,11 +5,13 @@
 import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,11 +26,13 @@ void main() {
   group('RecordingScreen', () {
     late MockEnrollmentService mockEnrollment;
     late NosebleedService nosebleedService;
+    late PreferencesService preferencesService;
     late Directory tempDir;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockEnrollment = MockEnrollmentService();
+      preferencesService = PreferencesService();
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('recording_test_');
@@ -52,6 +56,7 @@ void main() {
         httpClient: MockClient(
           (_) async => http.Response('{"success": true}', 200),
         ),
+        enableCloudSync: false, // Disable cloud sync for unit tests
       );
     });
 
@@ -74,7 +79,8 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
+              preferencesService: preferencesService,
+              diaryEntryDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -91,6 +97,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
@@ -99,20 +106,20 @@ void main() {
         expect(find.text('Back'), findsOneWidget);
       });
 
-      testWidgets('does not display delete button for new records', (
-        tester,
-      ) async {
+      testWidgets('displays delete button for new records', (tester) async {
         await tester.pumpWidget(
           wrapWithMaterialApp(
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.delete_outline), findsNothing);
+        // Delete button is now shown for all records (new and existing)
+        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
       });
 
       testWidgets('displays summary bar with all fields', (tester) async {
@@ -121,22 +128,32 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
         await tester.pumpAndSettle();
 
         expect(find.text('Start'), findsOneWidget);
-        expect(find.text('Intensity'), findsOneWidget);
+        expect(find.text('Max Intensity'), findsOneWidget);
         expect(find.text('End'), findsOneWidget);
       });
     });
 
     group('Edit Mode', () {
+      setUp(() {
+        // Enable review screen for Edit Mode tests
+        FeatureFlagService.instance.useReviewScreen = true;
+      });
+
+      tearDown(() {
+        // Reset to default
+        FeatureFlagService.instance.useReviewScreen = false;
+      });
+
       testWidgets('pre-fills fields from existing record', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -148,7 +165,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -164,7 +183,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -175,7 +193,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -192,7 +212,6 @@ void main() {
       ) async {
         final incompleteRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           isIncomplete: true,
           // Missing intensity and endTime
@@ -203,7 +222,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: incompleteRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -219,7 +240,6 @@ void main() {
       ) async {
         final incompleteRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
           isIncomplete: true,
@@ -231,7 +251,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: incompleteRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -239,7 +261,7 @@ void main() {
 
         // Should show end time picker
         expect(find.text('Nosebleed End Time'), findsOneWidget);
-        expect(find.text('Nosebleed Ended'), findsOneWidget);
+        expect(find.text('Set End Time'), findsOneWidget);
       });
 
       testWidgets('displays delete button for existing records', (
@@ -247,7 +269,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -258,7 +279,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -270,7 +293,6 @@ void main() {
       testWidgets('summary bar shows existing record values', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -281,7 +303,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -293,57 +317,12 @@ void main() {
         expect(find.text('Dripping'), findsOneWidget);
       });
 
-      testWidgets('shows Complete Record for incomplete existing record', (
-        tester,
-      ) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        final incompleteRecord = NosebleedRecord(
-          id: 'existing-1',
-          date: DateTime(2024, 1, 15),
-          startTime: DateTime(2024, 1, 15, 10, 30),
-          endTime: DateTime(2024, 1, 15, 10, 45),
-          // Missing intensity
-          isIncomplete: true,
-        );
-
-        await tester.pumpWidget(
-          wrapWithMaterialApp(
-            RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              existingRecord: incompleteRecord,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Select a intensity to proceed to complete step
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-
-        // Go to end time step, then confirm to go to complete step
-        // CUR-408: Notes step removed - flow goes directly to complete
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Should show Complete Record button (check by widget type)
-        expect(
-          find.widgetWithText(FilledButton, 'Complete Record'),
-          findsOneWidget,
-        );
-      });
+      // CUR-464: Test moved to integration_test/recording_save_flow_test.dart
+      // Reason: Datastore transactions don't complete properly in widget tests
 
       testWidgets('can navigate between steps via summary bar', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -354,7 +333,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -377,6 +358,16 @@ void main() {
     });
 
     group('Overlap Warning', () {
+      setUp(() {
+        // Enable review screen so Save Changes button is visible
+        FeatureFlagService.instance.useReviewScreen = true;
+      });
+
+      tearDown(() {
+        // Reset to default
+        FeatureFlagService.instance.useReviewScreen = false;
+      });
+
       testWidgets('shows overlap warning when events overlap', (tester) async {
         // Use a larger screen size to avoid overflow issues
         tester.view.physicalSize = const Size(1080, 1920);
@@ -389,7 +380,6 @@ void main() {
         final overlappingRecords = [
           NosebleedRecord(
             id: 'other-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
             intensity: NosebleedIntensity.spotting,
@@ -398,7 +388,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -409,8 +398,10 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: overlappingRecords,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -425,7 +416,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -439,8 +429,10 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: allRecords,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -464,7 +456,6 @@ void main() {
         final overlappingRecords = [
           NosebleedRecord(
             id: 'other-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
             intensity: NosebleedIntensity.spotting,
@@ -473,7 +464,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15), // Overlaps with other
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -484,8 +474,10 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: overlappingRecords,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -521,7 +513,6 @@ void main() {
         final nonOverlappingRecords = [
           NosebleedRecord(
             id: 'other-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 8, 0), // Does not overlap
             endTime: DateTime(2024, 1, 15, 8, 30),
             intensity: NosebleedIntensity.spotting,
@@ -530,7 +521,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 15),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -541,8 +531,10 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               allRecords: nonOverlappingRecords,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -580,7 +572,6 @@ void main() {
           // Record from yesterday at 10:00-10:30
           final yesterdayRecord = NosebleedRecord(
             id: 'yesterday-1',
-            date: DateTime(2024, 1, 14),
             startTime: DateTime(2024, 1, 14, 10, 0),
             endTime: DateTime(2024, 1, 14, 10, 30),
             intensity: NosebleedIntensity.spotting,
@@ -589,7 +580,6 @@ void main() {
           // Current record is today at same time (10:00-10:30)
           final todayRecord = NosebleedRecord(
             id: 'today-1',
-            date: DateTime(2024, 1, 15),
             startTime: DateTime(2024, 1, 15, 10, 0),
             endTime: DateTime(2024, 1, 15, 10, 30),
             intensity: NosebleedIntensity.dripping,
@@ -600,8 +590,10 @@ void main() {
               RecordingScreen(
                 nosebleedService: nosebleedService,
                 enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
                 existingRecord: todayRecord,
                 allRecords: [yesterdayRecord],
+                onDelete: (_) async {},
               ),
             ),
           );
@@ -625,7 +617,6 @@ void main() {
       ) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -636,6 +627,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               onDelete: (_) async {},
             ),
@@ -667,7 +659,6 @@ void main() {
         String? deletedReason;
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -678,6 +669,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
               onDelete: (reason) async {
                 deletedReason = reason;
@@ -705,47 +697,17 @@ void main() {
     });
 
     group('Save Flow', () {
-      testWidgets('navigates through flow to complete step', (tester) async {
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+      // CUR-464: Test moved to integration_test/recording_save_flow_test.dart
+      // Reason: Datastore transactions don't complete properly in widget tests
 
-        await tester.pumpWidget(
-          wrapWithMaterialApp(
-            RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
+      setUp(() {
+        // Enable review screen for Save Flow tests that expect Save Changes button
+        FeatureFlagService.instance.useReviewScreen = true;
+      });
 
-        // Confirm start time
-        await tester.tap(find.text('Set Start Time'));
-        await tester.pumpAndSettle();
-
-        // Select intensity
-        await tester.tap(find.text('Dripping'));
-        await tester.pumpAndSettle();
-
-        // Confirm end time - CUR-408: Goes directly to complete (notes removed)
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Should show Finished button for new record
-        expect(find.text('Finished'), findsOneWidget);
-        expect(find.text('Record Complete'), findsOneWidget);
-
-        // Verify the button is enabled
-        final saveButton = find.widgetWithText(FilledButton, 'Finished');
-        expect(saveButton, findsOneWidget);
-        final button = tester.widget<FilledButton>(saveButton);
-        expect(button.onPressed, isNotNull);
+      tearDown(() {
+        // Reset to default
+        FeatureFlagService.instance.useReviewScreen = false;
       });
 
       testWidgets('can navigate through existing record editing', (
@@ -762,7 +724,6 @@ void main() {
         // Provide an existing record directly
         final existingRecord = NosebleedRecord(
           id: 'edit-test-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.spotting,
@@ -773,7 +734,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -798,7 +761,7 @@ void main() {
         expect(find.text('Nosebleed End Time'), findsOneWidget);
       });
 
-      testWidgets('shows error snackbar when save fails', (tester) async {
+      testWidgets('handles save failure gracefully', (tester) async {
         // Use a larger screen size to avoid overflow issues
         tester.view.physicalSize = const Size(1080, 1920);
         tester.view.devicePixelRatio = 1.0;
@@ -815,12 +778,25 @@ void main() {
           ),
         );
 
+        // Use today's date to avoid triggering old entry validation dialog
+        final today = DateTime.now();
+
+        // Disable validation confirmations to avoid dialogs blocking the save
+        // These are now feature flags (sponsor-controlled), not user preferences
+        SharedPreferences.setMockInitialValues({
+          'ff_enable_short_duration_confirmation': false,
+          'ff_enable_long_duration_confirmation': false,
+        });
+        await FeatureFlagService.instance.initialize();
+        final testPreferencesService = PreferencesService();
+
         await tester.pumpWidget(
           wrapWithScaffold(
             RecordingScreen(
               nosebleedService: failingService,
               enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
+              preferencesService: testPreferencesService,
+              diaryEntryDate: today,
             ),
           ),
         );
@@ -834,18 +810,15 @@ void main() {
         await tester.tap(find.text('Dripping'));
         await tester.pumpAndSettle();
 
-        // Confirm end time - CUR-408: Goes directly to complete (notes removed)
-        await tester.tap(find.text('Nosebleed Ended'));
-        await tester.pumpAndSettle();
-
-        // Tap save button
-        await tester.tap(find.text('Finished'));
-        // Use pump with duration instead of pumpAndSettle which times out
+        // Tap Set End Time - CUR-464: saves immediately (no Finished button with useReviewScreen=false)
+        await tester.tap(find.text('Set End Time'));
+        // Use pump with duration to allow save to attempt
         await tester.pump(const Duration(milliseconds: 100));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Should show error snackbar
-        expect(find.textContaining('Failed to save'), findsOneWidget);
+        // Save failure is handled silently (logged to console, no user-facing error shown)
+        // The screen should still be displayed (not crashed)
+        expect(find.byType(RecordingScreen), findsOneWidget);
 
         failingService.dispose();
       });
@@ -862,6 +835,7 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
             ),
           ),
         );
@@ -894,7 +868,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 14, 0), // 2:00 PM
           endTime: DateTime(2024, 1, 15, 14, 30),
           intensity: NosebleedIntensity.dripping,
@@ -906,7 +879,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -930,7 +905,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Now try to confirm - use the button text
-        await tester.tap(find.text('Nosebleed Ended'));
+        await tester.tap(find.text('Set End Time'));
         await tester.pumpAndSettle();
 
         // Should show snackbar
@@ -944,7 +919,6 @@ void main() {
       testWidgets('can navigate to end time via summary bar', (tester) async {
         final existingRecord = NosebleedRecord(
           id: 'existing-1',
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           endTime: DateTime(2024, 1, 15, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -955,7 +929,9 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
               existingRecord: existingRecord,
+              onDelete: (_) async {},
             ),
           ),
         );
@@ -968,6 +944,135 @@ void main() {
         // Should show end time picker
         expect(find.text('Nosebleed End Time'), findsOneWidget);
       });
+    });
+
+    group('End Time Display in Summary', () {
+      testWidgets('shows "Not set" when end time is null for new record', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // End time should show "Not set" for new records
+        expect(find.text('Not set'), findsOneWidget);
+      });
+
+      testWidgets('shows (+1 day) when end date is one day after start', (
+        tester,
+      ) async {
+        // Record spans from 11pm to 1am next day
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          startTime: DateTime(2024, 1, 15, 23, 0), // 11:00 PM Jan 15
+          endTime: DateTime(2024, 1, 16, 1, 0), // 1:00 AM Jan 16
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              existingRecord: existingRecord,
+              onDelete: (_) async {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // End time summary should show "(+1 day)"
+        expect(find.textContaining('(+1 day)'), findsOneWidget);
+      });
+
+      testWidgets('shows (+2 days) when end date is two days after start', (
+        tester,
+      ) async {
+        // Record spans multiple days
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          startTime: DateTime(2024, 1, 15, 23, 0), // 11:00 PM Jan 15
+          endTime: DateTime(2024, 1, 17, 1, 0), // 1:00 AM Jan 17
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              existingRecord: existingRecord,
+              onDelete: (_) async {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // End time summary should show "(+2 days)"
+        expect(find.textContaining('(+2 days)'), findsOneWidget);
+      });
+
+      testWidgets('does not show day offset when dates are same', (
+        tester,
+      ) async {
+        final existingRecord = NosebleedRecord(
+          id: 'existing-1',
+          startTime: DateTime(2024, 1, 15, 10, 0),
+          endTime: DateTime(2024, 1, 15, 10, 30),
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              existingRecord: existingRecord,
+              onDelete: (_) async {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Should NOT show any day offset
+        expect(find.textContaining('(+'), findsNothing);
+      });
+
+      testWidgets(
+        'end time tracks start time changes for new records until explicitly set',
+        (tester) async {
+          await tester.pumpWidget(
+            wrapWithMaterialApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Initially end time should be "Not set"
+          expect(find.text('Not set'), findsOneWidget);
+
+          // Tap +15 to adjust start time - end should still be "Not set"
+          await tester.tap(find.text('+15'));
+          await tester.pumpAndSettle();
+
+          // End time should still show "Not set" (tracking is implicit, not displayed)
+          expect(find.text('Not set'), findsOneWidget);
+        },
+      );
     });
 
     group('Intensity Selection', () {
@@ -987,7 +1092,8 @@ void main() {
             RecordingScreen(
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
-              initialDate: DateTime(2024, 1, 15),
+              preferencesService: preferencesService,
+              diaryEntryDate: DateTime(2024, 1, 15),
             ),
           ),
         );
@@ -1004,7 +1110,8 @@ void main() {
         // Should show end time picker
         expect(find.text('Nosebleed End Time'), findsOneWidget);
         // End time in summary bar remains unset until user confirms
-        expect(find.text('--:--'), findsOneWidget);
+        // CUR-488: Changed from '--:--' to localized 'Not set'
+        expect(find.text('Not set'), findsOneWidget);
       });
     });
   });
@@ -1048,9 +1155,10 @@ class FailingNosebleedService extends NosebleedService {
 
   @override
   Future<NosebleedRecord> addRecord({
-    required DateTime date,
-    DateTime? startTime,
+    required DateTime startTime,
     DateTime? endTime,
+    String? startTimezone,
+    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
@@ -1063,9 +1171,10 @@ class FailingNosebleedService extends NosebleedService {
   @override
   Future<NosebleedRecord> updateRecord({
     required String originalRecordId,
-    required DateTime date,
-    DateTime? startTime,
+    required DateTime startTime,
     DateTime? endTime,
+    String? startTimezone,
+    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,

@@ -58,6 +58,8 @@ class AppLocalizations {
       'noEventsToday': 'no events today',
       'noEventsYesterday': 'no events yesterday',
       'incompleteRecords': 'Incomplete Records',
+      'incompleteRecordSingular': '{0} incomplete record',
+      'incompleteRecordPlural': '{0} incomplete records',
       'tapToComplete': 'Tap to complete',
       'exampleDataAdded': 'Example data added',
       'resetAllData': 'Reset All Data?',
@@ -150,6 +152,12 @@ class AppLocalizations {
       'largerTextAndControls': 'Larger Text and Controls',
       'largerTextDescription':
           'Increase the size of text and interactive elements for easier reading and navigation',
+      'useAnimation': 'Use Animations',
+      'useAnimationDescription':
+          'Enable visual animations and transitions throughout the app',
+      'compactView': 'Compact View',
+      'compactViewDescription':
+          'Reduce spacing between entries in the event list for a denser display',
       'language': 'Language',
       'languageDescription': 'Choose your preferred language',
       'accessibilityAndPreferences': 'Accessibility & Preferences',
@@ -174,19 +182,21 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'When did the nosebleed start?',
       'whenDidItStop': 'When did the nosebleed stop?',
-      'howSevere': 'How severe is the nosebleed?',
+      'howSevere': 'How intense is the nosebleed?',
       'selectBestOption': 'Select the option that best describes the bleeding',
       'anyNotes': 'Any additional notes?',
       'notesPlaceholder': 'Optional notes about this nosebleed...',
       'start': 'Start',
       'end': 'End',
-      'selectIntensity': 'Select...',
+      'selectIntensity': 'Tap to set',
+      'notSet': 'Not set',
       'intensity': 'Intensity',
+      'maxIntensity': 'Max Intensity',
       'nosebleedStart': 'Nosebleed Start',
       'setStartTime': 'Set Start Time',
       'nosebleedEnd': 'Nosebleed End',
       'nosebleedEndTime': 'Nosebleed End Time',
-      'nosebleedEnded': 'Nosebleed Ended',
+      'setEndTime': 'Set End Time',
       'completeRecord': 'Complete Record',
       'editRecord': 'Edit Record',
       'recordComplete': 'Record Complete',
@@ -310,6 +320,67 @@ class AppLocalizations {
           'Note: The logo displayed on the homescreen of the app is a reminder that you are sharing your data with a 3rd party.',
       'sharingNoteEnded':
           'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': 'Old Entry Modification',
+      'oldEntryJustificationPrompt':
+          'This is an event more than one day old. Please explain why you are adding/changing it now:',
+      'justificationPaperRecords': 'Entered from paper records',
+      'justificationRemembered': 'Remembered specific event',
+      'justificationEstimated': 'Estimated event',
+      'confirm': 'Confirm',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Short Duration',
+      'shortDurationMessage': 'Duration is under 1 minute, is that correct?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Long Duration',
+      'longDurationMessage': 'Duration is over {0}, is that correct?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          'These settings are for testing only. Changes affect app behavior.',
+      'featureFlagsSponsorSelection': 'Sponsor Configuration',
+      'featureFlagsSponsorId': 'Sponsor ID',
+      'featureFlagsCurrentSponsor': 'Current sponsor: {0}',
+      'featureFlagsLoad': 'Load',
+      'featureFlagsLoadSuccess': 'Loaded configuration for {0}',
+      'featureFlagsSectionUI': 'UI Features',
+      'featureFlagsSectionValidation': 'Validation Features',
+      'featureFlagsUseReviewScreen': 'Use Review Screen',
+      'featureFlagsUseReviewScreenDescription':
+          'Show review screen after ending a nosebleed',
+      'featureFlagsUseAnimations': 'Use Animations',
+      'featureFlagsUseAnimationsDescription':
+          'Enable animations and show user preference toggle',
+      'featureFlagsUseOnePageRecordingScreen': 'Use One-Page Recording Screen',
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          'Use simplified one-page recording screen instead of multi-page flow',
+      'featureFlagsOldEntryJustification': 'Old Entry Justification',
+      'featureFlagsOldEntryJustificationDescription':
+          'Require justification when editing entries older than one day',
+      'featureFlagsShortDurationConfirmation': 'Short Duration Confirmation',
+      'featureFlagsShortDurationConfirmationDescription':
+          'Prompt to confirm durations of 1 minute or less',
+      'featureFlagsLongDurationConfirmation': 'Long Duration Confirmation',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Prompt to confirm durations exceeding the threshold',
+      'featureFlagsLongDurationThreshold': 'Long Duration Threshold',
+      'featureFlagsLongDurationThresholdDescription':
+          'Current threshold: {0} minutes',
+      'featureFlagsResetToDefaults': 'Reset to Defaults',
+      'featureFlagsResetTitle': 'Reset Feature Flags?',
+      'featureFlagsResetConfirmation':
+          'Reset all feature flags to their default values?',
+      'featureFlagsResetButton': 'Reset',
+      'featureFlagsResetSuccess': 'Feature flags reset to defaults',
+      'hours': 'hours',
+      'hour': 'hour',
     },
     'es': {
       // General
@@ -428,6 +499,12 @@ class AppLocalizations {
       'largerTextAndControls': 'Texto y Controles Mas Grandes',
       'largerTextDescription':
           'Aumenta el tamano del texto y elementos interactivos para facilitar la lectura y navegacion',
+      'useAnimation': 'Usar Animaciones',
+      'useAnimationDescription':
+          'Habilitar animaciones visuales y transiciones en toda la aplicacion',
+      'compactView': 'Vista Compacta',
+      'compactViewDescription':
+          'Reducir el espacio entre entradas en la lista de eventos para una visualizacion mas densa',
       'language': 'Idioma',
       'languageDescription': 'Elige tu idioma preferido',
       'accessibilityAndPreferences': 'Accesibilidad y Preferencias',
@@ -452,19 +529,21 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Cuando empezo la hemorragia nasal?',
       'whenDidItStop': 'Cuando paro la hemorragia nasal?',
-      'howSevere': 'Que tan severa es la hemorragia?',
+      'howSevere': 'Que tan intensa es la hemorragia?',
       'selectBestOption': 'Selecciona la opcion que mejor describe el sangrado',
       'anyNotes': 'Alguna nota adicional?',
       'notesPlaceholder': 'Notas opcionales sobre esta hemorragia nasal...',
       'start': 'Inicio',
       'end': 'Fin',
-      'selectIntensity': 'Seleccionar...',
+      'selectIntensity': 'Toca para seleccionar',
+      'notSet': 'No establecido',
       'intensity': 'Intensidad',
+      'maxIntensity': 'Intensidad Máxima',
       'nosebleedStart': 'Inicio de hemorragia',
       'setStartTime': 'Establecer hora de inicio',
       'nosebleedEnd': 'Fin de hemorragia',
       'nosebleedEndTime': 'Hora de fin de hemorragia',
-      'nosebleedEnded': 'Hemorragia finalizada',
+      'setEndTime': 'Establecer hora de fin',
       'completeRecord': 'Completar registro',
       'editRecord': 'Editar registro',
       'recordComplete': 'Registro completo',
@@ -593,6 +672,68 @@ class AppLocalizations {
           'Nota: El logo mostrado en la pantalla de inicio de la aplicacion es un recordatorio de que estas compartiendo tus datos con un tercero.',
       'sharingNoteEnded':
           'Nota: Los datos compartidos durante la participacion en el ensayo clinico permanecen con los investigadores indefinidamente para analisis cientifico.',
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': 'Modificacion de Entrada Antigua',
+      'oldEntryJustificationPrompt':
+          'Este es un evento de hace mas de un dia. Por favor explica por que lo estas agregando/cambiando ahora:',
+      'justificationPaperRecords': 'Ingresado desde registros en papel',
+      'justificationRemembered': 'Recorde un evento especifico',
+      'justificationEstimated': 'Evento estimado',
+      'confirm': 'Confirmar',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Duracion Corta',
+      'shortDurationMessage': 'La duracion es menor a 1 minuto, es correcto?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Duracion Larga',
+      'longDurationMessage': 'La duracion es mayor a {0}, es correcto?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          'Estos ajustes son solo para pruebas. Los cambios afectan el comportamiento de la app.',
+      'featureFlagsSponsorSelection': 'Configuracion del Patrocinador',
+      'featureFlagsSponsorId': 'ID del Patrocinador',
+      'featureFlagsCurrentSponsor': 'Patrocinador actual: {0}',
+      'featureFlagsLoad': 'Cargar',
+      'featureFlagsLoadSuccess': 'Configuracion cargada para {0}',
+      'featureFlagsSectionUI': 'Funciones de Interfaz',
+      'featureFlagsSectionValidation': 'Funciones de Validacion',
+      'featureFlagsUseReviewScreen': 'Usar Pantalla de Revision',
+      'featureFlagsUseReviewScreenDescription':
+          'Mostrar pantalla de revision al terminar una hemorragia',
+      'featureFlagsUseAnimations': 'Usar Animaciones',
+      'featureFlagsUseAnimationsDescription':
+          'Habilitar animaciones y mostrar preferencia de usuario',
+      'featureFlagsUseOnePageRecordingScreen':
+          'Usar Pantalla de Registro de Una Pagina',
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          'Usar pantalla de registro simplificada en lugar de flujo de varias paginas',
+      'featureFlagsOldEntryJustification': 'Justificacion de Entrada Antigua',
+      'featureFlagsOldEntryJustificationDescription':
+          'Requerir justificacion al editar entradas de mas de un dia',
+      'featureFlagsShortDurationConfirmation': 'Confirmacion Duracion Corta',
+      'featureFlagsShortDurationConfirmationDescription':
+          'Solicitar confirmacion para duraciones de 1 minuto o menos',
+      'featureFlagsLongDurationConfirmation': 'Confirmacion Duracion Larga',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Solicitar confirmacion para duraciones que excedan el umbral',
+      'featureFlagsLongDurationThreshold': 'Umbral de Duracion Larga',
+      'featureFlagsLongDurationThresholdDescription':
+          'Umbral actual: {0} minutos',
+      'featureFlagsResetToDefaults': 'Restablecer Valores',
+      'featureFlagsResetTitle': 'Restablecer Feature Flags?',
+      'featureFlagsResetConfirmation':
+          'Restablecer todos los feature flags a sus valores predeterminados?',
+      'featureFlagsResetButton': 'Restablecer',
+      'featureFlagsResetSuccess': 'Feature flags restablecidos',
+      'hours': 'horas',
+      'hour': 'hora',
     },
     'fr': {
       // General
@@ -715,6 +856,12 @@ class AppLocalizations {
       'largerTextAndControls': 'Texte et Controles Plus Grands',
       'largerTextDescription':
           'Augmentez la taille du texte et des elements interactifs pour faciliter la lecture et la navigation',
+      'useAnimation': 'Utiliser les Animations',
+      'useAnimationDescription':
+          "Activer les animations visuelles et les transitions dans l'application",
+      'compactView': 'Vue Compacte',
+      'compactViewDescription':
+          "Reduire l'espacement entre les entrees dans la liste des evenements pour un affichage plus dense",
       'language': 'Langue',
       'languageDescription': 'Choisissez votre langue preferee',
       'accessibilityAndPreferences': 'Accessibilite et Preferences',
@@ -742,20 +889,22 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Quand le saignement de nez a-t-il commence?',
       'whenDidItStop': "Quand le saignement de nez s'est-il arrete?",
-      'howSevere': 'Quelle est la gravite du saignement?',
+      'howSevere': "Quelle est l'intensite du saignement?",
       'selectBestOption':
           "Selectionnez l'option qui decrit le mieux le saignement",
       'anyNotes': 'Des notes supplementaires?',
       'notesPlaceholder': 'Notes optionnelles sur ce saignement de nez...',
       'start': 'Debut',
       'end': 'Fin',
-      'selectIntensity': 'Selectionner...',
+      'selectIntensity': 'Appuyez pour definir',
+      'notSet': 'Non defini',
       'intensity': 'Intensite',
+      'maxIntensity': 'Intensite Maximale',
       'nosebleedStart': 'Debut du saignement',
       'setStartTime': "Definir l'heure de debut",
       'nosebleedEnd': 'Fin du saignement',
       'nosebleedEndTime': 'Heure de fin du saignement',
-      'nosebleedEnded': 'Saignement termine',
+      'setEndTime': 'Definir heure de fin',
       'completeRecord': "Completer l'enregistrement",
       'editRecord': "Modifier l'enregistrement",
       'recordComplete': 'Enregistrement complet',
@@ -886,6 +1035,69 @@ class AppLocalizations {
           "Note: Le logo affiche sur l'ecran d'accueil de l'application est un rappel que vous partagez vos donnees avec un tiers.",
       'sharingNoteEnded':
           "Note: Les donnees partagees pendant la participation a l'essai clinique restent indefiniment avec les chercheurs pour analyse scientifique.",
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': "Modification d'une Ancienne Entree",
+      'oldEntryJustificationPrompt':
+          "Cet evenement date de plus d'un jour. Veuillez expliquer pourquoi vous l'ajoutez/modifiez maintenant:",
+      'justificationPaperRecords': 'Saisi a partir de dossiers papier',
+      'justificationRemembered': "Je me suis souvenu d'un evenement specifique",
+      'justificationEstimated': 'Evenement estime',
+      'confirm': 'Confirmer',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Duree Courte',
+      'shortDurationMessage':
+          'La duree est inferieure a 1 minute, est-ce correct?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Duree Longue',
+      'longDurationMessage': 'La duree est superieure a {0}, est-ce correct?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          "Ces parametres sont uniquement pour les tests. Les modifications affectent le comportement de l'application.",
+      'featureFlagsSponsorSelection': 'Configuration du Sponsor',
+      'featureFlagsSponsorId': 'ID du Sponsor',
+      'featureFlagsCurrentSponsor': 'Sponsor actuel: {0}',
+      'featureFlagsLoad': 'Charger',
+      'featureFlagsLoadSuccess': 'Configuration chargee pour {0}',
+      'featureFlagsSectionUI': "Fonctionnalites d'Interface",
+      'featureFlagsSectionValidation': 'Fonctionnalites de Validation',
+      'featureFlagsUseReviewScreen': 'Utiliser Ecran de Revision',
+      'featureFlagsUseReviewScreenDescription':
+          "Afficher l'ecran de revision apres avoir termine un saignement",
+      'featureFlagsUseAnimations': 'Utiliser Animations',
+      'featureFlagsUseAnimationsDescription':
+          'Activer les animations et afficher la preference utilisateur',
+      'featureFlagsUseOnePageRecordingScreen':
+          "Utiliser Ecran d'Enregistrement Une Page",
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          "Utiliser l'ecran d'enregistrement simplifie au lieu du flux multi-pages",
+      'featureFlagsOldEntryJustification': 'Justification Ancienne Entree',
+      'featureFlagsOldEntryJustificationDescription':
+          "Exiger une justification lors de la modification d'entrees de plus d'un jour",
+      'featureFlagsShortDurationConfirmation': 'Confirmation Duree Courte',
+      'featureFlagsShortDurationConfirmationDescription':
+          "Demander confirmation pour les durees d'une minute ou moins",
+      'featureFlagsLongDurationConfirmation': 'Confirmation Duree Longue',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Demander confirmation pour les durees depassant le seuil',
+      'featureFlagsLongDurationThreshold': 'Seuil de Duree Longue',
+      'featureFlagsLongDurationThresholdDescription':
+          'Seuil actuel: {0} minutes',
+      'featureFlagsResetToDefaults': 'Reinitialiser',
+      'featureFlagsResetTitle': 'Reinitialiser Feature Flags?',
+      'featureFlagsResetConfirmation':
+          'Reinitialiser tous les feature flags a leurs valeurs par defaut?',
+      'featureFlagsResetButton': 'Reinitialiser',
+      'featureFlagsResetSuccess': 'Feature flags reinitialises',
+      'hours': 'heures',
+      'hour': 'heure',
     },
     'de': {
       // General
@@ -1004,6 +1216,12 @@ class AppLocalizations {
       'largerTextAndControls': 'Grosserer Text und Steuerelemente',
       'largerTextDescription':
           'Vergrossern Sie Text und interaktive Elemente fur einfacheres Lesen und Navigieren',
+      'useAnimation': 'Animationen verwenden',
+      'useAnimationDescription':
+          'Visuelle Animationen und Ubergange in der gesamten App aktivieren',
+      'compactView': 'Kompakte Ansicht',
+      'compactViewDescription':
+          'Reduziert den Abstand zwischen Eintragen in der Ereignisliste fur eine dichtere Anzeige',
       'language': 'Sprache',
       'languageDescription': 'Wahlen Sie Ihre bevorzugte Sprache',
       'accessibilityAndPreferences': 'Barrierefreiheit & Einstellungen',
@@ -1030,20 +1248,22 @@ class AppLocalizations {
       // Recording
       'whenDidItStart': 'Wann hat das Nasenbluten begonnen?',
       'whenDidItStop': 'Wann hat das Nasenbluten aufgehort?',
-      'howSevere': 'Wie stark ist das Nasenbluten?',
+      'howSevere': 'Wie intensiv ist das Nasenbluten?',
       'selectBestOption':
           'Wahlen Sie die Option, die die Blutung am besten beschreibt',
       'anyNotes': 'Zusatzliche Anmerkungen?',
       'notesPlaceholder': 'Optionale Notizen zu diesem Nasenbluten...',
       'start': 'Start',
       'end': 'Ende',
-      'selectIntensity': 'Auswahlen...',
+      'selectIntensity': 'Tippen zum Einstellen',
+      'notSet': 'Nicht eingestellt',
       'intensity': 'Intensitat',
+      'maxIntensity': 'Maximale Intensitat',
       'nosebleedStart': 'Nasenbluten-Start',
       'setStartTime': 'Startzeit festlegen',
       'nosebleedEnd': 'Nasenbluten-Ende',
       'nosebleedEndTime': 'Nasenbluten-Endzeit',
-      'nosebleedEnded': 'Nasenbluten beendet',
+      'setEndTime': 'Endzeit festlegen',
       'completeRecord': 'Eintrag vervollstandigen',
       'editRecord': 'Eintrag bearbeiten',
       'recordComplete': 'Eintrag vollstandig',
@@ -1173,6 +1393,69 @@ class AppLocalizations {
           'Hinweis: Das Logo auf dem Startbildschirm der App erinnert Sie daran, dass Sie Ihre Daten mit einem Dritten teilen.',
       'sharingNoteEnded':
           'Hinweis: Wahrend der Teilnahme an der klinischen Studie geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
+
+      // REQ-CAL-p00001: Old Entry Justification
+      'oldEntryJustificationTitle': 'Alte Eintrag Anderung',
+      'oldEntryJustificationPrompt':
+          'Dieses Ereignis ist mehr als einen Tag alt. Bitte erklaren Sie, warum Sie es jetzt hinzufugen/andern:',
+      'justificationPaperRecords': 'Aus Papierunterlagen eingetragen',
+      'justificationRemembered': 'An bestimmtes Ereignis erinnert',
+      'justificationEstimated': 'Geschatztes Ereignis',
+      'confirm': 'Bestatigen',
+
+      // REQ-CAL-p00002: Short Duration Confirmation
+      'shortDurationTitle': 'Kurze Dauer',
+      'shortDurationMessage':
+          'Die Dauer betragt weniger als 1 Minute, ist das korrekt?',
+
+      // REQ-CAL-p00003: Long Duration Confirmation
+      'longDurationTitle': 'Lange Dauer',
+      'longDurationMessage': 'Die Dauer ist langer als {0}, ist das korrekt?',
+      'durationMinutesShort': '{0}m',
+      'durationHoursShort': '{0}h',
+      'durationHoursMinutesShort': '{0}h {1}m',
+
+      // Feature Flags (dev/qa only)
+      'featureFlagsTitle': 'Feature Flags',
+      'featureFlagsWarning':
+          'Diese Einstellungen sind nur fur Tests. Anderungen beeinflussen das App-Verhalten.',
+      'featureFlagsSponsorSelection': 'Sponsor-Konfiguration',
+      'featureFlagsSponsorId': 'Sponsor-ID',
+      'featureFlagsCurrentSponsor': 'Aktueller Sponsor: {0}',
+      'featureFlagsLoad': 'Laden',
+      'featureFlagsLoadSuccess': 'Konfiguration fur {0} geladen',
+      'featureFlagsSectionUI': 'Oberflachenfunktionen',
+      'featureFlagsSectionValidation': 'Validierungsfunktionen',
+      'featureFlagsUseReviewScreen': 'Uberprufungsbildschirm Verwenden',
+      'featureFlagsUseReviewScreenDescription':
+          'Uberprufungsbildschirm nach Beendigung einer Blutung anzeigen',
+      'featureFlagsUseAnimations': 'Animationen Verwenden',
+      'featureFlagsUseAnimationsDescription':
+          'Animationen aktivieren und Benutzereinstellung anzeigen',
+      'featureFlagsUseOnePageRecordingScreen':
+          'Einseitigen Aufnahmebildschirm Verwenden',
+      'featureFlagsUseOnePageRecordingScreenDescription':
+          'Vereinfachten einseitigen Aufnahmebildschirm statt mehrseitigem Ablauf verwenden',
+      'featureFlagsOldEntryJustification': 'Alte Eintrag Begrundung',
+      'featureFlagsOldEntryJustificationDescription':
+          'Begrundung bei Bearbeitung von Eintragen alter als ein Tag erforderlich',
+      'featureFlagsShortDurationConfirmation': 'Bestatigung Kurze Dauer',
+      'featureFlagsShortDurationConfirmationDescription':
+          'Bestatigung fur Dauern von einer Minute oder weniger anfordern',
+      'featureFlagsLongDurationConfirmation': 'Bestatigung Lange Dauer',
+      'featureFlagsLongDurationConfirmationDescription':
+          'Bestatigung fur Dauern uber dem Schwellenwert anfordern',
+      'featureFlagsLongDurationThreshold': 'Schwellenwert Lange Dauer',
+      'featureFlagsLongDurationThresholdDescription':
+          'Aktueller Schwellenwert: {0} Minuten',
+      'featureFlagsResetToDefaults': 'Zurucksetzen',
+      'featureFlagsResetTitle': 'Feature Flags Zurucksetzen?',
+      'featureFlagsResetConfirmation':
+          'Alle Feature Flags auf Standardwerte zurucksetzen?',
+      'featureFlagsResetButton': 'Zurucksetzen',
+      'featureFlagsResetSuccess': 'Feature Flags zuruckgesetzt',
+      'hours': 'Stunden',
+      'hour': 'Stunde',
     },
   };
 
@@ -1230,7 +1513,7 @@ class AppLocalizations {
   String get usingClassicUI => translate('usingClassicUI');
   String get noEvents => translate('noEvents');
   String incompleteRecordCount(int count) => translateWithParams(
-    count == 1 ? 'Incomplete Record' : 'Incomplete Records',
+    count == 1 ? 'incompleteRecordSingular' : 'incompleteRecordPlural',
     [count],
   );
 
@@ -1303,6 +1586,10 @@ class AppLocalizations {
   String get learnMoreOpenDyslexic => translate('learnMoreOpenDyslexic');
   String get largerTextAndControls => translate('largerTextAndControls');
   String get largerTextDescription => translate('largerTextDescription');
+  String get useAnimation => translate('useAnimation');
+  String get useAnimationDescription => translate('useAnimationDescription');
+  String get compactView => translate('compactView');
+  String get compactViewDescription => translate('compactViewDescription');
   String get language => translate('language');
   String get languageDescription => translate('languageDescription');
   String get accessibilityAndPreferences =>
@@ -1330,12 +1617,15 @@ class AppLocalizations {
   String get start => translate('start');
   String get end => translate('end');
   String get selectIntensity => translate('selectIntensity');
+  String get notSet => translate('notSet');
+  String get incomplete => translate('incomplete');
   String get intensity => translate('intensity');
+  String get maxIntensity => translate('maxIntensity');
   String get nosebleedStart => translate('nosebleedStart');
   String get setStartTime => translate('setStartTime');
   String get nosebleedEnd => translate('nosebleedEnd');
   String get nosebleedEndTime => translate('nosebleedEndTime');
-  String get nosebleedEnded => translate('nosebleedEnded');
+  String get setEndTime => translate('setEndTime');
   String get completeRecord => translate('completeRecord');
   String get editRecord => translate('editRecord');
   String get recordComplete => translate('recordComplete');
@@ -1415,6 +1705,7 @@ class AppLocalizations {
   String get incorrectInformation => translate('incorrectInformation');
   String get other => translate('other');
   String get pleaseSpecify => translate('pleaseSpecify');
+  String get confirm => translate('confirm');
 
   // Time picker
   String get cannotSelectFutureTime => translate('cannotSelectFutureTime');
@@ -1488,6 +1779,58 @@ class AppLocalizations {
   String get sharingWithCureHHT => translate('sharingWithCureHHT');
   String get sharingNoteActive => translate('sharingNoteActive');
   String get sharingNoteEnded => translate('sharingNoteEnded');
+
+  // Feature Flags
+  String get featureFlagsTitle => translate('featureFlagsTitle');
+  String get featureFlagsWarning => translate('featureFlagsWarning');
+  String get featureFlagsSponsorSelection =>
+      translate('featureFlagsSponsorSelection');
+  String get featureFlagsSponsorId => translate('featureFlagsSponsorId');
+  String featureFlagsCurrentSponsor(String sponsorId) =>
+      translateWithParams('featureFlagsCurrentSponsor', [sponsorId]);
+  String get featureFlagsLoad => translate('featureFlagsLoad');
+  String featureFlagsLoadSuccess(String sponsorId) =>
+      translateWithParams('featureFlagsLoadSuccess', [sponsorId]);
+  String get featureFlagsSectionUI => translate('featureFlagsSectionUI');
+  String get featureFlagsSectionValidation =>
+      translate('featureFlagsSectionValidation');
+  String get featureFlagsUseReviewScreen =>
+      translate('featureFlagsUseReviewScreen');
+  String get featureFlagsUseReviewScreenDescription =>
+      translate('featureFlagsUseReviewScreenDescription');
+  String get featureFlagsUseAnimations =>
+      translate('featureFlagsUseAnimations');
+  String get featureFlagsUseAnimationsDescription =>
+      translate('featureFlagsUseAnimationsDescription');
+  String get featureFlagsUseOnePageRecordingScreen =>
+      translate('featureFlagsUseOnePageRecordingScreen');
+  String get featureFlagsUseOnePageRecordingScreenDescription =>
+      translate('featureFlagsUseOnePageRecordingScreenDescription');
+  String get featureFlagsOldEntryJustification =>
+      translate('featureFlagsOldEntryJustification');
+  String get featureFlagsOldEntryJustificationDescription =>
+      translate('featureFlagsOldEntryJustificationDescription');
+  String get featureFlagsShortDurationConfirmation =>
+      translate('featureFlagsShortDurationConfirmation');
+  String get featureFlagsShortDurationConfirmationDescription =>
+      translate('featureFlagsShortDurationConfirmationDescription');
+  String get featureFlagsLongDurationConfirmation =>
+      translate('featureFlagsLongDurationConfirmation');
+  String get featureFlagsLongDurationConfirmationDescription =>
+      translate('featureFlagsLongDurationConfirmationDescription');
+  String get featureFlagsLongDurationThreshold =>
+      translate('featureFlagsLongDurationThreshold');
+  String featureFlagsLongDurationThresholdDescription(int minutes) =>
+      translateWithParams('featureFlagsLongDurationThresholdDescription', [
+        minutes,
+      ]);
+  String get featureFlagsResetToDefaults =>
+      translate('featureFlagsResetToDefaults');
+  String get featureFlagsResetTitle => translate('featureFlagsResetTitle');
+  String get featureFlagsResetConfirmation =>
+      translate('featureFlagsResetConfirmation');
+  String get featureFlagsResetButton => translate('featureFlagsResetButton');
+  String get featureFlagsResetSuccess => translate('featureFlagsResetSuccess');
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,6 @@
 ---
 name: spec-compliance
-description: Proactive enforcement of spec/ directory guidelines including file naming, audience scope, and requirement format validation
+description: MUST BE USED when creating or modifying spec/ directory files. PROACTIVELY validates file naming, audience-specific content restrictions (no code in PRD files), and requirement format compliance. Enforces spec/README.md guidelines and /command remove-prd-code.md process.
 tools: Read, Grep, Bash
 ---
 
@@ -17,7 +17,7 @@ When reviewing spec/ files, you MUST enforce these rules strictly:
 ### 1. File Naming Convention
 - Files MUST follow pattern: `{audience}-{topic}(-{subtopic}).md`
 - Valid audiences: `prd-`, `ops-`, `dev-`
-- Examples: `prd-app.md`, `ops-deployment.md`, `dev-security-RBAC.md`
+- Examples: `prd-diary-app.md`, `ops-deployment.md`, `dev-security-RBAC.md`
 - REJECT files with incorrect naming patterns
 
 ### 2. Audience-Specific Content Restrictions

@@ -6,7 +6,7 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
-import 'package:clinical_diary/widgets/date_header.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
 import 'package:clinical_diary/widgets/intensity_row.dart';
@@ -18,8 +18,9 @@ class SimpleRecordingScreen extends StatefulWidget {
   const SimpleRecordingScreen({
     required this.nosebleedService,
     required this.enrollmentService,
+    required this.preferencesService,
     super.key,
-    this.initialDate,
+    this.initialStartDate,
     this.existingRecord,
     this.allRecords = const [],
     this.onDelete,
@@ -27,7 +28,8 @@ class SimpleRecordingScreen extends StatefulWidget {
 
   final NosebleedService nosebleedService;
   final EnrollmentService enrollmentService;
-  final DateTime? initialDate;
+  final PreferencesService preferencesService;
+  final DateTime? initialStartDate;
   final NosebleedRecord? existingRecord;
   final List<NosebleedRecord> allRecords;
   final Future<void> Function(String)? onDelete;
@@ -37,8 +39,9 @@ class SimpleRecordingScreen extends StatefulWidget {
 }
 
 class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
-  late DateTime _date;
-  DateTime? _startTime;
+  late DateTime _startDate;
+  late DateTime _endDate;
+  DateTime _startTime = DateTime.now();
   DateTime? _endTime;
   NosebleedIntensity? _intensity;
   bool _isSaving = false;
@@ -55,50 +58,81 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
   @override
   void initState() {
     super.initState();
-    _date = widget.initialDate ?? DateTime.now();
+    final initialDate = widget.initialStartDate ?? DateTime.now();
+    _startDate = initialDate;
+    _endDate = initialDate;
 
     if (widget.existingRecord != null) {
       _startTime = widget.existingRecord!.startTime;
       _endTime = widget.existingRecord!.endTime;
       _intensity = widget.existingRecord!.intensity;
+      // Set dates from existing record times
+      _startDate = DateTime(_startTime.year, _startTime.month, _startTime.day);
+      if (_endTime != null) {
+        _endDate = DateTime(_endTime!.year, _endTime!.month, _endTime!.day);
+      }
       // Existing record means all present fields were "set"
-      _userSetStart = _startTime != null;
+      _userSetStart = true;
       _userSetEnd = _endTime != null;
       _userSetIntensity = _intensity != null;
     } else {
       // Default start time to the selected date with current time of day
-      // but don't mark it as user-set yet
+      // CUR-447: Mark as user-set since a time is displayed and user expects it to be valid
       _startTime = DateTime(
-        _date.year,
-        _date.month,
-        _date.day,
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
         DateTime.now().hour,
         DateTime.now().minute,
       );
+      _userSetStart = true; // Time is shown, so consider it "set"
       // End time is null (unset) by default - user must explicitly set it
       // This prevents end time from being in the future
       _endTime = null;
     }
   }
 
-  /// Returns the maximum DateTime allowed for time selection.
-  /// For today, returns DateTime.now() to prevent future times.
-  /// For past dates, returns end of that day (23:59:59) to allow any time.
-  DateTime? get _maxDateTimeForTimePicker {
+  /// Returns the maximum DateTime allowed for start time selection.
+  DateTime? get _maxStartDateTime {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final selectedDay = DateTime(_date.year, _date.month, _date.day);
+    final selectedDay = DateTime(
+      _startDate.year,
+      _startDate.month,
+      _startDate.day,
+    );
 
     if (selectedDay.isBefore(today)) {
       // Past date: allow any time on that day
-      return DateTime(_date.year, _date.month, _date.day, 23, 59, 59);
+      return DateTime(
+        _startDate.year,
+        _startDate.month,
+        _startDate.day,
+        23,
+        59,
+        59,
+      );
     }
-    // Today or future: use current time as max (default behavior)
+    // Today: use current time as max
+    return null;
+  }
+
+  /// Returns the maximum DateTime allowed for end time selection.
+  DateTime? get _maxEndDateTime {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(_endDate.year, _endDate.month, _endDate.day);
+
+    if (selectedDay.isBefore(today)) {
+      // Past date: allow any time on that day
+      return DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+    }
+    // Today: use current time as max
     return null;
   }
 
   List<NosebleedRecord> _getOverlappingEvents() {
-    if (_startTime == null || _endTime == null) return [];
+    if (_endTime == null) return [];
 
     return widget.allRecords.where((record) {
       // Skip the current record if editing
@@ -108,15 +142,13 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       }
 
       // Only check real events with both start and end times
-      if (!record.isRealEvent ||
-          record.startTime == null ||
-          record.endTime == null) {
+      if (!record.isRealNosebleedEvent || record.endTime == null) {
         return false;
       }
 
       // Check if events overlap
-      return _startTime!.isBefore(record.endTime!) &&
-          _endTime!.isAfter(record.startTime!);
+      return _startTime.isBefore(record.endTime!) &&
+          _endTime!.isAfter(record.startTime);
     }).toList();
   }
 
@@ -168,27 +200,29 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     setState(() => _isSaving = true);
 
     try {
+      String? recordId;
       if (widget.existingRecord != null) {
         // Update existing record
-        await widget.nosebleedService.updateRecord(
+        final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
-          date: _date,
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
         );
+        recordId = record.id;
       } else {
         // Create new record (isIncomplete is calculated automatically by service)
-        await widget.nosebleedService.addRecord(
-          date: _date,
+        final record = await widget.nosebleedService.addRecord(
           startTime: _startTime,
           endTime: _endTime,
           intensity: _intensity,
         );
+        recordId = record.id;
       }
 
       if (mounted) {
-        Navigator.pop(context, true);
+        // Return record ID so home screen can scroll to and highlight it
+        Navigator.pop(context, recordId);
       }
     } catch (e) {
       if (mounted) {
@@ -203,20 +237,37 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
     }
   }
 
-  void _handleDateChange(DateTime newDate) {
+  void _handleStartDateChange(DateTime newDate) {
     setState(() {
-      _date = newDate;
+      _startDate = newDate;
       // Update start time to match new date while preserving time
-      if (_startTime != null) {
-        _startTime = DateTime(
-          newDate.year,
-          newDate.month,
-          newDate.day,
-          _startTime!.hour,
-          _startTime!.minute,
-        );
+      _startTime = DateTime(
+        newDate.year,
+        newDate.month,
+        newDate.day,
+        _startTime.hour,
+        _startTime.minute,
+      );
+      // If end date is before start date, update it to match
+      if (_endDate.isBefore(newDate)) {
+        _endDate = newDate;
+        if (_endTime != null) {
+          _endTime = DateTime(
+            newDate.year,
+            newDate.month,
+            newDate.day,
+            _endTime!.hour,
+            _endTime!.minute,
+          );
+        }
       }
-      // Update end time similarly
+    });
+  }
+
+  void _handleEndDateChange(DateTime newDate) {
+    setState(() {
+      _endDate = newDate;
+      // Update end time to match new date while preserving time
       if (_endTime != null) {
         _endTime = DateTime(
           newDate.year,
@@ -244,7 +295,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
   void _handleEndTimeChange(DateTime time, AppLocalizations l10n) {
     // Validate end time is after start time
-    if (_startTime != null && time.isBefore(_startTime!)) {
+    if (time.isBefore(_startTime)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
@@ -269,9 +320,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
       onConfirmDelete: (String reason) async {
         if (widget.onDelete != null) {
           await widget.onDelete!(reason);
-          if (mounted) {
-            Navigator.pop(context, true);
-          }
+        }
+        // Pop the recording screen after the dialog closes
+        if (mounted) {
+          Navigator.pop(context, true);
         }
       },
     );
@@ -324,7 +376,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
             children: [
               // Header with back and delete buttons
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -350,14 +405,9 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                 ),
               ),
 
-              // Date header (tappable)
-              DateHeader(date: _date, onChange: _handleDateChange),
-
-              const SizedBox(height: 16),
-
-              // Scrollable content
+              // Content area (no scroll)
               Expanded(
-                child: SingleChildScrollView(
+                child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +415,7 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                       // Overlap warning
                       if (hasOverlaps)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: OverlapWarning(
                             overlappingRecords: overlappingEvents,
                             onViewConflict: (conflictingRecord) {
@@ -376,36 +426,32 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                         ),
 
                       // Start Time Section
-                      Text(
-                        l10n.nosebleedStart,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          l10n.nosebleedStart,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
                       InlineTimePicker(
                         key: _startTimePickerKey,
-                        initialTime:
-                            _startTime ??
-                            DateTime(
-                              _date.year,
-                              _date.month,
-                              _date.day,
-                              DateTime.now().hour,
-                              DateTime.now().minute,
-                            ),
+                        initialTime: _startTime,
                         onTimeChanged: _handleStartTimeChange,
                         allowFutureTimes: false,
-                        maxDateTime: _maxDateTimeForTimePicker,
+                        maxDateTime: _maxStartDateTime,
+                        date: _startDate,
+                        onDateChanged: _handleStartDateChange,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // Intensity Section
-                      Text(
-                        l10n.intensity,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          l10n.maxIntensity,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -414,13 +460,14 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                         onSelect: _handleIntensitySelect,
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // End Time Section
-                      Text(
-                        l10n.nosebleedEnd,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          l10n.nosebleedEnd,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -431,10 +478,12 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
                             _handleEndTimeChange(time, l10n),
                         allowFutureTimes: false,
                         minTime: _startTime,
-                        maxDateTime: _maxDateTimeForTimePicker,
+                        maxDateTime: _maxEndDateTime,
+                        date: _endDate,
+                        onDateChanged: _handleEndDateChange,
                       ),
 
-                      const SizedBox(height: 24),
+                      const Spacer(),
                     ],
                   ),
                 ),
@@ -442,7 +491,10 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
 
               // Bottom action button
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Column(
                   children: [
                     // CUR-410: Red error container removed - overlap warning banner

@@ -1,8 +1,12 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,12 +16,18 @@ class SettingsScreen extends StatefulWidget {
     required this.preferencesService,
     this.onLanguageChanged,
     this.onThemeModeChanged,
+    this.onLargerTextChanged,
+    this.onDyslexicFontChanged,
     super.key,
   });
 
   final PreferencesService preferencesService;
   final ValueChanged<String>? onLanguageChanged;
   final ValueChanged<bool>? onThemeModeChanged;
+  // CUR-488: Callback for larger text preference changes
+  final ValueChanged<bool>? onLargerTextChanged;
+  // CUR-509: Callback for dyslexia-friendly font preference changes
+  final ValueChanged<bool>? onDyslexicFontChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -27,6 +37,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = false;
   bool _dyslexiaFriendlyFont = false;
   bool _largerTextAndControls = false;
+  bool _useAnimation = true;
+  bool _compactView = false;
   String _languageCode = 'en';
   bool _isLoading = true;
 
@@ -42,6 +54,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isDarkMode = prefs.isDarkMode;
       _dyslexiaFriendlyFont = prefs.dyslexiaFriendlyFont;
       _largerTextAndControls = prefs.largerTextAndControls;
+      _useAnimation = prefs.useAnimation;
+      _compactView = prefs.compactView;
       _languageCode = prefs.languageCode;
       _isLoading = false;
     });
@@ -53,6 +67,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         isDarkMode: _isDarkMode,
         dyslexiaFriendlyFont: _dyslexiaFriendlyFont,
         largerTextAndControls: _largerTextAndControls,
+        useAnimation: _useAnimation,
+        compactView: _compactView,
         languageCode: _languageCode,
       ),
     );
@@ -167,6 +183,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: (value) {
                               setState(() => _dyslexiaFriendlyFont = value);
                               _savePreferences();
+                              // CUR-509: Notify parent to update theme font
+                              widget.onDyslexicFontChanged?.call(value);
                             },
                           ),
                           const SizedBox(height: 12),
@@ -181,6 +199,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             value: _largerTextAndControls,
                             onChanged: (value) {
                               setState(() => _largerTextAndControls = value);
+                              _savePreferences();
+                              // CUR-488: Notify parent to apply text scaling
+                              widget.onLargerTextChanged?.call(value);
+                            },
+                          ),
+                          // Use Animation option - only show if feature flag is enabled
+                          if (FeatureFlagService.instance.useAnimations) ...[
+                            const SizedBox(height: 12),
+                            _buildAccessibilityOption(
+                              context,
+                              title: AppLocalizations.of(context).useAnimation,
+                              subtitle: AppLocalizations.of(
+                                context,
+                              ).useAnimationDescription,
+                              value: _useAnimation,
+                              onChanged: (value) {
+                                setState(() => _useAnimation = value);
+                                _savePreferences();
+                              },
+                            ),
+                          ],
+                          // CUR-464: Compact view option
+                          const SizedBox(height: 12),
+                          _buildAccessibilityOption(
+                            context,
+                            title: AppLocalizations.of(context).compactView,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            ).compactViewDescription,
+                            value: _compactView,
+                            onChanged: (value) {
+                              setState(() => _compactView = value);
                               _savePreferences();
                             },
                           ),
@@ -225,6 +275,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             isSelected: _languageCode == 'de',
                             onTap: () => _selectLanguage('de'),
                           ),
+
+                          // Feature Flags - only available in dev/qa builds
+                          if (F.showDevTools) ...[
+                            const SizedBox(height: 32),
+                            _buildSectionHeader(
+                              context,
+                              AppLocalizations.of(context).featureFlagsTitle,
+                              AppLocalizations.of(context).featureFlagsWarning,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildNavigationOption(
+                              context,
+                              icon: Icons.science_outlined,
+                              title: AppLocalizations.of(
+                                context,
+                              ).featureFlagsTitle,
+                              subtitle: AppLocalizations.of(
+                                context,
+                              ).featureFlagsWarning,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  AppPageRoute<void>(
+                                    builder: (context) =>
+                                        const FeatureFlagsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -485,6 +565,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationOption(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ],
         ),
       ),
     );

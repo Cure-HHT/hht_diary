@@ -13,9 +13,21 @@
 *.backup
 *.dump
 
-# IDE and editor files
-.vscode/
-.idea/
+# IDE and editor files - allow run/launch configs, ignore workspace-specific
+# VS Code - allow launch.json for shared run configurations
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+# IntelliJ IDEA - allow run configurations, ignore user-specific files
+.idea/*
+!.idea/runConfigurations/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries/
+.idea/shelf/
+# Common editor files
 *.swp
 *.swo
 *~

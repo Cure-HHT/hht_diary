@@ -15,6 +15,7 @@ class EventListItem extends StatelessWidget {
     super.key,
     this.onTap,
     this.hasOverlap = false,
+    this.highlightColor,
   });
   final NosebleedRecord record;
   final VoidCallback? onTap;
@@ -22,10 +23,13 @@ class EventListItem extends StatelessWidget {
   /// Whether this record overlaps with another record's time range
   final bool hasOverlap;
 
-  /// Format start time for one-line display (e.g., "09:09 PM")
+  /// Optional highlight color to apply to the card background (for flash animation)
+  final Color? highlightColor;
+
+  /// Format start time for one-line display (e.g., "9:09 PM")
+  /// Times are displayed in the user's current local timezone.
   String _startTimeFormatted(String locale) {
-    if (record.startTime == null) return '--:--';
-    return DateFormat.jm(locale).format(record.startTime!);
+    return DateFormat.jm(locale).format(record.startTime);
   }
 
   /// Get the intensity icon image path
@@ -49,12 +53,12 @@ class EventListItem extends StatelessWidget {
 
   /// Check if the event crosses midnight (ends on a different day)
   bool get _isMultiDay {
-    if (record.startTime == null || record.endTime == null) return false;
+    if (record.endTime == null) return false;
 
     final startDay = DateTime(
-      record.startTime!.year,
-      record.startTime!.month,
-      record.startTime!.day,
+      record.startTime.year,
+      record.startTime.month,
+      record.startTime.day,
     );
     final endDay = DateTime(
       record.endTime!.year,
@@ -65,14 +69,23 @@ class EventListItem extends StatelessWidget {
     return endDay.isAfter(startDay);
   }
 
-  String get _duration {
+  /// CUR-488: Show "Incomplete" for ongoing events (no end time set)
+  /// Show minimum "1m" if start and end are the same (0 duration)
+  /// Returns (text, isIncomplete) tuple for styling
+  (String, bool) _getDurationInfo(AppLocalizations l10n) {
     final minutes = record.durationMinutes;
-    if (minutes == null) return '';
-    if (minutes < 60) return '${minutes}m';
+    // If no end time set, show "Incomplete" instead of empty or 0m
+    if (record.endTime == null) {
+      return (l10n.incomplete, true);
+    }
+    if (minutes == null) return ('', false);
+    // Show minimum 1m if start and end are the same time
+    if (minutes == 0) return ('1m', false);
+    if (minutes < 60) return ('${minutes}m', false);
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
-    if (remainingMinutes == 0) return '${hours}h';
-    return '${hours}h ${remainingMinutes}m';
+    if (remainingMinutes == 0) return ('${hours}h', false);
+    return ('${hours}h ${remainingMinutes}m', false);
   }
 
   @override
@@ -98,6 +111,9 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.green.shade50,
+      // CUR-488 Phase 2: Increased elevation for more visible shadows
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -142,6 +158,9 @@ class EventListItem extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       color: Colors.yellow.shade50,
+      // CUR-488 Phase 2: Increased elevation for more visible shadows
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -182,108 +201,159 @@ class EventListItem extends StatelessWidget {
   }
 
   /// Build card for regular nosebleed events
-  /// CUR-443: One-line format: "09:09 PM (icon) 1h 11m" with warning icon
+  /// CUR-443: One-line format: "9:09 PM PST (icon) 1h 11m" with warning icon
+  /// Fixed-width columns for alignment across rows
+  /// CUR-488 Phase 2: Enhanced styling with better shadows, colors, and incomplete tint
   Widget _buildNosebleedCard(
     BuildContext context,
     AppLocalizations l10n,
     String locale,
   ) {
+    // Fixed widths for column alignment
+    // Time column: "12:59 AM" needs ~80px, 24h "23:59" needs ~45px
+    // Note: timezone can be shown on second line when different from device
+    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
+    final timeWidth = use24Hour ? 45.0 : 80.0;
+    const iconWidth = 32.0; // 28px icon + 4px gap
+    // CUR-488 Phase 2: Widened to 90px to fit "Incomplete" with large text on iPhone SE
+    const durationWidth = 90.0;
+
+    // CUR-488 Phase 2: Get duration info with incomplete flag for styling
+    final (durationText, isIncompleteDuration) = _getDurationInfo(l10n);
+
+    // CUR-488 Phase 2: Subtle orange tint for incomplete records
+    final cardColor =
+        highlightColor ?? (record.isIncomplete ? Colors.orange.shade50 : null);
+
     return Card(
       margin: EdgeInsets.zero,
+      color: cardColor,
+      // CUR-488 Phase 2: Increased elevation for more visible shadows
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Row(
-            children: [
-              // Start time
-              Text(
-                _startTimeFormatted(locale),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-              ),
-
-              // Intensity mini-icon with subtle border
-              if (_intensityImagePath != null) ...[
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.3),
+        child: SizedBox(
+          height: 40,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                // Start time - fixed width, right aligned
+                // CUR-488 Phase 2: Darker text for better readability
+                SizedBox(
+                  width: timeWidth,
+                  child: Text(
+                    _startTimeFormatted(locale),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Image.asset(
-                    _intensityImagePath!,
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.contain,
                   ),
                 ),
-              ],
 
-              // Duration
-              if (_duration.isNotEmpty) ...[
-                const SizedBox(width: 12),
-                Text(
-                  _duration,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                const SizedBox(width: 8),
+
+                // Intensity mini-icon - fixed width container with tight border
+                SizedBox(
+                  width: iconWidth,
+                  child: _intensityImagePath != null
+                      ? Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outline.withValues(alpha: 0.5),
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: Image.asset(
+                              _intensityImagePath!,
+                              width: 28,
+                              height: 28,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+
+                // Duration - fixed width with left padding
+                // CUR-488 Phase 2: Orange text for "Incomplete", less muted for durations
+                // Use smaller font for "Incomplete" to fit on small screens (iPhone SE)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: SizedBox(
+                    width: durationWidth,
+                    child: Text(
+                      durationText,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: isIncompleteDuration
+                            ? Colors.orange.shade700
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: isIncompleteDuration
+                            ? FontWeight.w500
+                            : null,
+                        fontSize: isIncompleteDuration ? 12 : null,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Spacer to push status indicators to the right
+                // Use Expanded to take remaining space and prevent overflow
+                Expanded(
+                  child: _isMultiDay
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Text(
+                            l10n.translate('plusOneDay'),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+
+                // Incomplete indicator (compact)
+                if (record.isIncomplete) ...[
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: Colors.orange.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Overlap warning icon
+                if (hasOverlap) ...[
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 24,
+                    color: Colors.orange.shade600,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Chevron
+                if (onTap != null)
+                  Icon(
+                    Icons.chevron_right,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
-                ),
               ],
-
-              // Multi-day indicator
-              if (_isMultiDay) ...[
-                const SizedBox(width: 8),
-                Text(
-                  l10n.translate('plusOneDay'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-
-              // Spacer to push status indicators to the right
-              const Spacer(),
-
-              // Incomplete indicator (compact)
-              if (record.isIncomplete) ...[
-                Icon(
-                  Icons.edit_outlined,
-                  size: 20,
-                  color: Colors.orange.shade700,
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // Overlap warning icon
-              if (hasOverlap) ...[
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 24,
-                  color: Colors.orange.shade600,
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              // Chevron
-              if (onTap != null)
-                Icon(
-                  Icons.chevron_right,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-            ],
+            ),
           ),
         ),
       ),

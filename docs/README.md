@@ -15,7 +15,7 @@ While `spec/` contains formal requirements documents (WHAT and WHY), the `docs/`
 
 | Directory | Purpose | Content Type | Example |
 | --- | --- | --- | --- |
-| **spec/** | Formal requirements | WHAT system does, WHY it exists | `prd-app.md`: "System must support offline data entry" |
+| **spec/** | Formal requirements | WHAT system does, WHY it exists | `prd-diary-app.md`: "System must support offline data entry" |
 | **docs/** | Implementation details | HOW decisions were made, technical context | `adr/ADR-001-event-sourcing.md`: "We chose event sourcing because..." |
 
 ### Key Differences

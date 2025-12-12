@@ -1,0 +1,65 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "dev",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=APP_FLAVOR=dev"
+      ],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "dev (profile)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=APP_FLAVOR=dev"
+      ],
+      "flutterMode": "profile"
+    },
+    {
+      "name": "qa",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=APP_FLAVOR=qa"
+      ],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "uat",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=APP_FLAVOR=uat"
+      ],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "prod",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=APP_FLAVOR=prod"
+      ],
+      "flutterMode": "debug"
+    },
+    {
+      "name": "prod (release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=APP_FLAVOR=prod"
+      ],
+      "flutterMode": "release"
+    }
+  ]
+}

@@ -3,11 +3,14 @@
 
 import 'dart:async';
 
+import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/account_profile_screen.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
+import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/screens/login_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
@@ -16,7 +19,9 @@ import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
+import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +36,9 @@ class HomeScreen extends StatefulWidget {
     required this.authService,
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
+    required this.onLargerTextChanged,
     required this.preferencesService,
+    this.onDyslexicFontChanged,
     super.key,
   });
   final NosebleedService nosebleedService;
@@ -39,6 +46,10 @@ class HomeScreen extends StatefulWidget {
   final AuthService authService;
   final ValueChanged<String> onLocaleChanged;
   final ValueChanged<bool> onThemeModeChanged;
+  // CUR-488: Callback for larger text preference changes
+  final ValueChanged<bool> onLargerTextChanged;
+  // CUR-509: Callback for dyslexia-friendly font preference changes
+  final ValueChanged<bool>? onDyslexicFontChanged;
   final PreferencesService preferencesService;
 
   @override
@@ -52,14 +63,37 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NosebleedRecord> _incompleteRecords = [];
   bool _isEnrolled = false;
   bool _isLoggedIn = false;
-  bool _useSimpleRecordingScreen = false; // Demo toggle for new simple UI
+  bool _useAnimation = true; // User preference for animations
+  bool _compactView = false; // User preference for compact list view
+
+  // CUR-464: Track record to flash/highlight after save
+  String? _flashRecordId;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadRecords();
+    _loadPreferences();
     _checkEnrollmentStatus();
     _checkLoginStatus();
+  }
+
+  Future<void> _loadPreferences() async {
+    final useAnimation = await widget.preferencesService.getUseAnimation();
+    final compactView = await widget.preferencesService.getCompactView();
+    if (mounted) {
+      setState(() {
+        _useAnimation = useAnimation;
+        _compactView = compactView;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkLoginStatus() async {
@@ -85,12 +119,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadRecords() async {
     setState(() => _isLoading = true);
 
-    final records = await widget.nosebleedService.getLocalRecords();
+    final records = await widget.nosebleedService.getLocalMaterializedRecords();
     final hasYesterday = await widget.nosebleedService.hasRecordsForYesterday();
 
     // Get incomplete records
     final incomplete = records
-        .where((r) => r.isIncomplete && r.isRealEvent)
+        .where((r) => r.isIncomplete && r.isRealNosebleedEvent)
         .toList();
 
     setState(() {
@@ -102,26 +136,59 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navigateToRecording() async {
-    final result = await Navigator.push<bool>(
+    // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+    final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+      AppPageRoute(
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 allRecords: _records,
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
+                preferencesService: widget.preferencesService,
                 allRecords: _records,
               ),
       ),
     );
 
-    if (result ?? false) {
-      unawaited(_loadRecords());
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _flashRecordId = result;
+      });
+      await _loadRecords();
+      _scrollToRecord(result);
     }
+  }
+
+  // CUR-489: Track GlobalKeys for each record to enable scroll-to-item
+  final Map<String, GlobalKey> _recordKeys = {};
+
+  /// Get or create a GlobalKey for a record
+  GlobalKey _getKeyForRecord(String recordId) {
+    return _recordKeys.putIfAbsent(recordId, GlobalKey.new);
+  }
+
+  /// Scroll to a specific record in the list and ensure it's visible.
+  /// CUR-489: Uses Scrollable.ensureVisible to scroll to actual item position
+  void _scrollToRecord(String recordId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final key = _recordKeys[recordId];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          alignment: 0.3, // Position item 30% from top for visibility
+        );
+      }
+    });
   }
 
   Future<void> _handleYesterdayNoNosebleeds() async {
@@ -132,27 +199,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleYesterdayHadNosebleeds() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    final result = await Navigator.push<bool>(
+    // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+    final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+      AppPageRoute(
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
-                initialDate: yesterday,
+                preferencesService: widget.preferencesService,
+                initialStartDate: yesterday,
                 allRecords: _records,
               )
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
-                initialDate: yesterday,
+                preferencesService: widget.preferencesService,
+                diaryEntryDate: yesterday,
                 allRecords: _records,
               ),
       ),
     );
 
-    if (result ?? false) {
-      unawaited(_loadRecords());
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _flashRecordId = result;
+      });
+      await _loadRecords();
+      _scrollToRecord(result);
     }
   }
 
@@ -169,7 +245,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final twoDaysAgo = now.subtract(const Duration(days: 2));
 
     await widget.nosebleedService.addRecord(
-      date: twoDaysAgo,
       startTime: DateTime(
         twoDaysAgo.year,
         twoDaysAgo.month,
@@ -189,7 +264,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     await widget.nosebleedService.addRecord(
-      date: yesterday,
       startTime: DateTime(
         yesterday.year,
         yesterday.month,
@@ -238,6 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed ?? false) {
+      // ignore: invalid_use_of_visible_for_testing_member
       await widget.nosebleedService.clearLocalData();
       unawaited(_loadRecords());
 
@@ -250,6 +325,13 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  void _handleFeatureFlags() {
+    Navigator.push(
+      context,
+      AppPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
+    );
   }
 
   Future<void> _handleEndClinicalTrial() async {
@@ -300,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleLogin() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (context) => LoginScreen(
           authService: widget.authService,
           onLoginSuccess: () {
@@ -445,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleShowAccountProfile() async {
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (context) =>
             AccountProfileScreen(authService: widget.authService),
       ),
@@ -456,15 +538,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_incompleteRecords.isEmpty) return;
 
     // Navigate to edit the first incomplete record
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final firstIncomplete = _incompleteRecords.first;
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+      AppPageRoute(
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
-                initialDate: firstIncomplete.date,
+                preferencesService: widget.preferencesService,
+                initialStartDate: firstIncomplete.startTime,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -478,7 +563,8 @@ class _HomeScreenState extends State<HomeScreen> {
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
-                initialDate: firstIncomplete.date,
+                preferencesService: widget.preferencesService,
+                diaryEntryDate: firstIncomplete.startTime,
                 existingRecord: firstIncomplete,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -498,14 +584,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navigateToEditRecord(NosebleedRecord record) async {
-    final result = await Navigator.push<bool>(
+    // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-508: Use feature flag to determine which recording screen to show
+    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+    final result = await Navigator.push<String?>(
       context,
-      MaterialPageRoute(
-        builder: (context) => _useSimpleRecordingScreen
+      AppPageRoute(
+        builder: (context) => useOnePage
             ? SimpleRecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
-                initialDate: record.date,
+                preferencesService: widget.preferencesService,
+                initialStartDate: null,
                 existingRecord: record,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -519,7 +609,8 @@ class _HomeScreenState extends State<HomeScreen> {
             : RecordingScreen(
                 nosebleedService: widget.nosebleedService,
                 enrollmentService: widget.enrollmentService,
-                initialDate: record.date,
+                preferencesService: widget.preferencesService,
+                diaryEntryDate: null,
                 existingRecord: record,
                 allRecords: _records,
                 onDelete: (reason) async {
@@ -533,17 +624,19 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (result ?? false) {
-      unawaited(_loadRecords());
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _flashRecordId = result;
+      });
+      await _loadRecords();
+      _scrollToRecord(result);
     }
   }
 
   /// Check if a record overlaps with any other record in the list
   /// CUR-443: Used to show warning icon on overlapping events
   bool _hasOverlap(NosebleedRecord record) {
-    if (!record.isRealEvent ||
-        record.startTime == null ||
-        record.endTime == null) {
+    if (!record.isRealNosebleedEvent || record.endTime == null) {
       return false;
     }
 
@@ -552,15 +645,13 @@ class _HomeScreenState extends State<HomeScreen> {
       if (other.id == record.id) continue;
 
       // Only check real events with both start and end times
-      if (!other.isRealEvent ||
-          other.startTime == null ||
-          other.endTime == null) {
+      if (!other.isRealNosebleedEvent || other.endTime == null) {
         continue;
       }
 
       // Check if events overlap
-      if (record.startTime!.isBefore(other.endTime!) &&
-          record.endTime!.isAfter(other.startTime!)) {
+      if (record.startTime.isBefore(other.endTime!) &&
+          record.endTime!.isAfter(other.startTime)) {
         return true;
       }
     }
@@ -578,14 +669,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final groups = <_GroupedRecords>[];
 
     // Get incomplete records that are older than yesterday
-    final olderIncompleteRecords =
-        _records.where((r) {
-          if (!r.isIncomplete || !r.isRealEvent) return false;
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr != todayStr && dateStr != yesterdayStr;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    final olderIncompleteRecords = _records.where((r) {
+      if (!r.isIncomplete || !r.isRealNosebleedEvent) return false;
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+      return dateStr != todayStr && dateStr != yesterdayStr;
+    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
 
     if (olderIncompleteRecords.isNotEmpty) {
       groups.add(
@@ -598,17 +686,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // Yesterday's records (excluding incomplete ones shown above)
-    final yesterdayRecords =
-        _records.where((r) {
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr == yesterdayStr && r.isRealEvent;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    final yesterdayRecords = _records.where((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+      return dateStr == yesterdayStr && r.isRealNosebleedEvent;
+    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
 
     // Check if there are ANY records for yesterday (including special events)
     final hasAnyYesterdayRecords = _records.any((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
       return dateStr == yesterdayStr;
     });
 
@@ -621,18 +706,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // Today's records (excluding incomplete - they have their own warning banner)
-    final todayRecords =
-        _records.where((r) {
-          final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
-          return dateStr == todayStr && r.isRealEvent && !r.isIncomplete;
-        }).toList()..sort(
-          (a, b) => (a.startTime ?? a.date).compareTo(b.startTime ?? b.date),
-        );
+    // Today's records (including incomplete - CUR-488)
+    final todayRecords = _records.where((r) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
+      return dateStr == todayStr && r.isRealNosebleedEvent;
+    }).toList()..sort((a, b) => (a.startTime).compareTo(b.startTime));
 
     // Check if there are ANY records for today (including special events)
     final hasAnyTodayRecords = _records.any((r) {
-      final dateStr = DateFormat('yyyy-MM-dd').format(r.date);
+      final dateStr = DateFormat('yyyy-MM-dd').format(r.startTime);
       return dateStr == todayStr;
     });
 
@@ -668,20 +750,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   LogoMenu(
                     onAddExampleData: _handleAddExampleData,
                     onResetAllData: _handleResetAllData,
+                    onFeatureFlags: _handleFeatureFlags,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
+                    showDevTools: AppConfig.showDevTools,
                   ),
-                  // Centered title
+                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
                   Expanded(
-                    child: Text(
-                      AppLocalizations.of(context).appTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppLocalizations.of(context).appTitle,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   // Profile menu on the right
@@ -698,14 +784,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'accessibility') {
                         await Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
+                          AppPageRoute<void>(
                             builder: (context) => SettingsScreen(
                               preferencesService: widget.preferencesService,
                               onLanguageChanged: widget.onLocaleChanged,
                               onThemeModeChanged: widget.onThemeModeChanged,
+                              onLargerTextChanged: widget.onLargerTextChanged,
+                              onDyslexicFontChanged:
+                                  widget.onDyslexicFontChanged,
                             ),
                           ),
                         );
+                        // Reload preferences in case they changed
+                        await _loadPreferences();
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -719,7 +810,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else if (value == 'enroll') {
                         await Navigator.push(
                           context,
-                          MaterialPageRoute<void>(
+                          AppPageRoute<void>(
                             builder: (context) => ClinicalTrialEnrollmentScreen(
                               enrollmentService: widget.enrollmentService,
                             ),
@@ -872,13 +963,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
                       onRefresh: _loadRecords,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: groupedRecords.length,
-                        itemBuilder: (context, index) {
-                          final group = groupedRecords[index];
-                          return _buildGroup(context, group);
-                        },
+                      child: Scrollbar(
+                        thumbVisibility: true,
+                        controller: _scrollController,
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: groupedRecords.length,
+                          itemBuilder: (context, index) {
+                            final group = groupedRecords[index];
+                            return _buildGroup(context, group);
+                          },
+                        ),
                       ),
                     ),
             ),
@@ -926,74 +1022,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Calendar button with demo toggle
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await showDialog<void>(
-                              context: context,
-                              builder: (context) => CalendarScreen(
-                                nosebleedService: widget.nosebleedService,
-                                enrollmentService: widget.enrollmentService,
-                              ),
-                            );
-                            unawaited(_loadRecords());
-                          },
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(AppLocalizations.of(context).calendar),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 48),
-                          ),
+                  // Calendar button
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await showDialog<void>(
+                        context: context,
+                        builder: (context) => CalendarScreen(
+                          nosebleedService: widget.nosebleedService,
+                          enrollmentService: widget.enrollmentService,
+                          preferencesService: widget.preferencesService,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Demo toggle for simple recording screen
-                      Builder(
-                        builder: (context) {
-                          final l10n = AppLocalizations.of(context);
-                          return Tooltip(
-                            message: _useSimpleRecordingScreen
-                                ? l10n.usingSimpleUI
-                                : l10n.usingClassicUI,
-                            child: IconButton.outlined(
-                              onPressed: () {
-                                setState(() {
-                                  _useSimpleRecordingScreen =
-                                      !_useSimpleRecordingScreen;
-                                });
-                                final l10nSnack = AppLocalizations.of(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      _useSimpleRecordingScreen
-                                          ? l10nSnack.switchedToSimpleUI
-                                          : l10nSnack.switchedToClassicUI,
-                                    ),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-
-                              icon: Icon(
-                                _useSimpleRecordingScreen
-                                    ? Icons.view_agenda
-                                    : Icons.dashboard,
-                              ),
-                              style: IconButton.styleFrom(
-                                minimumSize: const Size(48, 48),
-                                side: BorderSide(
-                                  color: _useSimpleRecordingScreen
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                      );
+                      unawaited(_loadRecords());
+                    },
+                    icon: const Icon(Icons.calendar_today),
+                    label: Text(AppLocalizations.of(context).calendar),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
                   ),
                 ],
               ),
@@ -1088,11 +1134,27 @@ class _HomeScreenState extends State<HomeScreen> {
         else
           ...group.records.map(
             (record) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: EventListItem(
-                record: record,
-                onTap: () => _navigateToEditRecord(record),
-                hasOverlap: _hasOverlap(record),
+              // CUR-489: Use GlobalKey for scroll-to-item functionality
+              key: _getKeyForRecord(record.id),
+              // CUR-464: Use smaller gap when compact view is enabled
+              padding: EdgeInsets.only(bottom: _compactView ? 4 : 8),
+              // CUR-464: Wrap with FlashHighlight to animate new records
+              child: FlashHighlight(
+                flash: record.id == _flashRecordId,
+                enabled: _useAnimation,
+                onFlashComplete: () {
+                  if (mounted) {
+                    setState(() {
+                      _flashRecordId = null;
+                    });
+                  }
+                },
+                builder: (context, highlightColor) => EventListItem(
+                  record: record,
+                  onTap: () => _navigateToEditRecord(record),
+                  hasOverlap: _hasOverlap(record),
+                  highlightColor: highlightColor,
+                ),
               ),
             ),
           ),

@@ -46,6 +46,31 @@ Platform components SHALL include:
 
 ---
 
+# REQ-p01041: Open Source Licensing
+
+**Level**: PRD | **Implements**: - | **Status**: Active
+
+The Clinical Trial Diary Platform core codebase SHALL be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) to ensure derivative works remain open source and network use triggers source disclosure requirements.
+
+Licensing SHALL specify:
+- AGPL-3.0 for core platform code (packages/, apps/, database/)
+- Sponsor-specific code in sponsor/ directories remains proprietary to each sponsor
+- Documentation in docs/ licensed under CC-BY-SA 4.0
+- Third-party dependencies must be compatible with AGPL-3.0
+
+**Rationale**: AGPL-3.0 ensures modifications to the platform are shared back with the community while allowing the core platform to benefit from open source collaboration. The copyleft provisions protect against proprietary forks while the network use clause ensures SaaS deployments also share improvements. Sponsor isolation ensures each sponsor's proprietary customizations remain protected.
+
+**Acceptance Criteria**:
+- LICENSE file exists at repository root with complete AGPL-3.0 text
+- All source files include appropriate license headers or reference root LICENSE
+- Sponsor directories clearly marked as proprietary in their README files
+- CONTRIBUTING.md references licensing requirements for contributions
+- Third-party dependency audit confirms AGPL-3.0 compatibility
+
+*End* *Open Source Licensing* | **Hash**: 8c10dd61
+
+---
+
 ## Platform Architecture
 
 ```

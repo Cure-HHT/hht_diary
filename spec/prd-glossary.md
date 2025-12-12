@@ -327,7 +327,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Usage Context**: Patient enrollment workflow, investigator instructions
 
-**See**: prd-app.md (REQ-p00009) for linking code specification
+**See**: prd-diary-app.md (REQ-p00009) for linking code specification
 
 ### De-identified Data
 
@@ -965,7 +965,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Related Documentation**:
 - **prd-architecture-multi-sponsor.md** - System architecture and multi-sponsor isolation (clinical trial feature)
-- **prd-app.md** - Mobile Diary application features
+- **prd-diary-app.md** - Mobile Diary application features
 - **prd-portal.md** - Web Portal features
 - **prd-database.md** - Database architecture, Event Sourcing, audit trails
 - **prd-security.md** - Authentication, authorization, role definitions

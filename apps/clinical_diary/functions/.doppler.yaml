@@ -1,0 +1,3 @@
+setup:
+  project: hht-diary
+  config: dev

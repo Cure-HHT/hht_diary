@@ -181,7 +181,7 @@ Ticket #123: "Add multi-language support"
     ↓
 ADR-XXX: "Internationalization Architecture"  (docs/adr/)
     ↓ (may create new requirements)
-REQ-p00019: "Multi-Language Support"  (spec/prd-app.md)
+REQ-p00019: "Multi-Language Support"  (spec/prd-diary-app.md)
 REQ-d00012: "i18n Implementation"  (spec/dev-app.md)
     ↓ (requirements link to code)
 Code: src/i18n/*.ts  (with requirement references in comments)

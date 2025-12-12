@@ -51,7 +51,7 @@ Contains Architecture Decision Records (ADRs), implementation guides, and techni
 **See**: `docs/README.md` for complete documentation about when to use docs/ vs spec/.
 
 **Key Documents**:
-- `spec/prd-app.md` - High level system functional requirements
+- `spec/prd-diary-app.md` - High level system functional requirements
 - `spec/prd-database.md` - Database architecture requirements
 - `spec/prd-database-event-sourcing.md` - Event Sourcing pattern
 - `spec/prd-security-RBAC.md` - Role-based access control
@@ -132,15 +132,25 @@ See `database/tests/` for SQL test scripts:
 - `test_audit_trail.sql` - Audit trail validation
 - `test_compliance_functions.sql` - Compliance verification
 
+### Flutter App
+
+See **[apps/clinical_diary/README.md](apps/clinical_diary/README.md)** for complete documentation on:
+- Building and running the Flutter app
+- Environment flavors (dev, qa, uat, prod)
+- IDE configurations (IntelliJ IDEA, VSCode)
+- Build scripts for web, iOS, and Android
+- Testing and coverage
+- Doppler secrets management
+
 ---
 
 ## Deployment
 
 ### Target Platform
-Supabase (PostgreSQL 15+)
+Firebase (Hosting, Functions, Firestore)
 
 ### Deployment Guide
-See `spec/ops-database-setup.md` for complete deployment instructions.
+See `apps/clinical_diary/README.md` for Firebase deployment details.
 
 ---
 

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 /// Inline time picker widget with time display and adjustment buttons
 /// Designed to be used within a form layout without requiring a separate screen
 /// Supports null/unset state displaying "--:--"
+/// Optionally displays a compact date picker next to the time
 class InlineTimePicker extends StatefulWidget {
   const InlineTimePicker({
     required this.onTimeChanged,
@@ -16,6 +17,8 @@ class InlineTimePicker extends StatefulWidget {
     this.allowFutureTimes = false,
     this.minTime,
     this.maxDateTime,
+    this.date,
+    this.onDateChanged,
   });
 
   /// Initial time, or null to show unset state (--:--)
@@ -28,6 +31,13 @@ class InlineTimePicker extends StatefulWidget {
   /// as the limit instead of DateTime.now(). Useful when editing past dates
   /// where the limit should be end-of-day rather than current moment.
   final DateTime? maxDateTime;
+
+  /// Optional date to display. If provided with [onDateChanged], shows a
+  /// compact date picker next to the time.
+  final DateTime? date;
+
+  /// Callback when the date is changed via the inline date picker.
+  final ValueChanged<DateTime>? onDateChanged;
 
   @override
   State<InlineTimePicker> createState() => _InlineTimePickerState();
@@ -81,7 +91,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
   void _adjustMinutes(int delta) {
     // If no time is set, use minTime's date (for correct date context) or effective max
     // This ensures end time uses the same date as start time (CUR-451)
-    final baseTime = _selectedTime ?? widget.minTime ?? _effectiveMaxDateTime;
+    // CUR-447: If widget.date is provided and no time is selected yet, use that date
+    final baseTime =
+        _selectedTime ??
+        (widget.date != null
+            ? DateTime(
+                widget.date!.year,
+                widget.date!.month,
+                widget.date!.day,
+                DateTime.now().hour,
+                DateTime.now().minute,
+              )
+            : widget.minTime ?? _effectiveMaxDateTime);
     final newTime = baseTime.add(Duration(minutes: delta));
 
     // Check if this would exceed the max time
@@ -115,13 +136,18 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(baseTime),
+      // Force vertical/portrait layout for consistent UI across all devices
+      orientation: Orientation.portrait,
     );
 
     if (picked != null) {
+      // CUR-447: Use widget.date if provided (for cross-day validation),
+      // otherwise use baseTime's date
+      final dateContext = widget.date ?? baseTime;
       final newTime = DateTime(
-        baseTime.year,
-        baseTime.month,
-        baseTime.day,
+        dateContext.year,
+        dateContext.month,
+        dateContext.day,
         picked.hour,
         picked.minute,
       );
@@ -161,64 +187,130 @@ class _InlineTimePickerState extends State<InlineTimePicker> {
     }
   }
 
+  Future<void> _showDatePicker() async {
+    if (widget.date == null || widget.onDateChanged == null) return;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: widget.date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked != null && picked != widget.date) {
+      widget.onDateChanged!(picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).languageCode;
     final timeFormat = DateFormat('H:mm', locale);
     final periodFormat = DateFormat('a', locale);
+    final dateFormat = DateFormat('MMM d', locale);
     // Check if locale uses 24-hour format
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
     final isUnset = _selectedTime == null;
+    final showDatePicker = widget.date != null && widget.onDateChanged != null;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
-          // Time display (tappable to show native picker)
-          GestureDetector(
-            onTap: _showTimePicker,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  isUnset
-                      ? '--:--'
-                      : (use24Hour
-                            ? timeFormat.format(_selectedTime!)
-                            : DateFormat(
-                                'h:mm',
-                                locale,
-                              ).format(_selectedTime!)),
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    color: isUnset
-                        ? Theme.of(context).colorScheme.outline
-                        : null,
-                  ),
+          // Time display (tappable to show native picker) with optional date
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Time display (tappable)
+              GestureDetector(
+                onTap: _showTimePicker,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      isUnset
+                          ? '--:--'
+                          : (use24Hour
+                                ? timeFormat.format(_selectedTime!)
+                                : DateFormat(
+                                    'h:mm',
+                                    locale,
+                                  ).format(_selectedTime!)),
+                      style: Theme.of(context).textTheme.headlineLarge
+                          ?.copyWith(
+                            fontWeight: FontWeight.w300,
+                            color: isUnset
+                                ? Theme.of(context).colorScheme.outline
+                                : null,
+                          ),
+                    ),
+                    if (!use24Hour) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        isUnset ? '--' : periodFormat.format(_selectedTime!),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w400,
+                              color: isUnset
+                                  ? Theme.of(context).colorScheme.outline
+                                  : null,
+                            ),
+                      ),
+                    ],
+                  ],
                 ),
-                if (!use24Hour) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    isUnset ? '--' : periodFormat.format(_selectedTime!),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      color: isUnset
-                          ? Theme.of(context).colorScheme.outline
-                          : null,
+              ),
+              // Optional date picker
+              if (showDatePicker) ...[
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _showDatePicker,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          dateFormat.format(widget.date!),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Quick adjust buttons
           Row(
@@ -295,10 +387,10 @@ class _AdjustButton extends StatelessWidget {
           onTap: onPressed,
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: showError
                     ? Theme.of(context).colorScheme.onErrorContainer

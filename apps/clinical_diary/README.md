@@ -16,7 +16,7 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 
 ### Prerequisites
 
-- Flutter SDK 3.10.1 or higher
+- Flutter SDK 3.38.3 or higher
 - Doppler CLI (for secrets management)
 - lcov (for coverage reports)
 
@@ -56,60 +56,350 @@ export SYNC_SERVER_URL="https://api.example.com"
 flutter run
 ```
 
+## 🎨 Environment Flavors
+
+The app uses [flutter_flavorizr](https://pub.dev/packages/flutter_flavorizr) to support four environments with distinct app identities:
+
+| Flavor | App Name       | Bundle ID                     | Banner | Dev Tools |
+| ------ | -------------- | ----------------------------- | ------ | --------- |
+| `dev`  | Diary DEV      | org.curehht.clinicaldiary.dev | Orange | Yes       |
+| `qa`   | Diary QA       | org.curehht.clinicaldiary.qa  | Purple | Yes       |
+| `uat`  | Clinical Diary | org.curehht.clinicaldiary.uat | None   | No        |
+| `prod` | Clinical Diary | org.curehht.clinicaldiary     | None   | No        |
+
+Each flavor has:
+- **Distinct bundle ID** - Allows side-by-side installation on the same device
+- **Unique app icon** - DEV/TEST have labeled icons for easy identification
+- **Separate Firebase project** - Isolated data per environment
+- **Environment-specific API base URL**
+
+### Running with Flavors
+
+All configuration (API base URL, feature flags, etc.) is derived from a single `APP_FLAVOR` value.
+This simplifies build commands and IDE configurations.
+
+**Using IDE Run Configurations (Recommended):**
+
+Pre-configured run configurations are available for both IDEs:
+- **IntelliJ IDEA**: `.idea/runConfigurations/` (dev, qa, uat, prod, plus profile/release variants)
+- **VS Code**: `.vscode/launch.json`
+
+Simply select the desired flavor from your IDE's run configuration dropdown.
+
+**Using Command Line:**
+
+```bash
+# Web builds (--flavor doesn't work on web, use --dart-define only)
+flutter run -d chrome --dart-define=APP_FLAVOR=dev
+flutter run -d chrome --dart-define=APP_FLAVOR=qa
+flutter run -d chrome --dart-define=APP_FLAVOR=prod
+
+# Mobile builds (--flavor sets FLUTTER_APP_FLAVOR for native config)
+# Include both for cross-platform compatibility
+flutter run --flavor dev --dart-define=APP_FLAVOR=dev
+flutter run --flavor qa --dart-define=APP_FLAVOR=qa
+flutter run --flavor prod --dart-define=APP_FLAVOR=prod
+```
+
+### How Flavor Configuration Works
+
+The app reads `APP_FLAVOR` (or `FLUTTER_APP_FLAVOR` on mobile) in `main.dart` and derives all
+other settings from `FlavorConfig` in `lib/flavors.dart`:
+
+| Setting | Derived From |
+| ------- | ------------ |
+| `apiBase` | `FlavorConfig.byName(flavor).apiBase` |
+| `showDevTools` | `F.showDevTools` (true for dev/qa) |
+| `showBanner` | `F.showBanner` (true for dev/qa) |
+
+> **Note**: The `--flavor` flag only affects native platform builds (iOS/Android bundle IDs,
+> app names, icons). For web builds, `--dart-define=APP_FLAVOR` is required.
+
+### Building for Release
+
+Build scripts are available in `tool/` for common build operations:
+
+```bash
+# Web builds
+./tool/build_web_dev.sh
+./tool/build_web_qa.sh
+./tool/build_web_prod.sh
+
+# iOS builds
+./tool/build_ios_dev.sh
+./tool/build_ios_prod.sh
+
+# Android builds
+./tool/build_android_dev.sh
+./tool/build_android_prod.sh
+```
+
+Or build manually:
+
+```bash
+# Web (use --dart-define only)
+flutter build web --release --dart-define=APP_FLAVOR=prod
+
+# Mobile (include both --flavor and --dart-define)
+flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build appbundle --release --flavor prod --dart-define=APP_FLAVOR=prod
+```
+
+### Environment Features
+
+**Dev/Test environments (`showDevTools: true`):**
+- "Reset All Data" menu option - clears local database for testing
+- "Add Example Data" menu option - populates sample records
+- Corner ribbon banner showing environment name
+
+**UAT/Prod environments (`showDevTools: false`):**
+- Dev menu items are hidden
+- No environment banner
+- UI mirrors production exactly
+- FDA-compliant append-only datastore (no data deletion)
+
+### Using in Code
+
+```dart
+import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/app_config.dart';
+
+// Check current flavor
+if (F.appFlavor == Flavor.prod) {
+  // Production-specific logic
+}
+
+// Check if dev tools should be shown
+if (F.showDevTools) {
+  // Show debug menu items
+}
+
+// Or use AppConfig (delegates to F)
+if (AppConfig.showDevTools) {
+  // Show debug menu items
+}
+
+// Get app title for current flavor
+print(F.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
+```
+
+### CI/CD Integration
+
+In GitHub Actions workflows:
+
+```yaml
+# Build for web (dev)
+- name: Build Web
+  run: flutter build web --release --dart-define=APP_FLAVOR=dev
+
+# Build for Production APK
+- name: Build Production APK
+  run: flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
+
+# Build iOS
+- name: Build Production iOS
+  run: flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod --no-codesign
+```
+
+### Firebase Configuration
+
+Each flavor uses its own Firebase project:
+
+| Flavor | Firebase Project | Hosting URL |
+| ------ | ---------------- | ----------- |
+| dev | hht-diary-mvp | https://hht-diary-mvp.web.app |
+| qa | hht-diary-qa | https://hht-diary-qa.web.app |
+| uat | hht-diary-uat | https://hht-diary-uat.web.app |
+| prod | hht-diary | https://hht-diary.web.app |
+
+Firebase configuration is managed via:
+- `firebase.json` - Hosting, functions, and Firestore config
+- `.firebaserc` - Project aliases
+- `lib/firebase_options.dart` - Generated Flutter Firebase config
+
 ## 🔐 Configuration with Doppler
+
+[Doppler](https://www.doppler.com/) is used for secrets management. All sensitive configuration
+values are stored in Doppler and automatically shared with team members who have access to the
+project. This eliminates insecure secret sharing via Slack, email, or .env files.
+
+### Why Doppler?
+
+- **Team Sharing**: Secrets are automatically available to all authorized team members
+- **Environment Sync**: Secrets sync in real-time across team members and environments
+- **Audit Logging**: Track who accessed secrets and when
+- **Firebase Integration**: Native support for Firebase Functions deployment
+- **No .env Files**: Eliminates the need for manual secret file management
+
+### Getting Started with Doppler
+
+1. **Install Doppler CLI**:
+   ```bash
+   # Mac
+   brew install dopplerhq/cli/doppler
+
+   # Linux
+   curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
+   ```
+
+2. **Login to Doppler**:
+   ```bash
+   doppler login
+   ```
+
+3. **Setup project** (links local directory to Doppler project):
+   ```bash
+   cd apps/clinical_diary
+   doppler setup
+   # Select: hht-diary > dev (or your environment)
+   ```
+
+4. **Verify secrets are available**:
+   ```bash
+   doppler secrets
+   ```
+
+   You should see all project secrets. If you're missing `CUREHHT_QA_API_KEY`,
+   ask a teammate to verify you have access to the dev/qa configs.
+
+5. **Run with Doppler** (injects secrets as environment variables):
+   ```bash
+   # For web
+   doppler run -- flutter run -d chrome --dart-define=APP_FLAVOR=dev
+
+   # For mobile
+   doppler run -- flutter run --flavor dev --dart-define=APP_FLAVOR=dev
+   ```
+
+### Team Secret Sharing
+
+Doppler automatically shares secrets with team members based on project access. Once you're
+added to the `hht-diary` project in Doppler, you'll have access to all secrets for your
+assigned environments.
+
+**For new team members:**
+1. Ask a project admin to add you to the `hht-diary` project in Doppler
+2. Run `doppler login` and `doppler setup`
+3. All secrets (including `CUREHHT_QA_API_KEY`) will be automatically available
+
+**No manual key sharing required** - Doppler handles this securely.
+
+### Adding a New Secret to Doppler
+
+**Option 1: Web Dashboard**
+1. Go to [dashboard.doppler.com](https://dashboard.doppler.com)
+2. Select your project (e.g., `hht-diary`)
+3. Select your environment/config (e.g., `dev`)
+4. Click **"Add Secret"**
+5. Enter the secret name and value
+6. Click **"Save"**
+
+**Option 2: CLI**
+```bash
+# Add to specific environment
+doppler secrets set CUREHHT_QA_API_KEY="your-api-key-here" --config dev
+
+# View all secrets (values hidden)
+doppler secrets
+
+# View a specific secret value
+doppler secrets get CUREHHT_QA_API_KEY
+```
 
 ### Required Secrets
 
-Set these in Doppler for your environment:
+| Secret | Description | Environments | Used By |
+| ------ | ----------- | ------------ | ------- |
+| `CUREHHT_QA_API_KEY` | API key for sponsor config endpoint | dev, qa only | Flutter app, Firebase Functions |
 
+> **Note**: Configuration like `apiBase` is no longer passed via dart-define. It's derived from
+> the `APP_FLAVOR` setting in `lib/flavors.dart`.
+
+### Firebase Functions Secrets (Doppler Integration)
+
+Doppler can sync secrets directly to Firebase Functions, eliminating the need for Google Secret
+Manager for most use cases. See [Doppler Firebase Integration](https://docs.doppler.com/docs/firebase-installation).
+
+**Setup for Firebase Functions:**
+
+1. **Link Doppler to the functions directory**:
+   ```bash
+   cd apps/clinical_diary/functions
+   doppler setup
+   # Select: hht-diary > dev
+   ```
+
+2. **Update package.json scripts** for local development:
+   ```json
+   {
+     "scripts": {
+       "serve": "CLOUD_RUNTIME_CONFIG=\"$(doppler secrets download --no-file | jq '{doppler: .}')\" firebase emulators:start --only functions"
+     }
+   }
+   ```
+
+3. **Access secrets in Firebase Functions**:
+   ```typescript
+   import * as functions from 'firebase-functions';
+
+   // Secrets are available under functions.config().doppler
+   const apiKey = functions.config().doppler?.CUREHHT_QA_API_KEY;
+   ```
+
+4. **Deploy secrets to Firebase** (CI/CD):
+   ```bash
+   # Sync Doppler secrets to Firebase config
+   firebase functions:config:set doppler="$(doppler secrets download --no-file)"
+
+   # Then deploy
+   firebase deploy --only functions
+   ```
+
+**Alternative: Google Secret Manager**
+
+If you prefer using Google Secret Manager (which we currently use), secrets are configured
+separately in the Firebase Console under Project Settings > Service Accounts, or via:
 ```bash
-# Database encryption (required)
-doppler secrets set DATASTORE_ENCRYPTION_KEY="$(openssl rand -base64 32)"
-
-# Sync server (required)
-doppler secrets set SYNC_SERVER_URL="https://api.example.com"
-doppler secrets set SYNC_API_KEY="your-api-key"
-
-# User authentication (required)
-doppler secrets set AUTH_CLIENT_ID="your-client-id"
-doppler secrets set AUTH_CLIENT_SECRET="your-client-secret"
-
-# OpenTelemetry (optional)
-doppler secrets set OTEL_ENDPOINT="https://otel.example.com"
-doppler secrets set OTEL_API_KEY="your-otel-key"
+firebase functions:secrets:set CUREHHT_QA_API_KEY
 ```
 
 ### Environment-Specific Configs
 
-**Development**:
-```bash
-doppler setup --config dev
-doppler secrets set DATASTORE_ENCRYPTION_KEY="dev-key-not-for-production" --config dev
-```
+| Environment | Doppler Config | Has QA API Key |
+| ----------- | -------------- | -------------- |
+| Development | `dev`          | Yes            |
+| QA          | `qa`           | Yes            |
+| UAT         | `uat`          | No             |
+| Production  | `prd`          | No             |
 
-**Staging**:
-```bash
-doppler setup --config stg
-doppler secrets set DATASTORE_ENCRYPTION_KEY="$(openssl rand -base64 32)" --config stg
-```
+**Why no QA API Key in UAT/Prod?**
 
-**Production**:
-```bash
-doppler setup --config prd
-doppler secrets set DATASTORE_ENCRYPTION_KEY="$(openssl rand -base64 32)" --config prd
-```
+The `CUREHHT_QA_API_KEY` is only for dev/qa testing of the sponsor configuration feature.
+In production, sponsor configuration will be loaded during enrollment using production
+authentication, not a shared test key.
 
-### Accessing Secrets in Code
+### Accessing Configuration in Flutter Code
+
+Most configuration is derived from the flavor, not dart-defines:
 
 ```dart
-// In main.dart or config
-final config = DatastoreConfig.production(
-  deviceId: await getDeviceId(),
-  userId: currentUser.id,
-  syncServerUrl: Platform.environment['SYNC_SERVER_URL']!,
-  encryptionKey: Platform.environment['DATASTORE_ENCRYPTION_KEY']!,
-);
+import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/app_config.dart';
+
+// API base URL (derived from FlavorConfig)
+final apiUrl = AppConfig.apiBase;  // e.g., "https://hht-diary-mvp.web.app/api"
+
+// Feature flags (derived from flavor)
+if (AppConfig.showDevTools) {
+  // Show debug menu
+}
+
+// Secrets still use dart-define (passed from Doppler)
+static const String _qaApiKeyRaw = String.fromEnvironment('CUREHHT_QA_API_KEY');
 ```
+
+The IDE run configurations only need to pass `--dart-define=APP_FLAVOR=<flavor>`.
 
 ## 🧪 Testing
 

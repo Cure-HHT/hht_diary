@@ -8,12 +8,14 @@ import 'package:flutter/material.dart';
 class DeleteConfirmationDialog extends StatefulWidget {
   const DeleteConfirmationDialog({required this.onConfirmDelete, super.key});
 
-  final ValueChanged<String> onConfirmDelete;
+  /// Callback when user confirms deletion. Can be async.
+  /// The dialog waits for this to complete before closing.
+  final Future<void> Function(String reason) onConfirmDelete;
 
   /// Show the delete confirmation dialog
   static Future<void> show({
     required BuildContext context,
-    required ValueChanged<String> onConfirmDelete,
+    required Future<void> Function(String reason) onConfirmDelete,
   }) async {
     await showDialog<void>(
       context: context,
@@ -104,6 +106,8 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
                 border: const OutlineInputBorder(),
               ),
               maxLines: 2,
+              // Trigger rebuild to update button enabled state
+              onChanged: (_) => setState(() {}),
             ),
           ],
         ],
@@ -119,12 +123,15 @@ class _DeleteConfirmationDialogState extends State<DeleteConfirmationDialog> {
                   (_selectedReasonKey == 'other' &&
                       _reasonController.text.trim().isEmpty)
               ? null
-              : () {
+              : () async {
                   final reason = _selectedReasonKey == 'other'
                       ? _reasonController.text.trim()
                       : _getReasonDisplay(_selectedReasonKey!, l10n);
-                  widget.onConfirmDelete(reason);
-                  Navigator.pop(context);
+                  // Wait for the delete to complete before closing
+                  await widget.onConfirmDelete(reason);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                 },
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.error,

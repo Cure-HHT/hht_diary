@@ -1,6 +1,6 @@
 ---
 name: simple-requirements
-description: Specialized agent for requirement operations, change detection, and tracking management
+description: MUST BE USED for REQ-format validation, requirement change detection, and tracking management. Use when fetching requirement details by ID, detecting changed requirements, marking implementations as verified, or managing outdated-implementations.json.
 ---
 
 # Requirements Agent

@@ -16,8 +16,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../test_helpers/flavor_setup.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpTestFlavor();
 
   group('NosebleedService', () {
     late MockEnrollmentService mockEnrollment;
@@ -152,10 +155,10 @@ void main() {
         );
 
         final date = DateTime(2024, 1, 15);
-        final record = await service.addRecord(date: date);
+        final record = await service.addRecord(startTime: date);
 
         expect(record.id, isNotEmpty);
-        expect(record.date, date);
+        expect(record.startTime, date);
         expect(record.deviceUuid, isNotEmpty);
         expect(record.createdAt, isNotNull);
       });
@@ -168,12 +171,10 @@ void main() {
           ),
         );
 
-        final date = DateTime(2024, 1, 15);
         final startTime = DateTime(2024, 1, 15, 10, 30);
         final endTime = DateTime(2024, 1, 15, 10, 45);
 
         final record = await service.addRecord(
-          date: date,
           startTime: startTime,
           endTime: endTime,
           intensity: NosebleedIntensity.dripping,
@@ -196,7 +197,6 @@ void main() {
         );
 
         final record = await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 30),
           // Missing endTime and intensity
         );
@@ -212,9 +212,9 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
 
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         expect(records.length, 1);
       });
 
@@ -226,11 +226,11 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 16));
-        await service.addRecord(date: DateTime(2024, 1, 17));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 16));
+        await service.addRecord(startTime: DateTime(2024, 1, 17));
 
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         expect(records.length, 3);
       });
     });
@@ -247,7 +247,7 @@ void main() {
         final record = await service.markNoNosebleeds(DateTime(2024, 1, 15));
 
         expect(record.isNoNosebleedsEvent, true);
-        expect(record.isRealEvent, false);
+        expect(record.isRealNosebleedEvent, false);
         expect(record.isComplete, true);
       });
     });
@@ -264,7 +264,7 @@ void main() {
         final record = await service.markUnknown(DateTime(2024, 1, 15));
 
         expect(record.isUnknownEvent, true);
-        expect(record.isRealEvent, false);
+        expect(record.isRealNosebleedEvent, false);
         expect(record.isComplete, true);
       });
     });
@@ -276,7 +276,9 @@ void main() {
           httpClient: MockClient((_) async => http.Response('', 200)),
         );
 
-        final records = await service.getRecordsForDate(DateTime(2024, 1, 15));
+        final records = await service.getRecordsForStartDate(
+          DateTime(2024, 1, 15),
+        );
 
         expect(records, isEmpty);
       });
@@ -289,12 +291,14 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 14));
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 16));
+        await service.addRecord(startTime: DateTime(2024, 1, 14));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 16));
 
-        final records = await service.getRecordsForDate(DateTime(2024, 1, 15));
+        final records = await service.getRecordsForStartDate(
+          DateTime(2024, 1, 15),
+        );
 
         expect(records.length, 2);
       });
@@ -307,10 +311,10 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15, 0, 0));
-        await service.addRecord(date: DateTime(2024, 1, 15, 23, 59));
+        await service.addRecord(startTime: DateTime(2024, 1, 15, 0, 0));
+        await service.addRecord(startTime: DateTime(2024, 1, 15, 23, 59));
 
-        final records = await service.getRecordsForDate(
+        final records = await service.getRecordsForStartDate(
           DateTime(2024, 1, 15, 12, 0),
         );
 
@@ -329,16 +333,15 @@ void main() {
 
         // Complete record
         await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 15),
           intensity: NosebleedIntensity.dripping,
         );
 
-        // Incomplete record
+        // Incomplete record - use local time since DateTimeFormatter preserves local time
+        final incompleteStartTime = DateTime(2024, 1, 16, 10, 0);
         await service.addRecord(
-          date: DateTime(2024, 1, 16),
-          startTime: DateTime(2024, 1, 16, 10, 0),
+          startTime: incompleteStartTime,
           // Missing endTime and intensity
         );
 
@@ -348,7 +351,11 @@ void main() {
         final incomplete = await service.getIncompleteRecords();
 
         expect(incomplete.length, 1);
-        expect(incomplete.first.date, DateTime(2024, 1, 16));
+        // Compare the moment in time (millisecondsSinceEpoch) since timezone may differ
+        expect(
+          incomplete.first.startTime.millisecondsSinceEpoch,
+          incompleteStartTime.millisecondsSinceEpoch,
+        );
       });
     });
 
@@ -361,8 +368,10 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 16));
+        final start1 = DateTime(2024, 1, 15);
+        final start2 = DateTime(2024, 1, 16);
+        await service.addRecord(startTime: start1);
+        await service.addRecord(startTime: start2);
 
         // Records are not immediately synced in tests (no JWT token)
         final count = await service.getUnsyncedCount();
@@ -372,7 +381,13 @@ void main() {
     });
 
     group('clearLocalData', () {
-      test('clears device UUID from preferences', () async {
+      // NOTE: clearLocalData is ONLY available in dev/test environments
+      // (controlled by AppConfig.showDevTools). It completely resets
+      // the local database for testing purposes.
+      // In production, the append-only datastore is never deleted
+      // to maintain FDA 21 CFR Part 11 compliance.
+
+      test('clears device UUID and generates new one', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient(
@@ -383,16 +398,28 @@ void main() {
         // Generate a device UUID first
         final uuid1 = await service.getDeviceUuid();
 
-        await service.clearLocalData();
+        // Pass reinitialize: false since tests manage Datastore manually
+        await service.clearLocalData(reinitialize: false);
+
+        // Re-initialize datastore after reset (normally done by app restart)
+        await Datastore.initialize(
+          config: DatastoreConfig(
+            deviceId: 'test-device-id',
+            userId: 'test-user-id',
+            databasePath: tempDir.path,
+            databaseName: 'test_events.db',
+            enableEncryption: false,
+          ),
+        );
 
         // After clearing, a new UUID should be generated
         final uuid2 = await service.getDeviceUuid();
         expect(uuid1, isNot(equals(uuid2)));
       });
 
-      test('append-only datastore preserves records for audit trail', () async {
-        // This test documents that the append-only datastore does NOT delete
-        // records - this is by design for FDA 21 CFR Part 11 compliance
+      test('clears all records from datastore (dev/test only)', () async {
+        // In dev/test environments, clearLocalData removes all data
+        // to allow clean testing. This feature is disabled in prod/uat.
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient(
@@ -400,14 +427,32 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 16));
+        final start1 = DateTime(2024, 1, 15);
+        final start2 = DateTime(2024, 1, 16);
+        await service.addRecord(startTime: start1);
+        await service.addRecord(startTime: start2);
 
-        await service.clearLocalData();
-
-        // Records are preserved in the append-only datastore
-        final records = await service.getLocalRecords();
+        // Verify records exist before clearing
+        var records = await service.getLocalMaterializedRecords();
         expect(records.length, 2);
+
+        // Pass reinitialize: false since tests manage Datastore manually
+        await service.clearLocalData(reinitialize: false);
+
+        // Re-initialize datastore after reset (normally done by app restart)
+        await Datastore.initialize(
+          config: DatastoreConfig(
+            deviceId: 'test-device-id',
+            userId: 'test-user-id',
+            databasePath: tempDir.path,
+            databaseName: 'test_events.db',
+            enableEncryption: false,
+          ),
+        );
+
+        // Records are cleared in dev/test mode
+        records = await service.getLocalMaterializedRecords();
+        expect(records.length, 0);
       });
     });
 
@@ -432,8 +477,10 @@ void main() {
           httpClient: mockClient,
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 16));
+        final start1 = DateTime(2024, 1, 15);
+        final start2 = DateTime(2024, 1, 16);
+        await service.addRecord(startTime: start1);
+        await service.addRecord(startTime: start2);
 
         // Manually trigger sync
         await service.syncAllRecords();
@@ -459,7 +506,8 @@ void main() {
           httpClient: mockClient,
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
+        final start1 = DateTime(2024, 1, 15);
+        await service.addRecord(startTime: start1);
         await service.syncAllRecords();
 
         expect(syncCalled, false);
@@ -499,7 +547,6 @@ void main() {
 
         // Create original record
         final original = await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 15),
           intensity: NosebleedIntensity.spotting,
@@ -508,7 +555,6 @@ void main() {
         // Update it
         final updated = await service.updateRecord(
           originalRecordId: original.id,
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -530,11 +576,12 @@ void main() {
           ),
         );
 
-        final original = await service.addRecord(date: DateTime(2024, 1, 15));
+        final original = await service.addRecord(
+          startTime: DateTime(2024, 1, 15),
+        );
 
         final updated = await service.updateRecord(
           originalRecordId: original.id,
-          date: DateTime(2024, 1, 16),
           startTime: DateTime(2024, 1, 16, 14, 0),
           endTime: DateTime(2024, 1, 16, 14, 30),
           intensity: NosebleedIntensity.drippingQuickly,
@@ -543,7 +590,6 @@ void main() {
           isUnknownEvent: false,
         );
 
-        expect(updated.date, DateTime(2024, 1, 16));
         expect(updated.startTime, DateTime(2024, 1, 16, 14, 0));
         expect(updated.intensity, NosebleedIntensity.drippingQuickly);
       });
@@ -560,7 +606,6 @@ void main() {
 
         // Create original record
         final original = await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 15),
           intensity: NosebleedIntensity.spotting,
@@ -588,7 +633,9 @@ void main() {
         );
 
         // Create and delete a record
-        final original = await service.addRecord(date: DateTime(2024, 1, 15));
+        final original = await service.addRecord(
+          startTime: DateTime(2024, 1, 15),
+        );
 
         await service.deleteRecord(
           recordId: original.id,
@@ -596,7 +643,7 @@ void main() {
         );
 
         // The deletion record itself should not appear (it's marked as deleted)
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         // Original may still appear if materialization uses eventId (current behavior)
         // but the deletion record itself should be filtered out
         final deletedRecords = records.where((r) => r.isDeleted).toList();
@@ -615,7 +662,6 @@ void main() {
 
         // Create incomplete record
         final incomplete = await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           // Missing endTime and intensity
         );
@@ -624,7 +670,6 @@ void main() {
         // Complete it
         final completed = await service.completeRecord(
           originalRecordId: incomplete.id,
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -653,7 +698,6 @@ void main() {
 
         // Record from 2 hours ago (should be included)
         await service.addRecord(
-          date: twoHoursAgo,
           startTime: twoHoursAgo,
           endTime: twoHoursAgo.add(const Duration(minutes: 15)),
           intensity: NosebleedIntensity.spotting,
@@ -661,7 +705,6 @@ void main() {
 
         // Record from 25 hours ago (should not be included)
         await service.addRecord(
-          date: oneDayAgo,
           startTime: oneDayAgo,
           endTime: oneDayAgo.add(const Duration(minutes: 15)),
           intensity: NosebleedIntensity.dripping,
@@ -673,7 +716,7 @@ void main() {
         expect(recent.first.intensity, NosebleedIntensity.spotting);
       });
 
-      test('excludes records without startTime', () async {
+      test('excludes records older than 24 hours', () async {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient(
@@ -681,10 +724,14 @@ void main() {
           ),
         );
 
-        final now = DateTime.now();
+        final twoDaysAgo = DateTime.now().subtract(const Duration(hours: 48));
 
-        // Record without startTime
-        await service.addRecord(date: now);
+        // Record from 48 hours ago should not appear in recent
+        await service.addRecord(
+          startTime: twoDaysAgo,
+          endTime: twoDaysAgo.add(const Duration(minutes: 15)),
+          intensity: NosebleedIntensity.dripping,
+        );
 
         final recent = await service.getRecentRecords();
 
@@ -705,14 +752,12 @@ void main() {
 
         // Add in non-chronological order
         await service.addRecord(
-          date: oneHourAgo,
           startTime: oneHourAgo,
           endTime: oneHourAgo.add(const Duration(minutes: 15)),
           intensity: NosebleedIntensity.dripping,
         );
 
         await service.addRecord(
-          date: threeHoursAgo,
           startTime: threeHoursAgo,
           endTime: threeHoursAgo.add(const Duration(minutes: 15)),
           intensity: NosebleedIntensity.spotting,
@@ -737,7 +782,7 @@ void main() {
         );
 
         final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        await service.addRecord(date: yesterday);
+        await service.addRecord(startTime: yesterday);
 
         final hasRecords = await service.hasRecordsForYesterday();
 
@@ -753,7 +798,7 @@ void main() {
         );
 
         // Add record for today
-        await service.addRecord(date: DateTime.now());
+        await service.addRecord(startTime: DateTime.now());
 
         final hasRecords = await service.hasRecordsForYesterday();
 
@@ -782,7 +827,6 @@ void main() {
         );
 
         await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -832,7 +876,6 @@ void main() {
         );
 
         await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           // Missing endTime and intensity
         );
@@ -851,14 +894,10 @@ void main() {
         );
 
         // Add incomplete record
-        await service.addRecord(
-          date: DateTime(2024, 1, 15),
-          startTime: DateTime(2024, 1, 15, 9, 0),
-        );
+        await service.addRecord(startTime: DateTime(2024, 1, 15, 9, 0));
 
         // Add complete nosebleed
         await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -880,7 +919,6 @@ void main() {
         );
 
         await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -926,7 +964,6 @@ void main() {
 
         // Add incomplete record
         await service.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           // Missing endTime and intensity
         );
@@ -949,8 +986,8 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
-        await service.addRecord(date: DateTime(2024, 1, 16));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 16));
 
         final isValid = await service.verifyDataIntegrity();
 
@@ -969,7 +1006,7 @@ void main() {
                 'records': [
                   {
                     'id': 'cloud-record-1',
-                    'date': '2024-01-20T00:00:00.000',
+                    'startTime': '2024-01-20T00:00:00.000Z',
                     'isNoNosebleedsEvent': true,
                   },
                 ],
@@ -986,12 +1023,12 @@ void main() {
         );
 
         // Add local record
-        await service.addRecord(date: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
 
         // Fetch from cloud
         await service.fetchRecordsFromCloud();
 
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         expect(records.length, 2);
         // Cloud record is stored with a new eventId, but has the cloud data
         expect(records.any((r) => r.isNoNosebleedsEvent), true);
@@ -1010,7 +1047,7 @@ void main() {
           ),
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
         service.dispose();
 
         // Now fetch a different cloud record for same date
@@ -1021,7 +1058,7 @@ void main() {
                 'records': [
                   {
                     'id': 'cloud-record-different-id',
-                    'date': '2024-01-15T00:00:00.000',
+                    'startTime': '2024-01-15T00:00:00.000Z',
                     'isNoNosebleedsEvent': true,
                   },
                 ],
@@ -1039,7 +1076,7 @@ void main() {
 
         await service.fetchRecordsFromCloud();
 
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         // Both records exist - append-only preserves all events
         expect(records.length, 2);
       });
@@ -1084,7 +1121,7 @@ void main() {
         await service.fetchRecordsFromCloud();
 
         // Records should be empty (nothing fetched)
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         expect(records.isEmpty, true);
       });
 
@@ -1121,7 +1158,7 @@ void main() {
           httpClient: mockClient,
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
 
         // Should not throw
         await service.syncAllRecords();
@@ -1146,7 +1183,7 @@ void main() {
           httpClient: mockClient,
         );
 
-        await service.addRecord(date: DateTime(2024, 1, 15));
+        await service.addRecord(startTime: DateTime(2024, 1, 15));
 
         // Should not throw
         await service.syncAllRecords();
@@ -1170,7 +1207,9 @@ void main() {
         );
 
         // Should not throw even though sync will fail
-        final record = await service.addRecord(date: DateTime(2024, 1, 15));
+        final record = await service.addRecord(
+          startTime: DateTime(2024, 1, 15),
+        );
 
         expect(record, isNotNull);
         expect(record.id, isNotEmpty);
@@ -1192,7 +1231,9 @@ void main() {
         );
 
         // Should not throw
-        final record = await service.addRecord(date: DateTime(2024, 1, 15));
+        final record = await service.addRecord(
+          startTime: DateTime(2024, 1, 15),
+        );
 
         expect(record, isNotNull);
       });
@@ -1209,7 +1250,7 @@ void main() {
                 'records': [
                   {
                     'id': 'cloud-record-with-all-fields',
-                    'date': '2024-01-20T00:00:00.000',
+                    'recordDate': '2024-01-20T00:00:00.000',
                     'startTime': '2024-01-20T10:00:00.000',
                     'endTime': '2024-01-20T10:30:00.000',
                     'intensity': 'dripping',
@@ -1233,7 +1274,7 @@ void main() {
 
         await service.fetchRecordsFromCloud();
 
-        final records = await service.getLocalRecords();
+        final records = await service.getLocalMaterializedRecords();
         expect(records.length, 1);
         expect(records.first.notes, 'Cloud record notes');
       });

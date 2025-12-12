@@ -1,0 +1,6 @@
+#include "../../Flutter/qaDebug.xcconfig"
+#include "Warnings.xcconfig"
+
+ASSET_PREFIX=qa
+BUNDLE_NAME=Diary QA
+BUNDLE_DISPLAY_NAME=Diary QA

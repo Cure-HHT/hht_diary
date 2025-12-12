@@ -14,49 +14,65 @@ class IntensityPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // CUR-488 Phase 2: Reduced top padding from 8 to 4 for small screens with large text
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.only(
+        left: 12.0,
+        right: 12.0,
+        top: 4.0,
+        bottom: 8.0,
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate icon size based on available height
-          // Header ~70px (title + subtitle + spacing), grid spacing ~16px (2 gaps)
+          // Header ~50px (title + subtitle + spacing), grid spacing ~12px (2 gaps)
           // We need 3 rows of boxes to fit
-          const headerHeight = 80.0;
-          const gridSpacing = 16.0; // 2 gaps * 8px each
+          const headerHeight = 50.0;
+          const gridSpacing = 12.0; // 2 gaps * 6px each
           final availableHeight =
               constraints.maxHeight - headerHeight - gridSpacing;
-          final boxHeight = (availableHeight / 3).clamp(60.0, 110.0);
+          final boxHeight = (availableHeight / 3).clamp(50.0, 100.0);
 
-          // Icon should be ~40% of box height, leaving room for text and border container
-          // Border container adds ~11px (4px padding * 2 + 1.5px border * 2)
-          final iconSize = (boxHeight * 0.4).clamp(28.0, 48.0);
-          final fontSize = (boxHeight * 0.14).clamp(10.0, 14.0);
+          // Icon should be ~45% of box height, leaving room for text
+          final iconSize = (boxHeight * 0.45).clamp(24.0, 44.0);
+          final fontSize = (boxHeight * 0.15).clamp(9.0, 13.0);
 
           final l10n = AppLocalizations.of(context);
           return Column(
             children: [
-              Text(
-                l10n.howSevere,
-                style: Theme.of(
+              // CUR-488 Phase 2: Don't scale titles to avoid scrolling on small screens
+              MediaQuery(
+                data: MediaQuery.of(
                   context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.translate('selectBestOption'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ).copyWith(textScaler: TextScaler.noScaling),
+                child: Column(
+                  children: [
+                    Text(
+                      l10n.howSevere,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.translate('selectBestOption'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: (constraints.maxWidth / 2 - 12) / boxHeight,
+                  // CUR-488 Phase 2: Reduced spacing from 6 to 4 for small screens
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
+                  childAspectRatio: (constraints.maxWidth / 2 - 9) / boxHeight,
                   physics: const NeverScrollableScrollPhysics(),
                   children: NosebleedIntensity.values.map((intensity) {
                     final isSelected = selectedIntensity == intensity;
@@ -140,8 +156,7 @@ class _IntensityOption extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
+              DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: isSelected
@@ -153,13 +168,16 @@ class _IntensityOption extends StatelessWidget {
                           ).colorScheme.outline.withValues(alpha: 0.4),
                     width: 1.5,
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Image.asset(
-                  _imagePath,
-                  width: iconSize,
-                  height: iconSize,
-                  fit: BoxFit.contain,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4.5),
+                  child: Image.asset(
+                    _imagePath,
+                    width: iconSize,
+                    height: iconSize,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),

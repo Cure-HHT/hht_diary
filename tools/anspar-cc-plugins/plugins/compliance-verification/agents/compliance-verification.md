@@ -1,6 +1,6 @@
 ---
 name: compliance-verification
-description: FDA 21 CFR Part 11 compliance verification workflows with requirement change tracking and subsystem impact analysis
+description: MUST BE USED for FDA 21 CFR Part 11 compliance verification when requirements change. PROACTIVELY creates verification tickets with subsystem checklists when requirement hashes change. Use when analyzing implementation impact across the 11 platform subsystems.
 tools: Bash, Read, Grep
 ---
 

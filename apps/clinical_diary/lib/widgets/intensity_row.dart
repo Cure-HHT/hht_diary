@@ -24,10 +24,12 @@ class IntensityRow extends StatelessWidget {
       builder: (context, constraints) {
         // Calculate item width to fill available space
         // 6 items with 4px spacing between them = 5 gaps * 4px = 20px total spacing
+        // Use floor to avoid sub-pixel overflow
         const itemCount = 6;
         const spacingBetween = 4.0;
         const totalSpacing = (itemCount - 1) * spacingBetween;
-        final itemWidth = (constraints.maxWidth - totalSpacing) / itemCount;
+        final itemWidth = ((constraints.maxWidth - totalSpacing) / itemCount)
+            .floorToDouble();
 
         // Ensure minimum size of 40, prefer 60+
         final effectiveSize = itemWidth.clamp(40.0, double.infinity);
@@ -91,10 +93,10 @@ class _IntensityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Icon should be about 50% of the container size to leave room for text
-    final iconSize = size * 0.5;
+    // Icon should be about 55% of the container width
+    final iconSize = size * 0.55;
     // Font size scales with container
-    final fontSize = (size * 0.18).clamp(9.0, 13.0);
+    final fontSize = (size * 0.16).clamp(8.0, 12.0);
 
     return Tooltip(
       message: label,
@@ -106,7 +108,7 @@ class _IntensityItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           child: Container(
             width: size,
-            height: size,
+            padding: const EdgeInsets.symmetric(vertical: 6),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: isSelected
@@ -118,9 +120,9 @@ class _IntensityItem extends StatelessWidget {
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
+                DecoratedBox(
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: isSelected
@@ -134,17 +136,23 @@ class _IntensityItem extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Image.asset(
-                    _imagePath,
-                    width: iconSize,
-                    height: iconSize,
-                    fit: BoxFit.contain,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4.5),
+                    child: Image.asset(
+                      _imagePath,
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  // Split two-word labels onto separate lines
-                  label.replaceAll(' ', '\n'),
+                  // Ensure all labels are two lines for alignment
+                  // Single-word labels get a trailing newline
+                  label.contains(' ')
+                      ? label.replaceAll(' ', '\n')
+                      : '$label\n',
                   style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
