@@ -482,7 +482,7 @@ class TraceabilityGenerator:
                 'body': req.body.strip(),
                 'rationale': req.rationale.strip(),
                 'file': req.file_path.name,
-                'filePath': f"spec/{req.file_path.name}",
+                'filePath': f"{self._base_path}spec/{req.file_path.name}",
                 'line': req.line_number,
                 'implements': list(req.implements) if req.implements else []
             }
