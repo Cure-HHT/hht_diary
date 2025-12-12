@@ -24,6 +24,12 @@ function getExpectedApiKey(): string | undefined {
 }
 
 /**
+ * Available font options for sponsor configuration.
+ * These are the font family names as defined in pubspec.yaml.
+ */
+export type FontOption = "Roboto" | "OpenDyslexic" | "AtkinsonHyperlegible";
+
+/**
  * Feature flags structure returned to the app.
  * All boolean flags control specific app behaviors.
  */
@@ -37,6 +43,11 @@ export interface SponsorFeatureFlags {
   enableShortDurationConfirmation: boolean;
   enableLongDurationConfirmation: boolean;
   longDurationThresholdMinutes: number;
+
+  // CUR-528: Font accessibility options
+  // List of fonts available to users for this sponsor
+  // Empty array or ["Roboto"] only = don't show font selector in settings
+  availableFonts: FontOption[];
 }
 
 /**
@@ -50,6 +61,8 @@ const DEFAULT_FLAGS: SponsorFeatureFlags = {
   enableShortDurationConfirmation: false,
   enableLongDurationConfirmation: false,
   longDurationThresholdMinutes: 60,
+  // CUR-528: Default to all fonts available
+  availableFonts: ["Roboto", "OpenDyslexic", "AtkinsonHyperlegible"],
 };
 
 /**
@@ -61,7 +74,7 @@ const SPONSOR_CONFIGS: Record<string, SponsorFeatureFlags> = {
   // CureHHT: Default configuration - minimal validation
   curehht: {
     ...DEFAULT_FLAGS,
-    // CureHHT uses all defaults
+    // CureHHT uses all defaults including all fonts
   },
 
   // Callisto: All validations enabled
@@ -72,6 +85,8 @@ const SPONSOR_CONFIGS: Record<string, SponsorFeatureFlags> = {
     enableShortDurationConfirmation: true,
     enableLongDurationConfirmation: true,
     longDurationThresholdMinutes: 60,
+    // CUR-528: Callisto also offers all fonts
+    availableFonts: ["Roboto", "OpenDyslexic", "AtkinsonHyperlegible"],
   },
 };
 

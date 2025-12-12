@@ -379,6 +379,18 @@ class AppLocalizations {
           'Reset all feature flags to their default values?',
       'featureFlagsResetButton': 'Reset',
       'featureFlagsResetSuccess': 'Feature flags reset to defaults',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Font Accessibility',
+      'featureFlagsFontSelectorVisible':
+          'Font selector will be shown in Settings',
+      'featureFlagsFontSelectorHidden':
+          'Font selector will be hidden (only default font available)',
+      'fontDescriptionRoboto': 'System default font',
+      'fontDescriptionOpenDyslexic':
+          'Font designed to help readers with dyslexia',
+      'fontDescriptionAtkinson': 'Font optimized for low vision readers',
+      'fontSelection': 'Font',
+      'fontSelectionDescription': 'Choose a font that works best for you',
       'hours': 'hours',
       'hour': 'hour',
 
@@ -744,6 +756,19 @@ class AppLocalizations {
           'Restablecer todos los feature flags a sus valores predeterminados?',
       'featureFlagsResetButton': 'Restablecer',
       'featureFlagsResetSuccess': 'Feature flags restablecidos',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Accesibilidad de Fuentes',
+      'featureFlagsFontSelectorVisible':
+          'Selector de fuentes se mostrara en Configuracion',
+      'featureFlagsFontSelectorHidden':
+          'Selector de fuentes oculto (solo fuente predeterminada)',
+      'fontDescriptionRoboto': 'Fuente predeterminada del sistema',
+      'fontDescriptionOpenDyslexic':
+          'Fuente disenada para lectores con dislexia',
+      'fontDescriptionAtkinson':
+          'Fuente optimizada para lectores con baja vision',
+      'fontSelection': 'Fuente',
+      'fontSelectionDescription': 'Elige la fuente que mejor funcione para ti',
       'hours': 'horas',
       'hour': 'hora',
 
@@ -1120,6 +1145,19 @@ class AppLocalizations {
           'Reinitialiser tous les feature flags a leurs valeurs par defaut?',
       'featureFlagsResetButton': 'Reinitialiser',
       'featureFlagsResetSuccess': 'Feature flags reinitialises',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Accessibilite des Polices',
+      'featureFlagsFontSelectorVisible':
+          'Selecteur de polices affiche dans Parametres',
+      'featureFlagsFontSelectorHidden':
+          'Selecteur de polices masque (police par defaut uniquement)',
+      'fontDescriptionRoboto': 'Police par defaut du systeme',
+      'fontDescriptionOpenDyslexic':
+          'Police concue pour les lecteurs dyslexiques',
+      'fontDescriptionAtkinson':
+          'Police optimisee pour les lecteurs malvoyants',
+      'fontSelection': 'Police',
+      'fontSelectionDescription': 'Choisissez la police qui vous convient',
       'hours': 'heures',
       'hour': 'heure',
 
@@ -1490,6 +1528,18 @@ class AppLocalizations {
           'Alle Feature Flags auf Standardwerte zurucksetzen?',
       'featureFlagsResetButton': 'Zurucksetzen',
       'featureFlagsResetSuccess': 'Feature Flags zuruckgesetzt',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Schriftarten-Barrierefreiheit',
+      'featureFlagsFontSelectorVisible':
+          'Schriftartenauswahl wird in Einstellungen angezeigt',
+      'featureFlagsFontSelectorHidden':
+          'Schriftartenauswahl ausgeblendet (nur Standardschrift)',
+      'fontDescriptionRoboto': 'Systemstandardschrift',
+      'fontDescriptionOpenDyslexic':
+          'Schrift fur Leser mit Legasthenie entwickelt',
+      'fontDescriptionAtkinson': 'Schrift fur sehbehinderte Leser optimiert',
+      'fontSelection': 'Schriftart',
+      'fontSelectionDescription': 'Wahlen Sie die Schriftart die fur Sie passt',
       'hours': 'Stunden',
       'hour': 'Stunde',
 
@@ -1879,6 +1929,19 @@ class AppLocalizations {
       translate('featureFlagsResetConfirmation');
   String get featureFlagsResetButton => translate('featureFlagsResetButton');
   String get featureFlagsResetSuccess => translate('featureFlagsResetSuccess');
+
+  // CUR-528: Font feature flags
+  String get featureFlagsSectionFonts => translate('featureFlagsSectionFonts');
+  String get featureFlagsFontSelectorVisible =>
+      translate('featureFlagsFontSelectorVisible');
+  String get featureFlagsFontSelectorHidden =>
+      translate('featureFlagsFontSelectorHidden');
+  String get fontDescriptionRoboto => translate('fontDescriptionRoboto');
+  String get fontDescriptionOpenDyslexic =>
+      translate('fontDescriptionOpenDyslexic');
+  String get fontDescriptionAtkinson => translate('fontDescriptionAtkinson');
+  String get fontSelection => translate('fontSelection');
+  String get fontSelectionDescription => translate('fontSelectionDescription');
 
   // Version Update
   String get updateAvailable => translate('updateAvailable');

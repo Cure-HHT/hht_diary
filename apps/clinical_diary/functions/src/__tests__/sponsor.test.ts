@@ -304,6 +304,7 @@ describe("SponsorConfig Function", () => {
           enableShortDurationConfirmation: false,
           enableLongDurationConfirmation: false,
           longDurationThresholdMinutes: 60,
+          availableFonts: ["Roboto", "OpenDyslexic", "AtkinsonHyperlegible"],
         },
         isDefault: false,
       });
@@ -361,6 +362,7 @@ describe("SponsorConfig Function", () => {
           enableShortDurationConfirmation: true,
           enableLongDurationConfirmation: true,
           longDurationThresholdMinutes: 60,
+          availableFonts: ["Roboto", "OpenDyslexic", "AtkinsonHyperlegible"],
         },
         isDefault: false,
       });
@@ -403,6 +405,7 @@ describe("SponsorConfig Function", () => {
           enableShortDurationConfirmation: false,
           enableLongDurationConfirmation: false,
           longDurationThresholdMinutes: 60,
+          availableFonts: ["Roboto", "OpenDyslexic", "AtkinsonHyperlegible"],
         },
         isDefault: true,
       });
@@ -613,6 +616,7 @@ describe("SponsorConfig Function", () => {
       expect(flags).toHaveProperty("enableShortDurationConfirmation");
       expect(flags).toHaveProperty("enableLongDurationConfirmation");
       expect(flags).toHaveProperty("longDurationThresholdMinutes");
+      expect(flags).toHaveProperty("availableFonts");
     });
 
     it("flag values have correct types", async () => {
@@ -632,6 +636,7 @@ describe("SponsorConfig Function", () => {
       expect(typeof flags.enableShortDurationConfirmation).toBe("boolean");
       expect(typeof flags.enableLongDurationConfirmation).toBe("boolean");
       expect(typeof flags.longDurationThresholdMinutes).toBe("number");
+      expect(Array.isArray(flags.availableFonts)).toBe(true);
     });
   });
 });

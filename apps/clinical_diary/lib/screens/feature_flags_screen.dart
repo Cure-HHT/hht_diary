@@ -263,9 +263,66 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
               ),
             ),
           ),
+
+          const Divider(height: 32),
+
+          // CUR-528: Font Accessibility Section
+          _buildSectionHeader(l10n.featureFlagsSectionFonts),
+
+          // Font checkboxes
+          ...FontOption.values.map((font) {
+            final isSelected = _featureFlagService.availableFonts.contains(
+              font,
+            );
+            return CheckboxListTile(
+              title: Text(font.displayName),
+              subtitle: Text(_getFontDescription(font, l10n)),
+              value: isSelected,
+              onChanged: (value) {
+                setState(() {
+                  final currentFonts = List<FontOption>.from(
+                    _featureFlagService.availableFonts,
+                  );
+                  if (value ?? false) {
+                    if (!currentFonts.contains(font)) {
+                      currentFonts.add(font);
+                    }
+                  } else {
+                    currentFonts.remove(font);
+                  }
+                  _featureFlagService.availableFonts = currentFonts;
+                });
+              },
+            );
+          }),
+
+          // Info about font selector visibility
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              _featureFlagService.shouldShowFontSelector
+                  ? l10n.featureFlagsFontSelectorVisible
+                  : l10n.featureFlagsFontSelectorHidden,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  String _getFontDescription(FontOption font, AppLocalizations l10n) {
+    switch (font) {
+      case FontOption.roboto:
+        return l10n.fontDescriptionRoboto;
+      case FontOption.openDyslexic:
+        return l10n.fontDescriptionOpenDyslexic;
+      case FontOption.atkinsonHyperlegible:
+        return l10n.fontDescriptionAtkinson;
+    }
   }
 
   Widget _buildSectionHeader(String title) {

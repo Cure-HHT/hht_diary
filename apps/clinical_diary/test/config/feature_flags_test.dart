@@ -325,6 +325,169 @@ void main() {
         await service.loadFromServer('curehht', 'test-api-key');
         expect(service.isLoading, false);
       });
+
+      test('successfully loads availableFonts from server', () async {
+        final responseBody = jsonEncode({
+          'flags': {
+            'availableFonts': [
+              'Roboto',
+              'OpenDyslexic',
+              'AtkinsonHyperlegible',
+            ],
+          },
+        });
+
+        service.httpClient = MockClient((request) async {
+          return http.Response(responseBody, 200);
+        });
+
+        final result = await service.loadFromServer('curehht', 'test-api-key');
+
+        expect(result, true);
+        expect(service.availableFonts, hasLength(3));
+        expect(service.availableFonts, contains(FontOption.roboto));
+        expect(service.availableFonts, contains(FontOption.openDyslexic));
+        expect(
+          service.availableFonts,
+          contains(FontOption.atkinsonHyperlegible),
+        );
+      });
+
+      test('uses default fonts when availableFonts not in response', () async {
+        final responseBody = jsonEncode({
+          'flags': {'useReviewScreen': true},
+        });
+
+        service.httpClient = MockClient((request) async {
+          return http.Response(responseBody, 200);
+        });
+
+        final result = await service.loadFromServer('curehht', 'test-api-key');
+
+        expect(result, true);
+        // Should have default fonts (all 3)
+        expect(service.availableFonts, hasLength(3));
+      });
+    });
+
+    group('availableFonts', () {
+      test('defaults to all fonts', () {
+        expect(service.availableFonts, hasLength(3));
+        expect(service.availableFonts, contains(FontOption.roboto));
+        expect(service.availableFonts, contains(FontOption.openDyslexic));
+        expect(
+          service.availableFonts,
+          contains(FontOption.atkinsonHyperlegible),
+        );
+      });
+
+      test('can be set to a subset', () {
+        service.availableFonts = [FontOption.roboto, FontOption.openDyslexic];
+        expect(service.availableFonts, hasLength(2));
+        expect(service.availableFonts, contains(FontOption.roboto));
+        expect(service.availableFonts, contains(FontOption.openDyslexic));
+        expect(
+          service.availableFonts,
+          isNot(contains(FontOption.atkinsonHyperlegible)),
+        );
+      });
+
+      test('can be set to empty', () {
+        service.availableFonts = [];
+        expect(service.availableFonts, isEmpty);
+      });
+    });
+
+    group('shouldShowFontSelector', () {
+      test('returns false when availableFonts is empty', () {
+        service.availableFonts = [];
+        expect(service.shouldShowFontSelector, false);
+      });
+
+      test('returns false when only Roboto is available', () {
+        service.availableFonts = [FontOption.roboto];
+        expect(service.shouldShowFontSelector, false);
+      });
+
+      test('returns true when OpenDyslexic is available', () {
+        service.availableFonts = [FontOption.openDyslexic];
+        expect(service.shouldShowFontSelector, true);
+      });
+
+      test('returns true when AtkinsonHyperlegible is available', () {
+        service.availableFonts = [FontOption.atkinsonHyperlegible];
+        expect(service.shouldShowFontSelector, true);
+      });
+
+      test(
+        'returns true when multiple fonts including Roboto are available',
+        () {
+          service.availableFonts = [FontOption.roboto, FontOption.openDyslexic];
+          expect(service.shouldShowFontSelector, true);
+        },
+      );
+
+      test('returns true when all fonts are available', () {
+        service.availableFonts = FontOption.values.toList();
+        expect(service.shouldShowFontSelector, true);
+      });
+    });
+  });
+
+  group('FontOption', () {
+    test('roboto has correct fontFamily', () {
+      expect(FontOption.roboto.fontFamily, 'Roboto');
+    });
+
+    test('openDyslexic has correct fontFamily', () {
+      expect(FontOption.openDyslexic.fontFamily, 'OpenDyslexic');
+    });
+
+    test('atkinsonHyperlegible has correct fontFamily', () {
+      expect(
+        FontOption.atkinsonHyperlegible.fontFamily,
+        'AtkinsonHyperlegible',
+      );
+    });
+
+    test('roboto has correct displayName', () {
+      expect(FontOption.roboto.displayName, 'Roboto (Default)');
+    });
+
+    test('openDyslexic has correct displayName', () {
+      expect(FontOption.openDyslexic.displayName, 'OpenDyslexic');
+    });
+
+    test('atkinsonHyperlegible has correct displayName', () {
+      expect(
+        FontOption.atkinsonHyperlegible.displayName,
+        'Atkinson Hyperlegible',
+      );
+    });
+
+    group('fromString', () {
+      test('parses Roboto', () {
+        expect(FontOption.fromString('Roboto'), FontOption.roboto);
+      });
+
+      test('parses OpenDyslexic', () {
+        expect(FontOption.fromString('OpenDyslexic'), FontOption.openDyslexic);
+      });
+
+      test('parses AtkinsonHyperlegible', () {
+        expect(
+          FontOption.fromString('AtkinsonHyperlegible'),
+          FontOption.atkinsonHyperlegible,
+        );
+      });
+
+      test('returns null for unknown font', () {
+        expect(FontOption.fromString('UnknownFont'), isNull);
+      });
+
+      test('returns null for empty string', () {
+        expect(FontOption.fromString(''), isNull);
+      });
     });
   });
 }

@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -8,7 +10,6 @@ import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Settings screen for accessibility and preferences
 class SettingsScreen extends StatefulWidget {
@@ -17,17 +18,15 @@ class SettingsScreen extends StatefulWidget {
     this.onLanguageChanged,
     this.onThemeModeChanged,
     this.onLargerTextChanged,
-    this.onDyslexicFontChanged,
+    this.onFontChanged,
     super.key,
   });
 
   final PreferencesService preferencesService;
   final ValueChanged<String>? onLanguageChanged;
   final ValueChanged<bool>? onThemeModeChanged;
-  // CUR-488: Callback for larger text preference changes
   final ValueChanged<bool>? onLargerTextChanged;
-  // CUR-509: Callback for dyslexia-friendly font preference changes
-  final ValueChanged<bool>? onDyslexicFontChanged;
+  final ValueChanged<String>? onFontChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -35,7 +34,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = false;
-  bool _dyslexiaFriendlyFont = false;
+  String _selectedFont = 'Roboto';
   bool _largerTextAndControls = false;
   bool _useAnimation = true;
   bool _compactView = false;
@@ -52,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await widget.preferencesService.getPreferences();
     setState(() {
       _isDarkMode = prefs.isDarkMode;
-      _dyslexiaFriendlyFont = prefs.dyslexiaFriendlyFont;
+      _selectedFont = prefs.selectedFont;
       _largerTextAndControls = prefs.largerTextAndControls;
       _useAnimation = prefs.useAnimation;
       _compactView = prefs.compactView;
@@ -65,20 +64,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await widget.preferencesService.savePreferences(
       UserPreferences(
         isDarkMode: _isDarkMode,
-        dyslexiaFriendlyFont: _dyslexiaFriendlyFont,
+        selectedFont: _selectedFont,
         largerTextAndControls: _largerTextAndControls,
         useAnimation: _useAnimation,
         compactView: _compactView,
         languageCode: _languageCode,
       ),
     );
-  }
-
-  Future<void> _launchOpenDyslexicUrl() async {
-    final uri = Uri.parse('https://opendyslexic.org/');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 
   void _selectLanguage(String code) {
@@ -167,27 +159,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ).accessibilityDescription,
                           ),
                           const SizedBox(height: 16),
-                          _buildAccessibilityOption(
-                            context,
-                            title: AppLocalizations.of(
-                              context,
-                            ).dyslexiaFriendlyFont,
-                            subtitle: AppLocalizations.of(
-                              context,
-                            ).dyslexiaFontDescription,
-                            linkText: AppLocalizations.of(
-                              context,
-                            ).learnMoreOpenDyslexic,
-                            onLinkTap: _launchOpenDyslexicUrl,
-                            value: _dyslexiaFriendlyFont,
-                            onChanged: (value) {
-                              setState(() => _dyslexiaFriendlyFont = value);
-                              _savePreferences();
-                              // CUR-509: Notify parent to update theme font
-                              widget.onDyslexicFontChanged?.call(value);
-                            },
-                          ),
-                          const SizedBox(height: 12),
+                          // CUR-528: Font selection dropdown
+                          if (FeatureFlagService
+                              .instance
+                              .shouldShowFontSelector)
+                            _buildFontSelector(context),
+                          if (FeatureFlagService
+                              .instance
+                              .shouldShowFontSelector)
+                            const SizedBox(height: 12),
                           _buildAccessibilityOption(
                             context,
                             title: AppLocalizations.of(
@@ -339,6 +319,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// CUR-528: Build font selection dropdown
+  Widget _buildFontSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final availableFonts = FeatureFlagService.instance.availableFonts;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.fontSelection,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.fontSelectionDescription,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: availableFonts.any((f) => f.fontFamily == _selectedFont)
+                ? _selectedFont
+                : availableFonts.first.fontFamily,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+            items: availableFonts.map((font) {
+              return DropdownMenuItem<String>(
+                value: font.fontFamily,
+                child: Text(font.displayName),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _selectedFont = value);
+                _savePreferences();
+                // CUR-528: Notify parent to update theme font
+                widget.onFontChanged?.call(value);
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 
