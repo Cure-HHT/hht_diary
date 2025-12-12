@@ -562,7 +562,7 @@ async function addRequirementToTicket(ticketId, reqId) {
         throw new Error(`Invalid requirement: ${reqId}`);
     }
 
-    // Use linear-api to update ticket
+    // Use linear-api plugin scripts directly
     const { execSync } = require('child_process');
     execSync(`bash linear-api/skills/update-ticket.skill --ticketId=${ticketId} --add-requirement=${reqId}`);
 }

@@ -386,7 +386,7 @@ You know about these other plugins in the marketplace:
 
 When generating plugins, you can reference scripts from other plugins:
 ```bash
-# Example: Use linear-api to fetch ticket for validation
+# Example: Use linear-api plugin scripts directly for validation
 bash ../linear-api/scripts/fetch-ticket.sh --id="$TICKET_ID"
 ```
 
