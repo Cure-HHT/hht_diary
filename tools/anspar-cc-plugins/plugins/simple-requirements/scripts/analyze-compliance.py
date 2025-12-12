@@ -9,14 +9,20 @@ Usage:
     python3 analyze-compliance.py REQ-d00027 --file path/to/impl.py
     python3 analyze-compliance.py d00027 --auto-scan
     python3 analyze-compliance.py d00027 --format json
+    python3 analyze-compliance.py d00027 --auto-scan --use-claude-code
 
-Requires: Anthropic API key in ANTHROPIC_API_KEY environment variable
+AI Backends (checked in order):
+    1. Claude Code CLI (if --use-claude-code or CLAUDE_CODE_ANALYSIS=1)
+    2. Anthropic API (if ANTHROPIC_API_KEY is set)
+    3. Fallback: Manual review recommended
 """
 
 import sys
 import json
 import argparse
 import os
+import subprocess
+import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -37,6 +43,9 @@ try:
     HAS_ANTHROPIC = True
 except ImportError:
     HAS_ANTHROPIC = False
+
+# Check for Claude Code CLI
+HAS_CLAUDE_CODE = shutil.which('claude') is not None
 
 
 @dataclass
@@ -136,43 +145,10 @@ def read_implementation_file(file_path: Path, max_lines: int = 500) -> str:
         return f"[Error reading file: {e}]"
 
 
-def analyze_with_ai(req_id: str, old_hash: str, new_req: Dict,
-                   impl_file: Path, impl_content: str) -> ComplianceAnalysis:
-    """
-    Use Claude API to analyze compliance.
-
-    Returns ComplianceAnalysis with AI-generated insights.
-    """
-
-    if not HAS_ANTHROPIC:
-        return ComplianceAnalysis(
-            req_id=req_id,
-            file=str(impl_file),
-            changes_summary="AI analysis unavailable (anthropic package not installed)",
-            still_compliant=True,  # Assume compliant if can't analyze
-            risk_level="UNKNOWN",
-            required_changes=[],
-            recommendations="Install anthropic package for AI-powered analysis",
-            analyzed_at=datetime.now().isoformat(),
-            confidence="NONE"
-        )
-
-    api_key = os.environ.get('ANTHROPIC_API_KEY')
-    if not api_key:
-        return ComplianceAnalysis(
-            req_id=req_id,
-            file=str(impl_file),
-            changes_summary="AI analysis unavailable (ANTHROPIC_API_KEY not set)",
-            still_compliant=True,
-            risk_level="UNKNOWN",
-            required_changes=[],
-            recommendations="Set ANTHROPIC_API_KEY environment variable for AI analysis",
-            analyzed_at=datetime.now().isoformat(),
-            confidence="NONE"
-        )
-
-    # Create prompt for Claude
-    prompt = f"""You are analyzing if a code implementation still satisfies an updated requirement.
+def build_analysis_prompt(req_id: str, old_hash: str, new_req: Dict,
+                          impl_file: Path, impl_content: str) -> str:
+    """Build the analysis prompt for Claude."""
+    return f"""You are analyzing if a code implementation still satisfies an updated requirement.
 
 REQUIREMENT DETAILS:
 - ID: REQ-{req_id}
@@ -208,26 +184,15 @@ Respond in JSON format:
 }}
 """
 
-    try:
-        client = anthropic.Anthropic(api_key=api_key)
 
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=2048,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+def parse_ai_response(response_text: str, req_id: str, impl_file: Path) -> ComplianceAnalysis:
+    """Parse AI response text into ComplianceAnalysis."""
+    # Try to parse JSON from response
+    json_start = response_text.find('{')
+    json_end = response_text.rfind('}') + 1
 
-        # Extract JSON from response
-        response_text = message.content[0].text
-
-        # Try to parse JSON from response
-        # Look for JSON block
-        json_start = response_text.find('{')
-        json_end = response_text.rfind('}') + 1
-
-        if json_start >= 0 and json_end > json_start:
+    if json_start >= 0 and json_end > json_start:
+        try:
             json_str = response_text[json_start:json_end]
             analysis_data = json.loads(json_str)
 
@@ -242,26 +207,77 @@ Respond in JSON format:
                 analyzed_at=datetime.now().isoformat(),
                 confidence=analysis_data.get('confidence', 'MEDIUM')
             )
+        except json.JSONDecodeError:
+            pass
 
+    # Couldn't parse JSON, return text response
+    return ComplianceAnalysis(
+        req_id=req_id,
+        file=str(impl_file),
+        changes_summary="AI analysis completed",
+        still_compliant=True,
+        risk_level="MEDIUM",
+        required_changes=[],
+        recommendations=response_text[:500],  # First 500 chars
+        analyzed_at=datetime.now().isoformat(),
+        confidence="MEDIUM"
+    )
+
+
+def analyze_with_claude_code(req_id: str, old_hash: str, new_req: Dict,
+                             impl_file: Path, impl_content: str) -> ComplianceAnalysis:
+    """
+    Use Claude Code CLI to analyze compliance.
+
+    Uses `claude --print` for non-interactive analysis.
+    """
+    prompt = build_analysis_prompt(req_id, old_hash, new_req, impl_file, impl_content)
+
+    try:
+        # Use claude CLI with --print for non-interactive mode
+        # --output-format text returns just the response
+        result = subprocess.run(
+            ['claude', '--print', '--output-format', 'text'],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=120,  # 2 minute timeout
+            cwd=repo_root
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            return parse_ai_response(result.stdout, req_id, impl_file)
         else:
-            # Couldn't parse JSON, return text response
+            error_msg = result.stderr[:100] if result.stderr else 'No response'
             return ComplianceAnalysis(
                 req_id=req_id,
                 file=str(impl_file),
-                changes_summary="AI analysis completed",
+                changes_summary=f"Claude Code error: {error_msg}",
                 still_compliant=True,
-                risk_level="MEDIUM",
+                risk_level="UNKNOWN",
                 required_changes=[],
-                recommendations=response_text[:500],  # First 500 chars
+                recommendations="Manual review recommended",
                 analyzed_at=datetime.now().isoformat(),
-                confidence="MEDIUM"
+                confidence="NONE"
             )
 
+    except subprocess.TimeoutExpired:
+        return ComplianceAnalysis(
+            req_id=req_id,
+            file=str(impl_file),
+            changes_summary="Analysis timed out",
+            still_compliant=True,
+            risk_level="UNKNOWN",
+            required_changes=[],
+            recommendations="Manual review recommended (analysis timed out)",
+            analyzed_at=datetime.now().isoformat(),
+            confidence="NONE"
+        )
     except Exception as e:
         return ComplianceAnalysis(
             req_id=req_id,
             file=str(impl_file),
-            changes_summary=f"Analysis error: {str(e)[:100]}",
+            changes_summary=f"Claude Code error: {str(e)[:100]}",
             still_compliant=True,
             risk_level="UNKNOWN",
             required_changes=[],
@@ -269,6 +285,100 @@ Respond in JSON format:
             analyzed_at=datetime.now().isoformat(),
             confidence="NONE"
         )
+
+
+def analyze_with_api(req_id: str, old_hash: str, new_req: Dict,
+                     impl_file: Path, impl_content: str) -> ComplianceAnalysis:
+    """
+    Use Anthropic API directly to analyze compliance.
+
+    Requires ANTHROPIC_API_KEY environment variable.
+    """
+    prompt = build_analysis_prompt(req_id, old_hash, new_req, impl_file, impl_content)
+
+    try:
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
+        client = anthropic.Anthropic(api_key=api_key)
+
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        response_text = message.content[0].text
+        return parse_ai_response(response_text, req_id, impl_file)
+
+    except Exception as e:
+        return ComplianceAnalysis(
+            req_id=req_id,
+            file=str(impl_file),
+            changes_summary=f"API error: {str(e)[:100]}",
+            still_compliant=True,
+            risk_level="UNKNOWN",
+            required_changes=[],
+            recommendations="Manual review recommended",
+            analyzed_at=datetime.now().isoformat(),
+            confidence="NONE"
+        )
+
+
+def analyze_with_ai(req_id: str, old_hash: str, new_req: Dict,
+                   impl_file: Path, impl_content: str,
+                   use_claude_code: bool = False) -> ComplianceAnalysis:
+    """
+    Analyze compliance using available AI backend.
+
+    Backend selection order:
+    1. Claude Code CLI (if use_claude_code=True or CLAUDE_CODE_ANALYSIS=1)
+    2. Anthropic API (if ANTHROPIC_API_KEY is set)
+    3. Fallback with recommendation for manual review
+
+    Args:
+        use_claude_code: Force use of Claude Code CLI instead of API
+    """
+    # Check if Claude Code should be used
+    use_cc = use_claude_code or os.environ.get('CLAUDE_CODE_ANALYSIS', '').lower() in ('1', 'true', 'yes')
+
+    if use_cc:
+        if HAS_CLAUDE_CODE:
+            return analyze_with_claude_code(req_id, old_hash, new_req, impl_file, impl_content)
+        else:
+            return ComplianceAnalysis(
+                req_id=req_id,
+                file=str(impl_file),
+                changes_summary="Claude Code CLI not found",
+                still_compliant=True,
+                risk_level="UNKNOWN",
+                required_changes=[],
+                recommendations="Install Claude Code CLI: npm install -g @anthropic-ai/claude-code",
+                analyzed_at=datetime.now().isoformat(),
+                confidence="NONE"
+            )
+
+    # Try Anthropic API
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if api_key and HAS_ANTHROPIC:
+        return analyze_with_api(req_id, old_hash, new_req, impl_file, impl_content)
+
+    # Fall back to Claude Code if available
+    if HAS_CLAUDE_CODE:
+        return analyze_with_claude_code(req_id, old_hash, new_req, impl_file, impl_content)
+
+    # No AI backend available
+    return ComplianceAnalysis(
+        req_id=req_id,
+        file=str(impl_file),
+        changes_summary="No AI backend available",
+        still_compliant=True,
+        risk_level="UNKNOWN",
+        required_changes=[],
+        recommendations="Set ANTHROPIC_API_KEY or install Claude Code CLI for AI analysis",
+        analyzed_at=datetime.now().isoformat(),
+        confidence="NONE"
+    )
 
 
 def format_output(analyses: List[ComplianceAnalysis], format_type: str) -> str:
@@ -343,11 +453,21 @@ Examples:
     # Auto-scan for implementations and analyze all:
     %(prog)s d00027 --auto-scan
 
+    # Use Claude Code CLI instead of API:
+    %(prog)s d00027 --auto-scan --use-claude-code
+
     # JSON output:
     %(prog)s d00027 --file setup.sh --format json
 
+AI Backends (checked in order):
+    1. Claude Code CLI (if --use-claude-code or CLAUDE_CODE_ANALYSIS=1)
+    2. Anthropic API (if ANTHROPIC_API_KEY is set)
+    3. Claude Code CLI (fallback if available)
+    4. Manual review recommended
+
 Environment:
-    ANTHROPIC_API_KEY  Required for AI-powered analysis
+    ANTHROPIC_API_KEY       For direct API access
+    CLAUDE_CODE_ANALYSIS=1  Force use of Claude Code CLI
         """
     )
 
@@ -378,6 +498,12 @@ Environment:
     parser.add_argument(
         '--old-hash',
         help='Old requirement hash (from tracking file)'
+    )
+
+    parser.add_argument(
+        '--use-claude-code',
+        action='store_true',
+        help='Use Claude Code CLI instead of Anthropic API'
     )
 
     args = parser.parse_args()
@@ -426,7 +552,8 @@ Environment:
                         old_hash,
                         new_req,
                         impl_file,
-                        impl_content
+                        impl_content,
+                        use_claude_code=args.use_claude_code
                     )
                     analyses.append(analysis)
             else:
@@ -450,7 +577,8 @@ Environment:
                 old_hash,
                 new_req,
                 impl_file,
-                impl_content
+                impl_content,
+                use_claude_code=args.use_claude_code
             )
             analyses.append(analysis)
 

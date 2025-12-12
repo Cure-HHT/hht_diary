@@ -8,7 +8,7 @@ This module provides shared functionality used across multiple scripts:
 - Requirement ID normalization and patterns
 
 IMPLEMENTS REQUIREMENTS:
-    REQ-d00027: Workflow plugin state management
+    REQ-d00018: Git Hook Implementation (tracking file utilities)
 """
 
 import sys
