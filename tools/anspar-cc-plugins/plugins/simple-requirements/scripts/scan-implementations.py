@@ -23,8 +23,11 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
 
+# Import shared utilities
+from common import get_repo_root
+
 # Repo root
-repo_root = Path(__file__).resolve().parents[5]
+repo_root = get_repo_root()
 
 # File patterns to search
 SEARCH_PATTERNS = [

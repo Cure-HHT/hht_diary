@@ -21,76 +21,15 @@ Features:
 import sys
 import json
 import argparse
-import fcntl
-from pathlib import Path
-from datetime import datetime, timezone
 from typing import Dict, Optional
 
-# Add tools/requirements to Python path
-repo_root = Path(__file__).resolve().parents[5]
-sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
-
-# Tracking file location
-TRACKING_FILE = repo_root / 'untracked-notes' / 'outdated-implementations.json'
-
-
-def load_tracking_file() -> Dict:
-    """
-    Load tracking file with proper locking.
-
-    Returns:
-        Dict with version, last_updated, outdated_requirements
-    """
-    if not TRACKING_FILE.exists():
-        raise FileNotFoundError(f"Tracking file not found: {TRACKING_FILE}")
-
-    with TRACKING_FILE.open('r') as f:
-        # Acquire shared lock for reading
-        fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-        try:
-            data = json.load(f)
-            return data
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-
-def save_tracking_file(data: Dict) -> None:
-    """
-    Save tracking file with proper locking.
-
-    Args:
-        data: Tracking data to save
-    """
-    # Update timestamp
-    data['last_updated'] = datetime.now(timezone.utc).isoformat()
-
-    # Write atomically with exclusive lock
-    temp_file = TRACKING_FILE.with_suffix('.tmp')
-    with temp_file.open('w') as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        try:
-            json.dump(data, f, indent=2)
-            f.write('\n')  # Trailing newline
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-    # Atomic rename
-    temp_file.replace(TRACKING_FILE)
-
-
-def normalize_req_id(req_id: str) -> str:
-    """
-    Normalize requirement ID to standard format (without REQ- prefix).
-
-    Args:
-        req_id: Requirement ID (e.g., "REQ-d00027" or "d00027")
-
-    Returns:
-        Normalized ID (e.g., "d00027")
-    """
-    if req_id.upper().startswith('REQ-'):
-        req_id = req_id[4:]
-    return req_id.lower()
+# Import shared utilities
+from common import (
+    normalize_req_id,
+    load_tracking_file,
+    save_tracking_file,
+    get_tracking_file_path,
+)
 
 
 def mark_verified(req_id: str, dry_run: bool = False) -> Optional[Dict]:
@@ -104,10 +43,7 @@ def mark_verified(req_id: str, dry_run: bool = False) -> Optional[Dict]:
     Returns:
         The removed entry if found, None otherwise
     """
-    # Normalize ID
     normalized_id = normalize_req_id(req_id)
-
-    # Load tracking data
     tracking_data = load_tracking_file()
 
     # Find and remove the requirement
@@ -117,7 +53,6 @@ def mark_verified(req_id: str, dry_run: bool = False) -> Optional[Dict]:
             removed_entry = tracking_data['outdated_requirements'].pop(i)
             break
 
-    # Save if changed and not dry run
     if removed_entry and not dry_run:
         save_tracking_file(tracking_data)
 
@@ -134,9 +69,7 @@ def mark_all_verified(dry_run: bool = False) -> int:
     Returns:
         Number of requirements that would be removed
     """
-    # Load tracking data
     tracking_data = load_tracking_file()
-
     count = len(tracking_data['outdated_requirements'])
 
     if count > 0 and not dry_run:
@@ -185,10 +118,10 @@ Examples:
     )
 
     args = parser.parse_args()
+    tracking_file = get_tracking_file_path()
 
     try:
         if args.all:
-            # Mark all as verified
             count = mark_all_verified(args.dry_run)
 
             if count == 0:
@@ -199,12 +132,11 @@ Examples:
                 print(f"🔍 Dry run: Would remove {count} requirement(s) from tracking")
             else:
                 print(f"✅ Marked {count} requirement(s) as verified")
-                print(f"   Tracking file cleared: {TRACKING_FILE}")
+                print(f"   Tracking file cleared: {tracking_file}")
 
             return 0
 
         elif args.req_id:
-            # Mark single requirement as verified
             removed_entry = mark_verified(args.req_id, args.dry_run)
 
             if not removed_entry:
@@ -215,14 +147,12 @@ Examples:
 
             if args.dry_run:
                 print(f"🔍 Dry run: Would mark as verified:")
-                print(f"   REQ-{removed_entry['req_id']}: {removed_entry['title']}")
-                print(f"   File: {removed_entry['file']}")
-                print(f"   Hash change: {removed_entry['old_hash']} → {removed_entry['new_hash']}")
             else:
                 print(f"✅ Marked as verified and removed from tracking:")
-                print(f"   REQ-{removed_entry['req_id']}: {removed_entry['title']}")
-                print(f"   File: {removed_entry['file']}")
-                print(f"   Hash change: {removed_entry['old_hash']} → {removed_entry['new_hash']}")
+
+            print(f"   REQ-{removed_entry['req_id']}: {removed_entry['title']}")
+            print(f"   File: {removed_entry['file']}")
+            print(f"   Hash change: {removed_entry['old_hash']} → {removed_entry['new_hash']}")
 
             return 0
 
