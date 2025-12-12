@@ -103,7 +103,7 @@ python3 scripts/mark-verified.py --all  # Clear all (use with caution)
 ```markdown
 User: "What does REQ-d00027 say?"
 
-RequirementsAgent:
+Agent:
 I'll fetch REQ-d00027 for you.
 
 [Runs: python3 scripts/get-requirement.py d00027]
@@ -126,7 +126,7 @@ The implementation should ensure all dev tools run in isolated containers.
 ```markdown
 User: "Have any requirements changed lately?"
 
-RequirementsAgent:
+Agent:
 I'll check for requirement changes.
 
 [Runs: python3 scripts/detect-changes.py --format summary]
@@ -164,7 +164,7 @@ Would you like me to:
 ```markdown
 User: "I've updated the code for REQ-d00042, mark it as verified"
 
-RequirementsAgent:
+Agent:
 I'll mark REQ-d00042 as verified and remove it from the tracking file.
 
 [Runs: python3 scripts/mark-verified.py d00042]

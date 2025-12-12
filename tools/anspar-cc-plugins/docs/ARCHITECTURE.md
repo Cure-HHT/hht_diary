@@ -81,10 +81,10 @@ User: "Create a Linear ticket for REQ-p00042"
 
 Main Agent (Orchestrator):
   1. Recognizes: This needs requirement info + ticket creation
-  2. Checks /agents: Sees RequirementsAgent and LinearAgent
+  2. Checks /agents: Sees simple-requirements:simple-requirements and linear-api:linear-api
   3. Delegates:
-     - RequirementsAgent → Fetch REQ-p00042 details
-     - LinearAgent → Create ticket with details
+     - simple-requirements:simple-requirements → Fetch REQ-p00042 details
+     - linear-api:linear-api → Create ticket with details
   4. Reports: Success with ticket URL
 
 Result: Reliable, reusable, maintainable
