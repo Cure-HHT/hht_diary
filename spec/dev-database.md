@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Software Developers
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **Scope**: Cloud SQL implementation, Dart server database access, development workflow
 >
@@ -111,7 +111,7 @@ clinical-diary-{sponsor}/            # Private sponsor repository
 
 # REQ-d00007: Database Schema Implementation and Deployment
 
-**Level**: Dev | **Implements**: o00004 | **Status**: Active
+**Level**: Dev | **Implements**: o00004 | **Status**: Draft
 
 Database schema files SHALL be implemented as versioned SQL scripts organized by functional area (schema, triggers, functions, RLS policies, indexes), enabling repeatable deployment to sponsor-specific Cloud SQL instances while maintaining schema consistency across all sponsors.
 
@@ -138,7 +138,7 @@ Implementation SHALL include:
 
 # REQ-d00011: Multi-Site Schema Implementation
 
-**Level**: Dev | **Implements**: o00011 | **Status**: Active
+**Level**: Dev | **Implements**: o00011 | **Status**: Draft
 
 The database schema SHALL implement multi-site support through sites table, site assignment tables, and row-level security policies that enforce site-based data access control within each sponsor's database.
 

@@ -1,6 +1,6 @@
 # REQ-d00068: Enhanced Workflow New Work Detection
 
-**Level**: Dev | **Implements**: - | **Status**: Active
+**Level**: Dev | **Implements**: - | **Status**: Draft
 
 ## Overview
 

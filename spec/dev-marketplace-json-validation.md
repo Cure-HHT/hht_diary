@@ -1,6 +1,6 @@
 # REQ-d00064: Plugin JSON Validation Tooling
 
-**Level**: Dev | **Implements**: - | **Status**: Active
+**Level**: Dev | **Implements**: - | **Status**: Draft
 
 ## Overview
 

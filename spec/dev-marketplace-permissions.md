@@ -1,6 +1,6 @@
 # REQ-d00066: Plugin-Specific Permission Management
 
-**Level**: Dev | **Implements**: - | **Status**: Active
+**Level**: Dev | **Implements**: - | **Status**: Draft
 
 ## Overview
 

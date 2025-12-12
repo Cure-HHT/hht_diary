@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Software Developers
 **Last Updated**: 2025-11-28
-**Status**: Active
+**Status**: Draft
 
 > **Scope**: CDISC standards implementation, data mapping, EDC synchronization
 >

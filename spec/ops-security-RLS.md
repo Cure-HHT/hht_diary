@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Operations
 **Last Updated**: 2025-10-26
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-security-RLS.md for product requirements
 > **See**: dev-security-RLS.md for implementation details
@@ -21,7 +21,7 @@ This document defines operational procedures for deploying, configuring, and mon
 
 # REQ-o00020: Patient Data Isolation Policy Deployment
 
-**Level**: Ops | **Implements**: p00035 | **Status**: Active
+**Level**: Ops | **Implements**: p00035 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to enforce patient data isolation, ensuring patients can only access their own clinical diary entries through database-level access controls.
 
@@ -47,7 +47,7 @@ Policy deployment SHALL include:
 
 # REQ-o00021: Investigator Site-Scoped Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00036 | **Status**: Active
+**Level**: Ops | **Implements**: p00036 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to restrict investigator access to clinical data at their assigned sites only, with site assignments managed in database tables.
 
@@ -73,7 +73,7 @@ Policy deployment SHALL include:
 
 # REQ-o00022: Investigator Annotation Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00037 | **Status**: Active
+**Level**: Ops | **Implements**: p00037 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to allow investigators to create annotations while preventing modification of patient-entered clinical data.
 
@@ -99,7 +99,7 @@ Policy deployment SHALL include:
 
 # REQ-o00023: Analyst Read-Only Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00022 | **Status**: Active
+**Level**: Ops | **Implements**: p00022 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to provide analysts read-only access to de-identified clinical data at their assigned sites.
 
@@ -125,7 +125,7 @@ Policy deployment SHALL include:
 
 # REQ-o00024: Sponsor Global Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00023 | **Status**: Active
+**Level**: Ops | **Implements**: p00023 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to provide sponsors read access to all clinical data across all sites within their isolated database instance.
 
@@ -151,7 +151,7 @@ Policy deployment SHALL include:
 
 # REQ-o00025: Auditor Compliance Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00038 | **Status**: Active
+**Level**: Ops | **Implements**: p00038 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to provide auditors read-only access to all data including audit logs, with data export actions logged and justified.
 
@@ -177,7 +177,7 @@ Policy deployment SHALL include:
 
 # REQ-o00026: Administrator Access Policy Deployment
 
-**Level**: Ops | **Implements**: p00039 | **Status**: Active
+**Level**: Ops | **Implements**: p00039 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed for administrator access with comprehensive logging and break-glass access controls for protected health information.
 
@@ -203,7 +203,7 @@ Policy deployment SHALL include:
 
 # REQ-o00027: Event Sourcing State Protection Policy Deployment
 
-**Level**: Ops | **Implements**: p00040 | **Status**: Active
+**Level**: Ops | **Implements**: p00040 | **Status**: Draft
 
 PostgreSQL Row-Level Security policies SHALL be deployed to prevent direct modification of the `record_state` table, enforcing event sourcing architecture through missing write policies.
 

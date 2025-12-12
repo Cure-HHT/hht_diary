@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-11-28
-**Status**: Active
+**Status**: Draft
 
 > **See**: dev-CDISC.md for CDISC implementation guidance
 > **See**: prd-clinical-trials.md for FDA 21 CFR Part 11 requirements
@@ -45,7 +45,7 @@ This document defines high-level requirements for each industry standard the pla
 
 # REQ-p00041: CDISC Standards Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The system SHALL support Clinical Data Interchange Standards Consortium (CDISC) standards for clinical data capture, storage, transformation, and export to enable regulatory submission and EDC system integration.
 

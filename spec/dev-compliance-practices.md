@@ -1155,7 +1155,7 @@ https://www.fda.gov/drugs/cder-small-business-industry-assistance-sbia/regulator
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-10-23
-**Status**: Active
+**Status**: Draft
 
 > **See**: dev-compliance-practices.md for implementation guidance
 > **See**: prd-database-event-sourcing.md for Event Sourcing pattern

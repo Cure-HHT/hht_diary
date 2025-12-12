@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-11-04
-**Status**: Active
+**Status**: Draft
 
 > **See**: dev-event-sourcing-postgres.md for implementation details (to be created)
 > **See**: ops-event-sourcing-deployment.md for deployment and operations (to be created)
@@ -118,7 +118,7 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 # REQ-p01000: Event Sourcing Client Interface
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide a type-safe client interface for creating, storing, and querying events in an event-sourced PostgreSQL database.
 
@@ -145,7 +145,7 @@ The interface SHALL support:
 
 # REQ-p01001: Offline Event Queue with Automatic Synchronization
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL queue events locally when network unavailable and automatically synchronize them to the server when connectivity restored.
 
@@ -174,7 +174,7 @@ Offline queue SHALL ensure:
 
 # REQ-p01002: Optimistic Concurrency Control
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
 
@@ -202,7 +202,7 @@ Conflict resolution SHALL support:
 
 # REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL store all events as immutable, append-only records that form a complete audit trail of all data changes.
 
@@ -229,7 +229,7 @@ Event storage SHALL ensure:
 
 # REQ-p01004: Schema Version Management
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
 
@@ -256,7 +256,7 @@ Schema management SHALL provide:
 
 # REQ-p01005: Real-time Event Subscription
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL support real-time subscriptions to event streams, allowing clients to receive notifications when new events occur.
 
@@ -283,7 +283,7 @@ Real-time subscriptions SHALL provide:
 
 # REQ-p01006: Type-Safe Materialized View Queries
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide type-safe query interfaces for materialized views that represent current state derived from events.
 
@@ -310,7 +310,7 @@ Materialized view queries SHALL support:
 
 # REQ-p01007: Error Handling and Diagnostics
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide comprehensive error handling and diagnostic capabilities to support development, testing, and production troubleshooting.
 
@@ -495,7 +495,7 @@ Transport abstraction SHALL provide:
 
 # REQ-p01014: Observability and Monitoring
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
 
@@ -522,7 +522,7 @@ Monitoring SHALL include:
 
 # REQ-p01015: Automated Testing Support
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
 
@@ -548,7 +548,7 @@ Testing utilities SHALL provide:
 
 # REQ-p01016: Performance Benchmarking
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL meet performance benchmarks for common operations to ensure acceptable user experience.
 
@@ -575,7 +575,7 @@ Performance targets:
 
 # REQ-p01017: Backward Compatibility Guarantees
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL maintain backward compatibility for public APIs across minor versions, allowing applications to upgrade without code changes.
 
@@ -602,7 +602,7 @@ Compatibility SHALL ensure:
 
 # REQ-p01018: Security Audit and Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL undergo security review and maintain compliance with relevant security standards.
 
@@ -734,7 +734,7 @@ This module differs by:
 
 # REQ-p01019: Phased Implementation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL be developed in phases, with each phase delivering incremental value and validating core assumptions.
 

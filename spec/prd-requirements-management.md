@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-10-25
-**Status**: Active
+**Status**: Draft
 
 > **See**: ops-requirements-management.md for operational enforcement of requirements
 > **See**: dev-requirements-management.md for tooling implementation
@@ -33,7 +33,7 @@ Without formal requirements and traceability, a clinical trial system cannot be 
 
 # REQ-p00020: System Validation and Traceability
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Active
+**Level**: PRD | **Implements**: p00010 | **Status**: Draft
 
 The system development process SHALL maintain formal requirements with complete traceability from product requirements through operational procedures to implementation code, ensuring all system capabilities are documented, justified, and verifiable.
 
@@ -61,7 +61,7 @@ Formal requirements SHALL ensure:
 
 # REQ-p00021: Architecture Decision Documentation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 Significant architectural and design decisions SHALL be formally documented with context, alternatives considered, and consequences, ensuring decisions are reviewable, reversible, and understood by future maintainers and auditors.
 

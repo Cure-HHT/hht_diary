@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-11-28
-**Status**: Active
+**Status**: Draft
 
 > **Scope**: Standard terminology for epistaxis (nosebleed) data capture in HHT clinical studies
 >
@@ -29,7 +29,7 @@ This document defines the **standard terminology and data capture format** for e
 
 # REQ-p00042: HHT Epistaxis Data Capture Standard
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The system SHALL capture epistaxis (nosebleed) events using the HHT-specific terminology standard defined in this specification, ensuring consistent data collection across all HHT clinical studies.
 

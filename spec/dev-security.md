@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Software Developers
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **Scope**: GCP security implementation, Identity Platform integration, IAM patterns
 >
@@ -79,7 +79,7 @@ Sponsor A Environment           Sponsor B Environment
 
 # REQ-d00003: Identity Platform Configuration Per Sponsor
 
-**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Active
+**Level**: Dev | **Implements**: p00002, o00003 | **Status**: Draft
 
 The application SHALL integrate with Google Identity Platform for user authentication, with each sponsor using their dedicated Identity Platform instance in their GCP project configured for their specific requirements.
 
@@ -408,7 +408,7 @@ Middleware firebaseAuthMiddleware(FirebaseTokenVerifier verifier) {
 
 # REQ-d00008: MFA Enrollment and Verification Implementation
 
-**Level**: Dev | **Implements**: o00006 | **Status**: Active
+**Level**: Dev | **Implements**: o00006 | **Status**: Draft
 
 The application SHALL implement multi-factor authentication enrollment and verification flows using Identity Platform's MFA capabilities, enforcing additional authentication factor for clinical staff, administrators, and sponsor personnel.
 
@@ -588,7 +588,7 @@ class SecureSessionManager {
 
 # REQ-d00009: Role-Based Permission Enforcement Implementation
 
-**Level**: Dev | **Implements**: o00007 | **Status**: Active
+**Level**: Dev | **Implements**: o00007 | **Status**: Draft
 
 The application SHALL implement role-based permission enforcement by reading user roles from Firebase ID token claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
 
@@ -927,7 +927,7 @@ class GcpAuth {
 
 # REQ-d00010: Data Encryption Implementation
 
-**Level**: Dev | **Implements**: p00017 | **Status**: Active
+**Level**: Dev | **Implements**: p00017 | **Status**: Draft
 
 The application SHALL implement data encryption at rest and in transit using platform-provided encryption capabilities, ensuring all clinical trial data is protected from unauthorized access during storage and transmission.
 
