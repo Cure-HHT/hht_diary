@@ -13,6 +13,50 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+/// Available font options that can be configured by sponsors.
+/// These names must match the family names in pubspec.yaml.
+enum FontOption {
+  /// System default font (Roboto on Android, SF on iOS)
+  roboto('Roboto'),
+
+  /// OpenDyslexic font for dyslexia accessibility
+  openDyslexic('OpenDyslexic'),
+
+  /// Atkinson Hyperlegible for visual impairment accessibility
+  atkinsonHyperlegible('AtkinsonHyperlegible');
+
+  const FontOption(this.fontFamily);
+
+  /// The font family name as used in Flutter theme
+  final String fontFamily;
+
+  /// Human-readable display name for the UI
+  String get displayName {
+    switch (this) {
+      case FontOption.roboto:
+        return 'Roboto (Default)';
+      case FontOption.openDyslexic:
+        return 'OpenDyslexic';
+      case FontOption.atkinsonHyperlegible:
+        return 'Atkinson Hyperlegible';
+    }
+  }
+
+  /// Parse from server string value
+  static FontOption? fromString(String value) {
+    switch (value) {
+      case 'Roboto':
+        return FontOption.roboto;
+      case 'OpenDyslexic':
+        return FontOption.openDyslexic;
+      case 'AtkinsonHyperlegible':
+        return FontOption.atkinsonHyperlegible;
+      default:
+        return null;
+    }
+  }
+}
+
 /// Feature flag default values and constraints.
 /// These are sponsor-controlled settings that are loaded at enrollment time.
 /// Values are stored in memory and loaded from the server.
@@ -40,6 +84,9 @@ class FeatureFlags {
   /// CUR-508: Default: false - use classic multi-page recording screen
   /// When true, uses simplified one-page recording screen
   static const bool defaultUseOnePageRecordingScreen = false;
+
+  /// CUR-528: Default available fonts - all fonts available
+  static const List<FontOption> defaultAvailableFonts = FontOption.values;
 
   // === Constraints ===
 
@@ -87,6 +134,10 @@ class FeatureFlagService {
   // CUR-508: One-page recording screen flag
   bool _useOnePageRecordingScreen =
       FeatureFlags.defaultUseOnePageRecordingScreen;
+  // CUR-528: Available fonts for this sponsor
+  List<FontOption> _availableFonts = List.from(
+    FeatureFlags.defaultAvailableFonts,
+  );
 
   // Current sponsor ID (null if not loaded from server)
   String? _currentSponsorId;
@@ -168,6 +219,26 @@ class FeatureFlagService {
     _useOnePageRecordingScreen = value;
   }
 
+  /// CUR-528: Available fonts for this sponsor
+  /// Controls which font options users can select in Settings.
+  /// If only contains Roboto or is empty, font selector should be hidden.
+  List<FontOption> get availableFonts => List.unmodifiable(_availableFonts);
+
+  set availableFonts(List<FontOption> value) {
+    _availableFonts = List.from(value);
+  }
+
+  /// CUR-528: Whether font selector should be shown in settings
+  /// Returns false if only Roboto is available or list is empty
+  bool get shouldShowFontSelector {
+    if (_availableFonts.isEmpty) return false;
+    if (_availableFonts.length == 1 &&
+        _availableFonts.first == FontOption.roboto) {
+      return false;
+    }
+    return true;
+  }
+
   /// Load feature flags from the server for a given sponsor ID.
   /// Returns true if successful, false otherwise.
   /// Updates [lastError] with error message on failure.
@@ -226,6 +297,21 @@ class FeatureFlagService {
           flags['useOnePageRecordingScreen'] as bool? ??
           FeatureFlags.defaultUseOnePageRecordingScreen;
 
+      // CUR-528: Parse available fonts from server
+      final fontsRaw = flags['availableFonts'] as List<dynamic>?;
+      if (fontsRaw != null) {
+        _availableFonts = fontsRaw
+            .map((f) => FontOption.fromString(f as String))
+            .whereType<FontOption>()
+            .toList();
+        // Fallback to defaults if parsing resulted in empty list
+        if (_availableFonts.isEmpty) {
+          _availableFonts = List.from(FeatureFlags.defaultAvailableFonts);
+        }
+      } else {
+        _availableFonts = List.from(FeatureFlags.defaultAvailableFonts);
+      }
+
       _currentSponsorId = sponsorId;
 
       debugPrint(
@@ -252,6 +338,10 @@ class FeatureFlagService {
       debugPrint(
         '[FeatureFlagService] useOnePageRecordingScreen: '
         '$_useOnePageRecordingScreen',
+      );
+      debugPrint(
+        '[FeatureFlagService] availableFonts: '
+        '${_availableFonts.map((f) => f.fontFamily).join(", ")}',
       );
 
       return true;
@@ -282,6 +372,7 @@ class FeatureFlagService {
     _longDurationThresholdMinutes =
         FeatureFlags.defaultLongDurationThresholdMinutes;
     _useOnePageRecordingScreen = FeatureFlags.defaultUseOnePageRecordingScreen;
+    _availableFonts = List.from(FeatureFlags.defaultAvailableFonts);
     _currentSponsorId = null;
     _lastError = null;
   }

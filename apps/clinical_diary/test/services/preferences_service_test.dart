@@ -65,7 +65,6 @@ void main() {
         final prefs = await service.getPreferences();
 
         expect(prefs.isDarkMode, isFalse);
-        expect(prefs.dyslexiaFriendlyFont, isFalse);
         expect(prefs.largerTextAndControls, isFalse);
         expect(prefs.useAnimation, isTrue);
         expect(prefs.compactView, isFalse);
@@ -76,7 +75,6 @@ void main() {
         await service.savePreferences(
           const UserPreferences(
             isDarkMode: true,
-            dyslexiaFriendlyFont: true,
             largerTextAndControls: true,
             useAnimation: false,
             compactView: true,
@@ -87,7 +85,6 @@ void main() {
         final prefs = await service.getPreferences();
 
         expect(prefs.isDarkMode, isTrue);
-        expect(prefs.dyslexiaFriendlyFont, isTrue);
         expect(prefs.largerTextAndControls, isTrue);
         expect(prefs.useAnimation, isFalse);
         expect(prefs.compactView, isTrue);
@@ -99,7 +96,6 @@ void main() {
       test('persists all preference values', () async {
         const prefs = UserPreferences(
           isDarkMode: true,
-          dyslexiaFriendlyFont: true,
           largerTextAndControls: true,
           useAnimation: false,
           compactView: true,
@@ -110,7 +106,6 @@ void main() {
 
         final loaded = await service.getPreferences();
         expect(loaded.isDarkMode, equals(prefs.isDarkMode));
-        expect(loaded.dyslexiaFriendlyFont, equals(prefs.dyslexiaFriendlyFont));
         expect(
           loaded.largerTextAndControls,
           equals(prefs.largerTextAndControls),
@@ -126,7 +121,6 @@ void main() {
     test('copyWith creates new instance with updated values', () {
       const original = UserPreferences(
         isDarkMode: false,
-        dyslexiaFriendlyFont: false,
         largerTextAndControls: false,
         useAnimation: true,
         compactView: false,
@@ -141,10 +135,6 @@ void main() {
 
       expect(updated.isDarkMode, equals(original.isDarkMode));
       expect(
-        updated.dyslexiaFriendlyFont,
-        equals(original.dyslexiaFriendlyFont),
-      );
-      expect(
         updated.largerTextAndControls,
         equals(original.largerTextAndControls),
       );
@@ -156,21 +146,22 @@ void main() {
     test('toJson serializes all fields', () {
       const prefs = UserPreferences(
         isDarkMode: true,
-        dyslexiaFriendlyFont: true,
         largerTextAndControls: true,
         useAnimation: false,
         compactView: true,
         languageCode: 'es',
+        selectedFont: 'OpenDyslexic',
       );
 
       final json = prefs.toJson();
 
       expect(json['isDarkMode'], isTrue);
-      expect(json['dyslexiaFriendlyFont'], isTrue);
+      // Note: dyslexiaFriendlyFont removed from toJson (deprecated field)
       expect(json['largerTextAndControls'], isTrue);
       expect(json['useAnimation'], isFalse);
       expect(json['compactView'], isTrue);
       expect(json['languageCode'], equals('es'));
+      expect(json['selectedFont'], equals('OpenDyslexic'));
     });
 
     test('fromJson deserializes all fields', () {
@@ -186,7 +177,6 @@ void main() {
       final prefs = UserPreferences.fromJson(json);
 
       expect(prefs.isDarkMode, isTrue);
-      expect(prefs.dyslexiaFriendlyFont, isTrue);
       expect(prefs.largerTextAndControls, isTrue);
       expect(prefs.useAnimation, isFalse);
       expect(prefs.compactView, isTrue);
@@ -199,7 +189,6 @@ void main() {
       final prefs = UserPreferences.fromJson(json);
 
       expect(prefs.isDarkMode, isFalse);
-      expect(prefs.dyslexiaFriendlyFont, isFalse);
       expect(prefs.largerTextAndControls, isFalse);
       expect(prefs.useAnimation, isTrue); // Default is true
       expect(prefs.compactView, isFalse); // Default is false

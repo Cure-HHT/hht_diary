@@ -96,8 +96,30 @@ void main() {
         expect(find.text('Use Animations'), findsOneWidget);
       });
 
+      testWidgets('displays font accessibility section', (tester) async {
+        await tester.pumpWidget(buildFeatureFlagsScreen());
+        await tester.pumpAndSettle();
+
+        // Scroll to make Font Accessibility section visible
+        await tester.scrollUntilVisible(find.text('Font Accessibility'), 100);
+        await tester.pumpAndSettle();
+
+        // Check for Font Accessibility section header
+        expect(find.text('Font Accessibility'), findsOneWidget);
+
+        // Check for font checkboxes
+        expect(find.text('Roboto (Default)'), findsOneWidget);
+        expect(find.text('OpenDyslexic'), findsOneWidget);
+        expect(find.text('Atkinson Hyperlegible'), findsOneWidget);
+      });
+
       testWidgets('displays validation features section', (tester) async {
         await tester.pumpWidget(buildFeatureFlagsScreen());
+        await tester.pumpAndSettle();
+
+        // Scroll to make Validation Features section visible
+        // (Font Accessibility section may push it off-screen)
+        await tester.scrollUntilVisible(find.text('Validation Features'), 100);
         await tester.pumpAndSettle();
 
         // Check for Validation Features section header

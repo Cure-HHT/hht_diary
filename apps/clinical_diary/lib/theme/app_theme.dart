@@ -21,25 +21,47 @@ class AppTheme {
   static const Color infoBlue = Color(0xFFDBEAFE); // blue-100
 
   /// OpenDyslexic font family name for dyslexia-friendly text
+  @Deprecated('Use fontFamilyName instead')
   static const String openDyslexicFontFamily = 'OpenDyslexic';
 
+  /// CUR-528: Atkinson Hyperlegible font family name
+  static const String atkinsonHyperlegibleFontFamily = 'AtkinsonHyperlegible';
+
   /// Get light theme with optional dyslexia-friendly font
+  @Deprecated('Use getLightThemeWithFont instead')
   static ThemeData getLightTheme({bool useDyslexicFont = false}) {
+    // ignore: deprecated_member_use_from_same_package
     final fontFamily = useDyslexicFont ? openDyslexicFontFamily : null;
     return _buildLightTheme(fontFamily: fontFamily);
   }
 
   /// Get dark theme with optional dyslexia-friendly font
+  @Deprecated('Use getDarkThemeWithFont instead')
   static ThemeData getDarkTheme({bool useDyslexicFont = false}) {
+    // ignore: deprecated_member_use_from_same_package
     final fontFamily = useDyslexicFont ? openDyslexicFontFamily : null;
     return _buildDarkTheme(fontFamily: fontFamily);
   }
 
-  /// Legacy getter for light theme (without dyslexic font)
-  static ThemeData get lightTheme => getLightTheme();
+  /// CUR-528: Get light theme with selected font
+  /// Pass 'Roboto' or null for default, 'OpenDyslexic', or 'AtkinsonHyperlegible'
+  static ThemeData getLightThemeWithFont({String? fontFamily}) {
+    // 'Roboto' uses system default (null), others use their font family name
+    final effectiveFontFamily = (fontFamily == null || fontFamily == 'Roboto')
+        ? null
+        : fontFamily;
+    return _buildLightTheme(fontFamily: effectiveFontFamily);
+  }
 
-  /// Legacy getter for dark theme (without dyslexic font)
-  static ThemeData get darkTheme => getDarkTheme();
+  /// CUR-528: Get dark theme with selected font
+  /// Pass 'Roboto' or null for default, 'OpenDyslexic', or 'AtkinsonHyperlegible'
+  static ThemeData getDarkThemeWithFont({String? fontFamily}) {
+    // 'Roboto' uses system default (null), others use their font family name
+    final effectiveFontFamily = (fontFamily == null || fontFamily == 'Roboto')
+        ? null
+        : fontFamily;
+    return _buildDarkTheme(fontFamily: effectiveFontFamily);
+  }
 
   static ThemeData _buildLightTheme({String? fontFamily}) {
     return ThemeData(
