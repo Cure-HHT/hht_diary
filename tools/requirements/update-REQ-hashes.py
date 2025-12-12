@@ -163,7 +163,11 @@ Examples:
     print(f"{'🔍 Verifying' if args.verify else '📝 Updating'} requirement hashes...\n")
 
     for req_id, req in result.requirements.items():
-        calculated_hash = calculate_requirement_hash(req.body)
+        # Calculate hash from full content (body + rationale) for consistency with validator
+        full_content = req.body
+        if hasattr(req, 'rationale') and req.rationale:
+            full_content = f"{req.body}\n\n**Rationale**: {req.rationale}"
+        calculated_hash = calculate_requirement_hash(full_content)
 
         if req.hash != calculated_hash:
             updates[req_id] = (req.hash, calculated_hash)

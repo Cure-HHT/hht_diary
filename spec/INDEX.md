@@ -19,7 +19,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00003 | dev-security.md | Identity Platform Configuration Per Sponsor | 27095b5c |
 | REQ-d00004 | dev-app.md | Local-First Data Entry Implementation | 843d0664 |
 | REQ-d00005 | dev-app.md | Sponsor Configuration Detection Implementation | 37465932 |
-| REQ-d00006 | dev-app.md | Mobile App Build and Release Process | 6dfe9c2d |
+| REQ-d00006 | dev-app.md | Mobile App Build and Release Process | 24bbf429 |
 | REQ-d00007 | dev-database.md | Database Schema Implementation and Deployment | 18df4bc0 |
 | REQ-d00008 | dev-security.md | MFA Enrollment and Verification Implementation | e179439d |
 | REQ-d00009 | dev-security.md | Role-Based Permission Enforcement Implementation | 32cf086a |
@@ -222,7 +222,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p01037 | prd-SLA.md | Chronic Failure Escalation | c3a07afa |
 | REQ-p01038 | prd-SLA.md | Regulatory Event Support | fec701fa |
 | REQ-p01039 | prd-diary-app.md | Diary Start Day Definition | ef7a7921 |
-| REQ-p01040 | prd-diary-app.md | Calendar Visual Indicators for Entry Status | f0cf3d1c |
+| REQ-p01040 | prd-diary-app.md | Calendar Visual Indicators for Entry Status | 75dc8f26 |
 | REQ-p01041 | prd-system.md | Open Source Licensing | 8c10dd61 |
 | REQ-p01042 | prd-diary-web.md | Web Diary Application | f663bc1b |
 | REQ-p01043 | prd-diary-web.md | Web Diary Authentication via Linking Code | 31d36807 |

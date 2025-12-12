@@ -316,8 +316,9 @@ Calendar visual indicators SHALL display:
 - Color indicators supplemented with icons or patterns for colorblind users
 - Sufficient contrast ratios for all visual states
 - Screen reader announces entry status when navigating calendar
+- Accessible fonts definable by sponsor feature set and available in user preferences. 
 
-*End* *Calendar Visual Indicators for Entry Status* | **Hash**: f0cf3d1c
+*End* *Calendar Visual Indicators for Entry Status* | **Hash**: 75dc8f26
 
 ---
 
