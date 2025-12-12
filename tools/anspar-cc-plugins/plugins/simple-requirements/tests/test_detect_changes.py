@@ -13,7 +13,25 @@ from pathlib import Path
 # Paths
 PLUGIN_ROOT = Path(__file__).parent.parent
 SCRIPT_PATH = PLUGIN_ROOT / 'scripts' / 'detect-changes.py'
-REPO_ROOT = PLUGIN_ROOT.parents[4]
+
+
+def get_repo_root() -> Path:
+    """Get repo root using git (same approach as the scripts use)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return Path(result.stdout.strip())
+    except subprocess.CalledProcessError:
+        # Fallback to relative path traversal
+        return PLUGIN_ROOT.parents[4]
+
+
+REPO_ROOT = get_repo_root()
 INDEX_PATH = REPO_ROOT / 'spec' / 'INDEX.md'
 
 

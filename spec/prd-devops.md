@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-system.md for platform overview
 > **See**: ops-operations.md for operational procedures
@@ -13,7 +13,7 @@
 
 # REQ-p00048: Platform Operations and Monitoring
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 A DevOps monitoring and support system ensuring platform health, performance, security, and availability across all clinical trial operations.
 

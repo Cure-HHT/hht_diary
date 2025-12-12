@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Operations (SRE, DevOps, On-Call Engineers)
 **Last Updated**: 2025-12-04
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-SLA.md for SLA commitments
 > **See**: ops-monitoring-observability.md for monitoring infrastructure

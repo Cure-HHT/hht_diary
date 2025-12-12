@@ -2,7 +2,7 @@
 
 **Audience**: Operations team, Compliance team
 **Purpose**: Define artifact retention, archival, and lifecycle management for FDA compliance
-**Status**: Active
+**Status**: Draft
 **Version**: 2.0.0
 **Last Updated**: 2025-11-24
 
@@ -12,7 +12,7 @@
 
 # REQ-o00049: Artifact Retention and Archival
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active
+**Level**: Ops | **Implements**: p00010 | **Status**: Draft
 
 **Specification**:
 
@@ -92,7 +92,7 @@ The system SHALL implement artifact retention and archival that:
 
 # REQ-o00050: Environment Parity and Separation
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Active
+**Level**: Ops | **Implements**: p00008 | **Status**: Draft
 
 **Specification**:
 
@@ -135,7 +135,7 @@ The system SHALL maintain environment separation with:
 
 # REQ-o00051: Change Control and Audit Trail
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active
+**Level**: Ops | **Implements**: p00010 | **Status**: Draft
 
 **Specification**:
 

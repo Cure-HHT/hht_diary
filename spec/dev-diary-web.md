@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Development
 **Last Updated**: 2025-12-05
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-diary-web.md for product requirements
 > **See**: dev-app.md for mobile app implementation patterns
@@ -26,7 +26,7 @@ This specification defines the implementation details for the Web Diary applicat
 
 # REQ-d00077: Web Diary Frontend Framework
 
-**Level**: Dev | **Implements**: p01042 | **Status**: Active
+**Level**: Dev | **Implements**: p01042 | **Status**: Draft
 
 The Web Diary SHALL be implemented using Flutter Web with the HTML renderer, sharing UI components with the mobile application where appropriate.
 
@@ -68,7 +68,7 @@ void main() {
 
 # REQ-d00078: HHT Diary Auth Service
 
-**Level**: Dev | **Implements**: p01043 | **Status**: Active
+**Level**: Dev | **Implements**: p01043 | **Status**: Draft
 
 A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Firebase Authentication or Google Identity Platform.
 
@@ -117,7 +117,7 @@ class AuthToken {
 
 # REQ-d00079: Linking Code Pattern Matching
 
-**Level**: Dev | **Implements**: p01043 | **Status**: Active
+**Level**: Dev | **Implements**: p01043 | **Status**: Draft
 
 The HHT Diary Auth service SHALL implement pattern-based sponsor identification from linking codes, maintaining a configurable mapping table.
 
@@ -168,7 +168,7 @@ String? findSponsorByLinkingCode(String linkingCode) {
 
 # REQ-d00080: Web Session Management Implementation
 
-**Level**: Dev | **Implements**: p01044 | **Status**: Active
+**Level**: Dev | **Implements**: p01044 | **Status**: Draft
 
 The Web Diary SHALL implement client-side session management with inactivity timeout, browser close detection, and complete session termination.
 
@@ -232,7 +232,7 @@ class WebSessionManager {
 
 # REQ-d00081: User Document Schema
 
-**Level**: Dev | **Implements**: p01046 | **Status**: Active
+**Level**: Dev | **Implements**: p01046 | **Status**: Draft
 
 User authentication data SHALL be stored in Firestore with a schema supporting sponsor isolation, password hashing, and audit trail requirements.
 
@@ -279,7 +279,7 @@ class WebUser {
 
 # REQ-d00082: Password Hashing Implementation
 
-**Level**: Dev | **Implements**: p01043, p01046 | **Status**: Active
+**Level**: Dev | **Implements**: p01043, p01046 | **Status**: Draft
 
 Passwords SHALL be hashed client-side before network transmission using Argon2id, with server-side verification using the same algorithm.
 
@@ -350,7 +350,7 @@ class PasswordHasher {
 
 # REQ-d00083: Browser Storage Clearing
 
-**Level**: Dev | **Implements**: p01044 | **Status**: Active
+**Level**: Dev | **Implements**: p01044 | **Status**: Draft
 
 The Web Diary SHALL clear all browser storage mechanisms on logout, session timeout, and browser close to prevent data persistence.
 
@@ -427,7 +427,7 @@ class StorageClearer {
 
 # REQ-d00084: Sponsor Configuration Loading
 
-**Level**: Dev | **Implements**: p01042, p01043 | **Status**: Active
+**Level**: Dev | **Implements**: p01042, p01043 | **Status**: Draft
 
 After successful authentication, the Web Diary SHALL load sponsor-specific configuration by fetching it directly from the Sponsor Portal using the portal URL provided in the authentication token.
 

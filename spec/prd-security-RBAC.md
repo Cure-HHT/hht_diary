@@ -35,7 +35,7 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 
 # REQ-p00005: Role-Based Access Control
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The system SHALL enforce role-based access control (RBAC) ensuring users can only access data and perform actions appropriate to their assigned role.
 
@@ -60,7 +60,7 @@ RBAC implementation SHALL ensure:
 
 # REQ-p00014: Least Privilege Access
 
-**Level**: PRD | **Implements**: p00005, p00010 | **Status**: Active
+**Level**: PRD | **Implements**: p00005, p00010 | **Status**: Draft
 
 Users SHALL be granted the minimum permissions necessary to perform their assigned job functions, with no user having access beyond their role requirements.
 

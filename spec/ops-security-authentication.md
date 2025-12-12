@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Operations (Security Engineers, DevOps)
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-security.md for security requirements
 > **See**: prd-security-RBAC.md for role-based access control
@@ -63,7 +63,7 @@ Authentication configuration and operations guide for the Clinical Trial Diary P
 
 # REQ-o00006: MFA Configuration for Staff Accounts
 
-**Level**: Ops | **Implements**: p00002 | **Status**: Active
+**Level**: Ops | **Implements**: p00002 | **Status**: Draft
 
 Multi-factor authentication SHALL be configured and enforced for all clinical staff, administrator, and sponsor personnel accounts, ensuring password-based authentication is augmented with additional verification.
 

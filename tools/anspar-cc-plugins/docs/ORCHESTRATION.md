@@ -46,9 +46,9 @@ Result: Error-prone, non-reusable, inconsistent
 User: "Create a Linear ticket for REQ-p00042"
 
 Main Agent (Orchestrator):
-  1. Checks /agents: Sees RequirementsAgent and LinearAgent
-  2. Delegates to RequirementsAgent: "Fetch REQ-p00042"
-  3. Delegates to LinearAgent: "Create ticket with this info"
+  1. Checks /agents: Sees simple-requirements:simple-requirements and linear-api:linear-api
+  2. Delegates to simple-requirements:simple-requirements: "Fetch REQ-p00042"
+  3. Delegates to linear-api:linear-api: "Create ticket with this info"
   4. Reports result: "Created CUR-240"
 
 Result: Reliable, reusable, maintainable
@@ -76,10 +76,10 @@ Claude: Let me check available agents...
 /agents
 
 Available agents:
-- workflow-enforcer: Ensures active ticket is claimed
-- linear-api-agent: Linear ticket operations
-- requirements-agent: Requirement operations and tracking
-- spec-compliance-enforcer: spec/ directory compliance
+- workflow:workflow: Ensures active ticket is claimed
+- linear-api:linear-api: Linear ticket operations
+- simple-requirements:simple-requirements: Requirement operations and tracking
+- spec-compliance:spec-compliance: spec/ directory compliance
 ...
 ```
 
@@ -89,7 +89,7 @@ Agents expose capabilities via YAML frontmatter:
 
 ```yaml
 ---
-name: requirements-agent
+name: simple-requirements
 description: Specialized agent for requirement operations, change detection, and tracking management
 tools: Read, Bash, Grep  # Optional: constrained tools
 ---
@@ -127,7 +127,7 @@ Task(
 **Example**:
 ```
 Task(
-  subagent_type="linear-api:linear-api-agent",
+  subagent_type="linear-api:linear-api",
   prompt="Fetch ticket CUR-240 and return full details including title, description, status, and labels"
 )
 ```
@@ -182,7 +182,7 @@ Sub-agents have access to **conversation history before the Task call**, but it'
 **Option 1: Explicit context in prompt** (Recommended):
 ```
 Task(
-  subagent_type="requirements-agent",
+  subagent_type="simple-requirements:simple-requirements",
   prompt="User is working on ticket CUR-337. They need details for REQ-d00027 to understand implementation requirements."
 )
 ```
@@ -195,7 +195,7 @@ Claude: "Great, I'll help with that"
 
 # Later:
 Task(
-  subagent_type="requirements-agent",
+  subagent_type="simple-requirements:simple-requirements",
   prompt="Fetch REQ-d00027 details"
 )
 # Agent can see "CUR-337" context from history
@@ -232,12 +232,12 @@ Get token from: https://linear.app/settings/api"
 
 | Scenario | Example | Agent |
 | --- | --- | --- |
-| **Domain-specific operations** | Linear ticket operations | linear-api-agent |
-| **External API calls** | Fetch from Linear API | linear-api-agent |
-| **Complex parsing** | Parse requirement format | requirements-agent |
-| **Validation logic** | Validate spec/ compliance | spec-compliance-enforcer |
-| **Workflow enforcement** | Check if ticket claimed | workflow-enforcer |
-| **Multi-step domain workflows** | Create ticket with req trace | requirement-traceability-agent |
+| **Domain-specific operations** | Linear ticket operations | linear-api:linear-api |
+| **External API calls** | Fetch from Linear API | linear-api:linear-api |
+| **Complex parsing** | Parse requirement format | simple-requirements:simple-requirements |
+| **Validation logic** | Validate spec/ compliance | spec-compliance:spec-compliance |
+| **Workflow enforcement** | Check if ticket claimed | workflow:workflow |
+| **Multi-step domain workflows** | Create ticket with req trace | requirement-traceability:requirement-traceability |
 
 ### Implement Directly When
 
@@ -256,7 +256,7 @@ Get token from: https://linear.app/settings/api"
 | Task | Delegate? | Reasoning |
 | --- | --- | --- |
 | Read multiple spec files | Maybe | If parsing complex format → delegate. If just reading → direct |
-| Create git commit | Maybe | If workflow-managed project → delegate to workflow-enforcer. Otherwise → direct |
+| Create git commit | Maybe | If workflow-managed project → delegate to workflow:workflow. Otherwise → direct |
 | Search codebase | Maybe | If domain-specific search → delegate. If simple grep → direct |
 
 **Rule of thumb**: If in doubt, check `/agents` first. Better to delegate and learn agent doesn't help than to reimplement.
@@ -270,7 +270,7 @@ Get token from: https://linear.app/settings/api"
 #### Scenario 1: Missing Dependencies
 
 ```
-Task(subagent_type="linear-api:linear-api-agent", prompt="Fetch CUR-240")
+Task(subagent_type="linear-api:linear-api", prompt="Fetch CUR-240")
 
 Returns: "❌ LINEAR_API_TOKEN environment variable not set"
 
@@ -290,7 +290,7 @@ calls manually using curl..."
 #### Scenario 2: Agent Returns Error
 
 ```
-Task(subagent_type="requirements-agent", prompt="Fetch REQ-d99999")
+Task(subagent_type="simple-requirements:simple-requirements", prompt="Fetch REQ-d99999")
 
 Returns: "❌ Requirement REQ-d99999 not found in spec/ directory"
 
@@ -357,13 +357,13 @@ Would you like me to:
 User: "Create a Linear ticket for REQ-p00042 and link it to the requirement"
 
 Claude (Orchestrator):
-  Step 1: Delegate to requirements-agent
+  Step 1: Delegate to simple-requirements:simple-requirements
     → Fetch REQ-p00042 details
 
-  Step 2: Delegate to linear-api-agent
+  Step 2: Delegate to linear-api:linear-api
     → Create ticket with requirement info
 
-  Step 3: Delegate to requirement-traceability-agent
+  Step 3: Delegate to requirement-traceability:requirement-traceability
     → Link REQ-p00042 to new ticket
 
   Step 4: Report to user
@@ -390,8 +390,8 @@ Claude (Orchestrator):
 **How to do parallel delegation**:
 ```
 # In a single message, make multiple Task tool calls
-Task(subagent_type="linear-api:linear-api-agent", prompt="Fetch CUR-240")
-Task(subagent_type="linear-api:linear-api-agent", prompt="Fetch CUR-241")
+Task(subagent_type="linear-api:linear-api", prompt="Fetch CUR-240")
+Task(subagent_type="linear-api:linear-api", prompt="Fetch CUR-241")
 
 # Both execute simultaneously
 # Results come back together
@@ -405,13 +405,13 @@ Task(subagent_type="linear-api:linear-api-agent", prompt="Fetch CUR-241")
 User: "Create a ticket and then claim it for work"
 
 Claude (Orchestrator):
-  Step 1: Delegate to linear-api-agent → Create ticket
+  Step 1: Delegate to linear-api:linear-api → Create ticket
     Returns: "Created CUR-340"
 
   Step 2: Store ticket ID in working memory
     ticket_id = "CUR-340"
 
-  Step 3: Delegate to workflow-enforcer → Claim ticket
+  Step 3: Delegate to workflow:workflow → Claim ticket
     Pass: "Claim ticket CUR-340"
 
   Step 4: Report combined result
@@ -498,14 +498,14 @@ Claude:
   4. Compare hashes manually
   5. Report result
 
-(Why? requirements-agent has detect-changes skill!)
+(Why? simple-requirements:simple-requirements has detect-changes skill!)
 
 ✅ CORRECT:
 User: "Check if requirement REQ-d00027 has changed"
 
 Claude:
   Task(
-    subagent_type="simple-requirements:RequirementsAgent",
+    subagent_type="simple-requirements:simple-requirements",
     prompt="Detect if requirement REQ-d00027 has changed since last verification"
   )
 ```
@@ -519,7 +519,7 @@ Claude:
 ```
 ❌ ANTI-PATTERN:
 Task(
-  subagent_type="linear-api:linear-api-agent",
+  subagent_type="linear-api:linear-api",
   prompt="Do the thing"
 )
 
@@ -527,7 +527,7 @@ Task(
 
 ✅ CORRECT:
 Task(
-  subagent_type="linear-api:linear-api-agent",
+  subagent_type="linear-api:linear-api",
   prompt="User is working on authentication feature. Fetch all tickets with label 'auth' and status 'in-progress'. Return ticket IDs, titles, and current assignees so we can see who's working on what."
 )
 ```

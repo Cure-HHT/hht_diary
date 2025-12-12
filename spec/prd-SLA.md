@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-04
-**Status**: Active
+**Status**: Draft
 
 > **See**: ops-SLA.md for operational implementation
 > **See**: ops-monitoring-observability.md for monitoring infrastructure

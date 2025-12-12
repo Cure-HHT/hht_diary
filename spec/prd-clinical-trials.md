@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-01-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: dev-compliance-practices.md for implementation guidance
 > **See**: prd-database.md for data architecture
@@ -46,7 +46,7 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures used in clinical trials.
 
@@ -75,7 +75,7 @@ Compliance SHALL include:
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Active
+**Level**: PRD | **Implements**: p00010 | **Status**: Draft
 
 All clinical trial data SHALL adhere to ALCOA+ principles ensuring data quality and integrity throughout the data lifecycle.
 
@@ -104,7 +104,7 @@ ALCOA+ compliance SHALL ensure data is:
 
 # REQ-p00012: Clinical Data Retention Requirements
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Active
+**Level**: PRD | **Implements**: p00010 | **Status**: Draft
 
 Clinical trial data and associated audit trails SHALL be retained for minimum period required by regulations (typically 7+ years after study completion or product approval).
 

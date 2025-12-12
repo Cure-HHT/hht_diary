@@ -150,7 +150,7 @@ tools: Read, Write, Bash, Grep  # Optional: omit for all tools
 - Lowercase with hyphens (kebab-case)
 - Unique within marketplace
 - Matches plugin naming pattern
-- Example: `linear-api-agent`, `requirement-validator`
+- Example: `linear-api`, `simple-requirements`
 
 **description** (required):
 - 1-2 sentences max

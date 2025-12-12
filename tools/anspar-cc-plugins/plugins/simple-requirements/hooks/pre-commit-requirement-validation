@@ -27,8 +27,15 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}🔍 Running requirement traceability validation...${NC}"
 echo ""
 
+# Find the repository root (hooks may run from plugin cache directory)
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$REPO_ROOT" ]; then
+    echo -e "${YELLOW}⚠️  Not in a git repository, skipping validation${NC}"
+    exit 0
+fi
+
 # Check if validation script exists
-VALIDATION_SCRIPT="tools/requirements/validate_requirements.py"
+VALIDATION_SCRIPT="$REPO_ROOT/tools/requirements/validate_requirements.py"
 
 if [ ! -f "$VALIDATION_SCRIPT" ]; then
     echo -e "${RED}❌ ERROR: Validation script not found: $VALIDATION_SCRIPT${NC}"
@@ -64,7 +71,7 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
     echo ""
 
     # Check if INDEX.md exists
-    if [ ! -f "spec/INDEX.md" ]; then
+    if [ ! -f "$REPO_ROOT/spec/INDEX.md" ]; then
         echo -e "${RED}❌ ERROR: spec/INDEX.md not found${NC}"
         echo ""
         echo "INDEX.md is required to validate REQ# references."
@@ -73,7 +80,7 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
     fi
 
     # Read all valid REQ#s from INDEX.md (format: | REQ-p00001 | ...)
-    INDEX_REQS=$(grep -oP '^\|\s*(REQ-[pod]\d{5})' spec/INDEX.md | awk '{print $2}' || true)
+    INDEX_REQS=$(grep -oP '^\|\s*(REQ-[pod]\d{5})' "$REPO_ROOT/spec/INDEX.md" | awk '{print $2}' || true)
 
     if [ -z "$INDEX_REQS" ]; then
         echo -e "${YELLOW}⚠️  WARNING: No REQ#s found in INDEX.md${NC}"

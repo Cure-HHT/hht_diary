@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Operations (Database Administrators, DevOps Engineers)
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
 > **See**: dev-database.md for database implementation details
@@ -62,7 +62,7 @@ Sponsor A                    Sponsor B                    Sponsor C
 
 # REQ-o00003: GCP Project Provisioning Per Sponsor
 
-**Level**: Ops | **Implements**: p00003, o00001 | **Status**: Active
+**Level**: Ops | **Implements**: p00003, o00001 | **Status**: Draft
 
 Each sponsor SHALL be provisioned with a dedicated GCP project for their environments (staging, production), ensuring complete database infrastructure isolation.
 
@@ -132,7 +132,7 @@ Provisioning SHALL include:
 
 # REQ-o00011: Multi-Site Data Configuration Per Sponsor
 
-**Level**: Ops | **Implements**: p00009, p00014 | **Status**: Active
+**Level**: Ops | **Implements**: p00009, p00014 | **Status**: Draft
 
 Each sponsor's database SHALL be configured with site data structures to support multi-site clinical trials, including site records, site-user assignments, and site-based access control configuration.
 
@@ -189,7 +189,7 @@ gcloud services enable identitytoolkit.googleapis.com
 
 # REQ-o00004: Database Schema Deployment
 
-**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Active
+**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Draft
 
 Each sponsor's database SHALL be deployed with the core schema supporting event sourcing, audit trails, and complete change history, ensuring consistent implementation across all sponsors.
 
