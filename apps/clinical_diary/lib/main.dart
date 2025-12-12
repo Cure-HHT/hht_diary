@@ -26,7 +26,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:uuid/uuid.dart';
 
 /// Flavor name passed from native code via --dart-define or Xcode/Gradle config.
-const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR');
+/// For iOS/Android, Flutter sets FLUTTER_APP_FLAVOR when using --flavor flag.
+/// For web builds (where --flavor isn't supported), use APP_FLAVOR instead.
+const String appFlavor = String.fromEnvironment('FLUTTER_APP_FLAVOR') != ''
+    ? String.fromEnvironment('FLUTTER_APP_FLAVOR')
+    : String.fromEnvironment('APP_FLAVOR');
 
 void main() async {
   // Initialize flavor from native platform configuration
@@ -82,6 +86,9 @@ void main() async {
         debugPrint('Stack trace:\n$stack');
       }
 
+      // Timezone is now embedded in ISO 8601 timestamp strings via DateTimeFormatter.
+      // No separate TimezoneService initialization needed.
+
       runApp(const ClinicalDiaryApp());
     },
     (error, stack) {
@@ -104,6 +111,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   ThemeMode _themeMode = ThemeMode.light;
   // CUR-488: Larger text and controls preference
   bool _largerTextAndControls = false;
+  // CUR-509: Dyslexia-friendly font preference
+  bool _useDyslexicFont = false;
   final PreferencesService _preferencesService = PreferencesService();
 
   @override
@@ -120,6 +129,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
       _themeMode = ThemeMode.light;
       // CUR-488: Load larger text preference
       _largerTextAndControls = prefs.largerTextAndControls;
+      // CUR-509: Load dyslexia-friendly font preference
+      _useDyslexicFont = prefs.dyslexiaFriendlyFont;
     });
   }
 
@@ -143,6 +154,13 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
     });
   }
 
+  // CUR-509: Update dyslexia-friendly font preference
+  void _setDyslexicFont(bool value) {
+    setState(() {
+      _useDyslexicFont = value;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
@@ -152,8 +170,9 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
         // Show Flutter debug banner in debug mode (top-right corner)
         // Environment ribbon (DEV/QA) shows in top-left corner
         debugShowCheckedModeBanner: kDebugMode,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
+        // CUR-509: Use theme with dyslexia-friendly font when enabled
+        theme: AppTheme.getLightTheme(useDyslexicFont: _useDyslexicFont),
+        darkTheme: AppTheme.getDarkTheme(useDyslexicFont: _useDyslexicFont),
         themeMode: _themeMode,
         locale: _locale,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -182,6 +201,7 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
           onLocaleChanged: _setLocale,
           onThemeModeChanged: _setThemeMode,
           onLargerTextChanged: _setLargerTextAndControls,
+          onDyslexicFontChanged: _setDyslexicFont,
           preferencesService: _preferencesService,
         ),
       ),
@@ -194,6 +214,7 @@ class AppRoot extends StatefulWidget {
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
     required this.onLargerTextChanged,
+    required this.onDyslexicFontChanged,
     required this.preferencesService,
     super.key,
   });
@@ -202,6 +223,8 @@ class AppRoot extends StatefulWidget {
   final ValueChanged<bool> onThemeModeChanged;
   // CUR-488: Callback for larger text preference changes
   final ValueChanged<bool> onLargerTextChanged;
+  // CUR-509: Callback for dyslexia-friendly font preference changes
+  final ValueChanged<bool> onDyslexicFontChanged;
   final PreferencesService preferencesService;
 
   @override
@@ -230,6 +253,7 @@ class _AppRootState extends State<AppRoot> {
       onLocaleChanged: widget.onLocaleChanged,
       onThemeModeChanged: widget.onThemeModeChanged,
       onLargerTextChanged: widget.onLargerTextChanged,
+      onDyslexicFontChanged: widget.onDyslexicFontChanged,
       preferencesService: widget.preferencesService,
     );
   }

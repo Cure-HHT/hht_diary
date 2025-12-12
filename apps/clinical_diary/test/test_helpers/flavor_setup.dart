@@ -4,10 +4,14 @@
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/flavors.dart';
 
-/// Sets up the flavor and test API base for tests.
+/// Sets up the flavor for tests.
 ///
 /// Call this in setUp() or setUpAll() for any tests that access
-/// AppConfig.apiBase or other flavor-dependent configuration.
+/// flavor-dependent configuration.
+///
+/// Note: apiBase is now derived from FlavorConfig based on the flavor,
+/// so you only need to set the flavor. Use [testApiBase] parameter to
+/// override with a custom test URL if needed.
 ///
 /// Example:
 /// ```dart
@@ -15,9 +19,8 @@ import 'package:clinical_diary/flavors.dart';
 ///   setUpTestFlavor();
 /// });
 /// ```
-void setUpTestFlavor([Flavor flavor = Flavor.dev]) {
+void setUpTestFlavor([Flavor flavor = Flavor.dev, String? testApiBase]) {
   F.appFlavor = flavor;
-  // Set test API base to avoid MissingConfigException
-  // (apiBase is a compile-time const, so tests need this override)
-  AppConfig.testApiBaseOverride = 'https://test.example.com/api';
+  // Optional: override apiBase for tests that need a specific URL
+  AppConfig.testApiBaseOverride = testApiBase;
 }

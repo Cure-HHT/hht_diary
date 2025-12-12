@@ -84,7 +84,7 @@ void main() {
           nosebleedService: nosebleedService,
           enrollmentService: enrollmentService,
           preferencesService: preferencesService,
-          initialDate: initialDate,
+          initialStartDate: initialDate,
           existingRecord: existingRecord,
           allRecords: allRecords,
           onDelete: onDelete,
@@ -180,7 +180,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'test-id',
-          date: DateTime.now(),
           startTime: DateTime.now().subtract(const Duration(hours: 1)),
           endTime: DateTime.now().subtract(const Duration(minutes: 30)),
           intensity: NosebleedIntensity.dripping,
@@ -202,7 +201,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'test-id',
-          date: DateTime.now(),
           startTime: DateTime.now().subtract(const Duration(hours: 1)),
           endTime: DateTime.now().subtract(const Duration(minutes: 30)),
           intensity: NosebleedIntensity.dripping,
@@ -223,7 +221,6 @@ void main() {
         final yesterday = DateTime.now().subtract(const Duration(days: 1));
         final existingRecord = NosebleedRecord(
           id: 'test-id',
-          date: yesterday,
           startTime: DateTime(
             yesterday.year,
             yesterday.month,
@@ -293,7 +290,6 @@ void main() {
         final today = DateTime.now();
         final overlappingRecord = NosebleedRecord(
           id: 'other-id',
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -302,7 +298,6 @@ void main() {
         // Create a record that will overlap
         final existingRecord = NosebleedRecord(
           id: 'test-id',
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 15),
           endTime: DateTime(today.year, today.month, today.day, 10, 45),
           intensity: NosebleedIntensity.spotting,
@@ -341,7 +336,6 @@ void main() {
 
         final existingRecord = NosebleedRecord(
           id: 'test-id',
-          date: DateTime.now(),
           startTime: DateTime.now().subtract(const Duration(hours: 1)),
           endTime: DateTime.now().subtract(const Duration(minutes: 30)),
           intensity: NosebleedIntensity.dripping,
@@ -402,7 +396,7 @@ void main() {
         // For new records, start time is auto-set, so we test with existing incomplete record
         final existingRecord = NosebleedRecord(
           id: 'test-id',
-          date: DateTime.now(),
+          startTime: DateTime.now(),
           // No start time, end time, or intensity
         );
 

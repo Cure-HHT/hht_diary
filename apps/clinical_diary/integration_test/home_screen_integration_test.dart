@@ -11,6 +11,7 @@ import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
@@ -131,7 +132,6 @@ void main() {
         // Add a record for today
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -153,7 +153,6 @@ void main() {
         // Add an incomplete record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           // No end time or intensity - incomplete
         );
@@ -175,13 +174,11 @@ void main() {
 
         // Add two records at different times
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 14, 0),
           endTime: DateTime(today.year, today.month, today.day, 14, 30),
           intensity: NosebleedIntensity.spotting,
         );
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 9, 0),
           endTime: DateTime(today.year, today.month, today.day, 9, 15),
           intensity: NosebleedIntensity.dripping,
@@ -202,10 +199,14 @@ void main() {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
+        // Enable useReviewScreen so that editing a complete record shows
+        // "Edit Record" on the review/summary step (CUR-512)
+        FeatureFlagService.instance.useReviewScreen = true;
+        addTearDown(() => FeatureFlagService.instance.resetToDefaults());
+
         // Add a record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -218,7 +219,7 @@ void main() {
         await tester.tap(find.byType(EventListItem));
         await tester.pumpAndSettle();
 
-        // Should navigate to edit mode
+        // Should navigate to edit mode with review screen showing "Edit Record"
         expect(find.text('Edit Record'), findsOneWidget);
       });
     });
@@ -233,7 +234,6 @@ void main() {
         // Add a record for yesterday
         final yesterday = DateTime.now().subtract(const Duration(days: 1));
         await nosebleedService.addRecord(
-          date: yesterday,
           startTime: DateTime(
             yesterday.year,
             yesterday.month,
@@ -269,7 +269,6 @@ void main() {
         // Add an incomplete record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           // No end time - incomplete
         );
@@ -291,7 +290,6 @@ void main() {
         // Add a complete record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -313,7 +311,6 @@ void main() {
         // Add a record
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -337,13 +334,11 @@ void main() {
         // Add multiple records
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 9, 0),
           endTime: DateTime(today.year, today.month, today.day, 9, 30),
           intensity: NosebleedIntensity.spotting,
         );
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 14, 0),
           endTime: DateTime(today.year, today.month, today.day, 14, 30),
           intensity: NosebleedIntensity.dripping,
@@ -382,13 +377,11 @@ void main() {
         // Add overlapping records
         final today = DateTime.now();
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 0),
           endTime: DateTime(today.year, today.month, today.day, 10, 30),
           intensity: NosebleedIntensity.spotting,
         );
         await nosebleedService.addRecord(
-          date: today,
           startTime: DateTime(today.year, today.month, today.day, 10, 15),
           endTime: DateTime(today.year, today.month, today.day, 10, 45),
           intensity: NosebleedIntensity.dripping,

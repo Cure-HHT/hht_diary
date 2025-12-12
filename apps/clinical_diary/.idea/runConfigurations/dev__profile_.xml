@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="dev (profile)" type="FlutterRunConfigurationType" factoryName="Flutter">
-    <option name="additionalArgs" value="--dart-define=apiBase=https://hht-diary-mvp.web.app/api --dart-define=environment=dev --dart-define=showDevTools=true --dart-define=showBanner=true --dart-define=CUREHHT_QA_API_KEY=$CUREHHT_QA_API_KEY" />
+    <option name="additionalArgs" value="--dart-define=APP_FLAVOR=dev" />
     <option name="buildFlavor" value="dev" />
     <option name="buildMode" value="profile" />
     <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />

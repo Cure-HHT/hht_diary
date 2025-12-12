@@ -9,6 +9,7 @@ import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -56,7 +57,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
 
     // Also load all records for overlap checking
-    final allRecords = await widget.nosebleedService.getLocalRecords();
+    final allRecords = await widget.nosebleedService
+        .getLocalMaterializedRecords();
 
     setState(() {
       _dayStatuses = statuses;
@@ -118,7 +120,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
     // Fetch records for the selected day
-    final records = await widget.nosebleedService.getRecordsForDate(
+    final records = await widget.nosebleedService.getRecordsForStartDate(
       selectedDay,
     );
 
@@ -126,7 +128,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
           records: records,
@@ -153,7 +155,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _showDaySelectionScreen(DateTime selectedDay) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => DaySelectionScreen(
           date: selectedDay,
           onAddNosebleed: () async {
@@ -187,12 +189,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
+      AppPageRoute(
         builder: (context) => RecordingScreen(
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
-          initialDate: selectedDay,
+          diaryEntryDate: selectedDay,
           existingRecord: existingRecord,
           allRecords: _allRecords,
         ),

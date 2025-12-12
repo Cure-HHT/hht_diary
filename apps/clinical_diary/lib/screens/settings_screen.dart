@@ -6,6 +6,7 @@ import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,6 +17,7 @@ class SettingsScreen extends StatefulWidget {
     this.onLanguageChanged,
     this.onThemeModeChanged,
     this.onLargerTextChanged,
+    this.onDyslexicFontChanged,
     super.key,
   });
 
@@ -24,6 +26,8 @@ class SettingsScreen extends StatefulWidget {
   final ValueChanged<bool>? onThemeModeChanged;
   // CUR-488: Callback for larger text preference changes
   final ValueChanged<bool>? onLargerTextChanged;
+  // CUR-509: Callback for dyslexia-friendly font preference changes
+  final ValueChanged<bool>? onDyslexicFontChanged;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -179,6 +183,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: (value) {
                               setState(() => _dyslexiaFriendlyFont = value);
                               _savePreferences();
+                              // CUR-509: Notify parent to update theme font
+                              widget.onDyslexicFontChanged?.call(value);
                             },
                           ),
                           const SizedBox(height: 12),
@@ -291,7 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute<void>(
+                                  AppPageRoute<void>(
                                     builder: (context) =>
                                         const FeatureFlagsScreen(),
                                   ),

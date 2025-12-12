@@ -16,7 +16,7 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 
 ### Prerequisites
 
-- Flutter SDK 3.10.1 or higher
+- Flutter SDK 3.38.3 or higher
 - Doppler CLI (for secrets management)
 - lcov (for coverage reports)
 
@@ -75,85 +75,76 @@ Each flavor has:
 
 ### Running with Flavors
 
-The `--flavor` flag configures native platform settings (bundle ID, app name, icons). For web builds
-and to configure the API endpoint, you must also pass `--dart-define` flags.
+All configuration (API base URL, feature flags, etc.) is derived from a single `APP_FLAVOR` value.
+This simplifies build commands and IDE configurations.
 
 **Using IDE Run Configurations (Recommended):**
 
-The VS Code and IntelliJ IDEA run configurations in this repo include all required dart-defines.
-Simply select "dev", "qa", "uat", or "prod" from your IDE's run configuration dropdown.
+Pre-configured run configurations are available for both IDEs:
+- **IntelliJ IDEA**: `.idea/runConfigurations/` (dev, qa, uat, prod, plus profile/release variants)
+- **VS Code**: `.vscode/launch.json`
+
+Simply select the desired flavor from your IDE's run configuration dropdown.
 
 **Using Command Line:**
 
 ```bash
-# Development (with all required dart-defines)
-flutter run --flavor dev \
-  --dart-define=apiBase=https://hht-diary-mvp.web.app/api \
-  --dart-define=environment=dev \
-  --dart-define=showDevTools=true \
-  --dart-define=showBanner=true
+# Web builds (--flavor doesn't work on web, use --dart-define only)
+flutter run -d chrome --dart-define=APP_FLAVOR=dev
+flutter run -d chrome --dart-define=APP_FLAVOR=qa
+flutter run -d chrome --dart-define=APP_FLAVOR=prod
 
-# QA environment
-flutter run --flavor qa \
-  --dart-define=apiBase=https://hht-diary-qa.web.app/api \
-  --dart-define=environment=qa \
-  --dart-define=showDevTools=true \
-  --dart-define=showBanner=true
-
-# UAT (looks like production)
-flutter run --flavor uat \
-  --dart-define=apiBase=https://hht-diary-uat.web.app/api \
-  --dart-define=environment=uat \
-  --dart-define=showDevTools=false \
-  --dart-define=showBanner=false
-
-# Production
-flutter run --flavor prod \
-  --dart-define=apiBase=https://hht-diary.web.app/api \
-  --dart-define=environment=prod \
-  --dart-define=showDevTools=false \
-  --dart-define=showBanner=false
+# Mobile builds (--flavor sets FLUTTER_APP_FLAVOR for native config)
+# Include both for cross-platform compatibility
+flutter run --flavor dev --dart-define=APP_FLAVOR=dev
+flutter run --flavor qa --dart-define=APP_FLAVOR=qa
+flutter run --flavor prod --dart-define=APP_FLAVOR=prod
 ```
 
-### Dart-Define Parameters
+### How Flavor Configuration Works
 
-| Parameter | Description | Required |
-| --------- | ----------- | -------- |
-| `apiBase` | Base URL for API endpoints (e.g., `https://hht-diary-mvp.web.app/api`) | Yes |
-| `environment` | Environment name: `dev`, `qa`, `uat`, or `prod` | Yes |
-| `showDevTools` | Show dev menu items (Reset Data, Add Example Data) | Yes |
-| `showBanner` | Show environment ribbon banner (DEV/QA) | Yes |
+The app reads `APP_FLAVOR` (or `FLUTTER_APP_FLAVOR` on mobile) in `main.dart` and derives all
+other settings from `FlavorConfig` in `lib/flavors.dart`:
 
-> **Note**: The `--flavor` flag alone only affects native platform builds (iOS/Android bundle IDs,
-> app names, icons). For web builds, the `--dart-define` flags are required for proper configuration.
+| Setting | Derived From |
+| ------- | ------------ |
+| `apiBase` | `FlavorConfig.byName(flavor).apiBase` |
+| `showDevTools` | `F.showDevTools` (true for dev/qa) |
+| `showBanner` | `F.showBanner` (true for dev/qa) |
+
+> **Note**: The `--flavor` flag only affects native platform builds (iOS/Android bundle IDs,
+> app names, icons). For web builds, `--dart-define=APP_FLAVOR` is required.
 
 ### Building for Release
 
-```bash
-# Build APK for production
-flutter build apk --release --flavor prod
-
-# Build iOS for production
-flutter build ios --release --flavor prod
-
-# Build for UAT testing
-flutter build apk --release --flavor uat
-flutter build ios --release --flavor uat
-```
-
-### Regenerating Flavor Configs
-
-If you modify `flavorizr.yaml`, regenerate the native configurations:
+Build scripts are available in `tool/` for common build operations:
 
 ```bash
-flutter pub get
-dart run flutter_flavorizr
+# Web builds
+./tool/build_web_dev.sh
+./tool/build_web_qa.sh
+./tool/build_web_prod.sh
+
+# iOS builds
+./tool/build_ios_dev.sh
+./tool/build_ios_prod.sh
+
+# Android builds
+./tool/build_android_dev.sh
+./tool/build_android_prod.sh
 ```
 
-This will regenerate:
-- Android: `android/app/build.gradle.kts` productFlavors
-- iOS: Xcode schemes and xcconfig files
-- VS Code: Launch configurations
+Or build manually:
+
+```bash
+# Web (use --dart-define only)
+flutter build web --release --dart-define=APP_FLAVOR=prod
+
+# Mobile (include both --flavor and --dart-define)
+flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build appbundle --release --flavor prod --dart-define=APP_FLAVOR=prod
+```
 
 ### Environment Features
 
@@ -198,40 +189,34 @@ print(F.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
 In GitHub Actions workflows:
 
 ```yaml
-# Build for UAT
-- name: Build UAT APK
-  run: flutter build apk --release --flavor uat
+# Build for web (dev)
+- name: Build Web
+  run: flutter build web --release --dart-define=APP_FLAVOR=dev
 
-# Build for Production
+# Build for Production APK
 - name: Build Production APK
-  run: flutter build apk --release --flavor prod
+  run: flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
 
 # Build iOS
 - name: Build Production iOS
-  run: flutter build ios --release --flavor prod --no-codesign
+  run: flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod --no-codesign
 ```
 
 ### Firebase Configuration
 
-Each flavor uses its own Firebase project. Config files are located at:
+Each flavor uses its own Firebase project:
 
-```
-.firebase/
-├── dev/
-│   ├── google-services.json      # Android
-│   └── GoogleService-Info.plist  # iOS
-├── test/
-│   ├── google-services.json
-│   └── GoogleService-Info.plist
-├── uat/
-│   ├── google-services.json
-│   └── GoogleService-Info.plist
-└── prod/
-    ├── google-services.json
-    └── GoogleService-Info.plist
-```
+| Flavor | Firebase Project | Hosting URL |
+| ------ | ---------------- | ----------- |
+| dev | hht-diary-mvp | https://hht-diary-mvp.web.app |
+| qa | hht-diary-qa | https://hht-diary-qa.web.app |
+| uat | hht-diary-uat | https://hht-diary-uat.web.app |
+| prod | hht-diary | https://hht-diary.web.app |
 
-Run `dart run flutter_flavorizr` to copy these to the correct platform-specific locations.
+Firebase configuration is managed via:
+- `firebase.json` - Hosting, functions, and Firestore config
+- `.firebaserc` - Project aliases
+- `lib/firebase_options.dart` - Generated Flutter Firebase config
 
 ## 🔐 Configuration with Doppler
 
@@ -280,12 +265,11 @@ project. This eliminates insecure secret sharing via Slack, email, or .env files
 
 5. **Run with Doppler** (injects secrets as environment variables):
    ```bash
-   doppler run -- flutter run --flavor dev \
-     --dart-define=apiBase=https://hht-diary-mvp.web.app/api \
-     --dart-define=environment=dev \
-     --dart-define=showDevTools=true \
-     --dart-define=showBanner=true \
-     --dart-define=CUREHHT_QA_API_KEY=$CUREHHT_QA_API_KEY
+   # For web
+   doppler run -- flutter run -d chrome --dart-define=APP_FLAVOR=dev
+
+   # For mobile
+   doppler run -- flutter run --flavor dev --dart-define=APP_FLAVOR=dev
    ```
 
 ### Team Secret Sharing
@@ -327,8 +311,10 @@ doppler secrets get CUREHHT_QA_API_KEY
 
 | Secret | Description | Environments | Used By |
 | ------ | ----------- | ------------ | ------- |
-| `DATASTORE_ENCRYPTION_KEY` | Database encryption key | All | Flutter app |
 | `CUREHHT_QA_API_KEY` | API key for sponsor config endpoint | dev, qa only | Flutter app, Firebase Functions |
+
+> **Note**: Configuration like `apiBase` is no longer passed via dart-define. It's derived from
+> the `APP_FLAVOR` setting in `lib/flavors.dart`.
 
 ### Firebase Functions Secrets (Doppler Integration)
 
@@ -393,18 +379,27 @@ The `CUREHHT_QA_API_KEY` is only for dev/qa testing of the sponsor configuration
 In production, sponsor configuration will be loaded during enrollment using production
 authentication, not a shared test key.
 
-### Accessing Secrets in Flutter Code
+### Accessing Configuration in Flutter Code
 
-Secrets are passed via `--dart-define` and accessed through `String.fromEnvironment`:
+Most configuration is derived from the flavor, not dart-defines:
 
 ```dart
-// In app_config.dart
+import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/app_config.dart';
+
+// API base URL (derived from FlavorConfig)
+final apiUrl = AppConfig.apiBase;  // e.g., "https://hht-diary-mvp.web.app/api"
+
+// Feature flags (derived from flavor)
+if (AppConfig.showDevTools) {
+  // Show debug menu
+}
+
+// Secrets still use dart-define (passed from Doppler)
 static const String _qaApiKeyRaw = String.fromEnvironment('CUREHHT_QA_API_KEY');
-static String get qaApiKey => _qaApiKeyRaw;
 ```
 
-The IDE run configurations (VS Code and IntelliJ) are pre-configured to pass these
-dart-defines from environment variables.
+The IDE run configurations only need to pass `--dart-define=APP_FLAVOR=<flavor>`.
 
 ## 🧪 Testing
 

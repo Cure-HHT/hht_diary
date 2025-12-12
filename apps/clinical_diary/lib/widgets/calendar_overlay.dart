@@ -56,8 +56,8 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
 
     DateTime? earliest;
     for (final record in widget.records) {
-      if (earliest == null || record.date.isBefore(earliest)) {
-        earliest = record.date;
+      if (earliest == null || record.startTime.isBefore(earliest)) {
+        earliest = record.startTime;
       }
     }
     return earliest;
@@ -84,9 +84,9 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     // Check for records on this date
     final recordsForDate = widget.records.where((record) {
       final recordDateOnly = DateTime(
-        record.date.year,
-        record.date.month,
-        record.date.day,
+        record.startTime.year,
+        record.startTime.month,
+        record.startTime.day,
       );
       return recordDateOnly == dateOnly;
     }).toList();
@@ -94,9 +94,9 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
     // Check for incomplete records on this date
     final hasIncompleteRecords = widget.incompleteRecords.any((record) {
       final recordDateOnly = DateTime(
-        record.date.year,
-        record.date.month,
-        record.date.day,
+        record.startTime.year,
+        record.startTime.month,
+        record.startTime.day,
       );
       return recordDateOnly == dateOnly;
     });

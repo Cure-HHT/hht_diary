@@ -1,3 +1,6 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00004: Local-First Data Entry Implementation
+
 import 'package:flutter/material.dart';
 
 /// App theme configuration
@@ -17,10 +20,32 @@ class AppTheme {
   static const Color warningOrange = Color(0xFFFFEDD5); // orange-100
   static const Color infoBlue = Color(0xFFDBEAFE); // blue-100
 
-  static ThemeData get lightTheme {
+  /// OpenDyslexic font family name for dyslexia-friendly text
+  static const String openDyslexicFontFamily = 'OpenDyslexic';
+
+  /// Get light theme with optional dyslexia-friendly font
+  static ThemeData getLightTheme({bool useDyslexicFont = false}) {
+    final fontFamily = useDyslexicFont ? openDyslexicFontFamily : null;
+    return _buildLightTheme(fontFamily: fontFamily);
+  }
+
+  /// Get dark theme with optional dyslexia-friendly font
+  static ThemeData getDarkTheme({bool useDyslexicFont = false}) {
+    final fontFamily = useDyslexicFont ? openDyslexicFontFamily : null;
+    return _buildDarkTheme(fontFamily: fontFamily);
+  }
+
+  /// Legacy getter for light theme (without dyslexic font)
+  static ThemeData get lightTheme => getLightTheme();
+
+  /// Legacy getter for dark theme (without dyslexic font)
+  static ThemeData get darkTheme => getDarkTheme();
+
+  static ThemeData _buildLightTheme({String? fontFamily}) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: fontFamily,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryTeal,
         brightness: Brightness.light,
@@ -74,10 +99,11 @@ class AppTheme {
     );
   }
 
-  static ThemeData get darkTheme {
+  static ThemeData _buildDarkTheme({String? fontFamily}) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: fontFamily,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryTeal,
         brightness: Brightness.dark,

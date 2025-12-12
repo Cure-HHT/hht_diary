@@ -93,14 +93,13 @@ void main() {
 
         // Step 1: Create a record in the service
         final originalRecord = await nosebleedService.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
         );
 
         // Verify record exists in materialized view
-        var records = await nosebleedService.getLocalRecords();
+        var records = await nosebleedService.getLocalMaterializedRecords();
         expect(records.length, 1);
         expect(records.first.id, originalRecord.id);
 
@@ -156,7 +155,7 @@ void main() {
         expect(deletedReason, 'Entered by mistake');
 
         // Step 9: Verify record is removed from materialized view
-        records = await nosebleedService.getLocalRecords();
+        records = await nosebleedService.getLocalMaterializedRecords();
         expect(records.isEmpty, true);
 
         // Step 10: Verify the deletion event exists in the raw event log
@@ -187,7 +186,6 @@ void main() {
 
         // Create a record
         final originalRecord = await nosebleedService.addRecord(
-          date: DateTime(2024, 1, 15),
           startTime: DateTime(2024, 1, 15, 10, 0),
           endTime: DateTime(2024, 1, 15, 10, 30),
           intensity: NosebleedIntensity.dripping,
@@ -221,7 +219,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Record should NOT be deleted (bug behavior - onDelete not called)
-        final records = await nosebleedService.getLocalRecords();
+        final records = await nosebleedService.getLocalMaterializedRecords();
         expect(records.length, 1);
         expect(records.first.id, originalRecord.id);
       },
@@ -241,13 +239,12 @@ void main() {
 
       // Create an incomplete record (missing end time and severity)
       final incompleteRecord = await nosebleedService.addRecord(
-        date: DateTime(2024, 1, 15),
         startTime: DateTime(2024, 1, 15, 10, 0),
         // endTime and severity intentionally not provided
       );
 
       // Verify record is incomplete
-      var records = await nosebleedService.getLocalRecords();
+      var records = await nosebleedService.getLocalMaterializedRecords();
       expect(records.length, 1);
       expect(records.first.isIncomplete, true);
 
@@ -284,7 +281,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify record is deleted from materialized view
-      records = await nosebleedService.getLocalRecords();
+      records = await nosebleedService.getLocalMaterializedRecords();
       expect(records.isEmpty, true);
     });
 
@@ -299,7 +296,6 @@ void main() {
 
       // Create a record
       final originalRecord = await nosebleedService.addRecord(
-        date: DateTime(2024, 1, 15),
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
         intensity: NosebleedIntensity.dripping,
@@ -332,7 +328,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Record should still exist
-      final records = await nosebleedService.getLocalRecords();
+      final records = await nosebleedService.getLocalMaterializedRecords();
       expect(records.length, 1);
       expect(records.first.id, originalRecord.id);
     });
@@ -350,7 +346,6 @@ void main() {
 
       // Create a record
       final originalRecord = await nosebleedService.addRecord(
-        date: DateTime(2024, 1, 15),
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
         intensity: NosebleedIntensity.dripping,
@@ -422,7 +417,7 @@ void main() {
       expect(capturedReason, 'Custom deletion reason for testing');
 
       // Verify record is deleted
-      final records = await nosebleedService.getLocalRecords();
+      final records = await nosebleedService.getLocalMaterializedRecords();
       expect(records.isEmpty, true);
     });
   });

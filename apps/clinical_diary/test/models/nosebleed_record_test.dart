@@ -53,16 +53,18 @@ void main() {
   });
 
   group('NosebleedRecord', () {
-    final testDate = DateTime(2024, 1, 15);
     final testStartTime = DateTime(2024, 1, 15, 10, 30);
     final testEndTime = DateTime(2024, 1, 15, 10, 45);
 
     group('constructor', () {
       test('creates record with required fields', () {
-        final record = NosebleedRecord(id: 'test-123', date: testDate);
+        final record = NosebleedRecord(
+          id: 'test-123',
+          startTime: testStartTime,
+        );
 
         expect(record.id, 'test-123');
-        expect(record.date, testDate);
+        expect(record.startTime, testStartTime);
         expect(record.isNoNosebleedsEvent, false);
         expect(record.isUnknownEvent, false);
         expect(record.isIncomplete, false);
@@ -71,7 +73,6 @@ void main() {
       test('creates record with all fields', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
           intensity: NosebleedIntensity.dripping,
@@ -91,7 +92,10 @@ void main() {
 
       test('sets createdAt to now if not provided', () {
         final before = DateTime.now();
-        final record = NosebleedRecord(id: 'test-123', date: testDate);
+        final record = NosebleedRecord(
+          id: 'test-123',
+          startTime: testStartTime,
+        );
         final after = DateTime.now();
 
         expect(
@@ -107,20 +111,51 @@ void main() {
 
     group('fromJson', () {
       test('parses minimal JSON', () {
-        final json = {'id': 'test-123', 'date': '2024-01-15T00:00:00.000'};
+        final json = {'id': 'test-123', 'startTime': '2024-01-15T00:00:00.000'};
 
         final record = NosebleedRecord.fromJson(json);
 
         expect(record.id, 'test-123');
-        expect(record.date.year, 2024);
-        expect(record.date.month, 1);
-        expect(record.date.day, 15);
+        expect(record.startTime.year, 2024);
+        expect(record.startTime.month, 1);
+        expect(record.startTime.day, 15);
+      });
+
+      // CUR-512: Verify that times are parsed as local time, not UTC
+      test('parses ISO 8601 with timezone offset as local time', () {
+        // This is how times are stored: ISO 8601 with timezone offset
+        // e.g., 10:30 AM in PST (UTC-8)
+        final json = {
+          'id': 'test-123',
+          'startTime': '2024-01-15T10:30:00.000-08:00',
+          'endTime': '2024-01-15T10:45:00.000-08:00',
+        };
+
+        final record = NosebleedRecord.fromJson(json);
+
+        // The time should be parsed as local time, preserving the original
+        // hour/minute for display. When user entered 10:30 AM, it should
+        // display as 10:30 AM, not be converted to a different timezone.
+        // Since we're storing and displaying in local time, isUtc should be false.
+        expect(
+          record.startTime.isUtc,
+          false,
+          reason: 'startTime should be local time, not UTC',
+        );
+        expect(
+          record.endTime!.isUtc,
+          false,
+          reason: 'endTime should be local time, not UTC',
+        );
+
+        // The hour should match what was stored (10:30) when in the same timezone
+        // Note: This test assumes the test environment is in a consistent timezone.
+        // The key assertion is that times are NOT in UTC.
       });
 
       test('parses complete JSON', () {
         final json = {
           'id': 'test-123',
-          'date': '2024-01-15T00:00:00.000',
           'startTime': '2024-01-15T10:30:00.000',
           'endTime': '2024-01-15T10:45:00.000',
           'intensity': 'dripping',
@@ -147,8 +182,7 @@ void main() {
       test('handles null optional fields', () {
         final json = {
           'id': 'test-123',
-          'date': '2024-01-15T00:00:00.000',
-          'startTime': null,
+          'startTime': '2024-01-15T10:30:00.000',
           'endTime': null,
           'intensity': null,
           'notes': null,
@@ -156,14 +190,14 @@ void main() {
 
         final record = NosebleedRecord.fromJson(json);
 
-        expect(record.startTime, isNull);
+        expect(record.startTime, isNotNull);
         expect(record.endTime, isNull);
         expect(record.intensity, isNull);
         expect(record.notes, isNull);
       });
 
       test('defaults boolean fields to false', () {
-        final json = {'id': 'test-123', 'date': '2024-01-15T00:00:00.000'};
+        final json = {'id': 'test-123', 'startTime': '2024-01-15T00:00:00.000'};
 
         final record = NosebleedRecord.fromJson(json);
 
@@ -174,11 +208,10 @@ void main() {
     });
 
     group('toJson', () {
-      test('serializes all fields', () {
+      test('serializes all fields with ISO 8601 timezone offset', () {
         final createdAt = DateTime(2024, 1, 15, 10, 0);
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
           intensity: NosebleedIntensity.dripping,
@@ -190,21 +223,26 @@ void main() {
         final json = record.toJson();
 
         expect(json['id'], 'test-123');
-        expect(json['date'], testDate.toIso8601String());
-        expect(json['startTime'], testStartTime.toIso8601String());
-        expect(json['endTime'], testEndTime.toIso8601String());
+        // Timestamps now include timezone offset (e.g., "2024-01-15T10:30:00.000-05:00")
+        expect(json['startTime'], isA<String>());
+        expect(json['startTime'], contains('2024-01-15'));
+        expect(json['endTime'], isA<String>());
+        expect(json['endTime'], contains('2024-01-15'));
         expect(json['intensity'], 'dripping');
         expect(json['notes'], 'Test notes');
         expect(json['deviceUuid'], 'device-uuid');
-        expect(json['createdAt'], createdAt.toIso8601String());
+        expect(json['createdAt'], isA<String>());
       });
 
       test('handles null optional fields', () {
-        final record = NosebleedRecord(id: 'test-123', date: testDate);
+        final record = NosebleedRecord(
+          id: 'test-123',
+          startTime: testStartTime,
+        );
 
         final json = record.toJson();
 
-        expect(json['startTime'], isNull);
+        expect(json['startTime'], isA<String>());
         expect(json['endTime'], isNull);
         expect(json['intensity'], isNull);
         expect(json['notes'], isNull);
@@ -212,11 +250,13 @@ void main() {
       });
 
       test('roundtrips correctly', () {
+        // Use local times - DateTimeFormatter preserves local time with offset
+        final startTime = DateTime(2024, 1, 15, 10, 30);
+        final endTime = DateTime(2024, 1, 15, 10, 45);
         final original = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
-          startTime: testStartTime,
-          endTime: testEndTime,
+          startTime: startTime,
+          endTime: endTime,
           intensity: NosebleedIntensity.steadyStream,
           notes: 'Test notes',
           deviceUuid: 'device-uuid',
@@ -226,9 +266,15 @@ void main() {
         final restored = NosebleedRecord.fromJson(json);
 
         expect(restored.id, original.id);
-        expect(restored.date, original.date);
-        expect(restored.startTime, original.startTime);
-        expect(restored.endTime, original.endTime);
+        // Compare the moment in time since timezone representation may differ
+        expect(
+          restored.startTime.millisecondsSinceEpoch,
+          original.startTime.millisecondsSinceEpoch,
+        );
+        expect(
+          restored.endTime!.millisecondsSinceEpoch,
+          original.endTime!.millisecondsSinceEpoch,
+        );
         expect(restored.intensity, original.intensity);
         expect(restored.notes, original.notes);
         expect(restored.deviceUuid, original.deviceUuid);
@@ -237,36 +283,39 @@ void main() {
 
     group('computed properties', () {
       test('isRealEvent returns true for normal events', () {
-        final record = NosebleedRecord(id: 'test-123', date: testDate);
+        final record = NosebleedRecord(
+          id: 'test-123',
+          startTime: testStartTime,
+        );
 
-        expect(record.isRealEvent, true);
+        expect(record.isRealNosebleedEvent, true);
       });
 
       test('isRealEvent returns false for no-nosebleed events', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           isNoNosebleedsEvent: true,
+          startTime: testStartTime,
         );
 
-        expect(record.isRealEvent, false);
+        expect(record.isRealNosebleedEvent, false);
       });
 
       test('isRealEvent returns false for unknown events', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           isUnknownEvent: true,
+          startTime: testStartTime,
         );
 
-        expect(record.isRealEvent, false);
+        expect(record.isRealNosebleedEvent, false);
       });
 
       test('isComplete returns true for no-nosebleed events', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           isNoNosebleedsEvent: true,
+          startTime: testStartTime,
         );
 
         expect(record.isComplete, true);
@@ -275,8 +324,8 @@ void main() {
       test('isComplete returns true for unknown events', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           isUnknownEvent: true,
+          startTime: testStartTime,
         );
 
         expect(record.isComplete, true);
@@ -285,7 +334,6 @@ void main() {
       test('isComplete returns true when all required fields are set', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
           intensity: NosebleedIntensity.dripping,
@@ -294,12 +342,11 @@ void main() {
         expect(record.isComplete, true);
       });
 
-      test('isComplete returns false when startTime is missing', () {
+      test('isComplete returns false when only startTime is set', () {
+        // A record with only startTime (no endTime, no intensity) is incomplete
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
-          endTime: testEndTime,
-          intensity: NosebleedIntensity.dripping,
+          startTime: testStartTime,
         );
 
         expect(record.isComplete, false);
@@ -308,7 +355,6 @@ void main() {
       test('isComplete returns false when endTime is missing', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           intensity: NosebleedIntensity.dripping,
         );
@@ -319,7 +365,6 @@ void main() {
       test('isComplete returns false when intensity is missing', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
         );
@@ -330,7 +375,6 @@ void main() {
       test('durationMinutes calculates correctly', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testEndTime, // 15 minutes after startTime
         );
@@ -339,7 +383,10 @@ void main() {
       });
 
       test('durationMinutes returns null when times are missing', () {
-        final record = NosebleedRecord(id: 'test-123', date: testDate);
+        final record = NosebleedRecord(
+          id: 'test-123',
+          startTime: testStartTime,
+        );
 
         expect(record.durationMinutes, isNull);
       });
@@ -347,7 +394,6 @@ void main() {
       test('durationMinutes handles zero duration', () {
         final record = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testStartTime,
         );
@@ -360,7 +406,6 @@ void main() {
       test('copies all fields when no changes', () {
         final original = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           startTime: testStartTime,
           endTime: testEndTime,
           intensity: NosebleedIntensity.dripping,
@@ -370,7 +415,6 @@ void main() {
         final copy = original.copyWith();
 
         expect(copy.id, original.id);
-        expect(copy.date, original.date);
         expect(copy.startTime, original.startTime);
         expect(copy.endTime, original.endTime);
         expect(copy.intensity, original.intensity);
@@ -380,8 +424,8 @@ void main() {
       test('updates specified fields only', () {
         final original = NosebleedRecord(
           id: 'test-123',
-          date: testDate,
           intensity: NosebleedIntensity.spotting,
+          startTime: testStartTime,
         );
 
         final copy = original.copyWith(
@@ -390,7 +434,7 @@ void main() {
         );
 
         expect(copy.id, original.id);
-        expect(copy.date, original.date);
+        expect(copy.startTime, original.startTime);
         expect(copy.intensity, NosebleedIntensity.gushing);
         expect(copy.notes, 'Updated notes');
       });

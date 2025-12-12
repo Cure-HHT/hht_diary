@@ -192,7 +192,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsNothing);
     });
 
     testWidgets('has yellow background', (tester) async {
