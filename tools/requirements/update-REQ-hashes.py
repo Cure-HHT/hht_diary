@@ -1,133 +1,68 @@
 #!/usr/bin/env python3
 """
-Update requirement hashes in spec/*.md and INDEX.md files (New Format).
+Update requirement hashes in spec/*.md and INDEX.md files.
 
-New format has hash at end marker:
-    ### REQ-d00008: Title
-
-    **Level**: Dev | **Implements**: o00006 | **Status**: Active
-
-    Body content...
-
-    *End* *Title* | **Hash**: abc12345
+Uses shared RequirementParser for consistent parsing with validate_requirements.py.
 
 Usage:
-    python3 update-REQ-hashes.py [--dry-run] [--req-id d00027] [--verify]
+    python3 update-REQ-hashes.py [--dry-run] [--req-id d00027] [--verify] [--path /repo]
+
+IMPLEMENTS REQUIREMENTS:
+    REQ-d00002: Requirements validation tool
 """
 
 import re
 import sys
 import argparse
 from pathlib import Path
-from typing import Dict, Tuple, Set
-from requirement_hash import calculate_requirement_hash, clean_requirement_body
+from typing import Dict, Tuple
+from requirement_hash import calculate_requirement_hash
+from requirement_parser import RequirementParser, Requirement, make_req_filter
 
 
-# calculate_requirement_hash and clean_requirement_body are now imported from requirement_hash module
-
-
-def update_spec_file(file_path: Path, dry_run: bool = False, specific_req: str = None) -> Dict[str, Tuple[str, str]]:
+def update_hash_in_file(req: Requirement, new_hash: str, dry_run: bool = False) -> bool:
     """
-    Update hashes in a spec file (new format with end markers).
-    Returns dict of {req_id: (old_hash, new_hash)}
+    Update the hash in a requirement's end marker.
+
+    Args:
+        req: The requirement to update
+        new_hash: The new hash value
+        dry_run: If True, don't actually write the file
+
+    Returns:
+        True if the file was updated (or would be in dry_run mode)
     """
-    content = file_path.read_text(encoding='utf-8')
-    lines = content.split('\n')
-    updates = {}
+    content = req.file_path.read_text(encoding='utf-8')
 
-    # Pattern to find REQ headers
-    # Supports both core REQs (REQ-d00001) and sponsor-specific REQs (REQ-CAL-d00001)
-    req_pattern = re.compile(r'^(#{1,6})\s+REQ-(?:([A-Z]{2,4})-)?([pod]\d{5}):\s+(.+)$')
-
-    # Pattern to find status line
-    status_pattern = re.compile(
-        r'^\*\*Level\*\*:\s+(.+?)\s+\|\s+'
-        r'\*\*Implements\*\*:\s+(.+?)\s+\|\s+'
-        r'\*\*Status\*\*:\s+(.+?)\s*$'
+    # Pattern to find this specific requirement's end marker
+    # Escape the title for regex safety
+    escaped_title = re.escape(req.title)
+    pattern = re.compile(
+        rf'\*End\*\s+\*{escaped_title}\*\s+\|\s+\*\*Hash\*\*:\s+(?:[a-f0-9]{{8}}|TBD)',
+        re.MULTILINE
     )
 
-    # Pattern to find end marker
-    end_pattern = re.compile(r'^\*End\*\s+\*(.+?)\*\s+\|\s+\*\*Hash\*\*:\s+([a-f0-9]{8}|TBD)\s*$')
+    replacement = f"*End* *{req.title}* | **Hash**: {new_hash}"
+    new_content, count = pattern.subn(replacement, content)
 
-    i = 0
-    while i < len(lines):
-        req_match = req_pattern.match(lines[i])
-        if not req_match:
-            i += 1
-            continue
+    if count > 0 and not dry_run:
+        req.file_path.write_text(new_content, encoding='utf-8')
+        return True
 
-        sponsor_prefix = req_match.group(2)  # Optional, e.g., "CAL"
-        base_id = req_match.group(3)  # e.g., "d00001"
-        title = req_match.group(4).strip()
-        # Construct full req_id
-        req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
-
-        # Skip if specific_req set and doesn't match
-        # Handle both full ID (CAL-d00001) or base ID (d00001)
-        if specific_req and req_id != specific_req and base_id != specific_req:
-            i += 1
-            continue
-
-        # Find status line
-        j = i + 1
-        while j < len(lines) and not lines[j].strip():
-            j += 1
-
-        if j >= len(lines) or not status_pattern.match(lines[j]):
-            i += 1
-            continue
-
-        status_idx = j
-
-        # Find end marker
-        k = status_idx + 1
-        end_idx = None
-        while k < len(lines):
-            end_match = end_pattern.match(lines[k])
-            if end_match:
-                end_idx = k
-                break
-            # Stop at next REQ
-            if req_pattern.match(lines[k]):
-                break
-            k += 1
-
-        if end_idx is None:
-            i += 1
-            continue
-
-        # Extract body (between status and end marker)
-        body_text = '\n'.join(lines[status_idx + 1:end_idx])
-
-        # Clean body using shared function
-        body = clean_requirement_body(body_text)
-
-        # Calculate hash using shared function
-        new_hash = calculate_requirement_hash(body)
-        old_hash = end_pattern.match(lines[end_idx]).group(2)
-
-        if old_hash != new_hash:
-            updates[req_id] = (old_hash, new_hash)
-
-            if not dry_run:
-                # Update hash in end marker
-                end_title = end_pattern.match(lines[end_idx]).group(1)
-                lines[end_idx] = f"*End* *{end_title}* | **Hash**: {new_hash}"
-
-        i = end_idx + 1
-
-    # Write back if changes made
-    if updates and not dry_run:
-        new_content = '\n'.join(lines)
-        file_path.write_text(new_content, encoding='utf-8')
-
-    return updates
+    return count > 0
 
 
 def update_index_file(index_path: Path, hash_updates: Dict[str, str], dry_run: bool = False) -> bool:
     """
     Update hashes in INDEX.md.
-    Returns True if updates were made.
+
+    Args:
+        index_path: Path to INDEX.md
+        hash_updates: Dict of {req_id: new_hash}
+        dry_run: If True, don't actually write the file
+
+    Returns:
+        True if updates were made
     """
     if not index_path.exists():
         return False
@@ -135,8 +70,8 @@ def update_index_file(index_path: Path, hash_updates: Dict[str, str], dry_run: b
     content = index_path.read_text(encoding='utf-8')
     lines = content.split('\n')
 
-    # Pattern for INDEX.md rows
-    row_pattern = re.compile(r'^\|\s*REQ-([pod]\d{5})\s*\|')
+    # Pattern for INDEX.md rows - supports both core and sponsor-specific IDs
+    row_pattern = re.compile(r'^\|\s*REQ-(?:([A-Z]{2,4})-)?([pod]\d{5})\s*\|')
 
     updated = False
     for i, line in enumerate(lines):
@@ -144,7 +79,10 @@ def update_index_file(index_path: Path, hash_updates: Dict[str, str], dry_run: b
         if not match:
             continue
 
-        req_id = match.group(1)
+        sponsor_prefix = match.group(1)
+        base_id = match.group(2)
+        req_id = f"{sponsor_prefix}-{base_id}" if sponsor_prefix else base_id
+
         if req_id in hash_updates:
             new_hash = hash_updates[req_id]
             # Replace hash in last column
@@ -163,7 +101,7 @@ def update_index_file(index_path: Path, hash_updates: Dict[str, str], dry_run: b
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Update requirement hashes (new format)',
+        description='Update requirement hashes',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
@@ -175,6 +113,9 @@ Examples:
 
   # Verify hashes only
   python update-REQ-hashes.py --verify --path ../sibling-repo
+
+  # Update single requirement
+  python update-REQ-hashes.py --req-id d00027
 '''
     )
     parser.add_argument('--dry-run', action='store_true', help='Show changes without writing')
@@ -187,10 +128,11 @@ Examples:
     specific_req = None
     if args.req_id:
         specific_req = args.req_id.replace('REQ-', '').lower()
-        if not re.match(r'^[pod]\d{5}$', specific_req):
+        if not re.match(r'^(?:[a-z]{2,4}-)?[pod]\d{5}$', specific_req):
             print(f"❌ Invalid requirement ID format: {args.req_id}")
             sys.exit(1)
 
+    # Determine spec directory
     if args.path:
         repo_root = args.path.resolve()
         spec_dir = repo_root / 'spec'
@@ -203,46 +145,65 @@ Examples:
         print(f"❌ Spec directory not found: {spec_dir}")
         sys.exit(1)
 
-    all_updates = {}
-    changed_count = 0
-    files_updated = 0
+    # Parse requirements using shared parser
+    req_parser = RequirementParser(spec_dir)
+    req_filter = make_req_filter(specific_req)
+    result = req_parser.parse_all(req_filter)
+
+    if result.errors:
+        print("⚠️  Parse errors encountered:")
+        for error in result.errors:
+            print(f"  {error}")
+        print()
+
+    # Find requirements needing hash updates
+    updates: Dict[str, Tuple[str, str]] = {}  # {req_id: (old_hash, new_hash)}
+    files_with_updates: Dict[Path, list] = {}  # {file_path: [req_ids]}
 
     print(f"{'🔍 Verifying' if args.verify else '📝 Updating'} requirement hashes...\n")
 
-    for spec_file in sorted(spec_dir.glob('*.md')):
-        if spec_file.name in ['INDEX.md', 'requirements-format.md', 'README.md']:
-            continue
+    for req_id, req in result.requirements.items():
+        calculated_hash = calculate_requirement_hash(req.body)
 
-        updates = update_spec_file(spec_file, dry_run=args.dry_run or args.verify, specific_req=specific_req)
+        if req.hash != calculated_hash:
+            updates[req_id] = (req.hash, calculated_hash)
 
-        if updates:
-            files_updated += 1
-            print(f"  {spec_file.name}:")
-            for req_id, (old_hash, new_hash) in updates.items():
-                changed_count += 1
-                status = "✓" if old_hash == "TBD" else "⚠"
-                print(f"    {status} REQ-{req_id}: {old_hash} → {new_hash}")
-                all_updates[req_id] = new_hash
+            if req.file_path not in files_with_updates:
+                files_with_updates[req.file_path] = []
+            files_with_updates[req.file_path].append(req_id)
+
+            # Update the file if not dry-run/verify
+            if not args.dry_run and not args.verify:
+                update_hash_in_file(req, calculated_hash)
+
+    # Print updates by file
+    for file_path in sorted(files_with_updates.keys()):
+        print(f"  {file_path.name}:")
+        for req_id in files_with_updates[file_path]:
+            old_hash, new_hash = updates[req_id]
+            status = "✓" if old_hash == "TBD" else "⚠"
+            print(f"    {status} REQ-{req_id}: {old_hash} → {new_hash}")
 
     # Update INDEX.md
-    if all_updates and not args.verify:
+    hash_updates = {req_id: new_hash for req_id, (_, new_hash) in updates.items()}
+    if hash_updates and not args.verify:
         print("\n📋 Updating INDEX.md...")
-        index_updated = update_index_file(index_path, all_updates, dry_run=args.dry_run)
+        index_updated = update_index_file(index_path, hash_updates, dry_run=args.dry_run)
         if index_updated:
             print("  ✓ INDEX.md updated")
 
     # Summary
     print(f"\n{'='*60}")
     print(f"Summary:")
-    print(f"  Requirements updated: {changed_count}")
-    print(f"  Files modified: {files_updated}")
+    print(f"  Requirements updated: {len(updates)}")
+    print(f"  Files modified: {len(files_with_updates)}")
 
     if args.dry_run:
         print("\n💡 Dry run - no files were modified")
         print("   Run without --dry-run to apply changes")
     elif args.verify:
         print("\n🔍 Verification complete")
-        if changed_count > 0:
+        if updates:
             print("   ⚠ Some hashes are out of date or TBD")
             print("   Run without --verify to update them")
         else:

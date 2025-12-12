@@ -11,6 +11,7 @@ import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
@@ -198,6 +199,11 @@ void main() {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
+        // Enable useReviewScreen so that editing a complete record shows
+        // "Edit Record" on the review/summary step (CUR-512)
+        FeatureFlagService.instance.useReviewScreen = true;
+        addTearDown(() => FeatureFlagService.instance.resetToDefaults());
+
         // Add a record
         final today = DateTime.now();
         await nosebleedService.addRecord(
@@ -213,7 +219,7 @@ void main() {
         await tester.tap(find.byType(EventListItem));
         await tester.pumpAndSettle();
 
-        // Should navigate to edit mode
+        // Should navigate to edit mode with review screen showing "Edit Record"
         expect(find.text('Edit Record'), findsOneWidget);
       });
     });
