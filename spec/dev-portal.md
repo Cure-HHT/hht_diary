@@ -227,7 +227,7 @@ final portalTheme = ThemeData(
 
 # REQ-d00052: Role-Based Banner Component
 
-**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Active
+**Level**: Dev | **Implements**: p00030, o00055 | **Status**: Draft
 
 The portal SHALL display a color-coded banner component at the top of all authenticated pages showing the current user's role.
 

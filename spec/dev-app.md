@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-01-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-architecture-multi-sponsor.md for overall architecture
 > **See**: prd-database.md for data architecture
@@ -37,7 +37,7 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 # REQ-d00005: Sponsor Configuration Detection Implementation
 
-**Level**: Dev | **Implements**: p00007, p00008 | **Status**: Active
+**Level**: Dev | **Implements**: p00007, p00008 | **Status**: Draft
 
 The mobile application SHALL implement automatic sponsor detection and configuration loading based on enrollment tokens, enabling a single app binary to support multiple sponsors without requiring separate app builds per sponsor.
 
@@ -107,7 +107,7 @@ Implementation SHALL include:
 
 # REQ-d00004: Local-First Data Entry Implementation
 
-**Level**: Dev | **Implements**: p00006 | **Status**: Active
+**Level**: Dev | **Implements**: p00006 | **Status**: Draft
 
 The mobile application SHALL implement offline-first data entry using SQLite for local storage, ensuring all user diary entries are captured locally before network synchronization, enabling full functionality without network connectivity.
 
@@ -164,7 +164,7 @@ Implementation SHALL include:
 
 # REQ-d00013: Application Instance UUID Generation
 
-**Level**: Dev | **Implements**: p00006 | **Status**: Active
+**Level**: Dev | **Implements**: p00006 | **Status**: Draft
 
 The mobile application SHALL generate and persist a unique instance identifier (UUID v4) on first launch after installation, enabling device-level attribution in audit trails and multi-device conflict resolution.
 
@@ -268,7 +268,7 @@ resolution: Log error. Report to investigator.
 
 # REQ-d00006: Mobile App Build and Release Process
 
-**Level**: Dev | **Implements**: o00010 | **Status**: Active
+**Level**: Dev | **Implements**: o00010 | **Status**: Draft
 
 The mobile application SHALL be built and released as a single app package containing configurations for all sponsors, ensuring consistent app distribution across iOS App Store and Google Play Store while maintaining sponsor isolation.
 

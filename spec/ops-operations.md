@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Operations (SRE, DevOps, On-Call Engineers)
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: ops-deployment.md for deployment procedures
 > **See**: ops-database-migration.md for schema change procedures
@@ -96,7 +96,7 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 
 # REQ-o00005: Audit Trail Monitoring
 
-**Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Active
+**Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Draft
 
 Operations SHALL continuously monitor audit trail integrity, ensuring all clinical data changes are properly recorded and tamper-proof chain remains intact.
 
@@ -899,7 +899,7 @@ The issue has been resolved. All services are operating normally.
 
 # REQ-o00008: Backup and Retention Policy
 
-**Level**: Ops | **Implements**: p00012 | **Status**: Active
+**Level**: Ops | **Implements**: p00012 | **Status**: Draft
 
 Clinical trial data and audit trails SHALL be backed up regularly with retention policies meeting regulatory requirements (minimum 7 years), ensuring data recoverability and compliance.
 

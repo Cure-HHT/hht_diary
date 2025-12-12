@@ -1,7 +1,7 @@
 # Infrastructure as Code Specification
 
 **Audience**: Operations
-**Status**: Active
+**Status**: Draft
 **Version**: 2.0.0
 **Last Updated**: 2025-11-24
 
@@ -17,7 +17,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 # REQ-o00041: Infrastructure as Code for Cloud Resources
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Active
+**Level**: Ops | **Implements**: p00010 | **Status**: Draft
 
 **SHALL** use Terraform for all GCP infrastructure and cloud resources.
 
@@ -42,7 +42,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 # REQ-o00042: Infrastructure Change Control
 
-**Level**: Ops | **Implements**: o00041, p00010 | **Status**: Active
+**Level**: Ops | **Implements**: o00041, p00010 | **Status**: Draft
 
 **SHALL** require pull request review for all infrastructure changes.
 

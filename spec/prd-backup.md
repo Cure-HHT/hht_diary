@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-system.md for platform overview
 > **See**: prd-database.md for data storage architecture
@@ -14,7 +14,7 @@
 
 # REQ-p00047: Data Backup and Archival
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 A backup and archival system ensuring clinical trial data is protected against loss, recoverable in disaster scenarios, and retained for regulatory compliance periods.
 

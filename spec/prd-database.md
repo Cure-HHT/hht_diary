@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-system.md for platform overview
 > **See**: prd-event-sourcing-system.md for generic event sourcing architecture
@@ -15,7 +15,7 @@
 
 # REQ-p00046: Clinical Data Storage System
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 A cloud database system using event sourcing to store clinical trial data with complete audit trails, sponsor isolation, and FDA 21 CFR Part 11 compliance.
 
@@ -60,7 +60,7 @@ FDA compliant record keeping.
 
 # REQ-p00013: Complete Data Change History
 
-**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Active
+**Level**: PRD | **Implements**: p00004, p00010, p00011 | **Status**: Draft
 
 The system SHALL preserve the complete history of all data modifications, ensuring original values are never overwritten or deleted.
 
@@ -97,7 +97,7 @@ Change history SHALL include:
 
 # REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p00001 | **Status**: Draft
 
 Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
 
@@ -123,7 +123,7 @@ Database isolation SHALL ensure:
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.
 

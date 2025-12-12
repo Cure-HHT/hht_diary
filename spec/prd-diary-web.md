@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-05
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-diary-app.md for mobile diary application
 > **See**: prd-system.md for platform overview
@@ -27,7 +27,7 @@ The Web Diary is a browser-based companion to the Clinical Diary mobile applicat
 
 # REQ-p01042: Web Diary Application
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 A web browser-based diary application enabling clinical trial patients to record health observations from any computer, with automatic session timeout and no persistent data storage for privacy protection.
 
@@ -54,7 +54,7 @@ Web Diary application SHALL provide:
 
 # REQ-p01043: Web Diary Authentication via Linking Code
 
-**Level**: PRD | **Implements**: p01042, p00001 | **Status**: Active
+**Level**: PRD | **Implements**: p01042, p00001 | **Status**: Draft
 
 Patients SHALL authenticate to the Web Diary using a unique linking code obtained from the Sponsor Portal, combined with a username and password created specifically for web access, without using email addresses or third-party authentication providers.
 
@@ -88,7 +88,7 @@ Authentication SHALL ensure:
 
 # REQ-p01044: Web Diary Session Management
 
-**Level**: PRD | **Implements**: p01042 | **Status**: Active
+**Level**: PRD | **Implements**: p01042 | **Status**: Draft
 
 The Web Diary SHALL automatically terminate user sessions after a period of inactivity, on browser/tab close, and on explicit logout, ensuring no session persists beyond active use.
 
@@ -118,7 +118,7 @@ Session management SHALL ensure:
 
 # REQ-p01045: Web Diary Privacy Protection
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Active
+**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
 
 The Web Diary SHALL collect no personally identifiable information (PII) and SHALL display clear privacy messaging to users during account creation and login.
 
@@ -150,7 +150,7 @@ Privacy protection SHALL ensure:
 
 # REQ-p01046: Web Diary Account Creation
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Active
+**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
 
 Patients SHALL create a web-specific account with username and password meeting security requirements, stored securely in the authentication service.
 
@@ -181,7 +181,7 @@ Account creation SHALL ensure:
 
 # REQ-p01047: Web Diary User Profile
 
-**Level**: PRD | **Implements**: p01042 | **Status**: Active
+**Level**: PRD | **Implements**: p01042 | **Status**: Draft
 
 The Web Diary SHALL provide a user profile view displaying account information and providing account management functions.
 
@@ -216,7 +216,7 @@ Profile functionality SHALL ensure:
 
 # REQ-p01048: Web Diary Login Interface
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Active
+**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
 
 The Web Diary SHALL provide a login interface accessible from the profile menu, with clear state indication of login status.
 
@@ -244,7 +244,7 @@ Login interface SHALL ensure:
 
 # REQ-p01049: Web Diary Lost Credential Recovery
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Active
+**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
 
 Patients who lose their username or password SHALL recover access by obtaining a new linking code from their Sponsor, as the system cannot provide email-based password reset functionality.
 
