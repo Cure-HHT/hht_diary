@@ -218,6 +218,80 @@ Firebase configuration is managed via:
 - `.firebaserc` - Project aliases
 - `lib/firebase_options.dart` - Generated Flutter Firebase config
 
+## 🔄 Version Checking & Updates
+
+The app includes an automatic version checking system that notifies users when updates are available.
+
+### How It Works
+
+1. **Build Time**: The CI workflow extracts the version from `pubspec.yaml` and embeds it via `--dart-define=APP_VERSION=x.x.x`
+2. **Deploy Time**: A `version.json` file is generated containing the current version plus `minVersion` and `releaseNotes` from `version-info.json`
+3. **Runtime**: The app compares the embedded version against the remote `version.json` (fetched with cache-busting)
+
+### Update Notifications
+
+| Condition | UI Behavior |
+| --------- | ----------- |
+| Local version < remote version | Dismissible blue banner at top of screen |
+| Local version < minVersion | Blocking dialog (cannot dismiss) |
+| Local version >= remote version | No notification |
+
+The banner/dialog includes:
+- Current and new version numbers
+- Release notes (if provided)
+- "Update Now" button (clears cache and reloads on web)
+
+### Update Indicator
+
+When an update is available, a small dot appears on the logo menu icon with a tooltip saying "Update available".
+
+### Configuration
+
+Edit `version-info.json` in the app root to control update behavior:
+
+```json
+{
+  "minVersion": "0.7.68",
+  "releaseNotes": "Bug fixes and improvements"
+}
+```
+
+| Field | Description |
+| ----- | ----------- |
+| `minVersion` | Minimum supported version. Users below this see a blocking update dialog. |
+| `releaseNotes` | Text shown in update banner/dialog. Keep it brief. |
+
+### Check Frequency
+
+Version checks occur at most once every 24 hours to avoid excessive network calls. The check timestamp is stored in SharedPreferences.
+
+### Web Cache Handling
+
+On web, the "Update Now" button:
+1. Unregisters all service workers
+2. Clears all CacheStorage caches
+3. Forces a hard page reload
+
+This ensures users get the latest version even with aggressive browser caching.
+
+### Firebase Hosting Cache Headers
+
+Cache-busting headers are configured in `firebase.json`:
+- `index.html` - `no-cache, no-store, must-revalidate`
+- `version.json` - `no-cache, no-store, must-revalidate`
+- `flutter_service_worker.js` - `no-cache, max-age=0`
+
+### Related Files
+
+| File | Purpose |
+| ---- | ------- |
+| `version-info.json` | Maintainable minVersion and releaseNotes |
+| `lib/utils/app_version.dart` | Embedded version constant |
+| `lib/services/version_check_service.dart` | Version comparison and fetch logic |
+| `lib/widgets/update_banner.dart` | Dismissible update banner |
+| `lib/widgets/update_dialog.dart` | Blocking update dialog |
+| `lib/widgets/update_banner_wrapper.dart` | Wrapper that orchestrates update UI |
+
 ## 🔐 Configuration with Doppler
 
 [Doppler](https://www.doppler.com/) is used for secrets management. All sensitive configuration

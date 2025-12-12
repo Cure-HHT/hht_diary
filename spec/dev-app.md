@@ -273,12 +273,13 @@ resolution: Log error. Report to investigator.
 The mobile application SHALL be built and released as a single app package containing configurations for all sponsors, ensuring consistent app distribution across iOS App Store and Google Play Store while maintaining sponsor isolation.
 
 Build process SHALL include:
-- Single Flutter codebase compiled for iOS and Android platforms
-- All sponsor configurations bundled in app assets at build time
+- Single Flutter codebase compiled for iOS, Android and web platforms
 - Version number incremented following semantic versioning
 - Code signing with platform-specific certificates (iOS: Apple Developer, Android: Google Play)
 - Automated build pipeline generating release artifacts
 - Pre-release validation ensuring no sponsor-specific information in store listings
+- Runtime app version checking to inform users of updates.  Version checks automatically happen daily, when used. 
+- A minimum version defined to force users to upgrade when their installed version is lower than the minimum.
 
 **Rationale**: Implements mobile app release process (o00010) at the development level. Flutter's cross-platform compilation enables single codebase deployment, while bundled configurations allow sponsor switching at runtime without requiring per-sponsor builds.
 
@@ -290,7 +291,7 @@ Build process SHALL include:
 - No sponsor-specific branding in store listings
 - Build pipeline validates configuration completeness
 
-*End* *Mobile App Build and Release Process* | **Hash**: 6dfe9c2d
+*End* *Mobile App Build and Release Process* | **Hash**: 24bbf429
 ---
 
 ### App Store Listing

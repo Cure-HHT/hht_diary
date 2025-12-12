@@ -1,7 +1,7 @@
 name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
-version: 0.7.68
+version: 0.7.72
 
 environment:
   sdk: ^3.10.1
@@ -32,6 +32,7 @@ dependencies:
   uuid: ^4.5.2
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
+  web: ^1.1.0  # For web-specific cache clearing in version updates
 
 dev_dependencies:
   flutter_test:

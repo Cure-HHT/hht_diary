@@ -1,12 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
-
-import 'dart:convert';
+//   REQ-d00006: Mobile App Build and Release Process
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:flutter/foundation.dart';
+import 'package:clinical_diary/services/version_check_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
@@ -37,21 +35,19 @@ class LogoMenu extends StatefulWidget {
 
 class _LogoMenuState extends State<LogoMenu> {
   String _version = '';
+  bool _hasUpdate = false;
+  late final VersionCheckService _versionService;
 
   @override
   void initState() {
     super.initState();
+    _versionService = VersionCheckService();
     _loadVersion();
+    _checkForUpdates();
   }
 
   Future<void> _loadVersion() async {
-    // On web, fetch version.json directly (more reliable than package_info_plus)
-    if (kIsWeb) {
-      await _loadVersionFromJson();
-      return;
-    }
-
-    // On native platforms, use package_info_plus
+    // Use package_info_plus for display (works in dev and prod on all platforms)
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       if (mounted) {
@@ -64,21 +60,30 @@ class _LogoMenuState extends State<LogoMenu> {
     }
   }
 
-  Future<void> _loadVersionFromJson() async {
+  Future<void> _checkForUpdates() async {
     try {
-      // Use Uri.base to resolve the correct absolute URL on web
-      final versionUrl = Uri.base.resolve('version.json');
-      final response = await http.get(versionUrl);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (mounted) {
+      // Check if we should check (respects 24-hour interval)
+      final shouldCheck = await _versionService.shouldCheckForUpdate();
+      if (!shouldCheck) return;
+
+      final result = await _versionService.checkForUpdate();
+
+      // Don't show update indicator if local version is '0.0.0' (dev mode)
+      // or if this version was dismissed
+      if (result.hasUpdate &&
+          result.remoteVersion != null &&
+          result.localVersion != '0.0.0') {
+        final wasDismissed = await _versionService.isVersionDismissed(
+          result.remoteVersion!,
+        );
+        if (mounted && !wasDismissed) {
           setState(() {
-            _version = data['version'] as String? ?? '';
+            _hasUpdate = true;
           });
         }
       }
     } catch (e) {
-      debugPrint('version.json fetch error: $e');
+      debugPrint('Update check error: $e');
     }
   }
 
@@ -89,17 +94,43 @@ class _LogoMenuState extends State<LogoMenu> {
       tooltip: l10n.appMenu,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
-        child: ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            Colors.grey.withValues(alpha: 0.5),
-            BlendMode.srcATop,
-          ),
-          child: Image.asset(
-            'assets/images/cure-hht-grey.png',
-            width: 100,
-            height: 40,
-            fit: BoxFit.contain,
-          ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Colors.grey.withValues(alpha: 0.5),
+                BlendMode.srcATop,
+              ),
+              child: Image.asset(
+                'assets/images/cure-hht-grey.png',
+                width: 100,
+                height: 40,
+                fit: BoxFit.contain,
+              ),
+            ),
+            // Update indicator dot
+            if (_hasUpdate)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Tooltip(
+                  message: l10n.updateAvailable,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.surface,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
       onSelected: (value) {
