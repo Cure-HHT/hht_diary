@@ -36,13 +36,156 @@ import re
 import sys
 import csv
 import json
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-# Import shared parser
+# Import shared parser and hash calculation
 from requirement_parser import RequirementParser, Requirement as BaseRequirement
+from requirement_hash import calculate_requirement_hash
+
+
+def get_git_modified_files(repo_root: Path) -> Tuple[Set[str], Set[str]]:
+    """Get sets of modified and untracked files according to git status (relative to repo root)
+
+    Returns:
+        Tuple of (modified_files, untracked_files):
+        - modified_files: Tracked files with changes (M, A, R, etc.)
+        - untracked_files: New files not yet tracked (??)
+
+    This allows detection of:
+    - Requirements with stale hashes (modified files - need hash check)
+    - New requirements (untracked files - all REQs are new, no hash check needed)
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'status', '--porcelain', '--untracked-files=all'],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        modified_files = set()
+        untracked_files = set()
+        # Don't strip stdout - it would remove leading space from first line's " M" prefix
+        for line in result.stdout.split('\n'):
+            if line and len(line) >= 3:
+                # Format: "XY filename" or "XY orig -> renamed"
+                # XY = two-letter status (e.g., " M", "??", "A ", "R ")
+                # Position 0-1: XY status, Position 2: space, Position 3+: filename
+                status_code = line[:2]
+                file_path = line[3:].strip()
+                # Handle renames: "orig -> new"
+                if ' -> ' in file_path:
+                    file_path = file_path.split(' -> ')[1]
+                if file_path:
+                    if status_code == '??':
+                        untracked_files.add(file_path)
+                    else:
+                        modified_files.add(file_path)
+        return modified_files, untracked_files
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo - return empty sets
+        return set(), set()
+
+
+def get_git_changed_vs_main(repo_root: Path, main_branch: str = 'main') -> Set[str]:
+    """Get set of files changed between current branch and main branch
+
+    Uses git diff to find files that differ from the main branch.
+    This catches all changes on the current feature branch.
+    """
+    try:
+        # Get files changed between main and HEAD (current branch)
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', f'{main_branch}...HEAD'],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        changed_files = set()
+        for line in result.stdout.split('\n'):
+            if line.strip():
+                changed_files.add(line.strip())
+        return changed_files
+    except subprocess.CalledProcessError:
+        # If main branch doesn't exist or other git error, try origin/main
+        try:
+            result = subprocess.run(
+                ['git', 'diff', '--name-only', f'origin/{main_branch}...HEAD'],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            changed_files = set()
+            for line in result.stdout.split('\n'):
+                if line.strip():
+                    changed_files.add(line.strip())
+            return changed_files
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return set()
+    except FileNotFoundError:
+        return set()
+
+
+def get_committed_req_locations(repo_root: Path) -> Dict[str, str]:
+    """Get REQ ID -> file path mapping from committed state (HEAD).
+
+    This allows detection of moved requirements by comparing current location
+    to where the REQ was in the last commit.
+
+    Returns:
+        Dict mapping REQ ID (e.g., 'd00001') to relative file path (e.g., 'spec/dev-app.md')
+    """
+    req_locations: Dict[str, str] = {}
+    req_pattern = re.compile(r'^#{1,6}\s+REQ-(?:[A-Z]{2,4}-)?([pod]\d{5}):', re.MULTILINE)
+
+    try:
+        # Get list of spec files in committed state
+        result = subprocess.run(
+            ['git', 'ls-tree', '-r', '--name-only', 'HEAD', 'spec/'],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        for file_path in result.stdout.strip().split('\n'):
+            if not file_path.endswith('.md'):
+                continue
+            if any(skip in file_path for skip in ['INDEX.md', 'README.md', 'requirements-format.md']):
+                continue
+
+            # Get file content from committed state
+            try:
+                content_result = subprocess.run(
+                    ['git', 'show', f'HEAD:{file_path}'],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                content = content_result.stdout
+
+                # Find all REQ IDs in this file
+                for match in req_pattern.finditer(content):
+                    req_id = match.group(1)  # Just the ID part (e.g., 'd00001')
+                    req_locations[req_id] = file_path
+
+            except subprocess.CalledProcessError:
+                # File might not exist in HEAD (new file)
+                continue
+
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo
+        pass
+
+    return req_locations
+
 
 @dataclass
 class TestInfo:
@@ -52,6 +195,24 @@ class TestInfo:
     test_status: str = "not_tested"  # not_tested, passed, failed, error, skipped
     test_details: List[Dict] = field(default_factory=list)
     notes: str = ""
+
+# Module-level storage for git modified files (shared across all TraceabilityRequirement instances)
+_git_uncommitted_files: Set[str] = set()  # Modified since last commit (git status)
+_git_untracked_files: Set[str] = set()  # New untracked files (git status ??)
+_git_branch_changed_files: Set[str] = set()  # Changed vs main branch (git diff)
+_git_committed_req_locations: Dict[str, str] = {}  # REQ ID -> file path in committed state
+
+
+def set_git_modified_files(uncommitted: Set[str], untracked: Set[str], branch_changed: Set[str],
+                           committed_req_locations: Optional[Dict[str, str]] = None):
+    """Set the git-modified files for modified detection"""
+    global _git_uncommitted_files, _git_untracked_files, _git_branch_changed_files, _git_committed_req_locations
+    _git_uncommitted_files = uncommitted
+    _git_untracked_files = untracked
+    _git_branch_changed_files = branch_changed
+    if committed_req_locations is not None:
+        _git_committed_req_locations = committed_req_locations
+
 
 @dataclass
 class TraceabilityRequirement:
@@ -63,14 +224,104 @@ class TraceabilityRequirement:
     status: str
     file_path: Path
     line_number: int
+    hash: str = ''  # SHA-256 hash (first 8 chars) or 'TBD' for new/modified
     body: str = ''
     rationale: str = ''
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
+    is_roadmap: bool = False  # True if requirement is in spec/roadmap/ directory
+
+    def _get_spec_relative_path(self) -> str:
+        """Get the spec-relative path for this requirement's file"""
+        # Handle both spec/file.md and spec/roadmap/file.md
+        if self.is_roadmap:
+            return f"spec/roadmap/{self.file_path.name}"
+        return f"spec/{self.file_path.name}"
+
+    def _is_in_untracked_file(self) -> bool:
+        """Check if requirement is in an untracked (new) file"""
+        rel_path = self._get_spec_relative_path()
+        return rel_path in _git_untracked_files
+
+    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
+        """Check if requirement is modified based on a set of changed files
+
+        For modified files, checks if hash has changed.
+        For untracked files, all REQs are considered new (no hash check needed).
+        """
+        rel_path = self._get_spec_relative_path()
+
+        # Check if file is untracked (new) - all REQs in new files are new
+        if rel_path in _git_untracked_files:
+            return True
+
+        # Check if file is in the modified set
+        if not file_set or rel_path not in file_set:
+            return False
+
+        # File is modified - check if it has TBD hash or stale hash
+        if self.hash == 'TBD':
+            return True
+
+        # Calculate hash to verify content actually changed
+        full_content = self.body
+        if self.rationale:
+            full_content = f"{self.body}\n\n**Rationale**: {self.rationale}"
+        calculated_hash = calculate_requirement_hash(full_content)
+        return self.hash != calculated_hash
+
+    @property
+    def is_uncommitted(self) -> bool:
+        """Check if requirement has uncommitted changes (modified since last commit)"""
+        return self._check_modified_in_fileset(_git_uncommitted_files)
+
+    @property
+    def is_branch_changed(self) -> bool:
+        """Check if requirement changed vs main branch"""
+        return self._check_modified_in_fileset(_git_branch_changed_files)
+
+    @property
+    def is_new(self) -> bool:
+        """Check if requirement is in a new (untracked) file"""
+        return self._is_in_untracked_file()
+
+    @property
+    def is_modified(self) -> bool:
+        """Check if requirement has modified content (hash changed) but is not in a new file"""
+        if self._is_in_untracked_file():
+            return False  # New files are "new", not "modified"
+        return self.is_uncommitted
+
+    @property
+    def is_moved(self) -> bool:
+        """Check if requirement was moved from a different file.
+
+        A requirement is considered moved if:
+        - It exists in the committed state in a different file, OR
+        - It's in a new file but has a non-TBD hash (suggesting it was copied/moved)
+        """
+        current_path = self._get_spec_relative_path()
+        committed_path = _git_committed_req_locations.get(self.id)
+
+        if committed_path is not None:
+            # REQ existed in committed state - check if path changed
+            return committed_path != current_path
+
+        # REQ doesn't exist in committed state
+        # If it's in a new file but has a real hash, it was likely moved/copied
+        if self._is_in_untracked_file() and self.hash and self.hash != 'TBD':
+            return True
+
+        return False
 
     @classmethod
-    def from_base(cls, base_req: BaseRequirement) -> 'TraceabilityRequirement':
-        """Create TraceabilityRequirement from shared parser Requirement"""
+    def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
+        """Create TraceabilityRequirement from shared parser Requirement
+
+        Args:
+            base_req: Requirement from shared parser
+            is_roadmap: True if this requirement is from spec/roadmap/ directory
+        """
         # Map level to uppercase for consistency
         level_map = {'PRD': 'PRD', 'Ops': 'OPS', 'Dev': 'DEV'}
         return cls(
@@ -81,8 +332,10 @@ class TraceabilityRequirement:
             status=base_req.status,
             file_path=base_req.file_path,
             line_number=base_req.line_number,
+            hash=base_req.hash,
             body=base_req.body,
-            rationale=base_req.rationale
+            rationale=base_req.rationale,
+            is_roadmap=is_roadmap
         )
 
 
@@ -120,6 +373,31 @@ class TraceabilityGenerator:
             output_file: Path to write output (default: traceability_matrix.{ext})
             embed_content: If True, embed full requirement content in HTML for portable viewing
         """
+        # Get git-modified files for "Modified" view detection
+        # Returns (modified_files, untracked_files) - untracked are new files where all REQs are new
+        modified_files, untracked_files = get_git_modified_files(self.repo_root)
+        # Uncommitted = modified + untracked (both need to be shown in uncommitted view)
+        uncommitted = modified_files | untracked_files
+        branch_changed = get_git_changed_vs_main(self.repo_root)
+        # "Changed vs Main" should be inclusive of uncommitted changes
+        # (uncommitted changes are also different from main)
+        branch_changed = branch_changed | uncommitted
+        # Get committed REQ locations for move detection
+        committed_req_locations = get_committed_req_locations(self.repo_root)
+        set_git_modified_files(uncommitted, untracked_files, branch_changed, committed_req_locations)
+
+        # Report uncommitted changes
+        if uncommitted:
+            spec_uncommitted = [f for f in uncommitted if f.startswith('spec/')]
+            if spec_uncommitted:
+                print(f"📝 Uncommitted spec files: {len(spec_uncommitted)}")
+
+        # Report branch changes vs main
+        if branch_changed:
+            spec_branch = [f for f in branch_changed if f.startswith('spec/')]
+            if spec_branch:
+                print(f"🔀 Spec files changed vs main: {len(spec_branch)}")
+
         print(f"🔍 Scanning {self.spec_dir} for requirements...")
         self._parse_requirements()
 
@@ -196,18 +474,44 @@ class TraceabilityGenerator:
             self._base_path = '../'
 
     def _parse_requirements(self):
-        """Parse all requirements from spec files using shared parser"""
+        """Parse all requirements from spec files using shared parser
+
+        Scans both spec/ and spec/roadmap/ directories.
+        Roadmap requirements are tagged with is_roadmap=True.
+        """
+        # Parse main spec directory
         parser = RequirementParser(self.spec_dir)
         result = parser.parse_all()
 
         # Convert base requirements to traceability requirements
         for req_id, base_req in result.requirements.items():
-            self.requirements[req_id] = TraceabilityRequirement.from_base(base_req)
+            self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=False)
 
         # Log any parse errors (but don't fail - traceability is best-effort)
         if result.errors:
             for error in result.errors:
                 print(f"   ⚠️  Parse warning: {error}")
+
+        # Parse roadmap/ subdirectory if it exists
+        roadmap_dir = self.spec_dir / 'roadmap'
+        if roadmap_dir.exists() and roadmap_dir.is_dir():
+            roadmap_parser = RequirementParser(roadmap_dir)
+            roadmap_result = roadmap_parser.parse_all()
+
+            roadmap_count = len(roadmap_result.requirements)
+            if roadmap_count > 0:
+                print(f"   🗺️  Found {roadmap_count} roadmap requirements")
+
+            # Convert roadmap requirements with is_roadmap=True
+            for req_id, base_req in roadmap_result.requirements.items():
+                if req_id in self.requirements:
+                    print(f"   ⚠️  Roadmap REQ {req_id} conflicts with existing REQ, skipping")
+                    continue
+                self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
+
+            if roadmap_result.errors:
+                for error in roadmap_result.errors:
+                    print(f"   ⚠️  Roadmap parse warning: {error}")
 
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
@@ -357,12 +661,12 @@ class TraceabilityGenerator:
         lines.append(f"\n**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append(f"**Total Requirements**: {len(self.requirements)}\n")
 
-        # Summary by level
+        # Summary by level (using active counts, excluding deprecated)
         by_level = self._count_by_level()
         lines.append("## Summary\n")
-        lines.append(f"- **PRD Requirements**: {by_level['PRD']}")
-        lines.append(f"- **OPS Requirements**: {by_level['OPS']}")
-        lines.append(f"- **DEV Requirements**: {by_level['DEV']}\n")
+        lines.append(f"- **PRD Requirements**: {by_level['active']['PRD']}")
+        lines.append(f"- **OPS Requirements**: {by_level['active']['OPS']}")
+        lines.append(f"- **DEV Requirements**: {by_level['active']['DEV']}\n")
 
         # Add legend
         lines.append(self._generate_legend_markdown())
@@ -443,6 +747,9 @@ class TraceabilityGenerator:
                         <li style="margin: 4px 0;">✅ Active requirement</li>
                         <li style="margin: 4px 0;">🚧 Draft requirement</li>
                         <li style="margin: 4px 0;">⚠️ Deprecated requirement</li>
+                        <li style="margin: 4px 0;"><span style="color: #28a745; font-weight: bold;">+</span> NEW (in untracked file)</li>
+                        <li style="margin: 4px 0;"><span style="color: #fd7e14; font-weight: bold;">*</span> MODIFIED (content changed)</li>
+                        <li style="margin: 4px 0;">🗺️ Roadmap (spec/roadmap/) - hidden by default</li>
                     </ul>
                 </div>
                 <div>
@@ -538,6 +845,14 @@ class TraceabilityGenerator:
                 implementsHtml = `<div class="req-card-implements">Implements: ${implLinks}</div>`;
             }
 
+            // Determine if in roadmap based on file path
+            const isInRoadmap = req.filePath.includes('roadmap/');
+            const moveButtons = isInRoadmap
+                ? `<button class="edit-btn from-roadmap panel-edit-btn" onclick="addPendingMove('${reqId}', '${req.file}', 'from-roadmap')" title="Move out of roadmap">↩ From Roadmap</button>
+                   <button class="edit-btn move-file panel-edit-btn" onclick="showMoveToFile('${reqId}', '${req.file}')" title="Move to different file">📁 Move</button>`
+                : `<button class="edit-btn to-roadmap panel-edit-btn" onclick="addPendingMove('${reqId}', '${req.file}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
+                   <button class="edit-btn move-file panel-edit-btn" onclick="showMoveToFile('${reqId}', '${req.file}')" title="Move to different file">📁 Move</button>`;
+
             card.innerHTML = `
                 <div class="req-card-header">
                     <span class="req-card-title">REQ-${reqId}: ${req.title}</span>
@@ -548,6 +863,10 @@ class TraceabilityGenerator:
                         <span class="badge">${req.level}</span>
                         <span class="badge">${req.status}</span>
                         <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); return false;" class="file-ref-link">${req.file}:${req.line}</a>
+                        <a href="vscode://file/${window.REPO_ROOT}/${req.filePath.replace(/^\\.\\.\\//, '')}:${req.line}" title="Open in VS Code" class="vscode-link">🔧</a>
+                    </div>
+                    <div class="req-card-actions edit-actions">
+                        ${moveButtons}
                     </div>
                     ${implementsHtml}
                     <div class="req-card-content markdown-body">
@@ -584,17 +903,62 @@ class TraceabilityGenerator:
             document.getElementById('req-panel').classList.add('hidden');
         }
 
+        // Panel resize functionality
+        (function initResize() {
+            const panel = document.getElementById('req-panel');
+            const handle = document.getElementById('resizeHandle');
+            if (!panel || !handle) return;
+
+            let isResizing = false;
+            let startX, startWidth;
+
+            handle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = panel.offsetWidth;
+                handle.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizing) return;
+                const diff = startX - e.clientX;
+                const newWidth = Math.min(Math.max(startWidth + diff, 250), window.innerWidth * 0.7);
+                panel.style.width = newWidth + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    isResizing = false;
+                    handle.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        })();
+
         // Code viewer functions
         async function openCodeViewer(filePath, lineNum) {
             const modal = document.getElementById('code-viewer-modal');
             const content = document.getElementById('code-viewer-content');
             const title = document.getElementById('code-viewer-title');
             const lineInfo = document.getElementById('code-viewer-line');
+            const vscodeLink = document.getElementById('code-viewer-vscode');
 
             title.textContent = filePath;
             lineInfo.textContent = `Line ${lineNum}`;
             content.innerHTML = '<div class="loading">Loading...</div>';
             modal.classList.remove('hidden');
+
+            // Set VS Code link - convert relative path to absolute
+            if (window.REPO_ROOT && vscodeLink) {
+                // Remove leading ../ from relative path to get repo-relative path
+                const repoRelPath = filePath.replace(/^\\.\\.\\//, '');
+                const absPath = window.REPO_ROOT + '/' + repoRelPath;
+                vscodeLink.href = `vscode://file/${absPath}:${lineNum}`;
+            }
 
             try {
                 const response = await fetch(filePath);
@@ -628,9 +992,12 @@ class TraceabilityGenerator:
                         const headings = content.querySelectorAll('h1, h2, h3, h4');
                         for (const heading of headings) {
                             // Search for this heading's text in the source to find its line
+                            // Only match actual markdown headings (lines starting with #)
                             const headingText = heading.textContent.trim();
                             for (let i = 0; i < lines.length; i++) {
-                                if (lines[i].includes(headingText)) {
+                                const line = lines[i].trim();
+                                // Must be a markdown heading line (starts with #) and contain the heading text
+                                if (line.startsWith('#') && line.includes(headingText)) {
                                     if (i + 1 <= targetLine) {
                                         targetElement = heading;
                                     }
@@ -739,10 +1106,414 @@ class TraceabilityGenerator:
             document.getElementById('code-viewer-modal').classList.add('hidden');
         }
 
-        // Close modal on escape key
+        // Legend modal functions
+        function openLegendModal() {
+            document.getElementById('legend-modal').classList.remove('hidden');
+        }
+
+        function closeLegendModal() {
+            document.getElementById('legend-modal').classList.add('hidden');
+        }
+
+        // Leaf only toggle
+        let leafOnlyActive = false;
+        function toggleLeafOnly() {
+            leafOnlyActive = !leafOnlyActive;
+            const btn = document.getElementById('btnLeafOnly');
+            if (leafOnlyActive) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            applyFilters();
+        }
+
+        // Toggle include deprecated - updates badge counts and filters
+        function toggleIncludeDeprecated() {
+            const includeDeprecated = document.getElementById('chkIncludeDeprecated').checked;
+
+            // Update PRD/OPS/DEV badge counts based on checkbox
+            ['PRD', 'OPS', 'DEV'].forEach(level => {
+                const badge = document.getElementById('badge' + level);
+                if (badge) {
+                    const count = includeDeprecated ? badge.dataset.all : badge.dataset.active;
+                    badge.textContent = level + ': ' + count;
+                }
+            });
+
+            applyFilters();
+        }
+
+        // Toggle include roadmap - show/hide roadmap requirements
+        function toggleIncludeRoadmap() {
+            applyFilters();
+        }
+
+        // ========== Edit Mode Functions ==========
+        let editModeActive = false;
+        const pendingMoves = [];
+
+        function toggleEditMode() {
+            editModeActive = !editModeActive;
+            const btn = document.getElementById('btnEditMode');
+            const panel = document.getElementById('editModePanel');
+
+            if (editModeActive) {
+                document.body.classList.add('edit-mode-active');
+                btn.classList.add('active');
+                panel.style.display = 'block';
+                // Auto-enable roadmap view when entering edit mode
+                document.getElementById('chkIncludeRoadmap').checked = true;
+                applyFilters();
+            } else {
+                document.body.classList.remove('edit-mode-active');
+                btn.classList.remove('active');
+                panel.style.display = 'none';
+            }
+        }
+
+        function addPendingMove(reqId, sourceFile, moveType) {
+            // Check if already in pending list
+            const existing = pendingMoves.find(m => m.reqId === reqId);
+            if (existing) {
+                alert('This requirement already has a pending move. Clear selection first.');
+                return;
+            }
+
+            // Get title from the DOM element
+            const reqItem = document.querySelector(`.req-item[data-req-id="${reqId}"]`);
+            const title = reqItem ? reqItem.dataset.title : '';
+
+            const move = {
+                reqId: reqId,
+                sourceFile: sourceFile,
+                moveType: moveType,
+                title: title,
+                targetFile: moveType === 'to-roadmap' ? `roadmap/${sourceFile}` :
+                            moveType === 'from-roadmap' ? sourceFile.replace('roadmap/', '') :
+                            null
+            };
+            pendingMoves.push(move);
+            updatePendingMovesUI();
+            updateDestinationColumns();
+        }
+
+        function removePendingMove(index) {
+            pendingMoves.splice(index, 1);
+            updatePendingMovesUI();
+            updateDestinationColumns();
+        }
+
+        function clearPendingMoves() {
+            pendingMoves.length = 0;
+            updatePendingMovesUI();
+            updateDestinationColumns();
+        }
+
+        // Store original status suffixes for restoration
+        const originalStatusSuffixes = new Map();
+
+        function updateDestinationColumns() {
+            // Reset all destination columns - show buttons, hide dest text
+            document.querySelectorAll('.req-destination').forEach(el => {
+                const editActions = el.querySelector('.edit-actions');
+                const destText = el.querySelector('.dest-text');
+                if (editActions) editActions.style.display = '';
+                if (destText) {
+                    destText.textContent = '';
+                    destText.style.display = 'none';
+                }
+                el.className = 'req-destination edit-mode-column';
+            });
+
+            // Restore original status suffixes for items not in pending moves
+            document.querySelectorAll('.req-item[data-req-id]').forEach(item => {
+                const reqId = item.dataset.reqId;
+                const suffixEl = item.querySelector('.status-suffix');
+                if (suffixEl && originalStatusSuffixes.has(reqId)) {
+                    const original = originalStatusSuffixes.get(reqId);
+                    // Only restore if not in pending moves
+                    if (!pendingMoves.some(m => m.reqId === reqId)) {
+                        suffixEl.textContent = original.text;
+                        suffixEl.className = original.className;
+                        suffixEl.title = original.title;
+                    }
+                }
+            });
+
+            // Update destination columns and status suffixes for pending moves
+            pendingMoves.forEach(m => {
+                const reqItem = document.querySelector(`.req-item[data-req-id="${m.reqId}"]`);
+                if (!reqItem) return;
+
+                const destEl = reqItem.querySelector('.req-destination');
+                const suffixEl = reqItem.querySelector('.status-suffix');
+
+                // Save original status suffix if not already saved
+                if (suffixEl && !originalStatusSuffixes.has(m.reqId)) {
+                    originalStatusSuffixes.set(m.reqId, {
+                        text: suffixEl.textContent,
+                        className: suffixEl.className,
+                        title: suffixEl.title
+                    });
+                }
+
+                // Update destination column - hide buttons, show destination text
+                if (destEl) {
+                    const editActions = destEl.querySelector('.edit-actions');
+                    const destText = destEl.querySelector('.dest-text');
+
+                    // Hide the buttons
+                    if (editActions) editActions.style.display = 'none';
+
+                    // Show the destination text
+                    if (destText) {
+                        destText.style.display = '';
+                        if (m.moveType === 'to-roadmap') {
+                            destText.textContent = '→ Roadmap';
+                            destEl.className = 'req-destination edit-mode-column to-roadmap';
+                        } else if (m.moveType === 'from-roadmap') {
+                            destText.textContent = '← From Roadmap';
+                            destEl.className = 'req-destination edit-mode-column from-roadmap';
+                        } else if (m.targetFile) {
+                            const displayName = m.targetFile.replace('roadmap/', '').replace(/\\.md$/, '');
+                            destText.textContent = '→ ' + displayName;
+                        }
+                    }
+                }
+
+                // Update status suffix to show "pending move" indicator
+                if (suffixEl) {
+                    const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
+                    if (originalText && originalText !== '↝' && originalText !== '⇢') {
+                        suffixEl.textContent = '⇢' + originalText;
+                        suffixEl.className = 'status-suffix status-pending-move';
+                        suffixEl.title = 'PENDING MOVE + ' + (originalStatusSuffixes.get(m.reqId)?.title || '');
+                    } else {
+                        suffixEl.textContent = '⇢';
+                        suffixEl.className = 'status-suffix status-pending-move';
+                        suffixEl.title = 'PENDING MOVE (not yet executed)';
+                    }
+                }
+            });
+        }
+
+        let pendingMovesCollapsed = false;
+
+        function togglePendingMoves() {
+            pendingMovesCollapsed = !pendingMovesCollapsed;
+            const list = document.getElementById('pendingMovesList');
+            const toggleBtn = document.getElementById('pendingMovesToggle');
+            if (pendingMovesCollapsed) {
+                list.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            } else {
+                list.style.display = 'block';
+                toggleBtn.textContent = '▼';
+            }
+        }
+
+        function updatePendingMovesUI() {
+            const list = document.getElementById('pendingMovesList');
+            const count = document.getElementById('pendingChangesCount');
+            const btn = document.getElementById('btnExportMoves');
+
+            count.textContent = pendingMoves.length + ' pending';
+            btn.disabled = pendingMoves.length === 0;
+
+            if (pendingMoves.length === 0) {
+                list.innerHTML = '<div style="color: #666; padding: 10px;">No pending moves. Click edit buttons on requirements to select them.</div>';
+                return;
+            }
+
+            list.innerHTML = pendingMoves.map((m, i) => {
+                const displayTarget = m.targetFile ?
+                    (m.moveType === 'to-roadmap' ? 'Roadmap' :
+                     m.moveType === 'from-roadmap' ? m.targetFile :
+                     m.targetFile) :
+                    '(select target)';
+                const titleDisplay = m.title ? ` - ${m.title}` : '';
+                return `
+                <div class="pending-move-item">
+                    <span><strong>REQ-${m.reqId}</strong>${titleDisplay}</span>
+                    <span style="color: #666; margin-left: 8px;">→ ${displayTarget}</span>
+                    <button onclick="removePendingMove(${i})" style="background: none; border: none; cursor: pointer; margin-left: auto;">✕</button>
+                </div>
+            `}).join('');
+        }
+
+        let filePickerState = { reqId: null, sourceFile: null };
+        let allSpecFiles = [];
+        const userAddedFiles = new Set();  // Track user-entered filenames for future use
+
+        function showMoveToFile(reqId, sourceFile) {
+            filePickerState = { reqId, sourceFile };
+            allSpecFiles = getAvailableTargetFiles();
+
+            const modal = document.getElementById('file-picker-modal');
+            const input = document.getElementById('filePickerInput');
+            const list = document.getElementById('filePickerList');
+            const error = document.getElementById('filePickerError');
+
+            // Reset state
+            input.value = '';
+            error.textContent = '';
+            error.style.display = 'none';
+
+            // Populate file list
+            renderFileList('');
+
+            // Show modal and focus input
+            modal.classList.remove('hidden');
+            input.focus();
+        }
+
+        function closeFilePicker() {
+            document.getElementById('file-picker-modal').classList.add('hidden');
+            filePickerState = { reqId: null, sourceFile: null };
+        }
+
+        function renderFileList(filter) {
+            const list = document.getElementById('filePickerList');
+            const filterLower = filter.toLowerCase();
+
+            const filtered = allSpecFiles.filter(f =>
+                f.toLowerCase().includes(filterLower)
+            );
+
+            if (filtered.length === 0 && filter) {
+                list.innerHTML = '<div class="file-picker-empty">No matching files. You can enter a new filename.</div>';
+            } else {
+                list.innerHTML = filtered.map(f =>
+                    `<div class="file-picker-item" onclick="selectFile('${f}')">${f}</div>`
+                ).join('');
+            }
+        }
+
+        function filterFiles(value) {
+            renderFileList(value);
+            validateFileName(value);
+        }
+
+        function selectFile(filename) {
+            document.getElementById('filePickerInput').value = filename;
+            validateFileName(filename);
+        }
+
+        function validateFileName(filename) {
+            const error = document.getElementById('filePickerError');
+
+            if (!filename || !filename.trim()) {
+                error.style.display = 'none';
+                return false;
+            }
+
+            filename = filename.trim();
+
+            // Check for .md extension
+            if (!filename.endsWith('.md')) {
+                error.textContent = 'Filename must end with .md';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Check for illegal characters (allow alphanumeric, dash, underscore, dot, forward slash for paths)
+            const illegalChars = /[<>:"\\|?*\\x00-\\x1f]/;
+            if (illegalChars.test(filename)) {
+                error.textContent = 'Filename contains illegal characters';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Check for spaces (should use dashes instead)
+            if (filename.includes(' ')) {
+                error.textContent = 'Use dashes instead of spaces';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Check it doesn't start with special chars
+            if (/^[.\\-\\/]/.test(filename)) {
+                error.textContent = 'Filename cannot start with . - or /';
+                error.style.display = 'block';
+                return false;
+            }
+
+            error.style.display = 'none';
+            return true;
+        }
+
+        function confirmFilePicker() {
+            const input = document.getElementById('filePickerInput');
+            const filename = input.value.trim();
+
+            if (!validateFileName(filename)) {
+                return;
+            }
+
+            // Remember user-entered filenames for future use
+            userAddedFiles.add(filename);
+
+            // Add the pending move
+            addPendingMove(filePickerState.reqId, filePickerState.sourceFile, 'move-file');
+            pendingMoves[pendingMoves.length - 1].targetFile = filename;
+            updatePendingMovesUI();
+            updateDestinationColumns();
+
+            closeFilePicker();
+        }
+
+        function getAvailableTargetFiles() {
+            const files = new Set();
+            // Add files from existing requirements
+            document.querySelectorAll('.req-item[data-file]').forEach(item => {
+                files.add(item.dataset.file);
+            });
+            // Add user-entered filenames from this session
+            userAddedFiles.forEach(f => files.add(f));
+            return Array.from(files).sort();
+        }
+
+        function generateMoveScript() {
+            if (pendingMoves.length === 0) {
+                alert('No pending moves to generate script for.');
+                return;
+            }
+
+            // Build JSON moves array
+            const moves = pendingMoves
+                .filter(m => m.targetFile)
+                .map(m => ({
+                    reqId: m.reqId,
+                    source: m.sourceFile,
+                    target: m.targetFile
+                }));
+
+            if (moves.length === 0) {
+                alert('No valid moves (all moves need target files).');
+                return;
+            }
+
+            const jsonOutput = JSON.stringify(moves, null, 2);
+
+            // Create downloadable JSON file
+            const blob = new Blob([jsonOutput], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'moves.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('Saved moves.json\\n\\nRun with:\\n  python3 tools/requirements/move_reqs.py moves.json\\n\\nOr preview first:\\n  python3 tools/requirements/move_reqs.py --dry-run moves.json');
+        }
+        // ========== End Edit Mode Functions ==========
+
+        // Close modals on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeCodeViewer();
+                closeLegendModal();
             }
         });
 """
@@ -972,6 +1743,7 @@ class TraceabilityGenerator:
                 <div>
                     <span id="code-viewer-title" class="code-viewer-title"></span>
                     <span id="code-viewer-line" class="code-viewer-line"></span>
+                    <a id="code-viewer-vscode" href="#" title="Open in VS Code" class="vscode-link" style="font-size: 18px;">🔧</a>
                 </div>
                 <button class="code-viewer-close" onclick="closeCodeViewer()">Close (Esc)</button>
             </div>
@@ -980,25 +1752,316 @@ class TraceabilityGenerator:
     </div>
 """
 
+    def _generate_legend_modal_html(self) -> str:
+        """Generate HTML for legend modal"""
+        return """
+    <!-- Legend Modal -->
+    <div id="legend-modal" class="legend-modal hidden" onclick="if(event.target===this)closeLegendModal()">
+        <div class="legend-modal-container">
+            <div class="legend-modal-header">
+                <h2>Legend</h2>
+                <button class="legend-modal-close" onclick="closeLegendModal()">×</button>
+            </div>
+            <div class="legend-modal-body">
+                <div class="legend-grid">
+                    <div class="legend-section">
+                        <h3>Requirement Levels</h3>
+                        <ul>
+                            <li><span class="stat-badge prd">PRD</span> Product Requirements</li>
+                            <li><span class="stat-badge ops">OPS</span> Operations Requirements</li>
+                            <li><span class="stat-badge dev">DEV</span> Development Requirements</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Status</h3>
+                        <ul>
+                            <li><span class="status-badge status-active">Active</span> Active requirement</li>
+                            <li><span class="status-badge status-draft">Draft</span> Draft requirement</li>
+                            <li><span class="status-badge status-deprecated">Deprecated</span> Deprecated</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Implementation Coverage</h3>
+                        <ul>
+                            <li>● Full - All children/code implemented</li>
+                            <li>◐ Partial - Some implementation</li>
+                            <li>○ None - No implementation found</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Test Status</h3>
+                        <ul>
+                            <li>✅ Tests passing</li>
+                            <li>❌ Tests failing</li>
+                            <li>⚡ Not tested</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Change Indicators</h3>
+                        <ul>
+                            <li><span class="status-new">★</span> NEW - Uncommitted new requirement</li>
+                            <li><span class="status-modified">◆</span> MODIFIED - Content changed (uncommitted)</li>
+                            <li><span class="status-moved">↝</span> MOVED - Relocated to different file</li>
+                            <li><span class="status-pending-move">⇢</span> PENDING - Staged for move (not yet executed)</li>
+                            <li>🛤️ Roadmap - Requirement is in roadmap/ directory</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="legend-section" style="margin-top: 15px;">
+                    <h3>Controls</h3>
+                    <ul>
+                        <li>▼/▶ Click to expand/collapse children</li>
+                        <li>🍃 Leaf Only - Show only leaf requirements (no children)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+"""
+
+    def _generate_file_picker_modal_html(self) -> str:
+        """Generate HTML for file picker modal"""
+        return """
+    <!-- File Picker Modal -->
+    <div id="file-picker-modal" class="file-picker-modal hidden" onclick="if(event.target===this)closeFilePicker()">
+        <div class="file-picker-container">
+            <div class="file-picker-header">
+                <h2>Select Destination File</h2>
+                <button class="file-picker-close" onclick="closeFilePicker()">×</button>
+            </div>
+            <div class="file-picker-body">
+                <div class="file-picker-input-row">
+                    <input type="text" id="filePickerInput" placeholder="Enter or select filename (e.g., prd-security.md)"
+                           oninput="filterFiles(this.value)"
+                           onkeydown="if(event.key==='Enter'){confirmFilePicker();event.preventDefault();}">
+                    <button class="btn" onclick="confirmFilePicker()">Confirm</button>
+                </div>
+                <div id="filePickerError" class="file-picker-error" style="display: none;"></div>
+                <div class="file-picker-hint">Click a file below to select it, or type a new filename</div>
+                <div id="filePickerList" class="file-picker-list"></div>
+            </div>
+        </div>
+    </div>
+"""
+
+    def _generate_legend_modal_css(self) -> str:
+        """Generate CSS for legend modal"""
+        return """
+        .legend-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-modal.hidden {
+            display: none;
+        }
+        .legend-modal-container {
+            background: white;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .legend-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .legend-modal-header h2 {
+            margin: 0;
+            font-size: 16px;
+        }
+        .legend-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0 5px;
+        }
+        .legend-modal-close:hover {
+            color: #000;
+        }
+        .legend-modal-body {
+            padding: 20px;
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .legend-section h3 {
+            font-size: 13px;
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .legend-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+        }
+        .legend-section li {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+"""
+
+    def _generate_file_picker_modal_css(self) -> str:
+        """Generate CSS for file picker modal"""
+        return """
+        .file-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-picker-modal.hidden {
+            display: none;
+        }
+        .file-picker-container {
+            background: white;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .file-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .file-picker-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .file-picker-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0 5px;
+        }
+        .file-picker-close:hover {
+            color: #333;
+        }
+        .file-picker-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .file-picker-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .file-picker-input-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .file-picker-input-row input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .file-picker-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background: #fff5f5;
+            border-radius: 3px;
+        }
+        .file-picker-hint {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .file-picker-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .file-picker-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+        }
+        .file-picker-item:last-child {
+            border-bottom: none;
+        }
+        .file-picker-item:hover {
+            background: #e3f2fd;
+        }
+        .file-picker-empty {
+            padding: 15px;
+            color: #666;
+            text-align: center;
+            font-style: italic;
+        }
+"""
+
     def _generate_side_panel_css(self) -> str:
         """Generate CSS styles for side panel"""
         return """
         .side-panel {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 30%;
+            width: 400px;
+            min-width: 250px;
+            max-width: 70vw;
             height: 100vh;
             background: white;
             border-left: 2px solid #dee2e6;
             box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-            z-index: 1000;
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            flex-shrink: 0;
         }
         .side-panel.hidden {
-            transform: translateX(100%);
+            display: none;
+        }
+        .resize-handle {
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 10;
+        }
+        .resize-handle:hover,
+        .resize-handle.dragging {
+            background: rgba(0, 102, 204, 0.3);
         }
         .panel-header {
             padding: 15px;
@@ -1218,14 +2281,31 @@ class TraceabilityGenerator:
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Requirements Traceability Matrix</title>
     <style>
         body {{
             font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
             font-size: 13px;
             line-height: 1.4;
-            margin: 15px;
+            margin: 0;
+            padding: 0;
             background: #f8f9fa;
+            height: 100vh;
+            overflow: hidden;
+        }}
+        .app-layout {{
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }}
+        .main-content {{
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            min-width: 0;
         }}
         .container {{
             max-width: 1400px;
@@ -1249,41 +2329,152 @@ class TraceabilityGenerator:
             color: #34495e;
             margin: 20px 0 10px 0;
         }}
-        .summary {{
-            background: #f8f9fa;
-            padding: 10px 15px;
+        .title-bar {{
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 0;
+            border-bottom: 2px solid #0066cc;
+            margin-bottom: 10px;
+        }}
+        .title-bar h1 {{
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+            border: none;
+            padding: 0;
+        }}
+        .stats-badges {{
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }}
+        .stat-badge {{
+            padding: 4px 10px;
             border-radius: 4px;
-            margin: 15px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }}
+        .stat-badge.prd {{ background: #0066cc; }}
+        .stat-badge.ops {{ background: #fd7e14; }}
+        .stat-badge.dev {{ background: #28a745; }}
+        .btn-legend {{
+            background: #6c757d;
             font-size: 12px;
         }}
-        .summary p {{
-            margin: 4px 0;
+        .btn-legend:hover {{
+            background: #5a6268;
         }}
-        .summary-grid {{
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 15px 0;
+        .checkbox-label {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #495057;
+            cursor: pointer;
+            padding: 6px 10px;
+            background: #e9ecef;
+            border-radius: 3px;
         }}
-        .summary-card {{
-            background: white;
-            padding: 10px;
+        .checkbox-label:hover {{
+            background: #dee2e6;
+        }}
+        .checkbox-label input {{
+            cursor: pointer;
+        }}
+        /* Edit Mode styles */
+        .edit-mode-panel {{
+            background: #fff3cd;
+            border: 1px solid #ffc107;
             border-radius: 4px;
-            text-align: center;
-            border-left: 3px solid #0066cc;
+            padding: 15px;
+            margin: 10px 0;
         }}
-        .summary-card h3 {{
-            margin: 0 0 6px 0;
-            color: #7f8c8d;
+        .edit-mode-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }}
+        .edit-mode-title {{
+            font-size: 14px;
+        }}
+        .edit-mode-actions {{
+            display: flex;
+            gap: 10px;
+        }}
+        .pending-moves-list {{
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }}
+        .pending-move-item {{
+            padding: 5px 10px;
+            background: white;
+            border-radius: 3px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .edit-actions {{
+            display: none;
+        }}
+        body.edit-mode-active .edit-actions {{
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }}
+        .edit-btn {{
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: white;
+            white-space: nowrap;
+        }}
+        .edit-btn:hover {{
+            background: #e9ecef;
+        }}
+        .edit-btn.to-roadmap {{
+            border-color: #fd7e14;
+            color: #fd7e14;
+        }}
+        .edit-btn.from-roadmap {{
+            border-color: #28a745;
+            color: #28a745;
+        }}
+        .vscode-link {{
+            font-size: 16px;
+            color: #007acc;
+            text-decoration: none;
+            margin-left: 6px;
+        }}
+        .vscode-link:hover {{
+            color: #005a9e;
+        }}
+        .dest-text {{
             font-size: 11px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #666;
+            white-space: nowrap;
         }}
-        .summary-card .number {{
-            font-size: 24px;
-            font-weight: 600;
-            color: #0066cc;
+        .edit-btn.move-file {{
+            border-color: #007bff;
+            color: #007bff;
+        }}
+        /* Panel/card edit buttons - always visible, horizontal layout */
+        .req-card-actions {{
+            display: flex !important;
+            flex-direction: row;
+            gap: 8px;
+            margin: 8px 0;
+        }}
+        .panel-edit-btn {{
+            font-size: 11px;
+            padding: 4px 8px;
         }}
         .controls {{
             margin: 15px 0;
@@ -1314,8 +2505,41 @@ class TraceabilityGenerator:
         .btn-secondary:hover {{
             background: #5a6268;
         }}
+        .btn-secondary.active {{
+            background: #0066cc;
+        }}
+        .btn-secondary.active:hover {{
+            background: #0052a3;
+        }}
+        /* Toggle buttons - white when off, colored when active */
+        .toggle-btn {{
+            background: white;
+            color: #495057;
+            border: 1px solid #28a745;
+        }}
+        .toggle-btn:hover {{
+            background: #e8f5e9;
+        }}
+        .toggle-btn.active {{
+            background: #28a745;
+            color: white;
+            border: 1px solid #28a745;
+        }}
+        /* Edit Mode button - blue theme instead of green */
+        #btnEditMode {{
+            border: 1px solid #007bff;
+        }}
+        #btnEditMode:hover {{
+            background: #e3f2fd;
+        }}
+        #btnEditMode.active {{
+            background: #007bff;
+            color: white;
+            border: 1px solid #007bff;
+        }}
         .req-tree {{
             margin: 15px 0;
+            overflow-x: auto;
         }}
         .req-item {{
             margin: 2px 0;
@@ -1378,10 +2602,11 @@ class TraceabilityGenerator:
         .req-content {{
             flex: 1;
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            /* REQ ID | Title | Level | Status | Coverage | Tests | Topic | Destination */
+            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 180px 110px;
             align-items: center;
-            gap: 12px;
-            min-width: 0;
+            gap: 6px;
+            min-width: 700px;
         }}
         .req-id {{
             font-weight: 600;
@@ -1419,6 +2644,33 @@ class TraceabilityGenerator:
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
+        /* Edit mode column - hidden by default, shown in edit mode */
+        .edit-mode-column {{
+            display: none;
+        }}
+        body.edit-mode-active .edit-mode-column {{
+            display: block;
+        }}
+        .req-destination {{
+            min-width: 100px;
+            max-width: 150px;
+            font-size: 11px;
+            padding: 2px 6px;
+        }}
+        .req-destination:not(:empty) {{
+            background: #e8f4fd;
+            border-radius: 4px;
+            color: #0366d6;
+            font-weight: 500;
+        }}
+        .req-destination.to-roadmap {{
+            background: #fff3cd;
+            color: #856404;
+        }}
+        .req-destination.from-roadmap {{
+            background: #d4edda;
+            color: #155724;
+        }}
         .req-item.impl-file {{
             border-left: 3px solid #6c757d;
             background: #f8f9fa;
@@ -1441,6 +2693,28 @@ class TraceabilityGenerator:
         .status-active {{ background: #d4edda; color: #155724; }}
         .status-draft {{ background: #fff3cd; color: #856404; }}
         .status-deprecated {{ background: #f8d7da; color: #721c24; }}
+        .status-suffix {{
+            font-weight: bold;
+            font-size: 12px;
+            margin-left: 1px;
+            cursor: help;
+        }}
+        .status-new {{ color: #28a745; }}  /* Green ★ for NEW */
+        .status-modified {{ color: #fd7e14; }}  /* Orange ◆ for MODIFIED */
+        .status-moved {{ color: #6f42c1; }}  /* Purple ↝ for MOVED (actual) */
+        .status-moved-modified {{ color: #6f42c1; }}  /* Purple for MOVED+MODIFIED */
+        .status-pending-move {{ color: #007bff; }}  /* Blue ⇢ for PENDING move */
+        .roadmap-icon {{
+            margin-left: 4px;
+            font-size: 12px;
+            opacity: 0.8;
+        }}
+        .req-coverage {{
+            min-width: 30px;
+            max-width: 40px;
+            text-align: center;
+            font-size: 14px;
+        }}
         .test-badge {{
             display: inline-block;
             padding: 2px 6px;
@@ -1464,9 +2738,10 @@ class TraceabilityGenerator:
         }}
         .filter-header {{
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            /* REQ ID | Title | Level | Status | Coverage | Tests | Topic | Destination */
+            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 180px 110px;
             align-items: center;
-            gap: 12px;
+            gap: 6px;
             padding: 8px 10px 8px 42px;
             background: #e9ecef;
             border-bottom: 2px solid #dee2e6;
@@ -1474,11 +2749,20 @@ class TraceabilityGenerator:
             position: sticky;
             top: 0;
             z-index: 10;
+            min-width: 700px;
         }}
         .filter-column {{
             display: flex;
             flex-direction: column;
             gap: 4px;
+        }}
+        .filter-column-multi .filter-row {{
+            display: flex;
+            gap: 4px;
+        }}
+        .filter-column-multi .filter-row select {{
+            flex: 1;
+            min-width: 0;
         }}
         .filter-label {{
             font-size: 10px;
@@ -1583,58 +2867,69 @@ class TraceabilityGenerator:
         .legend-color.dev {{ background: #28a745; }}
         {self._generate_side_panel_css() if embed_content else ''}
         {self._generate_code_viewer_css() if embed_content else ''}
+        {self._generate_legend_modal_css() if embed_content else ''}
+        {self._generate_file_picker_modal_css()}
     </style>
     {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>') if embed_content else ''}
 </head>
 <body>
+<div class="app-layout">
+    <div class="main-content">
     <div class="container">
-        <h1>Requirements Traceability Matrix</h1>
-        <div class="summary">
-            <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            <p><strong>Total Requirements:</strong> {len(self.requirements)}</p>
+        <div class="title-bar">
+            <h1>Requirements Traceability</h1>
+            <div class="stats-badges">
+                <span class="stat-badge prd" id="badgePRD" data-active="{by_level['active']['PRD']}" data-all="{by_level['all']['PRD']}">PRD: {by_level['active']['PRD']}</span>
+                <span class="stat-badge ops" id="badgeOPS" data-active="{by_level['active']['OPS']}" data-all="{by_level['all']['OPS']}">OPS: {by_level['active']['OPS']}</span>
+                <span class="stat-badge dev" id="badgeDEV" data-active="{by_level['active']['DEV']}" data-all="{by_level['all']['DEV']}">DEV: {by_level['active']['DEV']}</span>
+            </div>
+            <button class="btn btn-legend" onclick="openLegendModal()" title="Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}">ℹ️ Legend</button>
         </div>
-
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h3>PRD Level</h3>
-                <div class="number">{by_level['PRD']}</div>
-            </div>
-            <div class="summary-card">
-                <h3>OPS Level</h3>
-                <div class="number">{by_level['OPS']}</div>
-            </div>
-            <div class="summary-card">
-                <h3>DEV Level</h3>
-                <div class="number">{by_level['DEV']}</div>
-            </div>
-        </div>
-
-        <div class="level-legend">
-            <div class="legend-item">
-                <div class="legend-color prd"></div>
-                <span>PRD (Product Requirements)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color ops"></div>
-                <span>Ops (Operations)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color dev"></div>
-                <span>Dev (Development)</span>
-            </div>
-        </div>
-
-        {self._generate_legend_html()}
 
         <div class="filter-controls">
             <div class="view-toggle">
                 <button class="btn view-btn active" id="btnFlatView" onclick="switchView('flat')">Flat View</button>
                 <button class="btn view-btn" id="btnHierarchyView" onclick="switchView('hierarchy')">Hierarchical View</button>
+                <button class="btn view-btn" id="btnUncommittedView" onclick="switchView('uncommitted')">Uncommitted</button>
+                <button class="btn view-btn" id="btnBranchView" onclick="switchView('branch')">Changed vs Main</button>
             </div>
-            <button class="btn" onclick="expandAll()">▼ Expand All</button>
-            <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
-            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+            <button class="btn toggle-btn" id="btnLeafOnly" onclick="toggleLeafOnly()">🍃 Leaf Only</button>
+            <label class="checkbox-label" title="Include deprecated requirements in counts and views">
+                <input type="checkbox" id="chkIncludeDeprecated" onchange="toggleIncludeDeprecated()">
+                Include deprecated
+            </label>
+            <label class="checkbox-label" title="Include requirements from spec/roadmap/ directory">
+                <input type="checkbox" id="chkIncludeRoadmap" onchange="toggleIncludeRoadmap()">
+                Include roadmap
+            </label>
+            <button class="btn btn-secondary" id="btnExpandAll" onclick="expandAll()">▼ Expand All</button>
+            <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
             <span class="filter-stats" id="filterStats"></span>
+            <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
+                <button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button>
+            </span>
+        </div>
+
+        <!-- Edit Mode Panel (hidden by default) -->
+        <div id="editModePanel" class="edit-mode-panel" style="display: none;">
+            <div class="edit-mode-header">
+                <div class="edit-mode-title">
+                    <strong>📝 Edit Mode</strong> - Select requirements to move
+                    <span id="pendingChangesCount" class="badge" style="margin-left: 10px;">0 pending</span>
+                </div>
+                <div class="edit-mode-actions">
+                    <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
+                    <button class="btn" id="btnExportMoves" onclick="generateMoveScript()" disabled>Export Moves JSON</button>
+                </div>
+            </div>
+            <div class="pending-moves-section">
+                <div class="pending-moves-header" onclick="togglePendingMoves()" style="cursor: pointer; user-select: none; display: flex; align-items: center; margin-bottom: 8px;">
+                    <span id="pendingMovesToggle" style="margin-right: 6px; font-size: 12px;">▼</span>
+                    <strong style="font-size: 12px;">Pending Moves</strong>
+                </div>
+                <div id="pendingMovesList" class="pending-moves-list"></div>
+            </div>
         </div>
 
         <h2 id="treeTitle">Traceability Tree - Flat View</h2>
@@ -1667,7 +2962,22 @@ class TraceabilityGenerator:
                 </select>
             </div>
             <div class="filter-column">
+                <div class="filter-label">Cov</div>
+                <select id="filterCoverage" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="full">●</option>
+                    <option value="partial">◐</option>
+                    <option value="none">○</option>
+                </select>
+            </div>
+            <div class="filter-column">
                 <div class="filter-label">Tests</div>
+                <select id="filterTests" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="tested">✅ Tested</option>
+                    <option value="not-tested">⚡ Not Tested</option>
+                    <option value="failed">❌ Failed</option>
+                </select>
             </div>
             <div class="filter-column">
                 <div class="filter-label">Topic</div>
@@ -1681,6 +2991,9 @@ class TraceabilityGenerator:
 
         html += """                </select>
             </div>
+            <div class="filter-column edit-mode-column" style="display: none;">
+                <div class="filter-label">Destination</div>
+            </div>
         </div>
 
         <div class="req-tree" id="reqTree">
@@ -1693,12 +3006,14 @@ class TraceabilityGenerator:
 
         html += """        </div>
     </div>
+    </div>
 """
 
         # Add side panel HTML if embedded mode
         if embed_content:
             html += """
-    <div id="req-panel" class="side-panel hidden">
+    <div id="req-panel" class="side-panel hidden" style="position: relative;">
+        <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-header">
             <span>Requirements</span>
             <button onclick="closeAllCards()">Close All</button>
@@ -1713,6 +3028,7 @@ class TraceabilityGenerator:
             # Properly escape JSON for HTML embedding
             import html as html_module
             escaped_json = html_module.escape(json_data)
+            repo_root_str = str(self.repo_root.resolve())
             html += f"""
     <script id="req-content-data" type="application/json">
 {json_data}
@@ -1720,6 +3036,8 @@ class TraceabilityGenerator:
     <script>
         // Load REQ content data into global scope
         window.REQ_CONTENT_DATA = JSON.parse(document.getElementById('req-content-data').textContent);
+        // Repository root for VS Code links
+        window.REPO_ROOT = '{repo_root_str}';
     </script>
 """
 
@@ -1758,6 +3076,7 @@ class TraceabilityGenerator:
                     hideDescendants(instanceId);
                 }
             }
+            updateExpandCollapseButtons();
         }
 
         // Hide all descendants of a requirement instance
@@ -1782,42 +3101,106 @@ class TraceabilityGenerator:
             // Note: impl-files sections are always visible as part of their requirement row
         }
 
+        // Update expand/collapse button states based on current state
+        function updateExpandCollapseButtons() {
+            const btnExpand = document.getElementById('btnExpandAll');
+            const btnCollapse = document.getElementById('btnCollapseAll');
+
+            // Count visible items with children (that can be expanded/collapsed)
+            let expandableCount = 0;
+            let expandedCount = 0;
+            let collapsedCount = 0;
+
+            document.querySelectorAll('.req-item:not(.filtered-out)').forEach(item => {
+                const icon = item.querySelector('.collapse-icon');
+                if (icon && icon.textContent) {  // Has children
+                    expandableCount++;
+                    if (icon.classList.contains('collapsed')) {
+                        collapsedCount++;
+                    } else {
+                        expandedCount++;
+                    }
+                }
+            });
+
+            // Update Expand button
+            if (expandableCount > 0 && expandedCount === expandableCount) {
+                btnExpand.classList.add('active');
+                btnExpand.textContent = '▼ All Expanded';
+            } else {
+                btnExpand.classList.remove('active');
+                btnExpand.textContent = '▼ Expand All';
+            }
+
+            // Update Collapse button
+            if (expandableCount > 0 && collapsedCount === expandableCount) {
+                btnCollapse.classList.add('active');
+                btnCollapse.textContent = '▶ All Collapsed';
+            } else {
+                btnCollapse.classList.remove('active');
+                btnCollapse.textContent = '▶ Collapse All';
+            }
+        }
+
         // Expand all requirements
         function expandAll() {
             collapsedInstances.clear();
+            const isHierarchyView = currentView === 'hierarchy';
             document.querySelectorAll('.req-item').forEach(item => {
                 item.classList.remove('collapsed-by-parent');
+                // In hierarchy view, add hierarchy-visible to non-root items
+                if (isHierarchyView && item.dataset.isRoot !== 'true') {
+                    item.classList.add('hierarchy-visible');
+                }
             });
             document.querySelectorAll('.collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
             });
+            updateExpandCollapseButtons();
         }
 
         // Collapse all requirements
         function collapseAll() {
+            const isHierarchyView = currentView === 'hierarchy';
             document.querySelectorAll('.req-item').forEach(item => {
-                if (item.querySelector('.collapse-icon').textContent) {
+                const icon = item.querySelector('.collapse-icon');
+                // In hierarchy view, remove hierarchy-visible from non-root items
+                if (isHierarchyView && item.dataset.isRoot !== 'true') {
+                    item.classList.remove('hierarchy-visible');
+                    item.classList.add('collapsed-by-parent');
+                }
+                // Collapse items that have children (indicated by collapse icon text)
+                if (icon && icon.textContent) {
                     collapsedInstances.add(item.dataset.instanceId);
                     hideDescendants(item.dataset.instanceId);
-                    item.querySelector('.collapse-icon').classList.add('collapsed');
+                    icon.classList.add('collapsed');
                 }
             });
+            updateExpandCollapseButtons();
         }
 
         // View mode state
         let currentView = 'flat';
 
-        // Switch between flat and hierarchical views
+        // Switch between flat, hierarchical, uncommitted, and branch views
         function switchView(viewMode) {
             currentView = viewMode;
             const reqTree = document.getElementById('reqTree');
             const btnFlat = document.getElementById('btnFlatView');
             const btnHierarchy = document.getElementById('btnHierarchyView');
+            const btnUncommitted = document.getElementById('btnUncommittedView');
+            const btnBranch = document.getElementById('btnBranchView');
             const treeTitle = document.getElementById('treeTitle');
+
+            // Reset all button states
+            btnFlat.classList.remove('active');
+            btnHierarchy.classList.remove('active');
+            btnUncommitted.classList.remove('active');
+            btnBranch.classList.remove('active');
+            reqTree.classList.remove('hierarchy-view');
 
             if (viewMode === 'hierarchy') {
                 reqTree.classList.add('hierarchy-view');
-                btnFlat.classList.remove('active');
                 btnHierarchy.classList.add('active');
                 treeTitle.textContent = 'Traceability Tree - Hierarchical View';
 
@@ -1833,10 +3216,28 @@ class TraceabilityGenerator:
                         icon.classList.add('collapsed');
                     }
                 });
+            } else if (viewMode === 'uncommitted') {
+                btnUncommitted.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Uncommitted Changes';
+
+                // Reset visibility classes
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+
+                collapseAll();
+            } else if (viewMode === 'branch') {
+                btnBranch.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Changed vs Main';
+
+                // Reset visibility classes
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+
+                collapseAll();
             } else {
-                reqTree.classList.remove('hierarchy-view');
                 btnFlat.classList.add('active');
-                btnHierarchy.classList.remove('active');
                 treeTitle.textContent = 'Traceability Tree - Flat View';
 
                 // Reset visibility classes
@@ -1844,8 +3245,8 @@ class TraceabilityGenerator:
                     item.classList.remove('hierarchy-visible');
                 });
 
-                // Collapse all for flat view too
-                collapseAll();
+                // Expand all for flat view - show ALL requirements
+                expandAll();
             }
 
             applyFilters();
@@ -1878,25 +3279,69 @@ class TraceabilityGenerator:
             const titleFilter = document.getElementById('filterTitle').value.toLowerCase().trim();
             const levelFilter = document.getElementById('filterLevel').value;
             const statusFilter = document.getElementById('filterStatus').value;
-            const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
+            const topicFilter = document.getElementById('filterTopic')?.value.toLowerCase().trim() || '';
+            const testFilter = document.getElementById('filterTests')?.value || '';
+            const coverageFilter = document.getElementById('filterCoverage')?.value || '';
+            const isLeafOnly = typeof leafOnlyActive !== 'undefined' && leafOnlyActive;
+            const includeDeprecated = document.getElementById('chkIncludeDeprecated')?.checked || false;
 
-            // Check if any filter is active
-            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter;
+            // Check if any filter is active (modified views count as filters)
+            const isUncommittedView = currentView === 'uncommitted';
+            const isBranchView = currentView === 'branch';
+            const isModifiedView = isUncommittedView || isBranchView;
+            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter || testFilter || coverageFilter || isLeafOnly || isModifiedView;
 
             let visibleCount = 0;
-            let totalCount = 0;
             const seenReqIds = new Set();  // Track which req IDs we've already shown
+            const seenVisibleReqIds = new Set();  // Track visible unique req IDs for count
+            const allReqIds = new Set();  // Track all unique req IDs for total count
 
             // Simple iteration: show/hide each item based on filters
             document.querySelectorAll('.req-item').forEach(item => {
-                totalCount++;
-                const reqId = item.dataset.reqId.toLowerCase();
-                const level = item.dataset.level;
-                const topic = item.dataset.topic.toLowerCase();
+                const reqId = item.dataset.reqId ? item.dataset.reqId.toLowerCase() : '';
+                const isImplFile = item.classList.contains('impl-file');
                 const status = item.dataset.status;
-                const title = item.dataset.title.toLowerCase();
+
+                // Count unique requirements (not impl files, not duplicates)
+                // When includeDeprecated is false, don't count deprecated in total
+                if (!isImplFile && reqId) {
+                    if (includeDeprecated || status !== 'Deprecated') {
+                        allReqIds.add(reqId);
+                    }
+                }
+                const level = item.dataset.level;
+                const topic = item.dataset.topic ? item.dataset.topic.toLowerCase() : '';
+                const title = item.dataset.title ? item.dataset.title.toLowerCase() : '';
+                const isUncommitted = item.dataset.uncommitted === 'true';
+                const isBranchChanged = item.dataset.branchChanged === 'true';
 
                 let matches = true;
+
+                // Uncommitted view: only show requirements with uncommitted changes
+                if (isUncommittedView) {
+                    if (isImplFile) {
+                        const parentId = item.dataset.parentInstanceId;
+                        const parent = document.querySelector(`[data-instance-id="${parentId}"]`);
+                        if (!parent || parent.dataset.uncommitted !== 'true') {
+                            matches = false;
+                        }
+                    } else if (!isUncommitted) {
+                        matches = false;
+                    }
+                }
+
+                // Branch view: only show requirements changed vs main
+                if (isBranchView) {
+                    if (isImplFile) {
+                        const parentId = item.dataset.parentInstanceId;
+                        const parent = document.querySelector(`[data-instance-id="${parentId}"]`);
+                        if (!parent || parent.dataset.branchChanged !== 'true') {
+                            matches = false;
+                        }
+                    } else if (!isBranchChanged) {
+                        matches = false;
+                    }
+                }
 
                 // Apply all filters
                 if (reqIdFilter && !reqId.includes(reqIdFilter)) matches = false;
@@ -1910,8 +3355,48 @@ class TraceabilityGenerator:
                     matches = false;
                 }
 
+                // Test filter: filter by test status
+                if (testFilter && matches) {
+                    const testStatus = item.dataset.testStatus || 'not-tested';
+                    if (testFilter !== testStatus) {
+                        matches = false;
+                    }
+                }
+
+                // Coverage filter: filter by implementation coverage
+                if (coverageFilter && matches) {
+                    const coverage = item.dataset.coverage || 'none';
+                    if (coverageFilter !== coverage) {
+                        matches = false;
+                    }
+                }
+
+                // Leaf-only filter: show only requirements without children
+                if (isLeafOnly && matches && !isImplFile) {
+                    const hasChildren = item.dataset.hasChildren === 'true';
+                    if (hasChildren) {
+                        matches = false;
+                    }
+                }
+
+                // Deprecated filter: hide deprecated unless checkbox is checked
+                if (!includeDeprecated && matches && !isImplFile) {
+                    if (status === 'Deprecated') {
+                        matches = false;
+                    }
+                }
+
+                // Roadmap filter: hide roadmap requirements unless checkbox is checked
+                const includeRoadmap = document.getElementById('chkIncludeRoadmap')?.checked || false;
+                if (!includeRoadmap && matches && !isImplFile) {
+                    const isRoadmap = item.dataset.roadmap === 'true';
+                    if (isRoadmap) {
+                        matches = false;
+                    }
+                }
+
                 // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
-                if (matches && anyFilterActive && seenReqIds.has(reqId)) {
+                if (matches && anyFilterActive && !isImplFile && seenReqIds.has(reqId)) {
                     matches = false;  // Hide duplicate
                 }
 
@@ -1921,17 +3406,30 @@ class TraceabilityGenerator:
                     // If any filter is active, ignore collapse state and show matching items
                     if (anyFilterActive) {
                         item.classList.remove('collapsed-by-parent');
-                        seenReqIds.add(reqId);  // Mark this req ID as shown
+                        if (!isImplFile) seenReqIds.add(reqId);  // Mark this req ID as shown
                     }
-                    visibleCount++;
+                    // Count visible unique requirements (not impl files, not duplicates)
+                    if (!isImplFile && reqId && !seenVisibleReqIds.has(reqId)) {
+                        seenVisibleReqIds.add(reqId);
+                        visibleCount++;
+                    }
                 } else {
                     item.classList.add('filtered-out');
                 }
             });
 
-            // Update stats
-            document.getElementById('filterStats').textContent =
-                `Showing ${visibleCount} of ${totalCount} requirements`;
+            // Update stats with unique requirement counts
+            const totalCount = allReqIds.size;
+            let statsText;
+            if (isUncommittedView) {
+                statsText = `Showing ${visibleCount} uncommitted requirements`;
+            } else if (isBranchView) {
+                statsText = `Showing ${visibleCount} requirements changed vs main`;
+            } else {
+                statsText = `Showing ${visibleCount} of ${totalCount} requirements`;
+            }
+            document.getElementById('filterStats').textContent = statsText;
+            updateExpandCollapseButtons();
         }
 
         // Clear all filters
@@ -1941,24 +3439,23 @@ class TraceabilityGenerator:
             document.getElementById('filterLevel').value = '';
             document.getElementById('filterStatus').value = '';
             document.getElementById('filterTopic').value = '';
-            applyFilters();
+            document.getElementById('filterTests').value = '';
+            document.getElementById('filterCoverage').value = '';
+            // Reset leaf-only toggle
+            leafOnlyActive = false;
+            document.getElementById('btnLeafOnly').classList.remove('active');
+            // Reset include deprecated checkbox and update badge counts
+            document.getElementById('chkIncludeDeprecated').checked = false;
+            // Reset include roadmap checkbox
+            document.getElementById('chkIncludeRoadmap').checked = false;
+            toggleIncludeDeprecated();  // This will update badges and call applyFilters
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Start with everything collapsed except top level
-            // First, hide all children of all items with children
-            document.querySelectorAll('.req-item').forEach(item => {
-                const instanceId = item.dataset.instanceId;
-                const icon = item.querySelector('.collapse-icon');
-
-                if (icon && icon.textContent) {
-                    // This item has children - collapse it
-                    collapsedInstances.add(instanceId);
-                    hideDescendants(instanceId);
-                    icon.classList.add('collapsed');
-                }
-            });
+            // Start with flat view - all items expanded
+            // The expandAll() call ensures all items are visible
+            expandAll();
 
             // Initialize filter stats
             applyFilters();
@@ -1972,11 +3469,16 @@ class TraceabilityGenerator:
         html += """
     </script>
 """
+        # Add file picker modal (always needed for Edit Mode)
+        html += self._generate_file_picker_modal_html()
+
         # Add code viewer modal if embedded mode
         if embed_content:
             html += self._generate_code_viewer_html()
+            html += self._generate_legend_modal_html()
 
         html += """
+</div>
 </body>
 </html>
 """
@@ -1987,12 +3489,13 @@ class TraceabilityGenerator:
         flat_list = []
         self._instance_counter = 0  # Track unique instance IDs
 
-        # Start with top-level PRD requirements
-        prd_reqs = [req for req in self.requirements.values() if req.level == 'PRD']
-        prd_reqs.sort(key=lambda r: r.id)
+        # Start with all root requirements (those with no implements/parent)
+        # Root requirements can be PRD, OPS, or DEV - any req that doesn't implement another
+        root_reqs = [req for req in self.requirements.values() if not req.implements]
+        root_reqs.sort(key=lambda r: r.id)
 
-        for prd_req in prd_reqs:
-            self._add_requirement_and_children(prd_req, flat_list, indent=0, parent_instance_id='')
+        for root_req in root_reqs:
+            self._add_requirement_and_children(root_req, flat_list, indent=0, parent_instance_id='')
 
         return flat_list
 
@@ -2070,6 +3573,12 @@ class TraceabilityGenerator:
             link = f"{self._base_path}{file_path}#L{line_num}"
             file_link = f'<a href="{link}" style="color: #0066cc;">{file_path}:{line_num}</a>'
 
+        # Add VS Code link for opening in editor
+        abs_file_path = self.repo_root / file_path
+        vscode_url = f"vscode://file/{abs_file_path}:{line_num}"
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link">🔧</a>'
+        file_link = f'{file_link}{vscode_link}'
+
         # Build HTML for implementation file row
         html = f"""
         <div class="req-item impl-file" data-instance-id="{instance_id}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}">
@@ -2080,8 +3589,10 @@ class TraceabilityGenerator:
                     <div class="req-header" style="font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;">{file_link}</div>
                     <div class="req-level"></div>
                     <div class="req-badges"></div>
+                    <div class="req-coverage"></div>
                     <div class="req-status"></div>
                     <div class="req-location"></div>
+                    <div class="req-destination edit-mode-column"></div>
                 </div>
             </div>
         </div>
@@ -2140,32 +3651,117 @@ class TraceabilityGenerator:
         # Create link to source file with REQ anchor
         # In embedded mode, use onclick to open side panel instead of navigating away
         # event.stopPropagation() prevents the parent toggle handler from firing
+        # Display ID without "REQ-" prefix for cleaner tree view
+        # Determine the correct spec path (spec/ or spec/roadmap/)
+        spec_subpath = 'spec/roadmap' if req.is_roadmap else 'spec'
+        spec_rel_path = f'{spec_subpath}/{req.file_path.name}'
+
+        # Display filename without .md extension and without line number
+        display_filename = req.file_path.stem  # removes .md extension
+
         if embed_content:
-            req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">REQ-{req.id}</a>'
-            file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
+            req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">{req.id}</a>'
+            file_line_link = f'<span style="color: inherit;">{display_filename}</span>'
         else:
-            req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
-            file_line_link = f'<a href="{self._base_path}spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+            req_link = f'<a href="{self._base_path}{spec_rel_path}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
+            file_line_link = f'<a href="{self._base_path}{spec_rel_path}#L{req.line_number}" style="color: inherit; text-decoration: none;">{display_filename}</a>'
+
+        # Determine status indicators using distinctive Unicode symbols
+        # ★ (star) = NEW, ◆ (diamond) = MODIFIED, ↝ (wave arrow) = MOVED
+        status_suffix = ''
+        status_suffix_class = ''
+        status_title = ''
+
+        is_moved = req.is_moved
+        is_new_not_moved = req.is_new and not is_moved
+        is_modified = req.is_modified
+
+        if is_moved and is_modified:
+            # Moved AND modified - show both indicators
+            status_suffix = '↝◆'
+            status_suffix_class = 'status-moved-modified'
+            status_title = 'MOVED and MODIFIED'
+        elif is_moved:
+            # Just moved (might be in new file)
+            status_suffix = '↝'
+            status_suffix_class = 'status-moved'
+            status_title = 'MOVED from another file'
+        elif is_new_not_moved:
+            # Truly new (in new file, not moved)
+            status_suffix = '★'
+            status_suffix_class = 'status-new'
+            status_title = 'NEW requirement'
+        elif is_modified:
+            # Modified in place
+            status_suffix = '◆'
+            status_suffix_class = 'status-modified'
+            status_title = 'MODIFIED content'
+
+        # VS Code link for use in side panel (not in topic column)
+        abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
+        vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
 
         # Check if this is a root requirement (no parents)
         is_root = not req.implements or len(req.implements) == 0
         is_root_attr = 'data-is-root="true"' if is_root else 'data-is-root="false"'
+        # Two separate modified attributes: uncommitted (since last commit) and branch (vs main)
+        uncommitted_attr = 'data-uncommitted="true"' if req.is_uncommitted else 'data-uncommitted="false"'
+        branch_attr = 'data-branch-changed="true"' if req.is_branch_changed else 'data-branch-changed="false"'
+
+        # Data attribute for has-children (for leaf-only filtering)
+        has_children_attr = 'data-has-children="true"' if has_children else 'data-has-children="false"'
+
+        # Data attribute for test status (for test filter)
+        test_status_value = 'not-tested'
+        if req.test_info:
+            if req.test_info.test_status == 'passed':
+                test_status_value = 'tested'
+            elif req.test_info.test_status == 'failed':
+                test_status_value = 'failed'
+        test_status_attr = f'data-test-status="{test_status_value}"'
+
+        # Data attribute for coverage (for coverage filter)
+        coverage_value = 'none'
+        if impl_status == 'Full':
+            coverage_value = 'full'
+        elif impl_status == 'Partial':
+            coverage_value = 'partial'
+        coverage_attr = f'data-coverage="{coverage_value}"'
+
+        # Data attribute for roadmap (for roadmap filtering)
+        roadmap_attr = 'data-roadmap="true"' if req.is_roadmap else 'data-roadmap="false"'
+
+        # Edit mode buttons - show different options based on whether in roadmap
+        if req.is_roadmap:
+            edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
+                <button class="edit-btn from-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'from-roadmap')" title="Move out of roadmap">↩ From Roadmap</button>
+                <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
+            </span>'''
+        else:
+            edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
+                <button class="edit-btn to-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
+                <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
+            </span>'''
+
+        # Roadmap indicator icon (shown after REQ ID)
+        roadmap_icon = '<span class="roadmap-icon" title="In roadmap">🛤️</span>' if req.is_roadmap else ''
 
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-id">{req_link}</div>
+                    <div class="req-id">{req_link}{roadmap_icon}</div>
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
-                        <span class="status-badge status-{status_class}">{req.status}</span>
-                        <span class="coverage-badge" title="{coverage_title}">{coverage_icon}</span>
+                        <span class="status-badge status-{status_class}">{req.status}</span><span class="status-suffix {status_suffix_class}" title="{status_title}">{status_suffix}</span>
                     </div>
+                    <div class="req-coverage" title="{coverage_title}">{coverage_icon}</div>
                     <div class="req-status">{test_badge}</div>
                     <div class="req-location">{file_line_link}</div>
+                    <div class="req-destination edit-mode-column" data-req-id="{req.id}">{edit_buttons}<span class="dest-text"></span></div>
                 </div>
             </div>
         </div>
@@ -2180,7 +3776,7 @@ class TraceabilityGenerator:
         html = f"""
         <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}">
             <div class="req-header">
-                REQ-{req.id}: {req.title}
+                {req.id}: {req.title}
             </div>
             <div class="req-meta">
                 <span class="status-badge status-{status_class}">{req.status}</span>
@@ -2344,12 +3940,19 @@ class TraceabilityGenerator:
 
         return output.getvalue()
 
-    def _count_by_level(self) -> Dict[str, int]:
-        """Count requirements by level"""
-        counts = {'PRD': 0, 'OPS': 0, 'DEV': 0}
+    def _count_by_level(self) -> Dict[str, Dict[str, int]]:
+        """Count requirements by level, both including and excluding Deprecated
+
+        Returns dict with 'active' (excludes Deprecated) and 'all' (includes Deprecated) counts
+        """
+        counts = {
+            'active': {'PRD': 0, 'OPS': 0, 'DEV': 0},
+            'all': {'PRD': 0, 'OPS': 0, 'DEV': 0}
+        }
         for req in self.requirements.values():
-            if req.status == 'Active':  # Only count active requirements
-                counts[req.level] = counts.get(req.level, 0) + 1
+            counts['all'][req.level] = counts['all'].get(req.level, 0) + 1
+            if req.status != 'Deprecated':
+                counts['active'][req.level] = counts['active'].get(req.level, 0) + 1
         return counts
 
     def _find_orphaned_requirements(self) -> List[Requirement]:
