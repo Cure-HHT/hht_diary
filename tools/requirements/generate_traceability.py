@@ -250,6 +250,9 @@ class TraceabilityGenerator:
         # Get git-modified files for "Modified" view detection
         uncommitted = get_git_modified_files(self.repo_root)
         branch_changed = get_git_changed_vs_main(self.repo_root)
+        # "Changed vs Main" should be inclusive of uncommitted changes
+        # (uncommitted changes are also different from main)
+        branch_changed = branch_changed | uncommitted
         set_git_modified_files(uncommitted, branch_changed)
 
         # Report uncommitted changes
