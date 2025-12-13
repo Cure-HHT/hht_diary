@@ -1203,9 +1203,15 @@ class TraceabilityGenerator:
         const originalStatusSuffixes = new Map();
 
         function updateDestinationColumns() {
-            // Clear all destination columns first
+            // Reset all destination columns - show buttons, hide dest text
             document.querySelectorAll('.req-destination').forEach(el => {
-                el.textContent = '';
+                const editActions = el.querySelector('.edit-actions');
+                const destText = el.querySelector('.dest-text');
+                if (editActions) editActions.style.display = '';
+                if (destText) {
+                    destText.textContent = '';
+                    destText.style.display = 'none';
+                }
                 el.className = 'req-destination edit-mode-column';
             });
 
@@ -1241,27 +1247,33 @@ class TraceabilityGenerator:
                     });
                 }
 
-                // Update destination column
+                // Update destination column - hide buttons, show destination text
                 if (destEl) {
-                    if (m.moveType === 'to-roadmap') {
-                        destEl.textContent = '→ Roadmap';
-                        destEl.className = 'req-destination edit-mode-column to-roadmap';
-                    } else if (m.moveType === 'from-roadmap') {
-                        destEl.textContent = '← From Roadmap';
-                        destEl.className = 'req-destination edit-mode-column from-roadmap';
-                    } else if (m.targetFile) {
-                        // Extract just the filename for display
-                        const displayName = m.targetFile.replace('roadmap/', '').replace(/\.md$/, '');
-                        destEl.textContent = '→ ' + displayName;
-                        destEl.className = 'req-destination edit-mode-column';
+                    const editActions = destEl.querySelector('.edit-actions');
+                    const destText = destEl.querySelector('.dest-text');
+
+                    // Hide the buttons
+                    if (editActions) editActions.style.display = 'none';
+
+                    // Show the destination text
+                    if (destText) {
+                        destText.style.display = '';
+                        if (m.moveType === 'to-roadmap') {
+                            destText.textContent = '→ Roadmap';
+                            destEl.className = 'req-destination edit-mode-column to-roadmap';
+                        } else if (m.moveType === 'from-roadmap') {
+                            destText.textContent = '← From Roadmap';
+                            destEl.className = 'req-destination edit-mode-column from-roadmap';
+                        } else if (m.targetFile) {
+                            const displayName = m.targetFile.replace('roadmap/', '').replace(/\\.md$/, '');
+                            destText.textContent = '→ ' + displayName;
+                        }
                     }
                 }
 
                 // Update status suffix to show "pending move" indicator
-                // Use ⇢ (dashed arrow) for PENDING moves, distinct from ↝ (wave arrow) for ACTUAL moves
                 if (suffixEl) {
                     const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
-                    // If already has a status, show both (pending + original)
                     if (originalText && originalText !== '↝' && originalText !== '⇢') {
                         suffixEl.textContent = '⇢' + originalText;
                         suffixEl.className = 'status-suffix status-pending-move';
@@ -1319,17 +1331,121 @@ class TraceabilityGenerator:
             `}).join('');
         }
 
-        function showMoveToFile(reqId, sourceFile) {
-            const files = getAvailableTargetFiles();
-            const target = prompt('Enter target file name (e.g., prd-security.md):\\n\\nAvailable files:\\n' + files.slice(0, 10).join('\\n') + (files.length > 10 ? '\\n...' : ''));
+        let filePickerState = { reqId: null, sourceFile: null };
+        let allSpecFiles = [];
 
-            if (target && target.trim()) {
-                addPendingMove(reqId, sourceFile, 'move-file');
-                // Update the last added move with target
-                pendingMoves[pendingMoves.length - 1].targetFile = target.trim();
-                updatePendingMovesUI();
-                updateDestinationColumns();
+        function showMoveToFile(reqId, sourceFile) {
+            filePickerState = { reqId, sourceFile };
+            allSpecFiles = getAvailableTargetFiles();
+
+            const modal = document.getElementById('file-picker-modal');
+            const input = document.getElementById('filePickerInput');
+            const list = document.getElementById('filePickerList');
+            const error = document.getElementById('filePickerError');
+
+            // Reset state
+            input.value = '';
+            error.textContent = '';
+            error.style.display = 'none';
+
+            // Populate file list
+            renderFileList('');
+
+            // Show modal and focus input
+            modal.classList.remove('hidden');
+            input.focus();
+        }
+
+        function closeFilePicker() {
+            document.getElementById('file-picker-modal').classList.add('hidden');
+            filePickerState = { reqId: null, sourceFile: null };
+        }
+
+        function renderFileList(filter) {
+            const list = document.getElementById('filePickerList');
+            const filterLower = filter.toLowerCase();
+
+            const filtered = allSpecFiles.filter(f =>
+                f.toLowerCase().includes(filterLower)
+            );
+
+            if (filtered.length === 0 && filter) {
+                list.innerHTML = '<div class="file-picker-empty">No matching files. You can enter a new filename.</div>';
+            } else {
+                list.innerHTML = filtered.map(f =>
+                    `<div class="file-picker-item" onclick="selectFile('${f}')">${f}</div>`
+                ).join('');
             }
+        }
+
+        function filterFiles(value) {
+            renderFileList(value);
+            validateFileName(value);
+        }
+
+        function selectFile(filename) {
+            document.getElementById('filePickerInput').value = filename;
+            validateFileName(filename);
+        }
+
+        function validateFileName(filename) {
+            const error = document.getElementById('filePickerError');
+
+            if (!filename || !filename.trim()) {
+                error.style.display = 'none';
+                return false;
+            }
+
+            filename = filename.trim();
+
+            // Check for .md extension
+            if (!filename.endsWith('.md')) {
+                error.textContent = 'Filename must end with .md';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Check for illegal characters (allow alphanumeric, dash, underscore, dot, forward slash for paths)
+            const illegalChars = /[<>:"\\|?*\\x00-\\x1f]/;
+            if (illegalChars.test(filename)) {
+                error.textContent = 'Filename contains illegal characters';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Check for spaces (should use dashes instead)
+            if (filename.includes(' ')) {
+                error.textContent = 'Use dashes instead of spaces';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Check it doesn't start with special chars
+            if (/^[.\\-\\/]/.test(filename)) {
+                error.textContent = 'Filename cannot start with . - or /';
+                error.style.display = 'block';
+                return false;
+            }
+
+            error.style.display = 'none';
+            return true;
+        }
+
+        function confirmFilePicker() {
+            const input = document.getElementById('filePickerInput');
+            const filename = input.value.trim();
+
+            if (!validateFileName(filename)) {
+                return;
+            }
+
+            // Add the pending move
+            addPendingMove(filePickerState.reqId, filePickerState.sourceFile, 'move-file');
+            pendingMoves[pendingMoves.length - 1].targetFile = filename;
+            updatePendingMovesUI();
+            updateDestinationColumns();
+
+            closeFilePicker();
         }
 
         function getAvailableTargetFiles() {
@@ -1662,6 +1778,16 @@ class TraceabilityGenerator:
                             <li>⚡ Not tested</li>
                         </ul>
                     </div>
+                    <div class="legend-section">
+                        <h3>Change Indicators</h3>
+                        <ul>
+                            <li><span class="status-new">★</span> NEW - Uncommitted new requirement</li>
+                            <li><span class="status-modified">◆</span> MODIFIED - Content changed (uncommitted)</li>
+                            <li><span class="status-moved">↝</span> MOVED - Relocated to different file</li>
+                            <li><span class="status-pending-move">⇢</span> PENDING - Staged for move (not yet executed)</li>
+                            <li>🛤️ Roadmap - Requirement is in roadmap/ directory</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="legend-section" style="margin-top: 15px;">
                     <h3>Controls</h3>
@@ -1670,6 +1796,31 @@ class TraceabilityGenerator:
                         <li>🍃 Leaf Only - Show only leaf requirements (no children)</li>
                     </ul>
                 </div>
+            </div>
+        </div>
+    </div>
+"""
+
+    def _generate_file_picker_modal_html(self) -> str:
+        """Generate HTML for file picker modal"""
+        return """
+    <!-- File Picker Modal -->
+    <div id="file-picker-modal" class="file-picker-modal hidden" onclick="if(event.target===this)closeFilePicker()">
+        <div class="file-picker-container">
+            <div class="file-picker-header">
+                <h2>Select Target File</h2>
+                <button class="file-picker-close" onclick="closeFilePicker()">×</button>
+            </div>
+            <div class="file-picker-body">
+                <div class="file-picker-input-row">
+                    <input type="text" id="filePickerInput" placeholder="Enter or select filename (e.g., prd-security.md)"
+                           oninput="filterFiles(this.value)"
+                           onkeydown="if(event.key==='Enter'){confirmFilePicker();event.preventDefault();}">
+                    <button class="btn" onclick="confirmFilePicker()">Confirm</button>
+                </div>
+                <div id="filePickerError" class="file-picker-error" style="display: none;"></div>
+                <div class="file-picker-hint">Click a file below to select it, or type a new filename</div>
+                <div id="filePickerList" class="file-picker-list"></div>
             </div>
         </div>
     </div>
@@ -1748,6 +1899,117 @@ class TraceabilityGenerator:
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+"""
+
+    def _generate_file_picker_modal_css(self) -> str:
+        """Generate CSS for file picker modal"""
+        return """
+        .file-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-picker-modal.hidden {
+            display: none;
+        }
+        .file-picker-container {
+            background: white;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .file-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .file-picker-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .file-picker-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0 5px;
+        }
+        .file-picker-close:hover {
+            color: #333;
+        }
+        .file-picker-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .file-picker-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .file-picker-input-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .file-picker-input-row input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .file-picker-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background: #fff5f5;
+            border-radius: 3px;
+        }
+        .file-picker-hint {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .file-picker-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .file-picker-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+        }
+        .file-picker-item:last-child {
+            border-bottom: none;
+        }
+        .file-picker-item:hover {
+            background: #e3f2fd;
+        }
+        .file-picker-empty {
+            padding: 15px;
+            color: #666;
+            text-align: center;
+            font-style: italic;
         }
 """
 
@@ -2087,31 +2349,6 @@ class TraceabilityGenerator:
         .btn-legend:hover {{
             background: #5a6268;
         }}
-        .toggle-btn {{
-            background: white;
-            color: #495057;
-            border: 1px solid #28a745;
-        }}
-        .toggle-btn:hover {{
-            background: #e8f5e9;
-        }}
-        .toggle-btn.active {{
-            background: #28a745;
-            color: white;
-            border: 1px solid #28a745;
-        }}
-        /* Edit Mode button - blue theme instead of green */
-        #btnEditMode {{
-            border: 1px solid #007bff;
-        }}
-        #btnEditMode:hover {{
-            background: #e3f2fd;
-        }}
-        #btnEditMode.active {{
-            background: #007bff;
-            color: white;
-            border: 1px solid #007bff;
-        }}
         .checkbox-label {{
             display: flex;
             align-items: center;
@@ -2138,13 +2375,17 @@ class TraceabilityGenerator:
             margin: 10px 0;
         }}
         .edit-mode-header {{
-            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 10px;
+        }}
+        .edit-mode-title {{
+            font-size: 14px;
         }}
         .edit-mode-actions {{
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
         }}
         .pending-moves-list {{
             max-height: 200px;
@@ -2164,16 +2405,17 @@ class TraceabilityGenerator:
             display: none;
         }}
         body.edit-mode-active .edit-actions {{
-            display: inline;
+            display: flex;
+            gap: 4px;
         }}
         .edit-btn {{
             padding: 2px 6px;
             font-size: 10px;
-            margin-left: 5px;
             cursor: pointer;
             border: 1px solid #ccc;
             border-radius: 3px;
             background: white;
+            white-space: nowrap;
         }}
         .edit-btn:hover {{
             background: #e9ecef;
@@ -2185,6 +2427,20 @@ class TraceabilityGenerator:
         .edit-btn.from-roadmap {{
             border-color: #28a745;
             color: #28a745;
+        }}
+        .vscode-link {{
+            font-size: 16px;
+            color: #007acc;
+            text-decoration: none;
+            margin-left: 6px;
+        }}
+        .vscode-link:hover {{
+            color: #005a9e;
+        }}
+        .dest-text {{
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
         }}
         .edit-btn.move-file {{
             border-color: #007bff;
@@ -2225,8 +2481,35 @@ class TraceabilityGenerator:
         .btn-secondary.active:hover {{
             background: #0052a3;
         }}
+        /* Toggle buttons - white when off, colored when active */
+        .toggle-btn {{
+            background: white;
+            color: #495057;
+            border: 1px solid #28a745;
+        }}
+        .toggle-btn:hover {{
+            background: #e8f5e9;
+        }}
+        .toggle-btn.active {{
+            background: #28a745;
+            color: white;
+            border: 1px solid #28a745;
+        }}
+        /* Edit Mode button - blue theme instead of green */
+        #btnEditMode {{
+            border: 1px solid #007bff;
+        }}
+        #btnEditMode:hover {{
+            background: #e3f2fd;
+        }}
+        #btnEditMode.active {{
+            background: #007bff;
+            color: white;
+            border: 1px solid #007bff;
+        }}
         .req-tree {{
             margin: 15px 0;
+            overflow-x: auto;
         }}
         .req-item {{
             margin: 2px 0;
@@ -2289,10 +2572,11 @@ class TraceabilityGenerator:
         .req-content {{
             flex: 1;
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            /* REQ ID | Title | Level | Status | Coverage | Tests | Topic | Destination */
+            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 120px 90px;
             align-items: center;
-            gap: 12px;
-            min-width: 0;
+            gap: 6px;
+            min-width: 700px;
         }}
         .req-id {{
             font-weight: 600;
@@ -2429,9 +2713,10 @@ class TraceabilityGenerator:
         }}
         .filter-header {{
             display: grid;
-            grid-template-columns: 130px 1fr 60px 90px 60px 180px;
+            /* REQ ID | Title | Level | Status | Coverage | Tests | Topic | Destination */
+            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 120px 90px;
             align-items: center;
-            gap: 12px;
+            gap: 6px;
             padding: 8px 10px 8px 42px;
             background: #e9ecef;
             border-bottom: 2px solid #dee2e6;
@@ -2439,6 +2724,7 @@ class TraceabilityGenerator:
             position: sticky;
             top: 0;
             z-index: 10;
+            min-width: 700px;
         }}
         .filter-column {{
             display: flex;
@@ -2557,6 +2843,7 @@ class TraceabilityGenerator:
         {self._generate_side_panel_css() if embed_content else ''}
         {self._generate_code_viewer_css() if embed_content else ''}
         {self._generate_legend_modal_css() if embed_content else ''}
+        {self._generate_file_picker_modal_css()}
     </style>
     {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>') if embed_content else ''}
 </head>
@@ -2602,12 +2889,14 @@ class TraceabilityGenerator:
         <!-- Edit Mode Panel (hidden by default) -->
         <div id="editModePanel" class="edit-mode-panel" style="display: none;">
             <div class="edit-mode-header">
-                <strong>📝 Edit Mode</strong> - Select requirements to move
-                <span id="pendingChangesCount" class="badge" style="margin-left: 10px;">0 pending</span>
-            </div>
-            <div class="edit-mode-actions">
-                <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
-                <button class="btn" id="btnExportMoves" onclick="generateMoveScript()" disabled>Export Moves JSON</button>
+                <div class="edit-mode-title">
+                    <strong>📝 Edit Mode</strong> - Select requirements to move
+                    <span id="pendingChangesCount" class="badge" style="margin-left: 10px;">0 pending</span>
+                </div>
+                <div class="edit-mode-actions">
+                    <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
+                    <button class="btn" id="btnExportMoves" onclick="generateMoveScript()" disabled>Export Moves JSON</button>
+                </div>
             </div>
             <div class="pending-moves-section">
                 <div class="pending-moves-header" onclick="togglePendingMoves()" style="cursor: pointer; user-select: none; display: flex; align-items: center; margin-bottom: 8px;">
@@ -2648,21 +2937,21 @@ class TraceabilityGenerator:
                 </select>
             </div>
             <div class="filter-column">
+                <div class="filter-label">Cov</div>
+                <select id="filterCoverage" onchange="applyFilters()">
+                    <option value="">All</option>
+                    <option value="full">●</option>
+                    <option value="partial">◐</option>
+                    <option value="none">○</option>
+                </select>
+            </div>
+            <div class="filter-column">
                 <div class="filter-label">Tests</div>
                 <select id="filterTests" onchange="applyFilters()">
                     <option value="">All</option>
                     <option value="tested">✅ Tested</option>
                     <option value="not-tested">⚡ Not Tested</option>
                     <option value="failed">❌ Failed</option>
-                </select>
-            </div>
-            <div class="filter-column" style="min-width: 40px; max-width: 50px;">
-                <div class="filter-label">Cov</div>
-                <select id="filterCoverage" onchange="applyFilters()" style="width: 100%;">
-                    <option value="">All</option>
-                    <option value="full">●</option>
-                    <option value="partial">◐</option>
-                    <option value="none">○</option>
                 </select>
             </div>
             <div class="filter-column">
@@ -3155,6 +3444,9 @@ class TraceabilityGenerator:
         html += """
     </script>
 """
+        # Add file picker modal (always needed for Edit Mode)
+        html += self._generate_file_picker_modal_html()
+
         # Add code viewer modal if embedded mode
         if embed_content:
             html += self._generate_code_viewer_html()
@@ -3259,7 +3551,7 @@ class TraceabilityGenerator:
         # Add VS Code link for opening in editor
         abs_file_path = self.repo_root / file_path
         vscode_url = f"vscode://file/{abs_file_path}:{line_num}"
-        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;">⚙</a>'
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link">🔧</a>'
         file_link = f'{file_link}{vscode_link}'
 
         # Build HTML for implementation file row
@@ -3275,6 +3567,7 @@ class TraceabilityGenerator:
                     <div class="req-coverage"></div>
                     <div class="req-status"></div>
                     <div class="req-location"></div>
+                    <div class="req-destination edit-mode-column"></div>
                 </div>
             </div>
         </div>
@@ -3379,7 +3672,7 @@ class TraceabilityGenerator:
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
-        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link" onclick="event.stopPropagation();">🔧</a>'
         file_line_link = f'{file_line_link}{vscode_link}'
 
         # Check if this is a root requirement (no parents)
@@ -3441,8 +3734,8 @@ class TraceabilityGenerator:
                     </div>
                     <div class="req-coverage" title="{coverage_title}">{coverage_icon}</div>
                     <div class="req-status">{test_badge}</div>
-                    <div class="req-location">{file_line_link}{edit_buttons}</div>
-                    <div class="req-destination edit-mode-column" data-req-id="{req.id}"></div>
+                    <div class="req-location">{file_line_link}</div>
+                    <div class="req-destination edit-mode-column" data-req-id="{req.id}">{edit_buttons}<span class="dest-text"></span></div>
                 </div>
             </div>
         </div>
