@@ -2088,15 +2088,17 @@ class TraceabilityGenerator:
             background: #5a6268;
         }}
         .toggle-btn {{
-            background: #e9ecef;
+            background: white;
             color: #495057;
+            border: 1px solid #28a745;
         }}
         .toggle-btn:hover {{
-            background: #dee2e6;
+            background: #e8f5e9;
         }}
         .toggle-btn.active {{
             background: #28a745;
             color: white;
+            border: 1px solid #28a745;
         }}
         .checkbox-label {{
             display: flex;
