@@ -360,6 +360,18 @@ class TraceabilityRequirement:
         """Check if requirement changed vs main branch"""
         return self._check_modified_in_fileset(_git_branch_changed_files)
 
+    @property
+    def is_new(self) -> bool:
+        """Check if requirement is in a new (untracked) file"""
+        return self._is_in_untracked_file()
+
+    @property
+    def is_modified(self) -> bool:
+        """Check if requirement has modified content (hash changed) but is not in a new file"""
+        if self._is_in_untracked_file():
+            return False  # New files are "new", not "modified"
+        return self.is_uncommitted
+
     @classmethod
     def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
         """Create TraceabilityRequirement from shared parser Requirement
@@ -4003,6 +4015,17 @@ class TraceabilityGenerator:
         # VS Code link for use in side panel (not in topic column)
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
+
+        # Determine new/modified status suffix for status badge
+        # + indicates NEW (in untracked file), * indicates MODIFIED (hash changed)
+        status_suffix = ''
+        status_suffix_class = ''
+        if req.is_new:
+            status_suffix = '+'
+            status_suffix_class = 'status-new'
+        elif req.is_modified:
+            status_suffix = '*'
+            status_suffix_class = 'status-modified'
 
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / 'spec' / req.file_path.name
