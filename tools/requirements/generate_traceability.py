@@ -1344,6 +1344,7 @@ class TraceabilityGenerator:
 
         let filePickerState = { reqId: null, sourceFile: null };
         let allSpecFiles = [];
+        const userAddedFiles = new Set();  // Track user-entered filenames for future use
 
         function showMoveToFile(reqId, sourceFile) {
             filePickerState = { reqId, sourceFile };
@@ -1450,6 +1451,9 @@ class TraceabilityGenerator:
                 return;
             }
 
+            // Remember user-entered filenames for future use
+            userAddedFiles.add(filename);
+
             // Add the pending move
             addPendingMove(filePickerState.reqId, filePickerState.sourceFile, 'move-file');
             pendingMoves[pendingMoves.length - 1].targetFile = filename;
@@ -1461,9 +1465,12 @@ class TraceabilityGenerator:
 
         function getAvailableTargetFiles() {
             const files = new Set();
+            // Add files from existing requirements
             document.querySelectorAll('.req-item[data-file]').forEach(item => {
                 files.add(item.dataset.file);
             });
+            // Add user-entered filenames from this session
+            userAddedFiles.forEach(f => files.add(f));
             return Array.from(files).sort();
         }
 
@@ -1819,7 +1826,7 @@ class TraceabilityGenerator:
     <div id="file-picker-modal" class="file-picker-modal hidden" onclick="if(event.target===this)closeFilePicker()">
         <div class="file-picker-container">
             <div class="file-picker-header">
-                <h2>Select Target File</h2>
+                <h2>Select Destination File</h2>
                 <button class="file-picker-close" onclick="closeFilePicker()">×</button>
             </div>
             <div class="file-picker-body">
