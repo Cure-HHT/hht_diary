@@ -729,6 +729,42 @@ class TraceabilityGenerator:
             document.getElementById('req-panel').classList.add('hidden');
         }
 
+        // Panel resize functionality
+        (function initResize() {
+            const panel = document.getElementById('req-panel');
+            const handle = document.getElementById('resizeHandle');
+            if (!panel || !handle) return;
+
+            let isResizing = false;
+            let startX, startWidth;
+
+            handle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = panel.offsetWidth;
+                handle.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizing) return;
+                const diff = startX - e.clientX;
+                const newWidth = Math.min(Math.max(startWidth + diff, 250), window.innerWidth * 0.7);
+                panel.style.width = newWidth + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    isResizing = false;
+                    handle.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        })();
+
         // Code viewer functions
         async function openCodeViewer(filePath, lineNum) {
             const modal = document.getElementById('code-viewer-modal');
@@ -1142,21 +1178,33 @@ class TraceabilityGenerator:
         """Generate CSS styles for side panel"""
         return """
         .side-panel {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 30%;
+            width: 400px;
+            min-width: 250px;
+            max-width: 70vw;
             height: 100vh;
             background: white;
             border-left: 2px solid #dee2e6;
             box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-            z-index: 1000;
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            flex-shrink: 0;
         }
         .side-panel.hidden {
-            transform: translateX(100%);
+            display: none;
+        }
+        .resize-handle {
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 10;
+        }
+        .resize-handle:hover,
+        .resize-handle.dragging {
+            background: rgba(0, 102, 204, 0.3);
         }
         .panel-header {
             padding: 15px;
@@ -1385,8 +1433,22 @@ class TraceabilityGenerator:
             font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
             font-size: 13px;
             line-height: 1.4;
-            margin: 15px;
+            margin: 0;
+            padding: 0;
             background: #f8f9fa;
+            height: 100vh;
+            overflow: hidden;
+        }}
+        .app-layout {{
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }}
+        .main-content {{
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            min-width: 0;
         }}
         .container {{
             max-width: 1400px;
@@ -1748,6 +1810,8 @@ class TraceabilityGenerator:
     {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>') if embed_content else ''}
 </head>
 <body>
+<div class="app-layout">
+    <div class="main-content">
     <div class="container">
         <h1>Requirements Traceability Matrix</h1>
         <div class="summary">
@@ -1856,12 +1920,14 @@ class TraceabilityGenerator:
 
         html += """        </div>
     </div>
+    </div>
 """
 
         # Add side panel HTML if embedded mode
         if embed_content:
             html += """
-    <div id="req-panel" class="side-panel hidden">
+    <div id="req-panel" class="side-panel hidden" style="position: relative;">
+        <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-header">
             <span>Requirements</span>
             <button onclick="closeAllCards()">Close All</button>
@@ -2198,6 +2264,7 @@ class TraceabilityGenerator:
             html += self._generate_code_viewer_html()
 
         html += """
+</div>
 </body>
 </html>
 """
@@ -2582,10 +2649,10 @@ class TraceabilityGenerator:
         return output.getvalue()
 
     def _count_by_level(self) -> Dict[str, int]:
-        """Count requirements by level"""
+        """Count requirements by level (excludes Deprecated)"""
         counts = {'PRD': 0, 'OPS': 0, 'DEV': 0}
         for req in self.requirements.values():
-            if req.status == 'Active':  # Only count active requirements
+            if req.status != 'Deprecated':  # Count Active and Draft
                 counts[req.level] = counts.get(req.level, 0) + 1
         return counts
 
