@@ -504,12 +504,12 @@ class TraceabilityGenerator:
         lines.append(f"\n**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append(f"**Total Requirements**: {len(self.requirements)}\n")
 
-        # Summary by level
+        # Summary by level (using active counts, excluding deprecated)
         by_level = self._count_by_level()
         lines.append("## Summary\n")
-        lines.append(f"- **PRD Requirements**: {by_level['PRD']}")
-        lines.append(f"- **OPS Requirements**: {by_level['OPS']}")
-        lines.append(f"- **DEV Requirements**: {by_level['DEV']}\n")
+        lines.append(f"- **PRD Requirements**: {by_level['active']['PRD']}")
+        lines.append(f"- **OPS Requirements**: {by_level['active']['OPS']}")
+        lines.append(f"- **DEV Requirements**: {by_level['active']['DEV']}\n")
 
         # Add legend
         lines.append(self._generate_legend_markdown())
@@ -954,6 +954,22 @@ class TraceabilityGenerator:
             } else {
                 btn.classList.remove('active');
             }
+            applyFilters();
+        }
+
+        // Toggle include deprecated - updates badge counts and filters
+        function toggleIncludeDeprecated() {
+            const includeDeprecated = document.getElementById('chkIncludeDeprecated').checked;
+
+            // Update PRD/OPS/DEV badge counts based on checkbox
+            ['PRD', 'OPS', 'DEV'].forEach(level => {
+                const badge = document.getElementById('badge' + level);
+                if (badge) {
+                    const count = includeDeprecated ? badge.dataset.all : badge.dataset.active;
+                    badge.textContent = level + ': ' + count;
+                }
+            });
+
             applyFilters();
         }
 
@@ -1680,6 +1696,23 @@ class TraceabilityGenerator:
             background: #28a745;
             color: white;
         }}
+        .checkbox-label {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #495057;
+            cursor: pointer;
+            padding: 6px 10px;
+            background: #e9ecef;
+            border-radius: 3px;
+        }}
+        .checkbox-label:hover {{
+            background: #dee2e6;
+        }}
+        .checkbox-label input {{
+            cursor: pointer;
+        }}
         .controls {{
             margin: 15px 0;
             padding: 10px;
@@ -1997,9 +2030,9 @@ class TraceabilityGenerator:
         <div class="title-bar">
             <h1>Requirements Traceability</h1>
             <div class="stats-badges">
-                <span class="stat-badge prd">PRD: {by_level['PRD']}</span>
-                <span class="stat-badge ops">OPS: {by_level['OPS']}</span>
-                <span class="stat-badge dev">DEV: {by_level['DEV']}</span>
+                <span class="stat-badge prd" id="badgePRD" data-active="{by_level['active']['PRD']}" data-all="{by_level['all']['PRD']}">PRD: {by_level['active']['PRD']}</span>
+                <span class="stat-badge ops" id="badgeOPS" data-active="{by_level['active']['OPS']}" data-all="{by_level['all']['OPS']}">OPS: {by_level['active']['OPS']}</span>
+                <span class="stat-badge dev" id="badgeDEV" data-active="{by_level['active']['DEV']}" data-all="{by_level['all']['DEV']}">DEV: {by_level['active']['DEV']}</span>
             </div>
             <button class="btn btn-legend" onclick="openLegendModal()" title="Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}">ℹ️ Legend</button>
         </div>
@@ -2012,6 +2045,10 @@ class TraceabilityGenerator:
                 <button class="btn view-btn" id="btnBranchView" onclick="switchView('branch')">Changed vs Main</button>
             </div>
             <button class="btn toggle-btn" id="btnLeafOnly" onclick="toggleLeafOnly()">🍃 Leaf Only</button>
+            <label class="checkbox-label" title="Include deprecated requirements in counts and views">
+                <input type="checkbox" id="chkIncludeDeprecated" onchange="toggleIncludeDeprecated()">
+                Include deprecated
+            </label>
             <button class="btn" onclick="expandAll()">▼ Expand</button>
             <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse</button>
             <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
@@ -2308,6 +2345,7 @@ class TraceabilityGenerator:
             const testFilter = document.getElementById('filterTests')?.value || '';
             const coverageFilter = document.getElementById('filterCoverage')?.value || '';
             const isLeafOnly = typeof leafOnlyActive !== 'undefined' && leafOnlyActive;
+            const includeDeprecated = document.getElementById('chkIncludeDeprecated')?.checked || false;
 
             // Check if any filter is active (modified views count as filters)
             const isUncommittedView = currentView === 'uncommitted';
@@ -2324,13 +2362,17 @@ class TraceabilityGenerator:
             document.querySelectorAll('.req-item').forEach(item => {
                 const reqId = item.dataset.reqId ? item.dataset.reqId.toLowerCase() : '';
                 const isImplFile = item.classList.contains('impl-file');
+                const status = item.dataset.status;
+
                 // Count unique requirements (not impl files, not duplicates)
+                // When includeDeprecated is false, don't count deprecated in total
                 if (!isImplFile && reqId) {
-                    allReqIds.add(reqId);
+                    if (includeDeprecated || status !== 'Deprecated') {
+                        allReqIds.add(reqId);
+                    }
                 }
                 const level = item.dataset.level;
                 const topic = item.dataset.topic ? item.dataset.topic.toLowerCase() : '';
-                const status = item.dataset.status;
                 const title = item.dataset.title ? item.dataset.title.toLowerCase() : '';
                 const isUncommitted = item.dataset.uncommitted === 'true';
                 const isBranchChanged = item.dataset.branchChanged === 'true';
@@ -2399,6 +2441,13 @@ class TraceabilityGenerator:
                     }
                 }
 
+                // Deprecated filter: hide deprecated unless checkbox is checked
+                if (!includeDeprecated && matches && !isImplFile) {
+                    if (status === 'Deprecated') {
+                        matches = false;
+                    }
+                }
+
                 // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
                 if (matches && anyFilterActive && !isImplFile && seenReqIds.has(reqId)) {
                     matches = false;  // Hide duplicate
@@ -2447,7 +2496,9 @@ class TraceabilityGenerator:
             // Reset leaf-only toggle
             leafOnlyActive = false;
             document.getElementById('btnLeafOnly').classList.remove('active');
-            applyFilters();
+            // Reset include deprecated checkbox and update badge counts
+            document.getElementById('chkIncludeDeprecated').checked = false;
+            toggleIncludeDeprecated();  // This will update badges and call applyFilters
         }
 
         // Initialize
@@ -2878,12 +2929,19 @@ class TraceabilityGenerator:
 
         return output.getvalue()
 
-    def _count_by_level(self) -> Dict[str, int]:
-        """Count requirements by level (excludes Deprecated)"""
-        counts = {'PRD': 0, 'OPS': 0, 'DEV': 0}
+    def _count_by_level(self) -> Dict[str, Dict[str, int]]:
+        """Count requirements by level, both including and excluding Deprecated
+
+        Returns dict with 'active' (excludes Deprecated) and 'all' (includes Deprecated) counts
+        """
+        counts = {
+            'active': {'PRD': 0, 'OPS': 0, 'DEV': 0},
+            'all': {'PRD': 0, 'OPS': 0, 'DEV': 0}
+        }
         for req in self.requirements.values():
-            if req.status != 'Deprecated':  # Count Active and Draft
-                counts[req.level] = counts.get(req.level, 0) + 1
+            counts['all'][req.level] = counts['all'].get(req.level, 0) + 1
+            if req.status != 'Deprecated':
+                counts['active'][req.level] = counts['active'].get(req.level, 0) + 1
         return counts
 
     def _find_orphaned_requirements(self) -> List[Requirement]:
