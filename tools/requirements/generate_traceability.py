@@ -2701,6 +2701,18 @@ class TraceabilityGenerator:
             font-size: 11px;
             padding: 4px 8px;
         }}
+        /* Edit Mode button - blue theme instead of green */
+        #btnEditMode {{
+            border: 1px solid #007bff;
+        }}
+        #btnEditMode:hover {{
+            background: #e3f2fd;
+        }}
+        #btnEditMode.active {{
+            background: #007bff;
+            color: white;
+            border: 1px solid #007bff;
+        }}
         .checkbox-label {{
             display: flex;
             align-items: center;
