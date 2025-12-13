@@ -2507,6 +2507,23 @@ class TraceabilityGenerator:
             font-size: 11px;
             padding: 4px 8px;
         }}
+        .checkbox-label {{
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #495057;
+            cursor: pointer;
+            padding: 6px 10px;
+            background: #e9ecef;
+            border-radius: 3px;
+        }}
+        .checkbox-label:hover {{
+            background: #dee2e6;
+        }}
+        .checkbox-label input {{
+            cursor: pointer;
+        }}
         .controls {{
             margin: 15px 0;
             padding: 10px;
