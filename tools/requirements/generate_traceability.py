@@ -1351,10 +1351,8 @@ class TraceabilityGenerator:
                 }
 
                 // Update status suffix to show "pending move" indicator
-                // Use ⇢ (dashed arrow) for PENDING moves, distinct from ↝ (wave arrow) for ACTUAL moves
                 if (suffixEl) {
                     const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
-                    // If already has a status, show both (pending + original)
                     if (originalText && originalText !== '↝' && originalText !== '⇢') {
                         suffixEl.textContent = '⇢' + originalText;
                         suffixEl.className = 'status-suffix status-pending-move';
@@ -2584,13 +2582,17 @@ class TraceabilityGenerator:
             margin: 10px 0;
         }}
         .edit-mode-header {{
-            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 10px;
+        }}
+        .edit-mode-title {{
+            font-size: 14px;
         }}
         .edit-mode-actions {{
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
         }}
         .pending-moves-list {{
             max-height: 200px;
@@ -2610,16 +2612,17 @@ class TraceabilityGenerator:
             display: none;
         }}
         body.edit-mode-active .edit-actions {{
-            display: inline;
+            display: flex;
+            gap: 4px;
         }}
         .edit-btn {{
             padding: 2px 6px;
             font-size: 10px;
-            margin-left: 5px;
             cursor: pointer;
             border: 1px solid #ccc;
             border-radius: 3px;
             background: white;
+            white-space: nowrap;
         }}
         .edit-btn:hover {{
             background: #e9ecef;
@@ -2631,6 +2634,20 @@ class TraceabilityGenerator:
         .edit-btn.from-roadmap {{
             border-color: #28a745;
             color: #28a745;
+        }}
+        .vscode-link {{
+            font-size: 16px;
+            color: #007acc;
+            text-decoration: none;
+            margin-left: 6px;
+        }}
+        .vscode-link:hover {{
+            color: #005a9e;
+        }}
+        .dest-text {{
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
         }}
         .edit-btn.move-file {{
             border-color: #007bff;
@@ -3932,7 +3949,7 @@ class TraceabilityGenerator:
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
-        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link" onclick="event.stopPropagation();">🔧</a>'
         file_line_link = f'{file_line_link}{vscode_link}'
 
         # Check if this is a root requirement (no parents)
