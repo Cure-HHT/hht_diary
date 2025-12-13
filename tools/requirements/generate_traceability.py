@@ -2222,8 +2222,13 @@ class TraceabilityGenerator:
         // Expand all requirements
         function expandAll() {
             collapsedInstances.clear();
+            const isHierarchyView = currentView === 'hierarchy';
             document.querySelectorAll('.req-item').forEach(item => {
                 item.classList.remove('collapsed-by-parent');
+                // In hierarchy view, add hierarchy-visible to non-root items
+                if (isHierarchyView && item.dataset.isRoot !== 'true') {
+                    item.classList.add('hierarchy-visible');
+                }
             });
             document.querySelectorAll('.collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
@@ -2232,11 +2237,19 @@ class TraceabilityGenerator:
 
         // Collapse all requirements
         function collapseAll() {
+            const isHierarchyView = currentView === 'hierarchy';
             document.querySelectorAll('.req-item').forEach(item => {
-                if (item.querySelector('.collapse-icon').textContent) {
+                const icon = item.querySelector('.collapse-icon');
+                // In hierarchy view, remove hierarchy-visible from non-root items
+                if (isHierarchyView && item.dataset.isRoot !== 'true') {
+                    item.classList.remove('hierarchy-visible');
+                    item.classList.add('collapsed-by-parent');
+                }
+                // Collapse items that have children (indicated by collapse icon text)
+                if (icon && icon.textContent) {
                     collapsedInstances.add(item.dataset.instanceId);
                     hideDescendants(item.dataset.instanceId);
-                    item.querySelector('.collapse-icon').classList.add('collapsed');
+                    icon.classList.add('collapsed');
                 }
             });
         }
