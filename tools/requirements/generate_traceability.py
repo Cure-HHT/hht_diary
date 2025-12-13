@@ -2547,6 +2547,65 @@ class TraceabilityGenerator:
         .checkbox-label input {{
             cursor: pointer;
         }}
+        /* Edit Mode styles */
+        .edit-mode-panel {{
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }}
+        .edit-mode-header {{
+            font-size: 14px;
+            margin-bottom: 10px;
+        }}
+        .edit-mode-actions {{
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }}
+        .pending-moves-list {{
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }}
+        .pending-move-item {{
+            padding: 5px 10px;
+            background: white;
+            border-radius: 3px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .edit-btn {{
+            display: none;
+            padding: 2px 6px;
+            font-size: 10px;
+            margin-left: 5px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: white;
+        }}
+        .edit-btn:hover {{
+            background: #e9ecef;
+        }}
+        .edit-btn.to-roadmap {{
+            border-color: #fd7e14;
+            color: #fd7e14;
+        }}
+        .edit-btn.from-roadmap {{
+            border-color: #28a745;
+            color: #28a745;
+        }}
+        .edit-btn.move-file {{
+            border-color: #007bff;
+            color: #007bff;
+        }}
+        body.edit-mode-active .edit-btn {{
+            display: inline-block;
+        }}
         .controls {{
             margin: 15px 0;
             padding: 10px;
