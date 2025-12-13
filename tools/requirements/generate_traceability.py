@@ -1764,6 +1764,12 @@ class TraceabilityGenerator:
         .btn-secondary:hover {{
             background: #5a6268;
         }}
+        .btn-secondary.active {{
+            background: #0066cc;
+        }}
+        .btn-secondary.active:hover {{
+            background: #0052a3;
+        }}
         .req-tree {{
             margin: 15px 0;
         }}
@@ -2071,8 +2077,8 @@ class TraceabilityGenerator:
                 <input type="checkbox" id="chkIncludeDeprecated" onchange="toggleIncludeDeprecated()">
                 Include deprecated
             </label>
-            <button class="btn" onclick="expandAll()">▼ Expand</button>
-            <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse</button>
+            <button class="btn btn-secondary" id="btnExpandAll" onclick="expandAll()">▼ Expand All</button>
+            <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
             <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
             <span class="filter-stats" id="filterStats"></span>
         </div>
@@ -2217,6 +2223,7 @@ class TraceabilityGenerator:
                     hideDescendants(instanceId);
                 }
             }
+            updateExpandCollapseButtons();
         }
 
         // Hide all descendants of a requirement instance
@@ -2241,6 +2248,47 @@ class TraceabilityGenerator:
             // Note: impl-files sections are always visible as part of their requirement row
         }
 
+        // Update expand/collapse button states based on current state
+        function updateExpandCollapseButtons() {
+            const btnExpand = document.getElementById('btnExpandAll');
+            const btnCollapse = document.getElementById('btnCollapseAll');
+
+            // Count visible items with children (that can be expanded/collapsed)
+            let expandableCount = 0;
+            let expandedCount = 0;
+            let collapsedCount = 0;
+
+            document.querySelectorAll('.req-item:not(.filtered-out)').forEach(item => {
+                const icon = item.querySelector('.collapse-icon');
+                if (icon && icon.textContent) {  // Has children
+                    expandableCount++;
+                    if (icon.classList.contains('collapsed')) {
+                        collapsedCount++;
+                    } else {
+                        expandedCount++;
+                    }
+                }
+            });
+
+            // Update Expand button
+            if (expandableCount > 0 && expandedCount === expandableCount) {
+                btnExpand.classList.add('active');
+                btnExpand.textContent = '▼ All Expanded';
+            } else {
+                btnExpand.classList.remove('active');
+                btnExpand.textContent = '▼ Expand All';
+            }
+
+            // Update Collapse button
+            if (expandableCount > 0 && collapsedCount === expandableCount) {
+                btnCollapse.classList.add('active');
+                btnCollapse.textContent = '▶ All Collapsed';
+            } else {
+                btnCollapse.classList.remove('active');
+                btnCollapse.textContent = '▶ Collapse All';
+            }
+        }
+
         // Expand all requirements
         function expandAll() {
             collapsedInstances.clear();
@@ -2255,6 +2303,7 @@ class TraceabilityGenerator:
             document.querySelectorAll('.collapse-icon').forEach(el => {
                 el.classList.remove('collapsed');
             });
+            updateExpandCollapseButtons();
         }
 
         // Collapse all requirements
@@ -2274,6 +2323,7 @@ class TraceabilityGenerator:
                     icon.classList.add('collapsed');
                 }
             });
+            updateExpandCollapseButtons();
         }
 
         // View mode state
@@ -2517,6 +2567,7 @@ class TraceabilityGenerator:
                 statsText = `Showing ${visibleCount} of ${totalCount} requirements`;
             }
             document.getElementById('filterStats').textContent = statsText;
+            updateExpandCollapseButtons();
         }
 
         // Clear all filters
