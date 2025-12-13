@@ -314,17 +314,28 @@ class TraceabilityRequirement:
 
         return False
 
-    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
-        """Check if requirement is modified based on a set of changed files"""
-        if not file_set:
-            return False
-
-        # Check if this requirement's file is in the modified set
+    def _is_in_untracked_file(self) -> bool:
+        """Check if requirement is in an untracked (new) file"""
         rel_path = f"spec/{self.file_path.name}"
-        if rel_path not in file_set:
+        return rel_path in _git_untracked_files
+
+    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
+        """Check if requirement is modified based on a set of changed files
+
+        For modified files, checks if hash has changed.
+        For untracked files, all REQs are considered new (no hash check needed).
+        """
+        rel_path = f"spec/{self.file_path.name}"
+
+        # Check if file is untracked (new) - all REQs in new files are new
+        if rel_path in _git_untracked_files:
+            return True
+
+        # Check if file is in the modified set
+        if not file_set or rel_path not in file_set:
             return False
 
-        # File is in set - check if it has TBD hash or stale hash
+        # File is modified - check if it has TBD hash or stale hash
         if self.hash == 'TBD':
             return True
 
