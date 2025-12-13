@@ -3338,16 +3338,9 @@ class TraceabilityGenerator:
 
         # Add topic options dynamically
         for topic in sorted_topics:
-            html += f'                        <option value="{topic}">{topic}</option>\n'
+            html += f'                    <option value="{topic}">{topic}</option>\n'
 
-        html += """                    </select>
-                    <select id="filterCoverage" onchange="applyFilters()">
-                        <option value="">Cov</option>
-                        <option value="full">●</option>
-                        <option value="partial">◐</option>
-                        <option value="none">○</option>
-                    </select>
-                </div>
+        html += """                </select>
             </div>
 """
         # Add edit mode column header only if edit mode is enabled
@@ -4104,16 +4097,36 @@ class TraceabilityGenerator:
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
 
-        # Determine new/modified status suffix for status badge
-        # + indicates NEW (in untracked file), * indicates MODIFIED (hash changed)
+        # Determine status indicators using distinctive Unicode symbols
+        # ★ (star) = NEW, ◆ (diamond) = MODIFIED, ↝ (wave arrow) = MOVED
         status_suffix = ''
         status_suffix_class = ''
-        if req.is_new:
-            status_suffix = '+'
+        status_title = ''
+
+        is_moved = req.is_moved
+        is_new_not_moved = req.is_new and not is_moved
+        is_modified = req.is_modified
+
+        if is_moved and is_modified:
+            # Moved AND modified - show both indicators
+            status_suffix = '↝◆'
+            status_suffix_class = 'status-moved-modified'
+            status_title = 'MOVED and MODIFIED'
+        elif is_moved:
+            # Just moved (might be in new file)
+            status_suffix = '↝'
+            status_suffix_class = 'status-moved'
+            status_title = 'MOVED from another file'
+        elif is_new_not_moved:
+            # Truly new (in new file, not moved)
+            status_suffix = '★'
             status_suffix_class = 'status-new'
-        elif req.is_modified:
-            status_suffix = '*'
+            status_title = 'NEW requirement'
+        elif is_modified:
+            # Modified in place
+            status_suffix = '◆'
             status_suffix_class = 'status-modified'
+            status_title = 'MODIFIED content'
 
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
