@@ -318,6 +318,37 @@ class TraceabilityRequirement:
 
         return False
 
+    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
+        """Check if requirement is modified based on a set of changed files"""
+        if not file_set:
+            return False
+
+        # Check if this requirement's file is in the modified set
+        rel_path = f"spec/{self.file_path.name}"
+        if rel_path not in file_set:
+            return False
+
+        # File is in set - check if it has TBD hash or stale hash
+        if self.hash == 'TBD':
+            return True
+
+        # Calculate hash to verify content actually changed
+        full_content = self.body
+        if self.rationale:
+            full_content = f"{self.body}\n\n**Rationale**: {self.rationale}"
+        calculated_hash = calculate_requirement_hash(full_content)
+        return self.hash != calculated_hash
+
+    @property
+    def is_uncommitted(self) -> bool:
+        """Check if requirement has uncommitted changes (modified since last commit)"""
+        return self._check_modified_in_fileset(_git_uncommitted_files)
+
+    @property
+    def is_branch_changed(self) -> bool:
+        """Check if requirement changed vs main branch"""
+        return self._check_modified_in_fileset(_git_branch_changed_files)
+
     @classmethod
     def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
         """Create TraceabilityRequirement from shared parser Requirement
