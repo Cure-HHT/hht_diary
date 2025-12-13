@@ -3930,7 +3930,7 @@ class TraceabilityGenerator:
 
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / 'spec' / req.file_path.name
-        vscode_url = f"vscode://file{abs_spec_path}:{req.line_number}"
+        vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
         vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
         file_line_link = f'{file_line_link}{vscode_link}'
 
