@@ -1199,6 +1199,9 @@ class TraceabilityGenerator:
             updateDestinationColumns();
         }
 
+        // Store original status suffixes for restoration
+        const originalStatusSuffixes = new Map();
+
         function updateDestinationColumns() {
             // Clear all destination columns first
             document.querySelectorAll('.req-destination').forEach(el => {
@@ -1206,9 +1209,39 @@ class TraceabilityGenerator:
                 el.className = 'req-destination edit-mode-column';
             });
 
-            // Update destination columns for pending moves
+            // Restore original status suffixes for items not in pending moves
+            document.querySelectorAll('.req-item[data-req-id]').forEach(item => {
+                const reqId = item.dataset.reqId;
+                const suffixEl = item.querySelector('.status-suffix');
+                if (suffixEl && originalStatusSuffixes.has(reqId)) {
+                    const original = originalStatusSuffixes.get(reqId);
+                    // Only restore if not in pending moves
+                    if (!pendingMoves.some(m => m.reqId === reqId)) {
+                        suffixEl.textContent = original.text;
+                        suffixEl.className = original.className;
+                        suffixEl.title = original.title;
+                    }
+                }
+            });
+
+            // Update destination columns and status suffixes for pending moves
             pendingMoves.forEach(m => {
-                const destEl = document.querySelector(`.req-destination[data-req-id="${m.reqId}"]`);
+                const reqItem = document.querySelector(`.req-item[data-req-id="${m.reqId}"]`);
+                if (!reqItem) return;
+
+                const destEl = reqItem.querySelector('.req-destination');
+                const suffixEl = reqItem.querySelector('.status-suffix');
+
+                // Save original status suffix if not already saved
+                if (suffixEl && !originalStatusSuffixes.has(m.reqId)) {
+                    originalStatusSuffixes.set(m.reqId, {
+                        text: suffixEl.textContent,
+                        className: suffixEl.className,
+                        title: suffixEl.title
+                    });
+                }
+
+                // Update destination column
                 if (destEl) {
                     if (m.moveType === 'to-roadmap') {
                         destEl.textContent = '→ Roadmap';
@@ -1221,6 +1254,21 @@ class TraceabilityGenerator:
                         const displayName = m.targetFile.replace('roadmap/', '').replace(/\.md$/, '');
                         destEl.textContent = '→ ' + displayName;
                         destEl.className = 'req-destination edit-mode-column';
+                    }
+                }
+
+                // Update status suffix to show "will be moved" indicator
+                if (suffixEl) {
+                    const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
+                    // If already has a status, show both (moved + original)
+                    if (originalText && originalText !== '↝') {
+                        suffixEl.textContent = '↝' + originalText;
+                        suffixEl.className = 'status-suffix status-moved-modified';
+                        suffixEl.title = 'PENDING MOVE + ' + (originalStatusSuffixes.get(m.reqId)?.title || '');
+                    } else {
+                        suffixEl.textContent = '↝';
+                        suffixEl.className = 'status-suffix status-moved';
+                        suffixEl.title = 'PENDING MOVE';
                     }
                 }
             });
