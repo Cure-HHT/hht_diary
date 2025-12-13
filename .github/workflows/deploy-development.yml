@@ -1,9 +1,9 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00043: Automated Deployment Pipeline
-#   REQ-o00044: Database Migration Automation
 #
 # Development Environment Deployment
 # Triggers automatically on push to main branch
+# Builds Flutter web app and deploys to Firebase Hosting
 
 name: Deploy to Development
 
@@ -12,107 +12,47 @@ on:
     branches: [main]
   workflow_dispatch:  # Allow manual trigger
 
-env:
-  ENVIRONMENT: development
-  SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID_DEV }}
+permissions:
+  contents: read
+  id-token: write  # Required for Workload Identity Federation
 
 jobs:
   deploy:
     name: Deploy to Development
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    environment: development  # Not active until GitHub environment configured
+    environment: development
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/clinical_diary/functions/package-lock.json
-
       - name: Setup Dart/Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.3'
+          flutter-version: '3.32.2'
           channel: 'stable'
 
-      - name: Install Supabase CLI
-        run: |
-          # Pinned to v2.54.10 (matches Dockerfile version for consistency)
-          # Last updated: 2025-11-11
-          wget -qO- https://github.com/supabase/cli/releases/download/v2.54.10/supabase_linux_amd64.tar.gz | tar xzf -
-          sudo mv supabase /usr/local/bin/
+      - name: Get Flutter dependencies
+        working-directory: apps/clinical_diary
+        run: flutter pub get
 
-      - name: Install dependencies
-        working-directory: apps/clinical_diary/functions
-        run: npm install
+      - name: Build Flutter web app
+        working-directory: apps/clinical_diary
+        run: flutter build web --release --dart-define=APP_FLAVOR=dev
 
-      - name: Load secrets from Doppler
-        uses: dopplerhq/cli-action@v3
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN_DEV }}
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      - name: Lint code
-        working-directory: apps/clinical_diary/functions
-        run: npm run lint
-
-      - name: Type check
-        working-directory: apps/clinical_diary/functions
-        run: npm run check-types
-
-      - name: Run unit tests
-        working-directory: apps/clinical_diary/functions
-        run: npm test
-
-      - name: Database migration (with rollback on failure)
-        id: migrate
-        run: |
-          echo "Starting database migration..."
-
-          # Link to Supabase project
-          doppler run -- supabase link --project-ref $SUPABASE_PROJECT_ID
-
-          # Execute migrations
-          if ! doppler run -- supabase db push; then
-            echo "Migration failed, attempting rollback..."
-            doppler run -- supabase db reset --db-url $DATABASE_URL
-            exit 1
-          fi
-
-          echo "Migration completed successfully"
-
-      - name: Deploy application
-        run: |
-          echo "Deploying application to Supabase..."
-          doppler run -- supabase functions deploy --project-ref $SUPABASE_PROJECT_ID
-          echo "Deployment complete"
-
-      - name: Run smoke tests
-        run: |
-          echo "Running smoke tests..."
-          if [ -d "tools/testing/smoke-tests" ] && [ -x "tools/testing/smoke-tests/run-smoke-tests.sh" ]; then
-            cd tools/testing/smoke-tests
-            doppler run -- ./run-smoke-tests.sh development
-          else
-            echo "⚠️ Smoke tests not yet implemented (tools/testing/smoke-tests not found)"
-            echo "TODO: Implement smoke tests for deployment verification"
-          fi
-
-      - name: Record deployment
-        if: success()
-        run: |
-          echo "Recording deployment..."
-          echo "$(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> deployment-log.txt
-          echo "Environment: development" >> deployment-log.txt
-          echo "Commit: ${{ github.sha }}" >> deployment-log.txt
-          echo "Deployer: ${{ github.actor }}" >> deployment-log.txt
-          echo "Outcome: success" >> deployment-log.txt
-          echo "---" >> deployment-log.txt
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          projectId: hht-diary-dev
+          channelId: live
+          entryPoint: apps/clinical_diary
 
       - name: Notify success
         if: success()
@@ -121,21 +61,9 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo "Deployer: ${{ github.actor }}"
 
-      - name: Rollback on failure
-        if: failure()
-        run: |
-          echo "❌ Deployment failed, initiating rollback..."
-          if [ -d "tools/testing/smoke-tests" ] && [ -x "tools/testing/smoke-tests/rollback.sh" ]; then
-            cd tools/testing/smoke-tests
-            ./rollback.sh development
-          else
-            echo "⚠️ Rollback script not yet implemented (tools/testing/smoke-tests/rollback.sh not found)"
-            echo "Manual rollback may be required"
-          fi
-
       - name: Notify failure
         if: failure()
         run: |
-          echo "❌ Development deployment failed and rolled back"
+          echo "❌ Development deployment failed"
           echo "Commit: ${{ github.sha }}"
           echo "Check logs for details"

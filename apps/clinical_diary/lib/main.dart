@@ -8,6 +8,8 @@
 import 'dart:async';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -89,6 +91,20 @@ void main() async {
 
       // Timezone is now embedded in ISO 8601 timestamp strings via DateTimeFormatter.
       // No separate TimezoneService initialization needed.
+
+      // CUR-546: Load Callisto feature flags by default for demo
+      try {
+        final apiKey = AppConfig.qaApiKey;
+        if (apiKey.isNotEmpty) {
+          await FeatureFlagService.instance.loadFromServer('callisto', apiKey);
+          debugPrint('Loaded Callisto feature flags successfully');
+        } else {
+          debugPrint('Skipping feature flag load: no API key configured');
+        }
+      } catch (e, stack) {
+        debugPrint('Feature flag loading error: $e');
+        debugPrint('Stack trace:\n$stack');
+      }
 
       runApp(const ClinicalDiaryApp());
     },
