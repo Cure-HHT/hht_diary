@@ -2201,6 +2201,11 @@ if __name__ == '__main__':
             text-overflow: ellipsis;
             white-space: nowrap;
         }}
+        /* In edit mode, allow location column to show edit buttons */
+        body.edit-mode-active .req-location {{
+            overflow: visible;
+            white-space: normal;
+        }}
         .req-item.impl-file {{
             border-left: 3px solid #6c757d;
             background: #f8f9fa;
