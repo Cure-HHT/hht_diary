@@ -1111,7 +1111,7 @@ class TraceabilityGenerator:
         function updatePendingMovesUI() {
             const list = document.getElementById('pendingMovesList');
             const count = document.getElementById('pendingChangesCount');
-            const btn = document.getElementById('btnGenerateScript');
+            const btn = document.getElementById('btnExportMoves');
 
             count.textContent = pendingMoves.length + ' pending';
             btn.disabled = pendingMoves.length === 0;
@@ -1155,108 +1155,32 @@ class TraceabilityGenerator:
                 return;
             }
 
-            // Generate Python script
-            let script = `#!/usr/bin/env python3
-\"\"\"
-Auto-generated REQ Move Script
-Generated: ${new Date().toISOString()}
+            // Build JSON moves array
+            const moves = pendingMoves
+                .filter(m => m.targetFile)
+                .map(m => ({
+                    reqId: m.reqId,
+                    source: m.sourceFile,
+                    target: m.targetFile
+                }));
 
-This script moves requirements between spec files.
-Review carefully before running!
+            if (moves.length === 0) {
+                alert('No valid moves (all moves need target files).');
+                return;
+            }
 
-Usage: python3 move_reqs.py
-\"\"\"
+            const jsonOutput = JSON.stringify(moves, null, 2);
 
-import re
-from pathlib import Path
-
-def move_req_to_file(req_id: str, source_file: str, target_file: str):
-    \"\"\"Move a requirement from source to target file\"\"\"
-    spec_dir = Path('spec')
-
-    # Handle roadmap paths
-    if source_file.startswith('roadmap/'):
-        source_path = spec_dir / source_file
-    else:
-        source_path = spec_dir / source_file
-
-    if target_file.startswith('roadmap/'):
-        target_path = spec_dir / target_file
-        target_path.parent.mkdir(exist_ok=True)
-    else:
-        target_path = spec_dir / target_file
-
-    if not source_path.exists():
-        print(f'ERROR: Source file not found: {source_path}')
-        return False
-
-    # Read source file
-    source_content = source_path.read_text()
-
-    # Find the requirement block (from # REQ-xxx to *End* line)
-    pattern = rf'(# REQ-{req_id}:.*?\\*End\\*.*?\\*\\*Hash\\*\\*:.*?\\n---\\n?)'
-    match = re.search(pattern, source_content, re.DOTALL)
-
-    if not match:
-        print(f'ERROR: Could not find REQ-{req_id} in {source_path}')
-        return False
-
-    req_block = match.group(1)
-
-    # Remove from source
-    new_source = re.sub(pattern, '', source_content, flags=re.DOTALL)
-    source_path.write_text(new_source)
-    print(f'Removed REQ-{req_id} from {source_path}')
-
-    # Add to target (create file if needed)
-    if target_path.exists():
-        target_content = target_path.read_text()
-        # Append before References section or at end
-        if '## References' in target_content:
-            target_content = target_content.replace('## References', req_block + '\\n## References')
-        else:
-            target_content = target_content.rstrip() + '\\n\\n' + req_block
-    else:
-        # Create new file with header
-        header = target_path.stem.replace('-', ' ').title()
-        target_content = f'''# {header}
-
-**Version**: 1.0
-**Audience**: Product Requirements
-**Last Updated**: {new Date().toISOString().split('T')[0]}
-**Status**: Draft
-
----
-
-{req_block}
-'''
-    target_path.write_text(target_content)
-    print(f'Added REQ-{req_id} to {target_path}')
-    return True
-
-if __name__ == '__main__':
-    print('Moving requirements...')
-`;
-
-            // Add move commands
-            pendingMoves.forEach(m => {
-                if (m.targetFile) {
-                    script += `    move_req_to_file('${m.reqId}', '${m.sourceFile}', '${m.targetFile}')\\n`;
-                }
-            });
-
-            script += `    print('Done! Review changes with: git diff spec/')\\n`;
-
-            // Create downloadable file
-            const blob = new Blob([script], { type: 'text/plain' });
+            // Create downloadable JSON file
+            const blob = new Blob([jsonOutput], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'move_reqs.py';
+            a.download = 'moves.json';
             a.click();
             URL.revokeObjectURL(url);
 
-            alert('Script downloaded as move_reqs.py\\n\\nReview and run: python3 move_reqs.py');
+            alert('Saved moves.json\\n\\nRun with:\\n  python3 tools/requirements/move_reqs.py moves.json\\n\\nOr preview first:\\n  python3 tools/requirements/move_reqs.py --dry-run moves.json');
         }
         // ========== End Edit Mode Functions ==========
 
@@ -2437,7 +2361,7 @@ if __name__ == '__main__':
             </div>
             <div class="edit-mode-actions">
                 <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
-                <button class="btn" id="btnGenerateScript" onclick="generateMoveScript()" disabled>Generate Move Script</button>
+                <button class="btn" id="btnExportMoves" onclick="generateMoveScript()" disabled>Export Moves JSON</button>
             </div>
             <div id="pendingMovesList" class="pending-moves-list"></div>
         </div>

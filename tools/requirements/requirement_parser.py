@@ -30,6 +30,9 @@ class Requirement:
     line_number: int
     heading_level: int  # Heading level (1-6)
     rationale: str = ''  # Rationale section extracted from body
+    start_pos: int = 0  # Character position of requirement header start
+    end_pos: int = 0  # Character position after end marker (before ---)
+    block_end_pos: int = 0  # Character position after closing --- delimiter
 
     @property
     def level_prefix(self) -> str:
@@ -60,6 +63,16 @@ class Requirement:
         """Extract base ID without sponsor prefix (e.g., 'd00001' from 'CAL-d00001')"""
         match = re.match(r'^(?:[A-Z]{2,4}-)?([pod]\d{5})$', self.id)
         return match.group(1) if match else self.id
+
+    def get_raw_block(self, content: str) -> str:
+        """Extract the raw requirement block from file content.
+
+        Uses start_pos and block_end_pos to slice the original content.
+        Includes the closing --- delimiter.
+        """
+        if self.block_end_pos > self.start_pos:
+            return content[self.start_pos:self.block_end_pos]
+        return ""
 
 
 @dataclass
@@ -239,6 +252,18 @@ class RequirementParser:
             if implements_str != '-':
                 implements = [impl.strip() for impl in implements_str.split(',') if impl.strip()]
 
+            # Calculate character positions for raw block extraction
+            start_pos = header_match.start()
+            end_pos = req_start + status_match.end() + end_marker_match.end()
+
+            # Find the closing --- delimiter after end marker
+            block_end_pos = end_pos
+            after_end_marker = content[end_pos:]
+            # Look for newline followed by --- (requirement blocks end with \n---\n)
+            delimiter_match = re.match(r'\s*\n---\n?', after_end_marker)
+            if delimiter_match:
+                block_end_pos = end_pos + delimiter_match.end()
+
             req = Requirement(
                 id=req_id,
                 title=title,
@@ -250,7 +275,10 @@ class RequirementParser:
                 file_path=file_path,
                 line_number=line_num,
                 heading_level=heading_level,
-                rationale=rationale
+                rationale=rationale,
+                start_pos=start_pos,
+                end_pos=end_pos,
+                block_end_pos=block_end_pos
             )
 
             result.requirements[req_id] = req
