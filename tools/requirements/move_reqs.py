@@ -86,11 +86,28 @@ def move_req_to_file(req_id: str, source_file: str, target_file: str, spec_dir: 
 
     req_block, start_pos, end_pos = result
 
+    # Extract title from the REQ block for display
+    import re as re_module
+    title_match = re_module.search(r'^#{1,6}\s+REQ-[^:]+:\s*(.+)$', req_block, re_module.MULTILINE)
+    title = title_match.group(1).strip() if title_match else '(unknown)'
+
     if dry_run:
+        target_exists = target_path.exists()
+        is_roadmap_move = 'roadmap/' in target_file and 'roadmap/' not in source_file
+        is_from_roadmap = 'roadmap/' in source_file and 'roadmap/' not in target_file
+
         print(f"  📋 Would move REQ-{req_id}:")
-        print(f"     From: {source_file}")
-        print(f"     To:   {target_file}")
-        print(f"     Block size: {len(req_block)} chars")
+        print(f"     Title:  {title}")
+        print(f"     From:   {source_file}")
+        print(f"     To:     {target_file}")
+        print(f"     Target: {'exists' if target_exists else 'will be created'}")
+        print(f"     Block:  {len(req_block)} chars")
+        if is_roadmap_move:
+            print(f"     Status: Will show ↝ (moved to roadmap)")
+        elif is_from_roadmap:
+            print(f"     Status: Will show ↝ (moved from roadmap)")
+        else:
+            print(f"     Status: Will show ↝ (moved between files)")
         return True
 
     # Remove from source
