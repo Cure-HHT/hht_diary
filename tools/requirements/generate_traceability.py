@@ -3928,6 +3928,12 @@ class TraceabilityGenerator:
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
 
+        # Add VS Code link for opening spec file in editor
+        abs_spec_path = self.repo_root / 'spec' / req.file_path.name
+        vscode_url = f"vscode://file{abs_spec_path}:{req.line_number}"
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
+        file_line_link = f'{file_line_link}{vscode_link}'
+
         # Check if this is a root requirement (no parents)
         is_root = not req.implements or len(req.implements) == 0
         is_root_attr = 'data-is-root="true"' if is_root else 'data-is-root="false"'
