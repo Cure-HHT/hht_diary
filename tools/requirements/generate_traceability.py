@@ -320,7 +320,7 @@ class TraceabilityRequirement:
 
     def _is_in_untracked_file(self) -> bool:
         """Check if requirement is in an untracked (new) file"""
-        rel_path = f"spec/{self.file_path.name}"
+        rel_path = self._get_spec_relative_path()
         return rel_path in _git_untracked_files
 
     def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
@@ -329,7 +329,7 @@ class TraceabilityRequirement:
         For modified files, checks if hash has changed.
         For untracked files, all REQs are considered new (no hash check needed).
         """
-        rel_path = f"spec/{self.file_path.name}"
+        rel_path = self._get_spec_relative_path()
 
         # Check if file is untracked (new) - all REQs in new files are new
         if rel_path in _git_untracked_files:
@@ -4028,7 +4028,7 @@ class TraceabilityGenerator:
             status_suffix_class = 'status-modified'
 
         # Add VS Code link for opening spec file in editor
-        abs_spec_path = self.repo_root / 'spec' / req.file_path.name
+        abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
         vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
         file_line_link = f'{file_line_link}{vscode_link}'
