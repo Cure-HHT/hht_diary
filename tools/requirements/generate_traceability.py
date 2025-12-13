@@ -1218,6 +1218,9 @@ class TraceabilityGenerator:
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Requirements Traceability Matrix</title>
     <style>
         body {{
@@ -2072,7 +2075,7 @@ class TraceabilityGenerator:
 
         # Add VS Code link for opening in editor
         abs_file_path = self.repo_root / file_path
-        vscode_url = f"vscode://file{abs_file_path}:{line_num}"
+        vscode_url = f"vscode://file/{abs_file_path}:{line_num}"
         vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;">⚙</a>'
         file_link = f'{file_link}{vscode_link}'
 
@@ -2155,7 +2158,7 @@ class TraceabilityGenerator:
 
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / 'spec' / req.file_path.name
-        vscode_url = f"vscode://file{abs_spec_path}:{req.line_number}"
+        vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
         vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
         file_line_link = f'{file_line_link}{vscode_link}'
 

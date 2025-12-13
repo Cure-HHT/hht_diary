@@ -27,11 +27,15 @@ echo "Starting server at http://localhost:$PORT/validation-reports/REQ-report.ht
 echo "Press Ctrl+C to stop"
 echo ""
 
+# Cache-busting timestamp
+CACHE_BUST="?t=$(date +%s)"
+URL="http://localhost:$PORT/validation-reports/REQ-report.html${CACHE_BUST}"
+
 # Open browser (works on Linux/macOS)
 if command -v xdg-open &> /dev/null; then
-    xdg-open "http://localhost:$PORT/validation-reports/REQ-report.html" &
+    xdg-open "$URL" &
 elif command -v open &> /dev/null; then
-    open "http://localhost:$PORT/validation-reports/REQ-report.html" &
+    open "$URL" &
 fi
 
 # Serve from repo root so spec/ links work
