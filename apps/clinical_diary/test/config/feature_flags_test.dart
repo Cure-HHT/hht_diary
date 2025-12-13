@@ -368,6 +368,55 @@ void main() {
         // Should have default fonts (all 3)
         expect(service.availableFonts, hasLength(3));
       });
+
+      // CUR-546: Test for loading Callisto flags with validation enabled
+      test(
+        'successfully loads callisto flags with validations enabled',
+        () async {
+          // Callisto config as returned by server (matches functions/src/sponsor.ts)
+          final responseBody = jsonEncode({
+            'flags': {
+              'useReviewScreen': false,
+              'useAnimations': true,
+              'requireOldEntryJustification': true,
+              'enableShortDurationConfirmation': true,
+              'enableLongDurationConfirmation': true,
+              'longDurationThresholdMinutes': 60,
+              'availableFonts': [
+                'Roboto',
+                'OpenDyslexic',
+                'AtkinsonHyperlegible',
+              ],
+            },
+          });
+
+          service.httpClient = MockClient((request) async {
+            return http.Response(responseBody, 200);
+          });
+
+          final result = await service.loadFromServer(
+            'callisto',
+            'test-api-key',
+          );
+
+          expect(result, true);
+          expect(service.lastError, isNull);
+          expect(service.currentSponsorId, 'callisto');
+
+          // Callisto has all validation features enabled
+          expect(service.requireOldEntryJustification, true);
+          expect(service.enableShortDurationConfirmation, true);
+          expect(service.enableLongDurationConfirmation, true);
+          expect(service.longDurationThresholdMinutes, 60);
+
+          // UI flags
+          expect(service.useReviewScreen, false);
+          expect(service.useAnimations, true);
+
+          // All fonts available
+          expect(service.availableFonts, hasLength(3));
+        },
+      );
     });
 
     group('availableFonts', () {

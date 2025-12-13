@@ -23,9 +23,19 @@ class FeatureFlagsScreen extends StatefulWidget {
 
 class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
   final _featureFlagService = FeatureFlagService.instance;
-  String _selectedSponsor = FeatureFlags.knownSponsors.first;
+  // CUR-546: Default to currently loaded sponsor, or first known sponsor
+  late String _selectedSponsor;
   bool _isLoading = false;
   String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use the currently loaded sponsor if available, otherwise default to first
+    _selectedSponsor =
+        _featureFlagService.currentSponsorId ??
+        FeatureFlags.knownSponsors.first;
+  }
 
   @override
   Widget build(BuildContext context) {
