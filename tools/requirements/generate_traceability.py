@@ -845,6 +845,14 @@ class TraceabilityGenerator:
                 implementsHtml = `<div class="req-card-implements">Implements: ${implLinks}</div>`;
             }
 
+            // Determine if in roadmap based on file path
+            const isInRoadmap = req.filePath.includes('roadmap/');
+            const moveButtons = isInRoadmap
+                ? `<button class="edit-btn from-roadmap panel-edit-btn" onclick="addPendingMove('${reqId}', '${req.file}', 'from-roadmap')" title="Move out of roadmap">↩ From Roadmap</button>
+                   <button class="edit-btn move-file panel-edit-btn" onclick="showMoveToFile('${reqId}', '${req.file}')" title="Move to different file">📁 Move</button>`
+                : `<button class="edit-btn to-roadmap panel-edit-btn" onclick="addPendingMove('${reqId}', '${req.file}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
+                   <button class="edit-btn move-file panel-edit-btn" onclick="showMoveToFile('${reqId}', '${req.file}')" title="Move to different file">📁 Move</button>`;
+
             card.innerHTML = `
                 <div class="req-card-header">
                     <span class="req-card-title">REQ-${reqId}: ${req.title}</span>
@@ -855,7 +863,10 @@ class TraceabilityGenerator:
                         <span class="badge">${req.level}</span>
                         <span class="badge">${req.status}</span>
                         <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); return false;" class="file-ref-link">${req.file}:${req.line}</a>
-                        <a href="vscode://file/${window.REPO_ROOT}/${req.filePath.replace(/^\\.\\.\\//, '')}:${req.line}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;">⚙</a>
+                        <a href="vscode://file/${window.REPO_ROOT}/${req.filePath.replace(/^\\.\\.\\//, '')}:${req.line}" title="Open in VS Code" class="vscode-link">🔧</a>
+                    </div>
+                    <div class="req-card-actions edit-actions">
+                        ${moveButtons}
                     </div>
                     ${implementsHtml}
                     <div class="req-card-content markdown-body">
@@ -1725,7 +1736,7 @@ class TraceabilityGenerator:
                 <div>
                     <span id="code-viewer-title" class="code-viewer-title"></span>
                     <span id="code-viewer-line" class="code-viewer-line"></span>
-                    <a id="code-viewer-vscode" href="#" title="Open in VS Code" style="margin-left: 12px; color: #007acc; text-decoration: none; font-size: 1.1em;">⚙</a>
+                    <a id="code-viewer-vscode" href="#" title="Open in VS Code" class="vscode-link" style="font-size: 18px;">🔧</a>
                 </div>
                 <button class="code-viewer-close" onclick="closeCodeViewer()">Close (Esc)</button>
             </div>
@@ -2406,7 +2417,8 @@ class TraceabilityGenerator:
         }}
         body.edit-mode-active .edit-actions {{
             display: flex;
-            gap: 4px;
+            flex-direction: column;
+            gap: 2px;
         }}
         .edit-btn {{
             padding: 2px 6px;
@@ -2445,6 +2457,17 @@ class TraceabilityGenerator:
         .edit-btn.move-file {{
             border-color: #007bff;
             color: #007bff;
+        }}
+        /* Panel/card edit buttons - always visible, horizontal layout */
+        .req-card-actions {{
+            display: flex !important;
+            flex-direction: row;
+            gap: 8px;
+            margin: 8px 0;
+        }}
+        .panel-edit-btn {{
+            font-size: 11px;
+            padding: 4px 8px;
         }}
         .controls {{
             margin: 15px 0;
@@ -2573,7 +2596,7 @@ class TraceabilityGenerator:
             flex: 1;
             display: grid;
             /* REQ ID | Title | Level | Status | Coverage | Tests | Topic | Destination */
-            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 120px 90px;
+            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 180px 110px;
             align-items: center;
             gap: 6px;
             min-width: 700px;
@@ -2613,11 +2636,6 @@ class TraceabilityGenerator:
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-        }}
-        /* In edit mode, allow location column to show edit buttons */
-        body.edit-mode-active .req-location {{
-            overflow: visible;
-            white-space: normal;
         }}
         /* Edit mode column - hidden by default, shown in edit mode */
         .edit-mode-column {{
@@ -2714,7 +2732,7 @@ class TraceabilityGenerator:
         .filter-header {{
             display: grid;
             /* REQ ID | Title | Level | Status | Coverage | Tests | Topic | Destination */
-            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 120px 90px;
+            grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 180px 110px;
             align-items: center;
             gap: 6px;
             padding: 8px 10px 8px 42px;
@@ -3631,12 +3649,15 @@ class TraceabilityGenerator:
         spec_subpath = 'spec/roadmap' if req.is_roadmap else 'spec'
         spec_rel_path = f'{spec_subpath}/{req.file_path.name}'
 
+        # Display filename without .md extension and without line number
+        display_filename = req.file_path.stem  # removes .md extension
+
         if embed_content:
             req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">{req.id}</a>'
-            file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
+            file_line_link = f'<span style="color: inherit;">{display_filename}</span>'
         else:
             req_link = f'<a href="{self._base_path}{spec_rel_path}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
-            file_line_link = f'<a href="{self._base_path}{spec_rel_path}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+            file_line_link = f'<a href="{self._base_path}{spec_rel_path}#L{req.line_number}" style="color: inherit; text-decoration: none;">{display_filename}</a>'
 
         # Determine status indicators using distinctive Unicode symbols
         # ★ (star) = NEW, ◆ (diamond) = MODIFIED, ↝ (wave arrow) = MOVED
@@ -3669,11 +3690,9 @@ class TraceabilityGenerator:
             status_suffix_class = 'status-modified'
             status_title = 'MODIFIED content'
 
-        # Add VS Code link for opening spec file in editor
+        # VS Code link for use in side panel (not in topic column)
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
-        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link" onclick="event.stopPropagation();">🔧</a>'
-        file_line_link = f'{file_line_link}{vscode_link}'
 
         # Check if this is a root requirement (no parents)
         is_root = not req.implements or len(req.implements) == 0
