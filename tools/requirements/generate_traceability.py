@@ -132,6 +132,61 @@ def get_git_changed_vs_main(repo_root: Path, main_branch: str = 'main') -> Set[s
         return set()
 
 
+def get_committed_req_locations(repo_root: Path) -> Dict[str, str]:
+    """Get REQ ID -> file path mapping from committed state (HEAD).
+
+    This allows detection of moved requirements by comparing current location
+    to where the REQ was in the last commit.
+
+    Returns:
+        Dict mapping REQ ID (e.g., 'd00001') to relative file path (e.g., 'spec/dev-app.md')
+    """
+    req_locations: Dict[str, str] = {}
+    req_pattern = re.compile(r'^#{1,6}\s+REQ-(?:[A-Z]{2,4}-)?([pod]\d{5}):', re.MULTILINE)
+
+    try:
+        # Get list of spec files in committed state
+        result = subprocess.run(
+            ['git', 'ls-tree', '-r', '--name-only', 'HEAD', 'spec/'],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        for file_path in result.stdout.strip().split('\n'):
+            if not file_path.endswith('.md'):
+                continue
+            if any(skip in file_path for skip in ['INDEX.md', 'README.md', 'requirements-format.md']):
+                continue
+
+            # Get file content from committed state
+            try:
+                content_result = subprocess.run(
+                    ['git', 'show', f'HEAD:{file_path}'],
+                    cwd=repo_root,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                content = content_result.stdout
+
+                # Find all REQ IDs in this file
+                for match in req_pattern.finditer(content):
+                    req_id = match.group(1)  # Just the ID part (e.g., 'd00001')
+                    req_locations[req_id] = file_path
+
+            except subprocess.CalledProcessError:
+                # File might not exist in HEAD (new file)
+                continue
+
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo
+        pass
+
+    return req_locations
+
+
 @dataclass
 class TestInfo:
     """Represents test coverage for a requirement"""
@@ -145,14 +200,18 @@ class TestInfo:
 _git_uncommitted_files: Set[str] = set()  # Modified since last commit (git status)
 _git_untracked_files: Set[str] = set()  # New untracked files (git status ??)
 _git_branch_changed_files: Set[str] = set()  # Changed vs main branch (git diff)
+_git_committed_req_locations: Dict[str, str] = {}  # REQ ID -> file path in committed state
 
 
-def set_git_modified_files(uncommitted: Set[str], untracked: Set[str], branch_changed: Set[str]):
+def set_git_modified_files(uncommitted: Set[str], untracked: Set[str], branch_changed: Set[str],
+                           committed_req_locations: Optional[Dict[str, str]] = None):
     """Set the git-modified files for modified detection"""
-    global _git_uncommitted_files, _git_untracked_files, _git_branch_changed_files
+    global _git_uncommitted_files, _git_untracked_files, _git_branch_changed_files, _git_committed_req_locations
     _git_uncommitted_files = uncommitted
     _git_untracked_files = untracked
     _git_branch_changed_files = branch_changed
+    if committed_req_locations is not None:
+        _git_committed_req_locations = committed_req_locations
 
 
 @dataclass
@@ -233,6 +292,28 @@ class TraceabilityRequirement:
             return False  # New files are "new", not "modified"
         return self.is_uncommitted
 
+    @property
+    def is_moved(self) -> bool:
+        """Check if requirement was moved from a different file.
+
+        A requirement is considered moved if:
+        - It exists in the committed state in a different file, OR
+        - It's in a new file but has a non-TBD hash (suggesting it was copied/moved)
+        """
+        current_path = self._get_spec_relative_path()
+        committed_path = _git_committed_req_locations.get(self.id)
+
+        if committed_path is not None:
+            # REQ existed in committed state - check if path changed
+            return committed_path != current_path
+
+        # REQ doesn't exist in committed state
+        # If it's in a new file but has a real hash, it was likely moved/copied
+        if self._is_in_untracked_file() and self.hash and self.hash != 'TBD':
+            return True
+
+        return False
+
     @classmethod
     def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
         """Create TraceabilityRequirement from shared parser Requirement
@@ -301,7 +382,9 @@ class TraceabilityGenerator:
         # "Changed vs Main" should be inclusive of uncommitted changes
         # (uncommitted changes are also different from main)
         branch_changed = branch_changed | uncommitted
-        set_git_modified_files(uncommitted, untracked_files, branch_changed)
+        # Get committed REQ locations for move detection
+        committed_req_locations = get_committed_req_locations(self.repo_root)
+        set_git_modified_files(uncommitted, untracked_files, branch_changed, committed_req_locations)
 
         # Report uncommitted changes
         if uncommitted:
@@ -2244,8 +2327,21 @@ class TraceabilityGenerator:
             margin-left: 1px;
             cursor: help;
         }}
-        .status-new {{ color: #28a745; }}  /* Green + for NEW */
-        .status-modified {{ color: #fd7e14; }}  /* Orange * for MODIFIED */
+        .status-new {{ color: #28a745; }}  /* Green ★ for NEW */
+        .status-modified {{ color: #fd7e14; }}  /* Orange ◆ for MODIFIED */
+        .status-moved {{ color: #6f42c1; }}  /* Purple ↝ for MOVED */
+        .status-moved-modified {{ color: #6f42c1; }}  /* Purple for MOVED+MODIFIED */
+        .roadmap-icon {{
+            margin-left: 4px;
+            font-size: 12px;
+            opacity: 0.8;
+        }}
+        .req-coverage {{
+            min-width: 30px;
+            max-width: 40px;
+            text-align: center;
+            font-size: 14px;
+        }}
         .test-badge {{
             display: inline-block;
             padding: 2px 6px;
@@ -2496,25 +2592,26 @@ class TraceabilityGenerator:
                     <option value="failed">❌ Failed</option>
                 </select>
             </div>
-            <div class="filter-column filter-column-multi">
-                <div class="filter-label">Topic / Coverage</div>
-                <div class="filter-row">
-                    <select id="filterTopic" onchange="applyFilters()">
-                        <option value="">Topic</option>
+            <div class="filter-column" style="min-width: 40px; max-width: 50px;">
+                <div class="filter-label">Cov</div>
+                <select id="filterCoverage" onchange="applyFilters()" style="width: 100%;">
+                    <option value="">All</option>
+                    <option value="full">●</option>
+                    <option value="partial">◐</option>
+                    <option value="none">○</option>
+                </select>
+            </div>
+            <div class="filter-column">
+                <div class="filter-label">Topic</div>
+                <select id="filterTopic" onchange="applyFilters()">
+                    <option value="">All</option>
 """
 
         # Add topic options dynamically
         for topic in sorted_topics:
-            html += f'                        <option value="{topic}">{topic}</option>\n'
+            html += f'                    <option value="{topic}">{topic}</option>\n'
 
-        html += """                    </select>
-                    <select id="filterCoverage" onchange="applyFilters()">
-                        <option value="">Cov</option>
-                        <option value="full">●</option>
-                        <option value="partial">◐</option>
-                        <option value="none">○</option>
-                    </select>
-                </div>
+        html += """                </select>
             </div>
             <div class="filter-column edit-mode-column" style="display: none;">
                 <div class="filter-label">Destination</div>
@@ -3111,6 +3208,7 @@ class TraceabilityGenerator:
                     <div class="req-header" style="font-family: 'Consolas', 'Monaco', monospace; font-size: 12px;">{file_link}</div>
                     <div class="req-level"></div>
                     <div class="req-badges"></div>
+                    <div class="req-coverage"></div>
                     <div class="req-status"></div>
                     <div class="req-location"></div>
                 </div>
@@ -3183,16 +3281,36 @@ class TraceabilityGenerator:
             req_link = f'<a href="{self._base_path}{spec_rel_path}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
             file_line_link = f'<a href="{self._base_path}{spec_rel_path}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
 
-        # Determine new/modified status suffix for status badge
-        # + indicates NEW (in untracked file), * indicates MODIFIED (hash changed)
+        # Determine status indicators using distinctive Unicode symbols
+        # ★ (star) = NEW, ◆ (diamond) = MODIFIED, ↝ (wave arrow) = MOVED
         status_suffix = ''
         status_suffix_class = ''
-        if req.is_new:
-            status_suffix = '+'
+        status_title = ''
+
+        is_moved = req.is_moved
+        is_new_not_moved = req.is_new and not is_moved
+        is_modified = req.is_modified
+
+        if is_moved and is_modified:
+            # Moved AND modified - show both indicators
+            status_suffix = '↝◆'
+            status_suffix_class = 'status-moved-modified'
+            status_title = 'MOVED and MODIFIED'
+        elif is_moved:
+            # Just moved (might be in new file)
+            status_suffix = '↝'
+            status_suffix_class = 'status-moved'
+            status_title = 'MOVED from another file'
+        elif is_new_not_moved:
+            # Truly new (in new file, not moved)
+            status_suffix = '★'
             status_suffix_class = 'status-new'
-        elif req.is_modified:
-            status_suffix = '*'
+            status_title = 'NEW requirement'
+        elif is_modified:
+            # Modified in place
+            status_suffix = '◆'
             status_suffix_class = 'status-modified'
+            status_title = 'MODIFIED content'
 
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
@@ -3242,19 +3360,22 @@ class TraceabilityGenerator:
                 <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
             </span>'''
 
+        # Roadmap indicator icon (shown after REQ ID)
+        roadmap_icon = '<span class="roadmap-icon" title="In roadmap">🛤️</span>' if req.is_roadmap else ''
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
         <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-id">{req_link}</div>
+                    <div class="req-id">{req_link}{roadmap_icon}</div>
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
-                        <span class="status-badge status-{status_class}">{req.status}</span><span class="status-suffix {status_suffix_class}" title="{'NEW - in untracked file' if status_suffix == '+' else ('MODIFIED - content changed' if status_suffix == '*' else '')}">{status_suffix}</span>
-                        <span class="coverage-badge" title="{coverage_title}">{coverage_icon}</span>
+                        <span class="status-badge status-{status_class}">{req.status}</span><span class="status-suffix {status_suffix_class}" title="{status_title}">{status_suffix}</span>
                     </div>
+                    <div class="req-coverage" title="{coverage_title}">{coverage_icon}</div>
                     <div class="req-status">{test_badge}</div>
                     <div class="req-location">{file_line_link}{edit_buttons}</div>
                     <div class="req-destination edit-mode-column" data-req-id="{req.id}"></div>
