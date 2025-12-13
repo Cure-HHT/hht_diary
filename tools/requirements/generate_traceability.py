@@ -36,13 +36,95 @@ import re
 import sys
 import csv
 import json
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-# Import shared parser
+# Import shared parser and hash calculation
 from requirement_parser import RequirementParser, Requirement as BaseRequirement
+from requirement_hash import calculate_requirement_hash
+
+
+def get_git_modified_files(repo_root: Path) -> Set[str]:
+    """Get set of files modified or new according to git status (relative to repo root)
+
+    Includes:
+    - Modified tracked files (M, A, R, etc.)
+    - Untracked new files (??)
+
+    This allows detection of:
+    - Requirements with stale hashes (modified files)
+    - New requirements with TBD hashes (new files)
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'status', '--porcelain', '--untracked-files=all'],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        modified_files = set()
+        # Don't strip stdout - it would remove leading space from first line's " M" prefix
+        for line in result.stdout.split('\n'):
+            if line and len(line) >= 3:
+                # Format: "XY filename" or "XY orig -> renamed"
+                # XY = two-letter status (e.g., " M", "??", "A ", "R ")
+                # Position 0-1: XY status, Position 2: space, Position 3+: filename
+                file_path = line[3:].strip()
+                # Handle renames: "orig -> new"
+                if ' -> ' in file_path:
+                    file_path = file_path.split(' -> ')[1]
+                if file_path:
+                    modified_files.add(file_path)
+        return modified_files
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo - assume all files could be modified
+        return set()
+
+
+def get_git_changed_vs_main(repo_root: Path, main_branch: str = 'main') -> Set[str]:
+    """Get set of files changed between current branch and main branch
+
+    Uses git diff to find files that differ from the main branch.
+    This catches all changes on the current feature branch.
+    """
+    try:
+        # Get files changed between main and HEAD (current branch)
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', f'{main_branch}...HEAD'],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        changed_files = set()
+        for line in result.stdout.split('\n'):
+            if line.strip():
+                changed_files.add(line.strip())
+        return changed_files
+    except subprocess.CalledProcessError:
+        # If main branch doesn't exist or other git error, try origin/main
+        try:
+            result = subprocess.run(
+                ['git', 'diff', '--name-only', f'origin/{main_branch}...HEAD'],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            changed_files = set()
+            for line in result.stdout.split('\n'):
+                if line.strip():
+                    changed_files.add(line.strip())
+            return changed_files
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return set()
+    except FileNotFoundError:
+        return set()
+
 
 @dataclass
 class TestInfo:
@@ -52,6 +134,18 @@ class TestInfo:
     test_status: str = "not_tested"  # not_tested, passed, failed, error, skipped
     test_details: List[Dict] = field(default_factory=list)
     notes: str = ""
+
+# Module-level storage for git modified files (shared across all TraceabilityRequirement instances)
+_git_uncommitted_files: Set[str] = set()  # Modified since last commit (git status)
+_git_branch_changed_files: Set[str] = set()  # Changed vs main branch (git diff)
+
+
+def set_git_modified_files(uncommitted: Set[str], branch_changed: Set[str]):
+    """Set the git-modified files for modified detection"""
+    global _git_uncommitted_files, _git_branch_changed_files
+    _git_uncommitted_files = uncommitted
+    _git_branch_changed_files = branch_changed
+
 
 @dataclass
 class TraceabilityRequirement:
@@ -63,10 +157,42 @@ class TraceabilityRequirement:
     status: str
     file_path: Path
     line_number: int
+    hash: str = ''  # SHA-256 hash (first 8 chars) or 'TBD' for new/modified
     body: str = ''
     rationale: str = ''
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
+
+    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
+        """Check if requirement is modified based on a set of changed files"""
+        if not file_set:
+            return False
+
+        # Check if this requirement's file is in the modified set
+        rel_path = f"spec/{self.file_path.name}"
+        if rel_path not in file_set:
+            return False
+
+        # File is in set - check if it has TBD hash or stale hash
+        if self.hash == 'TBD':
+            return True
+
+        # Calculate hash to verify content actually changed
+        full_content = self.body
+        if self.rationale:
+            full_content = f"{self.body}\n\n**Rationale**: {self.rationale}"
+        calculated_hash = calculate_requirement_hash(full_content)
+        return self.hash != calculated_hash
+
+    @property
+    def is_uncommitted(self) -> bool:
+        """Check if requirement has uncommitted changes (modified since last commit)"""
+        return self._check_modified_in_fileset(_git_uncommitted_files)
+
+    @property
+    def is_branch_changed(self) -> bool:
+        """Check if requirement changed vs main branch"""
+        return self._check_modified_in_fileset(_git_branch_changed_files)
 
     @classmethod
     def from_base(cls, base_req: BaseRequirement) -> 'TraceabilityRequirement':
@@ -81,6 +207,7 @@ class TraceabilityRequirement:
             status=base_req.status,
             file_path=base_req.file_path,
             line_number=base_req.line_number,
+            hash=base_req.hash,
             body=base_req.body,
             rationale=base_req.rationale
         )
@@ -120,6 +247,23 @@ class TraceabilityGenerator:
             output_file: Path to write output (default: traceability_matrix.{ext})
             embed_content: If True, embed full requirement content in HTML for portable viewing
         """
+        # Get git-modified files for "Modified" view detection
+        uncommitted = get_git_modified_files(self.repo_root)
+        branch_changed = get_git_changed_vs_main(self.repo_root)
+        set_git_modified_files(uncommitted, branch_changed)
+
+        # Report uncommitted changes
+        if uncommitted:
+            spec_uncommitted = [f for f in uncommitted if f.startswith('spec/')]
+            if spec_uncommitted:
+                print(f"📝 Uncommitted spec files: {len(spec_uncommitted)}")
+
+        # Report branch changes vs main
+        if branch_changed:
+            spec_branch = [f for f in branch_changed if f.startswith('spec/')]
+            if spec_branch:
+                print(f"🔀 Spec files changed vs main: {len(spec_branch)}")
+
         print(f"🔍 Scanning {self.spec_dir} for requirements...")
         self._parse_requirements()
 
@@ -628,9 +772,12 @@ class TraceabilityGenerator:
                         const headings = content.querySelectorAll('h1, h2, h3, h4');
                         for (const heading of headings) {
                             // Search for this heading's text in the source to find its line
+                            // Only match actual markdown headings (lines starting with #)
                             const headingText = heading.textContent.trim();
                             for (let i = 0; i < lines.length; i++) {
-                                if (lines[i].includes(headingText)) {
+                                const line = lines[i].trim();
+                                // Must be a markdown heading line (starts with #) and contain the heading text
+                                if (line.startsWith('#') && line.includes(headingText)) {
                                     if (i + 1 <= targetLine) {
                                         targetElement = heading;
                                     }
@@ -1633,6 +1780,8 @@ class TraceabilityGenerator:
             <div class="view-toggle">
                 <button class="btn view-btn active" id="btnFlatView" onclick="switchView('flat')">Flat View</button>
                 <button class="btn view-btn" id="btnHierarchyView" onclick="switchView('hierarchy')">Hierarchical View</button>
+                <button class="btn view-btn" id="btnUncommittedView" onclick="switchView('uncommitted')">Uncommitted</button>
+                <button class="btn view-btn" id="btnBranchView" onclick="switchView('branch')">Changed vs Main</button>
             </div>
             <button class="btn" onclick="expandAll()">▼ Expand All</button>
             <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
@@ -1810,17 +1959,25 @@ class TraceabilityGenerator:
         // View mode state
         let currentView = 'flat';
 
-        // Switch between flat and hierarchical views
+        // Switch between flat, hierarchical, uncommitted, and branch views
         function switchView(viewMode) {
             currentView = viewMode;
             const reqTree = document.getElementById('reqTree');
             const btnFlat = document.getElementById('btnFlatView');
             const btnHierarchy = document.getElementById('btnHierarchyView');
+            const btnUncommitted = document.getElementById('btnUncommittedView');
+            const btnBranch = document.getElementById('btnBranchView');
             const treeTitle = document.getElementById('treeTitle');
+
+            // Reset all button states
+            btnFlat.classList.remove('active');
+            btnHierarchy.classList.remove('active');
+            btnUncommitted.classList.remove('active');
+            btnBranch.classList.remove('active');
+            reqTree.classList.remove('hierarchy-view');
 
             if (viewMode === 'hierarchy') {
                 reqTree.classList.add('hierarchy-view');
-                btnFlat.classList.remove('active');
                 btnHierarchy.classList.add('active');
                 treeTitle.textContent = 'Traceability Tree - Hierarchical View';
 
@@ -1836,10 +1993,28 @@ class TraceabilityGenerator:
                         icon.classList.add('collapsed');
                     }
                 });
+            } else if (viewMode === 'uncommitted') {
+                btnUncommitted.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Uncommitted Changes';
+
+                // Reset visibility classes
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+
+                collapseAll();
+            } else if (viewMode === 'branch') {
+                btnBranch.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Changed vs Main';
+
+                // Reset visibility classes
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+
+                collapseAll();
             } else {
-                reqTree.classList.remove('hierarchy-view');
                 btnFlat.classList.add('active');
-                btnHierarchy.classList.remove('active');
                 treeTitle.textContent = 'Traceability Tree - Flat View';
 
                 // Reset visibility classes
@@ -1847,8 +2022,8 @@ class TraceabilityGenerator:
                     item.classList.remove('hierarchy-visible');
                 });
 
-                // Collapse all for flat view too
-                collapseAll();
+                // Expand all for flat view - show ALL requirements
+                expandAll();
             }
 
             applyFilters();
@@ -1883,8 +2058,11 @@ class TraceabilityGenerator:
             const statusFilter = document.getElementById('filterStatus').value;
             const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
 
-            // Check if any filter is active
-            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter;
+            // Check if any filter is active (modified views count as filters)
+            const isUncommittedView = currentView === 'uncommitted';
+            const isBranchView = currentView === 'branch';
+            const isModifiedView = isUncommittedView || isBranchView;
+            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter || isModifiedView;
 
             let visibleCount = 0;
             let totalCount = 0;
@@ -1893,13 +2071,42 @@ class TraceabilityGenerator:
             // Simple iteration: show/hide each item based on filters
             document.querySelectorAll('.req-item').forEach(item => {
                 totalCount++;
-                const reqId = item.dataset.reqId.toLowerCase();
+                const reqId = item.dataset.reqId ? item.dataset.reqId.toLowerCase() : '';
                 const level = item.dataset.level;
-                const topic = item.dataset.topic.toLowerCase();
+                const topic = item.dataset.topic ? item.dataset.topic.toLowerCase() : '';
                 const status = item.dataset.status;
-                const title = item.dataset.title.toLowerCase();
+                const title = item.dataset.title ? item.dataset.title.toLowerCase() : '';
+                const isUncommitted = item.dataset.uncommitted === 'true';
+                const isBranchChanged = item.dataset.branchChanged === 'true';
+                const isImplFile = item.classList.contains('impl-file');
 
                 let matches = true;
+
+                // Uncommitted view: only show requirements with uncommitted changes
+                if (isUncommittedView) {
+                    if (isImplFile) {
+                        const parentId = item.dataset.parentInstanceId;
+                        const parent = document.querySelector(`[data-instance-id="${parentId}"]`);
+                        if (!parent || parent.dataset.uncommitted !== 'true') {
+                            matches = false;
+                        }
+                    } else if (!isUncommitted) {
+                        matches = false;
+                    }
+                }
+
+                // Branch view: only show requirements changed vs main
+                if (isBranchView) {
+                    if (isImplFile) {
+                        const parentId = item.dataset.parentInstanceId;
+                        const parent = document.querySelector(`[data-instance-id="${parentId}"]`);
+                        if (!parent || parent.dataset.branchChanged !== 'true') {
+                            matches = false;
+                        }
+                    } else if (!isBranchChanged) {
+                        matches = false;
+                    }
+                }
 
                 // Apply all filters
                 if (reqIdFilter && !reqId.includes(reqIdFilter)) matches = false;
@@ -1914,7 +2121,7 @@ class TraceabilityGenerator:
                 }
 
                 // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
-                if (matches && anyFilterActive && seenReqIds.has(reqId)) {
+                if (matches && anyFilterActive && !isImplFile && seenReqIds.has(reqId)) {
                     matches = false;  // Hide duplicate
                 }
 
@@ -1924,7 +2131,7 @@ class TraceabilityGenerator:
                     // If any filter is active, ignore collapse state and show matching items
                     if (anyFilterActive) {
                         item.classList.remove('collapsed-by-parent');
-                        seenReqIds.add(reqId);  // Mark this req ID as shown
+                        if (!isImplFile) seenReqIds.add(reqId);  // Mark this req ID as shown
                     }
                     visibleCount++;
                 } else {
@@ -1933,8 +2140,15 @@ class TraceabilityGenerator:
             });
 
             // Update stats
-            document.getElementById('filterStats').textContent =
-                `Showing ${visibleCount} of ${totalCount} requirements`;
+            let statsText;
+            if (isUncommittedView) {
+                statsText = `Showing ${visibleCount} uncommitted requirements`;
+            } else if (isBranchView) {
+                statsText = `Showing ${visibleCount} requirements changed vs main`;
+            } else {
+                statsText = `Showing ${visibleCount} of ${totalCount} requirements`;
+            }
+            document.getElementById('filterStats').textContent = statsText;
         }
 
         // Clear all filters
@@ -1949,19 +2163,9 @@ class TraceabilityGenerator:
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Start with everything collapsed except top level
-            // First, hide all children of all items with children
-            document.querySelectorAll('.req-item').forEach(item => {
-                const instanceId = item.dataset.instanceId;
-                const icon = item.querySelector('.collapse-icon');
-
-                if (icon && icon.textContent) {
-                    // This item has children - collapse it
-                    collapsedInstances.add(instanceId);
-                    hideDescendants(instanceId);
-                    icon.classList.add('collapsed');
-                }
-            });
+            // Start with flat view - all items expanded
+            // The expandAll() call ensures all items are visible
+            expandAll();
 
             // Initialize filter stats
             applyFilters();
@@ -1990,12 +2194,13 @@ class TraceabilityGenerator:
         flat_list = []
         self._instance_counter = 0  # Track unique instance IDs
 
-        # Start with top-level PRD requirements
-        prd_reqs = [req for req in self.requirements.values() if req.level == 'PRD']
-        prd_reqs.sort(key=lambda r: r.id)
+        # Start with all root requirements (those with no implements/parent)
+        # Root requirements can be PRD, OPS, or DEV - any req that doesn't implement another
+        root_reqs = [req for req in self.requirements.values() if not req.implements]
+        root_reqs.sort(key=lambda r: r.id)
 
-        for prd_req in prd_reqs:
-            self._add_requirement_and_children(prd_req, flat_list, indent=0, parent_instance_id='')
+        for root_req in root_reqs:
+            self._add_requirement_and_children(root_req, flat_list, indent=0, parent_instance_id='')
 
         return flat_list
 
@@ -2165,10 +2370,13 @@ class TraceabilityGenerator:
         # Check if this is a root requirement (no parents)
         is_root = not req.implements or len(req.implements) == 0
         is_root_attr = 'data-is-root="true"' if is_root else 'data-is-root="false"'
+        # Two separate modified attributes: uncommitted (since last commit) and branch (vs main)
+        uncommitted_attr = 'data-uncommitted="true"' if req.is_uncommitted else 'data-uncommitted="false"'
+        branch_attr = 'data-branch-changed="true"' if req.is_branch_changed else 'data-branch-changed="false"'
 
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr} {uncommitted_attr} {branch_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
