@@ -932,10 +932,33 @@ class TraceabilityGenerator:
             document.getElementById('code-viewer-modal').classList.add('hidden');
         }
 
-        // Close modal on escape key
+        // Legend modal functions
+        function openLegendModal() {
+            document.getElementById('legend-modal').classList.remove('hidden');
+        }
+
+        function closeLegendModal() {
+            document.getElementById('legend-modal').classList.add('hidden');
+        }
+
+        // Leaf only toggle
+        let leafOnlyActive = false;
+        function toggleLeafOnly() {
+            leafOnlyActive = !leafOnlyActive;
+            const btn = document.getElementById('btnLeafOnly');
+            if (leafOnlyActive) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            applyFilters();
+        }
+
+        // Close modals on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeCodeViewer();
+                closeLegendModal();
             }
         });
 """
@@ -1172,6 +1195,139 @@ class TraceabilityGenerator:
             <div id="code-viewer-content" class="code-viewer-body"></div>
         </div>
     </div>
+"""
+
+    def _generate_legend_modal_html(self) -> str:
+        """Generate HTML for legend modal"""
+        return """
+    <!-- Legend Modal -->
+    <div id="legend-modal" class="legend-modal hidden" onclick="if(event.target===this)closeLegendModal()">
+        <div class="legend-modal-container">
+            <div class="legend-modal-header">
+                <h2>Legend</h2>
+                <button class="legend-modal-close" onclick="closeLegendModal()">×</button>
+            </div>
+            <div class="legend-modal-body">
+                <div class="legend-grid">
+                    <div class="legend-section">
+                        <h3>Requirement Levels</h3>
+                        <ul>
+                            <li><span class="stat-badge prd">PRD</span> Product Requirements</li>
+                            <li><span class="stat-badge ops">OPS</span> Operations Requirements</li>
+                            <li><span class="stat-badge dev">DEV</span> Development Requirements</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Status</h3>
+                        <ul>
+                            <li><span class="status-badge status-active">Active</span> Active requirement</li>
+                            <li><span class="status-badge status-draft">Draft</span> Draft requirement</li>
+                            <li><span class="status-badge status-deprecated">Deprecated</span> Deprecated</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Implementation Coverage</h3>
+                        <ul>
+                            <li>● Full - All children/code implemented</li>
+                            <li>◐ Partial - Some implementation</li>
+                            <li>○ None - No implementation found</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Test Status</h3>
+                        <ul>
+                            <li>✅ Tests passing</li>
+                            <li>❌ Tests failing</li>
+                            <li>⚡ Not tested</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="legend-section" style="margin-top: 15px;">
+                    <h3>Controls</h3>
+                    <ul>
+                        <li>▼/▶ Click to expand/collapse children</li>
+                        <li>🍃 Leaf Only - Show only leaf requirements (no children)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+"""
+
+    def _generate_legend_modal_css(self) -> str:
+        """Generate CSS for legend modal"""
+        return """
+        .legend-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-modal.hidden {
+            display: none;
+        }
+        .legend-modal-container {
+            background: white;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .legend-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .legend-modal-header h2 {
+            margin: 0;
+            font-size: 16px;
+        }
+        .legend-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0 5px;
+        }
+        .legend-modal-close:hover {
+            color: #000;
+        }
+        .legend-modal-body {
+            padding: 20px;
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .legend-section h3 {
+            font-size: 13px;
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .legend-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+        }
+        .legend-section li {
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 """
 
     def _generate_side_panel_css(self) -> str:
@@ -1472,41 +1628,54 @@ class TraceabilityGenerator:
             color: #34495e;
             margin: 20px 0 10px 0;
         }}
-        .summary {{
-            background: #f8f9fa;
-            padding: 10px 15px;
+        .title-bar {{
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 0;
+            border-bottom: 2px solid #0066cc;
+            margin-bottom: 10px;
+        }}
+        .title-bar h1 {{
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+            border: none;
+            padding: 0;
+        }}
+        .stats-badges {{
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }}
+        .stat-badge {{
+            padding: 4px 10px;
             border-radius: 4px;
-            margin: 15px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }}
+        .stat-badge.prd {{ background: #0066cc; }}
+        .stat-badge.ops {{ background: #fd7e14; }}
+        .stat-badge.dev {{ background: #28a745; }}
+        .btn-legend {{
+            background: #6c757d;
             font-size: 12px;
         }}
-        .summary p {{
-            margin: 4px 0;
+        .btn-legend:hover {{
+            background: #5a6268;
         }}
-        .summary-grid {{
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 15px 0;
+        .toggle-btn {{
+            background: #e9ecef;
+            color: #495057;
         }}
-        .summary-card {{
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-            border-left: 3px solid #0066cc;
+        .toggle-btn:hover {{
+            background: #dee2e6;
         }}
-        .summary-card h3 {{
-            margin: 0 0 6px 0;
-            color: #7f8c8d;
-            font-size: 11px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        .summary-card .number {{
-            font-size: 24px;
-            font-weight: 600;
-            color: #0066cc;
+        .toggle-btn.active {{
+            background: #28a745;
+            color: white;
         }}
         .controls {{
             margin: 15px 0;
@@ -1703,6 +1872,14 @@ class TraceabilityGenerator:
             flex-direction: column;
             gap: 4px;
         }}
+        .filter-column-multi .filter-row {{
+            display: flex;
+            gap: 4px;
+        }}
+        .filter-column-multi .filter-row select {{
+            flex: 1;
+            min-width: 0;
+        }}
         .filter-label {{
             font-size: 10px;
             font-weight: 600;
@@ -1806,6 +1983,7 @@ class TraceabilityGenerator:
         .legend-color.dev {{ background: #28a745; }}
         {self._generate_side_panel_css() if embed_content else ''}
         {self._generate_code_viewer_css() if embed_content else ''}
+        {self._generate_legend_modal_css() if embed_content else ''}
     </style>
     {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>') if embed_content else ''}
 </head>
@@ -1813,43 +1991,15 @@ class TraceabilityGenerator:
 <div class="app-layout">
     <div class="main-content">
     <div class="container">
-        <h1>Requirements Traceability Matrix</h1>
-        <div class="summary">
-            <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            <p><strong>Total Requirements:</strong> {len(self.requirements)}</p>
+        <div class="title-bar">
+            <h1>Requirements Traceability</h1>
+            <div class="stats-badges">
+                <span class="stat-badge prd">PRD: {by_level['PRD']}</span>
+                <span class="stat-badge ops">OPS: {by_level['OPS']}</span>
+                <span class="stat-badge dev">DEV: {by_level['DEV']}</span>
+            </div>
+            <button class="btn btn-legend" onclick="openLegendModal()" title="Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}">ℹ️ Legend</button>
         </div>
-
-        <div class="summary-grid">
-            <div class="summary-card">
-                <h3>PRD Level</h3>
-                <div class="number">{by_level['PRD']}</div>
-            </div>
-            <div class="summary-card">
-                <h3>OPS Level</h3>
-                <div class="number">{by_level['OPS']}</div>
-            </div>
-            <div class="summary-card">
-                <h3>DEV Level</h3>
-                <div class="number">{by_level['DEV']}</div>
-            </div>
-        </div>
-
-        <div class="level-legend">
-            <div class="legend-item">
-                <div class="legend-color prd"></div>
-                <span>PRD (Product Requirements)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color ops"></div>
-                <span>Ops (Operations)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color dev"></div>
-                <span>Dev (Development)</span>
-            </div>
-        </div>
-
-        {self._generate_legend_html()}
 
         <div class="filter-controls">
             <div class="view-toggle">
@@ -1858,9 +2008,10 @@ class TraceabilityGenerator:
                 <button class="btn view-btn" id="btnUncommittedView" onclick="switchView('uncommitted')">Uncommitted</button>
                 <button class="btn view-btn" id="btnBranchView" onclick="switchView('branch')">Changed vs Main</button>
             </div>
-            <button class="btn" onclick="expandAll()">▼ Expand All</button>
-            <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse All</button>
-            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+            <button class="btn toggle-btn" id="btnLeafOnly" onclick="toggleLeafOnly()">🍃 Leaf Only</button>
+            <button class="btn" onclick="expandAll()">▼ Expand</button>
+            <button class="btn btn-secondary" onclick="collapseAll()">▶ Collapse</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
             <span class="filter-stats" id="filterStats"></span>
         </div>
 
@@ -1895,18 +2046,32 @@ class TraceabilityGenerator:
             </div>
             <div class="filter-column">
                 <div class="filter-label">Tests</div>
-            </div>
-            <div class="filter-column">
-                <div class="filter-label">Topic</div>
-                <select id="filterTopic" onchange="applyFilters()">
+                <select id="filterTests" onchange="applyFilters()">
                     <option value="">All</option>
+                    <option value="tested">✅ Tested</option>
+                    <option value="not-tested">⚡ Not Tested</option>
+                    <option value="failed">❌ Failed</option>
+                </select>
+            </div>
+            <div class="filter-column filter-column-multi">
+                <div class="filter-label">Topic / Coverage</div>
+                <div class="filter-row">
+                    <select id="filterTopic" onchange="applyFilters()">
+                        <option value="">Topic</option>
 """
 
         # Add topic options dynamically
         for topic in sorted_topics:
-            html += f'                    <option value="{topic}">{topic}</option>\n'
+            html += f'                        <option value="{topic}">{topic}</option>\n'
 
-        html += """                </select>
+        html += """                    </select>
+                    <select id="filterCoverage" onchange="applyFilters()">
+                        <option value="">Cov</option>
+                        <option value="full">●</option>
+                        <option value="partial">◐</option>
+                        <option value="none">○</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -2136,13 +2301,16 @@ class TraceabilityGenerator:
             const titleFilter = document.getElementById('filterTitle').value.toLowerCase().trim();
             const levelFilter = document.getElementById('filterLevel').value;
             const statusFilter = document.getElementById('filterStatus').value;
-            const topicFilter = document.getElementById('filterTopic').value.toLowerCase().trim();
+            const topicFilter = document.getElementById('filterTopic')?.value.toLowerCase().trim() || '';
+            const testFilter = document.getElementById('filterTests')?.value || '';
+            const coverageFilter = document.getElementById('filterCoverage')?.value || '';
+            const isLeafOnly = typeof leafOnlyActive !== 'undefined' && leafOnlyActive;
 
             // Check if any filter is active (modified views count as filters)
             const isUncommittedView = currentView === 'uncommitted';
             const isBranchView = currentView === 'branch';
             const isModifiedView = isUncommittedView || isBranchView;
-            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter || isModifiedView;
+            const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter || testFilter || coverageFilter || isLeafOnly || isModifiedView;
 
             let visibleCount = 0;
             let totalCount = 0;
@@ -2200,6 +2368,30 @@ class TraceabilityGenerator:
                     matches = false;
                 }
 
+                // Test filter: filter by test status
+                if (testFilter && matches) {
+                    const testStatus = item.dataset.testStatus || 'not-tested';
+                    if (testFilter !== testStatus) {
+                        matches = false;
+                    }
+                }
+
+                // Coverage filter: filter by implementation coverage
+                if (coverageFilter && matches) {
+                    const coverage = item.dataset.coverage || 'none';
+                    if (coverageFilter !== coverage) {
+                        matches = false;
+                    }
+                }
+
+                // Leaf-only filter: show only requirements without children
+                if (isLeafOnly && matches && !isImplFile) {
+                    const hasChildren = item.dataset.hasChildren === 'true';
+                    if (hasChildren) {
+                        matches = false;
+                    }
+                }
+
                 // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
                 if (matches && anyFilterActive && !isImplFile && seenReqIds.has(reqId)) {
                     matches = false;  // Hide duplicate
@@ -2238,6 +2430,11 @@ class TraceabilityGenerator:
             document.getElementById('filterLevel').value = '';
             document.getElementById('filterStatus').value = '';
             document.getElementById('filterTopic').value = '';
+            document.getElementById('filterTests').value = '';
+            document.getElementById('filterCoverage').value = '';
+            // Reset leaf-only toggle
+            leafOnlyActive = false;
+            document.getElementById('btnLeafOnly').classList.remove('active');
             applyFilters();
         }
 
@@ -2262,6 +2459,7 @@ class TraceabilityGenerator:
         # Add code viewer modal if embedded mode
         if embed_content:
             html += self._generate_code_viewer_html()
+            html += self._generate_legend_modal_html()
 
         html += """
 </div>
@@ -2455,9 +2653,29 @@ class TraceabilityGenerator:
         uncommitted_attr = 'data-uncommitted="true"' if req.is_uncommitted else 'data-uncommitted="false"'
         branch_attr = 'data-branch-changed="true"' if req.is_branch_changed else 'data-branch-changed="false"'
 
+        # Data attribute for has-children (for leaf-only filtering)
+        has_children_attr = 'data-has-children="true"' if has_children else 'data-has-children="false"'
+
+        # Data attribute for test status (for test filter)
+        test_status_value = 'not-tested'
+        if req.test_info:
+            if req.test_info.test_status == 'passed':
+                test_status_value = 'tested'
+            elif req.test_info.test_status == 'failed':
+                test_status_value = 'failed'
+        test_status_attr = f'data-test-status="{test_status_value}"'
+
+        # Data attribute for coverage (for coverage filter)
+        coverage_value = 'none'
+        if impl_status == 'Full':
+            coverage_value = 'full'
+        elif impl_status == 'Partial':
+            coverage_value = 'partial'
+        coverage_attr = f'data-coverage="{coverage_value}"'
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr} {uncommitted_attr} {branch_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
