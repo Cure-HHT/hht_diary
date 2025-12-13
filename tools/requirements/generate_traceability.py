@@ -1055,6 +1055,211 @@ class TraceabilityGenerator:
             applyFilters();
         }
 
+        // ========== Edit Mode Functions ==========
+        let editModeActive = false;
+        const pendingMoves = [];
+
+        function toggleEditMode() {
+            editModeActive = !editModeActive;
+            const btn = document.getElementById('btnEditMode');
+            const panel = document.getElementById('editModePanel');
+
+            if (editModeActive) {
+                document.body.classList.add('edit-mode-active');
+                btn.classList.add('active');
+                panel.style.display = 'block';
+                // Auto-enable roadmap view when entering edit mode
+                document.getElementById('chkIncludeRoadmap').checked = true;
+                applyFilters();
+            } else {
+                document.body.classList.remove('edit-mode-active');
+                btn.classList.remove('active');
+                panel.style.display = 'none';
+            }
+        }
+
+        function addPendingMove(reqId, sourceFile, moveType) {
+            // Check if already in pending list
+            const existing = pendingMoves.find(m => m.reqId === reqId);
+            if (existing) {
+                alert('This requirement already has a pending move. Clear selection first.');
+                return;
+            }
+
+            const move = {
+                reqId: reqId,
+                sourceFile: sourceFile,
+                moveType: moveType,
+                targetFile: moveType === 'to-roadmap' ? `roadmap/${sourceFile}` :
+                            moveType === 'from-roadmap' ? sourceFile.replace('roadmap/', '') :
+                            null
+            };
+            pendingMoves.push(move);
+            updatePendingMovesUI();
+        }
+
+        function removePendingMove(index) {
+            pendingMoves.splice(index, 1);
+            updatePendingMovesUI();
+        }
+
+        function clearPendingMoves() {
+            pendingMoves.length = 0;
+            updatePendingMovesUI();
+        }
+
+        function updatePendingMovesUI() {
+            const list = document.getElementById('pendingMovesList');
+            const count = document.getElementById('pendingChangesCount');
+            const btn = document.getElementById('btnGenerateScript');
+
+            count.textContent = pendingMoves.length + ' pending';
+            btn.disabled = pendingMoves.length === 0;
+
+            if (pendingMoves.length === 0) {
+                list.innerHTML = '<div style="color: #666; padding: 10px;">No pending moves. Click buttons on requirements to select them.</div>';
+                return;
+            }
+
+            list.innerHTML = pendingMoves.map((m, i) => `
+                <div class="pending-move-item">
+                    <span><strong>REQ-${m.reqId}</strong>: ${m.sourceFile} → ${m.targetFile || '(select target)'}</span>
+                    <button onclick="removePendingMove(${i})" style="background: none; border: none; cursor: pointer;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function showMoveToFile(reqId, sourceFile) {
+            const files = getAvailableTargetFiles();
+            const target = prompt('Enter target file name (e.g., prd-security.md):\\n\\nAvailable files:\\n' + files.slice(0, 10).join('\\n') + (files.length > 10 ? '\\n...' : ''));
+
+            if (target && target.trim()) {
+                addPendingMove(reqId, sourceFile, 'move-file');
+                // Update the last added move with target
+                pendingMoves[pendingMoves.length - 1].targetFile = target.trim();
+                updatePendingMovesUI();
+            }
+        }
+
+        function getAvailableTargetFiles() {
+            const files = new Set();
+            document.querySelectorAll('.req-item[data-file]').forEach(item => {
+                files.add(item.dataset.file);
+            });
+            return Array.from(files).sort();
+        }
+
+        function generateMoveScript() {
+            if (pendingMoves.length === 0) {
+                alert('No pending moves to generate script for.');
+                return;
+            }
+
+            // Generate Python script
+            let script = `#!/usr/bin/env python3
+\"\"\"
+Auto-generated REQ Move Script
+Generated: ${new Date().toISOString()}
+
+This script moves requirements between spec files.
+Review carefully before running!
+
+Usage: python3 move_reqs.py
+\"\"\"
+
+import re
+from pathlib import Path
+
+def move_req_to_file(req_id: str, source_file: str, target_file: str):
+    \"\"\"Move a requirement from source to target file\"\"\"
+    spec_dir = Path('spec')
+
+    # Handle roadmap paths
+    if source_file.startswith('roadmap/'):
+        source_path = spec_dir / source_file
+    else:
+        source_path = spec_dir / source_file
+
+    if target_file.startswith('roadmap/'):
+        target_path = spec_dir / target_file
+        target_path.parent.mkdir(exist_ok=True)
+    else:
+        target_path = spec_dir / target_file
+
+    if not source_path.exists():
+        print(f'ERROR: Source file not found: {source_path}')
+        return False
+
+    # Read source file
+    source_content = source_path.read_text()
+
+    # Find the requirement block (from # REQ-xxx to *End* line)
+    pattern = rf'(# REQ-{req_id}:.*?\\*End\\*.*?\\*\\*Hash\\*\\*:.*?\\n---\\n?)'
+    match = re.search(pattern, source_content, re.DOTALL)
+
+    if not match:
+        print(f'ERROR: Could not find REQ-{req_id} in {source_path}')
+        return False
+
+    req_block = match.group(1)
+
+    # Remove from source
+    new_source = re.sub(pattern, '', source_content, flags=re.DOTALL)
+    source_path.write_text(new_source)
+    print(f'Removed REQ-{req_id} from {source_path}')
+
+    # Add to target (create file if needed)
+    if target_path.exists():
+        target_content = target_path.read_text()
+        # Append before References section or at end
+        if '## References' in target_content:
+            target_content = target_content.replace('## References', req_block + '\\n## References')
+        else:
+            target_content = target_content.rstrip() + '\\n\\n' + req_block
+    else:
+        # Create new file with header
+        header = target_path.stem.replace('-', ' ').title()
+        target_content = f'''# {header}
+
+**Version**: 1.0
+**Audience**: Product Requirements
+**Last Updated**: {new Date().toISOString().split('T')[0]}
+**Status**: Draft
+
+---
+
+{req_block}
+'''
+    target_path.write_text(target_content)
+    print(f'Added REQ-{req_id} to {target_path}')
+    return True
+
+if __name__ == '__main__':
+    print('Moving requirements...')
+`;
+
+            // Add move commands
+            pendingMoves.forEach(m => {
+                if (m.targetFile) {
+                    script += `    move_req_to_file('${m.reqId}', '${m.sourceFile}', '${m.targetFile}')\\n`;
+                }
+            });
+
+            script += `    print('Done! Review changes with: git diff spec/')\\n`;
+
+            // Create downloadable file
+            const blob = new Blob([script], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'move_reqs.py';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('Script downloaded as move_reqs.py\\n\\nReview and run: python3 move_reqs.py');
+        }
+        // ========== End Edit Mode Functions ==========
+
         // Close modals on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -1795,6 +2000,65 @@ class TraceabilityGenerator:
         .checkbox-label input {{
             cursor: pointer;
         }}
+        /* Edit Mode styles */
+        .edit-mode-panel {{
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }}
+        .edit-mode-header {{
+            font-size: 14px;
+            margin-bottom: 10px;
+        }}
+        .edit-mode-actions {{
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }}
+        .pending-moves-list {{
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }}
+        .pending-move-item {{
+            padding: 5px 10px;
+            background: white;
+            border-radius: 3px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .edit-btn {{
+            display: none;
+            padding: 2px 6px;
+            font-size: 10px;
+            margin-left: 5px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: white;
+        }}
+        .edit-btn:hover {{
+            background: #e9ecef;
+        }}
+        .edit-btn.to-roadmap {{
+            border-color: #fd7e14;
+            color: #fd7e14;
+        }}
+        .edit-btn.from-roadmap {{
+            border-color: #28a745;
+            color: #28a745;
+        }}
+        .edit-btn.move-file {{
+            border-color: #007bff;
+            color: #007bff;
+        }}
+        body.edit-mode-active .edit-btn {{
+            display: inline-block;
+        }}
         .controls {{
             margin: 15px 0;
             padding: 10px;
@@ -2153,6 +2417,22 @@ class TraceabilityGenerator:
             <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
             <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
             <span class="filter-stats" id="filterStats"></span>
+            <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
+                <button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button>
+            </span>
+        </div>
+
+        <!-- Edit Mode Panel (hidden by default) -->
+        <div id="editModePanel" class="edit-mode-panel" style="display: none;">
+            <div class="edit-mode-header">
+                <strong>📝 Edit Mode</strong> - Select requirements to move
+                <span id="pendingChangesCount" class="badge" style="margin-left: 10px;">0 pending</span>
+            </div>
+            <div class="edit-mode-actions">
+                <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
+                <button class="btn" id="btnGenerateScript" onclick="generateMoveScript()" disabled>Generate Move Script</button>
+            </div>
+            <div id="pendingMovesList" class="pending-moves-list"></div>
         </div>
 
         <h2 id="treeTitle">Traceability Tree - Flat View</h2>
@@ -2924,9 +3204,21 @@ class TraceabilityGenerator:
         # Data attribute for roadmap (for roadmap filtering)
         roadmap_attr = 'data-roadmap="true"' if req.is_roadmap else 'data-roadmap="false"'
 
+        # Edit mode buttons - show different options based on whether in roadmap
+        if req.is_roadmap:
+            edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
+                <button class="edit-btn from-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'from-roadmap')" title="Move out of roadmap">↩ From Roadmap</button>
+                <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
+            </span>'''
+        else:
+            edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
+                <button class="edit-btn to-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
+                <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
+            </span>'''
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
@@ -2938,7 +3230,7 @@ class TraceabilityGenerator:
                         <span class="coverage-badge" title="{coverage_title}">{coverage_icon}</span>
                     </div>
                     <div class="req-status">{test_badge}</div>
-                    <div class="req-location">{file_line_link}</div>
+                    <div class="req-location">{file_line_link}{edit_buttons}</div>
                 </div>
             </div>
         </div>
