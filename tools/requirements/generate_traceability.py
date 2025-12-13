@@ -213,6 +213,18 @@ class TraceabilityRequirement:
         """Check if requirement changed vs main branch"""
         return self._check_modified_in_fileset(_git_branch_changed_files)
 
+    @property
+    def is_new(self) -> bool:
+        """Check if requirement is in a new (untracked) file"""
+        return self._is_in_untracked_file()
+
+    @property
+    def is_modified(self) -> bool:
+        """Check if requirement has modified content (hash changed) but is not in a new file"""
+        if self._is_in_untracked_file():
+            return False  # New files are "new", not "modified"
+        return self.is_uncommitted
+
     @classmethod
     def from_base(cls, base_req: BaseRequirement) -> 'TraceabilityRequirement':
         """Create TraceabilityRequirement from shared parser Requirement"""
@@ -612,6 +624,8 @@ class TraceabilityGenerator:
                         <li style="margin: 4px 0;">✅ Active requirement</li>
                         <li style="margin: 4px 0;">🚧 Draft requirement</li>
                         <li style="margin: 4px 0;">⚠️ Deprecated requirement</li>
+                        <li style="margin: 4px 0;"><span style="color: #28a745; font-weight: bold;">+</span> NEW (in untracked file)</li>
+                        <li style="margin: 4px 0;"><span style="color: #fd7e14; font-weight: bold;">*</span> MODIFIED (content changed)</li>
                     </ul>
                 </div>
                 <div>
@@ -1897,6 +1911,14 @@ class TraceabilityGenerator:
         .status-active {{ background: #d4edda; color: #155724; }}
         .status-draft {{ background: #fff3cd; color: #856404; }}
         .status-deprecated {{ background: #f8d7da; color: #721c24; }}
+        .status-suffix {{
+            font-weight: bold;
+            font-size: 12px;
+            margin-left: 1px;
+            cursor: help;
+        }}
+        .status-new {{ color: #28a745; }}  /* Green + for NEW */
+        .status-modified {{ color: #fd7e14; }}  /* Orange * for MODIFIED */
         .test-badge {{
             display: inline-block;
             padding: 2px 6px;
@@ -2782,12 +2804,24 @@ class TraceabilityGenerator:
         # Create link to source file with REQ anchor
         # In embedded mode, use onclick to open side panel instead of navigating away
         # event.stopPropagation() prevents the parent toggle handler from firing
+        # Display ID without "REQ-" prefix for cleaner tree view
         if embed_content:
-            req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">REQ-{req.id}</a>'
+            req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">{req.id}</a>'
             file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
         else:
-            req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
+            req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
             file_line_link = f'<a href="{self._base_path}spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+
+        # Determine new/modified status suffix for status badge
+        # + indicates NEW (in untracked file), * indicates MODIFIED (hash changed)
+        status_suffix = ''
+        status_suffix_class = ''
+        if req.is_new:
+            status_suffix = '+'
+            status_suffix_class = 'status-new'
+        elif req.is_modified:
+            status_suffix = '*'
+            status_suffix_class = 'status-modified'
 
         # Add VS Code link for opening spec file in editor
         abs_spec_path = self.repo_root / 'spec' / req.file_path.name
@@ -2832,7 +2866,7 @@ class TraceabilityGenerator:
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
-                        <span class="status-badge status-{status_class}">{req.status}</span>
+                        <span class="status-badge status-{status_class}">{req.status}</span><span class="status-suffix {status_suffix_class}" title="{'NEW - in untracked file' if status_suffix == '+' else ('MODIFIED - content changed' if status_suffix == '*' else '')}">{status_suffix}</span>
                         <span class="coverage-badge" title="{coverage_title}">{coverage_icon}</span>
                     </div>
                     <div class="req-status">{test_badge}</div>
@@ -2851,7 +2885,7 @@ class TraceabilityGenerator:
         html = f"""
         <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}">
             <div class="req-header">
-                REQ-{req.id}: {req.title}
+                {req.id}: {req.title}
             </div>
             <div class="req-meta">
                 <span class="status-badge status-{status_class}">{req.status}</span>
