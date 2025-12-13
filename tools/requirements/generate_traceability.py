@@ -2653,6 +2653,17 @@ class TraceabilityGenerator:
             border-color: #007bff;
             color: #007bff;
         }}
+        /* Panel/card edit buttons - always visible, horizontal layout */
+        .req-card-actions {{
+            display: flex !important;
+            flex-direction: row;
+            gap: 8px;
+            margin: 8px 0;
+        }}
+        .panel-edit-btn {{
+            font-size: 11px;
+            padding: 4px 8px;
+        }}
         .controls {{
             margin: 15px 0;
             padding: 10px;
@@ -3946,11 +3957,9 @@ class TraceabilityGenerator:
             status_suffix_class = 'status-modified'
             status_title = 'MODIFIED content'
 
-        # Add VS Code link for opening spec file in editor
+        # VS Code link for use in side panel (not in topic column)
         abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
-        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link" onclick="event.stopPropagation();">🔧</a>'
-        file_line_link = f'{file_line_link}{vscode_link}'
 
         # Check if this is a root requirement (no parents)
         is_root = not req.implements or len(req.implements) == 0
