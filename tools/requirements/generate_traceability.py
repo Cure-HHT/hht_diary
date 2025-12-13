@@ -2958,6 +2958,33 @@ class TraceabilityGenerator:
             background: #d4edda;
             color: #155724;
         }}
+        /* Edit mode column - hidden by default, shown in edit mode */
+        .edit-mode-column {{
+            display: none;
+        }}
+        body.edit-mode-active .edit-mode-column {{
+            display: block;
+        }}
+        .req-destination {{
+            min-width: 100px;
+            max-width: 150px;
+            font-size: 11px;
+            padding: 2px 6px;
+        }}
+        .req-destination:not(:empty) {{
+            background: #e8f4fd;
+            border-radius: 4px;
+            color: #0366d6;
+            font-weight: 500;
+        }}
+        .req-destination.to-roadmap {{
+            background: #fff3cd;
+            color: #856404;
+        }}
+        .req-destination.from-roadmap {{
+            background: #d4edda;
+            color: #155724;
+        }}
         .req-item.impl-file {{
             border-left: 3px solid #6c757d;
             background: #f8f9fa;
