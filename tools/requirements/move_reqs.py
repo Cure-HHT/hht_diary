@@ -19,6 +19,10 @@ Move format:
         "source": "dev-app.md",      # Source file (relative to spec/)
         "target": "roadmap/dev-app.md"  # Target file (relative to spec/)
     }
+
+The script uses a two-phase approach to handle multiple moves from the same file:
+1. Phase 1: Extract all REQ blocks from source files
+2. Phase 2: Remove all moved REQs from source files and add to targets
 """
 
 import re
@@ -26,15 +30,32 @@ import sys
 import json
 from pathlib import Path
 from datetime import date
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Optional
+from collections import defaultdict
 
 from requirement_parser import RequirementParser, make_req_filter
 
 
-def find_req_block(content: str, req_id: str, file_path: Path) -> tuple[str, int, int] | None:
+@dataclass
+class MoveOperation:
+    """Represents a single move operation with extracted data"""
+    req_id: str
+    source_file: str
+    target_file: str
+    block_text: str = ''
+    start_pos: int = 0
+    end_pos: int = 0
+    title: str = ''
+    success: bool = False
+    error: str = ''
+
+
+def find_req_block(content: str, req_id: str, file_path: Path) -> tuple[str, int, int, str] | None:
     """Find a requirement block in file content.
 
     Uses RequirementParser to find the requirement and extract its raw block.
-    Returns (block_text, start_pos, end_pos) or None if not found.
+    Returns (block_text, start_pos, end_pos, title) or None if not found.
     """
     # Use the shared parser with a filter for just this req_id
     parser = RequirementParser(file_path.parent)
@@ -50,99 +71,130 @@ def find_req_block(content: str, req_id: str, file_path: Path) -> tuple[str, int
     if not block_text:
         return None
 
-    return block_text, req.start_pos, req.block_end_pos
+    return block_text, req.start_pos, req.block_end_pos, req.title
 
 
-def move_req_to_file(req_id: str, source_file: str, target_file: str, spec_dir: Path, dry_run: bool = False) -> bool:
-    """Move a requirement from source to target file.
+def extract_all_blocks(moves: List[MoveOperation], spec_dir: Path) -> Tuple[int, int]:
+    """Phase 1: Extract all REQ blocks from source files.
 
-    Args:
-        req_id: Requirement ID (e.g., "d00001")
-        source_file: Source filename relative to spec/ (e.g., "dev-app.md")
-        target_file: Target filename relative to spec/ (e.g., "roadmap/dev-app.md")
-        spec_dir: Path to spec directory
-        dry_run: If True, only print what would be done
+    Reads each source file once and extracts all REQ blocks that need to be moved.
+    Updates the MoveOperation objects with block_text, positions, and title.
 
-    Returns:
-        True if successful, False otherwise
+    Returns (success_count, failure_count)
     """
-    # Build paths
-    source_path = spec_dir / source_file
-    target_path = spec_dir / target_file
+    success = 0
+    failure = 0
 
-    # Validate source exists
-    if not source_path.exists():
-        print(f"  ❌ Source file not found: {source_path}")
-        return False
+    # Group moves by source file for efficient reading
+    moves_by_source: Dict[str, List[MoveOperation]] = defaultdict(list)
+    for move in moves:
+        moves_by_source[move.source_file].append(move)
 
-    # Read source content
-    source_content = source_path.read_text(encoding='utf-8')
+    # Process each source file once
+    for source_file, file_moves in moves_by_source.items():
+        source_path = spec_dir / source_file
 
-    # Find the requirement block using the shared parser
-    result = find_req_block(source_content, req_id, source_path)
-    if not result:
-        print(f"  ❌ Could not find REQ-{req_id} in {source_file}")
-        return False
+        if not source_path.exists():
+            for move in file_moves:
+                move.error = f"Source file not found: {source_path}"
+                failure += 1
+            continue
 
-    req_block, start_pos, end_pos = result
+        # Read file content once
+        content = source_path.read_text(encoding='utf-8')
 
-    # Extract title from the REQ block for display
-    import re as re_module
-    title_match = re_module.search(r'^#{1,6}\s+REQ-[^:]+:\s*(.+)$', req_block, re_module.MULTILINE)
-    title = title_match.group(1).strip() if title_match else '(unknown)'
+        # Find each REQ block
+        for move in file_moves:
+            result = find_req_block(content, move.req_id, source_path)
+            if result:
+                move.block_text, move.start_pos, move.end_pos, move.title = result
+                move.success = True
+                success += 1
+            else:
+                move.error = f"Could not find REQ-{move.req_id} in {source_file}"
+                failure += 1
 
-    if dry_run:
-        target_exists = target_path.exists()
-        is_roadmap_move = 'roadmap/' in target_file and 'roadmap/' not in source_file
-        is_from_roadmap = 'roadmap/' in source_file and 'roadmap/' not in target_file
+    return success, failure
 
-        print(f"  📋 Would move REQ-{req_id}:")
-        print(f"     Title:  {title}")
-        print(f"     From:   {source_file}")
-        print(f"     To:     {target_file}")
-        print(f"     Target: {'exists' if target_exists else 'will be created'}")
-        print(f"     Block:  {len(req_block)} chars")
-        if is_roadmap_move:
-            print(f"     Status: Will show ↝ (moved to roadmap)")
-        elif is_from_roadmap:
-            print(f"     Status: Will show ↝ (moved from roadmap)")
+
+def apply_moves(moves: List[MoveOperation], spec_dir: Path) -> Tuple[int, int]:
+    """Phase 2: Apply all moves - remove from sources and add to targets.
+
+    For each source file, removes all moved REQs in one pass (from end to start
+    to preserve positions). Then adds blocks to target files.
+
+    Returns (success_count, failure_count)
+    """
+    success = 0
+    failure = 0
+
+    # Get only successful extractions
+    valid_moves = [m for m in moves if m.success and m.block_text]
+
+    # Group by source file for removal
+    moves_by_source: Dict[str, List[MoveOperation]] = defaultdict(list)
+    for move in valid_moves:
+        moves_by_source[move.source_file].append(move)
+
+    # Group by target file for addition
+    moves_by_target: Dict[str, List[MoveOperation]] = defaultdict(list)
+    for move in valid_moves:
+        moves_by_target[move.target_file].append(move)
+
+    # Phase 2a: Remove all moved REQs from each source file
+    for source_file, file_moves in moves_by_source.items():
+        source_path = spec_dir / source_file
+        content = source_path.read_text(encoding='utf-8')
+
+        # Sort by position descending so we remove from end first
+        # This preserves positions for earlier removals
+        sorted_moves = sorted(file_moves, key=lambda m: m.start_pos, reverse=True)
+
+        for move in sorted_moves:
+            # Remove the block
+            content = content[:move.start_pos] + content[move.end_pos:]
+
+        # Clean up multiple blank lines
+        content = re.sub(r'\n{3,}', '\n\n', content)
+
+        # Write updated source file
+        source_path.write_text(content, encoding='utf-8')
+
+    # Phase 2b: Add all REQ blocks to each target file
+    for target_file, file_moves in moves_by_target.items():
+        target_path = spec_dir / target_file
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Combine all blocks for this target
+        blocks_to_add = [m.block_text for m in file_moves]
+
+        if target_path.exists():
+            target_content = target_path.read_text(encoding='utf-8')
+            # Insert before ## References section or append at end
+            if '## References' in target_content:
+                combined_blocks = '\n'.join(blocks_to_add)
+                target_content = target_content.replace(
+                    '## References',
+                    combined_blocks + '\n## References'
+                )
+            else:
+                # Append at end
+                target_content = target_content.rstrip() + '\n\n' + '\n'.join(blocks_to_add)
         else:
-            print(f"     Status: Will show ↝ (moved between files)")
-        return True
+            # Create new file with header
+            header = target_path.stem.replace('-', ' ').title()
+            # Determine audience from filename prefix
+            if target_path.stem.startswith('prd-'):
+                audience = 'Product Requirements'
+            elif target_path.stem.startswith('ops-'):
+                audience = 'Operations'
+            elif target_path.stem.startswith('dev-'):
+                audience = 'Development'
+            else:
+                audience = 'Requirements'
 
-    # Remove from source
-    new_source_content = source_content[:start_pos] + source_content[end_pos:]
-    # Clean up double blank lines
-    new_source_content = re.sub(r'\n{3,}', '\n\n', new_source_content)
-
-    # Prepare target
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if target_path.exists():
-        target_content = target_path.read_text(encoding='utf-8')
-        # Insert before ## References section or append at end
-        if '## References' in target_content:
-            target_content = target_content.replace(
-                '## References',
-                req_block + '\n## References'
-            )
-        else:
-            # Append at end, before any trailing whitespace
-            target_content = target_content.rstrip() + '\n\n' + req_block
-    else:
-        # Create new file with header
-        header = target_path.stem.replace('-', ' ').title()
-        # Determine audience from filename prefix
-        if target_path.stem.startswith('prd-'):
-            audience = 'Product Requirements'
-        elif target_path.stem.startswith('ops-'):
-            audience = 'Operations'
-        elif target_path.stem.startswith('dev-'):
-            audience = 'Development'
-        else:
-            audience = 'Requirements'
-
-        target_content = f"""# {header}
+            combined_blocks = '\n'.join(blocks_to_add)
+            target_content = f"""# {header}
 
 **Version**: 1.0
 **Audience**: {audience}
@@ -151,7 +203,7 @@ def move_req_to_file(req_id: str, source_file: str, target_file: str, spec_dir: 
 
 ---
 
-{req_block}
+{combined_blocks}
 
 ---
 
@@ -160,38 +212,86 @@ def move_req_to_file(req_id: str, source_file: str, target_file: str, spec_dir: 
 (No references yet)
 """
 
-    # Write files
-    source_path.write_text(new_source_content, encoding='utf-8')
-    target_path.write_text(target_content, encoding='utf-8')
+        target_path.write_text(target_content, encoding='utf-8')
 
-    print(f"  ✅ Moved REQ-{req_id}: {source_file} → {target_file}")
-    return True
+        # Mark all moves to this target as complete
+        for move in file_moves:
+            print(f"  ✅ Moved REQ-{move.req_id}: {move.source_file} → {move.target_file}")
+            success += 1
+
+    return success, failure
 
 
-def process_moves(moves: list[dict], spec_dir: Path, dry_run: bool = False) -> tuple[int, int]:
-    """Process a list of move operations.
+def process_moves(moves_data: List[dict], spec_dir: Path, dry_run: bool = False) -> Tuple[int, int]:
+    """Process a list of move operations using two-phase approach.
+
+    Phase 1: Extract all REQ blocks from source files
+    Phase 2: Remove from sources and add to targets
 
     Returns (success_count, failure_count)
     """
-    success = 0
-    failure = 0
+    # Convert to MoveOperation objects
+    moves: List[MoveOperation] = []
+    invalid_count = 0
 
-    for move in moves:
-        req_id = move.get('reqId') or move.get('req_id')
-        source = move.get('source') or move.get('sourceFile')
-        target = move.get('target') or move.get('targetFile')
+    for move_dict in moves_data:
+        req_id = move_dict.get('reqId') or move_dict.get('req_id')
+        source = move_dict.get('source') or move_dict.get('sourceFile')
+        target = move_dict.get('target') or move_dict.get('targetFile')
 
         if not all([req_id, source, target]):
-            print(f"  ❌ Invalid move entry: {move}")
-            failure += 1
+            print(f"  ❌ Invalid move entry: {move_dict}")
+            invalid_count += 1
             continue
 
-        if move_req_to_file(req_id, source, target, spec_dir, dry_run):
-            success += 1
-        else:
-            failure += 1
+        moves.append(MoveOperation(
+            req_id=req_id,
+            source_file=source,
+            target_file=target
+        ))
 
-    return success, failure
+    if not moves:
+        return 0, invalid_count
+
+    # Phase 1: Extract all blocks
+    print("Phase 1: Extracting REQ blocks...")
+    extract_success, extract_failure = extract_all_blocks(moves, spec_dir)
+
+    # Report extraction errors
+    for move in moves:
+        if move.error:
+            print(f"  ❌ {move.error}")
+
+    if dry_run:
+        # Just show what would be done
+        print("\nPhase 2: Would apply the following moves:")
+        for move in moves:
+            if move.success:
+                target_path = spec_dir / move.target_file
+                target_exists = target_path.exists()
+                is_roadmap_move = 'roadmap/' in move.target_file and 'roadmap/' not in move.source_file
+                is_from_roadmap = 'roadmap/' in move.source_file and 'roadmap/' not in move.target_file
+
+                print(f"  📋 Would move REQ-{move.req_id}:")
+                print(f"     Title:  {move.title}")
+                print(f"     From:   {move.source_file}")
+                print(f"     To:     {move.target_file}")
+                print(f"     Target: {'exists' if target_exists else 'will be created'}")
+                print(f"     Block:  {len(move.block_text)} chars")
+                if is_roadmap_move:
+                    print(f"     Status: Will show ↝ (moved to roadmap)")
+                elif is_from_roadmap:
+                    print(f"     Status: Will show ↝ (moved from roadmap)")
+                else:
+                    print(f"     Status: Will show ↝ (moved between files)")
+
+        return extract_success, extract_failure + invalid_count
+
+    # Phase 2: Apply moves
+    print("\nPhase 2: Applying moves...")
+    apply_success, apply_failure = apply_moves(moves, spec_dir)
+
+    return apply_success, extract_failure + invalid_count + apply_failure
 
 
 def main():
