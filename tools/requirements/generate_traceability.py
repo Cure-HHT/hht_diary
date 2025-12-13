@@ -170,10 +170,18 @@ class TraceabilityRequirement:
     rationale: str = ''
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
+    is_roadmap: bool = False  # True if requirement is in spec/roadmap/ directory
+
+    def _get_spec_relative_path(self) -> str:
+        """Get the spec-relative path for this requirement's file"""
+        # Handle both spec/file.md and spec/roadmap/file.md
+        if self.is_roadmap:
+            return f"spec/roadmap/{self.file_path.name}"
+        return f"spec/{self.file_path.name}"
 
     def _is_in_untracked_file(self) -> bool:
         """Check if requirement is in an untracked (new) file"""
-        rel_path = f"spec/{self.file_path.name}"
+        rel_path = self._get_spec_relative_path()
         return rel_path in _git_untracked_files
 
     def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
@@ -182,7 +190,7 @@ class TraceabilityRequirement:
         For modified files, checks if hash has changed.
         For untracked files, all REQs are considered new (no hash check needed).
         """
-        rel_path = f"spec/{self.file_path.name}"
+        rel_path = self._get_spec_relative_path()
 
         # Check if file is untracked (new) - all REQs in new files are new
         if rel_path in _git_untracked_files:
@@ -226,8 +234,13 @@ class TraceabilityRequirement:
         return self.is_uncommitted
 
     @classmethod
-    def from_base(cls, base_req: BaseRequirement) -> 'TraceabilityRequirement':
-        """Create TraceabilityRequirement from shared parser Requirement"""
+    def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
+        """Create TraceabilityRequirement from shared parser Requirement
+
+        Args:
+            base_req: Requirement from shared parser
+            is_roadmap: True if this requirement is from spec/roadmap/ directory
+        """
         # Map level to uppercase for consistency
         level_map = {'PRD': 'PRD', 'Ops': 'OPS', 'Dev': 'DEV'}
         return cls(
@@ -240,7 +253,8 @@ class TraceabilityRequirement:
             line_number=base_req.line_number,
             hash=base_req.hash,
             body=base_req.body,
-            rationale=base_req.rationale
+            rationale=base_req.rationale,
+            is_roadmap=is_roadmap
         )
 
 
@@ -377,18 +391,44 @@ class TraceabilityGenerator:
             self._base_path = '../'
 
     def _parse_requirements(self):
-        """Parse all requirements from spec files using shared parser"""
+        """Parse all requirements from spec files using shared parser
+
+        Scans both spec/ and spec/roadmap/ directories.
+        Roadmap requirements are tagged with is_roadmap=True.
+        """
+        # Parse main spec directory
         parser = RequirementParser(self.spec_dir)
         result = parser.parse_all()
 
         # Convert base requirements to traceability requirements
         for req_id, base_req in result.requirements.items():
-            self.requirements[req_id] = TraceabilityRequirement.from_base(base_req)
+            self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=False)
 
         # Log any parse errors (but don't fail - traceability is best-effort)
         if result.errors:
             for error in result.errors:
                 print(f"   ⚠️  Parse warning: {error}")
+
+        # Parse roadmap/ subdirectory if it exists
+        roadmap_dir = self.spec_dir / 'roadmap'
+        if roadmap_dir.exists() and roadmap_dir.is_dir():
+            roadmap_parser = RequirementParser(roadmap_dir)
+            roadmap_result = roadmap_parser.parse_all()
+
+            roadmap_count = len(roadmap_result.requirements)
+            if roadmap_count > 0:
+                print(f"   🗺️  Found {roadmap_count} roadmap requirements")
+
+            # Convert roadmap requirements with is_roadmap=True
+            for req_id, base_req in roadmap_result.requirements.items():
+                if req_id in self.requirements:
+                    print(f"   ⚠️  Roadmap REQ {req_id} conflicts with existing REQ, skipping")
+                    continue
+                self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
+
+            if roadmap_result.errors:
+                for error in roadmap_result.errors:
+                    print(f"   ⚠️  Roadmap parse warning: {error}")
 
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
@@ -626,6 +666,7 @@ class TraceabilityGenerator:
                         <li style="margin: 4px 0;">⚠️ Deprecated requirement</li>
                         <li style="margin: 4px 0;"><span style="color: #28a745; font-weight: bold;">+</span> NEW (in untracked file)</li>
                         <li style="margin: 4px 0;"><span style="color: #fd7e14; font-weight: bold;">*</span> MODIFIED (content changed)</li>
+                        <li style="margin: 4px 0;">🗺️ Roadmap (spec/roadmap/) - hidden by default</li>
                     </ul>
                 </div>
                 <div>
@@ -1006,6 +1047,11 @@ class TraceabilityGenerator:
                 }
             });
 
+            applyFilters();
+        }
+
+        // Toggle include roadmap - show/hide roadmap requirements
+        function toggleIncludeRoadmap() {
             applyFilters();
         }
 
@@ -2099,6 +2145,10 @@ class TraceabilityGenerator:
                 <input type="checkbox" id="chkIncludeDeprecated" onchange="toggleIncludeDeprecated()">
                 Include deprecated
             </label>
+            <label class="checkbox-label" title="Include requirements from spec/roadmap/ directory">
+                <input type="checkbox" id="chkIncludeRoadmap" onchange="toggleIncludeRoadmap()">
+                Include roadmap
+            </label>
             <button class="btn btn-secondary" id="btnExpandAll" onclick="expandAll()">▼ Expand All</button>
             <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
             <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
@@ -2555,6 +2605,15 @@ class TraceabilityGenerator:
                     }
                 }
 
+                // Roadmap filter: hide roadmap requirements unless checkbox is checked
+                const includeRoadmap = document.getElementById('chkIncludeRoadmap')?.checked || false;
+                if (!includeRoadmap && matches && !isImplFile) {
+                    const isRoadmap = item.dataset.roadmap === 'true';
+                    if (isRoadmap) {
+                        matches = false;
+                    }
+                }
+
                 // Check for duplicates: if filtering and we've already shown this req ID, hide this occurrence
                 if (matches && anyFilterActive && !isImplFile && seenReqIds.has(reqId)) {
                     matches = false;  // Hide duplicate
@@ -2606,6 +2665,8 @@ class TraceabilityGenerator:
             document.getElementById('btnLeafOnly').classList.remove('active');
             // Reset include deprecated checkbox and update badge counts
             document.getElementById('chkIncludeDeprecated').checked = false;
+            // Reset include roadmap checkbox
+            document.getElementById('chkIncludeRoadmap').checked = false;
             toggleIncludeDeprecated();  // This will update badges and call applyFilters
         }
 
@@ -2805,12 +2866,16 @@ class TraceabilityGenerator:
         # In embedded mode, use onclick to open side panel instead of navigating away
         # event.stopPropagation() prevents the parent toggle handler from firing
         # Display ID without "REQ-" prefix for cleaner tree view
+        # Determine the correct spec path (spec/ or spec/roadmap/)
+        spec_subpath = 'spec/roadmap' if req.is_roadmap else 'spec'
+        spec_rel_path = f'{spec_subpath}/{req.file_path.name}'
+
         if embed_content:
             req_link = f'<a href="#" onclick="event.stopPropagation(); openReqPanel(\'{req.id}\'); return false;" style="color: inherit; text-decoration: none; cursor: pointer;">{req.id}</a>'
             file_line_link = f'<span style="color: inherit;">{req.file_path.name}:{req.line_number}</span>'
         else:
-            req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
-            file_line_link = f'<a href="{self._base_path}spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+            req_link = f'<a href="{self._base_path}{spec_rel_path}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
+            file_line_link = f'<a href="{self._base_path}{spec_rel_path}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
 
         # Determine new/modified status suffix for status badge
         # + indicates NEW (in untracked file), * indicates MODIFIED (hash changed)
@@ -2824,7 +2889,7 @@ class TraceabilityGenerator:
             status_suffix_class = 'status-modified'
 
         # Add VS Code link for opening spec file in editor
-        abs_spec_path = self.repo_root / 'spec' / req.file_path.name
+        abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
         vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
         vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
         file_line_link = f'{file_line_link}{vscode_link}'
@@ -2856,9 +2921,12 @@ class TraceabilityGenerator:
             coverage_value = 'partial'
         coverage_attr = f'data-coverage="{coverage_value}"'
 
+        # Data attribute for roadmap (for roadmap filtering)
+        roadmap_attr = 'data-roadmap="true"' if req.is_roadmap else 'data-roadmap="false"'
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
