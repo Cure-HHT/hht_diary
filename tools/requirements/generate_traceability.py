@@ -47,16 +47,17 @@ from requirement_parser import RequirementParser, Requirement as BaseRequirement
 from requirement_hash import calculate_requirement_hash
 
 
-def get_git_modified_files(repo_root: Path) -> Set[str]:
-    """Get set of files modified or new according to git status (relative to repo root)
+def get_git_modified_files(repo_root: Path) -> Tuple[Set[str], Set[str]]:
+    """Get sets of modified and untracked files according to git status (relative to repo root)
 
-    Includes:
-    - Modified tracked files (M, A, R, etc.)
-    - Untracked new files (??)
+    Returns:
+        Tuple of (modified_files, untracked_files):
+        - modified_files: Tracked files with changes (M, A, R, etc.)
+        - untracked_files: New files not yet tracked (??)
 
     This allows detection of:
-    - Requirements with stale hashes (modified files)
-    - New requirements with TBD hashes (new files)
+    - Requirements with stale hashes (modified files - need hash check)
+    - New requirements (untracked files - all REQs are new, no hash check needed)
     """
     try:
         result = subprocess.run(
@@ -67,22 +68,27 @@ def get_git_modified_files(repo_root: Path) -> Set[str]:
             check=True
         )
         modified_files = set()
+        untracked_files = set()
         # Don't strip stdout - it would remove leading space from first line's " M" prefix
         for line in result.stdout.split('\n'):
             if line and len(line) >= 3:
                 # Format: "XY filename" or "XY orig -> renamed"
                 # XY = two-letter status (e.g., " M", "??", "A ", "R ")
                 # Position 0-1: XY status, Position 2: space, Position 3+: filename
+                status_code = line[:2]
                 file_path = line[3:].strip()
                 # Handle renames: "orig -> new"
                 if ' -> ' in file_path:
                     file_path = file_path.split(' -> ')[1]
                 if file_path:
-                    modified_files.add(file_path)
-        return modified_files
+                    if status_code == '??':
+                        untracked_files.add(file_path)
+                    else:
+                        modified_files.add(file_path)
+        return modified_files, untracked_files
     except (subprocess.CalledProcessError, FileNotFoundError):
-        # Git not available or not a git repo - assume all files could be modified
-        return set()
+        # Git not available or not a git repo - return empty sets
+        return set(), set()
 
 
 def get_git_changed_vs_main(repo_root: Path, main_branch: str = 'main') -> Set[str]:
@@ -137,13 +143,15 @@ class TestInfo:
 
 # Module-level storage for git modified files (shared across all TraceabilityRequirement instances)
 _git_uncommitted_files: Set[str] = set()  # Modified since last commit (git status)
+_git_untracked_files: Set[str] = set()  # New untracked files (git status ??)
 _git_branch_changed_files: Set[str] = set()  # Changed vs main branch (git diff)
 
 
-def set_git_modified_files(uncommitted: Set[str], branch_changed: Set[str]):
+def set_git_modified_files(uncommitted: Set[str], untracked: Set[str], branch_changed: Set[str]):
     """Set the git-modified files for modified detection"""
-    global _git_uncommitted_files, _git_branch_changed_files
+    global _git_uncommitted_files, _git_untracked_files, _git_branch_changed_files
     _git_uncommitted_files = uncommitted
+    _git_untracked_files = untracked
     _git_branch_changed_files = branch_changed
 
 
@@ -163,17 +171,28 @@ class TraceabilityRequirement:
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
 
-    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
-        """Check if requirement is modified based on a set of changed files"""
-        if not file_set:
-            return False
-
-        # Check if this requirement's file is in the modified set
+    def _is_in_untracked_file(self) -> bool:
+        """Check if requirement is in an untracked (new) file"""
         rel_path = f"spec/{self.file_path.name}"
-        if rel_path not in file_set:
+        return rel_path in _git_untracked_files
+
+    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
+        """Check if requirement is modified based on a set of changed files
+
+        For modified files, checks if hash has changed.
+        For untracked files, all REQs are considered new (no hash check needed).
+        """
+        rel_path = f"spec/{self.file_path.name}"
+
+        # Check if file is untracked (new) - all REQs in new files are new
+        if rel_path in _git_untracked_files:
+            return True
+
+        # Check if file is in the modified set
+        if not file_set or rel_path not in file_set:
             return False
 
-        # File is in set - check if it has TBD hash or stale hash
+        # File is modified - check if it has TBD hash or stale hash
         if self.hash == 'TBD':
             return True
 
@@ -248,12 +267,15 @@ class TraceabilityGenerator:
             embed_content: If True, embed full requirement content in HTML for portable viewing
         """
         # Get git-modified files for "Modified" view detection
-        uncommitted = get_git_modified_files(self.repo_root)
+        # Returns (modified_files, untracked_files) - untracked are new files where all REQs are new
+        modified_files, untracked_files = get_git_modified_files(self.repo_root)
+        # Uncommitted = modified + untracked (both need to be shown in uncommitted view)
+        uncommitted = modified_files | untracked_files
         branch_changed = get_git_changed_vs_main(self.repo_root)
         # "Changed vs Main" should be inclusive of uncommitted changes
         # (uncommitted changes are also different from main)
         branch_changed = branch_changed | uncommitted
-        set_git_modified_files(uncommitted, branch_changed)
+        set_git_modified_files(uncommitted, untracked_files, branch_changed)
 
         # Report uncommitted changes
         if uncommitted:
