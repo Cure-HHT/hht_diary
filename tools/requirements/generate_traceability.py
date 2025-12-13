@@ -2733,8 +2733,13 @@ class TraceabilityGenerator:
             justify-content: space-between;
             align-items: center;
         }}
-        .edit-btn {{
+        .edit-actions {{
             display: none;
+        }}
+        body.edit-mode-active .edit-actions {{
+            display: inline;
+        }}
+        .edit-btn {{
             padding: 2px 6px;
             font-size: 10px;
             margin-left: 5px;
@@ -2757,9 +2762,6 @@ class TraceabilityGenerator:
         .edit-btn.move-file {{
             border-color: #007bff;
             color: #007bff;
-        }}
-        body.edit-mode-active .edit-btn {{
-            display: inline-block;
         }}
         .controls {{
             margin: 15px 0;
