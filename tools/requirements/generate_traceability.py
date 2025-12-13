@@ -2316,20 +2316,24 @@ class TraceabilityGenerator:
             const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter || topicFilter || testFilter || coverageFilter || isLeafOnly || isModifiedView;
 
             let visibleCount = 0;
-            let totalCount = 0;
             const seenReqIds = new Set();  // Track which req IDs we've already shown
+            const seenVisibleReqIds = new Set();  // Track visible unique req IDs for count
+            const allReqIds = new Set();  // Track all unique req IDs for total count
 
             // Simple iteration: show/hide each item based on filters
             document.querySelectorAll('.req-item').forEach(item => {
-                totalCount++;
                 const reqId = item.dataset.reqId ? item.dataset.reqId.toLowerCase() : '';
+                const isImplFile = item.classList.contains('impl-file');
+                // Count unique requirements (not impl files, not duplicates)
+                if (!isImplFile && reqId) {
+                    allReqIds.add(reqId);
+                }
                 const level = item.dataset.level;
                 const topic = item.dataset.topic ? item.dataset.topic.toLowerCase() : '';
                 const status = item.dataset.status;
                 const title = item.dataset.title ? item.dataset.title.toLowerCase() : '';
                 const isUncommitted = item.dataset.uncommitted === 'true';
                 const isBranchChanged = item.dataset.branchChanged === 'true';
-                const isImplFile = item.classList.contains('impl-file');
 
                 let matches = true;
 
@@ -2408,13 +2412,18 @@ class TraceabilityGenerator:
                         item.classList.remove('collapsed-by-parent');
                         if (!isImplFile) seenReqIds.add(reqId);  // Mark this req ID as shown
                     }
-                    visibleCount++;
+                    // Count visible unique requirements (not impl files, not duplicates)
+                    if (!isImplFile && reqId && !seenVisibleReqIds.has(reqId)) {
+                        seenVisibleReqIds.add(reqId);
+                        visibleCount++;
+                    }
                 } else {
                     item.classList.add('filtered-out');
                 }
             });
 
-            // Update stats
+            // Update stats with unique requirement counts
+            const totalCount = allReqIds.size;
             let statsText;
             if (isUncommittedView) {
                 statsText = `Showing ${visibleCount} uncommitted requirements`;
