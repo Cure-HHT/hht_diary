@@ -1086,26 +1086,76 @@ class TraceabilityGenerator:
                 return;
             }
 
+            // Get title from the DOM element
+            const reqItem = document.querySelector(`.req-item[data-req-id="${reqId}"]`);
+            const title = reqItem ? reqItem.dataset.title : '';
+
             const move = {
                 reqId: reqId,
                 sourceFile: sourceFile,
                 moveType: moveType,
+                title: title,
                 targetFile: moveType === 'to-roadmap' ? `roadmap/${sourceFile}` :
                             moveType === 'from-roadmap' ? sourceFile.replace('roadmap/', '') :
                             null
             };
             pendingMoves.push(move);
             updatePendingMovesUI();
+            updateDestinationColumns();
         }
 
         function removePendingMove(index) {
             pendingMoves.splice(index, 1);
             updatePendingMovesUI();
+            updateDestinationColumns();
         }
 
         function clearPendingMoves() {
             pendingMoves.length = 0;
             updatePendingMovesUI();
+            updateDestinationColumns();
+        }
+
+        function updateDestinationColumns() {
+            // Clear all destination columns first
+            document.querySelectorAll('.req-destination').forEach(el => {
+                el.textContent = '';
+                el.className = 'req-destination edit-mode-column';
+            });
+
+            // Update destination columns for pending moves
+            pendingMoves.forEach(m => {
+                const destEl = document.querySelector(`.req-destination[data-req-id="${m.reqId}"]`);
+                if (destEl) {
+                    if (m.moveType === 'to-roadmap') {
+                        destEl.textContent = '→ Roadmap';
+                        destEl.className = 'req-destination edit-mode-column to-roadmap';
+                    } else if (m.moveType === 'from-roadmap') {
+                        destEl.textContent = '← From Roadmap';
+                        destEl.className = 'req-destination edit-mode-column from-roadmap';
+                    } else if (m.targetFile) {
+                        // Extract just the filename for display
+                        const displayName = m.targetFile.replace('roadmap/', '').replace(/\.md$/, '');
+                        destEl.textContent = '→ ' + displayName;
+                        destEl.className = 'req-destination edit-mode-column';
+                    }
+                }
+            });
+        }
+
+        let pendingMovesCollapsed = false;
+
+        function togglePendingMoves() {
+            pendingMovesCollapsed = !pendingMovesCollapsed;
+            const list = document.getElementById('pendingMovesList');
+            const toggleBtn = document.getElementById('pendingMovesToggle');
+            if (pendingMovesCollapsed) {
+                list.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            } else {
+                list.style.display = 'block';
+                toggleBtn.textContent = '▼';
+            }
         }
 
         function updatePendingMovesUI() {
@@ -1117,16 +1167,24 @@ class TraceabilityGenerator:
             btn.disabled = pendingMoves.length === 0;
 
             if (pendingMoves.length === 0) {
-                list.innerHTML = '<div style="color: #666; padding: 10px;">No pending moves. Click buttons on requirements to select them.</div>';
+                list.innerHTML = '<div style="color: #666; padding: 10px;">No pending moves. Click edit buttons on requirements to select them.</div>';
                 return;
             }
 
-            list.innerHTML = pendingMoves.map((m, i) => `
+            list.innerHTML = pendingMoves.map((m, i) => {
+                const displayTarget = m.targetFile ?
+                    (m.moveType === 'to-roadmap' ? 'Roadmap' :
+                     m.moveType === 'from-roadmap' ? m.targetFile :
+                     m.targetFile) :
+                    '(select target)';
+                const titleDisplay = m.title ? ` - ${m.title}` : '';
+                return `
                 <div class="pending-move-item">
-                    <span><strong>REQ-${m.reqId}</strong>: ${m.sourceFile} → ${m.targetFile || '(select target)'}</span>
-                    <button onclick="removePendingMove(${i})" style="background: none; border: none; cursor: pointer;">✕</button>
+                    <span><strong>REQ-${m.reqId}</strong>${titleDisplay}</span>
+                    <span style="color: #666; margin-left: 8px;">→ ${displayTarget}</span>
+                    <button onclick="removePendingMove(${i})" style="background: none; border: none; cursor: pointer; margin-left: auto;">✕</button>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function showMoveToFile(reqId, sourceFile) {
@@ -1138,6 +1196,7 @@ class TraceabilityGenerator:
                 // Update the last added move with target
                 pendingMoves[pendingMoves.length - 1].targetFile = target.trim();
                 updatePendingMovesUI();
+                updateDestinationColumns();
             }
         }
 
@@ -2130,6 +2189,33 @@ class TraceabilityGenerator:
             overflow: visible;
             white-space: normal;
         }}
+        /* Edit mode column - hidden by default, shown in edit mode */
+        .edit-mode-column {{
+            display: none;
+        }}
+        body.edit-mode-active .edit-mode-column {{
+            display: block;
+        }}
+        .req-destination {{
+            min-width: 100px;
+            max-width: 150px;
+            font-size: 11px;
+            padding: 2px 6px;
+        }}
+        .req-destination:not(:empty) {{
+            background: #e8f4fd;
+            border-radius: 4px;
+            color: #0366d6;
+            font-weight: 500;
+        }}
+        .req-destination.to-roadmap {{
+            background: #fff3cd;
+            color: #856404;
+        }}
+        .req-destination.from-roadmap {{
+            background: #d4edda;
+            color: #155724;
+        }}
         .req-item.impl-file {{
             border-left: 3px solid #6c757d;
             background: #f8f9fa;
@@ -2363,7 +2449,13 @@ class TraceabilityGenerator:
                 <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
                 <button class="btn" id="btnExportMoves" onclick="generateMoveScript()" disabled>Export Moves JSON</button>
             </div>
-            <div id="pendingMovesList" class="pending-moves-list"></div>
+            <div class="pending-moves-section">
+                <div class="pending-moves-header" onclick="togglePendingMoves()" style="cursor: pointer; user-select: none; display: flex; align-items: center; margin-bottom: 8px;">
+                    <span id="pendingMovesToggle" style="margin-right: 6px; font-size: 12px;">▼</span>
+                    <strong style="font-size: 12px;">Pending Moves</strong>
+                </div>
+                <div id="pendingMovesList" class="pending-moves-list"></div>
+            </div>
         </div>
 
         <h2 id="treeTitle">Traceability Tree - Flat View</h2>
@@ -2423,6 +2515,9 @@ class TraceabilityGenerator:
                         <option value="none">○</option>
                     </select>
                 </div>
+            </div>
+            <div class="filter-column edit-mode-column" style="display: none;">
+                <div class="filter-label">Destination</div>
             </div>
         </div>
 
@@ -3162,6 +3257,7 @@ class TraceabilityGenerator:
                     </div>
                     <div class="req-status">{test_badge}</div>
                     <div class="req-location">{file_line_link}{edit_buttons}</div>
+                    <div class="req-destination edit-mode-column" data-req-id="{req.id}"></div>
                 </div>
             </div>
         </div>
