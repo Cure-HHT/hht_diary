@@ -1350,18 +1350,19 @@ class TraceabilityGenerator:
                     }
                 }
 
-                // Update status suffix to show "will be moved" indicator
+                // Update status suffix to show "pending move" indicator
+                // Use ⇢ (dashed arrow) for PENDING moves, distinct from ↝ (wave arrow) for ACTUAL moves
                 if (suffixEl) {
                     const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
-                    // If already has a status, show both (moved + original)
-                    if (originalText && originalText !== '↝') {
-                        suffixEl.textContent = '↝' + originalText;
-                        suffixEl.className = 'status-suffix status-moved-modified';
+                    // If already has a status, show both (pending + original)
+                    if (originalText && originalText !== '↝' && originalText !== '⇢') {
+                        suffixEl.textContent = '⇢' + originalText;
+                        suffixEl.className = 'status-suffix status-pending-move';
                         suffixEl.title = 'PENDING MOVE + ' + (originalStatusSuffixes.get(m.reqId)?.title || '');
                     } else {
-                        suffixEl.textContent = '↝';
-                        suffixEl.className = 'status-suffix status-moved';
-                        suffixEl.title = 'PENDING MOVE';
+                        suffixEl.textContent = '⇢';
+                        suffixEl.className = 'status-suffix status-pending-move';
+                        suffixEl.title = 'PENDING MOVE (not yet executed)';
                     }
                 }
             });
