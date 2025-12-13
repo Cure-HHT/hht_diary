@@ -3014,13 +3014,30 @@ class TraceabilityGenerator:
                 <div class="filter-label">Topic</div>
                 <select id="filterTopic" onchange="applyFilters()">
                     <option value="">All</option>
+                    <option value="tested">✅ Tested</option>
+                    <option value="not-tested">⚡ Not Tested</option>
+                    <option value="failed">❌ Failed</option>
+                </select>
+            </div>
+            <div class="filter-column filter-column-multi">
+                <div class="filter-label">Topic / Coverage</div>
+                <div class="filter-row">
+                    <select id="filterTopic" onchange="applyFilters()">
+                        <option value="">Topic</option>
 """
 
         # Add topic options dynamically
         for topic in sorted_topics:
-            html += f'                    <option value="{topic}">{topic}</option>\n'
+            html += f'                        <option value="{topic}">{topic}</option>\n'
 
-        html += """                </select>
+        html += """                    </select>
+                    <select id="filterCoverage" onchange="applyFilters()">
+                        <option value="">Cov</option>
+                        <option value="full">●</option>
+                        <option value="partial">◐</option>
+                        <option value="none">○</option>
+                    </select>
+                </div>
             </div>
             <div class="filter-column edit-mode-column" style="display: none;">
                 <div class="filter-label">Destination</div>
