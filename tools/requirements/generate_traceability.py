@@ -2070,6 +2070,12 @@ class TraceabilityGenerator:
             link = f"{self._base_path}{file_path}#L{line_num}"
             file_link = f'<a href="{link}" style="color: #0066cc;">{file_path}:{line_num}</a>'
 
+        # Add VS Code link for opening in editor
+        abs_file_path = self.repo_root / file_path
+        vscode_url = f"vscode://file{abs_file_path}:{line_num}"
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;">⚙</a>'
+        file_link = f'{file_link}{vscode_link}'
+
         # Build HTML for implementation file row
         html = f"""
         <div class="req-item impl-file" data-instance-id="{instance_id}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}">
@@ -2146,6 +2152,12 @@ class TraceabilityGenerator:
         else:
             req_link = f'<a href="{self._base_path}spec/{req.file_path.name}#REQ-{req.id}" style="color: inherit; text-decoration: none;">REQ-{req.id}</a>'
             file_line_link = f'<a href="{self._base_path}spec/{req.file_path.name}#L{req.line_number}" style="color: inherit; text-decoration: none;">{req.file_path.name}:{req.line_number}</a>'
+
+        # Add VS Code link for opening spec file in editor
+        abs_spec_path = self.repo_root / 'spec' / req.file_path.name
+        vscode_url = f"vscode://file{abs_spec_path}:{req.line_number}"
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;" onclick="event.stopPropagation();">⚙</a>'
+        file_line_link = f'{file_line_link}{vscode_link}'
 
         # Check if this is a root requirement (no parents)
         is_root = not req.implements or len(req.implements) == 0
