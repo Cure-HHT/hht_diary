@@ -1488,6 +1488,21 @@ class TraceabilityGenerator:
                         suffixEl.title = 'PENDING MOVE (not yet executed)';
                     }
                 }
+
+                // Update status suffix to show "will be moved" indicator
+                if (suffixEl) {
+                    const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
+                    // If already has a status, show both (moved + original)
+                    if (originalText && originalText !== '↝') {
+                        suffixEl.textContent = '↝' + originalText;
+                        suffixEl.className = 'status-suffix status-moved-modified';
+                        suffixEl.title = 'PENDING MOVE + ' + (originalStatusSuffixes.get(m.reqId)?.title || '');
+                    } else {
+                        suffixEl.textContent = '↝';
+                        suffixEl.className = 'status-suffix status-moved';
+                        suffixEl.title = 'PENDING MOVE';
+                    }
+                }
             });
         }
 
