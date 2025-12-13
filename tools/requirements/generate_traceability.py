@@ -692,6 +692,7 @@ class TraceabilityGenerator:
                         <span class="badge">${req.level}</span>
                         <span class="badge">${req.status}</span>
                         <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); return false;" class="file-ref-link">${req.file}:${req.line}</a>
+                        <a href="vscode://file/${window.REPO_ROOT}/${req.filePath.replace(/^\\.\\.\\//, '')}:${req.line}" title="Open in VS Code" style="margin-left: 8px; color: #007acc; text-decoration: none;">⚙</a>
                     </div>
                     ${implementsHtml}
                     <div class="req-card-content markdown-body">
@@ -734,11 +735,20 @@ class TraceabilityGenerator:
             const content = document.getElementById('code-viewer-content');
             const title = document.getElementById('code-viewer-title');
             const lineInfo = document.getElementById('code-viewer-line');
+            const vscodeLink = document.getElementById('code-viewer-vscode');
 
             title.textContent = filePath;
             lineInfo.textContent = `Line ${lineNum}`;
             content.innerHTML = '<div class="loading">Loading...</div>';
             modal.classList.remove('hidden');
+
+            // Set VS Code link - convert relative path to absolute
+            if (window.REPO_ROOT && vscodeLink) {
+                // Remove leading ../ from relative path to get repo-relative path
+                const repoRelPath = filePath.replace(/^\\.\\.\\//, '');
+                const absPath = window.REPO_ROOT + '/' + repoRelPath;
+                vscodeLink.href = `vscode://file/${absPath}:${lineNum}`;
+            }
 
             try {
                 const response = await fetch(filePath);
@@ -1119,6 +1129,7 @@ class TraceabilityGenerator:
                 <div>
                     <span id="code-viewer-title" class="code-viewer-title"></span>
                     <span id="code-viewer-line" class="code-viewer-line"></span>
+                    <a id="code-viewer-vscode" href="#" title="Open in VS Code" style="margin-left: 12px; color: #007acc; text-decoration: none; font-size: 1.1em;">⚙</a>
                 </div>
                 <button class="code-viewer-close" onclick="closeCodeViewer()">Close (Esc)</button>
             </div>
@@ -1865,6 +1876,7 @@ class TraceabilityGenerator:
             # Properly escape JSON for HTML embedding
             import html as html_module
             escaped_json = html_module.escape(json_data)
+            repo_root_str = str(self.repo_root.resolve())
             html += f"""
     <script id="req-content-data" type="application/json">
 {json_data}
@@ -1872,6 +1884,8 @@ class TraceabilityGenerator:
     <script>
         // Load REQ content data into global scope
         window.REQ_CONTENT_DATA = JSON.parse(document.getElementById('req-content-data').textContent);
+        // Repository root for VS Code links
+        window.REPO_ROOT = '{repo_root_str}';
     </script>
 """
 
