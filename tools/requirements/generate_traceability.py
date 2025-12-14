@@ -3515,6 +3515,7 @@ class TraceabilityGenerator:
         """Build a flat list of requirements with hierarchy information"""
         flat_list = []
         self._instance_counter = 0  # Track unique instance IDs
+        self._visited_req_ids = set()  # Track visited requirements to avoid cycles and duplicates
 
         # Start with all root requirements (those with no implements/parent)
         # Root requirements can be PRD, OPS, or DEV - any req that doesn't implement another
@@ -3522,12 +3523,43 @@ class TraceabilityGenerator:
         root_reqs.sort(key=lambda r: r.id)
 
         for root_req in root_reqs:
-            self._add_requirement_and_children(root_req, flat_list, indent=0, parent_instance_id='')
+            self._add_requirement_and_children(root_req, flat_list, indent=0, parent_instance_id='', ancestor_path=[])
+
+        # Add any orphaned requirements that weren't included in the tree
+        # (requirements that have implements pointing to non-existent parents)
+        all_req_ids = set(self.requirements.keys())
+        included_req_ids = self._visited_req_ids
+        orphaned_ids = all_req_ids - included_req_ids
+
+        if orphaned_ids:
+            orphaned_reqs = [self.requirements[rid] for rid in orphaned_ids]
+            orphaned_reqs.sort(key=lambda r: r.id)
+            for orphan in orphaned_reqs:
+                self._add_requirement_and_children(orphan, flat_list, indent=0, parent_instance_id='', ancestor_path=[], is_orphan=True)
 
         return flat_list
 
-    def _add_requirement_and_children(self, req: Requirement, flat_list: List[dict], indent: int, parent_instance_id: str):
-        """Recursively add requirement and its children to flat list"""
+    def _add_requirement_and_children(self, req: Requirement, flat_list: List[dict], indent: int, parent_instance_id: str, ancestor_path: list[str], is_orphan: bool = False):
+        """Recursively add requirement and its children to flat list
+
+        Args:
+            req: The requirement to add
+            flat_list: List to append items to
+            indent: Current indentation level
+            parent_instance_id: Instance ID of parent item
+            ancestor_path: List of requirement IDs in current traversal path (for cycle detection)
+            is_orphan: Whether this requirement is an orphan (has missing parent)
+        """
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED in flat list build: {cycle_str}", file=sys.stderr)
+            return  # Don't add cyclic requirement again
+
+        # Track that we've visited this requirement
+        self._visited_req_ids.add(req.id)
+
         # Generate unique instance ID for this occurrence
         instance_id = f"inst_{self._instance_counter}"
         self._instance_counter += 1
@@ -3566,9 +3598,10 @@ class TraceabilityGenerator:
                 'item_type': 'implementation'
             })
 
-        # Recursively add child requirements
+        # Recursively add child requirements (with updated ancestor path for cycle detection)
+        current_path = ancestor_path + [req.id]
         for child in children:
-            self._add_requirement_and_children(child, flat_list, indent + 1, instance_id)
+            self._add_requirement_and_children(child, flat_list, indent + 1, instance_id, current_path)
 
     def _format_item_flat_html(self, item_data: dict, embed_content: bool = False) -> str:
         """Format a single item (requirement or implementation file) as flat HTML row
