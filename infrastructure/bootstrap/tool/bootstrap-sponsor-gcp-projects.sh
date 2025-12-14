@@ -20,7 +20,7 @@
 #   or
 #   (Application Default Credentials configured via 'gcloud auth application-default login')
 #
-#   PULUMI_CONFIG_PASSPHRASE       - Passphrase for Pulumi stack encryption (if using local backend)
+#   PULUMI_CONFIG_PASSPHRASE       - Passphrase for Pulumi state encryption (required for GCS/S3/self-managed backends)
 #
 # Optional Doppler Environment Variables:
 #   PULUMI_ACCESS_TOKEN            - Pulumi Cloud access token (if using Pulumi Cloud backend)

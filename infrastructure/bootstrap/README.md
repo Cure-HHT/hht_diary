@@ -75,7 +75,7 @@ The bootstrap script requires certain environment variables from Doppler. Run th
 
 | Variable | Description | Example |
 | -------- | ----------- | ------- |
-| `PULUMI_CONFIG_PASSPHRASE` | Passphrase for encrypted Pulumi state | `your-passphrase` |
+| `PULUMI_CONFIG_PASSPHRASE` | Passphrase for Pulumi state encryption (secrets in GCS backend) | `your-passphrase` |
 | `PULUMI_ACCESS_TOKEN` | Pulumi Cloud token (if using Pulumi Cloud) | `pul-xxx...` |
 | `GCP_PROJECT` | Default GCP project for gcloud | `cure-hht-admin` |
 
