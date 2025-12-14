@@ -314,60 +314,6 @@ class TraceabilityRequirement:
 
         return False
 
-    def _is_in_untracked_file(self) -> bool:
-        """Check if requirement is in an untracked (new) file"""
-        rel_path = self._get_spec_relative_path()
-        return rel_path in _git_untracked_files
-
-    def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
-        """Check if requirement is modified based on a set of changed files
-
-        For modified files, checks if hash has changed.
-        For untracked files, all REQs are considered new (no hash check needed).
-        """
-        rel_path = self._get_spec_relative_path()
-
-        # Check if file is untracked (new) - all REQs in new files are new
-        if rel_path in _git_untracked_files:
-            return True
-
-        # Check if file is in the modified set
-        if not file_set or rel_path not in file_set:
-            return False
-
-        # File is modified - check if it has TBD hash or stale hash
-        if self.hash == 'TBD':
-            return True
-
-        # Calculate hash to verify content actually changed
-        full_content = self.body
-        if self.rationale:
-            full_content = f"{self.body}\n\n**Rationale**: {self.rationale}"
-        calculated_hash = calculate_requirement_hash(full_content)
-        return self.hash != calculated_hash
-
-    @property
-    def is_uncommitted(self) -> bool:
-        """Check if requirement has uncommitted changes (modified since last commit)"""
-        return self._check_modified_in_fileset(_git_uncommitted_files)
-
-    @property
-    def is_branch_changed(self) -> bool:
-        """Check if requirement changed vs main branch"""
-        return self._check_modified_in_fileset(_git_branch_changed_files)
-
-    @property
-    def is_new(self) -> bool:
-        """Check if requirement is in a new (untracked) file"""
-        return self._is_in_untracked_file()
-
-    @property
-    def is_modified(self) -> bool:
-        """Check if requirement has modified content (hash changed) but is not in a new file"""
-        if self._is_in_untracked_file():
-            return False  # New files are "new", not "modified"
-        return self.is_uncommitted
-
     @classmethod
     def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
         """Create TraceabilityRequirement from shared parser Requirement
@@ -1333,20 +1279,6 @@ class TraceabilityGenerator:
                             const displayName = m.targetFile.replace('roadmap/', '').replace(/\\.md$/, '');
                             destText.textContent = '→ ' + displayName;
                         }
-                    }
-                }
-
-                // Update status suffix to show "pending move" indicator
-                if (suffixEl) {
-                    const originalText = originalStatusSuffixes.get(m.reqId)?.text || '';
-                    if (originalText && originalText !== '↝' && originalText !== '⇢') {
-                        suffixEl.textContent = '⇢' + originalText;
-                        suffixEl.className = 'status-suffix status-pending-move';
-                        suffixEl.title = 'PENDING MOVE + ' + (originalStatusSuffixes.get(m.reqId)?.title || '');
-                    } else {
-                        suffixEl.textContent = '⇢';
-                        suffixEl.className = 'status-suffix status-pending-move';
-                        suffixEl.title = 'PENDING MOVE (not yet executed)';
                     }
                 }
 
@@ -2544,126 +2476,6 @@ class TraceabilityGenerator:
             font-size: 11px;
             padding: 4px 8px;
         }}
-        /* Edit Mode button - blue theme instead of green */
-        #btnEditMode {{
-            border: 1px solid #007bff;
-        }}
-        #btnEditMode:hover {{
-            background: #e3f2fd;
-        }}
-        #btnEditMode.active {{
-            background: #007bff;
-            color: white;
-            border: 1px solid #007bff;
-        }}
-        .checkbox-label {{
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            color: #495057;
-            cursor: pointer;
-            padding: 6px 10px;
-            background: #e9ecef;
-            border-radius: 3px;
-        }}
-        .checkbox-label:hover {{
-            background: #dee2e6;
-        }}
-        .checkbox-label input {{
-            cursor: pointer;
-        }}
-        /* Edit Mode styles */
-        .edit-mode-panel {{
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 10px 0;
-        }}
-        .edit-mode-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }}
-        .edit-mode-title {{
-            font-size: 14px;
-        }}
-        .edit-mode-actions {{
-            display: flex;
-            gap: 10px;
-        }}
-        .pending-moves-list {{
-            max-height: 200px;
-            overflow-y: auto;
-            font-size: 12px;
-        }}
-        .pending-move-item {{
-            padding: 5px 10px;
-            background: white;
-            border-radius: 3px;
-            margin: 3px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-        .edit-actions {{
-            display: none;
-        }}
-        body.edit-mode-active .edit-actions {{
-            display: flex;
-            gap: 4px;
-        }}
-        .edit-btn {{
-            padding: 2px 6px;
-            font-size: 10px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            background: white;
-            white-space: nowrap;
-        }}
-        .edit-btn:hover {{
-            background: #e9ecef;
-        }}
-        .edit-btn.to-roadmap {{
-            border-color: #fd7e14;
-            color: #fd7e14;
-        }}
-        .edit-btn.from-roadmap {{
-            border-color: #28a745;
-            color: #28a745;
-        }}
-        .vscode-link {{
-            font-size: 16px;
-            color: #007acc;
-            text-decoration: none;
-            margin-left: 6px;
-        }}
-        .vscode-link:hover {{
-            color: #005a9e;
-        }}
-        .dest-text {{
-            font-size: 11px;
-            color: #666;
-            white-space: nowrap;
-        }}
-        .edit-btn.move-file {{
-            border-color: #007bff;
-            color: #007bff;
-        }}
-        /* Panel/card edit buttons - always visible, horizontal layout */
-        .req-card-actions {{
-            display: flex !important;
-            flex-direction: row;
-            gap: 8px;
-            margin: 8px 0;
-        }}
-        .panel-edit-btn {{
-            font-size: 11px;
-            padding: 4px 8px;
-        }}
         .controls {{
             margin: 15px 0;
             padding: 10px;
@@ -2831,33 +2643,6 @@ class TraceabilityGenerator:
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-        }}
-        /* Edit mode column - hidden by default, shown in edit mode */
-        .edit-mode-column {{
-            display: none;
-        }}
-        body.edit-mode-active .edit-mode-column {{
-            display: block;
-        }}
-        .req-destination {{
-            min-width: 100px;
-            max-width: 150px;
-            font-size: 11px;
-            padding: 2px 6px;
-        }}
-        .req-destination:not(:empty) {{
-            background: #e8f4fd;
-            border-radius: 4px;
-            color: #0366d6;
-            font-weight: 500;
-        }}
-        .req-destination.to-roadmap {{
-            background: #fff3cd;
-            color: #856404;
-        }}
-        .req-destination.from-roadmap {{
-            background: #d4edda;
-            color: #155724;
         }}
         /* Edit mode column - hidden by default, shown in edit mode */
         .edit-mode-column {{
@@ -3198,16 +2983,6 @@ class TraceabilityGenerator:
                 <div class="filter-label">Topic</div>
                 <select id="filterTopic" onchange="applyFilters()">
                     <option value="">All</option>
-                    <option value="tested">✅ Tested</option>
-                    <option value="not-tested">⚡ Not Tested</option>
-                    <option value="failed">❌ Failed</option>
-                </select>
-            </div>
-            <div class="filter-column filter-column-multi">
-                <div class="filter-label">Topic / Coverage</div>
-                <div class="filter-row">
-                    <select id="filterTopic" onchange="applyFilters()">
-                        <option value="">Topic</option>
 """
 
         # Add topic options dynamically
@@ -3890,41 +3665,6 @@ class TraceabilityGenerator:
         else:
             req_link = f'<a href="{self._base_path}{spec_rel_path}#REQ-{req.id}" style="color: inherit; text-decoration: none;">{req.id}</a>'
             file_line_link = f'<a href="{self._base_path}{spec_rel_path}#L{req.line_number}" style="color: inherit; text-decoration: none;">{display_filename}</a>'
-
-        # Determine status indicators using distinctive Unicode symbols
-        # ★ (star) = NEW, ◆ (diamond) = MODIFIED, ↝ (wave arrow) = MOVED
-        status_suffix = ''
-        status_suffix_class = ''
-        status_title = ''
-
-        is_moved = req.is_moved
-        is_new_not_moved = req.is_new and not is_moved
-        is_modified = req.is_modified
-
-        if is_moved and is_modified:
-            # Moved AND modified - show both indicators
-            status_suffix = '↝◆'
-            status_suffix_class = 'status-moved-modified'
-            status_title = 'MOVED and MODIFIED'
-        elif is_moved:
-            # Just moved (might be in new file)
-            status_suffix = '↝'
-            status_suffix_class = 'status-moved'
-            status_title = 'MOVED from another file'
-        elif is_new_not_moved:
-            # Truly new (in new file, not moved)
-            status_suffix = '★'
-            status_suffix_class = 'status-new'
-            status_title = 'NEW requirement'
-        elif is_modified:
-            # Modified in place
-            status_suffix = '◆'
-            status_suffix_class = 'status-modified'
-            status_title = 'MODIFIED content'
-
-        # VS Code link for use in side panel (not in topic column)
-        abs_spec_path = self.repo_root / spec_subpath / req.file_path.name
-        vscode_url = f"vscode://file/{abs_spec_path}:{req.line_number}"
 
         # Determine status indicators using distinctive Unicode symbols
         # ★ (star) = NEW, ◆ (diamond) = MODIFIED, ↝ (wave arrow) = MOVED
