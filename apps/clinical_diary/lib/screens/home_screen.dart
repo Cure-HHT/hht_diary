@@ -2,6 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
@@ -16,7 +17,9 @@ import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
+import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -24,6 +27,7 @@ import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -238,51 +242,129 @@ class _HomeScreenState extends State<HomeScreen> {
     unawaited(_loadRecords());
   }
 
-  Future<void> _handleAddExampleData() async {
-    // Add some example nosebleed records for demonstration
-    final now = DateTime.now();
-    final yesterday = now.subtract(const Duration(days: 1));
-    final twoDaysAgo = now.subtract(const Duration(days: 2));
+  Future<void> _handleExportData() async {
+    final l10n = AppLocalizations.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    await widget.nosebleedService.addRecord(
-      startTime: DateTime(
-        twoDaysAgo.year,
-        twoDaysAgo.month,
-        twoDaysAgo.day,
-        9,
-        30,
-      ),
-      endTime: DateTime(
-        twoDaysAgo.year,
-        twoDaysAgo.month,
-        twoDaysAgo.day,
-        9,
-        45,
-      ),
-      intensity: NosebleedIntensity.dripping,
-      notes: 'Example morning nosebleed',
-    );
+    try {
+      final exportService = DataExportService(
+        nosebleedService: widget.nosebleedService,
+        preferencesService: widget.preferencesService,
+        enrollmentService: widget.enrollmentService,
+      );
 
-    await widget.nosebleedService.addRecord(
-      startTime: DateTime(
-        yesterday.year,
-        yesterday.month,
-        yesterday.day,
-        14,
-        0,
-      ),
-      endTime: DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 30),
-      intensity: NosebleedIntensity.steadyStream,
-      notes: 'Example afternoon nosebleed',
-    );
+      final jsonData = await exportService.exportAppState();
+      final filename = exportService.generateExportFilename();
 
-    unawaited(_loadRecords());
+      // Save file using platform-aware service
+      final result = await FileSaveService.saveFile(
+        fileName: filename,
+        data: jsonData,
+        dialogTitle: l10n.exportData,
+      );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (result) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.exportSuccess),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Export error: $e');
+      scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).exampleDataAdded),
+          content: Text(l10n.exportFailed),
           duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleImportData() async {
+    final l10n = AppLocalizations.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.importConfirmTitle),
+        content: Text(l10n.importConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Pick file
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: l10n.importData,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.bytes == null) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.importFailed('Could not read file')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      final jsonData = utf8.decode(file.bytes!);
+
+      final exportService = DataExportService(
+        nosebleedService: widget.nosebleedService,
+        preferencesService: widget.preferencesService,
+        enrollmentService: widget.enrollmentService,
+      );
+
+      final importResult = await exportService.importAppState(jsonData);
+
+      if (importResult.success) {
+        unawaited(_loadRecords());
+        unawaited(_loadPreferences());
+
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.importSuccess(importResult.recordsImported)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.importFailed(importResult.error ?? 'Unknown error'),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Import error: $e');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.importFailed(e.toString())),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -748,7 +830,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    onAddExampleData: _handleAddExampleData,
+                    onExportData: _handleExportData,
+                    onImportData: _handleImportData,
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
                     onEndClinicalTrial: _isEnrolled

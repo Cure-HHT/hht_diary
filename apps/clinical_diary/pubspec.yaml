@@ -1,7 +1,7 @@
 name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
-version: 0.7.82
+version: 0.7.83
 
 environment:
   sdk: ^3.10.1
@@ -30,6 +30,7 @@ dependencies:
   table_calendar: ^3.2.0
   url_launcher: ^6.3.2
   uuid: ^4.5.2
+  file_picker: ^8.1.7
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0  # For web-specific cache clearing in version updates

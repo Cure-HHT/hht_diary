@@ -15,7 +15,9 @@ import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
+import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
@@ -257,6 +259,47 @@ class _AppRootState extends State<AppRoot> {
   void initState() {
     super.initState();
     _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
+    _performAutoImport();
+  }
+
+  /// Auto-import data from file if IMPORT_FILE was specified via dart-define.
+  /// This is useful for testing with pre-populated data.
+  Future<void> _performAutoImport() async {
+    if (!AppConfig.hasImportFile) return;
+
+    debugPrint(
+      '[AutoImport] IMPORT_FILE specified: ${AppConfig.importFilePath}',
+    );
+
+    try {
+      final fileContent = await FileReadService.readFile(
+        AppConfig.importFilePath,
+      );
+
+      if (fileContent == null) {
+        debugPrint('[AutoImport] Could not read file');
+        return;
+      }
+
+      final exportService = DataExportService(
+        nosebleedService: _nosebleedService,
+        preferencesService: widget.preferencesService,
+        enrollmentService: _enrollmentService,
+      );
+
+      final result = await exportService.importAppState(fileContent);
+
+      if (result.success) {
+        debugPrint(
+          '[AutoImport] Success: ${result.recordsImported} records imported',
+        );
+      } else {
+        debugPrint('[AutoImport] Failed: ${result.error}');
+      }
+    } catch (e, stack) {
+      debugPrint('[AutoImport] Error: $e');
+      debugPrint('[AutoImport] Stack: $stack');
+    }
   }
 
   @override

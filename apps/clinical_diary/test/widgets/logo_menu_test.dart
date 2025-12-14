@@ -15,7 +15,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -38,7 +39,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -60,7 +62,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -76,11 +79,12 @@ void main() {
       expect(find.text('Data Management'), findsOneWidget);
     });
 
-    testWidgets('shows Add Example Data option', (tester) async {
+    testWidgets('shows Export Data option', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -93,14 +97,36 @@ void main() {
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add Example Data'), findsOneWidget);
+      expect(find.text('Export Data'), findsOneWidget);
+    });
+
+    testWidgets('shows Import Data option', (tester) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Import Data'), findsOneWidget);
     });
 
     testWidgets('shows Reset All Data option', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -116,13 +142,14 @@ void main() {
       expect(find.text('Reset All Data?'), findsOneWidget);
     });
 
-    testWidgets('calls onAddExampleData when tapped', (tester) async {
+    testWidgets('calls onExportData when tapped', (tester) async {
       var called = false;
 
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () => called = true,
+            onExportData: () => called = true,
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -135,7 +162,33 @@ void main() {
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Add Example Data'));
+      await tester.tap(find.text('Export Data'));
+      await tester.pumpAndSettle();
+
+      expect(called, true);
+    });
+
+    testWidgets('calls onImportData when tapped', (tester) async {
+      var called = false;
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () => called = true,
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Import Data'));
       await tester.pumpAndSettle();
 
       expect(called, true);
@@ -147,7 +200,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () => called = true,
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -170,7 +224,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -192,7 +247,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -215,7 +271,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: () {},
@@ -235,7 +292,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,
@@ -257,7 +315,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: () => called = true,
@@ -280,7 +339,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: () {},
@@ -302,7 +362,8 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onAddExampleData: () {},
+            onExportData: () {},
+            onImportData: () {},
             onResetAllData: () {},
             onFeatureFlags: () {},
             onEndClinicalTrial: null,

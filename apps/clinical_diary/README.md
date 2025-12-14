@@ -479,6 +479,64 @@ The IDE run configurations only need to pass `--dart-define=APP_FLAVOR=<flavor>`
 
 This project uses a comprehensive testing strategy covering both Flutter (Dart) and Firebase Functions (TypeScript).
 
+### Testing with Pre-populated Data
+
+The app supports loading test data on startup via the `IMPORT_FILE` dart-define. This is useful for:
+- Manual testing with consistent data
+- Demo presentations
+- QA testing specific scenarios
+
+**Using run scripts (recommended):**
+
+```bash
+# Run dev flavor with test data
+./tool/run_dev.sh --import-file ./test/data/hht-diary-export-2025-12-14-123050.json
+
+# Run on web with test data
+./tool/run_dev.sh --web --import-file ./test/data/export.json
+
+# Run QA flavor with test data
+./tool/run_qa.sh --import-file ./test/data/export.json
+
+# Run UAT flavor
+./tool/run_uat.sh --import-file ./test/data/export.json
+```
+
+**Using flutter run directly:**
+
+```bash
+# Web (absolute path required)
+flutter run -d chrome --dart-define=APP_FLAVOR=dev \
+    --dart-define=IMPORT_FILE=/full/path/to/export.json
+
+# Mobile (absolute path required)
+flutter run --flavor dev --dart-define=APP_FLAVOR=dev \
+    --dart-define=IMPORT_FILE=/full/path/to/export.json
+```
+
+**Notes:**
+- The file path must be absolute when using `--dart-define` directly
+- The run scripts automatically convert relative paths to absolute
+- IMPORT_FILE only works on native platforms (iOS, Android, macOS, Linux, Windows)
+- On web, IMPORT_FILE is ignored (browsers cannot read local files)
+- Import merges with existing data (duplicates are skipped by record ID)
+- To start fresh, use "Reset All Data" from the logo menu before running with IMPORT_FILE
+
+### Run Scripts
+
+Convenience scripts in `tool/` for running the app with different flavors:
+
+| Script | Flavor | Dev Tools |
+| ------ | ------ | --------- |
+| `./tool/run_dev.sh` | dev | Yes |
+| `./tool/run_qa.sh` | qa | Yes |
+| `./tool/run_uat.sh` | uat | No |
+
+All scripts support these options:
+- `--import-file <path>` - Auto-import JSON export file on startup
+- `--device <device>` - Specify device (e.g., `chrome`, `macos`, `iPhone 15`)
+- `--web` - Shortcut for `--device chrome`
+
 ### Test Architecture
 
 ```
