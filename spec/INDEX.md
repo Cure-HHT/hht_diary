@@ -39,7 +39,6 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00024 | dev-security-RLS.md | Auditor Compliance RLS Implementation | 64a2ff2e |
 | REQ-d00025 | dev-security-RLS.md | Administrator Break-Glass RLS Implementation | 4a44951a |
 | REQ-d00026 | dev-security-RLS.md | Event Sourcing State Protection RLS Implementation | a665366e |
-| REQ-d00027 | dev-environment.md | Containerized Development Environments | 13d56217 |
 | REQ-d00028 | dev-portal.md | Portal Frontend Framework | 27f467d3 |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
@@ -59,12 +58,8 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00051 | dev-portal.md | Auditor Dashboard Implementation | 1c02e54a |
 | REQ-d00052 | dev-portal.md | Role-Based Banner Component | 40c44430 |
 | REQ-d00053 | dev-requirements-management.md | Development Environment and Tooling Setup | 404b139b |
-| REQ-d00055 | dev-environment.md | Role-Based Environment Separation | a8ce8ecf |
-| REQ-d00056 | dev-environment.md | Cross-Platform Development Support | 223d3f08 |
-| REQ-d00057 | dev-environment.md | CI/CD Environment Parity | e58f7423 |
 | REQ-d00058 | dev-environment.md | Secrets Management via Doppler | 313110c3 |
-| REQ-d00059 | dev-environment.md | Development Tool Specifications | 42b07b9a |
-| REQ-d00060 | dev-environment.md | VS Code Dev Containers Integration | 07abf106 |
+| REQ-d00059 | dev-environment.md | Pin Development Tool Versions | 42b07b9a |
 | REQ-d00061 | dev-environment.md | Automated QA Workflow | fc47d463 |
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 5c269c11 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | b407570f |
