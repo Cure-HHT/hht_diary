@@ -45,7 +45,7 @@ This document defines high-level requirements for each industry standard the pla
 
 # REQ-p00041: CDISC Standards Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 The system SHALL support Clinical Data Interchange Standards Consortium (CDISC) standards for clinical data capture, storage, transformation, and export to enable regulatory submission and EDC system integration.
 
