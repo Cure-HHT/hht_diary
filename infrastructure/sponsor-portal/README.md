@@ -298,7 +298,7 @@ pulumi import gcp:cloudrun/service:Service portal projects/<project>/locations/<
 ## File Structure
 
 ```
-infrastructure/pulumi/
+infrastructure/sponsor-portal/
 ├── README.md                 # This file
 ├── package.json              # Node.js dependencies
 ├── tsconfig.json             # TypeScript configuration

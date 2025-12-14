@@ -65,7 +65,7 @@ function main() {
         sponsor: config.sponsor,
         projectPrefix: config.projectPrefix,
 
-        // Project IDs (for use in infrastructure/pulumi stacks)
+        // Project IDs (for use in infrastructure/sponsor-portal stacks)
         ...projectOutputs,
 
         // CI/CD service account
@@ -80,7 +80,7 @@ Next steps:
 1. Update DNS records if needed
 2. Configure Pulumi stacks for each environment:
 
-   cd ../pulumi
+   cd ../sponsor-portal
 
    # Development
    pulumi stack init ${config.sponsor}-dev

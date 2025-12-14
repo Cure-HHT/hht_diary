@@ -47,6 +47,21 @@ For each new sponsor, this bootstrap creates:
 
 ### Onboard a New Sponsor
 
+**Option 1: Use the bootstrap script (recommended)**
+
+```bash
+cd infrastructure/bootstrap/tool
+
+# Copy and edit the example config
+cp sponsor-config.example.json orion.json
+# Edit orion.json with your sponsor details
+
+# Run the bootstrap script
+./bootstrap-sponsor-gcp-projects.sh orion.json
+```
+
+**Option 2: Manual Pulumi commands**
+
 ```bash
 cd infrastructure/bootstrap
 
@@ -105,16 +120,19 @@ pulumi stack output cicdServiceAccountEmail
 
 ```
 infrastructure/bootstrap/
-├── README.md              # This file
-├── package.json           # Node.js dependencies
-├── tsconfig.json          # TypeScript configuration
-├── Pulumi.yaml            # Pulumi project configuration
-├── index.ts               # Main entry point
-└── src/
-    ├── config.ts          # Configuration management
-    ├── projects.ts        # GCP project creation
-    ├── billing.ts         # Billing budgets and alerts
-    └── org-iam.ts         # IAM and service accounts
+├── README.md                        # This file
+├── package.json                     # Node.js dependencies
+├── tsconfig.json                    # TypeScript configuration
+├── Pulumi.yaml                      # Pulumi project configuration
+├── index.ts                         # Main entry point
+├── src/
+│   ├── config.ts                    # Configuration management
+│   ├── projects.ts                  # GCP project creation
+│   ├── billing.ts                   # Billing budgets and alerts
+│   └── org-iam.ts                   # IAM and service accounts
+└── tool/
+    ├── bootstrap-sponsor-gcp-projects.sh  # Bootstrap script
+    └── sponsor-config.example.json        # Example config file
 ```
 
 ## After Bootstrap
@@ -122,7 +140,7 @@ infrastructure/bootstrap/
 Once bootstrap is complete, configure the main infrastructure stacks:
 
 ```bash
-cd ../pulumi
+cd ../sponsor-portal
 
 # For each environment (dev, qa, uat, prod):
 pulumi stack init orion-dev

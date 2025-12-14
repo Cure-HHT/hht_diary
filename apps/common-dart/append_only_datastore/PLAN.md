@@ -16,7 +16,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 **1. trial_data_types** (Pure Dart package - shared types)
 
 - Domain entities, events, and value objects
-- Shared between client (Flutter) and server (Supabase)
+- Shared between client (Flutter) and server 
 - No Flutter dependencies
 - Basis for PostgreSQL table definitions
 
