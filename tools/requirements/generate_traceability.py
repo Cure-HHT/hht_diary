@@ -679,7 +679,7 @@ class TraceabilityGenerator:
         prd_reqs.sort(key=lambda r: r.id)
 
         for prd_req in prd_reqs:
-            lines.append(self._format_req_tree_md(prd_req, indent=0))
+            lines.append(self._format_req_tree_md(prd_req, indent=0, ancestor_path=[]))
 
         # Orphaned ops/dev requirements
         orphaned = self._find_orphaned_requirements()
@@ -691,8 +691,33 @@ class TraceabilityGenerator:
 
         return '\n'.join(lines)
 
-    def _format_req_tree_md(self, req: Requirement, indent: int) -> str:
-        """Format requirement and its children as markdown tree"""
+    def _format_req_tree_md(self, req: Requirement, indent: int, ancestor_path: list[str] | None = None) -> str:
+        """Format requirement and its children as markdown tree.
+
+        Args:
+            req: The requirement to format
+            indent: Current indentation level
+            ancestor_path: List of requirement IDs in the current traversal path (for cycle detection)
+
+        Returns:
+            Formatted markdown string
+        """
+        if ancestor_path is None:
+            ancestor_path = []
+
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED: {cycle_str}", file=sys.stderr)
+            return f"  " * indent + f"- ⚠️ **CYCLE DETECTED**: REQ-{req.id} (path: {cycle_str})"
+
+        # Safety depth limit
+        MAX_DEPTH = 50
+        if indent > MAX_DEPTH:
+            print(f"⚠️  MAX DEPTH ({MAX_DEPTH}) exceeded at REQ-{req.id}", file=sys.stderr)
+            return f"  " * indent + f"- ⚠️ **MAX DEPTH EXCEEDED**: REQ-{req.id}"
+
         lines = []
         prefix = "  " * indent
 
@@ -730,8 +755,10 @@ class TraceabilityGenerator:
         children.sort(key=lambda r: r.id)
 
         if children:
+            # Add current req to path before recursing into children
+            current_path = ancestor_path + [req.id]
             for child in children:
-                lines.append(self._format_req_tree_md(child, indent + 1))
+                lines.append(self._format_req_tree_md(child, indent + 1, current_path))
 
         return '\n'.join(lines)
 
@@ -3768,8 +3795,32 @@ class TraceabilityGenerator:
 """
         return html
 
-    def _format_req_tree_html(self, req: Requirement) -> str:
-        """Format requirement and children as HTML tree (legacy non-collapsible)"""
+    def _format_req_tree_html(self, req: Requirement, ancestor_path: list[str] | None = None) -> str:
+        """Format requirement and children as HTML tree (legacy non-collapsible).
+
+        Args:
+            req: The requirement to format
+            ancestor_path: List of requirement IDs in the current traversal path (for cycle detection)
+
+        Returns:
+            Formatted HTML string
+        """
+        if ancestor_path is None:
+            ancestor_path = []
+
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED: {cycle_str}", file=sys.stderr)
+            return f'        <div class="req-item cycle-detected"><strong>⚠️ CYCLE DETECTED:</strong> REQ-{req.id} (path: {cycle_str})</div>\n'
+
+        # Safety depth limit
+        MAX_DEPTH = 50
+        if len(ancestor_path) > MAX_DEPTH:
+            print(f"⚠️  MAX DEPTH ({MAX_DEPTH}) exceeded at REQ-{req.id}", file=sys.stderr)
+            return f'        <div class="req-item depth-exceeded"><strong>⚠️ MAX DEPTH EXCEEDED:</strong> REQ-{req.id}</div>\n'
+
         status_class = req.status.lower()
         level_class = req.level.lower()
 
@@ -3793,16 +3844,71 @@ class TraceabilityGenerator:
         children.sort(key=lambda r: r.id)
 
         if children:
+            # Add current req to path before recursing into children
+            current_path = ancestor_path + [req.id]
             html += '            <div class="child-reqs">\n'
             for child in children:
-                html += self._format_req_tree_html(child)
+                html += self._format_req_tree_html(child, current_path)
             html += '            </div>\n'
 
         html += '        </div>\n'
         return html
 
-    def _format_req_tree_html_collapsible(self, req: Requirement) -> str:
-        """Format requirement and children as collapsible HTML tree"""
+    def _format_req_tree_html_collapsible(self, req: Requirement, ancestor_path: list[str] | None = None) -> str:
+        """Format requirement and children as collapsible HTML tree.
+
+        Args:
+            req: The requirement to format
+            ancestor_path: List of requirement IDs in the current traversal path (for cycle detection)
+
+        Returns:
+            Formatted HTML string
+        """
+        if ancestor_path is None:
+            ancestor_path = []
+
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED: {cycle_str}", file=sys.stderr)
+            return f'''
+        <div class="req-item cycle-detected" data-req-id="{req.id}">
+            <div class="req-header-container">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">⚠️ CYCLE</div>
+                    <div class="req-header">Circular dependency detected at REQ-{req.id}</div>
+                    <div class="req-level">ERROR</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-deprecated">Cycle</span>
+                    </div>
+                    <div class="req-location">Path: {cycle_str}</div>
+                </div>
+            </div>
+        </div>
+'''
+
+        # Safety depth limit
+        MAX_DEPTH = 50
+        if len(ancestor_path) > MAX_DEPTH:
+            print(f"⚠️  MAX DEPTH ({MAX_DEPTH}) exceeded at REQ-{req.id}", file=sys.stderr)
+            return f'''
+        <div class="req-item depth-exceeded" data-req-id="{req.id}">
+            <div class="req-header-container">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">⚠️ DEPTH</div>
+                    <div class="req-header">Maximum depth exceeded at REQ-{req.id}</div>
+                    <div class="req-level">ERROR</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-deprecated">Overflow</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+'''
+
         status_class = req.status.lower()
         level_class = req.level.lower()
 
@@ -3852,9 +3958,11 @@ class TraceabilityGenerator:
 """
 
         if children:
+            # Add current req to path before recursing into children
+            current_path = ancestor_path + [req.id]
             html += '            <div class="child-reqs">\n'
             for child in children:
-                html += self._format_req_tree_html_collapsible(child)
+                html += self._format_req_tree_html_collapsible(child, current_path)
             html += '            </div>\n'
 
         html += '        </div>\n'
