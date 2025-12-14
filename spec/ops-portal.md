@@ -15,19 +15,28 @@
 
 ## Executive Summary
 
-This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Identity Platform.
+This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Workforce Identity Federation.
+Each sponsor shall have 4 environments:
+- dev
+- qa
+- uat
+- prod
 
-**Deployment Model**: One portal instance per sponsor GCP project
+**Deployment Model**: One portal instance per sponsor GCP project, per environment
+
 **Hosting**: Cloud Run (containerized Flutter web app + Dart backend)
+
 **Database**: Cloud SQL PostgreSQL (with RLS)
-**Authentication**: Identity Platform (Firebase Auth)
+
+**Authentication**: [Google Workforce Identity Federation](https://cloud.google.com/workforce-identity-federation)
+
 **Domains**: Custom subdomain per sponsor (e.g., `portal-sponsor.example.com`)
 
 ---
 
 ## Prerequisites
 
-Before deploying a portal instance, ensure you have:
+Before deploying a portal instance to an environment, ensure you have:
 
 1. **GCP Project** created for sponsor with billing enabled
 2. **Cloud SQL Instance** provisioned with schema applied

@@ -12,7 +12,7 @@
  * - Cloud Run: Containerized Flutter web app (nginx + static files)
  * - Artifact Registry: Docker image storage
  * - Cloud SQL: PostgreSQL database with RLS
- * - Identity Platform: Firebase authentication
+ * - Workforce Identity Federation: Sponsor SSO integration (SAML/OIDC)
  * - Custom Domain: SSL-enabled custom domain mapping
  * - Monitoring: Uptime checks and error alerts
  * - IAM: Least-privilege service accounts
@@ -27,6 +27,11 @@ import { buildAndPushDockerImage } from "./src/docker-image";
 import { createCloudRunService } from "./src/cloud-run";
 import { createDomainMapping } from "./src/domain-mapping";
 import { createMonitoring } from "./src/monitoring";
+import {
+    createWorkforceIdentityFederation,
+    grantWorkforcePoolAccess,
+    WorkforceIdentityConfig,
+} from "./src/workforce-identity";
 
 /**
  * Main Pulumi program
@@ -63,6 +68,40 @@ async function main() {
     // Step 7: Create Monitoring and Alerts
     const monitoring = createMonitoring(config, cloudRunService);
 
+    // Step 8: Configure Workforce Identity Federation (if enabled)
+    // This allows sponsor users to authenticate via their corporate IdP (SAML/OIDC)
+    let workforceIdentity = undefined;
+    if (config.workforceIdentity.enabled) {
+        const identityConfig: WorkforceIdentityConfig = {
+            enabled: true,
+            providerType: config.workforceIdentity.providerType || "oidc",
+            oidc: config.workforceIdentity.providerType === "oidc" ? {
+                issuerUri: config.workforceIdentity.issuerUri!,
+                clientId: config.workforceIdentity.clientId!,
+                clientSecret: config.workforceIdentity.clientSecret,
+                webSsoResponseType: "CODE",
+            } : undefined,
+            attributeMapping: {
+                "google.subject": "assertion.sub",
+                "google.groups": "assertion.groups",
+                "attribute.email": "assertion.email",
+                "attribute.name": "assertion.name",
+            },
+        };
+
+        workforceIdentity = createWorkforceIdentityFederation(config, identityConfig);
+
+        // Grant authenticated sponsor users access to invoke Cloud Run
+        if (workforceIdentity) {
+            grantWorkforcePoolAccess(
+                config,
+                workforceIdentity,
+                "roles/run.invoker",
+                "cloudrun-invoker"
+            );
+        }
+    }
+
     // Export stack outputs
     return {
         // Cloud Run outputs
@@ -72,7 +111,7 @@ async function main() {
         // Domain outputs
         customDomainUrl: pulumi.interpolate`https://${config.domainName}`,
         dnsRecordRequired: pulumi.interpolate`CNAME ${config.domainName} -> ghs.googlehosted.com`,
-        domainStatus: domainMapping.status.certificateMode,
+        domainStatus: domainMapping.statuses.apply(s => s?.[0]?.resourceRecords),
 
         // Database outputs
         dbConnectionName: cloudSql.connectionName,
@@ -88,6 +127,11 @@ async function main() {
         sponsor: config.sponsor,
         environment: config.environment,
         region: config.region,
+
+        // Workforce Identity Federation outputs (if enabled)
+        workforceIdentityEnabled: config.workforceIdentity.enabled,
+        workforcePoolId: workforceIdentity?.pool.workforcePoolId,
+        workforceProviderId: workforceIdentity?.provider.id,
     };
 }
 

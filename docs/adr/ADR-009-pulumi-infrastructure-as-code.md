@@ -7,7 +7,7 @@
 
 ## Status
 
-Accepted
+Draft
 
 ---
 
@@ -44,7 +44,7 @@ The initial `spec/ops-portal.md` documented a **manual deployment approach**:
 - Cloud Run services (containerized Flutter web app)
 - Artifact Registry (Docker images)
 - Cloud SQL PostgreSQL (database with backups, point-in-time recovery)
-- Identity Platform (Firebase authentication)
+- Workforce Identity Federation (sponsor SSO via SAML 2.0/OIDC)
 - Custom domain mappings (SSL certificates)
 - IAM service accounts (least-privilege permissions)
 - Monitoring and alerting (uptime checks, error alerts)
@@ -76,11 +76,14 @@ apps/portal-cloud/          # Pulumi project
 ### Stack Model
 
 Each sponsor-environment combination is a **Pulumi stack**:
+- `callisto-dev` - Callisto development environment
+- `callisto-qa` - Callisto QA environment
+- `callisto-uat` - Callisto UAT environment
+- `callisto-prod` - Callisto production environment
 - `orion-dev` - Orion development environment
 - `orion-qa` - Orion QA environment
 - `orion-uat` - Orion UAT environment
 - `orion-prod` - Orion production environment
-- `callisto-prod` - Callisto production environment
 - etc.
 
 **State storage**: Google Cloud Storage bucket (`gs://pulumi-state-cure-hht`)
@@ -149,7 +152,7 @@ pulumi up
 7. **GCP Native Support**: Pulumi's GCP provider has excellent coverage
    - Better than Terraform for GCP-specific features
    - Faster updates when new GCP features released
-   - Native support for Cloud Run, Cloud SQL, Identity Platform
+   - Native support for Cloud Run, Cloud SQL, Workforce Identity Federation
 
 8. **Rollback Capability**: Can rollback entire infrastructure to previous state
    - `pulumi stack history` shows all deployment versions
@@ -427,7 +430,7 @@ Pulumi infrastructure validates successfully when:
 **Example**:
 ```bash
 # Set encrypted secret
-pulumi config set --secret dbPassword MySecretPassword123!
+doppler -- run pulumi config set --secret dbPassword $DB_PASSWORD
 
 # State file (encrypted):
 {
@@ -459,21 +462,21 @@ dbPassword   [secret]
 
 ## Review and Approval
 
-**Author**: DevOps Team
-**Technical Review**: Development Team Lead
-**Security Review**: Security Team
-**Compliance Review**: Not yet reviewed
-**Date**: 2025-12-14
-**Status**: Accepted
+- **Author**: Michael Bushe
+- **Technical Review**: Not yet reviewed
+- **Security Review**: Not yet reviewed
+- **Compliance Review**: Not yet reviewed
+- **Date**: 2025-12-14
+- **Status**: Draft
 
 ---
 
 ## Change Log
 
-| Date | Change | Author |
-| --- | --- | --- |
-| 2025-12-14 | Initial ADR created | Claude Code |
+| Date       | Change              | Author                         |
+|------------|---------------------|--------------------------------|
+| 2025-12-14 | Initial ADR created | Michael Bushe with Claude Code |
 
 ---
 
-**Next Review**: 2026-03-14 (After first production deployment)
+**Next Review**: 2025-??-?? (After first production deployment) 

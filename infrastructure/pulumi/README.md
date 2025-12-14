@@ -12,7 +12,7 @@ The portal infrastructure uses Pulumi with TypeScript to declaratively manage:
 - Cloud Run services (containerized Flutter web app)
 - Artifact Registry (Docker images)
 - Cloud SQL instances (PostgreSQL with RLS)
-- Identity Platform (Firebase Auth)
+- Workforce Identity Federation (sponsor SSO integration via SAML/OIDC)
 - Custom domain mappings (SSL certificates)
 - IAM service accounts (least-privilege)
 - Monitoring and alerting
@@ -96,14 +96,45 @@ pulumi up
 Each stack requires the following configuration:
 
 | Config Key | Type | Description | Example |
-|------------|------|-------------|---------|
+| ---------- | ---- | ----------- | ------- |
 | `gcp:project` | string | GCP project ID | `cure-hht-orion-prod` |
 | `gcp:region` | string | GCP region | `us-central1` |
+| `gcp:orgId` | string | GCP organization ID | `123456789012` |
 | `sponsor` | string | Sponsor name | `orion` |
 | `environment` | string | Environment (dev/qa/uat/prod) | `production` |
 | `domainName` | string | Custom domain | `portal-orion.cure-hht.org` |
 | `dbPassword` | secret | Cloud SQL password | (secret) |
 | `sponsorRepoPath` | string | Path to sponsor repo | `../sponsor-orion` |
+
+### Workforce Identity Federation (Optional)
+
+Enable sponsor SSO integration by configuring Workforce Identity Federation:
+
+| Config Key | Type | Description | Example |
+| ---------- | ---- | ----------- | ------- |
+| `workforceIdentityEnabled` | boolean | Enable Workforce Identity | `true` |
+| `workforceIdentityProviderType` | string | Provider type | `oidc` or `saml` |
+| `workforceIdentityIssuerUri` | string | IdP issuer URI | See examples below |
+| `workforceIdentityClientId` | string | OAuth client ID | `abc123...` |
+| `workforceIdentityClientSecret` | secret | OAuth client secret | (secret) |
+
+**Example: Microsoft Entra ID (Azure AD)**:
+```bash
+pulumi config set workforceIdentityEnabled true
+pulumi config set workforceIdentityProviderType oidc
+pulumi config set workforceIdentityIssuerUri "https://login.microsoftonline.com/{tenant-id}/v2.0"
+pulumi config set workforceIdentityClientId "{client-id}"
+pulumi config set --secret workforceIdentityClientSecret "{client-secret}"
+```
+
+**Example: Okta**:
+```bash
+pulumi config set workforceIdentityEnabled true
+pulumi config set workforceIdentityProviderType oidc
+pulumi config set workforceIdentityIssuerUri "https://{okta-domain}.okta.com"
+pulumi config set workforceIdentityClientId "{client-id}"
+pulumi config set --secret workforceIdentityClientSecret "{client-secret}"
+```
 
 **Set configuration**:
 ```bash
@@ -116,13 +147,16 @@ pulumi config set --secret <key> <secret-value>
 After deployment, Pulumi exports these outputs:
 
 | Output | Description |
-|--------|-------------|
+| ------ | ----------- |
 | `portalUrl` | Portal URL (Cloud Run) |
 | `customDomainUrl` | Custom domain URL |
 | `dnsRecordRequired` | DNS CNAME record to add |
 | `domainStatus` | Domain mapping status |
 | `dbConnectionName` | Cloud SQL connection name |
 | `imageTag` | Docker image tag deployed |
+| `workforceIdentityEnabled` | Whether Workforce Identity is enabled |
+| `workforcePoolId` | Workforce Identity Pool ID (if enabled) |
+| `workforceProviderId` | Workforce Identity Provider ID (if enabled) |
 
 **View outputs**:
 ```bash
@@ -161,6 +195,13 @@ pulumi stack output --json  # All outputs as JSON
 - **File**: `src/iam.ts`
 - **Resources**: Service accounts, IAM bindings
 - **Principle**: Least-privilege access
+
+### Workforce Identity Federation
+- **File**: `src/workforce-identity.ts`
+- **Resources**: Workforce Identity Pool, Workforce Identity Provider
+- **Purpose**: Enables sponsor users to authenticate via their corporate IdP
+- **Supported IdPs**: Microsoft Entra ID, Okta, Google Workspace, any SAML 2.0/OIDC provider
+- **Benefits**: GDPR compliant, no separate user accounts needed, enterprise SSO integration
 
 ## Rollback Procedures
 
@@ -257,7 +298,7 @@ pulumi import gcp:cloudrun/service:Service portal projects/<project>/locations/<
 ## File Structure
 
 ```
-apps/portal-cloud/
+infrastructure/pulumi/
 ├── README.md                 # This file
 ├── package.json              # Node.js dependencies
 ├── tsconfig.json             # TypeScript configuration
@@ -272,7 +313,8 @@ apps/portal-cloud/
     ├── cloud-sql.ts          # Cloud SQL instance
     ├── domain-mapping.ts     # Custom domain mapping
     ├── monitoring.ts         # Monitoring and alerting
-    └── iam.ts                # IAM service accounts
+    ├── iam.ts                # IAM service accounts
+    └── workforce-identity.ts # Workforce Identity Federation (sponsor SSO)
 ```
 
 ## References
@@ -281,6 +323,8 @@ apps/portal-cloud/
 - **Pulumi GCP Provider**: https://www.pulumi.com/registry/packages/gcp/
 - **Pulumi Docker Provider**: https://www.pulumi.com/registry/packages/docker/
 - **Cloud Run Documentation**: https://cloud.google.com/run/docs
+- **Workforce Identity Federation**: https://cloud.google.com/iam/docs/workforce-identity-federation
+- **Configure with Microsoft Entra ID**: https://cloud.google.com/iam/docs/workforce-sign-in-microsoft-entra-id
 - **Deployment Guide**: `spec/ops-portal.md`
 
 ---

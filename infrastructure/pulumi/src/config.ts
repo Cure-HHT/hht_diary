@@ -10,6 +10,7 @@ export interface StackConfig {
     // GCP Configuration
     project: string;
     region: string;
+    gcpOrgId: string;  // Required for Workforce Identity Federation
 
     // Sponsor Configuration
     sponsor: string;
@@ -18,8 +19,8 @@ export interface StackConfig {
     // Domain Configuration
     domainName: string;
 
-    // Database Configuration
-    dbPassword: string;
+    // Database Configuration (Output<string> because it's a secret)
+    dbPassword: pulumi.Output<string>;
 
     // Build Configuration
     sponsorRepoPath: string;
@@ -29,6 +30,15 @@ export interface StackConfig {
     maxInstances: number;
     containerMemory: string;
     containerCpu: number;
+
+    // Workforce Identity Federation Configuration
+    workforceIdentity: {
+        enabled: boolean;
+        providerType?: "oidc" | "saml";
+        issuerUri?: string;
+        clientId?: string;
+        clientSecret?: pulumi.Output<string>;
+    };
 }
 
 /**
@@ -43,6 +53,7 @@ export function getStackConfig(): StackConfig {
         // GCP
         project: gcpConfig.require("project"),
         region: gcpConfig.get("region") || "us-central1",
+        gcpOrgId: gcpConfig.require("orgId"),
 
         // Sponsor
         sponsor: config.require("sponsor"),
@@ -62,6 +73,15 @@ export function getStackConfig(): StackConfig {
         maxInstances: config.getNumber("maxInstances") || 10,
         containerMemory: config.get("containerMemory") || "512Mi",
         containerCpu: config.getNumber("containerCpu") || 1,
+
+        // Workforce Identity Federation
+        workforceIdentity: {
+            enabled: config.getBoolean("workforceIdentityEnabled") || false,
+            providerType: config.get("workforceIdentityProviderType") as "oidc" | "saml" | undefined,
+            issuerUri: config.get("workforceIdentityIssuerUri"),
+            clientId: config.get("workforceIdentityClientId"),
+            clientSecret: config.getSecret("workforceIdentityClientSecret"),
+        },
     };
 
     // Validate environment
