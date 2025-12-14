@@ -51,13 +51,14 @@ function main() {
     pulumi.log.info("Setting up billing budgets...");
     const budgets = createSponsorBillingBudgets(config, projects);
 
-    // Step 3: Set up IAM (CI/CD service account, roles)
+    // Step 3: Set up IAM (CI/CD service account, roles, Anspar admin access)
     pulumi.log.info("Configuring IAM...");
     const pulumiConfig = new pulumi.Config();
     const githubOrg = pulumiConfig.get("githubOrg");
     const githubRepo = pulumiConfig.get("githubRepo");
+    const ansparAdminGroup = pulumiConfig.get("ansparAdminGroup");
 
-    const iam = setupSponsorIam(config, projects, githubOrg, githubRepo);
+    const iam = setupSponsorIam(config, projects, githubOrg, githubRepo, ansparAdminGroup);
 
     // Step 4: Create audit log infrastructure (FDA 21 CFR Part 11 - 25 year retention)
     pulumi.log.info("Setting up audit log infrastructure (25-year retention)...");
@@ -78,6 +79,11 @@ function main() {
         // CI/CD service account
         cicdServiceAccountEmail: iam.cicdServiceAccount.email,
         cicdServiceAccountId: iam.cicdServiceAccount.uniqueId,
+
+        // Anspar admin access
+        ansparAdminGroup: iam.ansparAdminGroup ?? "not configured",
+        ansparDevQaAccess: iam.ansparAdminGroup ? "roles/owner" : "none",
+        ansparUatProdAccess: iam.ansparAdminGroup ? "roles/viewer" : "none",
 
         // Audit log infrastructure (FDA 21 CFR Part 11 compliance)
         ...auditOutputs,

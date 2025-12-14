@@ -398,6 +398,69 @@ pulumi stack output devAuditLogBucket         # cure-hht-orion-dev-audit-logs
 pulumi stack output prodAuditLogBucket        # cure-hht-orion-prod-audit-logs
 ```
 
+## Anspar Admin Access
+
+Anspar team members access sponsor projects using their `@anspar.org` Google accounts via a Google Group.
+
+### Current Access Model
+
+| Environment | Anspar Access | Notes |
+| ----------- | ------------- | ----- |
+| dev | `roles/owner` | Full access for development |
+| qa | `roles/owner` | Full access for testing |
+| uat | `roles/viewer` | Read-only; break-glass for changes |
+| prod | `roles/viewer` | Read-only; break-glass for changes |
+
+### Configuration
+
+Set the `ansparAdminGroup` config to enable Anspar access:
+
+```bash
+pulumi config set ansparAdminGroup "devops@anspar.org"
+```
+
+### Break-Glass Access for UAT/Prod
+
+For emergency access to UAT/Prod, two options are available:
+
+#### Option 1: GCP Privileged Access Manager (PAM)
+
+GCP's native just-in-time access solution with approval workflows.
+
+| Feature | Description |
+| ------- | ----------- |
+| Just-in-Time Access | Temporary role grants that auto-expire |
+| Approval Workflows | Multi-level approvals (up to 2 levels) |
+| Justification Required | Business reason required for access |
+| Audit Logging | All grants logged to Cloud Audit Logs |
+
+**Cost**: Requires Security Command Center Premium (~$15,000/year minimum).
+
+See: [Privileged Access Manager overview](https://cloud.google.com/iam/docs/pam-overview)
+
+#### Option 2: Custom Break-Glass Group (Current)
+
+A simpler, free approach using Google Groups:
+
+1. Create a break-glass group (e.g., `breakglass-prod@anspar.org`)
+2. Grant it elevated roles on prod/uat projects
+3. Keep it empty normally
+4. Add yourself temporarily when needed
+5. Remove yourself after completing work
+
+**Audit**: Cloud Audit Logs capture group membership changes (who was added, when, by whom).
+
+**Cost**: Free (uses existing Google Workspace).
+
+### Stack Outputs
+
+After deployment, the following IAM-related outputs are available:
+
+```bash
+pulumi stack output ansparAdminGroup      # devops@anspar.org
+pulumi stack output ansparAccessLevel     # owner (dev/qa), viewer (uat/prod)
+```
+
 ## Security Considerations
 
 - CI/CD service account has admin roles - protect GitHub repo access
@@ -405,6 +468,7 @@ pulumi stack output prodAuditLogBucket        # cure-hht-orion-prod-audit-logs
 - Production deployments should require approval in CI/CD pipeline
 - Billing budgets alert but don't auto-disable (to prevent outages)
 - **Audit logs have locked retention** - cannot be tampered with or deleted
+- **Anspar prod/uat access is read-only** - use break-glass for emergencies
 
 ## References
 

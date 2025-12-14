@@ -17,6 +17,18 @@ import { BootstrapConfig, Environment, getProjectId } from "./config";
 import { ProjectResult } from "./projects";
 
 /**
+ * IAM roles for Anspar admin group per environment
+ * - dev/qa: Full owner access for development and testing
+ * - uat/prod: Viewer only; use break-glass for elevated access
+ */
+const ANSPAR_ADMIN_ROLES: Record<Environment, string[]> = {
+    dev: ["roles/owner"],
+    qa: ["roles/owner"],
+    uat: ["roles/viewer"],
+    prod: ["roles/viewer"],
+};
+
+/**
  * IAM roles for CI/CD service account per environment
  */
 const CICD_ROLES: Record<Environment, string[]> = {
@@ -67,6 +79,8 @@ export interface IamResult {
     cicdServiceAccount: gcp.serviceaccount.Account;
     cicdServiceAccountKey?: gcp.serviceaccount.Key;
     iamBindings: gcp.projects.IAMMember[];
+    ansparAdminGroup?: string;
+    ansparBindings: gcp.projects.IAMMember[];
 }
 
 /**
@@ -88,6 +102,38 @@ export function createCicdServiceAccount(
     }, { dependsOn: devProject.apis });
 
     return serviceAccount;
+}
+
+/**
+ * Grant Anspar admin group access to a project
+ * - dev/qa: roles/owner (full access)
+ * - uat/prod: roles/viewer (read-only, use break-glass for more)
+ */
+export function grantAnsparAdminAccess(
+    config: BootstrapConfig,
+    env: Environment,
+    projectResult: ProjectResult,
+    ansparAdminGroup: string
+): gcp.projects.IAMMember[] {
+    const projectId = getProjectId(config, env);
+    const roles = ANSPAR_ADMIN_ROLES[env];
+    const bindings: gcp.projects.IAMMember[] = [];
+
+    for (const role of roles) {
+        const roleName = role.split("/")[1];
+        const binding = new gcp.projects.IAMMember(
+            `${projectId}-anspar-${roleName}`,
+            {
+                project: projectResult.project.projectId,
+                role: role,
+                member: `group:${ansparAdminGroup}`,
+            },
+            { dependsOn: projectResult.apis }
+        );
+        bindings.push(binding);
+    }
+
+    return bindings;
 }
 
 /**
@@ -182,18 +228,31 @@ export function setupSponsorIam(
     config: BootstrapConfig,
     projects: Map<Environment, ProjectResult>,
     githubOrg?: string,
-    githubRepo?: string
+    githubRepo?: string,
+    ansparAdminGroup?: string
 ): IamResult {
     const devProject = projects.get("dev")!;
 
     // Create CI/CD service account
     const cicdServiceAccount = createCicdServiceAccount(config, devProject);
 
-    // Grant access to all projects
+    // Grant CI/CD access to all projects
     const allBindings: gcp.projects.IAMMember[] = [];
     for (const [env, projectResult] of projects) {
         const bindings = grantCicdAccess(config, env, projectResult, cicdServiceAccount);
         allBindings.push(...bindings);
+    }
+
+    // Grant Anspar admin access to all projects (if configured)
+    const ansparBindings: gcp.projects.IAMMember[] = [];
+    if (ansparAdminGroup) {
+        pulumi.log.info(`Granting Anspar admin access to: ${ansparAdminGroup}`);
+        for (const [env, projectResult] of projects) {
+            const bindings = grantAnsparAdminAccess(config, env, projectResult, ansparAdminGroup);
+            ansparBindings.push(...bindings);
+            const role = ANSPAR_ADMIN_ROLES[env][0];
+            pulumi.log.info(`  ${env}: ${role}`);
+        }
     }
 
     // Optionally set up Workload Identity for GitHub Actions
@@ -210,5 +269,7 @@ export function setupSponsorIam(
     return {
         cicdServiceAccount,
         iamBindings: allBindings,
+        ansparAdminGroup,
+        ansparBindings,
     };
 }
