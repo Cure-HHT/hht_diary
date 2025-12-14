@@ -92,6 +92,18 @@ class AppConfig {
   );
 
   // ============================================================
+  // Testing Configuration
+  // ============================================================
+
+  /// Path to a JSON file to auto-import on app startup.
+  /// Used for testing with pre-populated data.
+  /// Pass via: --dart-define=IMPORT_FILE=/path/to/export.json
+  static const String importFilePath = String.fromEnvironment('IMPORT_FILE');
+
+  /// Whether an import file was specified
+  static bool get hasImportFile => importFilePath.isNotEmpty;
+
+  // ============================================================
   // Convenience Getters
   // ============================================================
 
