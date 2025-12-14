@@ -1,10 +1,33 @@
 /**
  * Stack Configuration Management
  *
+ * IMPLEMENTS REQUIREMENTS:
+ *   REQ-o00056: Pulumi IaC for portal deployment
+ *   REQ-p00005: Data security and isolation (GDPR compliance)
+ *
  * This module handles loading and validating Pulumi stack configuration.
  */
 
 import * as pulumi from "@pulumi/pulumi";
+
+/**
+ * GCP regions compliant with GDPR (EU/EEA data residency)
+ * https://cloud.google.com/about/locations#europe
+ */
+export const GDPR_COMPLIANT_REGIONS = [
+    // EU Member States
+    "europe-west1",      // Belgium
+    "europe-west3",      // Frankfurt, Germany
+    "europe-west4",      // Netherlands
+    "europe-west6",      // Zurich, Switzerland (GDPR adequate)
+    "europe-west8",      // Milan, Italy
+    "europe-west9",      // Paris, France
+    "europe-west10",     // Berlin, Germany
+    "europe-west12",     // Turin, Italy
+    "europe-north1",     // Finland
+    "europe-central2",   // Warsaw, Poland
+    "europe-southwest1", // Madrid, Spain
+] as const;
 
 export interface StackConfig {
     // GCP Configuration
@@ -92,7 +115,44 @@ export function getStackConfig(): StackConfig {
         );
     }
 
+    // Validate GDPR compliance for region
+    validateGdprRegion(stackConfig.region, config.getBoolean("allowNonGdprRegion") ?? false);
+
     return stackConfig;
+}
+
+/**
+ * Validate that the region is GDPR-compliant
+ *
+ * @param region GCP region
+ * @param allowNonGdprRegion If true, only warns instead of throwing
+ * @throws Error if region is not GDPR-compliant and allowNonGdprRegion is false
+ */
+export function validateGdprRegion(region: string, allowNonGdprRegion: boolean = false): void {
+    const isGdprCompliant = (GDPR_COMPLIANT_REGIONS as readonly string[]).includes(region);
+
+    if (!isGdprCompliant) {
+        const message = `
+WARNING: Region '${region}' is NOT GDPR-compliant for EU data residency.
+
+For GDPR compliance, use one of these EU regions:
+  ${GDPR_COMPLIANT_REGIONS.join(", ")}
+
+Recommended for most EU deployments:
+  - europe-west1 (Belgium) - Mature, well-connected
+  - europe-west3 (Frankfurt) - Central EU location
+  - europe-west4 (Netherlands) - Good connectivity
+
+To proceed with a non-GDPR region (NOT recommended for EU user data):
+  pulumi config set allowNonGdprRegion true
+`;
+
+        if (allowNonGdprRegion) {
+            pulumi.log.warn(message);
+        } else {
+            throw new Error(message);
+        }
+    }
 }
 
 /**

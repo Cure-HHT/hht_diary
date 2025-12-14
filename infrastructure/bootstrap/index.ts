@@ -14,6 +14,7 @@
  * - Billing budgets and alerts
  * - CI/CD service account with appropriate IAM roles
  * - Workload Identity Federation for GitHub Actions (optional)
+ * - Audit log infrastructure (25-year retention for FDA 21 CFR Part 11)
  *
  * Usage:
  *   cd infrastructure/bootstrap
@@ -29,6 +30,7 @@ import { getBootstrapConfig, ENVIRONMENTS } from "./src/config";
 import { createSponsorProjects, getProjectOutputs } from "./src/projects";
 import { createSponsorBillingBudgets } from "./src/billing";
 import { setupSponsorIam } from "./src/org-iam";
+import { createSponsorAuditLogs, getAuditLogOutputs } from "./src/audit-logs";
 
 /**
  * Main bootstrap program
@@ -57,6 +59,11 @@ function main() {
 
     const iam = setupSponsorIam(config, projects, githubOrg, githubRepo);
 
+    // Step 4: Create audit log infrastructure (FDA 21 CFR Part 11 - 25 year retention)
+    pulumi.log.info("Setting up audit log infrastructure (25-year retention)...");
+    const auditLogs = createSponsorAuditLogs(config, projects);
+    const auditOutputs = getAuditLogOutputs(config, auditLogs);
+
     // Export outputs
     const projectOutputs = getProjectOutputs(projects);
 
@@ -71,6 +78,9 @@ function main() {
         // CI/CD service account
         cicdServiceAccountEmail: iam.cicdServiceAccount.email,
         cicdServiceAccountId: iam.cicdServiceAccount.uniqueId,
+
+        // Audit log infrastructure (FDA 21 CFR Part 11 compliance)
+        ...auditOutputs,
 
         // Instructions for next steps
         nextSteps: pulumi.interpolate`

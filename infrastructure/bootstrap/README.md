@@ -14,34 +14,80 @@ For each new sponsor, this bootstrap creates:
 
 | Resource | Count | Description |
 | -------- | ----- | ----------- |
-| GCP Projects | 4 | `{sponsor}-dev`, `{sponsor}-qa`, `{sponsor}-uat`, `{sponsor}-prod` |
+| GCP Projects | 4 | `{prefix}-{sponsor}-dev`, `{prefix}-{sponsor}-qa`, `{prefix}-{sponsor}-uat`, `{prefix}-{sponsor}-prod` |
 | APIs | ~13 per project | Cloud Run, SQL, IAM, Monitoring, etc. |
 | Billing Budgets | 4 | Per-environment budgets with alerts |
 | Service Account | 1 | CI/CD service account for deployments |
 | IAM Bindings | ~28 | Roles for CI/CD across all projects |
 | Workload Identity | 1 pool | GitHub Actions OIDC (optional) |
+| Audit Log Buckets | 4 | 25-year retention for FDA compliance |
+| Audit Log Sinks | 4 | Export Cloud Audit Logs to storage |
 
 ## Prerequisites
 
 1. **GCP Organization Admin** access
 2. **Billing Account Admin** access
-3. **Pulumi CLI** installed:
+3. **Doppler CLI** installed and configured:
+
+   ```bash
+   # Install Doppler
+   brew install dopplerhq/cli/doppler
+
+   # Login to Doppler
+   doppler login
+
+   # Setup project (if not already configured)
+   doppler setup
+   ```
+
+4. **Pulumi CLI** installed:
 
    ```bash
    curl -fsSL https://get.pulumi.com | sh
    ```
 
-4. **GCP CLI** authenticated:
+5. **GCP CLI** installed:
 
    ```bash
-   gcloud auth application-default login
+   brew install google-cloud-sdk
    ```
 
-5. **Pulumi Backend** configured:
+6. **Pulumi Backend** configured:
 
    ```bash
    pulumi login gs://pulumi-state-cure-hht
    ```
+
+## Doppler Environment Variables
+
+The bootstrap script requires certain environment variables from Doppler. Run the script with `doppler run --` to inject them.
+
+### Required Variables
+
+| Variable | Description | Example |
+| -------- | ----------- | ------- |
+| GCP Authentication | One of the following methods | |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account key JSON | `/path/to/key.json` |
+| `CLOUDSDK_AUTH_ACCESS_TOKEN` | GCP access token | `ya29.xxx...` |
+| (or) Application Default Credentials | Via `gcloud auth application-default login` | |
+
+### Optional Variables
+
+| Variable | Description | Example |
+| -------- | ----------- | ------- |
+| `PULUMI_CONFIG_PASSPHRASE` | Passphrase for encrypted Pulumi state | `your-passphrase` |
+| `PULUMI_ACCESS_TOKEN` | Pulumi Cloud token (if using Pulumi Cloud) | `pul-xxx...` |
+| `GCP_PROJECT` | Default GCP project for gcloud | `cure-hht-admin` |
+
+### Doppler Configuration
+
+Add these to your Doppler project:
+
+```bash
+# In Doppler dashboard or CLI
+doppler secrets set PULUMI_CONFIG_PASSPHRASE "your-secure-passphrase"
+doppler secrets set GOOGLE_APPLICATION_CREDENTIALS "/path/to/service-account.json"
+```
 
 ## Usage
 
@@ -56,9 +102,18 @@ cd infrastructure/bootstrap/tool
 cp sponsor-config.example.json orion.json
 # Edit orion.json with your sponsor details
 
-# Run the bootstrap script
-./bootstrap-sponsor-gcp-projects.sh orion.json
+# Run the bootstrap script with Doppler
+doppler run -- ./bootstrap-sponsor-gcp-projects.sh orion.json
 ```
+
+The script will:
+1. Validate Doppler environment variables
+2. Create 4 GCP projects (dev, qa, uat, prod)
+3. Enable required APIs
+4. Set up billing budgets
+5. Create CI/CD service account
+6. **Create audit log buckets with 25-year locked retention**
+7. **Verify audit logs exist (rollback if not)**
 
 **Option 2: Manual Pulumi commands**
 
@@ -68,23 +123,30 @@ cd infrastructure/bootstrap
 # Install dependencies
 npm install
 
-# Create a new stack for the sponsor
-pulumi stack init orion
+# Run with Doppler
+doppler run -- pulumi stack init orion
 
 # Configure the stack
-pulumi config set sponsor orion
-pulumi config set gcp:orgId 123456789012
-pulumi config set billingAccountId 012345-6789AB-CDEF01
+doppler run -- pulumi config set sponsor orion
+doppler run -- pulumi config set gcp:orgId 123456789012
+doppler run -- pulumi config set billingAccountId 012345-6789AB-CDEF01
 
 # Optional: Configure GitHub Actions Workload Identity
-pulumi config set githubOrg Cure-HHT
-pulumi config set githubRepo hht_diary
+doppler run -- pulumi config set githubOrg Cure-HHT
+doppler run -- pulumi config set githubRepo hht_diary
 
 # Preview changes
-pulumi preview
+doppler run -- pulumi preview
 
 # Create infrastructure
-pulumi up
+doppler run -- pulumi up
+
+# Verify audit logs were created
+for env in dev qa uat prod; do
+  gcloud storage buckets describe gs://cure-hht-orion-${env}-audit-logs \
+    --project=cure-hht-orion-${env} \
+    --format="value(retentionPolicy.isLocked)"
+done
 ```
 
 ### View Outputs
@@ -129,7 +191,8 @@ infrastructure/bootstrap/
 │   ├── config.ts                    # Configuration management
 │   ├── projects.ts                  # GCP project creation
 │   ├── billing.ts                   # Billing budgets and alerts
-│   └── org-iam.ts                   # IAM and service accounts
+│   ├── org-iam.ts                   # IAM and service accounts
+│   └── audit-logs.ts                # Audit log infrastructure (25-year retention)
 └── tool/
     ├── bootstrap-sponsor-gcp-projects.sh  # Bootstrap script
     └── sponsor-config.example.json        # Example config file
@@ -215,12 +278,133 @@ Project IDs are globally unique. Either:
 1. Delete the existing project
 2. Use a different `projectPrefix`
 
+### Error: "Audit log verification failed"
+
+The bootstrap script verifies that audit log buckets were created with locked retention. If this fails:
+
+1. **Check bucket exists**:
+   ```bash
+   gcloud storage buckets describe gs://{prefix}-{sponsor}-prod-audit-logs \
+     --project={prefix}-{sponsor}-prod
+   ```
+
+2. **Check retention policy**:
+   ```bash
+   gcloud storage buckets describe gs://{prefix}-{sponsor}-prod-audit-logs \
+     --format="json(retentionPolicy)"
+   ```
+
+3. **Check Pulumi logs**:
+   ```bash
+   pulumi stack select {sponsor}
+   pulumi up --diff
+   ```
+
+4. **Common causes**:
+   - Storage API not enabled (should be automatic)
+   - Insufficient permissions for bucket creation
+   - Region not available for storage
+
+### Error: "Missing Doppler environment variables"
+
+Ensure you're running with Doppler:
+
+```bash
+# Check Doppler is configured
+doppler secrets
+
+# Run with Doppler
+doppler run -- ./bootstrap-sponsor-gcp-projects.sh config.json
+```
+
+If using ADC instead of service account:
+
+```bash
+gcloud auth application-default login
+```
+
+## Audit Log Infrastructure (FDA 21 CFR Part 11)
+
+Bootstrap automatically creates tamper-evident audit log storage in each project for FDA compliance.
+
+### What Gets Logged
+
+Every GCP API call is captured with:
+
+| Field | Description | Example |
+| ----- | ----------- | ------- |
+| Principal | Who performed the action | `user:admin@company.com` |
+| Timestamp | When the action occurred | `2025-12-14T15:30:00Z` |
+| Method | What API was called | `google.cloud.sql.v1.SqlInstancesService.Insert` |
+| Source IP | Where the request came from | `203.0.113.45` |
+| Resource | What was affected | `projects/cure-hht-orion-prod/instances/db` |
+| Request/Response | Full payloads | (JSON) |
+
+### Audit Log Buckets
+
+Each environment gets a dedicated audit bucket:
+
+| Environment | Bucket Name | Retention |
+| ----------- | ----------- | --------- |
+| dev | `{prefix}-{sponsor}-dev-audit-logs` | 25 years (locked) |
+| qa | `{prefix}-{sponsor}-qa-audit-logs` | 25 years (locked) |
+| uat | `{prefix}-{sponsor}-uat-audit-logs` | 25 years (locked) |
+| prod | `{prefix}-{sponsor}-prod-audit-logs` | 25 years (locked) |
+
+### Retention Policy
+
+The retention policy is **locked**, meaning:
+
+- Objects cannot be deleted until the 25-year retention period expires
+- The retention policy cannot be shortened or removed
+- The bucket cannot be deleted while it contains objects
+- Even GCP Organization Admins cannot override this
+
+### Cost Optimization
+
+Logs automatically transition to cheaper storage:
+
+| Age | Storage Class | Cost |
+| --- | ------------- | ---- |
+| 0-90 days | Standard | ~$0.020/GB/month |
+| 90-365 days | Coldline | ~$0.004/GB/month |
+| 1-25 years | Archive | ~$0.0012/GB/month |
+
+### Verification
+
+After deployment, verify audit infrastructure:
+
+```bash
+# Check bucket exists and has locked retention
+gcloud storage buckets describe gs://{prefix}-{sponsor}-prod-audit-logs \
+  --format="value(retentionPolicy)"
+
+# Verify log sink is active
+gcloud logging sinks list --project={prefix}-{sponsor}-prod
+
+# Read recent audit logs
+gcloud logging read 'logName:"cloudaudit.googleapis.com"' \
+  --project={prefix}-{sponsor}-prod --limit=5
+```
+
+### Stack Outputs
+
+Bootstrap exports audit-related outputs:
+
+```bash
+pulumi stack output auditLogRetentionYears    # 25
+pulumi stack output auditLogRetentionLocked   # true
+pulumi stack output devAuditLogBucket         # cure-hht-orion-dev-audit-logs
+pulumi stack output prodAuditLogBucket        # cure-hht-orion-prod-audit-logs
+```
+
 ## Security Considerations
 
 - CI/CD service account has admin roles - protect GitHub repo access
 - Workload Identity restricts to specific GitHub org/repo
 - Production deployments should require approval in CI/CD pipeline
 - Billing budgets alert but don't auto-disable (to prevent outages)
+- **Audit logs have locked retention** - cannot be tampered with or deleted
 
 ## References
 
@@ -228,3 +412,6 @@ Project IDs are globally unique. Either:
 - [GCP Resource Hierarchy](https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy)
 - [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation)
 - [GCP Billing Budgets](https://cloud.google.com/billing/docs/how-to/budgets)
+- [Cloud Audit Logs](https://cloud.google.com/logging/docs/audit)
+- [Bucket Lock & Retention](https://cloud.google.com/storage/docs/bucket-lock)
+- [FDA 21 CFR Part 11](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/part-11-electronic-records-electronic-signatures-scope-and-application)
