@@ -230,6 +230,8 @@ class TraceabilityRequirement:
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
     is_roadmap: bool = False  # True if requirement is in spec/roadmap/ directory
+    is_conflict: bool = False  # True if this roadmap REQ conflicts with an existing REQ
+    conflict_with: str = ''  # ID of the existing REQ this conflicts with
 
     def _get_spec_relative_path(self) -> str:
         """Get the spec-relative path for this requirement's file"""
@@ -347,7 +349,7 @@ class TraceabilityGenerator:
     """Generates traceability matrices"""
 
     # Version number - increment with each change
-    VERSION = 3
+    VERSION = 6
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -508,7 +510,19 @@ class TraceabilityGenerator:
             # Convert roadmap requirements with is_roadmap=True
             for req_id, base_req in roadmap_result.requirements.items():
                 if req_id in self.requirements:
-                    print(f"   ⚠️  Roadmap REQ {req_id} conflicts with existing REQ, skipping")
+                    # Conflict detected - load as orphaned conflict item
+                    existing_req = self.requirements[req_id]
+                    existing_loc = f"spec/{existing_req.file_path.name}"
+                    roadmap_loc = f"spec/roadmap/{base_req.file_path.name}"
+                    print(f"   ⚠️  Roadmap REQ-{req_id} ({roadmap_loc}) conflicts with existing REQ-{req_id} ({existing_loc})")
+
+                    # Create conflict entry with modified key and no parent links
+                    conflict_key = f"{req_id}__conflict"
+                    conflict_req = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
+                    conflict_req.is_conflict = True
+                    conflict_req.conflict_with = req_id
+                    conflict_req.implements = []  # Treat as orphaned top-level item
+                    self.requirements[conflict_key] = conflict_req
                     continue
                 self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
 
@@ -812,6 +826,8 @@ class TraceabilityGenerator:
         """Generate JSON data containing all requirement content for embedded mode"""
         req_data = {}
         for req_id, req in self.requirements.items():
+            # Use correct spec subdirectory for roadmap items
+            spec_subpath = 'spec/roadmap' if req.is_roadmap else 'spec'
             req_data[req_id] = {
                 'title': req.title,
                 'status': req.status,
@@ -819,9 +835,12 @@ class TraceabilityGenerator:
                 'body': req.body.strip(),
                 'rationale': req.rationale.strip(),
                 'file': req.file_path.name,
-                'filePath': f"{self._base_path}spec/{req.file_path.name}",
+                'filePath': f"{self._base_path}{spec_subpath}/{req.file_path.name}",
                 'line': req.line_number,
-                'implements': list(req.implements) if req.implements else []
+                'implements': list(req.implements) if req.implements else [],
+                'isRoadmap': req.is_roadmap,
+                'isConflict': req.is_conflict,
+                'conflictWith': req.conflict_with if req.is_conflict else None
             }
         json_str = json.dumps(req_data, indent=2)
         # Escape </script> to prevent premature closing of the script tag
@@ -2747,6 +2766,18 @@ class TraceabilityGenerator:
             font-size: 12px;
             opacity: 0.8;
         }}
+        .conflict-icon {{
+            margin-right: 4px;
+            font-size: 14px;
+            color: #dc3545;
+        }}
+        .conflict-item {{
+            background-color: rgba(220, 53, 69, 0.1) !important;
+            border-left: 3px solid #dc3545 !important;
+        }}
+        .conflict-item:hover {{
+            background-color: rgba(220, 53, 69, 0.15) !important;
+        }}
         .req-coverage {{
             min-width: 30px;
             max-width: 40px;
@@ -3820,13 +3851,17 @@ class TraceabilityGenerator:
         # Roadmap indicator icon (shown after REQ ID)
         roadmap_icon = '<span class="roadmap-icon" title="In roadmap">🛤️</span>' if req.is_roadmap else ''
 
+        # Conflict indicator icon (shown for roadmap REQs that conflict with existing REQs)
+        conflict_icon = f'<span class="conflict-icon" title="Conflicts with REQ-{req.conflict_with}">⚠️</span>' if req.is_conflict else ''
+        conflict_attr = f'data-conflict="true" data-conflict-with="{req.conflict_with}"' if req.is_conflict else 'data-conflict="false"'
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''} {'conflict-item' if req.is_conflict else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr} {conflict_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-id">{req_link}{roadmap_icon}</div>
+                    <div class="req-id">{conflict_icon}{req_link}{roadmap_icon}</div>
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
