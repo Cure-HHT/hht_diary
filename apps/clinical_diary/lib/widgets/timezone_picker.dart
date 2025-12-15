@@ -676,3 +676,47 @@ String getTimezoneAbbreviation(String ianaId) {
   }
   return ianaId;
 }
+
+/// CUR-516: Normalize device timezone name to abbreviation for comparison.
+/// Handles cases like "Central European Standard Time" -> "CET"
+/// or "Pacific Standard Time" -> "PST"
+String normalizeDeviceTimezone(String deviceTzName) {
+  // If already short (e.g., "PST", "CET"), return as-is
+  if (deviceTzName.length <= 5 && deviceTzName == deviceTzName.toUpperCase()) {
+    return deviceTzName;
+  }
+
+  // Try to find a matching entry in our timezone list
+  final lowerName = deviceTzName.toLowerCase();
+
+  for (final tz in commonTimezones) {
+    // Check if display name is contained in the device timezone name
+    // e.g., "Central European" in "Central European Standard Time"
+    if (lowerName.contains(tz.displayName.toLowerCase())) {
+      return tz.abbreviation;
+    }
+    // Check if the abbreviation is in the device timezone name
+    // e.g., "PST" in "Pacific Standard Time" (unlikely but check)
+    if (deviceTzName.contains(tz.abbreviation)) {
+      return tz.abbreviation;
+    }
+  }
+
+  // Common patterns: extract first letters of each word
+  // "Pacific Standard Time" -> "PST"
+  // "Central European Standard Time" -> "CEST" (but we want "CET")
+  final words = deviceTzName.split(' ').where((w) => w.isNotEmpty).toList();
+  if (words.length >= 2) {
+    // Take first letter of significant words (skip "Standard", "Daylight")
+    final significant = words
+        .where((w) => w != 'Standard' && w != 'Daylight' && w != 'Time')
+        .map((w) => w[0])
+        .join();
+    if (significant.isNotEmpty) {
+      return significant.toUpperCase();
+    }
+  }
+
+  // Last resort: return as-is
+  return deviceTzName;
+}

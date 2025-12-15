@@ -36,7 +36,8 @@ class EventListItem extends StatelessWidget {
   /// CUR-516: Get timezone display string if different from device TZ
   /// Returns null if timezone matches device TZ, otherwise returns abbreviation(s)
   String? get _timezoneDisplay {
-    final deviceTz = DateTime.now().timeZoneName;
+    // Normalize device TZ to abbreviation for proper comparison
+    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
     final startTz = record.startTimeTimezone;
     final endTz = record.endTimeTimezone;
 
@@ -47,17 +48,18 @@ class EventListItem extends StatelessWidget {
     final endAbbr = endTz != null ? getTimezoneAbbreviation(endTz) : null;
 
     // Check if timezones differ from device or from each other
-    final startDiffersFromDevice = startAbbr != null && startAbbr != deviceTz;
-    final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTz;
-    final timezonesdiffer =
+    final startDiffersFromDevice =
+        startAbbr != null && startAbbr != deviceTzAbbr;
+    final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTzAbbr;
+    final timezonesDiffer =
         startAbbr != null && endAbbr != null && startAbbr != endAbbr;
 
-    if (!startDiffersFromDevice && !endDiffersFromDevice && !timezonesdiffer) {
+    if (!startDiffersFromDevice && !endDiffersFromDevice && !timezonesDiffer) {
       return null;
     }
 
     // Show start TZ, or both if they differ
-    if (timezonesdiffer) {
+    if (timezonesDiffer) {
       return '$startAbbr/$endAbbr';
     }
     // Show whichever differs from device, or start TZ if both stored

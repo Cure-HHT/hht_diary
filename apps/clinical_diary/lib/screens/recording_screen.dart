@@ -669,7 +669,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final locale = Localizations.localeOf(context).languageCode;
 
     // CUR-516: Get timezone abbreviations to show when different from device TZ
-    final deviceTz = DateTime.now().timeZoneName;
+    // Normalize device TZ to abbreviation for proper comparison
+    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
     final startTzAbbr = _startTimeTimezone != null
         ? getTimezoneAbbreviation(_startTimeTimezone!)
         : null;
@@ -677,9 +678,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
         ? getTimezoneAbbreviation(_endTimeTimezone!)
         : null;
 
-    // Show timezone in summary when different from device
-    final showStartTz = startTzAbbr != null && startTzAbbr != deviceTz;
-    final showEndTz = endTzAbbr != null && endTzAbbr != deviceTz;
+    // Show timezone in summary when different from device or from each other
+    final startDiffersFromDevice =
+        startTzAbbr != null && startTzAbbr != deviceTzAbbr;
+    final endDiffersFromDevice = endTzAbbr != null && endTzAbbr != deviceTzAbbr;
+    final timezonesDiffer =
+        startTzAbbr != null && endTzAbbr != null && startTzAbbr != endTzAbbr;
+
+    // Show timezone only if it differs from device OR start/end differ
+    final showStartTz = startDiffersFromDevice || timezonesDiffer;
+    final showEndTz = endDiffersFromDevice || timezonesDiffer;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
