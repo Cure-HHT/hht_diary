@@ -347,7 +347,7 @@ class TraceabilityGenerator:
     """Generates traceability matrices"""
 
     # Version number - increment with each change
-    VERSION = 1
+    VERSION = 2
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -2919,13 +2919,13 @@ class TraceabilityGenerator:
     <div class="main-content">
     <div class="container">
         <div class="title-bar">
-            <span class="version-badge">v{self.VERSION}</span>
             <h1>Requirements Traceability</h1>
             <div class="stats-badges">
                 <span class="stat-badge prd" id="badgePRD" data-active="{by_level['active']['PRD']}" data-all="{by_level['all']['PRD']}">PRD: {by_level['active']['PRD']}</span>
                 <span class="stat-badge ops" id="badgeOPS" data-active="{by_level['active']['OPS']}" data-all="{by_level['all']['OPS']}">OPS: {by_level['active']['OPS']}</span>
                 <span class="stat-badge dev" id="badgeDEV" data-active="{by_level['active']['DEV']}" data-all="{by_level['all']['DEV']}">DEV: {by_level['active']['DEV']}</span>
             </div>
+            <span class="version-badge">v{self.VERSION}</span>
             <button class="btn btn-legend" onclick="openLegendModal()" title="Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}">ℹ️ Legend</button>
         </div>
 
