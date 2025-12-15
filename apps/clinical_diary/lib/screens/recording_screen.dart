@@ -20,6 +20,7 @@ import 'package:clinical_diary/widgets/intensity_picker.dart';
 import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
+import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -666,6 +667,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   Widget _buildSummaryBar(AppLocalizations l10n) {
     final locale = Localizations.localeOf(context).languageCode;
+
+    // CUR-516: Get timezone abbreviations to show when different from device TZ
+    final deviceTz = DateTime.now().timeZoneName;
+    final startTzAbbr = _startTimeTimezone != null
+        ? getTimezoneAbbreviation(_startTimeTimezone!)
+        : null;
+    final endTzAbbr = _endTimeTimezone != null
+        ? getTimezoneAbbreviation(_endTimeTimezone!)
+        : null;
+
+    // Show timezone in summary when different from device
+    final showStartTz = startTzAbbr != null && startTzAbbr != deviceTz;
+    final showEndTz = endTzAbbr != null && endTzAbbr != deviceTz;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -680,6 +695,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           _buildSummaryItem(
             label: l10n.start,
             value: _formatTime(_startDateTime, locale, l10n),
+            subtitle: showStartTz ? startTzAbbr : null,
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
           ),
@@ -712,6 +728,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           _buildSummaryItem(
             label: l10n.end,
             value: _formatEndTime(_endDateTime, locale, l10n),
+            subtitle: showEndTz ? endTzAbbr : null,
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _handleEndTimeTap,
           ),
@@ -724,6 +741,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     required String label,
     required String value,
     required bool isActive,
+    String? subtitle, // CUR-516: Optional timezone display
     VoidCallback? onTap,
     Color? highlightColor,
   }) {
@@ -764,6 +782,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     : Theme.of(context).colorScheme.onSurface,
               ),
             ),
+            // CUR-516: Show timezone when different from device TZ
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isActive
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
           ],
         ),
       ),
