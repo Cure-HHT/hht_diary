@@ -346,6 +346,9 @@ Requirement = TraceabilityRequirement
 class TraceabilityGenerator:
     """Generates traceability matrices"""
 
+    # Version number - increment with each change
+    VERSION = 1
+
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
         'PRD': 'PRD',
@@ -2364,6 +2367,14 @@ class TraceabilityGenerator:
             border-bottom: 2px solid #0066cc;
             margin-bottom: 10px;
         }}
+        .version-badge {{
+            font-size: 10px;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }}
         .title-bar h1 {{
             font-size: 18px;
             font-weight: 600;
@@ -2908,6 +2919,7 @@ class TraceabilityGenerator:
     <div class="main-content">
     <div class="container">
         <div class="title-bar">
+            <span class="version-badge">v{self.VERSION}</span>
             <h1>Requirements Traceability</h1>
             <div class="stats-badges">
                 <span class="stat-badge prd" id="badgePRD" data-active="{by_level['active']['PRD']}" data-all="{by_level['all']['PRD']}">PRD: {by_level['active']['PRD']}</span>
