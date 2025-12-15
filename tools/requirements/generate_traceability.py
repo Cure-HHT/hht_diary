@@ -347,7 +347,7 @@ class TraceabilityGenerator:
     """Generates traceability matrices"""
 
     # Version number - increment with each change
-    VERSION = 2
+    VERSION = 3
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -2386,7 +2386,7 @@ class TraceabilityGenerator:
         .stats-badges {{
             display: flex;
             gap: 10px;
-            flex: 1;
+            margin-right: auto;
         }}
         .stat-badge {{
             padding: 4px 10px;
