@@ -109,6 +109,9 @@ class NosebleedService {
       deviceUuid: event.deviceId,
       createdAt: event.clientTimestamp,
       syncedAt: event.syncedAt,
+      // CUR-516: Read timezone for UI restoration on incomplete records
+      startTimeTimezone: data['startTimeTimezone'] as String?,
+      endTimeTimezone: data['endTimeTimezone'] as String?,
     );
   }
 
@@ -145,6 +148,10 @@ class NosebleedService {
   /// All timestamps are stored in ISO 8601 format with timezone offset
   /// embedded (e.g., "2025-10-15T14:30:00.000-05:00"). This preserves
   /// the user's local timezone at the time of entry for clinical accuracy.
+  ///
+  /// CUR-516: [startTimeTimezone] stores the IANA timezone name (e.g.,
+  /// "America/Los_Angeles") to restore the UI timezone selection when
+  /// reopening incomplete records.
   Future<NosebleedRecord> addRecord({
     required DateTime startTime,
     DateTime? endTime,
@@ -153,6 +160,8 @@ class NosebleedService {
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
     String? parentRecordId,
+    String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     final deviceUuid = await getDeviceUuid();
     final record = NosebleedRecord(
@@ -170,6 +179,8 @@ class NosebleedService {
       parentRecordId: parentRecordId,
       deviceUuid: deviceUuid,
       createdAt: DateTime.now(),
+      startTimeTimezone: startTimeTimezone,
+      endTimeTimezone: endTimeTimezone,
     );
 
     // Save to append-only datastore
@@ -192,6 +203,10 @@ class NosebleedService {
         'isIncomplete': record.isIncomplete,
         if (record.parentRecordId != null)
           'parentRecordId': record.parentRecordId,
+        if (record.startTimeTimezone != null)
+          'startTimeTimezone': record.startTimeTimezone,
+        if (record.endTimeTimezone != null)
+          'endTimeTimezone': record.endTimeTimezone,
       },
       userId: userId,
       deviceId: deviceUuid,
@@ -214,6 +229,8 @@ class NosebleedService {
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
+    String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     return addRecord(
       startTime: startTime,
@@ -223,6 +240,8 @@ class NosebleedService {
       isNoNosebleedsEvent: isNoNosebleedsEvent,
       isUnknownEvent: isUnknownEvent,
       parentRecordId: originalRecordId,
+      startTimeTimezone: startTimeTimezone,
+      endTimeTimezone: endTimeTimezone,
     );
   }
 

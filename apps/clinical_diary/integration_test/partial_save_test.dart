@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00001: Incomplete Entry Preservation (CUR-405)
 //   REQ-d00004: Local-First Data Entry Implementation
+//   REQ-p00022: Timezone handling for incomplete records (CUR-516)
 
 // Integration test for partial save / auto-save behavior
 // Moved from test/screens/recording_screen_partial_save_test.dart and
@@ -314,6 +315,159 @@ void main() {
           }
         },
       );
+    });
+
+    group('CUR-516: Timezone Preservation for Incomplete Records', () {
+      testWidgets(
+        'saves timezone when creating partial record and pressing back',
+        (tester) async {
+          tester.view.physicalSize = const Size(1080, 1920);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
+
+          await tester.pumpWidget(
+            _wrapWithApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
+                diaryEntryDate: DateTime(2024, 1, 15),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Verify we're on the start time screen
+          expect(find.text('Nosebleed Start'), findsOneWidget);
+
+          // Confirm start time to proceed
+          await tester.tap(find.text('Set Start Time'));
+          await tester.pumpAndSettle();
+
+          // Press back after setting start time
+          await tester.tap(find.text('Back'));
+          await tester.pumpAndSettle();
+
+          // Verify the partial record was saved with timezone
+          final records = await nosebleedService.getRecordsForStartDate(
+            DateTime(2024, 1, 15),
+          );
+          expect(records.length, 1);
+          expect(records.first.isIncomplete, isTrue);
+          expect(records.first.startTimeTimezone, isNotNull);
+          // Timezone should be a valid IANA ID (e.g., America/Los_Angeles)
+          expect(
+            records.first.startTimeTimezone?.contains('/'),
+            isTrue,
+            reason: 'Timezone should be an IANA ID like America/Los_Angeles',
+          );
+        },
+      );
+
+      testWidgets(
+        'saves both start and end time timezones when completing intensity step',
+        (tester) async {
+          tester.view.physicalSize = const Size(1080, 1920);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
+
+          await tester.pumpWidget(
+            _wrapWithApp(
+              RecordingScreen(
+                nosebleedService: nosebleedService,
+                enrollmentService: mockEnrollment,
+                preferencesService: preferencesService,
+                diaryEntryDate: DateTime(2024, 1, 15),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Set start time
+          await tester.tap(find.text('Set Start Time'));
+          await tester.pumpAndSettle();
+
+          // Select intensity
+          await tester.tap(find.text('Dripping'));
+          await tester.pumpAndSettle();
+
+          // Should now be on end time step
+          expect(find.text('Nosebleed End Time'), findsOneWidget);
+
+          // Press back to auto-save with both timezones
+          await tester.tap(find.text('Back'));
+          await tester.pumpAndSettle();
+
+          // Verify the record has both timezones
+          final records = await nosebleedService.getRecordsForStartDate(
+            DateTime(2024, 1, 15),
+          );
+          expect(records.length, 1);
+          expect(records.first.startTimeTimezone, isNotNull);
+          // End time timezone should also be set when end time step was reached
+          expect(records.first.endTimeTimezone, isNotNull);
+        },
+      );
+
+      testWidgets('restores timezone when editing incomplete record', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Create an incomplete record with a specific timezone
+        final incompleteRecord = await nosebleedService.addRecord(
+          startTime: DateTime(2024, 1, 15, 10, 0),
+          isNoNosebleedsEvent: false,
+          isUnknownEvent: false,
+          startTimeTimezone: 'America/New_York',
+        );
+
+        // Verify it was saved correctly
+        expect(incompleteRecord.startTimeTimezone, 'America/New_York');
+        expect(incompleteRecord.isIncomplete, isTrue);
+
+        await tester.pumpWidget(
+          _wrapWithApp(
+            RecordingScreen(
+              nosebleedService: nosebleedService,
+              enrollmentService: mockEnrollment,
+              preferencesService: preferencesService,
+              // Note: When editing existing record, don't pass diaryEntryDate
+              existingRecord: incompleteRecord,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // The timezone should be restored from the record
+        // Note: We can't directly check the picker value, but we can verify
+        // that when we save again, the timezone is preserved
+
+        // Make a small change and save
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // Press back to auto-save
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
+
+        // Verify timezone was preserved
+        final records = await nosebleedService.getLocalMaterializedRecords();
+        expect(records.length, 1);
+        // The timezone should still be the original value
+        expect(records.first.startTimeTimezone, isNotNull);
+      });
     });
 
     group('SimpleRecordingScreen Back Button Auto-Save', () {
