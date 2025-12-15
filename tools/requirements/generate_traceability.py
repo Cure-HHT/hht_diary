@@ -230,6 +230,10 @@ class TraceabilityRequirement:
     test_info: Optional[TestInfo] = None
     implementation_files: List[Tuple[str, int]] = field(default_factory=list)
     is_roadmap: bool = False  # True if requirement is in spec/roadmap/ directory
+    is_conflict: bool = False  # True if this roadmap REQ conflicts with an existing REQ
+    conflict_with: str = ''  # ID of the existing REQ this conflicts with
+    is_cycle: bool = False  # True if this REQ is part of a dependency cycle
+    cycle_path: str = ''  # The cycle path string for display (e.g., "p00001 -> p00002 -> p00001")
 
     def _get_spec_relative_path(self) -> str:
         """Get the spec-relative path for this requirement's file"""
@@ -346,6 +350,9 @@ Requirement = TraceabilityRequirement
 class TraceabilityGenerator:
     """Generates traceability matrices"""
 
+    # Version number - increment with each change
+    VERSION = 9
+
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
         'PRD': 'PRD',
@@ -406,6 +413,9 @@ class TraceabilityGenerator:
             return
 
         print(f"📋 Found {len(self.requirements)} requirements")
+
+        # Pre-detect cycles and mark affected requirements
+        self._detect_and_mark_cycles()
 
         # Scan implementation files for requirement references
         if self.impl_dirs:
@@ -505,13 +515,90 @@ class TraceabilityGenerator:
             # Convert roadmap requirements with is_roadmap=True
             for req_id, base_req in roadmap_result.requirements.items():
                 if req_id in self.requirements:
-                    print(f"   ⚠️  Roadmap REQ {req_id} conflicts with existing REQ, skipping")
+                    # Conflict detected - load as orphaned conflict item
+                    existing_req = self.requirements[req_id]
+                    existing_loc = f"spec/{existing_req.file_path.name}"
+                    roadmap_loc = f"spec/roadmap/{base_req.file_path.name}"
+                    print(f"   ⚠️  Roadmap REQ-{req_id} ({roadmap_loc}) conflicts with existing REQ-{req_id} ({existing_loc})")
+
+                    # Create conflict entry with modified key and no parent links
+                    conflict_key = f"{req_id}__conflict"
+                    conflict_req = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
+                    conflict_req.is_conflict = True
+                    conflict_req.conflict_with = req_id
+                    conflict_req.implements = []  # Treat as orphaned top-level item
+                    self.requirements[conflict_key] = conflict_req
                     continue
                 self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
 
             if roadmap_result.errors:
                 for error in roadmap_result.errors:
                     print(f"   ⚠️  Roadmap parse warning: {error}")
+
+    def _detect_and_mark_cycles(self):
+        """Pre-detect dependency cycles and mark affected requirements.
+
+        Requirements involved in cycles are marked with is_cycle=True and their
+        implements list is cleared so they appear as orphaned top-level items.
+        This allows them to be inspected and fixed.
+        """
+        # Track all requirements involved in any cycle
+        cycle_members: set[str] = set()
+        unique_cycles: set[frozenset[str]] = set()  # For deduplication
+
+        def find_cycles_from(req_id: str, path: list[str], in_stack: set[str]):
+            """DFS to find all cycles reachable from req_id."""
+            if req_id in in_stack:
+                # Found cycle - extract it
+                cycle_start = path.index(req_id)
+                cycle_nodes = path[cycle_start:]
+                # Normalize cycle for deduplication (use frozenset of members)
+                cycle_key = frozenset(cycle_nodes)
+                if cycle_key not in unique_cycles:
+                    unique_cycles.add(cycle_key)
+                    cycle_members.update(cycle_nodes)
+                    # Create readable cycle string
+                    cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_nodes + [req_id]])
+                    print(f"   🔄 CYCLE DETECTED: {cycle_str}")
+                return
+
+            if req_id in cycle_members:
+                return  # Already part of a known cycle
+
+            if req_id not in self.requirements:
+                return  # Reference to non-existent requirement
+
+            req = self.requirements[req_id]
+            path.append(req_id)
+            in_stack.add(req_id)
+
+            for parent_id in req.implements:
+                find_cycles_from(parent_id, path, in_stack)
+
+            path.pop()
+            in_stack.remove(req_id)
+
+        # Find all cycles starting from each requirement
+        for req_id in self.requirements:
+            if req_id not in cycle_members:
+                find_cycles_from(req_id, [], set())
+
+        # Mark all requirements involved in cycles
+        if cycle_members:
+            for req_id in cycle_members:
+                if req_id in self.requirements:
+                    req = self.requirements[req_id]
+                    # Find the cycle this req is part of for the path string
+                    for cycle_key in unique_cycles:
+                        if req_id in cycle_key:
+                            cycle_list = sorted(cycle_key)
+                            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_list])
+                            req.is_cycle = True
+                            req.cycle_path = cycle_str
+                            req.implements = []  # Treat as orphaned top-level item
+                            break
+
+            print(f"   ⚠️  {len(cycle_members)} requirements marked as cyclic (shown as orphaned items)")
 
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
@@ -679,7 +766,7 @@ class TraceabilityGenerator:
         prd_reqs.sort(key=lambda r: r.id)
 
         for prd_req in prd_reqs:
-            lines.append(self._format_req_tree_md(prd_req, indent=0))
+            lines.append(self._format_req_tree_md(prd_req, indent=0, ancestor_path=[]))
 
         # Orphaned ops/dev requirements
         orphaned = self._find_orphaned_requirements()
@@ -691,8 +778,33 @@ class TraceabilityGenerator:
 
         return '\n'.join(lines)
 
-    def _format_req_tree_md(self, req: Requirement, indent: int) -> str:
-        """Format requirement and its children as markdown tree"""
+    def _format_req_tree_md(self, req: Requirement, indent: int, ancestor_path: list[str] | None = None) -> str:
+        """Format requirement and its children as markdown tree.
+
+        Args:
+            req: The requirement to format
+            indent: Current indentation level
+            ancestor_path: List of requirement IDs in the current traversal path (for cycle detection)
+
+        Returns:
+            Formatted markdown string
+        """
+        if ancestor_path is None:
+            ancestor_path = []
+
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED: {cycle_str}", file=sys.stderr)
+            return f"  " * indent + f"- ⚠️ **CYCLE DETECTED**: REQ-{req.id} (path: {cycle_str})"
+
+        # Safety depth limit
+        MAX_DEPTH = 50
+        if indent > MAX_DEPTH:
+            print(f"⚠️  MAX DEPTH ({MAX_DEPTH}) exceeded at REQ-{req.id}", file=sys.stderr)
+            return f"  " * indent + f"- ⚠️ **MAX DEPTH EXCEEDED**: REQ-{req.id}"
+
         lines = []
         prefix = "  " * indent
 
@@ -730,8 +842,10 @@ class TraceabilityGenerator:
         children.sort(key=lambda r: r.id)
 
         if children:
+            # Add current req to path before recursing into children
+            current_path = ancestor_path + [req.id]
             for child in children:
-                lines.append(self._format_req_tree_md(child, indent + 1))
+                lines.append(self._format_req_tree_md(child, indent + 1, current_path))
 
         return '\n'.join(lines)
 
@@ -782,6 +896,8 @@ class TraceabilityGenerator:
         """Generate JSON data containing all requirement content for embedded mode"""
         req_data = {}
         for req_id, req in self.requirements.items():
+            # Use correct spec subdirectory for roadmap items
+            spec_subpath = 'spec/roadmap' if req.is_roadmap else 'spec'
             req_data[req_id] = {
                 'title': req.title,
                 'status': req.status,
@@ -789,9 +905,14 @@ class TraceabilityGenerator:
                 'body': req.body.strip(),
                 'rationale': req.rationale.strip(),
                 'file': req.file_path.name,
-                'filePath': f"{self._base_path}spec/{req.file_path.name}",
+                'filePath': f"{self._base_path}{spec_subpath}/{req.file_path.name}",
                 'line': req.line_number,
-                'implements': list(req.implements) if req.implements else []
+                'implements': list(req.implements) if req.implements else [],
+                'isRoadmap': req.is_roadmap,
+                'isConflict': req.is_conflict,
+                'conflictWith': req.conflict_with if req.is_conflict else None,
+                'isCycle': req.is_cycle,
+                'cyclePath': req.cycle_path if req.is_cycle else None
             }
         json_str = json.dumps(req_data, indent=2)
         # Escape </script> to prevent premature closing of the script tag
@@ -1806,6 +1927,13 @@ class TraceabilityGenerator:
                             <li>🛤️ Roadmap - Requirement is in roadmap/ directory</li>
                         </ul>
                     </div>
+                    <div class="legend-section">
+                        <h3>Issues (Always Visible)</h3>
+                        <ul>
+                            <li><span class="conflict-icon">⚠️</span> CONFLICT - Roadmap REQ has same ID as existing REQ</li>
+                            <li><span class="cycle-icon">🔄</span> CYCLE - REQ is part of a dependency cycle</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="legend-section" style="margin-top: 15px;">
                     <h3>Controls</h3>
@@ -2337,6 +2465,14 @@ class TraceabilityGenerator:
             border-bottom: 2px solid #0066cc;
             margin-bottom: 10px;
         }}
+        .version-badge {{
+            font-size: 10px;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }}
         .title-bar h1 {{
             font-size: 18px;
             font-weight: 600;
@@ -2348,7 +2484,7 @@ class TraceabilityGenerator:
         .stats-badges {{
             display: flex;
             gap: 10px;
-            flex: 1;
+            margin-right: auto;
         }}
         .stat-badge {{
             padding: 4px 10px;
@@ -2709,6 +2845,30 @@ class TraceabilityGenerator:
             font-size: 12px;
             opacity: 0.8;
         }}
+        .conflict-icon {{
+            margin-right: 4px;
+            font-size: 14px;
+            color: #dc3545;
+        }}
+        .conflict-item {{
+            background-color: rgba(220, 53, 69, 0.1) !important;
+            border-left: 3px solid #dc3545 !important;
+        }}
+        .conflict-item:hover {{
+            background-color: rgba(220, 53, 69, 0.15) !important;
+        }}
+        .cycle-icon {{
+            margin-right: 4px;
+            font-size: 14px;
+            color: #fd7e14;
+        }}
+        .cycle-item {{
+            background-color: rgba(253, 126, 20, 0.1) !important;
+            border-left: 3px solid #fd7e14 !important;
+        }}
+        .cycle-item:hover {{
+            background-color: rgba(253, 126, 20, 0.15) !important;
+        }}
         .req-coverage {{
             min-width: 30px;
             max-width: 40px;
@@ -2826,6 +2986,10 @@ class TraceabilityGenerator:
         .view-btn:hover:not(.active) {{
             background: #e6f0ff;
         }}
+        /* Flat view: force all items to indent 0 */
+        .req-tree.flat-view .req-item .req-header-container {{
+            padding-left: 10px !important;
+        }}
         /* Hierarchical view: hide non-root items initially */
         .req-tree.hierarchy-view .req-item:not([data-is-root="true"]) {{
             display: none;
@@ -2883,6 +3047,7 @@ class TraceabilityGenerator:
                 <span class="stat-badge ops" id="badgeOPS" data-active="{by_level['active']['OPS']}" data-all="{by_level['all']['OPS']}">OPS: {by_level['active']['OPS']}</span>
                 <span class="stat-badge dev" id="badgeDEV" data-active="{by_level['active']['DEV']}" data-all="{by_level['all']['DEV']}">DEV: {by_level['active']['DEV']}</span>
             </div>
+            <span class="version-badge">v{self.VERSION}</span>
             <button class="btn btn-legend" onclick="openLegendModal()" title="Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}">ℹ️ Legend</button>
         </div>
 
@@ -3198,6 +3363,7 @@ class TraceabilityGenerator:
             btnUncommitted.classList.remove('active');
             btnBranch.classList.remove('active');
             reqTree.classList.remove('hierarchy-view');
+            reqTree.classList.remove('flat-view');
 
             if (viewMode === 'hierarchy') {
                 reqTree.classList.add('hierarchy-view');
@@ -3239,14 +3405,15 @@ class TraceabilityGenerator:
             } else {
                 btnFlat.classList.add('active');
                 treeTitle.textContent = 'Traceability Tree - Flat View';
+                reqTree.classList.add('flat-view');
 
-                // Reset visibility classes
+                // Reset visibility classes - show all items in flat view
                 document.querySelectorAll('.req-item').forEach(item => {
                     item.classList.remove('hierarchy-visible');
+                    item.classList.remove('collapsed-by-parent');
                 });
 
-                // Expand all for flat view - show ALL requirements
-                expandAll();
+                // Flat view CSS handles showing all items at indent 0
             }
 
             applyFilters();
@@ -3387,10 +3554,13 @@ class TraceabilityGenerator:
                 }
 
                 // Roadmap filter: hide roadmap requirements unless checkbox is checked
+                // Exception: conflict and cycle items are always shown since they need attention
                 const includeRoadmap = document.getElementById('chkIncludeRoadmap')?.checked || false;
                 if (!includeRoadmap && matches && !isImplFile) {
                     const isRoadmap = item.dataset.roadmap === 'true';
-                    if (isRoadmap) {
+                    const isConflict = item.dataset.conflict === 'true';
+                    const isCycle = item.dataset.cycle === 'true';
+                    if (isRoadmap && !isConflict && !isCycle) {
                         matches = false;
                     }
                 }
@@ -3453,12 +3623,8 @@ class TraceabilityGenerator:
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Start with flat view - all items expanded
-            // The expandAll() call ensures all items are visible
-            expandAll();
-
-            // Initialize filter stats
-            applyFilters();
+            // Start with flat view - show all unique requirements at indent 0
+            switchView('flat');
         });
 """
 
@@ -3488,6 +3654,7 @@ class TraceabilityGenerator:
         """Build a flat list of requirements with hierarchy information"""
         flat_list = []
         self._instance_counter = 0  # Track unique instance IDs
+        self._visited_req_ids = set()  # Track visited requirements to avoid cycles and duplicates
 
         # Start with all root requirements (those with no implements/parent)
         # Root requirements can be PRD, OPS, or DEV - any req that doesn't implement another
@@ -3495,12 +3662,43 @@ class TraceabilityGenerator:
         root_reqs.sort(key=lambda r: r.id)
 
         for root_req in root_reqs:
-            self._add_requirement_and_children(root_req, flat_list, indent=0, parent_instance_id='')
+            self._add_requirement_and_children(root_req, flat_list, indent=0, parent_instance_id='', ancestor_path=[])
+
+        # Add any orphaned requirements that weren't included in the tree
+        # (requirements that have implements pointing to non-existent parents)
+        all_req_ids = set(self.requirements.keys())
+        included_req_ids = self._visited_req_ids
+        orphaned_ids = all_req_ids - included_req_ids
+
+        if orphaned_ids:
+            orphaned_reqs = [self.requirements[rid] for rid in orphaned_ids]
+            orphaned_reqs.sort(key=lambda r: r.id)
+            for orphan in orphaned_reqs:
+                self._add_requirement_and_children(orphan, flat_list, indent=0, parent_instance_id='', ancestor_path=[], is_orphan=True)
 
         return flat_list
 
-    def _add_requirement_and_children(self, req: Requirement, flat_list: List[dict], indent: int, parent_instance_id: str):
-        """Recursively add requirement and its children to flat list"""
+    def _add_requirement_and_children(self, req: Requirement, flat_list: List[dict], indent: int, parent_instance_id: str, ancestor_path: list[str], is_orphan: bool = False):
+        """Recursively add requirement and its children to flat list
+
+        Args:
+            req: The requirement to add
+            flat_list: List to append items to
+            indent: Current indentation level
+            parent_instance_id: Instance ID of parent item
+            ancestor_path: List of requirement IDs in current traversal path (for cycle detection)
+            is_orphan: Whether this requirement is an orphan (has missing parent)
+        """
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED in flat list build: {cycle_str}", file=sys.stderr)
+            return  # Don't add cyclic requirement again
+
+        # Track that we've visited this requirement
+        self._visited_req_ids.add(req.id)
+
         # Generate unique instance ID for this occurrence
         instance_id = f"inst_{self._instance_counter}"
         self._instance_counter += 1
@@ -3539,9 +3737,10 @@ class TraceabilityGenerator:
                 'item_type': 'implementation'
             })
 
-        # Recursively add child requirements
+        # Recursively add child requirements (with updated ancestor path for cycle detection)
+        current_path = ancestor_path + [req.id]
         for child in children:
-            self._add_requirement_and_children(child, flat_list, indent + 1, instance_id)
+            self._add_requirement_and_children(child, flat_list, indent + 1, instance_id, current_path)
 
     def _format_item_flat_html(self, item_data: dict, embed_content: bool = False) -> str:
         """Format a single item (requirement or implementation file) as flat HTML row
@@ -3746,13 +3945,24 @@ class TraceabilityGenerator:
         # Roadmap indicator icon (shown after REQ ID)
         roadmap_icon = '<span class="roadmap-icon" title="In roadmap">🛤️</span>' if req.is_roadmap else ''
 
+        # Conflict indicator icon (shown for roadmap REQs that conflict with existing REQs)
+        conflict_icon = f'<span class="conflict-icon" title="Conflicts with REQ-{req.conflict_with}">⚠️</span>' if req.is_conflict else ''
+        conflict_attr = f'data-conflict="true" data-conflict-with="{req.conflict_with}"' if req.is_conflict else 'data-conflict="false"'
+
+        # Cycle indicator icon (shown for REQs involved in dependency cycles)
+        cycle_icon = f'<span class="cycle-icon" title="Cycle: {req.cycle_path}">🔄</span>' if req.is_cycle else ''
+        cycle_attr = f'data-cycle="true" data-cycle-path="{req.cycle_path}"' if req.is_cycle else 'data-cycle="false"'
+
+        # Determine item class based on status
+        item_class = 'conflict-item' if req.is_conflict else ('cycle-item' if req.is_cycle else '')
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''} {item_class}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr} {conflict_attr} {cycle_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-id">{req_link}{roadmap_icon}</div>
+                    <div class="req-id">{conflict_icon}{cycle_icon}{req_link}{roadmap_icon}</div>
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
@@ -3768,8 +3978,32 @@ class TraceabilityGenerator:
 """
         return html
 
-    def _format_req_tree_html(self, req: Requirement) -> str:
-        """Format requirement and children as HTML tree (legacy non-collapsible)"""
+    def _format_req_tree_html(self, req: Requirement, ancestor_path: list[str] | None = None) -> str:
+        """Format requirement and children as HTML tree (legacy non-collapsible).
+
+        Args:
+            req: The requirement to format
+            ancestor_path: List of requirement IDs in the current traversal path (for cycle detection)
+
+        Returns:
+            Formatted HTML string
+        """
+        if ancestor_path is None:
+            ancestor_path = []
+
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED: {cycle_str}", file=sys.stderr)
+            return f'        <div class="req-item cycle-detected"><strong>⚠️ CYCLE DETECTED:</strong> REQ-{req.id} (path: {cycle_str})</div>\n'
+
+        # Safety depth limit
+        MAX_DEPTH = 50
+        if len(ancestor_path) > MAX_DEPTH:
+            print(f"⚠️  MAX DEPTH ({MAX_DEPTH}) exceeded at REQ-{req.id}", file=sys.stderr)
+            return f'        <div class="req-item depth-exceeded"><strong>⚠️ MAX DEPTH EXCEEDED:</strong> REQ-{req.id}</div>\n'
+
         status_class = req.status.lower()
         level_class = req.level.lower()
 
@@ -3793,16 +4027,71 @@ class TraceabilityGenerator:
         children.sort(key=lambda r: r.id)
 
         if children:
+            # Add current req to path before recursing into children
+            current_path = ancestor_path + [req.id]
             html += '            <div class="child-reqs">\n'
             for child in children:
-                html += self._format_req_tree_html(child)
+                html += self._format_req_tree_html(child, current_path)
             html += '            </div>\n'
 
         html += '        </div>\n'
         return html
 
-    def _format_req_tree_html_collapsible(self, req: Requirement) -> str:
-        """Format requirement and children as collapsible HTML tree"""
+    def _format_req_tree_html_collapsible(self, req: Requirement, ancestor_path: list[str] | None = None) -> str:
+        """Format requirement and children as collapsible HTML tree.
+
+        Args:
+            req: The requirement to format
+            ancestor_path: List of requirement IDs in the current traversal path (for cycle detection)
+
+        Returns:
+            Formatted HTML string
+        """
+        if ancestor_path is None:
+            ancestor_path = []
+
+        # Cycle detection: check if this requirement is already in our traversal path
+        if req.id in ancestor_path:
+            cycle_path = ancestor_path + [req.id]
+            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_path])
+            print(f"⚠️  CYCLE DETECTED: {cycle_str}", file=sys.stderr)
+            return f'''
+        <div class="req-item cycle-detected" data-req-id="{req.id}">
+            <div class="req-header-container">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">⚠️ CYCLE</div>
+                    <div class="req-header">Circular dependency detected at REQ-{req.id}</div>
+                    <div class="req-level">ERROR</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-deprecated">Cycle</span>
+                    </div>
+                    <div class="req-location">Path: {cycle_str}</div>
+                </div>
+            </div>
+        </div>
+'''
+
+        # Safety depth limit
+        MAX_DEPTH = 50
+        if len(ancestor_path) > MAX_DEPTH:
+            print(f"⚠️  MAX DEPTH ({MAX_DEPTH}) exceeded at REQ-{req.id}", file=sys.stderr)
+            return f'''
+        <div class="req-item depth-exceeded" data-req-id="{req.id}">
+            <div class="req-header-container">
+                <span class="collapse-icon"></span>
+                <div class="req-content">
+                    <div class="req-id">⚠️ DEPTH</div>
+                    <div class="req-header">Maximum depth exceeded at REQ-{req.id}</div>
+                    <div class="req-level">ERROR</div>
+                    <div class="req-badges">
+                        <span class="status-badge status-deprecated">Overflow</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+'''
+
         status_class = req.status.lower()
         level_class = req.level.lower()
 
@@ -3852,9 +4141,11 @@ class TraceabilityGenerator:
 """
 
         if children:
+            # Add current req to path before recursing into children
+            current_path = ancestor_path + [req.id]
             html += '            <div class="child-reqs">\n'
             for child in children:
-                html += self._format_req_tree_html_collapsible(child)
+                html += self._format_req_tree_html_collapsible(child, current_path)
             html += '            </div>\n'
 
         html += '        </div>\n'
