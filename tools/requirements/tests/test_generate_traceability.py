@@ -707,13 +707,21 @@ class TestDeepLinksAndLegend(unittest.TestCase):
         self.assertIn('href="spec/prd-test.md#L', html)
 
     def test_html_has_legend_section(self):
-        """HTML output should include symbol legend"""
-        html = self.gen._generate_html()
-        # Should have legend section with key symbols
+        """HTML output should include symbol legend in modal"""
+        html = self.gen._generate_html(embed_content=True)
+        # Should have legend modal with key sections
+        self.assertIn('legend-modal', html)
         self.assertIn('Legend', html)
-        self.assertIn('✅', html)  # Active
-        self.assertIn('🚧', html)  # Draft
-        self.assertIn('⚠️', html)  # Deprecated
+        # Status badges (not emojis)
+        self.assertIn('status-active', html)
+        self.assertIn('status-draft', html)
+        self.assertIn('status-deprecated', html)
+        # Test status symbols
+        self.assertIn('✅', html)  # Tests passing
+        self.assertIn('⚡', html)  # Not tested
+        # Issue indicators
+        self.assertIn('⚠️', html)  # Conflict
+        self.assertIn('🔄', html)  # Cycle
 
     def test_markdown_req_has_link(self):
         """Markdown REQ should have clickable link to source"""

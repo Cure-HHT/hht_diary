@@ -351,7 +351,7 @@ class TraceabilityGenerator:
     """Generates traceability matrices"""
 
     # Version number - increment with each change
-    VERSION = 8
+    VERSION = 9
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -1925,6 +1925,13 @@ class TraceabilityGenerator:
                             <li><span class="status-moved">↝</span> MOVED - Relocated to different file</li>
                             <li><span class="status-pending-move">⇢</span> PENDING - Staged for move (not yet executed)</li>
                             <li>🛤️ Roadmap - Requirement is in roadmap/ directory</li>
+                        </ul>
+                    </div>
+                    <div class="legend-section">
+                        <h3>Issues (Always Visible)</h3>
+                        <ul>
+                            <li><span class="conflict-icon">⚠️</span> CONFLICT - Roadmap REQ has same ID as existing REQ</li>
+                            <li><span class="cycle-icon">🔄</span> CYCLE - REQ is part of a dependency cycle</li>
                         </ul>
                     </div>
                 </div>
