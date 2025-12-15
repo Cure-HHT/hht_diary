@@ -3286,18 +3286,32 @@ class TraceabilityGenerator:
                     item.classList.remove('collapsed-by-parent');
                 });
 
-                // In flat view, hide duplicate REQ IDs (show only first occurrence)
+                // In flat view: hide duplicates and sort by REQ ID
                 const seenReqIds = new Set();
-                document.querySelectorAll('.req-item').forEach(item => {
+                const items = Array.from(document.querySelectorAll('.req-item[data-req-id]'));
+
+                // Sort items by REQ ID (alphabetically, which works for p00001, d00002, etc.)
+                items.sort((a, b) => {
+                    const idA = a.dataset.reqId || '';
+                    const idB = b.dataset.reqId || '';
+                    return idA.localeCompare(idB);
+                });
+
+                // Re-append items in sorted order and hide duplicates
+                items.forEach(item => {
                     const reqId = item.dataset.reqId;
-                    if (reqId) {
-                        if (seenReqIds.has(reqId)) {
-                            item.classList.add('duplicate-hidden');
-                        } else {
-                            seenReqIds.add(reqId);
-                            item.classList.remove('duplicate-hidden');
-                        }
+                    if (seenReqIds.has(reqId)) {
+                        item.classList.add('duplicate-hidden');
+                    } else {
+                        seenReqIds.add(reqId);
+                        item.classList.remove('duplicate-hidden');
+                        reqTree.appendChild(item);  // Move to end (in sorted order)
                     }
+                });
+
+                // Also handle impl-file items (keep them hidden in flat view or append after parent)
+                document.querySelectorAll('.req-item.impl-file').forEach(item => {
+                    item.classList.add('duplicate-hidden');  // Hide impl files in flat view
                 });
             }
 
