@@ -2853,12 +2853,9 @@ class TraceabilityGenerator:
         .view-btn:hover:not(.active) {{
             background: #e6f0ff;
         }}
-        /* Flat view: force all items to indent 0, hide duplicates */
+        /* Flat view: force all items to indent 0 */
         .req-tree.flat-view .req-item .req-header-container {{
             padding-left: 10px !important;
-        }}
-        .req-tree.flat-view .req-item.duplicate-hidden {{
-            display: none;
         }}
         /* Hierarchical view: hide non-root items initially */
         .req-tree.hierarchy-view .req-item:not([data-is-root="true"]) {{
@@ -3233,10 +3230,6 @@ class TraceabilityGenerator:
             btnBranch.classList.remove('active');
             reqTree.classList.remove('hierarchy-view');
             reqTree.classList.remove('flat-view');
-            // Remove duplicate-hidden class from all items
-            document.querySelectorAll('.req-item.duplicate-hidden').forEach(item => {
-                item.classList.remove('duplicate-hidden');
-            });
 
             if (viewMode === 'hierarchy') {
                 reqTree.classList.add('hierarchy-view');
@@ -3280,39 +3273,13 @@ class TraceabilityGenerator:
                 treeTitle.textContent = 'Traceability Tree - Flat View';
                 reqTree.classList.add('flat-view');
 
-                // Reset visibility classes
+                // Reset visibility classes - show all items in flat view
                 document.querySelectorAll('.req-item').forEach(item => {
                     item.classList.remove('hierarchy-visible');
                     item.classList.remove('collapsed-by-parent');
                 });
 
-                // In flat view: hide duplicates and sort by REQ ID
-                const seenReqIds = new Set();
-                const items = Array.from(document.querySelectorAll('.req-item[data-req-id]'));
-
-                // Sort items by REQ ID (alphabetically, which works for p00001, d00002, etc.)
-                items.sort((a, b) => {
-                    const idA = a.dataset.reqId || '';
-                    const idB = b.dataset.reqId || '';
-                    return idA.localeCompare(idB);
-                });
-
-                // Re-append items in sorted order and hide duplicates
-                items.forEach(item => {
-                    const reqId = item.dataset.reqId;
-                    if (seenReqIds.has(reqId)) {
-                        item.classList.add('duplicate-hidden');
-                    } else {
-                        seenReqIds.add(reqId);
-                        item.classList.remove('duplicate-hidden');
-                        reqTree.appendChild(item);  // Move to end (in sorted order)
-                    }
-                });
-
-                // Also handle impl-file items (keep them hidden in flat view or append after parent)
-                document.querySelectorAll('.req-item.impl-file').forEach(item => {
-                    item.classList.add('duplicate-hidden');  // Hide impl files in flat view
-                });
+                // Flat view CSS handles showing all items at indent 0
             }
 
             applyFilters();
