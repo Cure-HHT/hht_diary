@@ -443,7 +443,7 @@ void main() {
               nosebleedService: nosebleedService,
               enrollmentService: mockEnrollment,
               preferencesService: preferencesService,
-              diaryEntryDate: DateTime(2024, 1, 15),
+              // Note: When editing existing record, don't pass diaryEntryDate
               existingRecord: incompleteRecord,
             ),
           ),
