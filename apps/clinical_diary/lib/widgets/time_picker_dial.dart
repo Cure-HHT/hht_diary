@@ -1,7 +1,7 @@
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone_button_dropdown/timezone_button_dropdown.dart';
 
 /// Time picker widget with a dial-style interface
 class TimePickerDial extends StatefulWidget {
@@ -52,8 +52,15 @@ class _TimePickerDialState extends State<TimePickerDial> {
     super.initState();
     // Clamp initial time to max if future times are not allowed
     _selectedTime = _clampToMaxIfNeeded(widget.initialTime);
-    // Use initial timezone or detect from device
-    _selectedTimezone = widget.initialTimezone ?? DateTime.now().timeZoneName;
+    // Use initial timezone or detect from device, then normalize to IANA format
+    final rawTimezone = widget.initialTimezone ?? DateTime.now().timeZoneName;
+    _selectedTimezone = _normalizeTimezone(rawTimezone);
+
+    // CUR-516: Notify parent of initial timezone so it gets saved even if user doesn't change it
+    // This ensures the timezone is persisted when saving incomplete records
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onTimezoneChanged?.call(_selectedTimezone);
+    });
   }
 
   @override
@@ -172,76 +179,122 @@ class _TimePickerDialState extends State<TimePickerDial> {
     }
   }
 
-  void _showTimezonePicker() {
-    showModalBottomSheet<String>(
+  Future<void> _showTimezonePicker() async {
+    final selected = await showTimezonePicker(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Select Timezone',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            Expanded(
-              child: TimezoneDropdown(
-                selectHint: 'Search timezones...',
-                searchHint: 'Search...',
-                selectedTimezone: _normalizeTimezone(_selectedTimezone),
-                onTimezoneSelected: (timezone) {
-                  setState(() {
-                    _selectedTimezone = timezone;
-                  });
-                  widget.onTimezoneChanged?.call(timezone);
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+      selectedTimezone: _normalizeTimezone(_selectedTimezone),
     );
+    if (selected != null) {
+      setState(() {
+        _selectedTimezone = selected;
+      });
+      widget.onTimezoneChanged?.call(selected);
+    }
   }
 
-  /// Normalize POSIX-style timezones to IANA format for the dropdown.
-  /// Some platforms (iOS simulator) return POSIX format like "EST5EDT" instead
-  /// of IANA format like "America/New_York".
-  String _normalizeTimezone(String tz) {
-    // Map common POSIX timezones to IANA equivalents
+  /// Normalize various timezone formats to IANA format for the dropdown.
+  /// Handles:
+  /// - POSIX format like "EST5EDT" -> "America/New_York"
+  /// - Abbreviations like "PST" -> "America/Los_Angeles"
+  /// - Full display names like "Central European Standard Time" -> "Europe/Paris"
+  String _normalizeTimezone(String tzInput) {
+    // If already an IANA format (contains /), return as-is
+    if (tzInput.contains('/')) {
+      return tzInput;
+    }
+
+    // Map common POSIX timezones and abbreviations to IANA equivalents
     const posixToIana = {
+      // POSIX formats
       'EST5EDT': 'America/New_York',
       'CST6CDT': 'America/Chicago',
       'MST7MDT': 'America/Denver',
       'PST8PDT': 'America/Los_Angeles',
+      // Abbreviations
       'EST': 'America/New_York',
+      'EDT': 'America/New_York',
       'CST': 'America/Chicago',
+      'CDT': 'America/Chicago',
       'MST': 'America/Denver',
+      'MDT': 'America/Denver',
       'PST': 'America/Los_Angeles',
+      'PDT': 'America/Los_Angeles',
+      'AKST': 'America/Anchorage',
+      'AKDT': 'America/Anchorage',
+      'HST': 'Pacific/Honolulu',
       'CET': 'Europe/Paris',
+      'CEST': 'Europe/Paris',
       'EET': 'Europe/Helsinki',
+      'EEST': 'Europe/Helsinki',
       'WET': 'Europe/Lisbon',
-      'GMT': 'Etc/GMT',
+      'WEST': 'Europe/Lisbon',
+      'GMT': 'Europe/London',
+      'BST': 'Europe/London',
+      'UTC': 'Etc/UTC',
+      'IST': 'Asia/Kolkata',
+      'JST': 'Asia/Tokyo',
+      'KST': 'Asia/Seoul',
+      'CST (China)': 'Asia/Shanghai',
+      'AEST': 'Australia/Sydney',
+      'AEDT': 'Australia/Sydney',
+      'AWST': 'Australia/Perth',
+      'ACST': 'Australia/Adelaide',
+      'ACDT': 'Australia/Adelaide',
+      'NZST': 'Pacific/Auckland',
+      'NZDT': 'Pacific/Auckland',
     };
-    return posixToIana[tz] ?? tz;
+
+    // Map full display names to IANA equivalents
+    const displayNameToIana = {
+      'Eastern Standard Time': 'America/New_York',
+      'Eastern Daylight Time': 'America/New_York',
+      'Central Standard Time': 'America/Chicago',
+      'Central Daylight Time': 'America/Chicago',
+      'Mountain Standard Time': 'America/Denver',
+      'Mountain Daylight Time': 'America/Denver',
+      'Pacific Standard Time': 'America/Los_Angeles',
+      'Pacific Daylight Time': 'America/Los_Angeles',
+      'Alaska Standard Time': 'America/Anchorage',
+      'Alaska Daylight Time': 'America/Anchorage',
+      'Hawaii-Aleutian Standard Time': 'Pacific/Honolulu',
+      'Hawaii Standard Time': 'Pacific/Honolulu',
+      'Central European Standard Time': 'Europe/Paris',
+      'Central European Summer Time': 'Europe/Paris',
+      'Eastern European Standard Time': 'Europe/Helsinki',
+      'Eastern European Summer Time': 'Europe/Helsinki',
+      'Western European Standard Time': 'Europe/Lisbon',
+      'Western European Summer Time': 'Europe/Lisbon',
+      'Greenwich Mean Time': 'Europe/London',
+      'British Summer Time': 'Europe/London',
+      'Coordinated Universal Time': 'Etc/UTC',
+      'India Standard Time': 'Asia/Kolkata',
+      'Japan Standard Time': 'Asia/Tokyo',
+      'Korea Standard Time': 'Asia/Seoul',
+      'China Standard Time': 'Asia/Shanghai',
+      'Australian Eastern Standard Time': 'Australia/Sydney',
+      'Australian Eastern Daylight Time': 'Australia/Sydney',
+      'Australian Western Standard Time': 'Australia/Perth',
+      'Australian Central Standard Time': 'Australia/Adelaide',
+      'Australian Central Daylight Time': 'Australia/Adelaide',
+      'New Zealand Standard Time': 'Pacific/Auckland',
+      'New Zealand Daylight Time': 'Pacific/Auckland',
+    };
+
+    // Try abbreviation first
+    if (posixToIana.containsKey(tzInput)) {
+      return posixToIana[tzInput]!;
+    }
+
+    // Try full display name
+    if (displayNameToIana.containsKey(tzInput)) {
+      return displayNameToIana[tzInput]!;
+    }
+
+    // Default to UTC if unknown
+    debugPrint(
+      'Unknown timezone format: $tzInput, defaulting to America/New_York',
+    );
+    return 'America/New_York';
   }
 
   @override
@@ -364,7 +417,9 @@ class _TimePickerDialState extends State<TimePickerDial> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _normalizeTimezone(_selectedTimezone),
+                    getTimezoneDisplayName(
+                      _normalizeTimezone(_selectedTimezone),
+                    ),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,

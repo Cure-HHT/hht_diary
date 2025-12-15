@@ -1163,6 +1163,7 @@ class FailingNosebleedService extends NosebleedService {
     bool isUnknownEvent = false,
     String? parentRecordId,
     String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     throw Exception('Simulated save failure');
   }
@@ -1177,6 +1178,7 @@ class FailingNosebleedService extends NosebleedService {
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
     String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     throw Exception('Simulated update failure');
   }

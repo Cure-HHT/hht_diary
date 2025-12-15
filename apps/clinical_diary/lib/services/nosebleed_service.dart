@@ -111,6 +111,7 @@ class NosebleedService {
       syncedAt: event.syncedAt,
       // CUR-516: Read timezone for UI restoration on incomplete records
       startTimeTimezone: data['startTimeTimezone'] as String?,
+      endTimeTimezone: data['endTimeTimezone'] as String?,
     );
   }
 
@@ -160,6 +161,7 @@ class NosebleedService {
     bool isUnknownEvent = false,
     String? parentRecordId,
     String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     final deviceUuid = await getDeviceUuid();
     final record = NosebleedRecord(
@@ -178,6 +180,7 @@ class NosebleedService {
       deviceUuid: deviceUuid,
       createdAt: DateTime.now(),
       startTimeTimezone: startTimeTimezone,
+      endTimeTimezone: endTimeTimezone,
     );
 
     // Save to append-only datastore
@@ -202,6 +205,8 @@ class NosebleedService {
           'parentRecordId': record.parentRecordId,
         if (record.startTimeTimezone != null)
           'startTimeTimezone': record.startTimeTimezone,
+        if (record.endTimeTimezone != null)
+          'endTimeTimezone': record.endTimeTimezone,
       },
       userId: userId,
       deviceId: deviceUuid,
@@ -225,6 +230,7 @@ class NosebleedService {
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
     String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     return addRecord(
       startTime: startTime,
@@ -235,6 +241,7 @@ class NosebleedService {
       isUnknownEvent: isUnknownEvent,
       parentRecordId: originalRecordId,
       startTimeTimezone: startTimeTimezone,
+      endTimeTimezone: endTimeTimezone,
     );
   }
 
