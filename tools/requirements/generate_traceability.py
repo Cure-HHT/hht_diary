@@ -232,6 +232,8 @@ class TraceabilityRequirement:
     is_roadmap: bool = False  # True if requirement is in spec/roadmap/ directory
     is_conflict: bool = False  # True if this roadmap REQ conflicts with an existing REQ
     conflict_with: str = ''  # ID of the existing REQ this conflicts with
+    is_cycle: bool = False  # True if this REQ is part of a dependency cycle
+    cycle_path: str = ''  # The cycle path string for display (e.g., "p00001 -> p00002 -> p00001")
 
     def _get_spec_relative_path(self) -> str:
         """Get the spec-relative path for this requirement's file"""
@@ -349,7 +351,7 @@ class TraceabilityGenerator:
     """Generates traceability matrices"""
 
     # Version number - increment with each change
-    VERSION = 7
+    VERSION = 8
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -411,6 +413,9 @@ class TraceabilityGenerator:
             return
 
         print(f"📋 Found {len(self.requirements)} requirements")
+
+        # Pre-detect cycles and mark affected requirements
+        self._detect_and_mark_cycles()
 
         # Scan implementation files for requirement references
         if self.impl_dirs:
@@ -529,6 +534,71 @@ class TraceabilityGenerator:
             if roadmap_result.errors:
                 for error in roadmap_result.errors:
                     print(f"   ⚠️  Roadmap parse warning: {error}")
+
+    def _detect_and_mark_cycles(self):
+        """Pre-detect dependency cycles and mark affected requirements.
+
+        Requirements involved in cycles are marked with is_cycle=True and their
+        implements list is cleared so they appear as orphaned top-level items.
+        This allows them to be inspected and fixed.
+        """
+        # Track all requirements involved in any cycle
+        cycle_members: set[str] = set()
+        unique_cycles: set[frozenset[str]] = set()  # For deduplication
+
+        def find_cycles_from(req_id: str, path: list[str], in_stack: set[str]):
+            """DFS to find all cycles reachable from req_id."""
+            if req_id in in_stack:
+                # Found cycle - extract it
+                cycle_start = path.index(req_id)
+                cycle_nodes = path[cycle_start:]
+                # Normalize cycle for deduplication (use frozenset of members)
+                cycle_key = frozenset(cycle_nodes)
+                if cycle_key not in unique_cycles:
+                    unique_cycles.add(cycle_key)
+                    cycle_members.update(cycle_nodes)
+                    # Create readable cycle string
+                    cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_nodes + [req_id]])
+                    print(f"   🔄 CYCLE DETECTED: {cycle_str}")
+                return
+
+            if req_id in cycle_members:
+                return  # Already part of a known cycle
+
+            if req_id not in self.requirements:
+                return  # Reference to non-existent requirement
+
+            req = self.requirements[req_id]
+            path.append(req_id)
+            in_stack.add(req_id)
+
+            for parent_id in req.implements:
+                find_cycles_from(parent_id, path, in_stack)
+
+            path.pop()
+            in_stack.remove(req_id)
+
+        # Find all cycles starting from each requirement
+        for req_id in self.requirements:
+            if req_id not in cycle_members:
+                find_cycles_from(req_id, [], set())
+
+        # Mark all requirements involved in cycles
+        if cycle_members:
+            for req_id in cycle_members:
+                if req_id in self.requirements:
+                    req = self.requirements[req_id]
+                    # Find the cycle this req is part of for the path string
+                    for cycle_key in unique_cycles:
+                        if req_id in cycle_key:
+                            cycle_list = sorted(cycle_key)
+                            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_list])
+                            req.is_cycle = True
+                            req.cycle_path = cycle_str
+                            req.implements = []  # Treat as orphaned top-level item
+                            break
+
+            print(f"   ⚠️  {len(cycle_members)} requirements marked as cyclic (shown as orphaned items)")
 
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
@@ -840,7 +910,9 @@ class TraceabilityGenerator:
                 'implements': list(req.implements) if req.implements else [],
                 'isRoadmap': req.is_roadmap,
                 'isConflict': req.is_conflict,
-                'conflictWith': req.conflict_with if req.is_conflict else None
+                'conflictWith': req.conflict_with if req.is_conflict else None,
+                'isCycle': req.is_cycle,
+                'cyclePath': req.cycle_path if req.is_cycle else None
             }
         json_str = json.dumps(req_data, indent=2)
         # Escape </script> to prevent premature closing of the script tag
@@ -2778,6 +2850,18 @@ class TraceabilityGenerator:
         .conflict-item:hover {{
             background-color: rgba(220, 53, 69, 0.15) !important;
         }}
+        .cycle-icon {{
+            margin-right: 4px;
+            font-size: 14px;
+            color: #fd7e14;
+        }}
+        .cycle-item {{
+            background-color: rgba(253, 126, 20, 0.1) !important;
+            border-left: 3px solid #fd7e14 !important;
+        }}
+        .cycle-item:hover {{
+            background-color: rgba(253, 126, 20, 0.15) !important;
+        }}
         .req-coverage {{
             min-width: 30px;
             max-width: 40px;
@@ -3463,12 +3547,13 @@ class TraceabilityGenerator:
                 }
 
                 // Roadmap filter: hide roadmap requirements unless checkbox is checked
-                // Exception: conflict items are always shown since they need attention
+                // Exception: conflict and cycle items are always shown since they need attention
                 const includeRoadmap = document.getElementById('chkIncludeRoadmap')?.checked || false;
                 if (!includeRoadmap && matches && !isImplFile) {
                     const isRoadmap = item.dataset.roadmap === 'true';
                     const isConflict = item.dataset.conflict === 'true';
-                    if (isRoadmap && !isConflict) {
+                    const isCycle = item.dataset.cycle === 'true';
+                    if (isRoadmap && !isConflict && !isCycle) {
                         matches = false;
                     }
                 }
@@ -3857,13 +3942,20 @@ class TraceabilityGenerator:
         conflict_icon = f'<span class="conflict-icon" title="Conflicts with REQ-{req.conflict_with}">⚠️</span>' if req.is_conflict else ''
         conflict_attr = f'data-conflict="true" data-conflict-with="{req.conflict_with}"' if req.is_conflict else 'data-conflict="false"'
 
+        # Cycle indicator icon (shown for REQs involved in dependency cycles)
+        cycle_icon = f'<span class="cycle-icon" title="Cycle: {req.cycle_path}">🔄</span>' if req.is_cycle else ''
+        cycle_attr = f'data-cycle="true" data-cycle-path="{req.cycle_path}"' if req.is_cycle else 'data-cycle="false"'
+
+        # Determine item class based on status
+        item_class = 'conflict-item' if req.is_conflict else ('cycle-item' if req.is_cycle else '')
+
         # Build HTML for single flat row with unique instance ID
         html = f"""
-        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''} {'conflict-item' if req.is_conflict else ''}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr} {conflict_attr}>
+        <div class="req-item {level_class} {status_class if req.status == 'Deprecated' else ''} {item_class}" data-req-id="{req.id}" data-instance-id="{instance_id}" data-level="{req.level}" data-indent="{indent}" data-parent-instance-id="{parent_instance_id}" data-topic="{topic}" data-status="{req.status}" data-title="{req.title.lower()}" data-file="{req.file_path.name}" {is_root_attr} {uncommitted_attr} {branch_attr} {has_children_attr} {test_status_attr} {coverage_attr} {roadmap_attr} {conflict_attr} {cycle_attr}>
             <div class="req-header-container" onclick="toggleRequirement(this)">
                 <span class="collapse-icon">{collapse_icon}</span>
                 <div class="req-content">
-                    <div class="req-id">{conflict_icon}{req_link}{roadmap_icon}</div>
+                    <div class="req-id">{conflict_icon}{cycle_icon}{req_link}{roadmap_icon}</div>
                     <div class="req-header">{req.title}</div>
                     <div class="req-level">{req.level}</div>
                     <div class="req-badges">
