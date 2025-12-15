@@ -148,6 +148,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // The end date/time shown in the summary, timepicker and clock
   DateTime? _endDateTime;
 
+  // CUR-516: Track selected timezone for start time (IANA format, e.g., "America/Los_Angeles")
+  // This is used to restore the timezone selection when reopening incomplete records.
+  String? _startTimeTimezone;
+
   // CUR-408: Notes field removed from recording flow TODO - needs to be put back
 
   RecordingStep _currentStep = RecordingStep.startTime;
@@ -163,8 +167,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    // Timezone is now embedded in ISO 8601 strings via DateTimeFormatter.
-    // No separate timezone tracking needed.
     if (widget.existingRecord == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
@@ -176,12 +178,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _endDateTime = null;
       _intensity = null;
       _currentStep = RecordingStep.startTime;
+      // CUR-516: Initialize timezone to null for new records - will be set by TimePickerDial
+      _startTimeTimezone = null;
     } else {
       //defensive, startTime should always be set but json conversion could fail
       _startDateTime = widget.existingRecord?.startTime ?? now;
       _endDateTime = widget.existingRecord?.endTime;
       _intensity = widget.existingRecord!.intensity;
       _currentStep = _getInitialStepForExisting();
+      // CUR-516: Restore timezone from existing record to restore UI selection
+      _startTimeTimezone = widget.existingRecord?.startTimeTimezone;
     }
   }
 
@@ -385,23 +391,25 @@ class _RecordingScreenState extends State<RecordingScreen> {
       if (widget.existingRecord != null) {
         // Update existing record (creates a new record that supersedes the original)
         // CUR-447: Use _startDateTime as the primary date for the record
-        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
+        // CUR-516: Pass timezone to preserve UI selection for incomplete records
         final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           startTime: _startDateTime,
           endTime: _endDateTime,
           intensity: _intensity,
+          startTimeTimezone: _startTimeTimezone,
           // CUR-408: notes parameter removed - TODO putback
         );
         recordId = record.id;
       } else {
         // Create new record
         // CUR-447: Use _startDateTime as the primary date for the record
-        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
+        // CUR-516: Pass timezone to preserve UI selection for incomplete records
         final record = await widget.nosebleedService.addRecord(
           startTime: _startDateTime,
           endTime: _endDateTime,
           intensity: _intensity,
+          startTimeTimezone: _startTimeTimezone,
           // CUR-408: notes parameter removed
         );
         recordId = record.id;
@@ -766,12 +774,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
-        // Timezone is now automatically embedded in ISO 8601 strings
-        // when saving via DateTimeFormatter. No separate timezone tracking needed.
+        // CUR-516: Pass and track timezone for start time to restore UI selection
+        // for incomplete records
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
           initialTime: _startDateTime,
+          initialTimezone: _startTimeTimezone,
           onConfirm: (DateTime time) {
             setStartTimeState(time, _startDateTime);
             setState(() {
@@ -780,6 +789,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
           },
           onTimeChanged: (time) {
             setStartTimeState(time, _startDateTime);
+          },
+          onTimezoneChanged: (timezone) {
+            setState(() {
+              _startTimeTimezone = timezone;
+            });
           },
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
