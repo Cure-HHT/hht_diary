@@ -108,9 +108,10 @@ class FlavorConfig {
   );
 
   /// UAT flavor configuration
+  /// NOTE: Temporarily pointing to MVP backend for pre-UAT release
   static const uat = FlavorValues(
     name: 'uat',
-    apiBase: 'https://hht-diary-uat.web.app/api',
+    apiBase: 'https://hht-diary-mvp.web.app/api',
     environment: 'uat',
     showDevTools: false,
     showBanner: false,

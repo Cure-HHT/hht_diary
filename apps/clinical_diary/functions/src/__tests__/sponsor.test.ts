@@ -95,19 +95,9 @@ function createMockResponse(): MockResponseType {
   return res;
 }
 
-// Test API key - obvious mock value for unit tests
-const TEST_API_KEY = "test-key";
-
 describe("SponsorConfig Function", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default: configure a valid API key for most tests via env var
-    process.env.CUREHHT_QA_API_KEY = TEST_API_KEY;
-  });
-
-  afterEach(() => {
-    // Clean up environment variable
-    delete process.env.CUREHHT_QA_API_KEY;
   });
 
   describe("HTTP Method Validation", () => {
@@ -182,7 +172,7 @@ describe("SponsorConfig Function", () => {
     it("handles undefined sponsorId parameter", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: undefined, apiKey: TEST_API_KEY},
+        query: {sponsorId: undefined},
       });
       const res = createMockResponse();
 
@@ -192,102 +182,13 @@ describe("SponsorConfig Function", () => {
       expect(res._statusCode).toBe(400);
       expect(res._body).toEqual({error: "sponsorId parameter is required"});
     });
-
-    it("rejects missing apiKey with 401", async () => {
-      const req = createMockRequest({
-        method: "GET",
-        query: {sponsorId: "curehht"},
-      });
-      const res = createMockResponse();
-
-      (sponsorConfig as (req: unknown, res: unknown) => void)(req, res);
-      await res.promise;
-
-      expect(res._statusCode).toBe(401);
-      expect(res._body).toEqual({error: "apiKey parameter is required"});
-    });
-
-    it("rejects empty apiKey with 401", async () => {
-      const req = createMockRequest({
-        method: "GET",
-        query: {sponsorId: "curehht", apiKey: ""},
-      });
-      const res = createMockResponse();
-
-      (sponsorConfig as (req: unknown, res: unknown) => void)(req, res);
-      await res.promise;
-
-      expect(res._statusCode).toBe(401);
-      expect(res._body).toEqual({error: "apiKey parameter is required"});
-    });
-
-    it("rejects whitespace-only apiKey with 401", async () => {
-      const req = createMockRequest({
-        method: "GET",
-        query: {sponsorId: "curehht", apiKey: "   "},
-      });
-      const res = createMockResponse();
-
-      (sponsorConfig as (req: unknown, res: unknown) => void)(req, res);
-      await res.promise;
-
-      expect(res._statusCode).toBe(401);
-      expect(res._body).toEqual({error: "apiKey parameter is required"});
-    });
-
-    it("rejects invalid apiKey with 401 when key is configured", async () => {
-      // API key is set in beforeEach to TEST_API_KEY
-      const req = createMockRequest({
-        method: "GET",
-        query: {sponsorId: "curehht", apiKey: "wrong-key"},
-      });
-      const res = createMockResponse();
-
-      (sponsorConfig as (req: unknown, res: unknown) => void)(req, res);
-      await res.promise;
-
-      expect(res._statusCode).toBe(401);
-      expect(res._body).toEqual({error: "Invalid API key"});
-    });
-
-    it("accepts valid apiKey when key is configured", async () => {
-      // API key is set in beforeEach to TEST_API_KEY
-      const req = createMockRequest({
-        method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
-      });
-      const res = createMockResponse();
-
-      (sponsorConfig as (req: unknown, res: unknown) => void)(req, res);
-      await res.promise;
-
-      expect(res._statusCode).toBe(200);
-      expect((res._body as {sponsorId: string}).sponsorId).toBe("curehht");
-    });
-
-    it("returns 500 when no API key is configured", async () => {
-      // Clear the environment variable
-      delete process.env.CUREHHT_QA_API_KEY;
-
-      const req = createMockRequest({
-        method: "GET",
-        query: {sponsorId: "curehht", apiKey: "any-key"},
-      });
-      const res = createMockResponse();
-
-      (sponsorConfig as (req: unknown, res: unknown) => void)(req, res);
-      await res.promise;
-
-      expect(res._statusCode).toBe(500);
-      expect(res._body).toEqual({error: "Server configuration error"});
-    });
   });
 
   describe("Known Sponsor: curehht", () => {
     it("returns default flags for curehht", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const res = createMockResponse();
 
@@ -313,7 +214,7 @@ describe("SponsorConfig Function", () => {
     it("handles curehht with uppercase letters", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "CureHHT", apiKey: TEST_API_KEY},
+        query: {sponsorId: "CureHHT"},
       });
       const res = createMockResponse();
 
@@ -328,7 +229,7 @@ describe("SponsorConfig Function", () => {
     it("handles curehht with mixed case and whitespace", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "  CureHHT  ", apiKey: TEST_API_KEY},
+        query: {sponsorId: "  CureHHT  "},
       });
       const res = createMockResponse();
 
@@ -345,7 +246,7 @@ describe("SponsorConfig Function", () => {
     it("returns all validations enabled for callisto", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "callisto", apiKey: TEST_API_KEY},
+        query: {sponsorId: "callisto"},
       });
       const res = createMockResponse();
 
@@ -371,7 +272,7 @@ describe("SponsorConfig Function", () => {
     it("handles callisto with uppercase letters", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "CALLISTO", apiKey: TEST_API_KEY},
+        query: {sponsorId: "CALLISTO"},
       });
       const res = createMockResponse();
 
@@ -388,7 +289,7 @@ describe("SponsorConfig Function", () => {
     it("returns default flags for unknown sponsor", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "unknownsponsor", apiKey: TEST_API_KEY},
+        query: {sponsorId: "unknownsponsor"},
       });
       const res = createMockResponse();
 
@@ -414,7 +315,7 @@ describe("SponsorConfig Function", () => {
     it("preserves unknown sponsor ID casing in response", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "UnKnOwN", apiKey: TEST_API_KEY},
+        query: {sponsorId: "UnKnOwN"},
       });
       const res = createMockResponse();
 
@@ -429,7 +330,7 @@ describe("SponsorConfig Function", () => {
     it("handles numeric-looking sponsor ID", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "12345", apiKey: TEST_API_KEY},
+        query: {sponsorId: "12345"},
       });
       const res = createMockResponse();
 
@@ -444,7 +345,7 @@ describe("SponsorConfig Function", () => {
     it("handles special characters in unknown sponsor ID", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "sponsor-test_123", apiKey: TEST_API_KEY},
+        query: {sponsorId: "sponsor-test_123"},
       });
       const res = createMockResponse();
 
@@ -463,7 +364,7 @@ describe("SponsorConfig Function", () => {
     it("curehht has all validation flags disabled", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const res = createMockResponse();
 
@@ -479,7 +380,7 @@ describe("SponsorConfig Function", () => {
     it("callisto has all validation flags enabled", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "callisto", apiKey: TEST_API_KEY},
+        query: {sponsorId: "callisto"},
       });
       const res = createMockResponse();
 
@@ -495,7 +396,7 @@ describe("SponsorConfig Function", () => {
     it("both sponsors have useAnimations enabled", async () => {
       const reqCurehht = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const resCurehht = createMockResponse();
 
@@ -507,7 +408,7 @@ describe("SponsorConfig Function", () => {
 
       const reqCallisto = createMockRequest({
         method: "GET",
-        query: {sponsorId: "callisto", apiKey: TEST_API_KEY},
+        query: {sponsorId: "callisto"},
       });
       const resCallisto = createMockResponse();
 
@@ -531,7 +432,7 @@ describe("SponsorConfig Function", () => {
     it("both sponsors have useReviewScreen disabled", async () => {
       const reqCurehht = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const resCurehht = createMockResponse();
 
@@ -543,7 +444,7 @@ describe("SponsorConfig Function", () => {
 
       const reqCallisto = createMockRequest({
         method: "GET",
-        query: {sponsorId: "callisto", apiKey: TEST_API_KEY},
+        query: {sponsorId: "callisto"},
       });
       const resCallisto = createMockResponse();
 
@@ -570,7 +471,7 @@ describe("SponsorConfig Function", () => {
       for (const sponsorId of sponsors) {
         const req = createMockRequest({
           method: "GET",
-          query: {sponsorId, apiKey: TEST_API_KEY},
+          query: {sponsorId},
         });
         const res = createMockResponse();
 
@@ -587,7 +488,7 @@ describe("SponsorConfig Function", () => {
     it("response contains all required fields", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const res = createMockResponse();
 
@@ -602,7 +503,7 @@ describe("SponsorConfig Function", () => {
     it("flags object contains all required properties", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const res = createMockResponse();
 
@@ -622,7 +523,7 @@ describe("SponsorConfig Function", () => {
     it("flag values have correct types", async () => {
       const req = createMockRequest({
         method: "GET",
-        query: {sponsorId: "curehht", apiKey: TEST_API_KEY},
+        query: {sponsorId: "curehht"},
       });
       const res = createMockResponse();
 
