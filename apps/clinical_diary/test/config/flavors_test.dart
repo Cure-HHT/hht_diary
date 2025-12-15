@@ -168,7 +168,9 @@ void main() {
 
       test('uat has correct values', () {
         expect(FlavorConfig.uat.name, 'uat');
-        expect(FlavorConfig.uat.apiBase, 'https://hht-diary-uat.web.app/api');
+        // NOTE: Temporarily pointing to MVP backend for pre-UAT release
+        // TODO: Revert to https://hht-diary-uat.web.app/api when UAT backend is ready
+        expect(FlavorConfig.uat.apiBase, 'https://hht-diary-mvp.web.app/api');
         expect(FlavorConfig.uat.environment, 'uat');
         expect(FlavorConfig.uat.showDevTools, false);
         expect(FlavorConfig.uat.showBanner, false);

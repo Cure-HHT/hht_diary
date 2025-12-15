@@ -207,18 +207,12 @@ void main() {
     });
 
     group('loadFromServer', () {
-      test('returns false with empty API key', () async {
-        final result = await service.loadFromServer('curehht', '');
-        expect(result, false);
-        expect(service.lastError, 'API key is required');
-      });
-
       test('returns false on server error', () async {
         service.httpClient = MockClient((request) async {
           return http.Response('Server error', 500);
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
         expect(result, false);
         expect(service.lastError, 'Server error: 500');
       });
@@ -228,7 +222,7 @@ void main() {
           throw http.ClientException('Network unreachable');
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
         expect(result, false);
         expect(service.lastError, contains('Network error'));
       });
@@ -238,7 +232,7 @@ void main() {
           return http.Response('not valid json', 200);
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
         expect(result, false);
         expect(service.lastError, startsWith('Error:'));
       });
@@ -259,7 +253,7 @@ void main() {
           return http.Response(responseBody, 200);
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
 
         expect(result, true);
         expect(service.lastError, isNull);
@@ -284,7 +278,7 @@ void main() {
           return http.Response(responseBody, 200);
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
 
         expect(result, true);
         expect(service.useReviewScreen, true);
@@ -313,7 +307,7 @@ void main() {
           return http.Response(jsonEncode({'flags': <String, String>{}}), 200);
         });
 
-        await service.loadFromServer('curehht', 'test-api-key');
+        await service.loadFromServer('curehht');
         expect(service.isLoading, false);
       });
 
@@ -322,7 +316,7 @@ void main() {
           throw http.ClientException('Network error');
         });
 
-        await service.loadFromServer('curehht', 'test-api-key');
+        await service.loadFromServer('curehht');
         expect(service.isLoading, false);
       });
 
@@ -341,7 +335,7 @@ void main() {
           return http.Response(responseBody, 200);
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
 
         expect(result, true);
         expect(service.availableFonts, hasLength(3));
@@ -362,7 +356,7 @@ void main() {
           return http.Response(responseBody, 200);
         });
 
-        final result = await service.loadFromServer('curehht', 'test-api-key');
+        final result = await service.loadFromServer('curehht');
 
         expect(result, true);
         // Should have default fonts (all 3)
@@ -394,10 +388,7 @@ void main() {
             return http.Response(responseBody, 200);
           });
 
-          final result = await service.loadFromServer(
-            'callisto',
-            'test-api-key',
-          );
+          final result = await service.loadFromServer('callisto');
 
           expect(result, true);
           expect(service.lastError, isNull);

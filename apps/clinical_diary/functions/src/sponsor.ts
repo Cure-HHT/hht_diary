@@ -14,16 +14,6 @@ import {corsHandlerFnc} from "./cors";
 import {runtimeOpts} from "./index";
 
 /**
- * Get the expected API key from environment variable.
- * Set via Doppler or Firebase Functions config.
- * @return {string | undefined} The expected API key, or undefined if not
- *   configured
- */
-function getExpectedApiKey(): string | undefined {
-  return process.env.CUREHHT_QA_API_KEY;
-}
-
-/**
  * Available font options for sponsor configuration.
  * These are the font family names as defined in pubspec.yaml.
  */
@@ -122,31 +112,6 @@ export const sponsorConfig = functions
       if (!sponsorId) {
         console.warn("[SPONSOR_CONFIG] Missing sponsorId parameter");
         res.status(400).json({error: "sponsorId parameter is required"});
-        return;
-      }
-
-      const apiKey = (req.query.apiKey as string)?.trim();
-
-      if (!apiKey) {
-        console.warn("[SPONSOR_CONFIG] Missing apiKey parameter");
-        res.status(401).json({error: "apiKey parameter is required"});
-        return;
-      }
-
-      // Validate API key against stored secret
-      const expectedApiKey = getExpectedApiKey();
-      if (!expectedApiKey) {
-        console.error(
-          "[SPONSOR_CONFIG] CUREHHT_QA_API_KEY not configured - " +
-          "rejecting request"
-        );
-        res.status(500).json({error: "Server configuration error"});
-        return;
-      }
-
-      if (apiKey !== expectedApiKey) {
-        console.warn("[SPONSOR_CONFIG] Invalid apiKey");
-        res.status(401).json({error: "Invalid API key"});
         return;
       }
 

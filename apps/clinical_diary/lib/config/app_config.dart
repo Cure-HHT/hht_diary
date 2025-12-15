@@ -75,8 +75,8 @@ class AppConfig {
   static String get registerUrl => '$apiBase/register';
   static String get loginUrl => '$apiBase/login';
   static String get changePasswordUrl => '$apiBase/changePassword';
-  static String sponsorConfigUrl(String sponsorId, String apiKey) =>
-      '$apiBase/sponsorConfig?sponsorId=$sponsorId&apiKey=$apiKey';
+  static String sponsorConfigUrl(String sponsorId) =>
+      '$apiBase/sponsorConfig?sponsorId=$sponsorId';
 
   // ============================================================
   // App Metadata

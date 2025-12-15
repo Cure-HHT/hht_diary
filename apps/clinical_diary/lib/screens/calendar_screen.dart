@@ -187,7 +187,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     DateTime selectedDay, {
     NosebleedRecord? existingRecord,
   }) async {
-    final result = await Navigator.push<bool>(
+    // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
+    // Using dynamic to handle both return types
+    final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
         builder: (context) => RecordingScreen(
@@ -201,7 +203,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
 
-    if (result ?? false) {
+    // Refresh calendar if record was saved (String ID) or deleted (true)
+    // Don't refresh if cancelled (null) or conflict view (false)
+    if (result != null && result != false) {
       await _loadDayStatuses();
     }
   }

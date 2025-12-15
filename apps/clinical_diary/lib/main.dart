@@ -96,13 +96,7 @@ void main() async {
 
       // CUR-546: Load Callisto feature flags by default for demo
       try {
-        final apiKey = AppConfig.qaApiKey;
-        if (apiKey.isNotEmpty) {
-          await FeatureFlagService.instance.loadFromServer('callisto', apiKey);
-          debugPrint('Loaded Callisto feature flags successfully');
-        } else {
-          debugPrint('Skipping feature flag load: no API key configured');
-        }
+        await FeatureFlagService.instance.loadFromServer('callisto');
       } catch (e, stack) {
         debugPrint('Feature flag loading error: $e');
         debugPrint('Stack trace:\n$stack');
