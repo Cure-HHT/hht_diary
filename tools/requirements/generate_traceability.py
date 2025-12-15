@@ -2853,6 +2853,13 @@ class TraceabilityGenerator:
         .view-btn:hover:not(.active) {{
             background: #e6f0ff;
         }}
+        /* Flat view: force all items to indent 0, hide duplicates */
+        .req-tree.flat-view .req-item .req-header-container {{
+            padding-left: 10px !important;
+        }}
+        .req-tree.flat-view .req-item.duplicate-hidden {{
+            display: none;
+        }}
         /* Hierarchical view: hide non-root items initially */
         .req-tree.hierarchy-view .req-item:not([data-is-root="true"]) {{
             display: none;
@@ -3225,6 +3232,11 @@ class TraceabilityGenerator:
             btnUncommitted.classList.remove('active');
             btnBranch.classList.remove('active');
             reqTree.classList.remove('hierarchy-view');
+            reqTree.classList.remove('flat-view');
+            // Remove duplicate-hidden class from all items
+            document.querySelectorAll('.req-item.duplicate-hidden').forEach(item => {
+                item.classList.remove('duplicate-hidden');
+            });
 
             if (viewMode === 'hierarchy') {
                 reqTree.classList.add('hierarchy-view');
@@ -3266,14 +3278,27 @@ class TraceabilityGenerator:
             } else {
                 btnFlat.classList.add('active');
                 treeTitle.textContent = 'Traceability Tree - Flat View';
+                reqTree.classList.add('flat-view');
 
                 // Reset visibility classes
                 document.querySelectorAll('.req-item').forEach(item => {
                     item.classList.remove('hierarchy-visible');
+                    item.classList.remove('collapsed-by-parent');
                 });
 
-                // Expand all for flat view - show ALL requirements
-                expandAll();
+                // In flat view, hide duplicate REQ IDs (show only first occurrence)
+                const seenReqIds = new Set();
+                document.querySelectorAll('.req-item').forEach(item => {
+                    const reqId = item.dataset.reqId;
+                    if (reqId) {
+                        if (seenReqIds.has(reqId)) {
+                            item.classList.add('duplicate-hidden');
+                        } else {
+                            seenReqIds.add(reqId);
+                            item.classList.remove('duplicate-hidden');
+                        }
+                    }
+                });
             }
 
             applyFilters();
@@ -3480,12 +3505,8 @@ class TraceabilityGenerator:
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Start with flat view - all items expanded
-            // The expandAll() call ensures all items are visible
-            expandAll();
-
-            // Initialize filter stats
-            applyFilters();
+            // Start with flat view - show all unique requirements at indent 0
+            switchView('flat');
         });
 """
 
