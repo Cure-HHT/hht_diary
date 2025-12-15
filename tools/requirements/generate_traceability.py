@@ -349,7 +349,7 @@ class TraceabilityGenerator:
     """Generates traceability matrices"""
 
     # Version number - increment with each change
-    VERSION = 6
+    VERSION = 7
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
@@ -3463,10 +3463,12 @@ class TraceabilityGenerator:
                 }
 
                 // Roadmap filter: hide roadmap requirements unless checkbox is checked
+                // Exception: conflict items are always shown since they need attention
                 const includeRoadmap = document.getElementById('chkIncludeRoadmap')?.checked || false;
                 if (!includeRoadmap && matches && !isImplFile) {
                     const isRoadmap = item.dataset.roadmap === 'true';
-                    if (isRoadmap) {
+                    const isConflict = item.dataset.conflict === 'true';
+                    if (isRoadmap && !isConflict) {
                         matches = false;
                     }
                 }
