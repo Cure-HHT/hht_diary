@@ -75,8 +75,8 @@ class AppConfig {
   static String get registerUrl => '$apiBase/register';
   static String get loginUrl => '$apiBase/login';
   static String get changePasswordUrl => '$apiBase/changePassword';
-  static String sponsorConfigUrl(String sponsorId, String apiKey) =>
-      '$apiBase/sponsorConfig?sponsorId=$sponsorId&apiKey=$apiKey';
+  static String sponsorConfigUrl(String sponsorId) =>
+      '$apiBase/sponsorConfig?sponsorId=$sponsorId';
 
   // ============================================================
   // App Metadata
@@ -90,6 +90,18 @@ class AppConfig {
     'DEBUG',
     defaultValue: false,
   );
+
+  // ============================================================
+  // Testing Configuration
+  // ============================================================
+
+  /// Path to a JSON file to auto-import on app startup.
+  /// Used for testing with pre-populated data.
+  /// Pass via: --dart-define=IMPORT_FILE=/path/to/export.json
+  static const String importFilePath = String.fromEnvironment('IMPORT_FILE');
+
+  /// Whether an import file was specified
+  static bool get hasImportFile => importFilePath.isNotEmpty;
 
   // ============================================================
   // Convenience Getters

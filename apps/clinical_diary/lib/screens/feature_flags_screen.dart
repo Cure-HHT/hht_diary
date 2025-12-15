@@ -6,7 +6,6 @@
 
 // ignore_for_file: deprecated_member_use
 
-import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -354,11 +353,7 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
       _loadError = null;
     });
 
-    final apiKey = AppConfig.qaApiKey;
-    final success = await _featureFlagService.loadFromServer(
-      _selectedSponsor,
-      apiKey,
-    );
+    final success = await _featureFlagService.loadFromServer(_selectedSponsor);
 
     setState(() {
       _isLoading = false;

@@ -268,7 +268,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': 'App menu',
       'dataManagement': 'Data Management',
-      'addExampleData': 'Add Example Data',
+      'exportData': 'Export Data',
+      'importData': 'Import Data',
+      'exportSuccess': 'Data exported successfully',
+      'exportFailed': 'Failed to export data',
+      'importSuccess': 'Imported {0} records',
+      'importFailed': 'Failed to import data: {0}',
+      'importConfirmTitle': 'Import Data',
+      'importConfirmMessage':
+          'This will import data from the selected file. '
+          'Existing records will be preserved. Continue?',
       'clinicalTrialLabel': 'Clinical Trial',
       'instructionsAndFeedback': 'Instructions & Feedback',
 
@@ -643,7 +652,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': 'Menu de la aplicacion',
       'dataManagement': 'Gestion de Datos',
-      'addExampleData': 'Agregar Datos de Ejemplo',
+      'exportData': 'Exportar Datos',
+      'importData': 'Importar Datos',
+      'exportSuccess': 'Datos exportados exitosamente',
+      'exportFailed': 'Error al exportar datos',
+      'importSuccess': '{0} registros importados',
+      'importFailed': 'Error al importar datos: {0}',
+      'importConfirmTitle': 'Importar Datos',
+      'importConfirmMessage':
+          'Esto importara datos del archivo seleccionado. '
+          'Los registros existentes se conservaran. Continuar?',
       'clinicalTrialLabel': 'Ensayo Clinico',
       'instructionsAndFeedback': 'Instrucciones y Comentarios',
 
@@ -1033,7 +1051,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': "Menu de l'application",
       'dataManagement': 'Gestion des Donnees',
-      'addExampleData': 'Ajouter des Donnees Exemple',
+      'exportData': 'Exporter les Donnees',
+      'importData': 'Importer les Donnees',
+      'exportSuccess': 'Donnees exportees avec succes',
+      'exportFailed': "Echec de l'exportation des donnees",
+      'importSuccess': '{0} enregistrements importes',
+      'importFailed': "Echec de l'importation des donnees: {0}",
+      'importConfirmTitle': 'Importer les Donnees',
+      'importConfirmMessage':
+          'Cela importera les donnees du fichier selectionne. '
+          'Les enregistrements existants seront conserves. Continuer?',
       'clinicalTrialLabel': 'Essai Clinique',
       'instructionsAndFeedback': 'Instructions et Commentaires',
 
@@ -1418,7 +1445,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': 'App-Menu',
       'dataManagement': 'Datenverwaltung',
-      'addExampleData': 'Beispieldaten hinzufugen',
+      'exportData': 'Daten exportieren',
+      'importData': 'Daten importieren',
+      'exportSuccess': 'Daten erfolgreich exportiert',
+      'exportFailed': 'Fehler beim Exportieren der Daten',
+      'importSuccess': '{0} Datensatze importiert',
+      'importFailed': 'Fehler beim Importieren der Daten: {0}',
+      'importConfirmTitle': 'Daten importieren',
+      'importConfirmMessage':
+          'Dadurch werden Daten aus der ausgewahlten Datei importiert. '
+          'Vorhandene Datensatze werden beibehalten. Fortfahren?',
       'clinicalTrialLabel': 'Klinische Studie',
       'instructionsAndFeedback': 'Anleitungen & Feedback',
 
@@ -1825,7 +1861,16 @@ class AppLocalizations {
   // Logo menu
   String get appMenu => translate('appMenu');
   String get dataManagement => translate('dataManagement');
-  String get addExampleData => translate('addExampleData');
+  String get exportData => translate('exportData');
+  String get importData => translate('importData');
+  String get exportSuccess => translate('exportSuccess');
+  String get exportFailed => translate('exportFailed');
+  String importSuccess(int count) =>
+      translateWithParams('importSuccess', [count]);
+  String importFailed(String error) =>
+      translateWithParams('importFailed', [error]);
+  String get importConfirmTitle => translate('importConfirmTitle');
+  String get importConfirmMessage => translate('importConfirmMessage');
   String get clinicalTrialLabel => translate('clinicalTrialLabel');
   String get instructionsAndFeedback => translate('instructionsAndFeedback');
 

@@ -197,6 +197,9 @@ void main() {
                         enrollmentService: mockEnrollment,
                         preferencesService: preferencesService,
                         existingRecord: incompleteRecord,
+                        onDelete: (_) async {
+                          // Not used in this test, but required for existing records
+                        },
                       ),
                     ),
                   );

@@ -10,7 +10,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 /// Logo menu widget with data management and clinical trial options
 class LogoMenu extends StatefulWidget {
   const LogoMenu({
-    required this.onAddExampleData,
+    required this.onExportData,
+    required this.onImportData,
     required this.onResetAllData,
     required this.onFeatureFlags,
     required this.onEndClinicalTrial,
@@ -19,13 +20,14 @@ class LogoMenu extends StatefulWidget {
     super.key,
   });
 
-  final VoidCallback onAddExampleData;
+  final VoidCallback onExportData;
+  final VoidCallback onImportData;
   final VoidCallback onResetAllData;
   final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
 
-  /// Whether to show developer tools (Reset All Data, Add Example Data, Feature Flags).
+  /// Whether to show developer tools (Reset All Data, Import/Export Data, Feature Flags).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
 
@@ -193,8 +195,10 @@ class _LogoMenuState extends State<LogoMenu> {
       ),
       onSelected: (value) {
         switch (value) {
-          case 'add_example_data':
-            widget.onAddExampleData();
+          case 'export_data':
+            widget.onExportData();
+          case 'import_data':
+            widget.onImportData();
           case 'reset_all_data':
             widget.onResetAllData();
           case 'feature_flags':
@@ -221,16 +225,30 @@ class _LogoMenuState extends State<LogoMenu> {
             ),
           ),
           PopupMenuItem<String>(
-            value: 'add_example_data',
+            value: 'export_data',
             child: Row(
               children: [
                 Icon(
-                  Icons.add_circle_outline,
+                  Icons.upload_outlined,
                   size: 20,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 12),
-                Flexible(child: Text(l10n.addExampleData)),
+                Flexible(child: Text(l10n.exportData)),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'import_data',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.download_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.importData)),
               ],
             ),
           ),
