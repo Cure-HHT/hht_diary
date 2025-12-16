@@ -144,8 +144,8 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control | 692bc7bd |
 | REQ-p00006 | prd-diary-app.md | Offline-First Data Entry | c5ff6bf6 |
 | REQ-p00007 | prd-diary-app.md | Automatic Sponsor Configuration | b90eb7ab |
-| REQ-p00008 | prd-architecture-multi-sponsor.md | Single Mobile App for All Sponsors | f638b9f4 |
-| REQ-p00009 | prd-architecture-multi-sponsor.md | Sponsor-Specific Web Portals | 4ebd0c72 |
+| REQ-p00008 | prd-architecture-multi-sponsor.md | Single Mobile App for All Sponsors | dd4bbaaa |
+| REQ-p00009 | prd-architecture-multi-sponsor.md | Sponsor-Specific Web Portals | f1ff8218 |
 | REQ-p00010 | prd-clinical-trials.md | FDA 21 CFR Part 11 Compliance | 62500780 |
 | REQ-p00011 | prd-clinical-trials.md | ALCOA+ Data Integrity Principles | 05c9dc79 |
 | REQ-p00012 | prd-clinical-trials.md | Clinical Data Retention Requirements | b3332065 |
