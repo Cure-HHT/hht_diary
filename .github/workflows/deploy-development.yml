@@ -40,19 +40,23 @@ jobs:
         working-directory: apps/clinical_diary
         run: flutter build web --release --dart-define=APP_FLAVOR=uat
 
+      - name: Setup Node.js for Firebase CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: hht-diary-dev
-          channelId: live
-          entryPoint: apps/clinical_diary
+      - name: Deploy to Firebase
+        working-directory: apps/clinical_diary
+        run: firebase deploy --project hht-diary-dev
 
       - name: Notify success
         if: success()

@@ -4,6 +4,7 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -30,6 +31,45 @@ class EventListItem extends StatelessWidget {
   /// Times are displayed in the user's current local timezone.
   String _startTimeFormatted(String locale) {
     return DateFormat.jm(locale).format(record.startTime);
+  }
+
+  /// CUR-516: Get timezone display string if different from device TZ
+  /// Returns null if timezone matches device TZ, otherwise returns abbreviation(s)
+  String? get _timezoneDisplay {
+    // Normalize device TZ to abbreviation for proper comparison
+    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
+    final startTz = record.startTimeTimezone;
+    final endTz = record.endTimeTimezone;
+
+    // If no timezone info stored, don't show anything
+    if (startTz == null && endTz == null) return null;
+
+    final startAbbr = startTz != null ? getTimezoneAbbreviation(startTz) : null;
+    final endAbbr = endTz != null ? getTimezoneAbbreviation(endTz) : null;
+
+    // Check if timezones differ from device or from each other
+    final startDiffersFromDevice =
+        startAbbr != null && startAbbr != deviceTzAbbr;
+    final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTzAbbr;
+    final timezonesDiffer =
+        startAbbr != null && endAbbr != null && startAbbr != endAbbr;
+
+    if (!startDiffersFromDevice && !endDiffersFromDevice && !timezonesDiffer) {
+      return null;
+    }
+
+    // Show start TZ, or both if they differ
+    if (timezonesDiffer) {
+      return '$startAbbr/$endAbbr';
+    }
+    // Show whichever differs from device, or start TZ if both stored
+    if (startDiffersFromDevice) {
+      return startAbbr;
+    }
+    if (endDiffersFromDevice) {
+      return endAbbr;
+    }
+    return startAbbr ?? endAbbr;
   }
 
   /// Get the intensity icon image path
@@ -204,6 +244,7 @@ class EventListItem extends StatelessWidget {
   /// CUR-443: One-line format: "9:09 PM PST (icon) 1h 11m" with warning icon
   /// Fixed-width columns for alignment across rows
   /// CUR-488 Phase 2: Enhanced styling with better shadows, colors, and incomplete tint
+  /// CUR-516: Show timezone when different from device TZ
   Widget _buildNosebleedCard(
     BuildContext context,
     AppLocalizations l10n,
@@ -225,6 +266,11 @@ class EventListItem extends StatelessWidget {
     final cardColor =
         highlightColor ?? (record.isIncomplete ? Colors.orange.shade50 : null);
 
+    // CUR-516: Get timezone display if different from device TZ
+    final timezoneText = _timezoneDisplay;
+    final showTimezone = timezoneText != null;
+    final cardHeight = showTimezone ? 52.0 : 40.0;
+
     return Card(
       margin: EdgeInsets.zero,
       color: cardColor,
@@ -235,21 +281,40 @@ class EventListItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(
-          height: 40,
+          height: cardHeight,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
               children: [
                 // Start time - fixed width, right aligned
                 // CUR-488 Phase 2: Darker text for better readability
+                // CUR-516: Show timezone below time when different from device
                 SizedBox(
                   width: timeWidth,
-                  child: Text(
-                    _startTimeFormatted(locale),
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        _startTimeFormatted(locale),
+                        textAlign: TextAlign.right,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      if (showTimezone)
+                        Text(
+                          timezoneText,
+                          textAlign: TextAlign.right,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                                fontSize: 10,
+                              ),
+                        ),
+                    ],
                   ),
                 ),
 

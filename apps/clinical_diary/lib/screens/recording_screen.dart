@@ -20,6 +20,7 @@ import 'package:clinical_diary/widgets/intensity_picker.dart';
 import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
+import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -148,6 +149,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // The end date/time shown in the summary, timepicker and clock
   DateTime? _endDateTime;
 
+  // CUR-516: Track selected timezone for start time (IANA format, e.g., "America/Los_Angeles")
+  // This is used to restore the timezone selection when reopening incomplete records.
+  String? _startTimeTimezone;
+
+  // CUR-516: Track selected timezone for end time (IANA format)
+  String? _endTimeTimezone;
+
   // CUR-408: Notes field removed from recording flow TODO - needs to be put back
 
   RecordingStep _currentStep = RecordingStep.startTime;
@@ -163,8 +171,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    // Timezone is now embedded in ISO 8601 strings via DateTimeFormatter.
-    // No separate timezone tracking needed.
     if (widget.existingRecord == null) {
       if (widget.diaryEntryDate == null) {
         _startDateTime = now;
@@ -176,12 +182,18 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _endDateTime = null;
       _intensity = null;
       _currentStep = RecordingStep.startTime;
+      // CUR-516: Initialize timezones to null for new records - will be set by TimePickerDial
+      _startTimeTimezone = null;
+      _endTimeTimezone = null;
     } else {
       //defensive, startTime should always be set but json conversion could fail
       _startDateTime = widget.existingRecord?.startTime ?? now;
       _endDateTime = widget.existingRecord?.endTime;
       _intensity = widget.existingRecord!.intensity;
       _currentStep = _getInitialStepForExisting();
+      // CUR-516: Restore timezones from existing record to restore UI selection
+      _startTimeTimezone = widget.existingRecord?.startTimeTimezone;
+      _endTimeTimezone = widget.existingRecord?.endTimeTimezone;
     }
   }
 
@@ -385,23 +397,27 @@ class _RecordingScreenState extends State<RecordingScreen> {
       if (widget.existingRecord != null) {
         // Update existing record (creates a new record that supersedes the original)
         // CUR-447: Use _startDateTime as the primary date for the record
-        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
+        // CUR-516: Pass timezone to preserve UI selection for incomplete records
         final record = await widget.nosebleedService.updateRecord(
           originalRecordId: widget.existingRecord!.id,
           startTime: _startDateTime,
           endTime: _endDateTime,
           intensity: _intensity,
+          startTimeTimezone: _startTimeTimezone,
+          endTimeTimezone: _endTimeTimezone,
           // CUR-408: notes parameter removed - TODO putback
         );
         recordId = record.id;
       } else {
         // Create new record
         // CUR-447: Use _startDateTime as the primary date for the record
-        // Timezone is automatically embedded in ISO 8601 strings via DateTimeFormatter
+        // CUR-516: Pass timezone to preserve UI selection for incomplete records
         final record = await widget.nosebleedService.addRecord(
           startTime: _startDateTime,
           endTime: _endDateTime,
           intensity: _intensity,
+          startTimeTimezone: _startTimeTimezone,
+          endTimeTimezone: _endTimeTimezone,
           // CUR-408: notes parameter removed
         );
         recordId = record.id;
@@ -651,6 +667,28 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   Widget _buildSummaryBar(AppLocalizations l10n) {
     final locale = Localizations.localeOf(context).languageCode;
+
+    // CUR-516: Get timezone abbreviations to show when different from device TZ
+    // Normalize device TZ to abbreviation for proper comparison
+    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
+    final startTzAbbr = _startTimeTimezone != null
+        ? getTimezoneAbbreviation(_startTimeTimezone!)
+        : null;
+    final endTzAbbr = _endTimeTimezone != null
+        ? getTimezoneAbbreviation(_endTimeTimezone!)
+        : null;
+
+    // Show timezone in summary when different from device or from each other
+    final startDiffersFromDevice =
+        startTzAbbr != null && startTzAbbr != deviceTzAbbr;
+    final endDiffersFromDevice = endTzAbbr != null && endTzAbbr != deviceTzAbbr;
+    final timezonesDiffer =
+        startTzAbbr != null && endTzAbbr != null && startTzAbbr != endTzAbbr;
+
+    // Show timezone only if it differs from device OR start/end differ
+    final showStartTz = startDiffersFromDevice || timezonesDiffer;
+    final showEndTz = endDiffersFromDevice || timezonesDiffer;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -665,6 +703,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           _buildSummaryItem(
             label: l10n.start,
             value: _formatTime(_startDateTime, locale, l10n),
+            subtitle: showStartTz ? startTzAbbr : null,
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
           ),
@@ -697,6 +736,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           _buildSummaryItem(
             label: l10n.end,
             value: _formatEndTime(_endDateTime, locale, l10n),
+            subtitle: showEndTz ? endTzAbbr : null,
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _handleEndTimeTap,
           ),
@@ -709,6 +749,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     required String label,
     required String value,
     required bool isActive,
+    String? subtitle, // CUR-516: Optional timezone display
     VoidCallback? onTap,
     Color? highlightColor,
   }) {
@@ -749,6 +790,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     : Theme.of(context).colorScheme.onSurface,
               ),
             ),
+            // CUR-516: Show timezone when different from device TZ
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isActive
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -766,12 +824,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
-        // Timezone is now automatically embedded in ISO 8601 strings
-        // when saving via DateTimeFormatter. No separate timezone tracking needed.
+        // CUR-516: Pass and track timezone for start time to restore UI selection
+        // for incomplete records
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
           initialTime: _startDateTime,
+          initialTimezone: _startTimeTimezone,
           onConfirm: (DateTime time) {
             setStartTimeState(time, _startDateTime);
             setState(() {
@@ -780,6 +839,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
           },
           onTimeChanged: (time) {
             setStartTimeState(time, _startDateTime);
+          },
+          onTimezoneChanged: (timezone) {
+            setState(() {
+              _startTimeTimezone = timezone;
+            });
           },
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
@@ -795,16 +859,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
       case RecordingStep.endTime:
         // Use start time as default for end time picker when not yet set
         final endInitialTime = _endDateTime ?? _startDateTime;
-        // Timezone is now automatically embedded in ISO 8601 strings
-        // when saving via DateTimeFormatter. No separate timezone tracking needed.
+        // CUR-516: Pass and track timezone for end time to restore UI selection
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
+          initialTimezone: _endTimeTimezone,
           onConfirm: _handleEndTimeConfirm,
           onTimeChanged: (time) {
             setState(() {
               _endDateTime = time;
+            });
+          },
+          onTimezoneChanged: (timezone) {
+            setState(() {
+              _endTimeTimezone = timezone;
             });
           },
           confirmLabel: l10n.setEndTime,
