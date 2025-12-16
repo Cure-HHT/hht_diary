@@ -3222,10 +3222,9 @@ class TraceabilityGenerator:
     <script>
         // Load REQ content data into global scope
         window.REQ_CONTENT_DATA = JSON.parse(document.getElementById('req-content-data').textContent);
-        // Repository root for VS Code links (empty for portable mode, absolute for local use)
-        // When empty, VS Code links become relative file links for portability
-        window.REPO_ROOT = '';  // Portable mode: use relative paths
-        window.REPO_ROOT_LOCAL = '{repo_root_str}';  // Store local path for reference
+        // Repository root for VS Code links (absolute path required for vscode:// protocol)
+        // Note: VS Code links only work on the machine where this file was generated
+        window.REPO_ROOT = '{repo_root_str}';
     </script>
 """
 
@@ -3796,17 +3795,11 @@ class TraceabilityGenerator:
             link = f"{self._base_path}{file_path}#L{line_num}"
             file_link = f'<a href="{link}" style="color: #0066cc;">{file_path}:{line_num}</a>'
 
-        # Add VS Code link for opening in editor
-        # In embed_content mode (portable), use relative path; otherwise use vscode:// protocol
-        if embed_content:
-            # Portable mode: use relative file link that works when served via HTTP
-            rel_file_url = f"{self._base_path}{file_path}"
-            vscode_link = f'<a href="{rel_file_url}" title="Open file ({file_path}:{line_num})" class="vscode-link">🔧</a>'
-        else:
-            # Local mode: use vscode:// protocol with absolute path
-            abs_file_path = self.repo_root / file_path
-            vscode_url = f"vscode://file/{abs_file_path}:{line_num}"
-            vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link">🔧</a>'
+        # Add VS Code link for opening in editor (always uses vscode:// protocol)
+        # Note: VS Code links only work on the machine where this file was generated
+        abs_file_path = self.repo_root / file_path
+        vscode_url = f"vscode://file/{abs_file_path}:{line_num}"
+        vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link">🔧</a>'
         file_link = f'{file_link}{vscode_link}'
 
         # Edit mode destination column (only if edit mode enabled)
