@@ -2,9 +2,315 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:clinical_diary/widgets/timezone_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('showTimezonePicker Widget', () {
+    testWidgets('displays dialog with title', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Select Timezone'), findsOneWidget);
+    });
+
+    testWidgets('displays search field', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Search timezones...'), findsOneWidget);
+    });
+
+    testWidgets('displays cancel button', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cancel'), findsOneWidget);
+    });
+
+    testWidgets('displays timezone list items', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Should show at least some timezones
+      expect(find.byType(ListTile), findsWidgets);
+    });
+
+    testWidgets('shows check icon for selected timezone', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Selected timezone should have a check icon
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    });
+
+    testWidgets('filters timezones by search query', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Count initial list tiles
+      final initialCount = tester.widgetList(find.byType(ListTile)).length;
+
+      // Search for Tokyo
+      await tester.enterText(find.byType(TextField), 'Tokyo');
+      await tester.pump();
+
+      // Should have fewer results
+      final filteredCount = tester.widgetList(find.byType(ListTile)).length;
+      expect(filteredCount, lessThan(initialCount));
+
+      // Should find Tokyo
+      expect(find.text('Asia/Tokyo'), findsOneWidget);
+    });
+
+    testWidgets('returns selected timezone on tap', (tester) async {
+      String? selectedTz;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                selectedTz = await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Search for Tokyo and tap it
+      await tester.enterText(find.byType(TextField), 'Tokyo');
+      await tester.pump();
+
+      await tester.tap(find.text('Asia/Tokyo'));
+      await tester.pumpAndSettle();
+
+      expect(selectedTz, 'Asia/Tokyo');
+    });
+
+    testWidgets('returns null on cancel', (tester) async {
+      String? selectedTz = 'initial';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                selectedTz = await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(selectedTz, isNull);
+    });
+
+    testWidgets('clears filter when search is empty', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final initialCount = tester.widgetList(find.byType(ListTile)).length;
+
+      // Filter
+      await tester.enterText(find.byType(TextField), 'Tokyo');
+      await tester.pump();
+
+      // Clear filter
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pump();
+
+      final restoredCount = tester.widgetList(find.byType(ListTile)).length;
+      expect(restoredCount, initialCount);
+    });
+
+    testWidgets('search matches abbreviation', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Search by abbreviation
+      await tester.enterText(find.byType(TextField), 'PST');
+      await tester.pump();
+
+      // Should find Pacific timezones
+      expect(find.byType(ListTile), findsWidgets);
+    });
+
+    testWidgets('search matches display name', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                await showTimezonePicker(
+                  context: context,
+                  selectedTimezone: 'America/Los_Angeles',
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      // Search by display name
+      await tester.enterText(find.byType(TextField), 'Pacific');
+      await tester.pump();
+
+      // Should find Pacific timezones
+      expect(find.byType(ListTile), findsWidgets);
+    });
+  });
+
   group('TimezoneEntry', () {
     test('shortDisplay formats correctly', () {
       const entry = TimezoneEntry(

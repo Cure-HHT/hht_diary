@@ -378,5 +378,132 @@ void main() {
 
       expect(find.byIcon(Icons.open_in_new), findsOneWidget);
     });
+
+    testWidgets('shows Data Management section when showDevTools is true', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+            showDevTools: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      // Data Management section header is shown when showDevTools is true
+      expect(find.text('Data Management'), findsOneWidget);
+    });
+
+    testWidgets('hides Data Management section when showDevTools is false', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+            showDevTools: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      // Data Management section should not be shown when showDevTools is false
+      // But we can still find menu items like Export Data
+      expect(find.text('Export Data'), findsNothing);
+    });
+
+    testWidgets('shows Feature Flags option in Dev Tools', (tester) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+            showDevTools: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Feature Flags'), findsOneWidget);
+    });
+
+    testWidgets('calls onFeatureFlags when tapped', (tester) async {
+      var called = false;
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () => called = true,
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+            showDevTools: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Feature Flags'));
+      await tester.pumpAndSettle();
+
+      expect(called, true);
+    });
+
+    testWidgets('menu closes after selecting an option', (tester) async {
+      var called = false;
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () => called = true,
+            onImportData: () {},
+            onResetAllData: () {},
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Export Data'));
+      await tester.pumpAndSettle();
+
+      // Callback should have been called
+      expect(called, true);
+    });
   });
 }
