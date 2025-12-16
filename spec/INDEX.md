@@ -39,6 +39,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00024 | dev-security-RLS.md | Auditor Compliance RLS Implementation | 64a2ff2e |
 | REQ-d00025 | dev-security-RLS.md | Administrator Break-Glass RLS Implementation | 4a44951a |
 | REQ-d00026 | dev-security-RLS.md | Event Sourcing State Protection RLS Implementation | a665366e |
+| REQ-d00027 | dev-environment.md | Containerized Development Environments | 13d56217 |
 | REQ-d00028 | dev-portal.md | Portal Frontend Framework | 27f467d3 |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
@@ -58,13 +59,25 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00051 | dev-portal.md | Auditor Dashboard Implementation | 1c02e54a |
 | REQ-d00052 | dev-portal.md | Role-Based Banner Component | 40c44430 |
 | REQ-d00053 | dev-requirements-management.md | Development Environment and Tooling Setup | 404b139b |
+| REQ-d00055 | dev-environment.md | Role-Based Environment Separation | a8ce8ecf |
+| REQ-d00056 | dev-environment.md | Cross-Platform Development Support | 223d3f08 |
+| REQ-d00057 | dev-environment.md | CI/CD Environment Parity | e58f7423 |
 | REQ-d00058 | dev-environment.md | Secrets Management via Doppler | 313110c3 |
-| REQ-d00059 | dev-environment.md | Pin Development Tool Versions | 42b07b9a |
+| REQ-d00059 | dev-environment.md | Development Tool Specifications | 42b07b9a |
+| REQ-d00060 | dev-environment.md | VS Code Dev Containers Integration | 07abf106 |
 | REQ-d00061 | dev-environment.md | Automated QA Workflow | fc47d463 |
+| REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 5c269c11 |
+| REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | b407570f |
 | REQ-d00064 | dev-ai-claude.md | Plugin JSON Validation Tooling | e325d07b |
+| REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | e325d07b |
 | REQ-d00065 | dev-ai-claude.md | Plugin Path Validation | 770482b7 |
+| REQ-d00065 | dev-marketplace-path-validation.md | Plugin Path Validation | 770482b7 |
+| REQ-d00066 | dev-marketplace-permissions.md | Plugin-Specific Permission Management | 0dd52eec |
 | REQ-d00067 | dev-ai-claude.md | Streamlined Ticket Creation Agent | 335415e6 |
+| REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-ai-claude.md | Enhanced Workflow New Work Detection | f5f3570e |
+| REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
+| REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
 | REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 7ff9716c |
 | REQ-d00071 | dev-CDISC.md | SDTM Domain Transformation Implementation | 1286bfd8 |
 | REQ-d00072 | dev-CDISC.md | ODM-XML Export Implementation | f1b48f69 |
@@ -80,6 +93,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00082 | dev-diary-web.md | Password Hashing Implementation | 05136a5d |
 | REQ-d00083 | dev-diary-web.md | Browser Storage Clearing | d5857410 |
 | REQ-d00084 | dev-diary-web.md | Sponsor Configuration Loading | 5a79a42d |
+| REQ-d00085 | dev-app.md | Local Database Export and Import | d922d9e8 |
 | REQ-o00001 | ops-deployment.md | Separate GCP Projects Per Sponsor | 6d281a2e |
 | REQ-o00002 | ops-deployment.md | Environment-Specific Configuration Management | c6ed3379 |
 | REQ-o00003 | ops-database-setup.md | GCP Project Provisioning Per Sponsor | 5c8ec50e |
@@ -139,16 +153,16 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00073 | ops-system.md | Automated Change Control | 5de927bf |
 | REQ-o00074 | ops-system.md | Automated Backup Verification | d580ec6f |
 | REQ-o00075 | ops-system.md | Third-Party Security Assessment | 37ea948b |
-| REQ-p00001 | prd-system.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
-| REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | TBD |
+| REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
+| REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |
 | REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | 0c0b0807 |
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control | 692bc7bd |
 | REQ-p00006 | prd-diary-app.md | Offline-First Data Entry | c5ff6bf6 |
 | REQ-p00007 | prd-diary-app.md | Automatic Sponsor Configuration | b90eb7ab |
 | REQ-p00008 | prd-architecture-multi-sponsor.md | Single Mobile App for All Sponsors | f638b9f4 |
-| REQ-p00009 | prd-architecture-multi-sponsor.md | Sponsor Web Portal | 4ebd0c72 |
-| REQ-p00010 | prd-system.md | FDA 21 CFR Part 11 Compliance | 62500780 |
+| REQ-p00009 | prd-architecture-multi-sponsor.md | Sponsor-Specific Web Portals | 4ebd0c72 |
+| REQ-p00010 | prd-clinical-trials.md | FDA 21 CFR Part 11 Compliance | 62500780 |
 | REQ-p00011 | prd-clinical-trials.md | ALCOA+ Data Integrity Principles | 05c9dc79 |
 | REQ-p00012 | prd-clinical-trials.md | Clinical Data Retention Requirements | b3332065 |
 | REQ-p00013 | prd-database.md | Complete Data Change History | ab598860 |
@@ -175,7 +189,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail | e8a3d480 |
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection | 0e94f5cf |
 | REQ-p00041 | prd-standards.md | CDISC Standards Compliance | bd86de7e |
-| REQ-p00042 | prd-epistaxis-terminology.md | Epistaxis Diary Questionnaire | e2501d13 |
+| REQ-p00042 | prd-epistaxis-terminology.md | HHT Epistaxis Data Capture Standard | e2501d13 |
 | REQ-p00043 | prd-diary-app.md | Clinical Diary Mobile Application | 5062a707 |
 | REQ-p00044 | prd-system.md | Clinical Trial Diary Platform | 0e8a8d5b |
 | REQ-p00045 | prd-portal.md | Sponsor Portal Application | 0a9ccb54 |
@@ -238,9 +252,11 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p01051 | prd-event-sourcing-system.md | Questionnaire Versioning Model | 32f2c5a2 |
 | REQ-p01052 | prd-event-sourcing-system.md | Questionnaire Localization and Translation Tracking | 591b34e9 |
 | REQ-p01053 | prd-event-sourcing-system.md | Sponsor Questionnaire Eligibility Configuration | 3113e445 |
+| REQ-p01054 | prd-clinical-trials.md | GDPR Compliance | 0f9e0f11 |
+| REQ-p01055 | prd-clinical-trials.md | GDPR Data Portability | 02cd6237 |
 
 ---
 
-**Total Requirements**: 224
+**Total Requirements**: 240
 
 **Generated by**: `python3 tools/requirements/regenerate-index.py`

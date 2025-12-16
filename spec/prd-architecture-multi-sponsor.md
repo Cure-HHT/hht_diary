@@ -97,7 +97,7 @@ The patient never needs to know which technical system they're using - it just w
 
 # REQ-p00018: Multi-Site Support Per Sponsor
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 Each sponsor SHALL support multiple clinical trial sites within their isolated environment, with site-level access control ensuring investigators and analysts access only data from their assigned sites.
 

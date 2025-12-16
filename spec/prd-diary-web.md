@@ -27,7 +27,7 @@ The Web Diary is a browser-based companion to the Clinical Diary mobile applicat
 
 # REQ-p01042: Web Diary Application
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Implements**: p00043 | **Status**: Draft
 
 A web browser-based diary application enabling clinical trial patients to record health observations from any computer, with automatic session timeout and no persistent data storage for privacy protection.
 
@@ -54,7 +54,7 @@ Web Diary application SHALL provide:
 
 # REQ-p01043: Web Diary Authentication via Linking Code
 
-**Level**: PRD | **Implements**: p01042, p00001 | **Status**: Draft
+**Level**: PRD | **Implements**: p01042 | **Status**: Draft
 
 Patients SHALL authenticate to the Web Diary using a unique linking code obtained from the Sponsor Portal, combined with a username and password created specifically for web access, without using email addresses or third-party authentication providers.
 

@@ -97,7 +97,7 @@ Change history SHALL include:
 
 # REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Draft
+**Level**: PRD | **Implements**: p00011 | **Status**: Draft
 
 Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
 
