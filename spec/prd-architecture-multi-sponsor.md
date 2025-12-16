@@ -19,11 +19,11 @@ The Clinical Diary platform enables multiple pharmaceutical sponsors to conduct 
 
 | Principle | Description |
 | --------- | ----------- |
-| **Shared Software** | One mobile app (REQ-p00008) and one codebase (REQ-p01050) serve all sponsors |
+| **Shared Software** | One mobile app (REQ-p00008) and one codebase (REQ-p01057) serve all sponsors |
 | **Isolated Infrastructure** | Each sponsor has dedicated cloud resources (REQ-p01054) and web portal (REQ-p00009) |
 | **Protected Identity** | Sponsor participation remains confidential (REQ-p01055, REQ-p01056) |
-| **Controlled Changes** | Coordinated releases (REQ-p01051) with restricted in-trial UX changes (REQ-p01053) |
-| **Minimal Customization** | Standard platform with policy-controlled exceptions (REQ-p01052) |
+| **Controlled Changes** | Coordinated releases (REQ-p01058) with restricted in-trial UX changes (REQ-p01060) |
+| **Minimal Customization** | Standard platform with policy-controlled exceptions (REQ-p01059) |
 
 **Patient Experience**: Patients download a single app with neutral branding. Enrollment links connect them to the correct sponsor's backend automatically. The patient never sees other sponsors' data or branding.
 
@@ -141,7 +141,7 @@ Infrastructure isolation SHALL ensure:
 
 ## Repository and Deployment
 
-# REQ-p01050: Mono Repository with Sponsor Repositories
+# REQ-p01057: Mono Repository with Sponsor Repositories
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 
@@ -164,7 +164,7 @@ Repository architecture SHALL ensure:
 *End* *Mono Repository with Sponsor Repositories* | **Hash**: 6872ae0f
 ---
 
-# REQ-p01051: Unified App Deployment
+# REQ-p01058: Unified App Deployment
 
 **Level**: PRD | **Implements**: p00008 | **Status**: Active
 
@@ -186,7 +186,7 @@ Release coordination SHALL ensure:
 *End* *Unified App Deployment* | **Hash**: 0f391a78
 ---
 
-# REQ-p01053: UX Changes During Trials
+# REQ-p01060: UX Changes During Trials
 
 **Level**: PRD | **Implements**: p00010 | **Status**: Active
 
@@ -205,7 +205,7 @@ Changes to the user experience, either in terms of application logic or graphica
 
 ## Customization
 
-# REQ-p01052: Customization Policy
+# REQ-p01059: Customization Policy
 
 **Level**: PRD | **Implements**: p00001 | **Status**: Active
 

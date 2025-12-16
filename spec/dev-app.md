@@ -268,7 +268,7 @@ resolution: Log error. Report to investigator.
 
 # REQ-d00085: Local Database Export and Import
 
-**Level**: Dev | **Implements**: p01055 | **Status**: Draft
+**Level**: Dev | **Implements**: p01062 | **Status**: Draft
 
 The mobile application SHALL implement local database export and import functionality, enabling patients to extract their diary data to a portable file and restore it on the same or different device.
 

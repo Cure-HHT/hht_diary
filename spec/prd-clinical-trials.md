@@ -127,7 +127,7 @@ Data retention SHALL ensure:
 *End* *Clinical Data Retention Requirements* | **Hash**: b3332065
 ---
 
-# REQ-p01054: GDPR Compliance
+# REQ-p01061: GDPR Compliance
 
 **Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
@@ -153,9 +153,9 @@ GDPR compliance SHALL include:
 *End* *GDPR Compliance* | **Hash**: 0f9e0f11
 ---
 
-# REQ-p01055: GDPR Data Portability
+# REQ-p01062: GDPR Data Portability
 
-**Level**: PRD | **Implements**: p01054 | **Status**: Draft
+**Level**: PRD | **Implements**: p01061 | **Status**: Draft
 
 Patients SHALL be able to export their personal clinical diary data in a portable, machine-readable format to exercise GDPR Article 20 data portability rights.
 
