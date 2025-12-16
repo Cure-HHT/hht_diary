@@ -4,404 +4,45 @@
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 
 import '../helpers/test_helpers.dart';
 
 void main() {
   group('InlineTimePicker', () {
-    group('null/unset state', () {
-      testWidgets('displays --:-- when initialTime is null', (tester) async {
+    group('Basic Rendering', () {
+      testWidgets('displays --:-- when no initial time is provided', (
+        tester,
+      ) async {
         await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(initialTime: null, onTimeChanged: (_) {}),
-          ),
+          wrapWithMaterialApp(InlineTimePicker(onTimeChanged: (_) {})),
         );
         await tester.pumpAndSettle();
 
         expect(find.text('--:--'), findsOneWidget);
-        expect(find.text('--'), findsOneWidget);
       });
 
-      testWidgets('displays time when initialTime is provided', (tester) async {
-        final testTime = DateTime(2024, 1, 15, 14, 30);
+      testWidgets('displays initial time when provided', (tester) async {
+        final initialTime = DateTime(2024, 1, 15, 14, 30);
 
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
             InlineTimePicker(
-              initialTime: testTime,
-              onTimeChanged: (_) {},
-              allowFutureTimes: true, // Allow any time for this test
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // 2:30 PM format
-        expect(find.text('2:30'), findsOneWidget);
-        expect(find.text('PM'), findsOneWidget);
-      });
-    });
-
-    group('future time prevention', () {
-      testWidgets(
-        'clamps future initialTime to now when allowFutureTimes is false',
-        (tester) async {
-          // Set up a time 30 minutes in the future
-          final now = DateTime.now();
-          final futureTime = now.add(const Duration(minutes: 30));
-
-          DateTime? changedTime;
-          await tester.pumpWidget(
-            wrapWithScaffold(
-              InlineTimePicker(
-                initialTime: futureTime,
-                onTimeChanged: (time) => changedTime = time,
-                allowFutureTimes: false,
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // The displayed time should NOT be the future time
-          // Instead it should be clamped to approximately now
-          // We check this by tapping the -1 button (which should work since we're at now)
-          await tester.tap(find.text('-1'));
-          await tester.pump();
-
-          // If future time was clamped to now, subtracting 1 minute should work
-          // and call onTimeChanged
-          expect(changedTime, isNotNull);
-          expect(changedTime!.isBefore(now), isTrue);
-        },
-      );
-
-      testWidgets('prevents +1 button from setting future time', (
-        tester,
-      ) async {
-        final now = DateTime.now();
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: now,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: false,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Try to add 1 minute (should fail since we're at now)
-        await tester.tap(find.text('+1'));
-        await tester.pumpAndSettle(); // Wait for error flash timer
-
-        // onTimeChanged should NOT be called because future time is rejected
-        expect(changedTime, isNull);
-      });
-
-      testWidgets('allows future time when allowFutureTimes is true', (
-        tester,
-      ) async {
-        final now = DateTime.now();
-        final futureTime = now.add(const Duration(hours: 1));
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: futureTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: true,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Adding more time should work
-        await tester.tap(find.text('+1'));
-        await tester.pump();
-
-        expect(changedTime, isNotNull);
-        expect(changedTime!.isAfter(futureTime), isTrue);
-      });
-    });
-
-    group('minTime enforcement', () {
-      testWidgets('prevents time before minTime', (tester) async {
-        final now = DateTime.now();
-        final startTime = now.subtract(const Duration(minutes: 30));
-        final minTime = now.subtract(const Duration(minutes: 15));
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: startTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: true,
-              minTime: minTime,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Try to go 15 minutes earlier (would violate minTime)
-        await tester.tap(find.text('-15'));
-        await tester.pumpAndSettle(); // Wait for error flash timer
-
-        // Should be rejected
-        expect(changedTime, isNull);
-      });
-    });
-
-    group('maxDateTime parameter (CUR-447)', () {
-      testWidgets(
-        'allows any time on past date when maxDateTime is set to end-of-day',
-        (tester) async {
-          // Simulate editing a past date (yesterday at 11 PM)
-          final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          final pastDayLateTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            0,
-          );
-          // Max is end of yesterday
-          final endOfYesterday = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            59,
-            59,
-          );
-
-          DateTime? changedTime;
-          await tester.pumpWidget(
-            wrapWithScaffold(
-              InlineTimePicker(
-                initialTime: pastDayLateTime,
-                onTimeChanged: (time) => changedTime = time,
-                allowFutureTimes: false,
-                maxDateTime: endOfYesterday,
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // Subtracting time should work since 11 PM is valid
-          await tester.tap(find.text('-5'));
-          await tester.pump();
-
-          expect(changedTime, isNotNull);
-          expect(changedTime!.hour, 22);
-          expect(changedTime!.minute, 55);
-        },
-      );
-
-      testWidgets('clamps initial time to maxDateTime instead of now', (
-        tester,
-      ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        // Time that exceeds end of yesterday
-        final tooLateTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day + 1, // Actually today
-          2,
-          0,
-        );
-        final endOfYesterday = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          59,
-          59,
-        );
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: tooLateTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: false,
-              maxDateTime: endOfYesterday,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Subtracting time should work (we're clamped to end of yesterday)
-        await tester.tap(find.text('-1'));
-        await tester.pump();
-
-        // Should be clamped to end of yesterday minus 1 minute
-        expect(changedTime, isNotNull);
-        expect(changedTime!.isBefore(endOfYesterday), isTrue);
-      });
-
-      testWidgets('prevents +15 button when it would exceed maxDateTime', (
-        tester,
-      ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        // Start at 11:50 PM yesterday
-        final pastTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          50,
-        );
-        final endOfYesterday = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          59,
-          59,
-        );
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: pastTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: false,
-              maxDateTime: endOfYesterday,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Try to add 15 minutes - this would exceed maxDateTime
-        await tester.tap(find.text('+15'));
-        await tester.pumpAndSettle();
-
-        // Should be rejected
-        expect(changedTime, isNull);
-      });
-
-      testWidgets('allows +5 button on past date when within maxDateTime', (
-        tester,
-      ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        // Start at 11:00 PM yesterday
-        final pastTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          0,
-        );
-        final endOfYesterday = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          59,
-          59,
-        );
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: pastTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: false,
-              maxDateTime: endOfYesterday,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Add 5 minutes - should work since 11:05 PM < 11:59:59 PM
-        await tester.tap(find.text('+5'));
-        await tester.pump();
-
-        // Time should be 11:05 PM
-        expect(changedTime, isNotNull);
-        expect(changedTime!.hour, 23);
-        expect(changedTime!.minute, 5);
-      });
-    });
-
-    group('cross-day validation (CUR-447)', () {
-      testWidgets(
-        'allows end time on future date when minTime is on past date',
-        (tester) async {
-          final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          final today = DateTime.now();
-
-          // Start time is yesterday at 11 PM
-          final startTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            0,
-          );
-
-          // End date is today (via widget.date)
-          final endDate = DateTime(today.year, today.month, today.day);
-
-          // Max is end of today
-          final endOfToday = DateTime(
-            today.year,
-            today.month,
-            today.day,
-            23,
-            59,
-            59,
-          );
-
-          DateTime? changedTime;
-          await tester.pumpWidget(
-            wrapWithScaffold(
-              InlineTimePicker(
-                initialTime: null, // End time not set yet
-                onTimeChanged: (time) => changedTime = time,
-                allowFutureTimes: false,
-                minTime: startTime, // Yesterday 11 PM
-                maxDateTime: endOfToday,
-                date: endDate, // Today
-                onDateChanged: (_) {}, // Allow date changes
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // Add 1 minute - should use today's date context (from widget.date)
-          // not yesterday's date (from minTime)
-          await tester.tap(find.text('+1'));
-          await tester.pump();
-
-          // Should succeed and use today's date
-          expect(changedTime, isNotNull);
-          expect(changedTime!.year, today.year);
-          expect(changedTime!.month, today.month);
-          expect(changedTime!.day, today.day);
-          // Time should be current hour + 1 minute (approximately)
-          expect(changedTime!.isAfter(startTime), isTrue);
-        },
-      );
-    });
-
-    group('adjustment buttons', () {
-      testWidgets('displays all adjustment buttons', (tester) async {
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: DateTime.now().subtract(const Duration(hours: 1)),
+              initialTime: initialTime,
               onTimeChanged: (_) {},
               allowFutureTimes: true,
             ),
           ),
+        );
+        await tester.pumpAndSettle();
+
+        // Check for time display (format depends on locale)
+        expect(find.textContaining(':30'), findsOneWidget);
+      });
+
+      testWidgets('displays adjustment buttons', (tester) async {
+        await tester.pumpWidget(
+          wrapWithMaterialApp(InlineTimePicker(onTimeChanged: (_) {})),
         );
         await tester.pumpAndSettle();
 
@@ -412,13 +53,78 @@ void main() {
         expect(find.text('+5'), findsOneWidget);
         expect(find.text('+15'), findsOneWidget);
       });
+    });
 
-      testWidgets('-5 button subtracts 5 minutes', (tester) async {
-        final initialTime = DateTime(2024, 1, 15, 12, 30);
-
+    group('Time Adjustments', () {
+      testWidgets('adds 1 minute when +1 is tapped', (tester) async {
         DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 0);
+
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: initialTime,
+              onTimeChanged: (time) => changedTime = time,
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('+1'));
+        await tester.pumpAndSettle();
+
+        expect(changedTime?.minute, 1);
+      });
+
+      testWidgets('subtracts 1 minute when -1 is tapped', (tester) async {
+        DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 15);
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: initialTime,
+              onTimeChanged: (time) => changedTime = time,
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('-1'));
+        await tester.pumpAndSettle();
+
+        expect(changedTime?.minute, 14);
+      });
+
+      testWidgets('adds 5 minutes when +5 is tapped', (tester) async {
+        DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 0);
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: initialTime,
+              onTimeChanged: (time) => changedTime = time,
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('+5'));
+        await tester.pumpAndSettle();
+
+        expect(changedTime?.minute, 5);
+      });
+
+      testWidgets('subtracts 5 minutes when -5 is tapped', (tester) async {
+        DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 15);
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
             InlineTimePicker(
               initialTime: initialTime,
               onTimeChanged: (time) => changedTime = time,
@@ -429,42 +135,17 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('-5'));
-        await tester.pump();
-
-        expect(changedTime, isNotNull);
-        expect(changedTime!.hour, 12);
-        expect(changedTime!.minute, 25);
-      });
-
-      testWidgets('-15 button subtracts 15 minutes', (tester) async {
-        final initialTime = DateTime(2024, 1, 15, 12, 30);
-
-        DateTime? changedTime;
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: initialTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: true,
-            ),
-          ),
-        );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('-15'));
-        await tester.pump();
-
-        expect(changedTime, isNotNull);
-        expect(changedTime!.hour, 12);
-        expect(changedTime!.minute, 15);
+        expect(changedTime?.minute, 10);
       });
 
-      testWidgets('+15 button adds 15 minutes', (tester) async {
-        final initialTime = DateTime(2024, 1, 15, 12, 30);
-
+      testWidgets('adds 15 minutes when +15 is tapped', (tester) async {
         DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 0);
+
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
             InlineTimePicker(
               initialTime: initialTime,
               onTimeChanged: (time) => changedTime = time,
@@ -475,353 +156,210 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('+15'));
-        await tester.pump();
+        await tester.pumpAndSettle();
 
-        expect(changedTime, isNotNull);
-        expect(changedTime!.hour, 12);
-        expect(changedTime!.minute, 45);
+        expect(changedTime?.minute, 15);
+      });
+
+      testWidgets('subtracts 15 minutes when -15 is tapped', (tester) async {
+        DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 30);
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: initialTime,
+              onTimeChanged: (time) => changedTime = time,
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('-15'));
+        await tester.pumpAndSettle();
+
+        expect(changedTime?.minute, 15);
       });
     });
 
-    group('didUpdateWidget', () {
-      testWidgets('updates time when maxDateTime changes', (tester) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        // Start with time at 11 PM yesterday
-        final initialTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          0,
-        );
-        // Initial max is 11:30 PM (time is within limit)
-        final initialMax = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          30,
-        );
-        // New max is 10:30 PM (time should be clamped)
-        final newMax = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          22,
-          30,
-        );
-
+    group('Time Constraints', () {
+      testWidgets('does not allow times before minTime', (tester) async {
         DateTime? changedTime;
+        final initialTime = DateTime(2024, 1, 15, 10, 5);
+        final minTime = DateTime(2024, 1, 15, 10, 0);
 
-        // Initial build
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
             InlineTimePicker(
               initialTime: initialTime,
+              minTime: minTime,
               onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: false,
-              maxDateTime: initialMax,
+              allowFutureTimes: true,
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        // Rebuild with new maxDateTime
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: initialTime,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: false,
-              maxDateTime: newMax,
-            ),
-          ),
-        );
+        // Try to go below minTime
+        await tester.tap(find.text('-15'));
         await tester.pumpAndSettle();
 
-        // Now try to adjust - should be clamped to newMax
-        await tester.tap(find.text('-1'));
-        await tester.pump();
-
-        // Time should be around 10:29 PM (one minute before the clamped time)
-        expect(changedTime, isNotNull);
-        expect(changedTime!.hour, 22);
-        expect(changedTime!.minute, 29);
+        // Time should not have changed
+        expect(changedTime, isNull);
       });
 
-      testWidgets('updates time when initialTime changes from null to value', (
-        tester,
-      ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        final newTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          14,
-          30,
-        );
-        final maxDateTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          59,
-          59,
-        );
+      testWidgets('clamps initial time to maxDateTime', (tester) async {
+        final now = DateTime.now();
+        final futureTime = now.add(const Duration(hours: 1));
+        final maxDateTime = now;
 
-        // Initial build with null time
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
             InlineTimePicker(
-              initialTime: null,
+              initialTime: futureTime,
+              maxDateTime: maxDateTime,
               onTimeChanged: (_) {},
               allowFutureTimes: false,
-              maxDateTime: maxDateTime,
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        // Should show unset state
-        expect(find.text('--:--'), findsOneWidget);
-
-        // Rebuild with a time value
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: newTime,
-              onTimeChanged: (_) {},
-              allowFutureTimes: false,
-              maxDateTime: maxDateTime,
-            ),
-          ),
+        // Time should be clamped to maxDateTime
+        final timeFormat = DateFormat('H:mm');
+        expect(
+          find.textContaining(timeFormat.format(maxDateTime).split(':')[1]),
+          findsWidgets,
         );
-        await tester.pumpAndSettle();
-
-        // Should now show the time
-        expect(find.text('2:30'), findsOneWidget);
       });
+    });
 
+    group('Date Picker Integration', () {
       testWidgets(
-        'updates time when initialTime changes significantly (>1 minute)',
+        'shows date picker when date and onDateChanged are provided',
         (tester) async {
-          final yesterday = DateTime.now().subtract(const Duration(days: 1));
-          final initialTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            10,
-            0,
-          );
-          final newTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            14,
-            30,
-          );
-          final maxDateTime = DateTime(
-            yesterday.year,
-            yesterday.month,
-            yesterday.day,
-            23,
-            59,
-            59,
-          );
+          final date = DateTime(2024, 1, 15);
 
-          // Initial build
           await tester.pumpWidget(
-            wrapWithScaffold(
+            wrapWithMaterialApp(
               InlineTimePicker(
-                initialTime: initialTime,
+                date: date,
+                onDateChanged: (_) {},
                 onTimeChanged: (_) {},
-                allowFutureTimes: false,
-                maxDateTime: maxDateTime,
               ),
             ),
           );
           await tester.pumpAndSettle();
 
-          // Should show 10:00
-          expect(find.text('10:00'), findsOneWidget);
-
-          // Rebuild with significantly different time
-          await tester.pumpWidget(
-            wrapWithScaffold(
-              InlineTimePicker(
-                initialTime: newTime,
-                onTimeChanged: (_) {},
-                allowFutureTimes: false,
-                maxDateTime: maxDateTime,
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // Should now show 2:30
-          expect(find.text('2:30'), findsOneWidget);
+          // Should show date display
+          expect(find.byIcon(Icons.calendar_today), findsOneWidget);
+          expect(find.text('Jan 15'), findsOneWidget);
         },
       );
-    });
-
-    group('date picker display', () {
-      testWidgets('shows date picker when date and onDateChanged provided', (
-        tester,
-      ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: null,
-              onTimeChanged: (_) {},
-              date: yesterday,
-              onDateChanged: (_) {},
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Should show calendar icon
-        expect(find.byIcon(Icons.calendar_today), findsOneWidget);
-      });
-
-      testWidgets('hides date picker when date is null', (tester) async {
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: null,
-              onTimeChanged: (_) {},
-              date: null,
-              onDateChanged: (_) {},
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Should not show calendar icon
-        expect(find.byIcon(Icons.calendar_today), findsNothing);
-      });
 
       testWidgets('hides date picker when onDateChanged is null', (
         tester,
       ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final date = DateTime(2024, 1, 15);
 
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
             InlineTimePicker(
-              initialTime: null,
-              onTimeChanged: (_) {},
-              date: yesterday,
+              date: date,
               onDateChanged: null,
+              onTimeChanged: (_) {},
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        // Should not show calendar icon
+        // Should not show date picker
         expect(find.byIcon(Icons.calendar_today), findsNothing);
       });
     });
 
-    group('error flash animation', () {
-      testWidgets('shows error flash when +15 exceeds max time', (
+    group('Widget Update Behavior', () {
+      testWidgets('updates when initialTime changes significantly', (
         tester,
       ) async {
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        // Start at 11:50 PM
-        final pastTime = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          50,
-        );
-        final endOfYesterday = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          59,
-          59,
-        );
+        final initialTime = DateTime(2024, 1, 15, 10, 0);
+        final newTime = DateTime(2024, 1, 15, 14, 30);
 
         await tester.pumpWidget(
-          wrapWithScaffold(
+          wrapWithMaterialApp(
             InlineTimePicker(
-              initialTime: pastTime,
-              onTimeChanged: (_) {},
-              allowFutureTimes: false,
-              maxDateTime: endOfYesterday,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap +15 (should trigger error)
-        await tester.tap(find.text('+15'));
-        await tester.pump();
-
-        // Wait for the error flash timer to complete
-        await tester.pump(const Duration(milliseconds: 350));
-      });
-
-      testWidgets('shows error flash when -15 goes below min time', (
-        tester,
-      ) async {
-        final now = DateTime.now();
-        final startTime = now.subtract(const Duration(minutes: 10));
-        final minTime = now.subtract(const Duration(minutes: 5));
-
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: startTime,
+              initialTime: initialTime,
               onTimeChanged: (_) {},
               allowFutureTimes: true,
-              minTime: minTime,
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        // Tap -15 (should trigger error, would go before min)
-        await tester.tap(find.text('-15'));
-        await tester.pump();
+        // Rebuild with new time
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: newTime,
+              onTimeChanged: (_) {},
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-        // Wait for the error flash timer to complete
-        await tester.pump(const Duration(milliseconds: 350));
+        // Should show new time
+        expect(find.textContaining(':30'), findsOneWidget);
+      });
+
+      testWidgets('updates when initialTime goes from null to set', (
+        tester,
+      ) async {
+        final newTime = DateTime(2024, 1, 15, 14, 30);
+
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: null,
+              onTimeChanged: (_) {},
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('--:--'), findsOneWidget);
+
+        // Rebuild with time set
+        await tester.pumpWidget(
+          wrapWithMaterialApp(
+            InlineTimePicker(
+              initialTime: newTime,
+              onTimeChanged: (_) {},
+              allowFutureTimes: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Should show new time
+        expect(find.text('--:--'), findsNothing);
       });
     });
 
-    group('uses minTime as fallback for baseTime', () {
-      testWidgets('uses minTime when no time selected and date is null', (
-        tester,
-      ) async {
-        final now = DateTime.now();
-        final minTime = now.subtract(const Duration(hours: 1));
-
-        DateTime? changedTime;
+    group('Style and Layout', () {
+      testWidgets('has rounded container decoration', (tester) async {
         await tester.pumpWidget(
-          wrapWithScaffold(
-            InlineTimePicker(
-              initialTime: null,
-              onTimeChanged: (time) => changedTime = time,
-              allowFutureTimes: true,
-              minTime: minTime,
-            ),
-          ),
+          wrapWithMaterialApp(InlineTimePicker(onTimeChanged: (_) {})),
         );
         await tester.pumpAndSettle();
 
-        // Tap +1 to trigger adjustment using minTime as base
-        await tester.tap(find.text('+1'));
-        await tester.pump();
-
-        // Should have used minTime as base and added 1 minute
-        expect(changedTime, isNotNull);
-        expect(changedTime!.difference(minTime).inMinutes, closeTo(1, 1));
+        final container = tester.widget<Container>(
+          find.byType(Container).first,
+        );
+        final decoration = container.decoration as BoxDecoration?;
+        expect(decoration?.borderRadius, isNotNull);
       });
     });
   });

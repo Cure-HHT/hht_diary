@@ -56,7 +56,7 @@ jobs:
 
       - name: Deploy to Firebase
         working-directory: apps/clinical_diary
-        run: firebase deploy --project hht-diary-dev
+        run: firebase deploy --project hht-diary-mvp
 
       - name: Notify success
         if: success()
