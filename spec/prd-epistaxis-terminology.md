@@ -29,7 +29,7 @@ This document defines the **standard terminology and data capture format** for e
 
 # REQ-p00042: HHT Epistaxis Data Capture Standard
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 The system SHALL capture epistaxis (nosebleed) events using the HHT-specific terminology standard defined in this specification, ensuring consistent data collection across all HHT clinical studies.
 

@@ -97,7 +97,7 @@ Change history SHALL include:
 
 # REQ-p00003: Separate Database Per Sponsor
 
-**Level**: PRD | **Implements**: p00001 | **Status**: Draft
+**Level**: PRD | **Implements**: p00011 | **Status**: Draft
 
 Each pharmaceutical sponsor SHALL operate an independent database instance with no shared tables, connections, or infrastructure with other sponsors.
 
@@ -123,7 +123,7 @@ Database isolation SHALL ensure:
 
 # REQ-p00004: Immutable Audit Trail via Event Sourcing
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00011 | **Status**: Draft
 
 The system SHALL store all clinical trial data changes as immutable events, ensuring a complete and tamper-proof audit trail of every data modification.
 
@@ -134,7 +134,7 @@ Event storage SHALL ensure:
 - Each event includes: timestamp, user ID, action type, data values, reason for change
 - Current data state derived by replaying events
 
-**Rationale**: FDA 21 CFR Part 11 requires complete audit trails for electronic records. Event sourcing makes audit trails automatic and tamper-proof by design - you cannot modify data without creating an event, and events cannot be altered after creation.
+**Rationale**: FDA 21 CFR Part 11 requires complete audit trails for electronic records. Event sourcing makes audit trails automatic and tamper-proof by design - you cannot modify data without creating an event, and events cannot be altered after creation. This supports ALCOA+ principles.
 
 **Acceptance Criteria**:
 - All data changes stored as events, never direct updates

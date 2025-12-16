@@ -39,7 +39,7 @@ This document defines the Service Level Agreement (SLA) commitments provided to 
 
 # REQ-p01021: Service Availability Commitment
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00048 | **Status**: Draft
 
 The platform SHALL provide 99.9% monthly uptime for all customer-facing production services.
 
@@ -73,7 +73,7 @@ Uptime % = (Total Minutes in Month - Downtime Minutes) / Total Minutes in Month 
 
 # REQ-p01022: Incident Severity Classification
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00048 | **Status**: Draft
 
 All service incidents SHALL be classified by severity level to determine response priority and customer communication requirements.
 

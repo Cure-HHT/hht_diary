@@ -46,7 +46,7 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures used in clinical trials.
 
@@ -125,6 +125,58 @@ Data retention SHALL ensure:
 - Data integrity maintained throughout retention period
 
 *End* *Clinical Data Retention Requirements* | **Hash**: b3332065
+---
+
+# REQ-p01061: GDPR Compliance
+
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+
+The system SHALL comply with the EU General Data Protection Regulation (GDPR) for processing personal data of EU clinical trial participants.
+
+GDPR compliance SHALL include:
+- Lawful basis for processing (explicit consent or legitimate interest for clinical trials)
+- Data subject rights (access, rectification, erasure where applicable, portability)
+- Data minimization (collect only data necessary for trial purposes)
+- Privacy by design (protection built into system architecture)
+- Data Processing Agreements with all processors
+- Breach notification within 72 hours to supervisory authority
+
+**Rationale**: Clinical trials conducted in the EU or involving EU residents must comply with GDPR. Non-compliance risks fines up to €20M or 4% of global turnover and invalidates trial data for regulatory submissions.
+
+**Acceptance Criteria**:
+- Privacy policy documents GDPR lawful basis for processing
+- Data subject request workflow implemented and documented
+- Data Processing Agreements in place with all third-party processors
+- Breach notification procedure documented and tested
+- Data Protection Impact Assessment completed for clinical trial processing
+
+*End* *GDPR Compliance* | **Hash**: 0f9e0f11
+---
+
+# REQ-p01062: GDPR Data Portability
+
+**Level**: PRD | **Implements**: p01061 | **Status**: Draft
+
+Patients SHALL be able to export their personal clinical diary data in a portable, machine-readable format to exercise GDPR Article 20 data portability rights.
+
+Data portability SHALL provide:
+- Patient-initiated export of all their diary entries and health records
+- Export in standard machine-readable format (JSON)
+- Complete data including timestamps, values, and metadata
+- Export available through mobile app without requiring sponsor assistance
+- Import capability to restore data on same or different device
+
+**Rationale**: GDPR Article 20 grants EU data subjects the right to receive their personal data in a structured, commonly used, machine-readable format. Clinical trial participants must be able to obtain their own health diary data for personal records or transfer to another system.
+
+**Acceptance Criteria**:
+- Patient can export all their diary data from mobile app
+- Export file contains complete diary entries in JSON format
+- Export includes all user-generated content and timestamps
+- Patient can import previously exported data
+- Export/import does not require network connectivity
+- Exported data excludes system internals (sync state, device IDs)
+
+*End* *GDPR Data Portability* | **Hash**: 02cd6237
 ---
 
 ### System Validation

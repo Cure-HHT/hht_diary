@@ -61,7 +61,7 @@ Formal requirements SHALL ensure:
 
 # REQ-p00021: Architecture Decision Documentation
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 Significant architectural and design decisions SHALL be formally documented with context, alternatives considered, and consequences, ensuring decisions are reviewable, reversible, and understood by future maintainers and auditors.
 
