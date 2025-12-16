@@ -700,6 +700,17 @@ String normalizeDeviceTimezone(String deviceTzName) {
     if (deviceTzName.contains(tz.abbreviation)) {
       return tz.abbreviation;
     }
+    // Check if all significant words from display name are in device name
+    // e.g., "Central European Time" matches "Central European Standard Time"
+    // because "Central" and "European" are both present
+    final displayWords = tz.displayName
+        .toLowerCase()
+        .split(' ')
+        .where((w) => w != 'time' && w.length > 2)
+        .toList();
+    if (displayWords.isNotEmpty && displayWords.every(lowerName.contains)) {
+      return tz.abbreviation;
+    }
   }
 
   // Common patterns: extract first letters of each word
