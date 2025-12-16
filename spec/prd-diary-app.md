@@ -12,7 +12,7 @@
 
 ---
 
-# REQ-p00043: Clinical Diary Mobile Application
+# REQ-p00043: Clinical Diary Application
 
 **Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
