@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-diary-app.md for mobile application requirements
 > **See**: prd-portal.md for sponsor portal requirements
@@ -22,7 +22,7 @@ The Clinical Trial Diary Platform is a multi-sponsor system for FDA 21 CFR Part 
 
 # REQ-p00044: Clinical Trial Diary Platform
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 A multi-sponsor clinical trial data capture platform enabling patients to record health observations via mobile app, with sponsor access through web portals, backed by compliant cloud infrastructure.
 
@@ -48,7 +48,7 @@ Platform components SHALL include:
 
 # REQ-p01041: Open Source Licensing
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The Clinical Trial Diary Platform core codebase SHALL be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) to ensure derivative works remain open source and network use triggers source disclosure requirements.
 

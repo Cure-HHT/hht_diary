@@ -169,61 +169,9 @@ void main() {
       },
     );
 
-    testWidgets(
-      'delete button does nothing when onDelete callback is not provided',
-      (tester) async {
-        // This test documents the bug that was fixed in CUR-465
-        // When onDelete is not provided, clicking delete should do nothing
-        // (the bug was that incomplete records were missing the onDelete callback)
-
-        // Use a larger screen size to avoid overflow issues
-        tester.view.physicalSize = const Size(1080, 1920);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        // Create a record
-        final originalRecord = await nosebleedService.addRecord(
-          startTime: DateTime(2024, 1, 15, 10, 0),
-          endTime: DateTime(2024, 1, 15, 10, 30),
-          intensity: NosebleedIntensity.dripping,
-        );
-
-        // Create the RecordingScreen WITHOUT onDelete callback
-        // This simulates the bug scenario
-        await tester.pumpWidget(
-          wrapWithMaterialApp(
-            RecordingScreen(
-              nosebleedService: nosebleedService,
-              enrollmentService: mockEnrollment,
-              preferencesService: preferencesService,
-              existingRecord: originalRecord,
-              // onDelete intentionally not provided to test bug scenario
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap delete button
-        await tester.tap(find.byIcon(Icons.delete_outline));
-        await tester.pumpAndSettle();
-
-        // Select a reason
-        await tester.tap(find.text('Entered by mistake'));
-        await tester.pumpAndSettle();
-
-        // Tap confirm delete button
-        await tester.tap(find.text('Delete'));
-        await tester.pumpAndSettle();
-
-        // Record should NOT be deleted (bug behavior - onDelete not called)
-        final records = await nosebleedService.getLocalMaterializedRecords();
-        expect(records.length, 1);
-        expect(records.first.id, originalRecord.id);
-      },
-    );
+    // Note: The test 'delete button does nothing when onDelete callback is not provided'
+    // was removed because RecordingScreen now has an assertion that requires onDelete
+    // when existingRecord is provided. This prevents the bug at the API level.
 
     testWidgets('deleting incomplete record works correctly', (tester) async {
       // This test verifies the fix for CUR-465: incomplete records

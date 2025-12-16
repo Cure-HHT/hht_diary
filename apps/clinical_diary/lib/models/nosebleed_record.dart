@@ -60,6 +60,8 @@ class NosebleedRecord {
     this.deviceUuid,
     DateTime? createdAt,
     this.syncedAt,
+    this.startTimeTimezone,
+    this.endTimeTimezone,
   }) : createdAt = createdAt ?? DateTime.now();
 
   /// Create from JSON (local storage and API responses)
@@ -92,6 +94,8 @@ class NosebleedRecord {
       syncedAt: json['syncedAt'] != null
           ? DateTimeFormatter.parse(json['syncedAt'] as String)
           : null,
+      startTimeTimezone: json['startTimeTimezone'] as String?,
+      endTimeTimezone: json['endTimeTimezone'] as String?,
     );
   }
 
@@ -109,6 +113,14 @@ class NosebleedRecord {
   final String? deviceUuid;
   final DateTime createdAt;
   final DateTime? syncedAt;
+
+  /// CUR-516: IANA timezone name for start time (e.g., "America/Los_Angeles").
+  /// Used to restore timezone selection in UI when reopening incomplete records.
+  final String? startTimeTimezone;
+
+  /// CUR-516: IANA timezone name for end time (e.g., "America/Los_Angeles").
+  /// Used to restore timezone selection in UI when reopening incomplete records.
+  final String? endTimeTimezone;
 
   /// Check if this is a real nosebleed event (not a "no nosebleed" or "unknown" marker)
   bool get isRealNosebleedEvent => !isNoNosebleedsEvent && !isUnknownEvent;
@@ -146,6 +158,8 @@ class NosebleedRecord {
     String? deviceUuid,
     DateTime? createdAt,
     DateTime? syncedAt,
+    String? startTimeTimezone,
+    String? endTimeTimezone,
   }) {
     return NosebleedRecord(
       id: id ?? this.id,
@@ -162,6 +176,8 @@ class NosebleedRecord {
       deviceUuid: deviceUuid ?? this.deviceUuid,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,
+      startTimeTimezone: startTimeTimezone ?? this.startTimeTimezone,
+      endTimeTimezone: endTimeTimezone ?? this.endTimeTimezone,
     );
   }
 
@@ -186,6 +202,8 @@ class NosebleedRecord {
       'deviceUuid': deviceUuid,
       'createdAt': DateTimeFormatter.format(createdAt),
       'syncedAt': syncedAt != null ? DateTimeFormatter.format(syncedAt!) : null,
+      'startTimeTimezone': startTimeTimezone,
+      'endTimeTimezone': endTimeTimezone,
     };
   }
 }

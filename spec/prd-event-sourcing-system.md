@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-11-04
-**Status**: Active
+**Status**: Draft
 
 > **See**: dev-event-sourcing-postgres.md for implementation details (to be created)
 > **See**: ops-event-sourcing-deployment.md for deployment and operations (to be created)
@@ -118,7 +118,7 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 # REQ-p01000: Event Sourcing Client Interface
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide a type-safe client interface for creating, storing, and querying events in an event-sourced PostgreSQL database.
 
@@ -145,7 +145,7 @@ The interface SHALL support:
 
 # REQ-p01001: Offline Event Queue with Automatic Synchronization
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL queue events locally when network unavailable and automatically synchronize them to the server when connectivity restored.
 
@@ -174,7 +174,7 @@ Offline queue SHALL ensure:
 
 # REQ-p01002: Optimistic Concurrency Control
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
 
@@ -202,7 +202,7 @@ Conflict resolution SHALL support:
 
 # REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL store all events as immutable, append-only records that form a complete audit trail of all data changes.
 
@@ -229,7 +229,7 @@ Event storage SHALL ensure:
 
 # REQ-p01004: Schema Version Management
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
 
@@ -256,7 +256,7 @@ Schema management SHALL provide:
 
 # REQ-p01005: Real-time Event Subscription
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL support real-time subscriptions to event streams, allowing clients to receive notifications when new events occur.
 
@@ -283,7 +283,7 @@ Real-time subscriptions SHALL provide:
 
 # REQ-p01006: Type-Safe Materialized View Queries
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide type-safe query interfaces for materialized views that represent current state derived from events.
 
@@ -310,7 +310,7 @@ Materialized view queries SHALL support:
 
 # REQ-p01007: Error Handling and Diagnostics
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide comprehensive error handling and diagnostic capabilities to support development, testing, and production troubleshooting.
 
@@ -415,9 +415,144 @@ Multi-tenancy SHALL provide:
 
 ---
 
-# REQ-p01011: Event Transformation and Migration
+# REQ-p01050: Event Type Registry
 
 **Level**: PRD | **Implements**: - | **Status**: Draft
+
+The module SHALL maintain a registry of event types that provides a single source of truth for available event schemas, their versions, and relationships.
+
+The registry SHALL provide:
+- Catalog of base event types (e.g., "survey", "epistaxis") independent of version
+- Explicit grouping of versioned schemas under their base type
+- Metadata for each type: display name, description, sponsor eligibility
+- Deprecation status and sunset dates for obsolete versions
+- Runtime discoverability of available types and versions
+
+**Rationale**: Without an explicit type registry, the relationship between `survey-v1.0` and `survey-v1.2` is implicit (derived by string parsing). This creates risks: typos silently create new types, no standard way to discover available types, and no formal tracking of version lifecycles. A registry provides a single source of truth that enables validation, discovery, and governance of the event type portfolio.
+
+**Acceptance Criteria**:
+- Base event types explicitly defined with unique identifiers
+- Each versioned schema linked to its base type
+- Type metadata includes: name, description, status (active/deprecated/sunset)
+- API to enumerate available types and their versions at runtime
+- Validation rejects events with unregistered versioned_type values
+- Sponsor-specific type enablement configurable per tenant
+
+*End* *Event Type Registry* | **Hash**: 19386e10
+
+---
+
+---
+
+# REQ-p01051: Questionnaire Versioning Model
+
+**Level**: PRD | **Implements**: p01050 | **Status**: Draft
+
+The platform SHALL support independent versioning of questionnaire schema, content, and presentation to enable each dimension to evolve independently while maintaining complete audit traceability.
+
+The versioning model SHALL distinguish between:
+- **Schema Version**: The data structure and field types stored in the database. Changes when fields are added, removed, or restructured. Determines validation rules and migration requirements.
+- **Content Version**: The source language question text, option labels, help text, and scoring rules. Changes when wording is clarified or questions are refined, even if the underlying schema remains unchanged.
+- **GUI Version**: The presentation and rendering of the questionnaire in client applications. Changes when user interface is redesigned or user experience is improved, independent of content or schema.
+
+Each questionnaire response SHALL record all three version identifiers to enable complete reconstruction of what the patient saw and how the data was captured.
+
+**Rationale**: Clinical questionnaires evolve for different reasons: structural changes (add a field), wording clarifications (improve question clarity), and presentation improvements (better UX). Conflating these into a single version number forces unnecessary migrations and obscures the audit trail. Independent versioning allows clinical teams to refine wording without engineering schema changes, and UX teams to improve presentation without affecting validated instrument versions.
+
+**Acceptance Criteria**:
+- Schema version tracked via existing versioned_type field
+- Content version recorded in event_data for each response
+- GUI version recorded in event_data for each response
+- Wording changes create new content version without schema migration
+- UI redesigns create new GUI version without content or schema changes
+- Historical responses retrievable with exact version context
+- Version relationships documented in questionnaire registry
+
+**See**: docs/questionnaire-versioning.md for implementation details and data model examples.
+
+*End* *Questionnaire Versioning Model* | **Hash**: 32f2c5a2
+
+---
+
+---
+
+# REQ-p01052: Questionnaire Localization and Translation Tracking
+
+**Level**: PRD | **Implements**: p01051 | **Status**: Draft
+
+The platform SHALL support localized questionnaires with independent translation versioning, storing both the original patient response and a canonical normalized response for analysis.
+
+Localization tracking SHALL include:
+- **Language Identifier**: The specific language and locale shown to the patient (e.g., es-MX for Spanish-Mexico).
+- **Translation Version**: The version of the translation for that language, independent of the source content version. Translations may be revised to improve clarity without changes to the source instrument.
+- **Source Content Reference**: Which source language content version the translation is based upon.
+
+Response storage SHALL capture:
+- **Original Response**: The exact value the patient entered or selected in their language, preserving what they actually saw and chose.
+- **Canonical Response**: The normalized value used for study analysis, typically the source language equivalent for enum/choice fields or a translation for free-text fields.
+- **Translation Method**: For free-text translations, whether the canonical value was auto-translated, manually translated, or verified by a human translator.
+
+**Rationale**: International clinical trials require validated translations of instruments. Each translation has its own validation status and version lifecycle. For ALCOA+ compliance, the audit trail must show exactly what question text the patient saw in their language. For analysis, responses must be normalized to a common language. Storing both preserves the complete audit trail while enabling consistent analysis.
+
+**Acceptance Criteria**:
+- Patient language preference recorded at enrollment
+- Questionnaire presented in patient's configured language
+- Translation version tracked per language per questionnaire
+- Original response stored as patient entered it
+- Canonical response stored for analysis
+- Free-text responses include translation method indicator
+- Audit trail reconstructable showing exact localized content shown
+- Translation versions manageable independently of source content versions
+
+**See**: docs/questionnaire-versioning.md for localization data model and storage patterns.
+
+*End* *Questionnaire Localization and Translation Tracking* | **Hash**: 591b34e9
+
+---
+
+---
+
+# REQ-p01053: Sponsor Questionnaire Eligibility Configuration
+
+**Level**: PRD | **Implements**: p01050, p01051 | **Status**: Draft
+
+Each sponsor SHALL configure which questionnaire types, versions, and languages are enabled for their clinical trial, with the platform enforcing these constraints during data capture.
+
+Sponsor questionnaire configuration SHALL specify:
+- **Enabled Questionnaires**: Which questionnaire types are available for the sponsor's study (e.g., epistaxis-daily, nose-hht, quality-of-life).
+- **Version Constraints**: Minimum acceptable version, current version for new entries, and deprecated versions that remain valid for historical data.
+- **Language Enablement**: Which languages and translation versions are available, with designation of the source language.
+- **Completion Requirements**: Frequency expectations (daily, weekly, on-demand) and whether completion is mandatory for study compliance.
+
+The platform SHALL enforce eligibility by:
+- Presenting only enabled questionnaires in client applications
+- Using configured current versions for new data capture
+- Accepting historical data from minimum version through current version
+- Restricting language options to sponsor-enabled translations
+- Validating responses against the appropriate version's rules
+
+**Rationale**: Multi-sponsor deployments require sponsor-specific questionnaire portfolios. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints ensure patients in ongoing studies continue using validated instrument versions while new enrollments can use updated versions. Language enablement ensures only properly validated translations are offered.
+
+**Acceptance Criteria**:
+- Sponsor configuration specifies enabled questionnaire types
+- Sponsor configuration specifies version constraints per questionnaire
+- Sponsor configuration specifies enabled languages per questionnaire
+- Client applications respect sponsor eligibility during data capture
+- Validation enforces version and language constraints
+- Configuration changes do not invalidate existing historical data
+- New questionnaire types addable without platform code changes
+
+**See**: docs/questionnaire-versioning.md for configuration schema and examples.
+
+*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: a702fcec
+
+---
+
+---
+
+# REQ-p01011: Event Transformation and Migration
+
+**Level**: PRD | **Implements**: p01050 | **Status**: Draft
 
 The module SHOULD support event transformation/upcasting, allowing old event formats to be automatically converted to new formats.
 
@@ -495,7 +630,7 @@ Transport abstraction SHALL provide:
 
 # REQ-p01014: Observability and Monitoring
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
 
@@ -522,7 +657,7 @@ Monitoring SHALL include:
 
 # REQ-p01015: Automated Testing Support
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
 
@@ -548,7 +683,7 @@ Testing utilities SHALL provide:
 
 # REQ-p01016: Performance Benchmarking
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL meet performance benchmarks for common operations to ensure acceptable user experience.
 
@@ -575,7 +710,7 @@ Performance targets:
 
 # REQ-p01017: Backward Compatibility Guarantees
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL maintain backward compatibility for public APIs across minor versions, allowing applications to upgrade without code changes.
 
@@ -602,7 +737,7 @@ Compatibility SHALL ensure:
 
 # REQ-p01018: Security Audit and Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL undergo security review and maintain compliance with relevant security standards.
 
@@ -734,7 +869,7 @@ This module differs by:
 
 # REQ-p01019: Phased Implementation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The module SHALL be developed in phases, with each phase delivering incremental value and validating core assumptions.
 

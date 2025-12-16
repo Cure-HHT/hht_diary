@@ -1,18 +1,17 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
-
-import 'dart:convert';
+//   REQ-d00006: Mobile App Build and Release Process
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:flutter/foundation.dart';
+import 'package:clinical_diary/services/version_check_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
 class LogoMenu extends StatefulWidget {
   const LogoMenu({
-    required this.onAddExampleData,
+    required this.onExportData,
+    required this.onImportData,
     required this.onResetAllData,
     required this.onFeatureFlags,
     required this.onEndClinicalTrial,
@@ -21,13 +20,14 @@ class LogoMenu extends StatefulWidget {
     super.key,
   });
 
-  final VoidCallback onAddExampleData;
+  final VoidCallback onExportData;
+  final VoidCallback onImportData;
   final VoidCallback onResetAllData;
   final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
 
-  /// Whether to show developer tools (Reset All Data, Add Example Data, Feature Flags).
+  /// Whether to show developer tools (Reset All Data, Import/Export Data, Feature Flags).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
 
@@ -37,21 +37,20 @@ class LogoMenu extends StatefulWidget {
 
 class _LogoMenuState extends State<LogoMenu> {
   String _version = '';
+  bool _hasUpdate = false;
+  bool _isCheckingForUpdates = false;
+  late final VersionCheckService _versionService;
 
   @override
   void initState() {
     super.initState();
+    _versionService = VersionCheckService();
     _loadVersion();
+    _checkForUpdates();
   }
 
   Future<void> _loadVersion() async {
-    // On web, fetch version.json directly (more reliable than package_info_plus)
-    if (kIsWeb) {
-      await _loadVersionFromJson();
-      return;
-    }
-
-    // On native platforms, use package_info_plus
+    // Use package_info_plus for display (works in dev and prod on all platforms)
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       if (mounted) {
@@ -64,21 +63,87 @@ class _LogoMenuState extends State<LogoMenu> {
     }
   }
 
-  Future<void> _loadVersionFromJson() async {
+  Future<void> _checkForUpdates() async {
     try {
-      // Use Uri.base to resolve the correct absolute URL on web
-      final versionUrl = Uri.base.resolve('version.json');
-      final response = await http.get(versionUrl);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (mounted) {
+      // Check if we should check (respects 24-hour interval)
+      final shouldCheck = await _versionService.shouldCheckForUpdate();
+      if (!shouldCheck) return;
+
+      final result = await _versionService.checkForUpdate();
+
+      // Don't show update indicator if local version is '0.0.0' (dev mode)
+      // or if this version was dismissed
+      if (result.hasUpdate &&
+          result.remoteVersion != null &&
+          result.localVersion != '0.0.0') {
+        final wasDismissed = await _versionService.isVersionDismissed(
+          result.remoteVersion!,
+        );
+        if (mounted && !wasDismissed) {
           setState(() {
-            _version = data['version'] as String? ?? '';
+            _hasUpdate = true;
           });
         }
       }
     } catch (e) {
-      debugPrint('version.json fetch error: $e');
+      debugPrint('Update check error: $e');
+    }
+  }
+
+  /// Manually check for updates (bypasses 24-hour interval)
+  Future<void> _manualCheckForUpdates(BuildContext context) async {
+    if (_isCheckingForUpdates) return;
+
+    // Capture these before any async gaps
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    setState(() {
+      _isCheckingForUpdates = true;
+    });
+
+    try {
+      final result = await _versionService.checkForUpdate();
+      await _versionService.recordCheckTime();
+
+      if (!mounted) return;
+
+      if (result.hasUpdate &&
+          result.remoteVersion != null &&
+          result.localVersion != '0.0.0') {
+        // Clear any previous dismissal so the update shows
+        await _versionService.clearDismissedVersion();
+        if (!mounted) return;
+        setState(() {
+          _hasUpdate = true;
+        });
+        // Show snackbar that update is available
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.newVersionAvailable(result.remoteVersion!)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        setState(() {
+          _hasUpdate = false;
+        });
+        // Show snackbar that no update is available
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(l10n.youAreUpToDate),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Manual update check error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingForUpdates = false;
+        });
+      }
     }
   }
 
@@ -89,23 +154,51 @@ class _LogoMenuState extends State<LogoMenu> {
       tooltip: l10n.appMenu,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
-        child: ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            Colors.grey.withValues(alpha: 0.5),
-            BlendMode.srcATop,
-          ),
-          child: Image.asset(
-            'assets/images/cure-hht-grey.png',
-            width: 100,
-            height: 40,
-            fit: BoxFit.contain,
-          ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Colors.grey.withValues(alpha: 0.5),
+                BlendMode.srcATop,
+              ),
+              child: Image.asset(
+                'assets/images/cure-hht-grey.png',
+                width: 100,
+                height: 40,
+                fit: BoxFit.contain,
+              ),
+            ),
+            // Update indicator dot
+            if (_hasUpdate)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Tooltip(
+                  message: l10n.updateAvailable,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.surface,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
       onSelected: (value) {
         switch (value) {
-          case 'add_example_data':
-            widget.onAddExampleData();
+          case 'export_data':
+            widget.onExportData();
+          case 'import_data':
+            widget.onImportData();
           case 'reset_all_data':
             widget.onResetAllData();
           case 'feature_flags':
@@ -114,6 +207,8 @@ class _LogoMenuState extends State<LogoMenu> {
             widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
             widget.onInstructionsAndFeedback();
+          case 'check_for_updates':
+            _manualCheckForUpdates(context);
         }
       },
       itemBuilder: (context) => [
@@ -130,16 +225,30 @@ class _LogoMenuState extends State<LogoMenu> {
             ),
           ),
           PopupMenuItem<String>(
-            value: 'add_example_data',
+            value: 'export_data',
             child: Row(
               children: [
                 Icon(
-                  Icons.add_circle_outline,
+                  Icons.upload_outlined,
                   size: 20,
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 12),
-                Flexible(child: Text(l10n.addExampleData)),
+                Flexible(child: Text(l10n.exportData)),
+              ],
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'import_data',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.download_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.importData)),
               ],
             ),
           ),
@@ -231,6 +340,53 @@ class _LogoMenuState extends State<LogoMenu> {
 
         // Version info at bottom
         const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'check_for_updates',
+          child: Row(
+            children: [
+              if (_isCheckingForUpdates)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                )
+              else
+                Icon(
+                  _hasUpdate ? Icons.system_update : Icons.refresh,
+                  size: 20,
+                  color: _hasUpdate
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  l10n.checkForUpdates,
+                  style: _hasUpdate
+                      ? TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        )
+                      : null,
+                ),
+              ),
+              if (_hasUpdate) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
         PopupMenuItem<String>(
           enabled: false,
           height: 32,

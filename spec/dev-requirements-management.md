@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Development
 **Last Updated**: 2025-10-25
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-requirements-management.md for business/regulatory requirements
 > **See**: ops-requirements-management.md for operational procedures
@@ -28,7 +28,7 @@ This document defines the implementation requirements for requirements managemen
 
 # REQ-d00014: Requirement Validation Tooling
 
-**Level**: Dev | **Implements**: o00013 | **Status**: Active
+**Level**: Dev | **Implements**: o00013 | **Status**: Draft
 
 The system SHALL implement automated requirement validation via `tools/requirements/validate_requirements.py`, checking format compliance, ID uniqueness, valid parent links, and level consistency, with integration into pre-commit hooks to prevent invalid requirements from entering the codebase.
 
@@ -63,7 +63,7 @@ Implementation SHALL include:
 
 # REQ-d00015: Traceability Matrix Auto-Generation
 
-**Level**: Dev | **Implements**: o00013 | **Status**: Active
+**Level**: Dev | **Implements**: o00013 | **Status**: Draft
 
 The system SHALL implement automated traceability matrix generation via `tools/requirements/generate_traceability.py`, producing markdown and HTML formats showing requirement hierarchies, with pre-commit hook integration to auto-regenerate matrices whenever spec/ files change.
 
@@ -102,7 +102,7 @@ Implementation SHALL include:
 
 # REQ-d00016: Code-to-Requirement Linking
 
-**Level**: Dev | **Implements**: o00014 | **Status**: Active
+**Level**: Dev | **Implements**: o00014 | **Status**: Draft
 
 Implementation files SHALL include standardized header comments linking code to requirements using format `IMPLEMENTS REQUIREMENTS: REQ-xxx, REQ-yyy`, enabling traceability from implementation back to requirements for audit and impact analysis.
 
@@ -134,7 +134,7 @@ Implementation SHALL include:
 
 # REQ-d00017: ADR Template and Lifecycle Tooling
 
-**Level**: Dev | **Implements**: o00016 | **Status**: Active
+**Level**: Dev | **Implements**: o00016 | **Status**: Draft
 
 The system SHALL provide ADR template, lifecycle documentation, and index maintenance in `docs/adr/README.md`, enabling consistent ADR creation and tracking of architectural decisions throughout their lifecycle from Proposed to Accepted to Deprecated/Superseded.
 
@@ -167,7 +167,7 @@ Implementation SHALL include:
 
 # REQ-d00018: Git Hook Implementation
 
-**Level**: Dev | **Implements**: o00017 | **Status**: Active
+**Level**: Dev | **Implements**: o00017 | **Status**: Draft
 
 The system SHALL implement pre-commit hook in `.githooks/pre-commit` that enforces requirement validation, auto-regenerates traceability matrices when spec/ files change, and blocks commits with validation errors, with configuration instructions in `.githooks/README.md`.
 
@@ -205,7 +205,7 @@ Implementation SHALL include:
 
 # REQ-d00053: Development Environment and Tooling Setup
 
-**Level**: Dev | **Implements**: o00017 | **Status**: Active
+**Level**: Dev | **Implements**: o00017 | **Status**: Draft
 
 Development environment SHALL provide standardized, repeatable tooling configuration including IDE integrations, code analysis tools, and workflow automation to ensure consistent developer experience and productivity.
 

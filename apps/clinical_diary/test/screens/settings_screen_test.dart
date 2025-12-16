@@ -91,7 +91,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Accessibility'), findsOneWidget);
-        expect(find.text('Dyslexia-friendly font'), findsOneWidget);
+        // Font selector is only shown when feature flag allows multiple fonts
+        // So we just check for the accessibility section header and larger text option
         expect(find.text('Larger Text and Controls'), findsOneWidget);
       });
 
@@ -182,11 +183,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Find and tap the larger text checkbox (second checkbox)
+        // Find and tap the larger text checkbox (first checkbox after font dropdown removal)
         final checkboxes = find.byType(Checkbox);
         expect(checkboxes, findsWidgets);
 
-        await tester.tap(checkboxes.at(1));
+        await tester.tap(checkboxes.first);
         await tester.pumpAndSettle();
 
         expect(largerTextChanged, true);
@@ -208,16 +209,8 @@ void main() {
         await tester.pumpAndSettle();
       });
 
-      testWidgets('dyslexia link is displayed', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        // Should show the learn more link
-        expect(find.text('Learn more at opendyslexic.org'), findsOneWidget);
-      });
+      // Note: The dyslexia link test was removed because the OpenDyslexic toggle
+      // was replaced with a font dropdown in CUR-528.
     });
 
     group('Language Selection', () {
@@ -326,7 +319,6 @@ void main() {
         await preferencesService.savePreferences(
           const UserPreferences(
             isDarkMode: false,
-            dyslexiaFriendlyFont: true,
             largerTextAndControls: true,
             useAnimation: true,
             compactView: false,

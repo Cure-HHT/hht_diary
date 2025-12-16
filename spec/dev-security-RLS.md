@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Development
 **Last Updated**: 2025-10-26
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-security-RLS.md for product requirements
 > **See**: ops-security-RLS.md for deployment procedures
@@ -28,7 +28,7 @@ This document specifies the implementation details for PostgreSQL Row-Level Secu
 
 # REQ-d00019: Patient Data Isolation RLS Implementation
 
-**Level**: Dev | **Implements**: o00020 | **Status**: Active
+**Level**: Dev | **Implements**: o00020 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented to enforce patient data isolation by filtering queries based on the authenticated user's patient ID from JWT claims.
 
@@ -105,7 +105,7 @@ CREATE POLICY patient_insert_audit ON record_audit
 
 # REQ-d00020: Investigator Site-Scoped RLS Implementation
 
-**Level**: Dev | **Implements**: o00021 | **Status**: Active
+**Level**: Dev | **Implements**: o00021 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented to restrict investigator access to data at their assigned sites through subquery validation against the site assignment table.
 
@@ -177,7 +177,7 @@ CREATE POLICY investigator_site_audit ON record_audit
 
 # REQ-d00021: Investigator Annotation RLS Implementation
 
-**Level**: Dev | **Implements**: o00022 | **Status**: Active
+**Level**: Dev | **Implements**: o00022 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented to allow investigators to create annotations while preventing modification of patient clinical data through selective policy application.
 
@@ -266,7 +266,7 @@ CREATE TRIGGER trg_set_annotation_investigator
 
 # REQ-d00022: Analyst Read-Only RLS Implementation
 
-**Level**: Dev | **Implements**: o00023 | **Status**: Active
+**Level**: Dev | **Implements**: o00023 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented to provide analysts read-only access to de-identified clinical data at assigned sites through SELECT-only policies.
 
@@ -343,7 +343,7 @@ ALTER DATABASE clinical_diary SET pgaudit.log = 'read';
 
 # REQ-d00023: Sponsor Global Access RLS Implementation
 
-**Level**: Dev | **Implements**: o00024 | **Status**: Active
+**Level**: Dev | **Implements**: o00024 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented to provide sponsors read access to all clinical data across all sites within their database instance, with write access limited to administrative tables.
 
@@ -427,7 +427,7 @@ CREATE TRIGGER trg_audit_sponsor_users
 
 # REQ-d00024: Auditor Compliance RLS Implementation
 
-**Level**: Dev | **Implements**: o00025 | **Status**: Active
+**Level**: Dev | **Implements**: o00025 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented to provide auditors read-only access to all data including audit logs, with export functions capturing justification.
 
@@ -565,7 +565,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 # REQ-d00025: Administrator Break-Glass RLS Implementation
 
-**Level**: Dev | **Implements**: o00026 | **Status**: Active
+**Level**: Dev | **Implements**: o00026 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL be implemented for administrator access with break-glass authorization for protected health information access, validated by ticket ID and TTL.
 
@@ -681,7 +681,7 @@ $$ LANGUAGE plpgsql;
 
 # REQ-d00026: Event Sourcing State Protection RLS Implementation
 
-**Level**: Dev | **Implements**: o00027 | **Status**: Active
+**Level**: Dev | **Implements**: o00027 | **Status**: Draft
 
 PostgreSQL RLS policies SHALL prevent direct modification of the `record_state` table by omitting write policies, with state updates handled exclusively through triggers on the event log.
 

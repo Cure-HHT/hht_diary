@@ -268,7 +268,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': 'App menu',
       'dataManagement': 'Data Management',
-      'addExampleData': 'Add Example Data',
+      'exportData': 'Export Data',
+      'importData': 'Import Data',
+      'exportSuccess': 'Data exported successfully',
+      'exportFailed': 'Failed to export data',
+      'importSuccess': 'Imported {0} records',
+      'importFailed': 'Failed to import data: {0}',
+      'importConfirmTitle': 'Import Data',
+      'importConfirmMessage':
+          'This will import data from the selected file. '
+          'Existing records will be preserved. Continue?',
       'clinicalTrialLabel': 'Clinical Trial',
       'instructionsAndFeedback': 'Instructions & Feedback',
 
@@ -379,8 +388,34 @@ class AppLocalizations {
           'Reset all feature flags to their default values?',
       'featureFlagsResetButton': 'Reset',
       'featureFlagsResetSuccess': 'Feature flags reset to defaults',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Font Accessibility',
+      'featureFlagsFontSelectorVisible':
+          'Font selector will be shown in Settings',
+      'featureFlagsFontSelectorHidden':
+          'Font selector will be hidden (only default font available)',
+      'fontDescriptionRoboto': 'System default font',
+      'fontDescriptionOpenDyslexic':
+          'Font designed to help readers with dyslexia',
+      'fontDescriptionAtkinson': 'Font optimized for low vision readers',
+      'fontSelection': 'Font',
+      'fontSelectionDescription': 'Choose a font that works best for you',
       'hours': 'hours',
       'hour': 'hour',
+
+      // Version Update
+      'updateAvailable': 'Update Available',
+      'updateRequired': 'Update Required',
+      'updateNow': 'Update Now',
+      'later': 'Later',
+      'newVersionAvailable': 'Version {0} is available',
+      'updateRequiredMessage':
+          'A new version is required to continue using this app. Please update now.',
+      'currentVersionLabel': 'Current version:',
+      'requiredVersionLabel': 'Required version:',
+      'whatsNew': "What's New",
+      'checkForUpdates': 'Check for updates',
+      'youAreUpToDate': 'You are up to date',
     },
     'es': {
       // General
@@ -617,7 +652,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': 'Menu de la aplicacion',
       'dataManagement': 'Gestion de Datos',
-      'addExampleData': 'Agregar Datos de Ejemplo',
+      'exportData': 'Exportar Datos',
+      'importData': 'Importar Datos',
+      'exportSuccess': 'Datos exportados exitosamente',
+      'exportFailed': 'Error al exportar datos',
+      'importSuccess': '{0} registros importados',
+      'importFailed': 'Error al importar datos: {0}',
+      'importConfirmTitle': 'Importar Datos',
+      'importConfirmMessage':
+          'Esto importara datos del archivo seleccionado. '
+          'Los registros existentes se conservaran. Continuar?',
       'clinicalTrialLabel': 'Ensayo Clinico',
       'instructionsAndFeedback': 'Instrucciones y Comentarios',
 
@@ -732,8 +776,35 @@ class AppLocalizations {
           'Restablecer todos los feature flags a sus valores predeterminados?',
       'featureFlagsResetButton': 'Restablecer',
       'featureFlagsResetSuccess': 'Feature flags restablecidos',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Accesibilidad de Fuentes',
+      'featureFlagsFontSelectorVisible':
+          'Selector de fuentes se mostrara en Configuracion',
+      'featureFlagsFontSelectorHidden':
+          'Selector de fuentes oculto (solo fuente predeterminada)',
+      'fontDescriptionRoboto': 'Fuente predeterminada del sistema',
+      'fontDescriptionOpenDyslexic':
+          'Fuente disenada para lectores con dislexia',
+      'fontDescriptionAtkinson':
+          'Fuente optimizada para lectores con baja vision',
+      'fontSelection': 'Fuente',
+      'fontSelectionDescription': 'Elige la fuente que mejor funcione para ti',
       'hours': 'horas',
       'hour': 'hora',
+
+      // Version Update
+      'updateAvailable': 'Actualizacion Disponible',
+      'updateRequired': 'Actualizacion Requerida',
+      'updateNow': 'Actualizar Ahora',
+      'later': 'Mas Tarde',
+      'newVersionAvailable': 'Version {0} disponible',
+      'updateRequiredMessage':
+          'Se requiere una nueva version para continuar usando esta aplicacion. Por favor actualiza ahora.',
+      'currentVersionLabel': 'Version actual:',
+      'requiredVersionLabel': 'Version requerida:',
+      'whatsNew': 'Novedades',
+      'checkForUpdates': 'Buscar actualizaciones',
+      'youAreUpToDate': 'Esta actualizado',
     },
     'fr': {
       // General
@@ -980,7 +1051,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': "Menu de l'application",
       'dataManagement': 'Gestion des Donnees',
-      'addExampleData': 'Ajouter des Donnees Exemple',
+      'exportData': 'Exporter les Donnees',
+      'importData': 'Importer les Donnees',
+      'exportSuccess': 'Donnees exportees avec succes',
+      'exportFailed': "Echec de l'exportation des donnees",
+      'importSuccess': '{0} enregistrements importes',
+      'importFailed': "Echec de l'importation des donnees: {0}",
+      'importConfirmTitle': 'Importer les Donnees',
+      'importConfirmMessage':
+          'Cela importera les donnees du fichier selectionne. '
+          'Les enregistrements existants seront conserves. Continuer?',
       'clinicalTrialLabel': 'Essai Clinique',
       'instructionsAndFeedback': 'Instructions et Commentaires',
 
@@ -1096,8 +1176,35 @@ class AppLocalizations {
           'Reinitialiser tous les feature flags a leurs valeurs par defaut?',
       'featureFlagsResetButton': 'Reinitialiser',
       'featureFlagsResetSuccess': 'Feature flags reinitialises',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Accessibilite des Polices',
+      'featureFlagsFontSelectorVisible':
+          'Selecteur de polices affiche dans Parametres',
+      'featureFlagsFontSelectorHidden':
+          'Selecteur de polices masque (police par defaut uniquement)',
+      'fontDescriptionRoboto': 'Police par defaut du systeme',
+      'fontDescriptionOpenDyslexic':
+          'Police concue pour les lecteurs dyslexiques',
+      'fontDescriptionAtkinson':
+          'Police optimisee pour les lecteurs malvoyants',
+      'fontSelection': 'Police',
+      'fontSelectionDescription': 'Choisissez la police qui vous convient',
       'hours': 'heures',
       'hour': 'heure',
+
+      // Version Update
+      'updateAvailable': 'Mise a Jour Disponible',
+      'updateRequired': 'Mise a Jour Requise',
+      'updateNow': 'Mettre a Jour',
+      'later': 'Plus Tard',
+      'newVersionAvailable': 'La version {0} est disponible',
+      'updateRequiredMessage':
+          'Une nouvelle version est requise pour continuer a utiliser cette application. Veuillez mettre a jour maintenant.',
+      'currentVersionLabel': 'Version actuelle:',
+      'requiredVersionLabel': 'Version requise:',
+      'whatsNew': 'Nouveautes',
+      'checkForUpdates': 'Rechercher des mises a jour',
+      'youAreUpToDate': 'Vous etes a jour',
     },
     'de': {
       // General
@@ -1338,7 +1445,16 @@ class AppLocalizations {
       // Logo menu
       'appMenu': 'App-Menu',
       'dataManagement': 'Datenverwaltung',
-      'addExampleData': 'Beispieldaten hinzufugen',
+      'exportData': 'Daten exportieren',
+      'importData': 'Daten importieren',
+      'exportSuccess': 'Daten erfolgreich exportiert',
+      'exportFailed': 'Fehler beim Exportieren der Daten',
+      'importSuccess': '{0} Datensatze importiert',
+      'importFailed': 'Fehler beim Importieren der Daten: {0}',
+      'importConfirmTitle': 'Daten importieren',
+      'importConfirmMessage':
+          'Dadurch werden Daten aus der ausgewahlten Datei importiert. '
+          'Vorhandene Datensatze werden beibehalten. Fortfahren?',
       'clinicalTrialLabel': 'Klinische Studie',
       'instructionsAndFeedback': 'Anleitungen & Feedback',
 
@@ -1454,8 +1570,34 @@ class AppLocalizations {
           'Alle Feature Flags auf Standardwerte zurucksetzen?',
       'featureFlagsResetButton': 'Zurucksetzen',
       'featureFlagsResetSuccess': 'Feature Flags zuruckgesetzt',
+      // CUR-528: Font feature flags
+      'featureFlagsSectionFonts': 'Schriftarten-Barrierefreiheit',
+      'featureFlagsFontSelectorVisible':
+          'Schriftartenauswahl wird in Einstellungen angezeigt',
+      'featureFlagsFontSelectorHidden':
+          'Schriftartenauswahl ausgeblendet (nur Standardschrift)',
+      'fontDescriptionRoboto': 'Systemstandardschrift',
+      'fontDescriptionOpenDyslexic':
+          'Schrift fur Leser mit Legasthenie entwickelt',
+      'fontDescriptionAtkinson': 'Schrift fur sehbehinderte Leser optimiert',
+      'fontSelection': 'Schriftart',
+      'fontSelectionDescription': 'Wahlen Sie die Schriftart die fur Sie passt',
       'hours': 'Stunden',
       'hour': 'Stunde',
+
+      // Version Update
+      'updateAvailable': 'Update Verfugbar',
+      'updateRequired': 'Update Erforderlich',
+      'updateNow': 'Jetzt Aktualisieren',
+      'later': 'Spater',
+      'newVersionAvailable': 'Version {0} ist verfugbar',
+      'updateRequiredMessage':
+          'Eine neue Version ist erforderlich, um diese App weiter zu verwenden. Bitte jetzt aktualisieren.',
+      'currentVersionLabel': 'Aktuelle Version:',
+      'requiredVersionLabel': 'Erforderliche Version:',
+      'whatsNew': 'Was ist neu',
+      'checkForUpdates': 'Nach Updates suchen',
+      'youAreUpToDate': 'Sie sind auf dem neuesten Stand',
     },
   };
 
@@ -1719,7 +1861,16 @@ class AppLocalizations {
   // Logo menu
   String get appMenu => translate('appMenu');
   String get dataManagement => translate('dataManagement');
-  String get addExampleData => translate('addExampleData');
+  String get exportData => translate('exportData');
+  String get importData => translate('importData');
+  String get exportSuccess => translate('exportSuccess');
+  String get exportFailed => translate('exportFailed');
+  String importSuccess(int count) =>
+      translateWithParams('importSuccess', [count]);
+  String importFailed(String error) =>
+      translateWithParams('importFailed', [error]);
+  String get importConfirmTitle => translate('importConfirmTitle');
+  String get importConfirmMessage => translate('importConfirmMessage');
   String get clinicalTrialLabel => translate('clinicalTrialLabel');
   String get instructionsAndFeedback => translate('instructionsAndFeedback');
 
@@ -1831,6 +1982,33 @@ class AppLocalizations {
       translate('featureFlagsResetConfirmation');
   String get featureFlagsResetButton => translate('featureFlagsResetButton');
   String get featureFlagsResetSuccess => translate('featureFlagsResetSuccess');
+
+  // CUR-528: Font feature flags
+  String get featureFlagsSectionFonts => translate('featureFlagsSectionFonts');
+  String get featureFlagsFontSelectorVisible =>
+      translate('featureFlagsFontSelectorVisible');
+  String get featureFlagsFontSelectorHidden =>
+      translate('featureFlagsFontSelectorHidden');
+  String get fontDescriptionRoboto => translate('fontDescriptionRoboto');
+  String get fontDescriptionOpenDyslexic =>
+      translate('fontDescriptionOpenDyslexic');
+  String get fontDescriptionAtkinson => translate('fontDescriptionAtkinson');
+  String get fontSelection => translate('fontSelection');
+  String get fontSelectionDescription => translate('fontSelectionDescription');
+
+  // Version Update
+  String get updateAvailable => translate('updateAvailable');
+  String get updateRequired => translate('updateRequired');
+  String get updateNow => translate('updateNow');
+  String get later => translate('later');
+  String newVersionAvailable(String version) =>
+      translateWithParams('newVersionAvailable', [version]);
+  String get updateRequiredMessage => translate('updateRequiredMessage');
+  String get currentVersionLabel => translate('currentVersionLabel');
+  String get requiredVersionLabel => translate('requiredVersionLabel');
+  String get whatsNew => translate('whatsNew');
+  String get checkForUpdates => translate('checkForUpdates');
+  String get youAreUpToDate => translate('youAreUpToDate');
 }
 
 class _AppLocalizationsDelegate

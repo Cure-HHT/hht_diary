@@ -1,0 +1,52 @@
+{
+  "exportVersion": 1,
+  "exportedAt": "2025-12-14T12:30:50.988",
+  "appVersion": "0.7.82",
+  "deviceUuid": "2c86d318-24a7-4fa3-aea9-852a4fe8894e",
+  "featureFlags": {
+    "sponsorId": null,
+    "useReviewScreen": false,
+    "useAnimations": true,
+    "requireOldEntryJustification": false,
+    "enableShortDurationConfirmation": false,
+    "enableLongDurationConfirmation": false,
+    "longDurationThresholdMinutes": 60,
+    "useOnePageRecordingScreen": false,
+    "availableFonts": [
+      "Roboto",
+      "OpenDyslexic",
+      "AtkinsonHyperlegible"
+    ]
+  },
+  "userPreferences": {
+    "isDarkMode": false,
+    "largerTextAndControls": false,
+    "useAnimation": true,
+    "compactView": false,
+    "languageCode": "en",
+    "selectedFont": "Roboto"
+  },
+  "timezone": {
+    "name": "Central European Standard Time",
+    "offsetHours": 1,
+    "offsetMinutes": 0
+  },
+  "nosebleedRecords": [
+    {
+      "id": "1447b94e-ca4b-46a4-a515-ba65a90b4715",
+      "startTime": "2025-12-14T12:30:41.446",
+      "endTime": "2025-12-14T12:30:41.446",
+      "intensity": "gushing",
+      "notes": null,
+      "isNoNosebleedsEvent": false,
+      "isUnknownEvent": false,
+      "isIncomplete": false,
+      "isDeleted": false,
+      "deleteReason": null,
+      "parentRecordId": null,
+      "deviceUuid": "2c86d318-24a7-4fa3-aea9-852a4fe8894e",
+      "createdAt": "2025-12-14T11:30:45.347",
+      "syncedAt": null
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Audience**: Product Requirements
 **Last Updated**: 2025-12-02
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-system.md for platform overview
 > **See**: prd-diary-app.md for mobile application requirements
@@ -13,7 +13,7 @@
 
 # REQ-p00049: Ancillary Platform Services
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Active
+**Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
 Supporting services enabling platform functionality including push notifications, email delivery, reporting, and integration capabilities.
 

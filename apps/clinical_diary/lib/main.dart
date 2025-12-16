@@ -8,17 +8,22 @@
 import 'dart:async';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
+import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/auth_service.dart';
+import 'package:clinical_diary/services/data_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/widgets/environment_banner.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
+import 'package:clinical_diary/widgets/update_banner_wrapper.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -89,6 +94,14 @@ void main() async {
       // Timezone is now embedded in ISO 8601 timestamp strings via DateTimeFormatter.
       // No separate TimezoneService initialization needed.
 
+      // CUR-546: Load Callisto feature flags by default for demo
+      try {
+        await FeatureFlagService.instance.loadFromServer('callisto');
+      } catch (e, stack) {
+        debugPrint('Feature flag loading error: $e');
+        debugPrint('Stack trace:\n$stack');
+      }
+
       runApp(const ClinicalDiaryApp());
     },
     (error, stack) {
@@ -111,8 +124,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   ThemeMode _themeMode = ThemeMode.light;
   // CUR-488: Larger text and controls preference
   bool _largerTextAndControls = false;
-  // CUR-509: Dyslexia-friendly font preference
-  bool _useDyslexicFont = false;
+  // CUR-528: Selected font family
+  String _selectedFont = 'Roboto';
   final PreferencesService _preferencesService = PreferencesService();
 
   @override
@@ -129,8 +142,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
       _themeMode = ThemeMode.light;
       // CUR-488: Load larger text preference
       _largerTextAndControls = prefs.largerTextAndControls;
-      // CUR-509: Load dyslexia-friendly font preference
-      _useDyslexicFont = prefs.dyslexiaFriendlyFont;
+      // CUR-528: Load selected font preference
+      _selectedFont = prefs.selectedFont;
     });
   }
 
@@ -154,10 +167,10 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
     });
   }
 
-  // CUR-509: Update dyslexia-friendly font preference
-  void _setDyslexicFont(bool value) {
+  // CUR-528: Update selected font preference
+  void _setFont(String fontFamily) {
     setState(() {
-      _useDyslexicFont = value;
+      _selectedFont = fontFamily;
     });
   }
 
@@ -170,9 +183,9 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
         // Show Flutter debug banner in debug mode (top-right corner)
         // Environment ribbon (DEV/QA) shows in top-left corner
         debugShowCheckedModeBanner: kDebugMode,
-        // CUR-509: Use theme with dyslexia-friendly font when enabled
-        theme: AppTheme.getLightTheme(useDyslexicFont: _useDyslexicFont),
-        darkTheme: AppTheme.getDarkTheme(useDyslexicFont: _useDyslexicFont),
+        // CUR-528: Use theme with selected font
+        theme: AppTheme.getLightThemeWithFont(fontFamily: _selectedFont),
+        darkTheme: AppTheme.getDarkThemeWithFont(fontFamily: _selectedFont),
         themeMode: _themeMode,
         locale: _locale,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -201,7 +214,7 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
           onLocaleChanged: _setLocale,
           onThemeModeChanged: _setThemeMode,
           onLargerTextChanged: _setLargerTextAndControls,
-          onDyslexicFontChanged: _setDyslexicFont,
+          onFontChanged: _setFont,
           preferencesService: _preferencesService,
         ),
       ),
@@ -214,7 +227,7 @@ class AppRoot extends StatefulWidget {
     required this.onLocaleChanged,
     required this.onThemeModeChanged,
     required this.onLargerTextChanged,
-    required this.onDyslexicFontChanged,
+    required this.onFontChanged,
     required this.preferencesService,
     super.key,
   });
@@ -223,8 +236,8 @@ class AppRoot extends StatefulWidget {
   final ValueChanged<bool> onThemeModeChanged;
   // CUR-488: Callback for larger text preference changes
   final ValueChanged<bool> onLargerTextChanged;
-  // CUR-509: Callback for dyslexia-friendly font preference changes
-  final ValueChanged<bool> onDyslexicFontChanged;
+  // CUR-528: Callback for font selection changes
+  final ValueChanged<String> onFontChanged;
   final PreferencesService preferencesService;
 
   @override
@@ -240,21 +253,65 @@ class _AppRootState extends State<AppRoot> {
   void initState() {
     super.initState();
     _nosebleedService = NosebleedService(enrollmentService: _enrollmentService);
+    _performAutoImport();
+  }
+
+  /// Auto-import data from file if IMPORT_FILE was specified via dart-define.
+  /// This is useful for testing with pre-populated data.
+  Future<void> _performAutoImport() async {
+    if (!AppConfig.hasImportFile) return;
+
+    debugPrint(
+      '[AutoImport] IMPORT_FILE specified: ${AppConfig.importFilePath}',
+    );
+
+    try {
+      final fileContent = await FileReadService.readFile(
+        AppConfig.importFilePath,
+      );
+
+      if (fileContent == null) {
+        debugPrint('[AutoImport] Could not read file');
+        return;
+      }
+
+      final exportService = DataExportService(
+        nosebleedService: _nosebleedService,
+        preferencesService: widget.preferencesService,
+        enrollmentService: _enrollmentService,
+      );
+
+      final result = await exportService.importAppState(fileContent);
+
+      if (result.success) {
+        debugPrint(
+          '[AutoImport] Success: ${result.recordsImported} records imported',
+        );
+      } else {
+        debugPrint('[AutoImport] Failed: ${result.error}');
+      }
+    } catch (e, stack) {
+      debugPrint('[AutoImport] Error: $e');
+      debugPrint('[AutoImport] Stack: $stack');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     // Go directly to home screen - clinical trial enrollment is accessed
     // from the user profile menu, not at app startup
-    return HomeScreen(
-      nosebleedService: _nosebleedService,
-      enrollmentService: _enrollmentService,
-      authService: _authService,
-      onLocaleChanged: widget.onLocaleChanged,
-      onThemeModeChanged: widget.onThemeModeChanged,
-      onLargerTextChanged: widget.onLargerTextChanged,
-      onDyslexicFontChanged: widget.onDyslexicFontChanged,
-      preferencesService: widget.preferencesService,
+    // CUR-513: Wrap with UpdateBannerWrapper for version update notifications
+    return UpdateBannerWrapper(
+      child: HomeScreen(
+        nosebleedService: _nosebleedService,
+        enrollmentService: _enrollmentService,
+        authService: _authService,
+        onLocaleChanged: widget.onLocaleChanged,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onLargerTextChanged: widget.onLargerTextChanged,
+        onFontChanged: widget.onFontChanged,
+        preferencesService: widget.preferencesService,
+      ),
     );
   }
 }

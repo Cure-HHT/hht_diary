@@ -20,30 +20,14 @@ import json
 import argparse
 from pathlib import Path
 
+# Import shared utilities
+from common import get_repo_root, setup_python_path, normalize_req_id
+
 # Add tools/requirements to Python path for imports
-# __file__ is in: tools/anspar-cc-plugins/plugins/simple-requirements/scripts/get-requirement.py
-# repo_root is 5 levels up
-repo_root = Path(__file__).resolve().parents[5]
-sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
+setup_python_path()
+repo_root = get_repo_root()
 
 from validate_requirements import RequirementValidator, Requirement
-
-
-def normalize_req_id(req_id: str) -> str:
-    """
-    Normalize requirement ID to standard format (without REQ- prefix).
-
-    Args:
-        req_id: Requirement ID (e.g., "REQ-d00027" or "d00027")
-
-    Returns:
-        Normalized ID (e.g., "d00027")
-    """
-    # Remove REQ- prefix if present
-    if req_id.upper().startswith('REQ-'):
-        req_id = req_id[4:]
-
-    return req_id.lower()
 
 
 def format_requirement_markdown(req: Requirement) -> str:

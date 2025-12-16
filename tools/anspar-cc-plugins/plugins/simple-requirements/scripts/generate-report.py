@@ -17,8 +17,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 
-# Repo root
-repo_root = Path(__file__).resolve().parents[5]
+# Import shared utilities
+from common import load_tracking_file
 
 
 def load_analyses_from_file(file_path: Path) -> List[Dict]:
@@ -30,14 +30,11 @@ def load_analyses_from_file(file_path: Path) -> List[Dict]:
 
 def load_from_tracking_file() -> List[Dict]:
     """Load outdated requirements from tracking file"""
-    tracking_file = repo_root / 'untracked-notes' / 'outdated-implementations.json'
-
-    if not tracking_file.exists():
-        return []
-
-    with tracking_file.open('r') as f:
-        data = json.load(f)
+    try:
+        data = load_tracking_file()
         return data.get('outdated_requirements', [])
+    except FileNotFoundError:
+        return []
 
 
 def generate_markdown_report(analyses: List[Dict], title: str = "Requirement Verification Report") -> str:

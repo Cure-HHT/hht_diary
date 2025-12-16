@@ -301,7 +301,7 @@ Code comments explain HOW the code implements requirements, but they don't defin
 ```markdown
 # REQ-p00031: Multi-Sponsor Data Isolation
 
-**Level**: PRD | **Implements**: - | **Status**: Active
+**Level**: PRD | **Implements**: - | **Status**: Draft
 
 The system SHALL ensure complete data isolation between pharmaceutical sponsors
 such that no user, administrator, or automated process can access data belonging
@@ -330,7 +330,7 @@ cross-sponsor access. Critical for regulatory compliance and sponsor trust.
 ```markdown
 # REQ-o00056: Separate GCP Projects Per Sponsor
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Active
+**Level**: Ops | **Implements**: p00001 | **Status**: Draft
 
 Each sponsor SHALL be provisioned with a dedicated GCP project containing:
 - Isolated Cloud SQL PostgreSQL database
@@ -355,7 +355,7 @@ using GCP project isolation guarantees.
 ```markdown
 # REQ-d00012: Environment-Specific Configuration Files
 
-**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
+**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Draft
 
 
 The application SHALL load sponsor-specific configuration from environment files
@@ -546,7 +546,7 @@ High-level section divider (organizational/navigational)
 # REQ-pXXXXX: {Requirement Title}
 Formal product requirement with complete metadata
 
-**Level**: PRD | **Implements**: {parent-ids} | **Status**: Active
+**Level**: PRD | **Implements**: {parent-ids} | **Status**: Draft
 [requirement body with SHALL/MUST language]
 **Rationale**: [why it exists]
 **Acceptance Criteria**: [testable conditions]

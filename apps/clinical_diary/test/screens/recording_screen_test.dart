@@ -1157,13 +1157,13 @@ class FailingNosebleedService extends NosebleedService {
   Future<NosebleedRecord> addRecord({
     required DateTime startTime,
     DateTime? endTime,
-    String? startTimezone,
-    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
     String? parentRecordId,
+    String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     throw Exception('Simulated save failure');
   }
@@ -1173,12 +1173,12 @@ class FailingNosebleedService extends NosebleedService {
     required String originalRecordId,
     required DateTime startTime,
     DateTime? endTime,
-    String? startTimezone,
-    String? endTimezone,
     NosebleedIntensity? intensity,
     String? notes,
     bool isNoNosebleedsEvent = false,
     bool isUnknownEvent = false,
+    String? startTimeTimezone,
+    String? endTimeTimezone,
   }) async {
     throw Exception('Simulated update failure');
   }

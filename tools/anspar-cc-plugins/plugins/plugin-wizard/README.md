@@ -423,7 +423,7 @@ Each script does **one thing well**:
 Plugins can use other plugins' scripts:
 
 ```bash
-# Use linear-api plugin to fetch ticket
+# Use linear-api plugin scripts directly
 bash ../linear-api/scripts/fetch-ticket.sh --id="$TICKET_ID"
 ```
 

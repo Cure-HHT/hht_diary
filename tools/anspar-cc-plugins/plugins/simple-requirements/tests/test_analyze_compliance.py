@@ -187,11 +187,13 @@ class TestWithoutAPIKey:
     """Test behavior when ANTHROPIC_API_KEY is not set"""
 
     def test_graceful_degradation_without_api_key(self):
-        """Should run without API key and indicate analysis unavailable"""
+        """Should run without API key - either via Claude Code CLI fallback or graceful degradation"""
         import os
+        import shutil
 
         # Temporarily remove API key from environment
         old_key = os.environ.pop('ANTHROPIC_API_KEY', None)
+        has_claude_code = shutil.which('claude') is not None
 
         try:
             test_file = PLUGIN_ROOT / 'tests' / 'test.py'
@@ -202,7 +204,7 @@ class TestWithoutAPIKey:
                     ['python3', str(SCRIPT_PATH), 'd00001', '--file', str(test_file), '--format', 'json'],
                     capture_output=True,
                     text=True,
-                    timeout=30,
+                    timeout=120,  # Longer timeout if Claude Code is used
                     env={**os.environ, 'ANTHROPIC_API_KEY': ''}  # Ensure it's not set
                 )
 
@@ -214,9 +216,15 @@ class TestWithoutAPIKey:
                     assert 'analyses' in data
                     if data['analyses']:
                         analysis = data['analyses'][0]
-                        # Should indicate analysis unavailable
-                        assert 'unavailable' in analysis['changes_summary'].lower() or \
-                               'UNKNOWN' in analysis['risk_level']
+                        if has_claude_code:
+                            # If Claude Code CLI is available, analysis may succeed
+                            # or indicate Claude Code error
+                            assert 'changes_summary' in analysis
+                            assert 'risk_level' in analysis
+                        else:
+                            # Without any AI backend, should indicate unavailable
+                            assert 'unavailable' in analysis['changes_summary'].lower() or \
+                                   'UNKNOWN' in analysis['risk_level']
 
             finally:
                 if test_file.exists():
@@ -237,7 +245,7 @@ class TestAutoScan:
             ['python3', str(SCRIPT_PATH), 'd00001', '--auto-scan', '--format', 'json'],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=180  # Longer timeout for Claude Code CLI analysis
         )
 
         # May succeed or fail depending on whether implementations found

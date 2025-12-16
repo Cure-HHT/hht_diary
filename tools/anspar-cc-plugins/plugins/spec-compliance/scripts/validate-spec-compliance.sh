@@ -143,7 +143,8 @@ validate_requirement_format() {
 
     local violations=0
 
-    echo "$requirements" | while IFS=: read -r line_num line_content; do
+    # Use process substitution to avoid subshell variable scope issue
+    while IFS=: read -r line_num line_content; do
         # Pattern: ### REQ-{p|o|d}00{number}: Title
         if [[ ! "$line_content" =~ ^###\ REQ-[pod][0-9]{5}:\ .+ ]]; then
             echo -e "${RED}  ❌ Invalid requirement format at line $line_num${NC}"
@@ -152,7 +153,7 @@ validate_requirement_format() {
             echo "     See: spec/requirements-format.md"
             violations=$((violations + 1))
         fi
-    done
+    done <<< "$requirements"
 
     if [ $violations -gt 0 ]; then
         return 1

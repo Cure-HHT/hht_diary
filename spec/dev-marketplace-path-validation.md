@@ -1,6 +1,6 @@
 # REQ-d00065: Plugin Path Validation
 
-**Level**: Dev | **Implements**: d00064 | **Status**: Active
+**Level**: Dev | **Implements**: d00064 | **Status**: Draft
 
 ## Overview
 

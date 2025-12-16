@@ -22,9 +22,12 @@ import re
 from pathlib import Path
 from datetime import datetime, timezone
 
+# Import shared utilities
+from common import get_repo_root, setup_python_path
+
 # Add tools/requirements to Python path
-repo_root = Path(__file__).resolve().parents[5]
-sys.path.insert(0, str(repo_root / 'tools' / 'requirements'))
+setup_python_path()
+repo_root = get_repo_root()
 
 from validate_requirements import RequirementValidator, calculate_requirement_hash
 

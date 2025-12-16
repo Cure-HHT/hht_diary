@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Development (Software Engineers, Application Developers)
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: ops-deployment.md for deployment and environment configuration
 > **See**: prd-security.md for security requirements
@@ -29,7 +29,7 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 # REQ-d00001: Sponsor-Specific Configuration Loading
 
-**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Active
+**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Draft
 
 The application SHALL load sponsor-specific configuration from environment variables that specify GCP connection parameters and sponsor settings.
 
@@ -222,7 +222,7 @@ void main() async {
 
 # REQ-d00002: Pre-Build Configuration Validation
 
-**Level**: Dev | **Implements**: o00002 | **Status**: Active
+**Level**: Dev | **Implements**: o00002 | **Status**: Draft
 
 The build system SHALL validate sponsor configuration before compilation begins.
 

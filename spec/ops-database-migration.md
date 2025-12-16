@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Audience**: Operations (Database Administrators, DevOps Engineers)
 **Last Updated**: 2025-11-24
-**Status**: Active
+**Status**: Draft
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
 > **See**: dev-database.md for database schema details
