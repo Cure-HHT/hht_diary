@@ -250,7 +250,7 @@ Event Sourcing is the architectural approach used to store clinical trial data. 
 2. See latest values
 3. Can click to see full history if needed
 
-*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: 0c0b0807
+*End* *Immutable Audit Trail via Event Sourcing* | **Hash**: a8d76032
 
 ---
 

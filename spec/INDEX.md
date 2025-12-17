@@ -69,22 +69,11 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 5c269c11 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | b407570f |
 | REQ-d00064 | dev-ai-claude.md | Plugin JSON Validation Tooling | e325d07b |
-| REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | e325d07b |
 | REQ-d00065 | dev-ai-claude.md | Plugin Path Validation | 770482b7 |
-| REQ-d00065 | dev-marketplace-path-validation.md | Plugin Path Validation | 770482b7 |
 | REQ-d00066 | dev-marketplace-permissions.md | Plugin-Specific Permission Management | 0dd52eec |
 | REQ-d00067 | dev-ai-claude.md | Streamlined Ticket Creation Agent | 335415e6 |
-| REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-ai-claude.md | Enhanced Workflow New Work Detection | f5f3570e |
-| REQ-d00068 | dev-marketplace-workflow-detection.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
-| REQ-d00070 | dev-CDISC.md | CDASH Field Mapping Implementation | 7ff9716c |
-| REQ-d00071 | dev-CDISC.md | SDTM Domain Transformation Implementation | 1286bfd8 |
-| REQ-d00072 | dev-CDISC.md | ODM-XML Export Implementation | f1b48f69 |
-| REQ-d00073 | dev-CDISC.md | Define-XML Metadata Generation | 4a4d28cd |
-| REQ-d00074 | dev-CDISC.md | CDISC Controlled Terminology Implementation | 772bf977 |
-| REQ-d00075 | dev-CDISC.md | EDC Data Transformation Specification | cd5b72f1 |
-| REQ-d00076 | dev-CDISC.md | Clinical Data Export Formats | 718bd3af |
 | REQ-d00077 | dev-diary-web.md | Web Diary Frontend Framework | c59bc3ef |
 | REQ-d00078 | dev-diary-web.md | HHT Diary Auth Service | 774a18da |
 | REQ-d00079 | dev-diary-web.md | Linking Code Pattern Matching | da7b9bb0 |
@@ -143,20 +132,20 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-o00063 | ops-SLA.md | Error Budget Alerting | 60d8b564 |
 | REQ-o00064 | ops-SLA.md | Maintenance Window Management | 3732f8ca |
 | REQ-o00065 | ops-system.md | Clinical Trial Diary Platform Operations | 371ff818 |
-| REQ-o00066 | ops-system.md | Multi-Framework Compliance Automation | 3fe90d65 |
+| REQ-o00066 | ops-system.md | Multi-Framework Compliance Automation | d148d026 |
 | REQ-o00067 | ops-system.md | Automated Compliance Evidence Collection | 040c6a7c |
 | REQ-o00068 | ops-system.md | Automated Access Review | a48497b6 |
 | REQ-o00069 | ops-system.md | Encryption Verification | c0f366df |
 | REQ-o00070 | ops-system.md | Data Residency Enforcement | 8db4eca1 |
 | REQ-o00071 | ops-system.md | Automated Incident Detection | e946a022 |
-| REQ-o00072 | ops-system.md | Regulatory Breach Notification | 1cc47c97 |
-| REQ-o00073 | ops-system.md | Automated Change Control | 5de927bf |
+| REQ-o00072 | ops-system.md | Regulatory Breach Notification | c52f30e7 |
+| REQ-o00073 | ops-system.md | Automated Change Control | cb807e9b |
 | REQ-o00074 | ops-system.md | Automated Backup Verification | d580ec6f |
-| REQ-o00075 | ops-system.md | Third-Party Security Assessment | 37ea948b |
+| REQ-o00075 | ops-system.md | Third-Party Security Assessment | 4d0d53e7 |
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |
-| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | 0c0b0807 |
+| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | a8d76032 |
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control | 692bc7bd |
 | REQ-p00006 | prd-diary-app.md | Offline-First Data Entry | c5ff6bf6 |
 | REQ-p00007 | prd-diary-app.md | Automatic Sponsor Configuration | b90eb7ab |
@@ -188,11 +177,10 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00038 | prd-security-RLS.md | Auditor Compliance Access | 6324bf04 |
 | REQ-p00039 | prd-security-RLS.md | Administrator Access with Audit Trail | e8a3d480 |
 | REQ-p00040 | prd-security-RLS.md | Event Sourcing State Protection | 0e94f5cf |
-| REQ-p00041 | prd-standards.md | CDISC Standards Compliance | bd86de7e |
 | REQ-p00042 | prd-epistaxis-terminology.md | HHT Epistaxis Data Capture Standard | e2501d13 |
 | REQ-p00043 | prd-diary-app.md | Clinical Diary Mobile Application | 5062a707 |
 | REQ-p00044 | prd-system.md | Clinical Trial Diary Platform | 0e8a8d5b |
-| REQ-p00045 | prd-portal.md | Sponsor Portal Application | 0a9ccb54 |
+| REQ-p00045 | prd-portal.md | Sponsor Portal Application | 0f70e13b |
 | REQ-p00046 | prd-database.md | Clinical Data Storage System | d8a1fdf2 |
 | REQ-p00047 | prd-backup.md | Data Backup and Archival | 4e13d1c2 |
 | REQ-p00048 | prd-devops.md | Platform Operations and Monitoring | b06492a0 |

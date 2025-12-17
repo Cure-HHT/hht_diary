@@ -85,7 +85,7 @@ Multi-framework compliance SHALL include:
 - No duplicate controls for equivalent requirements
 - Compliance status reportable per-framework on demand
 
-*End* *Multi-Framework Compliance Automation* | **Hash**: 3fe90d65
+*End* *Multi-Framework Compliance Automation* | **Hash**: d148d026
 
 ---
 
@@ -288,7 +288,7 @@ Breach notification workflow SHALL include:
 - Notification evidence archived for audit
 - Post-breach analysis workflow initiated automatically
 
-*End* *Regulatory Breach Notification* | **Hash**: 1cc47c97
+*End* *Regulatory Breach Notification* | **Hash**: c52f30e7
 
 ---
 
@@ -326,7 +326,7 @@ Automated change control SHALL enforce:
 - Change audit trail exportable for compliance review
 - Emergency change process documented and auditable
 
-*End* *Automated Change Control* | **Hash**: 5de927bf
+*End* *Automated Change Control* | **Hash**: cb807e9b
 
 ---
 
@@ -398,7 +398,7 @@ Third-party assessment SHALL cover:
 - Third-party incident notification tested annually
 - Vendor security status visible in compliance dashboard
 
-*End* *Third-Party Security Assessment* | **Hash**: 37ea948b
+*End* *Third-Party Security Assessment* | **Hash**: 4d0d53e7
 
 ---
 

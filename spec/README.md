@@ -51,6 +51,25 @@ The `INDEX.md` file maintains a complete index of all requirements across spec/ 
 
 This ensures requirement traceability is maintained even for obsolete requirements.
 
+## Roadmap Directory (spec/roadmap/)
+
+The `spec/roadmap/` subdirectory contains **planned/future requirements** that are not yet active.
+
+**Key rules:**
+- Roadmap files follow the same naming convention as main spec/ files
+- Roadmap requirements are **NOT** included in `INDEX.md`
+- Roadmap files are **NOT** validated by the default validation workflow
+- Requirements may reference roadmap requirements via `Implements:` - validation will not fail, but these references are not tracked
+
+**When to use roadmap/:**
+- Planning future features before implementation begins
+- Drafting requirements that depend on unimplemented parent requirements
+- Staging large feature sets before promoting to active spec/
+
+**Promoting from roadmap to active:**
+1. Move the file from `spec/roadmap/` to `spec/`
+2. Add all requirements from the file to `INDEX.md`
+3. Run validation to ensure format compliance
 
 # Hierarchical File Naming Convention
 
