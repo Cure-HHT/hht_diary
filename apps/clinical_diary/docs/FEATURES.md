@@ -1408,5 +1408,5 @@ Key feature commits since November 21, 2024:
 ---
 
 *This document was generated on December 10, 2024 and represents the complete
-feature set of the Clinical Diary application after 13 working days of
+feature set of the Clinical Diary Mobile Application after 13 working days of
 development.*

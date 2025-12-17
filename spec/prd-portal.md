@@ -18,9 +18,11 @@
 
 **Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
-A sponsor-specific web application enabling clinical trial staff to manage users, enroll patients, monitor engagement, and access audit trails with complete sponsor data isolation.
+The Sponsor Portal is an **optional** system component, depending on the Sponsor's data collections system. This portal is **necessary** in configurations where the mobile App does not directly communicate with the Sponsor's chosen EDC. It may be deemed necessary for other reasons, specific to the Sponsor's requirements.  
 
-Sponsor portal SHALL provide:
+Example use cases: A sponsor-specific web application enabling clinical trial staff to manage users, enroll patients, monitor engagement, and access audit trails with complete sponsor data isolation.
+
+Sponsor portal MAY provide:
 - Role-based access for Admins, Investigators, and Auditors
 - Patient enrollment and monitoring workflows
 - Questionnaire management and distribution

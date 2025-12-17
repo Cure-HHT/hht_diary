@@ -372,13 +372,14 @@ class TraceabilityGenerator:
         self.repo_root = repo_root or spec_dir.parent  # Repository root for relative path calculation
         self._base_path = ''  # Relative path from output file to repo root (set during generate)
 
-    def generate(self, format: str = 'markdown', output_file: Path = None, embed_content: bool = False):
+    def generate(self, format: str = 'markdown', output_file: Path = None, embed_content: bool = False, edit_mode: bool = False):
         """Generate traceability matrix in specified format
 
         Args:
             format: Output format ('markdown', 'html', 'csv')
             output_file: Path to write output (default: traceability_matrix.{ext})
             embed_content: If True, embed full requirement content in HTML for portable viewing
+            edit_mode: If True, include edit mode UI for batch moving requirements
         """
         # Get git-modified files for "Modified" view detection
         # Returns (modified_files, untracked_files) - untracked are new files where all REQs are new
@@ -445,7 +446,7 @@ class TraceabilityGenerator:
         self._calculate_base_path(output_file)
 
         if format == 'html':
-            content = self._generate_html(embed_content=embed_content)
+            content = self._generate_html(embed_content=embed_content, edit_mode=edit_mode)
         elif format == 'csv':
             content = self._generate_csv()
         else:
@@ -974,6 +975,15 @@ class TraceabilityGenerator:
                 : `<button class="edit-btn to-roadmap panel-edit-btn" onclick="addPendingMove('${reqId}', '${req.file}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
                    <button class="edit-btn move-file panel-edit-btn" onclick="showMoveToFile('${reqId}', '${req.file}')" title="Move to different file">📁 Move</button>`;
 
+            // Generate VS Code link - use relative path when REPO_ROOT is empty (portable mode)
+            const repoRelPath = req.filePath.replace(/^\\.\\.\\//, '');
+            const vscodeHref = window.REPO_ROOT
+                ? `vscode://file/${window.REPO_ROOT}/${repoRelPath}:${req.line}`
+                : `${req.filePath}`;  // Relative link for portable mode
+            const vscodeTitle = window.REPO_ROOT
+                ? 'Open in VS Code'
+                : `Open file (${repoRelPath}:${req.line})`;
+
             card.innerHTML = `
                 <div class="req-card-header">
                     <span class="req-card-title">REQ-${reqId}: ${req.title}</span>
@@ -984,7 +994,7 @@ class TraceabilityGenerator:
                         <span class="badge">${req.level}</span>
                         <span class="badge">${req.status}</span>
                         <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); return false;" class="file-ref-link">${req.file}:${req.line}</a>
-                        <a href="vscode://file/${window.REPO_ROOT}/${req.filePath.replace(/^\\.\\.\\//, '')}:${req.line}" title="Open in VS Code" class="vscode-link">🔧</a>
+                        <a href="${vscodeHref}" title="${vscodeTitle}" class="vscode-link">🔧</a>
                     </div>
                     <div class="req-card-actions edit-actions">
                         ${moveButtons}
@@ -1073,12 +1083,20 @@ class TraceabilityGenerator:
             content.innerHTML = '<div class="loading">Loading...</div>';
             modal.classList.remove('hidden');
 
-            // Set VS Code link - convert relative path to absolute
-            if (window.REPO_ROOT && vscodeLink) {
+            // Set VS Code link - use absolute path when REPO_ROOT set, relative otherwise
+            if (vscodeLink) {
                 // Remove leading ../ from relative path to get repo-relative path
                 const repoRelPath = filePath.replace(/^\\.\\.\\//, '');
-                const absPath = window.REPO_ROOT + '/' + repoRelPath;
-                vscodeLink.href = `vscode://file/${absPath}:${lineNum}`;
+                if (window.REPO_ROOT) {
+                    // Local mode: use vscode:// protocol with absolute path
+                    const absPath = window.REPO_ROOT + '/' + repoRelPath;
+                    vscodeLink.href = `vscode://file/${absPath}:${lineNum}`;
+                    vscodeLink.title = 'Open in VS Code';
+                } else {
+                    // Portable mode: use relative file link
+                    vscodeLink.href = filePath;
+                    vscodeLink.title = `Open file (${repoRelPath}:${lineNum})`;
+                }
             }
 
             try {
@@ -2386,11 +2404,12 @@ class TraceabilityGenerator:
         }
 """
 
-    def _generate_html(self, embed_content: bool = False) -> str:
+    def _generate_html(self, embed_content: bool = False, edit_mode: bool = False) -> str:
         """Generate interactive HTML traceability matrix from markdown source
 
         Args:
             embed_content: If True, embed full requirement content as JSON and include side panel
+            edit_mode: If True, include edit mode UI for batch moving requirements
         """
         # First generate markdown to ensure consistency
         markdown_content = self._generate_markdown()
@@ -3071,12 +3090,10 @@ class TraceabilityGenerator:
             <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
             <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
             <span class="filter-stats" id="filterStats"></span>
-            <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
-                <button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button>
-            </span>
+            {'<span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;"><button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button></span>' if edit_mode else ''}
         </div>
 
-        <!-- Edit Mode Panel (hidden by default) -->
+        {'''<!-- Edit Mode Panel (hidden by default) -->
         <div id="editModePanel" class="edit-mode-panel" style="display: none;">
             <div class="edit-mode-header">
                 <div class="edit-mode-title">
@@ -3095,7 +3112,7 @@ class TraceabilityGenerator:
                 </div>
                 <div id="pendingMovesList" class="pending-moves-list"></div>
             </div>
-        </div>
+        </div>''' if edit_mode else ''}
 
         <h2 id="treeTitle">Traceability Tree - Flat View</h2>
 
@@ -3156,10 +3173,14 @@ class TraceabilityGenerator:
 
         html += """                </select>
             </div>
-            <div class="filter-column edit-mode-column" style="display: none;">
+"""
+        # Add edit mode column header only if edit mode is enabled
+        if edit_mode:
+            html += """            <div class="filter-column edit-mode-column" style="display: none;">
                 <div class="filter-label">Destination</div>
             </div>
-        </div>
+"""
+        html += """        </div>
 
         <div class="req-tree" id="reqTree">
 """
@@ -3167,7 +3188,7 @@ class TraceabilityGenerator:
         # Add requirements and implementation files as flat list (hierarchy via indentation)
         flat_list = self._build_flat_requirement_list()
         for item_data in flat_list:
-            html += self._format_item_flat_html(item_data, embed_content=embed_content)
+            html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)
 
         html += """        </div>
     </div>
@@ -3201,7 +3222,8 @@ class TraceabilityGenerator:
     <script>
         // Load REQ content data into global scope
         window.REQ_CONTENT_DATA = JSON.parse(document.getElementById('req-content-data').textContent);
-        // Repository root for VS Code links
+        // Repository root for VS Code links (absolute path required for vscode:// protocol)
+        // Note: VS Code links only work on the machine where this file was generated
         window.REPO_ROOT = '{repo_root_str}';
     </script>
 """
@@ -3742,21 +3764,22 @@ class TraceabilityGenerator:
         for child in children:
             self._add_requirement_and_children(child, flat_list, indent + 1, instance_id, current_path)
 
-    def _format_item_flat_html(self, item_data: dict, embed_content: bool = False) -> str:
+    def _format_item_flat_html(self, item_data: dict, embed_content: bool = False, edit_mode: bool = False) -> str:
         """Format a single item (requirement or implementation file) as flat HTML row
 
         Args:
             item_data: Dictionary containing item data
             embed_content: If True, use onclick handlers instead of href links for portability
+            edit_mode: If True, include edit mode UI elements
         """
         item_type = item_data.get('item_type', 'requirement')
 
         if item_type == 'implementation':
-            return self._format_impl_file_html(item_data, embed_content)
+            return self._format_impl_file_html(item_data, embed_content, edit_mode)
         else:
-            return self._format_req_html(item_data, embed_content)
+            return self._format_req_html(item_data, embed_content, edit_mode)
 
-    def _format_impl_file_html(self, item_data: dict, embed_content: bool = False) -> str:
+    def _format_impl_file_html(self, item_data: dict, embed_content: bool = False, edit_mode: bool = False) -> str:
         """Format an implementation file as a child row"""
         file_path = item_data['file_path']
         line_num = item_data['line_num']
@@ -3772,11 +3795,15 @@ class TraceabilityGenerator:
             link = f"{self._base_path}{file_path}#L{line_num}"
             file_link = f'<a href="{link}" style="color: #0066cc;">{file_path}:{line_num}</a>'
 
-        # Add VS Code link for opening in editor
+        # Add VS Code link for opening in editor (always uses vscode:// protocol)
+        # Note: VS Code links only work on the machine where this file was generated
         abs_file_path = self.repo_root / file_path
         vscode_url = f"vscode://file/{abs_file_path}:{line_num}"
         vscode_link = f'<a href="{vscode_url}" title="Open in VS Code" class="vscode-link">🔧</a>'
         file_link = f'{file_link}{vscode_link}'
+
+        # Edit mode destination column (only if edit mode enabled)
+        edit_column = '<div class="req-destination edit-mode-column"></div>' if edit_mode else ''
 
         # Build HTML for implementation file row
         html = f"""
@@ -3791,19 +3818,20 @@ class TraceabilityGenerator:
                     <div class="req-coverage"></div>
                     <div class="req-status"></div>
                     <div class="req-location"></div>
-                    <div class="req-destination edit-mode-column"></div>
+                    {edit_column}
                 </div>
             </div>
         </div>
 """
         return html
 
-    def _format_req_html(self, req_data: dict, embed_content: bool = False) -> str:
+    def _format_req_html(self, req_data: dict, embed_content: bool = False, edit_mode: bool = False) -> str:
         """Format a single requirement as flat HTML row
 
         Args:
             req_data: Dictionary containing requirement data
             embed_content: If True, use onclick handlers instead of href links for portability
+            edit_mode: If True, include edit mode UI elements
         """
         req = req_data['req']
         indent = req_data['indent']
@@ -3930,17 +3958,20 @@ class TraceabilityGenerator:
         # Data attribute for roadmap (for roadmap filtering)
         roadmap_attr = 'data-roadmap="true"' if req.is_roadmap else 'data-roadmap="false"'
 
-        # Edit mode buttons - show different options based on whether in roadmap
-        if req.is_roadmap:
-            edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
-                <button class="edit-btn from-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'from-roadmap')" title="Move out of roadmap">↩ From Roadmap</button>
-                <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
-            </span>'''
+        # Edit mode buttons - only generated if edit_mode is enabled
+        if edit_mode:
+            if req.is_roadmap:
+                edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
+                    <button class="edit-btn from-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'from-roadmap')" title="Move out of roadmap">↩ From Roadmap</button>
+                    <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
+                </span>'''
+            else:
+                edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
+                    <button class="edit-btn to-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
+                    <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
+                </span>'''
         else:
-            edit_buttons = f'''<span class="edit-actions" onclick="event.stopPropagation();">
-                <button class="edit-btn to-roadmap" onclick="addPendingMove('{req.id}', '{req.file_path.name}', 'to-roadmap')" title="Move to roadmap">🗺️ To Roadmap</button>
-                <button class="edit-btn move-file" onclick="showMoveToFile('{req.id}', '{req.file_path.name}')" title="Move to different file">📁 Move</button>
-            </span>'''
+            edit_buttons = ''
 
         # Roadmap indicator icon (shown after REQ ID)
         roadmap_icon = '<span class="roadmap-icon" title="In roadmap">🛤️</span>' if req.is_roadmap else ''
@@ -3971,7 +4002,7 @@ class TraceabilityGenerator:
                     <div class="req-coverage" title="{coverage_title}">{coverage_icon}</div>
                     <div class="req-status">{test_badge}</div>
                     <div class="req-location">{file_line_link}</div>
-                    <div class="req-destination edit-mode-column" data-req-id="{req.id}">{edit_buttons}<span class="dest-text"></span></div>
+                    {'<div class="req-destination edit-mode-column" data-req-id="' + req.id + '">' + edit_buttons + '<span class="dest-text"></span></div>' if edit_mode else ''}
                 </div>
             </div>
         </div>
@@ -4485,6 +4516,11 @@ Examples:
         help='Embed full requirement content in HTML for portable/offline viewing (includes side panel)'
     )
     parser.add_argument(
+        '--edit-mode',
+        action='store_true',
+        help='Enable edit mode UI in HTML output (allows batch moving requirements between files)'
+    )
+    parser.add_argument(
         '--export-planning',
         action='store_true',
         help='Generate planning CSV with actionable requirements for sprint planning'
@@ -4652,9 +4688,9 @@ Examples:
 
         # Generate HTML (with embed_content if requested)
         html_output = md_output.with_suffix('.html')
-        generator.generate(format='html', output_file=html_output, embed_content=args.embed_content)
+        generator.generate(format='html', output_file=html_output, embed_content=args.embed_content, edit_mode=args.edit_mode)
     else:
-        generator.generate(format=args.format, output_file=output_file, embed_content=args.embed_content)
+        generator.generate(format=args.format, output_file=output_file, embed_content=args.embed_content, edit_mode=args.edit_mode)
 
 
 if __name__ == '__main__':

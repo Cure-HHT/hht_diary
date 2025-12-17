@@ -118,7 +118,7 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 # REQ-p01000: Event Sourcing Client Interface
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL provide a type-safe client interface for creating, storing, and querying events in an event-sourced PostgreSQL database.
 
@@ -145,7 +145,7 @@ The interface SHALL support:
 
 # REQ-p01001: Offline Event Queue with Automatic Synchronization
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL queue events locally when network unavailable and automatically synchronize them to the server when connectivity restored.
 
@@ -174,7 +174,7 @@ Offline queue SHALL ensure:
 
 # REQ-p01002: Optimistic Concurrency Control
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
 
@@ -202,7 +202,7 @@ Conflict resolution SHALL support:
 
 # REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL store all events as immutable, append-only records that form a complete audit trail of all data changes.
 
@@ -229,7 +229,7 @@ Event storage SHALL ensure:
 
 # REQ-p01004: Schema Version Management
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
 
@@ -256,7 +256,7 @@ Schema management SHALL provide:
 
 # REQ-p01005: Real-time Event Subscription
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL support real-time subscriptions to event streams, allowing clients to receive notifications when new events occur.
 
@@ -283,7 +283,7 @@ Real-time subscriptions SHALL provide:
 
 # REQ-p01006: Type-Safe Materialized View Queries
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL provide type-safe query interfaces for materialized views that represent current state derived from events.
 
@@ -310,7 +310,7 @@ Materialized view queries SHALL support:
 
 # REQ-p01007: Error Handling and Diagnostics
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL provide comprehensive error handling and diagnostic capabilities to support development, testing, and production troubleshooting.
 
@@ -339,7 +339,7 @@ Error handling SHALL include:
 
 # REQ-p01008: Event Replay and Time Travel Debugging
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHOULD support event replay capabilities, allowing developers to reconstruct application state at any point in time for debugging or auditing.
 
@@ -365,7 +365,7 @@ Event replay SHALL provide:
 
 # REQ-p01009: Encryption at Rest for Offline Queue
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHOULD encrypt events stored in the offline queue on-device to protect sensitive data if device lost or stolen.
 
@@ -391,7 +391,7 @@ Encryption SHALL ensure:
 
 # REQ-p01010: Multi-tenancy Support
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00043 | **Status**: Draft
 
 The module SHOULD support multi-tenant architectures where a single client instance can connect to multiple isolated databases.
 
@@ -417,7 +417,7 @@ Multi-tenancy SHALL provide:
 
 # REQ-p01050: Event Type Registry
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL maintain a registry of event types that provides a single source of truth for available event schemas, their versions, and relationships.
 
@@ -520,9 +520,8 @@ Each sponsor SHALL configure which questionnaire types, versions, and languages 
 
 Sponsor questionnaire configuration SHALL specify:
 - **Enabled Questionnaires**: Which questionnaire types are available for the sponsor's study (e.g., epistaxis-daily, nose-hht, quality-of-life).
-- **Version Constraints**: Minimum acceptable version, current version for new entries, and deprecated versions that remain valid for historical data.
+- **Version Constraints**: Current version for new entries (this is what the Diary App will use). Minimum version (This may be used by the Portal to force App updates). 
 - **Language Enablement**: Which languages and translation versions are available, with designation of the source language.
-- **Completion Requirements**: Frequency expectations (daily, weekly, on-demand) and whether completion is mandatory for study compliance.
 
 The platform SHALL enforce eligibility by:
 - Presenting only enabled questionnaires in client applications
@@ -531,7 +530,7 @@ The platform SHALL enforce eligibility by:
 - Restricting language options to sponsor-enabled translations
 - Validating responses against the appropriate version's rules
 
-**Rationale**: Multi-sponsor deployments require sponsor-specific questionnaire portfolios. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints ensure patients in ongoing studies continue using validated instrument versions while new enrollments can use updated versions. Language enablement ensures only properly validated translations are offered.
+**Rationale**: Multi-sponsor deployments require sponsor-specific questionnaire portfolios. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints ensure patients in ongoing studies continue using validated instrument versions while new enrollments can use updated versions. Language enablement ensures only properly validated translations are offered. Questionnaires or their presentation should not be changed in the midde of the study without due consideration of the potential impact on the responses and the data collected.
 
 **Acceptance Criteria**:
 - Sponsor configuration specifies enabled questionnaire types
@@ -542,9 +541,13 @@ The platform SHALL enforce eligibility by:
 - Configuration changes do not invalidate existing historical data
 - New questionnaire types addable without platform code changes
 
+**FUTURE FEATURE**
+- **Completion Requirements**: e.g. Frequency expectations (daily, weekly, on-demand) and whether completion is mandatory for study compliance. This would be tied into a Sponsor Portal feature that helped with tracking phases and cycles in a trial.
+
+
 **See**: docs/questionnaire-versioning.md for configuration schema and examples.
 
-*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: a702fcec
+*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: 3113e445
 
 ---
 
@@ -577,7 +580,7 @@ Event transformation SHALL support:
 
 # REQ-p01012: Batch Event Operations
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHOULD support atomic batch operations where multiple events are created and persisted as a single transaction.
 
@@ -602,7 +605,7 @@ Batch operations SHALL ensure:
 
 # REQ-p01013: GraphQL or gRPC Transport Option
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHOULD support pluggable transport protocols, with default REST/JSON and optional GraphQL or gRPC transports.
 
@@ -630,7 +633,7 @@ Transport abstraction SHALL provide:
 
 # REQ-p01014: Observability and Monitoring
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
 
@@ -657,7 +660,7 @@ Monitoring SHALL include:
 
 # REQ-p01015: Automated Testing Support
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
 
@@ -683,7 +686,7 @@ Testing utilities SHALL provide:
 
 # REQ-p01016: Performance Benchmarking
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL meet performance benchmarks for common operations to ensure acceptable user experience.
 
@@ -710,7 +713,7 @@ Performance targets:
 
 # REQ-p01017: Backward Compatibility Guarantees
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL maintain backward compatibility for public APIs across minor versions, allowing applications to upgrade without code changes.
 
@@ -737,7 +740,7 @@ Compatibility SHALL ensure:
 
 # REQ-p01018: Security Audit and Compliance
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL undergo security review and maintain compliance with relevant security standards.
 
@@ -869,7 +872,7 @@ This module differs by:
 
 # REQ-p01019: Phased Implementation
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00046 | **Status**: Draft
 
 The module SHALL be developed in phases, with each phase delivering incremental value and validating core assumptions.
 

@@ -11,7 +11,7 @@
 
 # REQ-p01020: Privacy Policy and Regulatory Compliance Documentation
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00010 | **Status**: Draft
 
 The Diary Platform SHALL provide comprehensive privacy policy documentation that complies with all applicable privacy and data protection regulations, including GDPR, HIPAA, FDA 21 CFR Part 11, and EU data protection regulations.
 

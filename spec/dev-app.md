@@ -264,6 +264,48 @@ resolution: Log error. Report to investigator.
 
 ---
 
+## Data Export and Import
+
+# REQ-d00085: Local Database Export and Import
+
+**Level**: Dev | **Implements**: p01062 | **Status**: Draft
+
+The mobile application SHALL implement local database export and import functionality, enabling patients to extract their diary data to a portable file and restore it on the same or different device.
+
+Implementation SHALL include:
+- Export function serializing SQLite diary tables to JSON file
+- JSON schema including: diary entries, timestamps, event types, user-entered values
+- File saved to device storage with user-selectable location (Downloads, share sheet)
+- Import function parsing JSON and inserting records into local SQLite database
+- Validation of imported data structure and integrity before insertion
+- Conflict handling when importing data that overlaps with existing records
+- Progress indication for large exports/imports
+- Export/import operates entirely offline (no network required)
+
+**Technical Details**:
+- Export format: Single JSON file with schema version header
+- File extension: `.diary-export.json`
+- Excluded from export: `sync_status`, `device_uuid`, `pending_events` tables
+- Import merge strategy: Skip duplicates (by `event_uuid`), insert new records
+- Use `file_picker` package for cross-platform file selection
+- Use `share_plus` package for share sheet export option
+
+**Rationale**: Implements GDPR data portability (p01055) at the development level. Patients must be able to obtain their clinical diary data in a portable format. Local-only operation ensures data portability works regardless of network connectivity or server availability.
+
+**Acceptance Criteria**:
+- Export button accessible from Settings screen
+- Export creates valid JSON file with all diary entries
+- Exported file can be shared via system share sheet
+- Import button accessible from Settings screen
+- Import successfully restores diary entries from valid export file
+- Import rejects malformed or incompatible files with clear error message
+- Duplicate records (same `event_uuid`) skipped during import
+- Export/import works in airplane mode
+- Large datasets (1000+ entries) export/import within 30 seconds
+
+*End* *Local Database Export and Import* | **Hash**: d922d9e8
+---
+
 ## Deployment & Distribution
 
 # REQ-d00006: Mobile App Build and Release Process

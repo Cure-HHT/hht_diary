@@ -56,7 +56,7 @@ The system is designed with privacy as a core principle. Patient identity inform
 
 # REQ-p00016: Separation of Identity and Clinical Data
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD | **Implements**: p00010 | **Status**: Draft
 
 Patient identity information SHALL be stored separately from clinical trial data, with clinical database containing only de-identified participant records.
 
