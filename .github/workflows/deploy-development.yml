@@ -48,6 +48,12 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Build Firebase Functions
+        working-directory: apps/clinical_diary/functions
+        run: |
+          npm install
+          npm run build
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
