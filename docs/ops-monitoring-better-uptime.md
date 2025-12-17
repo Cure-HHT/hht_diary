@@ -12,7 +12,7 @@
 
 ## Overview
 
-Better Uptime provides uptime monitoring, status pages, and incident management for the Clinical Diary application. This guide covers setup for all environments.
+Better Uptime provides uptime monitoring, status pages, and incident management for the Clinical Diary Mobile Application. This guide covers setup for all environments.
 
 **Benefits**:
 - Multi-region health checks (30-second intervals)
