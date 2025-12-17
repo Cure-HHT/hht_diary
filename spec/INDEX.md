@@ -69,11 +69,9 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00062 | dev-environment.md | Environment Validation & Change Control | 5c269c11 |
 | REQ-d00063 | dev-environment.md | Shared Workspace and File Exchange | b407570f |
 | REQ-d00064 | dev-ai-claude.md | Plugin JSON Validation Tooling | e325d07b |
-| REQ-d00064 | dev-marketplace-json-validation.md | Plugin JSON Validation Tooling | e325d07b |
 | REQ-d00065 | dev-ai-claude.md | Plugin Path Validation | 770482b7 |
 | REQ-d00066 | dev-marketplace-permissions.md | Plugin-Specific Permission Management | 0dd52eec |
 | REQ-d00067 | dev-ai-claude.md | Streamlined Ticket Creation Agent | 335415e6 |
-| REQ-d00067 | dev-marketplace-streamlined-tickets.md | Streamlined Ticket Creation Agent | 335415e6 |
 | REQ-d00068 | dev-ai-claude.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
 | REQ-d00077 | dev-diary-web.md | Web Diary Frontend Framework | c59bc3ef |
