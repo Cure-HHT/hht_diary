@@ -38,7 +38,7 @@ Sponsor portal MAY provide:
 - Real-time patient engagement monitoring
 - Sponsor branding applied throughout interface
 
-*End* *Sponsor Portal Application* | **Hash**: 0a9ccb54
+*End* *Sponsor Portal Application* | **Hash**: 0f70e13b
 
 ---
 
