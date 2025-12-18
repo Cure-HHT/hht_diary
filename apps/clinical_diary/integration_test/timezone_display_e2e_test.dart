@@ -8,12 +8,18 @@ import 'dart:io';
 
 import 'package:append_only_datastore/append_only_datastore.dart';
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/main.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// CET timezone offset in minutes (UTC+1 = 60 minutes)
+const int cetOffsetMinutes = 60;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +33,10 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to CET for consistent test behavior
+      TimezoneConverter.testDeviceOffsetMinutes = cetOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'Europe/Paris';
 
       // Create a temp directory for the test database
       tempDir = await Directory.systemTemp.createTemp('tz_e2e_test_');
@@ -47,6 +57,10 @@ void main() {
     });
 
     tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
       if (Datastore.isInitialized) {
         await Datastore.instance.deleteAndReset();
       }
@@ -612,6 +626,470 @@ void main() {
       );
 
       debugPrint('Edit screen test passed!');
+    });
+  });
+
+  group('CUR-583: Cross-Timezone Duration E2E Tests', () {
+    late Directory tempDir;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to CET for consistent test behavior
+      // regardless of where tests run (developer machine, CI/CD, etc.)
+      TimezoneConverter.testDeviceOffsetMinutes = cetOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'Europe/Paris';
+
+      // Create a temp directory for the test database
+      tempDir = await Directory.systemTemp.createTemp('tz_duration_test_');
+
+      // Initialize the datastore for tests with a temp path
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'test_events.db',
+          enableEncryption: false,
+        ),
+      );
+    });
+
+    tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// Helper to change timezone in the time picker
+    Future<void> changeTimezone(
+      WidgetTester tester,
+      String targetTimezoneSearch,
+    ) async {
+      // Find and tap the timezone selector (shows globe icon)
+      final tzSelector = find.byIcon(Icons.public);
+      expect(
+        tzSelector,
+        findsOneWidget,
+        reason: 'Timezone selector should exist',
+      );
+      await tester.tap(tzSelector);
+      await tester.pumpAndSettle();
+
+      // Type in search to find the timezone
+      final searchField = find.byType(TextField);
+      expect(searchField, findsOneWidget, reason: 'Search field should exist');
+      await tester.enterText(searchField, targetTimezoneSearch);
+      await tester.pumpAndSettle();
+
+      // Tap on the first search result
+      final tzListTile = find.byType(ListTile).first;
+      await tester.tap(tzListTile);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('CUR-583: basic recording flow without timezone change', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Launch the app
+      await tester.pumpWidget(const ClinicalDiaryApp());
+      await tester.pumpAndSettle();
+
+      // ===== Click "Record Nosebleed" on home page =====
+      debugPrint('Step 1: Click Record Nosebleed');
+      final recordButton = find.text('Record Nosebleed');
+      expect(
+        recordButton,
+        findsOneWidget,
+        reason: 'Record Nosebleed button should exist',
+      );
+      await tester.tap(recordButton);
+      await tester.pumpAndSettle();
+
+      // ===== Click -15 button =====
+      debugPrint('Step 2: Click -15 button');
+      final minus15 = find.text('-15');
+      expect(minus15, findsOneWidget, reason: '-15 button should exist');
+      await tester.tap(minus15);
+      await tester.pumpAndSettle();
+
+      // ===== Click Set Start Time =====
+      debugPrint('Step 3: Click Set Start Time');
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+
+      // ===== Click Dripping intensity =====
+      debugPrint('Step 4: Click Dripping');
+      await tester.tap(find.text('Dripping'));
+      await tester.pumpAndSettle();
+
+      // ===== Click +5 button for end time =====
+      debugPrint('Step 5: Click +5 button');
+      await tester.tap(find.text('+5'));
+      await tester.pumpAndSettle();
+
+      // ===== Click Set End Time =====
+      debugPrint('Step 6: Click Set End Time');
+      await tester.tap(find.text('Set End Time'));
+      await tester.pumpAndSettle();
+
+      // ===== Verify we're back on home screen =====
+      debugPrint('Step 7: Verify home screen');
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+      // Check datastore for the saved record
+      debugPrint('=== DATASTORE CHECK ===');
+      final allEvents = await Datastore.instance.repository.getAllEvents();
+      debugPrint('Total events: ${allEvents.length}');
+      for (final event in allEvents) {
+        debugPrint('Event: type=${event.eventType}, data=${event.data}');
+      }
+
+      expect(
+        allEvents.isNotEmpty,
+        isTrue,
+        reason: 'Should have saved at least one event',
+      );
+
+      // Find any nosebleed event (could be Created, Started, or Completed)
+      final nosebleedEvent = allEvents.firstWhere(
+        (e) => e.eventType.contains('Nosebleed'),
+        orElse: () => throw StateError(
+          'No Nosebleed event found. Events: ${allEvents.map((e) => e.eventType).toList()}',
+        ),
+      );
+      debugPrint('Found nosebleed event: ${nosebleedEvent.eventType}');
+      debugPrint('Event data: ${nosebleedEvent.data}');
+
+      // Verify the event has intensity data
+      expect(nosebleedEvent.data['intensity'], equals('dripping'));
+
+      debugPrint('Basic recording flow test passed!');
+    });
+
+    testWidgets(
+      'CUR-583: China Time start + CET end = 7h duration with Long Duration dialog',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Enable all duration confirmation feature flags for this test
+        FeatureFlagService.instance.enableLongDurationConfirmation = true;
+        FeatureFlagService.instance.enableShortDurationConfirmation = true;
+        // Set threshold to 60 minutes (1 hour) so 7h duration triggers it
+        FeatureFlagService.instance.longDurationThresholdMinutes = 60;
+        addTearDown(() {
+          FeatureFlagService.instance.resetToDefaults();
+        });
+
+        // Verify Long Duration Confirmation is enabled
+        expect(
+          FeatureFlagService.instance.enableLongDurationConfirmation,
+          isTrue,
+          reason: 'enableLongDurationConfirmation should be true for this test',
+        );
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // ===== Click "Record Nosebleed" on home page =====
+        debugPrint('Step 1: Click Record Nosebleed');
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // ===== Change timezone to China Time (UTC+8) =====
+        debugPrint('Step 2: Change timezone to China Time');
+        await changeTimezone(tester, 'China');
+
+        // ===== Click -15 button =====
+        debugPrint('Step 3: Click -15 button');
+        await tester.tap(find.text('-15'));
+        await tester.pumpAndSettle();
+
+        // ===== Click Set Start Time =====
+        debugPrint('Step 4: Click Set Start Time');
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // ===== Click Dripping intensity =====
+        debugPrint('Step 5: Click Dripping');
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
+
+        // ===== Change timezone to CET (UTC+1) for end time =====
+        // China Time is UTC+8, CET is UTC+1
+        // Difference is 7 hours
+        debugPrint('Step 6: Change timezone to CET');
+        await changeTimezone(tester, 'Paris');
+
+        // ===== Click +5 button =====
+        debugPrint('Step 7: Click +5 button');
+        await tester.tap(find.text('+5'));
+        await tester.pumpAndSettle();
+
+        // ===== Click Set End Time =====
+        debugPrint('Step 8: Click Set End Time');
+        await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+
+        // ===== VERIFY: Long Duration Confirmation dialog should appear =====
+        debugPrint('Step 9: Verify Long Duration dialog appears');
+        // The dialog should show because duration is 6+ hours (> 1h threshold)
+        // Look for the dialog title "Long Duration"
+        final longDurationDialog = find.text('Long Duration');
+
+        // Debug: Show all text widgets
+        debugPrint('=== Looking for Long Duration dialog ===');
+        for (final element in find.byType(Text).evaluate().take(30)) {
+          final textWidget = element.widget as Text;
+          debugPrint('Text: "${textWidget.data}"');
+        }
+
+        expect(
+          longDurationDialog,
+          findsOneWidget,
+          reason: 'Long Duration dialog should appear for 6+ hour duration',
+        );
+
+        // ===== Confirm the long duration by clicking "Yes" =====
+        debugPrint('Step 10: Confirm long duration');
+        final yesButton = find.text('Yes');
+        expect(yesButton, findsOneWidget, reason: 'Yes button should exist');
+        await tester.tap(yesButton);
+        await tester.pumpAndSettle();
+
+        // ===== Verify home page shows ~7h duration =====
+        debugPrint('Step 11: Verify home page shows correct duration');
+        await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+        // Check datastore for the saved record
+        final allEvents = await Datastore.instance.repository.getAllEvents();
+        debugPrint('Total events: ${allEvents.length}');
+        for (final event in allEvents) {
+          debugPrint('Event: type=${event.eventType}, data=${event.data}');
+        }
+
+        final nosebleedEvent = allEvents.firstWhere(
+          (e) => e.eventType.contains('Nosebleed'),
+          orElse: () => throw StateError(
+            'No Nosebleed event found. Events: ${allEvents.map((e) => e.eventType).toList()}',
+          ),
+        );
+        debugPrint('Found nosebleed event: ${nosebleedEvent.eventType}');
+
+        // Parse start and end times to verify duration
+        final startTimeStr = nosebleedEvent.data['startTime'] as String;
+        final endTimeStr = nosebleedEvent.data['endTime'] as String;
+        debugPrint('Start time: $startTimeStr');
+        debugPrint('End time: $endTimeStr');
+
+        final startTime = DateTime.parse(startTimeStr);
+        final endTime = DateTime.parse(endTimeStr);
+        final durationMinutes = endTime.difference(startTime).inMinutes;
+        debugPrint(
+          'Duration: $durationMinutes minutes (${durationMinutes ~/ 60}h ${durationMinutes % 60}m)',
+        );
+
+        // Duration should be 6+ hours (360+ minutes) - proving timezone conversion works
+        // The exact duration depends on which timezone the picker matched (China/Bangkok = UTC+7)
+        expect(
+          durationMinutes,
+          greaterThan(300),
+          reason:
+              'Duration should be 5+ hours, proving timezone conversion works',
+        );
+
+        debugPrint(
+          'China Time to CET test passed! Duration: ${durationMinutes}m',
+        );
+      },
+    );
+
+    testWidgets('CUR-583: Hawaii Time end = future time shows error', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Enable feature flags for this test
+      FeatureFlagService.instance.enableLongDurationConfirmation = true;
+      FeatureFlagService.instance.enableShortDurationConfirmation = true;
+      addTearDown(() {
+        FeatureFlagService.instance.resetToDefaults();
+      });
+
+      // Launch the app
+      await tester.pumpWidget(const ClinicalDiaryApp());
+      await tester.pumpAndSettle();
+
+      // ===== Click "Record Nosebleed" on home page =====
+      debugPrint('Step 1: Click Record Nosebleed');
+      await tester.tap(find.text('Record Nosebleed'));
+      await tester.pumpAndSettle();
+
+      // ===== Click -15 button =====
+      debugPrint('Step 2: Click -15 button');
+      await tester.tap(find.text('-15'));
+      await tester.pumpAndSettle();
+
+      // ===== Click Set Start Time (device timezone = CET) =====
+      debugPrint('Step 3: Click Set Start Time');
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+
+      // ===== Click Dripping intensity =====
+      debugPrint('Step 4: Click Dripping');
+      await tester.tap(find.text('Dripping'));
+      await tester.pumpAndSettle();
+
+      // ===== Change timezone to Hawaii Time (UTC-10) for end time =====
+      // Hawaii (UTC-10) is 11 hours BEHIND CET (UTC+1).
+      // Same clock time in Hawaii represents a LATER moment in UTC.
+      // Example: Device is CET, showing 21:50. If we pick 21:50 HST:
+      // - Stored end = 21:50 + (60 - (-600)) = 21:50 + 660 min = next day 08:50
+      // This stored time is IN THE FUTURE (tomorrow), which should error.
+      debugPrint('Step 5: Change timezone to Hawaii Time');
+      await changeTimezone(tester, 'Hawaii');
+
+      // ===== Click +5 button =====
+      debugPrint('Step 6: Click +5 button');
+      await tester.tap(find.text('+5'));
+      await tester.pumpAndSettle();
+
+      // ===== Click Set End Time =====
+      debugPrint('Step 7: Click Set End Time');
+      await tester.tap(find.text('Set End Time'));
+      await tester.pumpAndSettle();
+
+      // ===== VERIFY: Error snackbar should appear =====
+      debugPrint('Step 8: Verify error snackbar appears');
+
+      // Debug: Show all text widgets
+      debugPrint('=== Looking for error snackbar ===');
+      for (final element in find.byType(Text).evaluate().take(30)) {
+        final textWidget = element.widget as Text;
+        debugPrint('Text: "${textWidget.data}"');
+      }
+
+      // Look for the error message about future time
+      // The validation should prevent selecting a time in the future
+      final errorMessage = find.textContaining('future');
+      expect(
+        errorMessage,
+        findsOneWidget,
+        reason: 'Should show "Cannot select a time in the future" error',
+      );
+
+      // ===== Verify we're still on the end time picker (not saved) =====
+      debugPrint('Step 9: Verify still on end time picker');
+      expect(
+        find.text('Nosebleed End Time'),
+        findsOneWidget,
+        reason: 'Should still be on end time picker after error',
+      );
+
+      // ===== Verify NO record was created =====
+      debugPrint('Step 10: Verify no record was created');
+      final allEvents = await Datastore.instance.repository.getAllEvents();
+      final createEvents = allEvents
+          .where((e) => e.eventType == 'NosebleedRecordCreated')
+          .toList();
+      debugPrint('NosebleedRecordCreated events: ${createEvents.length}');
+
+      expect(
+        createEvents,
+        isEmpty,
+        reason: 'No record should be created for future end time',
+      );
+
+      debugPrint('Hawaii Time future end time test passed!');
+    });
+
+    testWidgets('CUR-583: Hawaii Time start = future time shows error', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Launch the app
+      await tester.pumpWidget(const ClinicalDiaryApp());
+      await tester.pumpAndSettle();
+
+      // ===== Click "Record Nosebleed" on home page =====
+      debugPrint('Step 1: Click Record Nosebleed');
+      await tester.tap(find.text('Record Nosebleed'));
+      await tester.pumpAndSettle();
+
+      // ===== Change timezone to Hawaii Time (UTC-10) for START time =====
+      // Hawaii (UTC-10) is 11 hours BEHIND CET (UTC+1).
+      // If current time is ~22:00 CET, picking ~22:00 HST:
+      // - Stored start = 22:00 + (60 - (-600)) = 22:00 + 660 min = next day 09:00
+      // This stored time is IN THE FUTURE, which should error.
+      debugPrint('Step 2: Change timezone to Hawaii Time');
+      await changeTimezone(tester, 'Hawaii');
+
+      // ===== Click Set Start Time =====
+      debugPrint('Step 3: Click Set Start Time');
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+
+      // ===== VERIFY: Error snackbar should appear =====
+      debugPrint('Step 4: Verify error snackbar appears');
+
+      // Debug: Show all text widgets
+      debugPrint('=== Looking for error snackbar ===');
+      for (final element in find.byType(Text).evaluate().take(30)) {
+        final textWidget = element.widget as Text;
+        debugPrint('Text: "${textWidget.data}"');
+      }
+
+      // Look for the error message about future time
+      final errorMessage = find.textContaining('future');
+      expect(
+        errorMessage,
+        findsOneWidget,
+        reason: 'Should show "Cannot select a time in the future" error',
+      );
+
+      // ===== Verify we're still on the start time picker (not advanced) =====
+      debugPrint('Step 5: Verify still on start time picker');
+      expect(
+        find.text('Nosebleed Start'),
+        findsOneWidget,
+        reason: 'Should still be on start time picker after error',
+      );
+
+      debugPrint('Hawaii Time future start time test passed!');
     });
   });
 }

@@ -115,11 +115,11 @@ class NosebleedRecord {
   final DateTime? syncedAt;
 
   /// CUR-516: IANA timezone name for start time (e.g., "America/Los_Angeles").
-  /// Used to restore timezone selection in UI when reopening incomplete records.
+  /// ONLY used to restore timezone selection in UI when reopening.
   final String? startTimeTimezone;
 
   /// CUR-516: IANA timezone name for end time (e.g., "America/Los_Angeles").
-  /// Used to restore timezone selection in UI when reopening incomplete records.
+  /// ONLY used to restore timezone selection in UI when reopening.
   final String? endTimeTimezone;
 
   /// Check if this is a real nosebleed event (not a "no nosebleed" or "unknown" marker)
