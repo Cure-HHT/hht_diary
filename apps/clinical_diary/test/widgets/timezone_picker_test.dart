@@ -125,39 +125,119 @@ void main() {
       expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
-    testWidgets('filters timezones by search query', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () async {
-                await showTimezonePicker(
-                  context: context,
-                  selectedTimezone: 'America/Los_Angeles',
-                );
-              },
-              child: const Text('Open'),
+    // CUR-543: Expanded timezone search tests
+    group('timezone search filtering', () {
+      Future<void> openPicker(WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () async {
+                  await showTimezonePicker(
+                    context: context,
+                    selectedTimezone: 'America/Los_Angeles',
+                  );
+                },
+                child: const Text('Open'),
+              ),
             ),
           ),
-        ),
-      );
+        );
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+      }
 
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
+      testWidgets('search for "Tokyo" finds Asia/Tokyo', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'Tokyo');
+        await tester.pump();
+        expect(find.text('Asia/Tokyo'), findsOneWidget);
+      });
 
-      // Count initial list tiles
-      final initialCount = tester.widgetList(find.byType(ListTile)).length;
+      testWidgets('search for "Eastern" finds America/New_York', (
+        tester,
+      ) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'Eastern');
+        await tester.pump();
+        expect(find.text('America/New_York'), findsOneWidget);
+      });
 
-      // Search for Tokyo
-      await tester.enterText(find.byType(TextField), 'Tokyo');
-      await tester.pump();
+      testWidgets('search for "EST" finds America/New_York', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'EST');
+        await tester.pump();
+        expect(find.text('America/New_York'), findsOneWidget);
+      });
 
-      // Should have fewer results
-      final filteredCount = tester.widgetList(find.byType(ListTile)).length;
-      expect(filteredCount, lessThan(initialCount));
+      testWidgets('search for "Pacific" finds America/Los_Angeles', (
+        tester,
+      ) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'Pacific');
+        await tester.pump();
+        expect(find.text('America/Los_Angeles'), findsOneWidget);
+      });
 
-      // Should find Tokyo
-      expect(find.text('Asia/Tokyo'), findsOneWidget);
+      testWidgets('search for "PST" finds America/Los_Angeles', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'PST');
+        await tester.pump();
+        expect(find.text('America/Los_Angeles'), findsOneWidget);
+      });
+
+      testWidgets('search for "Central" finds America/Chicago', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'Central');
+        await tester.pump();
+        expect(find.text('America/Chicago'), findsOneWidget);
+      });
+
+      testWidgets('search for "Mountain" finds America/Denver', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'Mountain');
+        await tester.pump();
+        expect(find.text('America/Denver'), findsOneWidget);
+      });
+
+      testWidgets('search for "Paris" finds Europe/Paris', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'Paris');
+        await tester.pump();
+        expect(find.text('Europe/Paris'), findsOneWidget);
+      });
+
+      testWidgets('search for "CET" finds Europe/Paris', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'CET');
+        await tester.pump();
+        expect(find.text('Europe/Paris'), findsOneWidget);
+      });
+
+      testWidgets('search for "London" finds Europe/London', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'London');
+        await tester.pump();
+        expect(find.text('Europe/London'), findsOneWidget);
+      });
+
+      testWidgets('search for "GMT" finds Europe/London', (tester) async {
+        await openPicker(tester);
+        await tester.enterText(find.byType(TextField), 'GMT');
+        await tester.pump();
+        expect(find.text('Europe/London'), findsOneWidget);
+      });
+
+      testWidgets('search reduces result count', (tester) async {
+        await openPicker(tester);
+        final initialCount = tester.widgetList(find.byType(ListTile)).length;
+
+        await tester.enterText(find.byType(TextField), 'Tokyo');
+        await tester.pump();
+
+        final filteredCount = tester.widgetList(find.byType(ListTile)).length;
+        expect(filteredCount, lessThan(initialCount));
+      });
     });
 
     testWidgets('returns selected timezone on tap', (tester) async {
