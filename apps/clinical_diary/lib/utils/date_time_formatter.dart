@@ -13,10 +13,9 @@ import 'package:intl/intl.dart';
 class DateTimeFormatter {
   DateTimeFormatter._();
 
-  /// ISO 8601 format with timezone offset: "yyyy-MM-ddTHH:mm:ss.SSSZZZZZ"
-  /// The ZZZZZ pattern produces offset with colon (e.g., "-05:00", "+00:00")
-  static final DateFormat _iso8601WithOffset = DateFormat(
-    "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
+  /// ISO 8601 base format without timezone (intl's ZZZZZ pattern doesn't work)
+  static final DateFormat _iso8601Base = DateFormat(
+    "yyyy-MM-dd'T'HH:mm:ss.SSS",
   );
 
   /// Format a DateTime to ISO 8601 string with timezone offset.
@@ -25,8 +24,17 @@ class DateTimeFormatter {
   ///
   /// The DateTime should be in local time. If it's in UTC, it will be
   /// formatted with +00:00 offset.
+  ///
+  /// Note: We manually build the timezone offset because Dart's intl package
+  /// DateFormat does not actually output timezone information for any pattern
+  /// (Z, ZZZZZ, z, etc.) - they all produce empty strings.
   static String format(DateTime dateTime) {
-    return _iso8601WithOffset.format(dateTime);
+    final base = _iso8601Base.format(dateTime);
+    final offset = dateTime.timeZoneOffset;
+    final hours = offset.inHours.abs().toString().padLeft(2, '0');
+    final mins = (offset.inMinutes.abs() % 60).toString().padLeft(2, '0');
+    final sign = offset.isNegative ? '-' : '+';
+    return '$base$sign$hours:$mins';
   }
 
   /// Parse an ISO 8601 string with timezone offset to DateTime.

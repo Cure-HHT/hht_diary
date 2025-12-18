@@ -101,20 +101,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    // Navigate to recording screen for the selected date
-    final normalizedDay = DateTime(
+    // CUR-543: TableCalendar returns UTC DateTimes (DateTime.utc(y,m,d)).
+    // Convert to local time for correct timezone handling in RecordingScreen.
+    // This ensures timestamps are stored with the user's local timezone offset.
+    final localDay = DateTime(
       selectedDay.year,
       selectedDay.month,
       selectedDay.day,
     );
-    final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+    final status = _dayStatuses[localDay] ?? DayStatus.notRecorded;
 
     // If no records exist for this day, show the day selection screen
     if (status == DayStatus.notRecorded) {
-      await _showDaySelectionScreen(selectedDay);
+      await _showDaySelectionScreen(localDay);
     } else {
       // Show date records screen with existing events
-      await _showDateRecordsScreen(selectedDay);
+      await _showDateRecordsScreen(localDay);
     }
   }
 
