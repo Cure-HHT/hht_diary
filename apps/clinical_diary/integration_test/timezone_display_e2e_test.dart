@@ -577,6 +577,41 @@ void main() {
         findsOneWidget,
         reason: 'Should show "10m" duration for the saved record',
       );
+
+      // ===== STEP 11: Click on the entry to open edit screen =====
+      debugPrint('Step 11: Click on entry to open edit screen');
+      // The entry shows time "1:00 AM" - click on it to edit
+      final entryTime = find.text('1:00 AM');
+      expect(entryTime, findsOneWidget, reason: 'Should find entry time');
+      await tester.tap(entryTime);
+      await tester.pumpAndSettle();
+
+      // ===== STEP 12: Verify edit screen appears without error =====
+      debugPrint('Step 12: Verify edit screen appears');
+      // Show what's on the edit screen
+      debugPrint('=== Edit screen ===');
+      for (final element in find.byType(Text).evaluate().take(30)) {
+        final textWidget = element.widget as Text;
+        debugPrint('Text: "${textWidget.data}"');
+      }
+
+      // The edit screen should show "Nosebleed Start" title
+      final editTitle = find.text('Nosebleed Start');
+      expect(
+        editTitle,
+        findsOneWidget,
+        reason: 'Edit screen should show Nosebleed Start title',
+      );
+
+      // Verify the start time matches what we saved (1:00 AM)
+      final startTimeDisplay = find.text('1:00 AM');
+      expect(
+        startTimeDisplay,
+        findsWidgets,
+        reason: 'Edit screen should show the saved start time',
+      );
+
+      debugPrint('Edit screen test passed!');
     });
   });
 }

@@ -191,6 +191,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }) async {
     // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
     // Using dynamic to handle both return types
+    // CUR-543: Only pass diaryEntryDate for new records, not when editing existing records.
+    // RecordingScreen asserts that only one of diaryEntryDate or existingRecord can be non-null.
+    // CUR-543: Must pass onDelete callback when existingRecord is non-null.
     final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
@@ -198,9 +201,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
-          diaryEntryDate: selectedDay,
+          diaryEntryDate: existingRecord == null ? selectedDay : null,
           existingRecord: existingRecord,
           allRecords: _allRecords,
+          onDelete: existingRecord != null
+              ? (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: existingRecord.id,
+                    reason: reason,
+                  );
+                }
+              : null,
         ),
       ),
     );
