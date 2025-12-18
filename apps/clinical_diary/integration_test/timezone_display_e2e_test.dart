@@ -1092,4 +1092,145 @@ void main() {
       debugPrint('Hawaii Time future start time test passed!');
     });
   });
+
+  // CUR-492: Negative duration bypass via back button
+  group('CUR-492: Negative Duration Validation', () {
+    late Directory tempDir;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to CET for consistent test behavior
+      TimezoneConverter.testDeviceOffsetMinutes = cetOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'Europe/Paris';
+
+      // Create a temp directory for the test database
+      tempDir = await Directory.systemTemp.createTemp('neg_duration_test_');
+
+      // Initialize the datastore for tests with a temp path
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'test_events.db',
+          enableEncryption: false,
+        ),
+      );
+    });
+
+    tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    testWidgets(
+      'CUR-492: Negative duration via back button should NOT save record',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Enable short duration confirmation so dialog appears on back
+        FeatureFlagService.instance.enableShortDurationConfirmation = true;
+        addTearDown(() {
+          FeatureFlagService.instance.resetToDefaults();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // ===== Click "Record Nosebleed" on home page =====
+        debugPrint('Step 1: Click Record Nosebleed');
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // ===== Click -15 button to set start time 15 min ago =====
+        debugPrint('Step 2: Click -15 button');
+        await tester.tap(find.text('-15'));
+        await tester.pumpAndSettle();
+
+        // ===== Click Set Start Time =====
+        debugPrint('Step 3: Click Set Start Time');
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // ===== Click Dripping intensity =====
+        debugPrint('Step 4: Click Dripping');
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
+
+        // ===== Now we're on end time picker. Click -5 twice to go 10 min before =====
+        // Start was -15, end defaults to start time, so -5 twice = -10 from start = -25 from now
+        // This makes end time BEFORE start time = negative duration
+        debugPrint('Step 5: Click -5 button twice to create negative duration');
+        await tester.tap(find.text('-5'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('-5'));
+        await tester.pumpAndSettle();
+
+        // ===== Click Back button instead of Set End Time =====
+        debugPrint('Step 6: Click Back button');
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
+
+        // ===== Short duration confirmation dialog should appear =====
+        // But it should NOT allow saving a negative duration record
+        debugPrint('Step 7: Check for dialog');
+
+        // Debug: Show all text widgets
+        debugPrint('=== Current UI state ===');
+        for (final element in find.byType(Text).evaluate().take(30)) {
+          final textWidget = element.widget as Text;
+          debugPrint('Text: "${textWidget.data}"');
+        }
+
+        // If short duration dialog appears with "Yes" button, tap it
+        final yesButton = find.text('Yes');
+        if (yesButton.evaluate().isNotEmpty) {
+          debugPrint('Step 8: Short duration dialog appeared, clicking Yes');
+          await tester.tap(yesButton);
+          await tester.pumpAndSettle();
+        }
+
+        // ===== VERIFY: NO record should have been created =====
+        debugPrint('Step 9: Verify no record was created');
+        final allEvents = await Datastore.instance.repository.getAllEvents();
+        debugPrint('Total events: ${allEvents.length}');
+        for (final event in allEvents) {
+          debugPrint('Event: type=${event.eventType}, data=${event.data}');
+        }
+
+        // Find any nosebleed events
+        final nosebleedEvents = allEvents
+            .where((e) => e.eventType.contains('Nosebleed'))
+            .toList();
+
+        expect(
+          nosebleedEvents,
+          isEmpty,
+          reason:
+              'No record should be created for negative duration, '
+              'even when confirming short duration dialog via back button',
+        );
+
+        debugPrint('CUR-492 negative duration test passed!');
+      },
+    );
+  });
 }
