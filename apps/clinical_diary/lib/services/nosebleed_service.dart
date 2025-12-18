@@ -150,8 +150,7 @@ class NosebleedService {
   /// the user's local timezone at the time of entry for clinical accuracy.
   ///
   /// CUR-516: [startTimeTimezone] stores the IANA timezone name (e.g.,
-  /// "America/Los_Angeles") to restore the UI timezone selection when
-  /// reopening incomplete records.
+  /// "America/Los_Angeles") ONLY to restore the UI timezone selection
   Future<NosebleedRecord> addRecord({
     required DateTime startTime,
     DateTime? endTime,
