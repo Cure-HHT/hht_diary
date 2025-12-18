@@ -670,13 +670,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     // CUR-516: Get timezone abbreviations to show when different from device TZ
     // Normalize device TZ to abbreviation for proper comparison
-    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
+    final timeZoneName = DateTime.now().timeZoneName;
+    debugPrint('timeZoneName: $timeZoneName');
+    final deviceTzAbbr = normalizeDeviceTimezone(timeZoneName);
+    debugPrint('normalized deviceTzAbbr: $deviceTzAbbr');
+    debugPrint('_startTimeTimezone: $_startTimeTimezone');
+    debugPrint('_endTimeTimezone: $_endTimeTimezone');
     final startTzAbbr = _startTimeTimezone != null
         ? getTimezoneAbbreviation(_startTimeTimezone!)
         : null;
     final endTzAbbr = _endTimeTimezone != null
         ? getTimezoneAbbreviation(_endTimeTimezone!)
         : null;
+
+    debugPrint('startTzAbbr: $startTzAbbr');
+    debugPrint('endTzAbbr: $endTzAbbr');
 
     // Show timezone in summary when different from device or from each other
     final startDiffersFromDevice =
@@ -685,9 +693,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final timezonesDiffer =
         startTzAbbr != null && endTzAbbr != null && startTzAbbr != endTzAbbr;
 
+    debugPrint('startDiffersFromDevice: $startDiffersFromDevice');
+    debugPrint('endDiffersFromDevice: $endDiffersFromDevice');
+    debugPrint('timezonesDiffer: $timezonesDiffer');
+
     // Show timezone only if it differs from device OR start/end differ
     final showStartTz = startDiffersFromDevice || timezonesDiffer;
     final showEndTz = endDiffersFromDevice || timezonesDiffer;
+    debugPrint('showStartTz: $showStartTz');
+    debugPrint('showEndTz: $showEndTz');
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

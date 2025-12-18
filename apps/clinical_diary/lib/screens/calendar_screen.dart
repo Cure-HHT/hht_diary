@@ -101,20 +101,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    // Navigate to recording screen for the selected date
-    final normalizedDay = DateTime(
+    // CUR-543: TableCalendar returns UTC DateTimes (DateTime.utc(y,m,d)).
+    // Convert to local time for correct timezone handling in RecordingScreen.
+    // This ensures timestamps are stored with the user's local timezone offset.
+    final localDay = DateTime(
       selectedDay.year,
       selectedDay.month,
       selectedDay.day,
     );
-    final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+    final status = _dayStatuses[localDay] ?? DayStatus.notRecorded;
 
     // If no records exist for this day, show the day selection screen
     if (status == DayStatus.notRecorded) {
-      await _showDaySelectionScreen(selectedDay);
+      await _showDaySelectionScreen(localDay);
     } else {
       // Show date records screen with existing events
-      await _showDateRecordsScreen(selectedDay);
+      await _showDateRecordsScreen(localDay);
     }
   }
 
@@ -189,6 +191,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }) async {
     // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
     // Using dynamic to handle both return types
+    // CUR-543: Only pass diaryEntryDate for new records, not when editing existing records.
+    // RecordingScreen asserts that only one of diaryEntryDate or existingRecord can be non-null.
+    // CUR-543: Must pass onDelete callback when existingRecord is non-null.
     final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
@@ -196,9 +201,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
-          diaryEntryDate: selectedDay,
+          diaryEntryDate: existingRecord == null ? selectedDay : null,
           existingRecord: existingRecord,
           allRecords: _allRecords,
+          onDelete: existingRecord != null
+              ? (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: existingRecord.id,
+                    reason: reason,
+                  );
+                }
+              : null,
         ),
       ),
     );
