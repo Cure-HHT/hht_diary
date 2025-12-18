@@ -45,6 +45,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadDayStatuses() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     // Load statuses for current month plus padding
@@ -60,6 +61,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final allRecords = await widget.nosebleedService
         .getLocalMaterializedRecords();
 
+    // CUR-586: Check mounted after async operations
+    if (!mounted) return;
     setState(() {
       _dayStatuses = statuses;
       _allRecords = allRecords;
@@ -128,6 +131,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     if (!mounted) return;
 
+    // CUR-586: Track whether we navigated to RecordingScreen from here
+    var navigatedToRecording = false;
+
     final result = await Navigator.push<bool>(
       context,
       AppPageRoute(
@@ -135,10 +141,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           date: selectedDay,
           records: records,
           onAddEvent: () async {
+            navigatedToRecording = true;
             Navigator.pop(context);
             await _navigateToRecordingScreen(selectedDay);
           },
           onEditEvent: (record) async {
+            navigatedToRecording = true;
             Navigator.pop(context);
             await _navigateToRecordingScreen(
               selectedDay,
@@ -149,7 +157,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
 
-    if (result ?? false) {
+    // CUR-586: Check mounted after async navigation
+    if (!mounted) return;
+
+    // CUR-586: Always refresh if we navigated to RecordingScreen,
+    // since data might have changed (add/edit/delete)
+    if (result ?? false || navigatedToRecording) {
       await _loadDayStatuses();
     }
   }
@@ -215,6 +228,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
     );
+
+    // CUR-586: Check if still mounted after async navigation
+    if (!mounted) return;
 
     // Refresh calendar if record was saved (String ID) or deleted (true)
     // Don't refresh if cancelled (null) or conflict view (false)
