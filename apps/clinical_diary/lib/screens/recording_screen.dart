@@ -238,6 +238,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// REQ-CAL: Run all validation checks before saving
   /// Returns true if save should proceed, false if cancelled
   Future<bool> _runValidationChecks() async {
+    // CUR-492: Reject negative duration (end time before start time)
+    // This must be checked first before any confirmation dialogs
+    final duration = _durationMinutes();
+    if (duration != null && duration < 0) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
+      return false;
+    }
+
     // REQ-CAL-p00001: Old entry justification check
     if (_needsOldEntryJustification) {
       final justification = await OldEntryJustificationDialog.show(

@@ -139,12 +139,16 @@ class DateRecordsScreen extends StatelessWidget {
   }
 
   Widget _buildEventsList(BuildContext context) {
+    // CUR-585: Sort records by startTime ASC (earliest first) to match home page
+    final sortedRecords = List<NosebleedRecord>.from(records)
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      itemCount: records.length,
+      itemCount: sortedRecords.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
-        final record = records[index];
+        final record = sortedRecords[index];
         return EventListItem(
           record: record,
           onTap: () => onEditEvent(record),
