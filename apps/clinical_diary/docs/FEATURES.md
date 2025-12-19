@@ -301,13 +301,13 @@ Each sponsor operates **completely independently**:
 
 | Aspect | Isolation Method |
 | ------ | ---------------- |
-| **Database** | Separate Supabase project per sponsor |
-| **Portal** | Unique URL per sponsor |
+| **Database** | Separate GCP project with Cloud SQL per sponsor |
+| **Portal** | Unique Cloud Run URL per sponsor |
 | **Users** | Independent user accounts per sponsor |
 | **Audit Trail** | Separate event logs per sponsor |
-| **Configuration** | Isolated config files (gitignored secrets) |
+| **Configuration** | Isolated config files (secrets in Doppler) |
 | **Data Access** | No cross-sponsor access possible |
-| **Infrastructure** | Separate AWS S3 buckets per sponsor |
+| **Infrastructure** | Separate GCS buckets per sponsor |
 
 ### 2.3 Sponsor Directory Structure
 
@@ -320,8 +320,7 @@ sponsor/
 │   ├── portal/
 │   │   └── database/            # Sponsor-specific schema
 │   ├── infrastructure/
-│   │   ├── supabase/config/     # Supabase configuration
-│   │   └── terraform/           # AWS infrastructure
+│   │   └── pulumi/              # GCP infrastructure (Cloud Run, Cloud SQL)
 │   └── sponsor-config.yml       # Master configuration
 │
 └── template/                    # Template for new sponsors
@@ -348,15 +347,16 @@ portal:
   database:
     schema_file: "portal/database/schema.sql"
   deployment:
-    supabase_project_id: "callisto-portal-prod"
-    region: "eu-west-1"
+    gcp_project_id: "cure-hht-callisto-prod"
+    region: "us-central1"
 
 infrastructure:
-  aws:
-    region: "eu-west-1"
-    s3_buckets:
-      artifacts: "hht-diary-artifacts-callisto-eu-west-1"
-      backups: "hht-diary-backups-callisto-eu-west-1"
+  gcp:
+    region: "us-central1"
+    gcs_buckets:
+      artifacts: "cure-hht-callisto-artifacts"
+      backups: "cure-hht-callisto-backups"
+      audit_logs: "cure-hht-callisto-audit-logs"
 ```
 
 ### 2.5 White-Label Customization Points
@@ -369,8 +369,8 @@ infrastructure:
 | **Primary Color** | Per sponsor | `portal.yaml` branding config |
 | **Feature Toggles** | Per sponsor | Server-side feature flags |
 | **Validation Rules** | Per sponsor | Feature flag thresholds |
-| **Portal URL** | Per sponsor | Deployment configuration |
-| **Database** | Per sponsor | Separate Supabase project |
+| **Portal URL** | Per sponsor | Cloud Run deployment |
+| **Database** | Per sponsor | Separate GCP project with Cloud SQL |
 
 ### 2.6 Known Sponsors
 
