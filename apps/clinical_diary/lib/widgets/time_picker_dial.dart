@@ -119,14 +119,18 @@ class _TimePickerDialState extends State<TimePickerDial> {
   }
 
   /// Clamps the given time to the effective max if future times are not allowed.
-  /// NOTE: This uses simple DateTime comparison, NOT timezone-aware comparison.
-  /// This is intentional - the parent (RecordingScreen) does timezone-aware
-  /// validation in _handleStartTimeConfirm and shows appropriate errors.
-  /// If we used timezone-aware clamping here, invalid times would be silently
-  /// corrected instead of showing an error to the user.
+  /// CUR-564: Uses timezone-aware comparison to properly handle cross-timezone times.
+  /// When displaying 4:34 PM EST (which equals 1:34 PM PST), we need to convert
+  /// to device time before comparing against DateTime.now().
   DateTime _clampToMaxIfNeeded(DateTime time) {
-    if (!widget.allowFutureTimes && time.isAfter(_effectiveMaxDateTime)) {
-      return _effectiveMaxDateTime;
+    // CUR-564: Use timezone-aware check instead of raw DateTime comparison
+    if (_isDisplayedTimeInFuture(time)) {
+      // Return a clamped time that represents "now" in the display timezone
+      // Convert _effectiveMaxDateTime (device time) to display timezone
+      return TimezoneConverter.toDisplayedDateTime(
+        _effectiveMaxDateTime,
+        _selectedTimezone,
+      );
     }
     return time;
   }
