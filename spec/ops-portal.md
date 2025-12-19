@@ -15,19 +15,28 @@
 
 ## Executive Summary
 
-This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Identity Platform.
+This guide covers deployment, configuration, monitoring, and operational procedures for the Clinical Trial Web Portal. The portal is a Flutter Web application deployed on Cloud Run, with each sponsor receiving their own isolated deployment in a sponsor-specific GCP project connected to Cloud SQL and Workforce Identity Federation.
+Each sponsor shall have 4 environments:
+- dev
+- qa
+- uat
+- prod
 
-**Deployment Model**: One portal instance per sponsor GCP project
+**Deployment Model**: One portal instance per sponsor GCP project, per environment
+
 **Hosting**: Cloud Run (containerized Flutter web app + Dart backend)
+
 **Database**: Cloud SQL PostgreSQL (with RLS)
-**Authentication**: Identity Platform (Firebase Auth)
+
+**Authentication**: [Google Workforce Identity Federation](https://cloud.google.com/workforce-identity-federation)
+
 **Domains**: Custom subdomain per sponsor (e.g., `portal-sponsor.example.com`)
 
 ---
 
 ## Prerequisites
 
-Before deploying a portal instance, ensure you have:
+Before deploying a portal instance to an environment, ensure you have:
 
 1. **GCP Project** created for sponsor with billing enabled
 2. **Cloud SQL Instance** provisioned with schema applied
@@ -62,70 +71,167 @@ Before deploying a portal instance, ensure you have:
 *End* *Role-Based Visual Indicator Verification* | **Hash**: b02eb8c1
 ---
 
-## Build Portal
+## Infrastructure as Code with Pulumi
 
-### Build Command
+Portal deployment uses **Pulumi** for declarative infrastructure management, providing:
+- **State Management**: Track infrastructure changes and detect drift
+- **Multi-Environment Support**: dev, qa, uat, prod per sponsor
+- **Audit Trail**: FDA 21 CFR Part 11 compliant infrastructure change tracking
+- **Multi-Sponsor Pattern**: Consistent deployments across sponsors
 
-Portal build is executed from the core repository using the build system:
+### Prerequisites
 
-```bash
-# Navigate to core repository
-cd clinical-diary
-
-# Build portal for specific sponsor
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo <path-to-sponsor-repo> \
-  --environment production
-```
-
-**Example**:
+Install Pulumi CLI and dependencies:
 
 ```bash
-# Build Orion production portal
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-orion \
-  --environment production
+# Install Pulumi CLI
+curl -fsSL https://get.pulumi.com | sh
+
+# Install Node.js dependencies (TypeScript runtime)
+cd apps/portal-cloud
+npm install
+
+# Configure Pulumi backend (use GCS for state storage)
+pulumi login gs://pulumi-state-${ORGANIZATION}
 ```
 
-**Output Location**: `build/web/`
-
-**Output Contents**:
-- `index.html` - Main HTML entry point
-- `main.dart.js` - Compiled Dart/Flutter code
-- `flutter_service_worker.js` - Service worker for caching
-- `assets/` - Fonts, images, sponsor branding
-- `canvaskit/` - Flutter rendering engine
+**Pulumi Project Structure**: See `apps/portal-cloud/` for complete implementation
 
 ---
 
-### Build Validation
+## Deploy Portal Infrastructure
 
-After build completes, validate the output:
+### Environment-Specific Deployment
+
+Each sponsor has 4 isolated environments (dev, qa, uat, prod). Deploy using Pulumi stacks:
 
 ```bash
-# Check build directory exists
-ls -lah build/web/
+# Navigate to Pulumi project
+cd apps/portal-cloud
 
-# Verify index.html contains correct config references
-grep "FIREBASE_PROJECT" build/web/index.html
+# Initialize stack for sponsor environment
+pulumi stack init orion-prod
 
-# Check asset sizes (should be optimized)
-du -sh build/web/assets/
+# Configure stack parameters
+pulumi config set gcp:project cure-hht-orion-prod
+pulumi config set gcp:region us-central1
+pulumi config set sponsor orion
+pulumi config set environment production
+pulumi config set --secret dbPassword <secure-password>
 
-# Validate no secrets in build
-grep -r "SERVICE_ACCOUNT_KEY" build/web/ || echo "OK: No service keys found"
+# Preview infrastructure changes
+pulumi preview
+
+# Deploy infrastructure
+pulumi up
 ```
+
+**Stack Naming Convention**: `{sponsor}-{env}` (e.g., `orion-prod`, `orion-dev`, `callisto-uat`)
+
+**What Gets Deployed**:
+1. **Cloud Run Service** (containerized Flutter web app)
+2. **Artifact Registry Repository** (Docker images)
+3. **Cloud SQL Instance** (PostgreSQL with RLS)
+4. **Identity Platform Configuration** (Firebase Auth)
+5. **Custom Domain Mapping** (SSL certificates)
+6. **IAM Service Accounts** (least-privilege permissions)
+7. **Monitoring & Alerting** (uptime checks, error alerts)
 
 **Expected Output**:
-- `build/web/` directory size: ~5-15 MB (depends on assets)
-- No secrets or service keys in any file
-- `index.html` references templated environment variables
+```
+Updating (orion-prod)
+
+     Type                              Name                Status
+ +   pulumi:pulumi:Stack               portal-orion-prod   created
+ +   ├─ gcp:artifactregistry:Repository  portal-images    created
+ +   ├─ gcp:sql:DatabaseInstance       portal-db           created
+ +   ├─ gcp:cloudrun:Service           portal              created
+ +   ├─ gcp:cloudrun:DomainMapping     portal-domain       created
+ +   └─ gcp:monitoring:UptimeCheckConfig  portal-uptime   created
+
+Outputs:
+    portalUrl: "https://portal-orion.example.com"
+
+Resources:
+    + 15 created
+
+Duration: 8m32s
+```
 
 ---
 
-## Container Build
+### Build and Deploy Workflow
+
+Pulumi orchestrates the entire build-to-deploy pipeline:
+
+**Step 1: Build Flutter Web App**
+
+The Pulumi program executes the Flutter build automatically:
+
+```typescript
+// apps/portal-cloud/src/build-flutter.ts
+const buildResult = await runCommand("dart", [
+  "run",
+  "tools/build_system/build_portal.dart",
+  "--sponsor-repo", sponsorRepoPath,
+  "--environment", environment
+]);
+```
+
+**Step 2: Build and Push Container**
+
+```typescript
+// apps/portal-cloud/src/docker-image.ts
+const image = new docker.Image("portal-image", {
+  imageName: `${region}-docker.pkg.dev/${project}/clinical-diary/portal:${imageTag}`,
+  build: {
+    context: "./build",
+    dockerfile: "./Dockerfile"
+  }
+});
+```
+
+**Step 3: Deploy to Cloud Run**
+
+```typescript
+// apps/portal-cloud/src/cloud-run.ts
+const service = new gcp.cloudrun.Service("portal", {
+  location: region,
+  template: {
+    spec: {
+      containers: [{
+        image: image.imageName,
+        ports: [{ containerPort: 8080 }]
+      }]
+    }
+  }
+});
+```
+
+**Complete Deployment**:
+
+```bash
+# Single command deploys everything
+pulumi up
+```
+
+Pulumi handles:
+- ✅ Flutter web build
+- ✅ Docker image build and push
+- ✅ Cloud Run deployment
+- ✅ Domain mapping and SSL
+- ✅ Database configuration
+- ✅ Monitoring setup
+
+---
+
+## Container Configuration
+
+The portal runs in a containerized nginx environment. **Container build and push are automated by Pulumi** (see `apps/portal-cloud/src/docker-image.ts`), but the Dockerfile and nginx configuration are maintained in the project.
 
 ### Dockerfile for Portal
+
+Located at `apps/portal-cloud/Dockerfile`:
 
 ```dockerfile
 # Dockerfile
@@ -147,6 +253,8 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 ### nginx.conf for SPA Routing
+
+Located at `apps/portal-cloud/nginx.conf`:
 
 ```nginx
 server {
@@ -184,82 +292,85 @@ server {
 }
 ```
 
-### Build and Push Container
-
-```bash
-# Set variables
-export PROJECT_ID=sponsor-project-id
-export REGION=us-central1
-export IMAGE_TAG=$(git rev-parse --short HEAD)
-
-# Build Flutter web app
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-sponsor \
-  --environment production
-
-# Build container
-docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${IMAGE_TAG} .
-
-# Configure Docker for Artifact Registry
-gcloud auth configure-docker ${REGION}-docker.pkg.dev
-
-# Push to Artifact Registry
-docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${IMAGE_TAG}
-```
+**Note**: Container build/push handled automatically by `pulumi up` via the `@pulumi/docker` provider.
 
 ---
 
-## Cloud Run Deployment
+## Pulumi State Management
 
-### Deploy Command
+### Infrastructure State
+
+Pulumi stores infrastructure state in Google Cloud Storage for:
+- **State Persistence**: Track all deployed resources
+- **Drift Detection**: Identify manual changes outside of Pulumi
+- **Audit Trail**: History of all infrastructure changes (FDA compliance)
+- **Team Collaboration**: Shared state across deployments
+
+**State Backend Configuration**:
 
 ```bash
-# Set variables
-export PROJECT_ID=sponsor-project-id
-export REGION=us-central1
-export IMAGE_TAG=$(git rev-parse --short HEAD)
-export SERVICE_NAME=portal
+# Login to GCS backend
+pulumi login gs://pulumi-state-cure-hht
 
-# Deploy to Cloud Run
-gcloud run deploy ${SERVICE_NAME} \
-  --project=${PROJECT_ID} \
-  --region=${REGION} \
-  --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${IMAGE_TAG} \
-  --platform=managed \
-  --port=8080 \
-  --allow-unauthenticated \
-  --min-instances=1 \
-  --max-instances=10 \
-  --memory=512Mi \
-  --cpu=1 \
-  --set-env-vars="FIREBASE_PROJECT_ID=${PROJECT_ID}" \
-  --set-env-vars="GCP_PROJECT_ID=${PROJECT_ID}" \
-  --set-env-vars="ENVIRONMENT=production" \
-  --set-env-vars="SPONSOR_ID=sponsor-name"
-
-# Get deployed URL
-gcloud run services describe ${SERVICE_NAME} \
-  --project=${PROJECT_ID} \
-  --region=${REGION} \
-  --format='value(status.url)'
+# Pulumi automatically creates state files per stack
+# State file location: gs://pulumi-state-cure-hht/{project}/{stack}.json
 ```
 
-### Automated Deployment (CI/CD)
+**Stack State Files**:
+- `orion-prod.json` - Orion production infrastructure state
+- `orion-uat.json` - Orion UAT infrastructure state
+- `callisto-prod.json` - Callisto production infrastructure state
+- etc.
 
-Add to sponsor repository `.github/workflows/deploy-portal.yml`:
+### Drift Detection
+
+Detect infrastructure changes made outside Pulumi:
+
+```bash
+# Preview changes without applying
+pulumi preview --diff
+
+# Expected output if no drift:
+# "Previewing update (orion-prod):
+#
+#      Type                 Name             Plan
+#      pulumi:pulumi:Stack  portal-orion-prod
+#
+# Resources:
+#     15 unchanged"
+```
+
+If drift detected, Pulumi shows:
+- `~` Modified resources
+- `+` Resources created outside Pulumi
+- `-` Resources deleted outside Pulumi
+
+**Resolve Drift**:
+- Option 1: `pulumi up` to revert manual changes
+- Option 2: `pulumi refresh` to import manual changes into state
+
+---
+
+## Automated Deployment (CI/CD)
+
+### GitHub Actions Workflow
+
+Add to core repository `.github/workflows/deploy-portal.yml`:
 
 ```yaml
-name: Deploy Portal
+name: Deploy Portal via Pulumi
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1
-  SERVICE_NAME: portal
+    inputs:
+      stack:
+        description: 'Pulumi stack to deploy (e.g., orion-prod)'
+        required: true
+      environment:
+        description: 'Environment (dev/qa/uat/prod)'
+        required: true
 
 jobs:
   deploy:
@@ -271,18 +382,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: sponsor
+          path: core
 
       - uses: actions/checkout@v4
         with:
-          repository: yourorg/clinical-diary
-          ref: v1.2.0
-          path: core
+          repository: ${{ github.repository_owner }}/clinical-diary-${{ github.event.inputs.stack }}
+          path: sponsor
+          token: ${{ secrets.SPONSOR_REPO_TOKEN }}
 
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.38.3'
           channel: 'stable'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Pulumi CLI
+        uses: pulumi/actions@v5
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
@@ -290,77 +409,102 @@ jobs:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev
-
-      - name: Build Portal
+      - name: Install Dependencies
         run: |
-          cd core
-          dart run tools/build_system/build_portal.dart \
-            --sponsor-repo ../sponsor \
-            --environment production
+          cd core/apps/portal-cloud
+          npm install
 
-      - name: Build and Push Container
+      - name: Pulumi Preview
         run: |
-          cd core
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${{ github.sha }} .
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${{ github.sha }}
+          cd core/apps/portal-cloud
+          pulumi stack select ${{ github.event.inputs.stack }}
+          pulumi preview
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
-      - name: Deploy to Cloud Run
+      - name: Pulumi Deploy
         run: |
-          gcloud run deploy ${SERVICE_NAME} \
-            --project=${PROJECT_ID} \
-            --region=${REGION} \
-            --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/portal:${{ github.sha }} \
-            --platform=managed \
-            --allow-unauthenticated
+          cd core/apps/portal-cloud
+          pulumi up --yes
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+      - name: Export Portal URL
+        run: |
+          cd core/apps/portal-cloud
+          pulumi stack output portalUrl
 ```
+
+**Deployment Triggers**:
+- **Manual**: `workflow_dispatch` with stack selection
+- **Automatic**: Push to `main` branch (can be configured per environment)
+
+**Deployment Time**: ~8-12 minutes (includes build, container push, Cloud Run deployment)
 
 ---
 
 ### Custom Domain Configuration
 
-**Step 1: Map Custom Domain in Cloud Run**
+Custom domains are configured in Pulumi stack configuration and deployed automatically.
+
+**Step 1: Configure Domain in Pulumi**
 
 ```bash
-# Add domain mapping
-gcloud run domain-mappings create \
-  --project=${PROJECT_ID} \
-  --region=${REGION} \
-  --service=${SERVICE_NAME} \
-  --domain=portal-sponsor.example.com
+# Set custom domain for stack
+pulumi config set domainName portal-orion.cure-hht.org
 ```
 
-**Step 2: Configure DNS**
+**Step 2: Deploy Domain Mapping**
 
-Add DNS records in your domain registrar:
+Pulumi creates the domain mapping automatically:
 
+```typescript
+// apps/portal-cloud/src/domain-mapping.ts
+const domainMapping = new gcp.cloudrun.DomainMapping("portal-domain", {
+  location: region,
+  name: config.require("domainName"),
+  spec: {
+    routeName: service.name,
+  }
+});
 ```
-# CNAME record pointing to Cloud Run
-CNAME portal-sponsor -> ghs.googlehosted.com
+
+Deploy with `pulumi up` to create the domain mapping.
+
+**Step 3: Configure DNS**
+
+Add DNS records in your domain registrar (shown in Pulumi output):
+
+```bash
+# Get DNS record from Pulumi output
+pulumi stack output dnsRecordRequired
+
+# Expected output:
+# CNAME portal-orion.cure-hht.org -> ghs.googlehosted.com
 ```
 
-**Step 3: Verify SSL Certificate**
+Add this CNAME record to your DNS provider.
 
-Cloud Run automatically provisions SSL certificates for mapped domains:
+**Step 4: Verify SSL Certificate**
+
+Cloud Run automatically provisions SSL certificates. Verify via Pulumi:
 
 ```bash
 # Check domain mapping status
-gcloud run domain-mappings describe \
-  --project=${PROJECT_ID} \
-  --region=${REGION} \
-  --domain=portal-sponsor.example.com
+pulumi stack output domainStatus
 
-# Expected: certificateStatus: ACTIVE
+# Expected: ACTIVE (SSL certificate provisioned)
 ```
 
 **Expected Result**:
-- `https://portal-sponsor.example.com` resolves to portal
+- `https://portal-orion.cure-hht.org` resolves to portal
 - SSL certificate valid and auto-renewing
 - HTTP requests redirect to HTTPS
+
+**Troubleshooting**: DNS propagation can take 24-48 hours. Check status:
+```bash
+dig portal-orion.cure-hht.org CNAME
+```
 
 ---
 
@@ -547,9 +691,41 @@ gcloud logging sinks create portal-audit-sink \
 
 ## Rollback Procedures
 
-### Cloud Run Rollback
+### Infrastructure Rollback via Pulumi
 
-Cloud Run maintains revision history. To rollback:
+Pulumi maintains complete infrastructure history. Rollback entire stack to previous state:
+
+**View Deployment History**:
+
+```bash
+# List all stack updates
+pulumi stack history
+
+# Expected output:
+# Version  Time                  ResourceChanges  Description
+# 5        2025-12-14 10:30:00   15 updated       Deploy v1.5.2
+# 4        2025-12-13 14:22:00   15 unchanged     Deploy v1.5.1
+# 3        2025-12-12 09:15:00   15 updated       Deploy v1.5.0
+```
+
+**Rollback to Previous Version**:
+
+```bash
+# Export previous stack state
+pulumi stack export --version 4 > previous-state.json
+
+# Import previous state (rolls back all resources)
+pulumi stack import --file previous-state.json
+
+# Apply the rollback
+pulumi up --yes
+```
+
+**Rollback Time**: ~3-5 minutes (re-deploys previous container image and configuration)
+
+### Cloud Run Revision Rollback (Quick Rollback)
+
+For faster rollback without full Pulumi revert, route traffic to previous Cloud Run revision:
 
 **Via Console**:
 1. Navigate to Cloud Run → Service → Revisions
@@ -563,16 +739,18 @@ Cloud Run maintains revision history. To rollback:
 gcloud run revisions list \
   --project=${PROJECT_ID} \
   --region=${REGION} \
-  --service=${SERVICE_NAME}
+  --service=portal
 
 # Route traffic to previous revision
-gcloud run services update-traffic ${SERVICE_NAME} \
+gcloud run services update-traffic portal \
   --project=${PROJECT_ID} \
   --region=${REGION} \
-  --to-revisions=portal-00002-abc=100
+  --to-revisions=portal-00004-xyz=100
 ```
 
 **Rollback Time**: ~10 seconds (container swap)
+
+**Note**: This method only rolls back the container, not infrastructure changes (domain mappings, IAM, monitoring). For complete rollback, use Pulumi.
 
 ---
 

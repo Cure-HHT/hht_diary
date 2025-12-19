@@ -1,0 +1,13 @@
+name: cure-hht-bootstrap
+runtime: nodejs
+description: Bootstrap infrastructure for creating sponsor GCP projects
+
+# This project creates GCP projects for new sponsors.
+# Run once per sponsor to create their dev/qa/uat/prod projects.
+#
+# Usage:
+#   pulumi stack init <sponsor-name>
+#   pulumi config set sponsor <sponsor-name>
+#   pulumi config set gcp:orgId <org-id>
+#   pulumi config set billingAccountId <billing-account-id>
+#   pulumi up
