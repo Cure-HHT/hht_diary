@@ -1093,6 +1093,223 @@ void main() {
     });
   });
 
+  // CUR-564: Future time validation should consider timezone differences
+  group('CUR-564: Cross-Timezone Future Time Validation', () {
+    late Directory tempDir;
+
+    // PST timezone offset in minutes (UTC-8 = -480 minutes)
+    const pstOffsetMinutes = -480;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to PST for this test
+      TimezoneConverter.testDeviceOffsetMinutes = pstOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'America/Los_Angeles';
+
+      // Create a temp directory for the test database
+      tempDir = await Directory.systemTemp.createTemp('tz_future_test_');
+
+      // Initialize the datastore for tests with a temp path
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'test_events.db',
+          enableEncryption: false,
+        ),
+      );
+    });
+
+    tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// Helper to change timezone in the time picker
+    Future<void> changeTimezone(
+      WidgetTester tester,
+      String targetTimezoneSearch,
+    ) async {
+      // Find and tap the timezone selector (shows globe icon)
+      final tzSelector = find.byIcon(Icons.public);
+      expect(
+        tzSelector,
+        findsOneWidget,
+        reason: 'Timezone selector should exist',
+      );
+      await tester.tap(tzSelector);
+      await tester.pumpAndSettle();
+
+      // Type in search to find the timezone
+      final searchField = find.byType(TextField);
+      expect(searchField, findsOneWidget, reason: 'Search field should exist');
+      await tester.enterText(searchField, targetTimezoneSearch);
+      await tester.pumpAndSettle();
+
+      // Tap on the first search result
+      final tzListTile = find.byType(ListTile).first;
+      await tester.tap(tzListTile);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'CUR-564: Adding time to simulate EST offset triggers false "future" error',
+      (tester) async {
+        // BUG: When user changes timezone, the displayed time does NOT change
+        // automatically. User expects "3:45 PM PST" to become "6:45 PM EST"
+        // when switching timezones (same moment, different TZ display).
+        //
+        // Instead, display stays at "3:45 PM" and just labels it as "EST".
+        // This is confusing: "3:45 PM EST" != "3:45 PM PST".
+        //
+        // To work around this, user manually adds 3 hours to simulate what
+        // they expect the timezone change to do. This triggers the bug:
+        //
+        // 1. Device time: 12:51 PM PST
+        // 2. Change timezone to EST - display still shows "12:51 PM"
+        // 3. User adds 2.5 hours (to simulate EST offset minus 30 min buffer)
+        // 4. Display now shows "3:21 PM EST"
+        // 5. User clicks "Set Start Time"
+        // 6. BUG: TimePickerDial compares "3:21 PM" to DateTime.now() = 12:51 PM
+        // 7. 3:21 PM > 12:51 PM = "Cannot set time in the future"!
+        //
+        // But 3:21 PM EST = 12:21 PM PST, which is 30 min in the PAST!
+
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // ===== Click "Record Nosebleed" on home page =====
+        debugPrint('Step 1: Click Record Nosebleed');
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // Debug: Show initial time
+        debugPrint('=== Initial time display (PST) ===');
+        for (final element in find.byType(Text).evaluate().take(20)) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains('AM') ||
+              data.contains('PM') ||
+              data.contains(':')) {
+            debugPrint('Time text: "$data"');
+          }
+        }
+
+        // ===== Change timezone to EST (UTC-5) =====
+        // EST is 3 hours ahead of PST.
+        // User expects display to change from "12:51 PM PST" to "3:51 PM EST"
+        // But it stays at "12:51 PM" - confusing!
+        debugPrint('Step 2: Change timezone to EST');
+        await changeTimezone(tester, 'New_York');
+
+        // Debug: Show time after timezone change (should NOT change, that's the issue)
+        debugPrint(
+          '=== Time display after changing to EST (should be same!) ===',
+        );
+        for (final element in find.byType(Text).evaluate().take(20)) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains('AM') ||
+              data.contains('PM') ||
+              data.contains(':')) {
+            debugPrint('Time text: "$data"');
+          }
+        }
+
+        // ===== Manually add 2.5 hours to simulate what user expects =====
+        // User thinks: "I need to add 3 hours to see the EST time, then subtract 30 min"
+        // This simulates user trying to enter a time that's 30 min in the past (EST).
+        // EST is 3 hours ahead, so adding 2.5 hours means: (device + 3hr - 30min) = device + 2.5hr
+        // When converted back: (device + 2.5hr) - 3hr offset = device - 30min = 30 min in PAST
+        debugPrint(
+          'Step 3: Add 2.5 hours (150 min) to simulate EST offset minus buffer',
+        );
+
+        // Capture initial time before clicking +15
+        String? initialTimeText;
+        for (final element in find.byType(Text).evaluate()) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains(':') &&
+              (data.contains('AM') || data.contains('PM'))) {
+            initialTimeText = data;
+            break;
+          }
+        }
+        debugPrint('Initial time before +15: $initialTimeText');
+
+        // Click +15 ten times = 150 minutes = 2.5 hours
+        // This SHOULD work because 12:54 PM + 150 min = 3:24 PM (displayed in EST)
+        // When converted: 3:24 PM EST = 12:24 PM PST = 30 min in the PAST!
+        for (var i = 0; i < 10; i++) {
+          await tester.tap(find.text('+15'));
+          await tester.pump();
+        }
+        await tester.pumpAndSettle();
+
+        // Capture time after clicking +15
+        String? adjustedTimeText;
+        for (final element in find.byType(Text).evaluate()) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains(':') &&
+              (data.contains('AM') || data.contains('PM'))) {
+            adjustedTimeText = data;
+            break;
+          }
+        }
+        debugPrint('Time after +150 min: $adjustedTimeText');
+
+        // CUR-564 BUG: The time should have changed, but it didn't!
+        // The +15 buttons are blocked because they compare the raw displayed
+        // time to DateTime.now() without considering the timezone offset.
+        //
+        // The buttons SHOULD allow adding time because:
+        // - Current displayed time: 12:54 PM EST
+        // - After +150 min: 3:24 PM EST
+        // - When converted to device TZ: 3:24 PM EST = 12:24 PM PST
+        // - Device time: ~12:54 PM PST
+        // - 12:24 PM PST < 12:54 PM PST = VALID (30 min in past)!
+        //
+        // But the bug causes buttons to block because:
+        // - newTime = internal DateTime + 150 min = 3:24 PM
+        // - DateTime.now() = 12:54 PM
+        // - 3:24 PM > 12:54 PM = incorrectly flagged as FUTURE!
+        expect(
+          adjustedTimeText,
+          isNot(equals(initialTimeText)),
+          reason:
+              'CUR-564 BUG: Time should have changed after clicking +15 buttons, '
+              'but the buttons were blocked because validation does not consider '
+              'timezone. 3:24 PM EST = 12:24 PM PST which is 30 min in the PAST!',
+        );
+
+        debugPrint('CUR-564 test completed!');
+      },
+    );
+  });
+
   // CUR-492: Negative duration bypass via back button
   group('CUR-492: Negative Duration Validation', () {
     late Directory tempDir;
