@@ -45,6 +45,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadDayStatuses() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     // Load statuses for current month plus padding
@@ -60,6 +61,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final allRecords = await widget.nosebleedService
         .getLocalMaterializedRecords();
 
+    // CUR-586: Check mounted after async operations
+    if (!mounted) return;
     setState(() {
       _dayStatuses = statuses;
       _allRecords = allRecords;
