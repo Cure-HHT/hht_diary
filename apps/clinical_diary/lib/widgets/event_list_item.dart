@@ -4,6 +4,8 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -28,16 +30,27 @@ class EventListItem extends StatelessWidget {
   final Color? highlightColor;
 
   /// Format start time for one-line display (e.g., "9:09 PM")
-  /// Times are displayed in the user's current local timezone.
+  /// CUR-597: Times are displayed in the event's timezone, not device timezone.
+  /// If the event has a stored timezone, convert the stored time to that timezone.
   String _startTimeFormatted(String locale) {
-    return DateFormat.jm(locale).format(record.startTime);
+    // CUR-597: Convert stored time to event's timezone for display
+    final displayTime = record.startTimeTimezone != null
+        ? TimezoneConverter.toDisplayedDateTime(
+            record.startTime,
+            record.startTimeTimezone,
+          )
+        : record.startTime;
+    return DateFormat.jm(locale).format(displayTime);
   }
 
   /// CUR-516: Get timezone display string if different from device TZ
   /// Returns null if timezone matches device TZ, otherwise returns abbreviation(s)
+  /// CUR-597: Uses TimezoneService for device timezone to support test overrides.
   String? get _timezoneDisplay {
-    // Normalize device TZ to abbreviation for proper comparison
-    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
+    // CUR-597: Use TimezoneService for device timezone (supports test overrides)
+    final deviceTimezone =
+        TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
+    final deviceTzAbbr = normalizeDeviceTimezone(deviceTimezone);
     final startTz = record.startTimeTimezone;
     final endTz = record.endTimeTimezone;
 
