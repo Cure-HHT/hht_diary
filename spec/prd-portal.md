@@ -310,6 +310,73 @@ Role colors SHALL be:
 *End* *Role-Based Visual Indicators* | **Hash**: 59059266
 ---
 
+# REQ-p01063: Initial Password Activation Workflow
+
+**Level**: PRD | **Implements**: p00024, p00014 | **Status**: Draft
+
+New portal users SHALL securely set their initial password via an emailed activation link with time-limited validity and strong password requirements.
+
+Password activation SHALL ensure:
+- **Admin Account Creation**:
+  - Admin creates new user account in portal
+  - User account created in inactive state
+  - No password set during account creation
+- **Activation Email**:
+  - System sends activation email to registered email address
+  - Email contains unique, secure, single-use activation link
+  - Activation link expires after 14 days
+  - No sensitive information included in email content
+- **Activation Link Validation**:
+  - User clicks activation link in email
+  - System validates link authenticity and expiration
+  - Invalid or expired links rejected with clear error message
+  - Expired link prompts user to request new activation link
+- **Password Creation Interface**:
+  - User directed to Set Password page
+  - New Password field with show/hide toggle (required)
+  - Confirm Password field (required, must match New Password)
+  - Inline validation for password rules
+  - Clear instructions: "Create a password for your account"
+- **Password Requirements**:
+  - Minimum 8 characters
+  - At least one uppercase letter
+  - At least one lowercase letter
+  - At least one number
+  - At least one special character
+- **Account Activation**:
+  - Upon successful password creation, user account activated
+  - User redirected to Login page
+  - Success message displayed: "Your password has been successfully created. You may now log in"
+  - Optional prompt for 2FA setup if not already enabled
+- **Security**:
+  - Passwords hashed before storage using bcrypt with salt
+  - Activation link is single-use only
+  - Activation link cryptographically secure
+  - All activation attempts logged in audit trail
+
+**Rationale**: Initial password activation via email link provides secure onboarding for new portal users while maintaining audit trail compliance. Time-limited, single-use links prevent unauthorized access. Strong password requirements and bcrypt hashing protect against credential-based attacks. This workflow separates account creation (admin action) from password setting (user action), ensuring proper access control during onboarding.
+
+**Acceptance Criteria**:
+- Admin can create new user account without setting password
+- System sends activation email with unique link within 5 minutes
+- Activation link contains cryptographically secure token
+- Activation link expires exactly 14 days after generation
+- Expired link shows clear error: "This activation link has expired"
+- User can request new activation link if expired
+- Set Password page validates password in real-time
+- Password must meet all complexity requirements
+- Confirm Password field validates match before submission
+- Show/hide toggle reveals password text when clicked
+- Passwords stored as bcrypt hash with salt (never plaintext)
+- Activation link becomes invalid after successful password creation
+- Reusing activation link shows error: "This link has already been used"
+- User account status changes from inactive to active on success
+- User redirected to login page with success message
+- All activation events logged in audit trail (sent, clicked, completed, failed)
+
+*End* *Initial Password Activation Workflow* | **Hash**: b53b4657
+---
+
 ## Architecture Overview
 
 The portal connects to the sponsor-specific Cloud SQL database with role-based access control enforced both at the application and database levels:
