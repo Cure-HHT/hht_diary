@@ -1093,6 +1093,497 @@ void main() {
     });
   });
 
+  // CUR-564: Future time validation should consider timezone differences
+  group('CUR-564: Cross-Timezone Future Time Validation', () {
+    late Directory tempDir;
+
+    // PST timezone offset in minutes (UTC-8 = -480 minutes)
+    const pstOffsetMinutes = -480;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to PST for this test
+      TimezoneConverter.testDeviceOffsetMinutes = pstOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'America/Los_Angeles';
+
+      // Create a temp directory for the test database
+      tempDir = await Directory.systemTemp.createTemp('tz_future_test_');
+
+      // Initialize the datastore for tests with a temp path
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'test_events.db',
+          enableEncryption: false,
+        ),
+      );
+    });
+
+    tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// Helper to change timezone in the time picker
+    Future<void> changeTimezone(
+      WidgetTester tester,
+      String targetTimezoneSearch,
+    ) async {
+      // Find and tap the timezone selector (shows globe icon)
+      final tzSelector = find.byIcon(Icons.public);
+      expect(
+        tzSelector,
+        findsOneWidget,
+        reason: 'Timezone selector should exist',
+      );
+      await tester.tap(tzSelector);
+      await tester.pumpAndSettle();
+
+      // Type in search to find the timezone
+      final searchField = find.byType(TextField);
+      expect(searchField, findsOneWidget, reason: 'Search field should exist');
+      await tester.enterText(searchField, targetTimezoneSearch);
+      await tester.pumpAndSettle();
+
+      // Tap on the first search result
+      final tzListTile = find.byType(ListTile).first;
+      await tester.tap(tzListTile);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'CUR-564: Adding time to simulate EST offset triggers false "future" error',
+      (tester) async {
+        // BUG: When user changes timezone, the displayed time does NOT change
+        // automatically. User expects "3:45 PM PST" to become "6:45 PM EST"
+        // when switching timezones (same moment, different TZ display).
+        //
+        // Instead, display stays at "3:45 PM" and just labels it as "EST".
+        // This is confusing: "3:45 PM EST" != "3:45 PM PST".
+        //
+        // To work around this, user manually adds 3 hours to simulate what
+        // they expect the timezone change to do. This triggers the bug:
+        //
+        // 1. Device time: 12:51 PM PST
+        // 2. Change timezone to EST - display still shows "12:51 PM"
+        // 3. User adds 2.5 hours (to simulate EST offset minus 30 min buffer)
+        // 4. Display now shows "3:21 PM EST"
+        // 5. User clicks "Set Start Time"
+        // 6. BUG: TimePickerDial compares "3:21 PM" to DateTime.now() = 12:51 PM
+        // 7. 3:21 PM > 12:51 PM = "Cannot set time in the future"!
+        //
+        // But 3:21 PM EST = 12:21 PM PST, which is 30 min in the PAST!
+
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // ===== Click "Record Nosebleed" on home page =====
+        debugPrint('Step 1: Click Record Nosebleed');
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // Debug: Show initial time
+        debugPrint('=== Initial time display (PST) ===');
+        for (final element in find.byType(Text).evaluate().take(20)) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains('AM') ||
+              data.contains('PM') ||
+              data.contains(':')) {
+            debugPrint('Time text: "$data"');
+          }
+        }
+
+        // ===== Change timezone to EST (UTC-5) =====
+        // EST is 3 hours ahead of PST.
+        // User expects display to change from "12:51 PM PST" to "3:51 PM EST"
+        // But it stays at "12:51 PM" - confusing!
+        debugPrint('Step 2: Change timezone to EST');
+        await changeTimezone(tester, 'New_York');
+
+        // Debug: Show time after timezone change (should NOT change, that's the issue)
+        debugPrint(
+          '=== Time display after changing to EST (should be same!) ===',
+        );
+        for (final element in find.byType(Text).evaluate().take(20)) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains('AM') ||
+              data.contains('PM') ||
+              data.contains(':')) {
+            debugPrint('Time text: "$data"');
+          }
+        }
+
+        // ===== Manually add 2.5 hours to simulate what user expects =====
+        // User thinks: "I need to add 3 hours to see the EST time, then subtract 30 min"
+        // This simulates user trying to enter a time that's 30 min in the past (EST).
+        // EST is 3 hours ahead, so adding 2.5 hours means: (device + 3hr - 30min) = device + 2.5hr
+        // When converted back: (device + 2.5hr) - 3hr offset = device - 30min = 30 min in PAST
+        debugPrint(
+          'Step 3: Add 2.5 hours (150 min) to simulate EST offset minus buffer',
+        );
+
+        // Capture initial time before clicking +15
+        String? initialTimeText;
+        for (final element in find.byType(Text).evaluate()) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains(':') &&
+              (data.contains('AM') || data.contains('PM'))) {
+            initialTimeText = data;
+            break;
+          }
+        }
+        debugPrint('Initial time before +15: $initialTimeText');
+
+        // Click +15 ten times = 150 minutes = 2.5 hours
+        // This SHOULD work because 12:54 PM + 150 min = 3:24 PM (displayed in EST)
+        // When converted: 3:24 PM EST = 12:24 PM PST = 30 min in the PAST!
+        for (var i = 0; i < 10; i++) {
+          await tester.tap(find.text('+15'));
+          await tester.pump();
+        }
+        await tester.pumpAndSettle();
+
+        // Capture time after clicking +15
+        String? adjustedTimeText;
+        for (final element in find.byType(Text).evaluate()) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains(':') &&
+              (data.contains('AM') || data.contains('PM'))) {
+            adjustedTimeText = data;
+            break;
+          }
+        }
+        debugPrint('Time after +150 min: $adjustedTimeText');
+
+        // CUR-564 BUG: The time should have changed, but it didn't!
+        // The +15 buttons are blocked because they compare the raw displayed
+        // time to DateTime.now() without considering the timezone offset.
+        //
+        // The buttons SHOULD allow adding time because:
+        // - Current displayed time: 12:54 PM EST
+        // - After +150 min: 3:24 PM EST
+        // - When converted to device TZ: 3:24 PM EST = 12:24 PM PST
+        // - Device time: ~12:54 PM PST
+        // - 12:24 PM PST < 12:54 PM PST = VALID (30 min in past)!
+        //
+        // But the bug causes buttons to block because:
+        // - newTime = internal DateTime + 150 min = 3:24 PM
+        // - DateTime.now() = 12:54 PM
+        // - 3:24 PM > 12:54 PM = incorrectly flagged as FUTURE!
+        expect(
+          adjustedTimeText,
+          isNot(equals(initialTimeText)),
+          reason:
+              'CUR-564 BUG: Time should have changed after clicking +15 buttons, '
+              'but the buttons were blocked because validation does not consider '
+              'timezone. 3:24 PM EST = 12:24 PM PST which is 30 min in the PAST!',
+        );
+
+        debugPrint('CUR-564 test completed!');
+      },
+    );
+  });
+
+  // CUR-597: Home page shows wrong time after cross-timezone entry
+  // When device is PST and user enters time in EST, the home page should
+  // display the time in EST (e.g., "5:20 PM EST"), not device time ("2:20 PM")
+  group('CUR-597: Home Page Cross-Timezone Display', () {
+    late Directory tempDir;
+
+    // PST timezone offset in minutes (UTC-8 = -480 minutes)
+    const pstOffsetMinutes = -480;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+
+      // Override device timezone to PST for this test
+      TimezoneConverter.testDeviceOffsetMinutes = pstOffsetMinutes;
+      TimezoneService.instance.testTimezoneOverride = 'America/Los_Angeles';
+
+      // Create a temp directory for the test database
+      tempDir = await Directory.systemTemp.createTemp('tz_homepage_test_');
+
+      // Initialize the datastore for tests with a temp path
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      await Datastore.initialize(
+        config: DatastoreConfig(
+          deviceId: 'test-device-id',
+          userId: 'test-user-id',
+          databasePath: tempDir.path,
+          databaseName: 'test_events.db',
+          enableEncryption: false,
+        ),
+      );
+    });
+
+    tearDown(() async {
+      // Reset timezone overrides
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+
+      if (Datastore.isInitialized) {
+        await Datastore.instance.deleteAndReset();
+      }
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// Helper to change timezone in the time picker
+    Future<void> changeTimezone(
+      WidgetTester tester,
+      String targetTimezoneSearch,
+    ) async {
+      final tzSelector = find.byIcon(Icons.public);
+      expect(
+        tzSelector,
+        findsOneWidget,
+        reason: 'Timezone selector should exist',
+      );
+      await tester.tap(tzSelector);
+      await tester.pumpAndSettle();
+
+      final searchField = find.byType(TextField);
+      expect(searchField, findsOneWidget, reason: 'Search field should exist');
+      await tester.enterText(searchField, targetTimezoneSearch);
+      await tester.pumpAndSettle();
+
+      final tzListTile = find.byType(ListTile).first;
+      await tester.tap(tzListTile);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'CUR-597: Stored time and home page should match entered EST time',
+      (tester) async {
+        // This test verifies that:
+        // 1. When device is PST and user enters time in EST
+        // 2. The stored time in datastore is correctly converted
+        // 3. The home page displays the time in EST (with timezone label)
+        //
+        // Example scenario:
+        // - Device time: 2:20 PM PST
+        // - User changes timezone to EST and adds 3 hours
+        // - Display shows: 5:20 PM EST
+        // - Stored time should be: 2:20 PM (device TZ adjusted)
+        // - Home page SHOULD show: 5:20 PM EST (converted back)
+        // - BUG: Home page shows: 2:20 PM EST (raw stored time, wrong!)
+
+        tester.view.physicalSize = const Size(1080, 1920);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        // Launch the app
+        await tester.pumpWidget(const ClinicalDiaryApp());
+        await tester.pumpAndSettle();
+
+        // ===== STEP 1: Record a nosebleed =====
+        debugPrint('Step 1: Click Record Nosebleed');
+        await tester.tap(find.text('Record Nosebleed'));
+        await tester.pumpAndSettle();
+
+        // Capture the initial displayed time (should be close to "now" in PST)
+        String? initialTimeText;
+        for (final element in find.byType(Text).evaluate()) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains(':') &&
+              (data.contains('AM') || data.contains('PM'))) {
+            initialTimeText = data;
+            debugPrint('Initial time: $data');
+            break;
+          }
+        }
+
+        // ===== STEP 2: Change timezone to EST =====
+        debugPrint('Step 2: Change timezone to EST');
+        await changeTimezone(tester, 'New_York');
+
+        // ===== STEP 3: Add 3 hours (180 min) to simulate EST display =====
+        // PST + 3 hours = EST equivalent display
+        debugPrint('Step 3: Add 180 min to simulate EST offset');
+        for (var i = 0; i < 12; i++) {
+          await tester.tap(find.text('+15'));
+          await tester.pump();
+        }
+        await tester.pumpAndSettle();
+
+        // Capture the adjusted time - this is what user expects to save
+        String? adjustedTimeText;
+        for (final element in find.byType(Text).evaluate()) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.contains(':') &&
+              (data.contains('AM') || data.contains('PM'))) {
+            adjustedTimeText = data;
+            debugPrint('Adjusted time (EST display): $data');
+            break;
+          }
+        }
+
+        // ===== STEP 4: Set Start Time =====
+        debugPrint('Step 4: Click Set Start Time');
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pumpAndSettle();
+
+        // ===== STEP 5: Select intensity =====
+        debugPrint('Step 5: Select intensity (Dripping)');
+        await tester.tap(find.text('Dripping'));
+        await tester.pumpAndSettle();
+
+        // ===== STEP 6: Set End Time (+5 min) =====
+        debugPrint('Step 6: Set End Time');
+        // Add 5 minutes to ensure non-zero duration
+        final plusFive = find.text('+5');
+        if (plusFive.evaluate().isNotEmpty) {
+          await tester.tap(plusFive);
+          await tester.pumpAndSettle();
+        }
+
+        // Click Set End Time button
+        final setEndButton = find.text('Set End Time');
+        expect(
+          setEndButton,
+          findsOneWidget,
+          reason: 'Set End Time button should exist',
+        );
+        await tester.tap(setEndButton);
+        await tester.pumpAndSettle();
+
+        // Should be back on home page now
+        debugPrint('Step 7: Verify back on home page');
+        await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+        // ===== STEP 7: Verify stored time and timezone in datastore =====
+        debugPrint('Step 8: Verify stored time and timezone');
+        final allEvents = await Datastore.instance.repository.getAllEvents();
+
+        // Debug: Show all events in datastore
+        debugPrint('=== ALL EVENTS IN DATASTORE ===');
+        for (final event in allEvents) {
+          debugPrint('Event: type=${event.eventType}, data=${event.data}');
+        }
+        debugPrint('=== END ALL EVENTS ===');
+
+        final createEvents = allEvents
+            .where((e) => e.eventType == 'NosebleedRecorded')
+            .toList();
+
+        expect(
+          createEvents,
+          isNotEmpty,
+          reason:
+              'Should have at least one NosebleedRecorded event. '
+              'Found ${allEvents.length} total events: ${allEvents.map((e) => e.eventType).toList()}',
+        );
+
+        final latestCreate = createEvents.last;
+        final eventData = latestCreate.data;
+
+        // Check that timezone was stored
+        final storedTimezone = eventData['startTimeTimezone'];
+        debugPrint('Stored timezone: $storedTimezone');
+        expect(
+          storedTimezone,
+          equals('America/New_York'),
+          reason: 'Start timezone should be stored as America/New_York (EST)',
+        );
+
+        // Check the stored start time
+        final storedStartTime = eventData['startTime'];
+        debugPrint('Stored start time: $storedStartTime');
+
+        // The stored time should be the device-adjusted time
+        // If user displayed 5:20 PM EST, stored should be 2:20 PM PST
+        // The storedStartTime is an ISO string, parse it
+        final storedDateTime = DateTime.parse(storedStartTime as String);
+        debugPrint('Parsed stored time: $storedDateTime');
+
+        // ===== STEP 8: Verify home page display =====
+        debugPrint('Step 9: Verify home page display');
+
+        // Look for the event on the home page - should show Today's events
+        expect(
+          find.text('Today'),
+          findsOneWidget,
+          reason: 'Today section should exist',
+        );
+
+        // Find the time displayed on the home page
+        // The EventListItem shows time like "5:20 PM" with optional timezone
+        // We need to find the displayed time and verify it matches what user entered
+
+        // Look for the adjusted time (what user entered in EST)
+        // The home page should display this time WITH the EST timezone label
+        final homePageTimeMatches = find.text(adjustedTimeText ?? '');
+
+        // CUR-597 BUG: This will FAIL because home page shows stored time (PST)
+        // instead of converting it back to the event's timezone (EST)
+        debugPrint('Looking for adjusted time on home page: $adjustedTimeText');
+        debugPrint('=== Home page text widgets ===');
+        for (final element in find.byType(Text).evaluate().take(30)) {
+          final textWidget = element.widget as Text;
+          final data = textWidget.data ?? '';
+          if (data.isNotEmpty) {
+            debugPrint('Text: "$data"');
+          }
+        }
+
+        expect(
+          homePageTimeMatches,
+          findsOneWidget,
+          reason:
+              'CUR-597 BUG: Home page should display the time user entered '
+              '($adjustedTimeText EST), but it shows the raw stored time '
+              '($initialTimeText) without timezone conversion.',
+        );
+
+        // Also verify the timezone label is shown
+        final estLabel = find.text('EST');
+        expect(
+          estLabel,
+          findsWidgets,
+          reason:
+              'EST timezone label should be displayed on home page '
+              'since event timezone differs from device timezone',
+        );
+
+        debugPrint('CUR-597 test completed!');
+      },
+    );
+  });
+
   // CUR-492: Negative duration bypass via back button
   group('CUR-492: Negative Duration Validation', () {
     late Directory tempDir;
