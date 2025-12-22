@@ -677,18 +677,73 @@ String getTimezoneAbbreviation(String ianaId) {
   return ianaId;
 }
 
+/// CUR-543: Map of common long-form timezone names to abbreviations.
+/// These are the names returned by DateTime.now().timeZoneName on various platforms.
+const Map<String, String> _longFormTimezoneMap = {
+  // US timezones (Windows/macOS long names)
+  'eastern standard time': 'EST',
+  'eastern daylight time': 'EDT',
+  'pacific standard time': 'PST',
+  'pacific daylight time': 'PDT',
+  'central standard time': 'CST',
+  'central daylight time': 'CDT',
+  'mountain standard time': 'MST',
+  'mountain daylight time': 'MDT',
+  'alaska standard time': 'AKST',
+  'alaska daylight time': 'AKDT',
+  'hawaii standard time': 'HST',
+  'hawaii-aleutian standard time': 'HST',
+
+  // European timezones
+  'central european standard time': 'CET',
+  'central european summer time': 'CEST',
+  'greenwich mean time': 'GMT',
+  'british summer time': 'BST',
+  'western european time': 'WET',
+  'western european summer time': 'WEST',
+  'eastern european time': 'EET',
+  'eastern european standard time': 'EET',
+  'eastern european summer time': 'EEST',
+
+  // Other common timezones
+  'japan standard time': 'JST',
+  'korea standard time': 'KST',
+  'china standard time': 'CST',
+  'india standard time': 'IST',
+  'australian eastern standard time': 'AEST',
+  'australian eastern daylight time': 'AEDT',
+  'australian central standard time': 'ACST',
+  'australian central daylight time': 'ACDT',
+  'australian western standard time': 'AWST',
+  'new zealand standard time': 'NZST',
+  'new zealand daylight time': 'NZDT',
+  'coordinated universal time': 'UTC',
+  'singapore standard time': 'SGT',
+  'hong kong standard time': 'HKT',
+};
+
 /// CUR-516: Normalize device timezone name to abbreviation for comparison.
 /// Handles cases like "Central European Standard Time" -> "CET"
 /// or "Pacific Standard Time" -> "PST"
 String normalizeDeviceTimezone(String deviceTzName) {
+  // Handle empty string
+  if (deviceTzName.isEmpty) {
+    return deviceTzName;
+  }
+
   // If already short (e.g., "PST", "CET"), return as-is
   if (deviceTzName.length <= 5 && deviceTzName == deviceTzName.toUpperCase()) {
     return deviceTzName;
   }
 
-  // Try to find a matching entry in our timezone list
+  // CUR-543: First check the long-form lookup table
   final lowerName = deviceTzName.toLowerCase();
+  final mapped = _longFormTimezoneMap[lowerName];
+  if (mapped != null) {
+    return mapped;
+  }
 
+  // Try to find a matching entry in our timezone list
   for (final tz in commonTimezones) {
     // Check if display name is contained in the device timezone name
     // e.g., "Central European" in "Central European Standard Time"

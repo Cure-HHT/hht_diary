@@ -45,6 +45,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadDayStatuses() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     // Load statuses for current month plus padding
@@ -60,6 +61,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final allRecords = await widget.nosebleedService
         .getLocalMaterializedRecords();
 
+    // CUR-586: Check mounted after async operations
+    if (!mounted) return;
     setState(() {
       _dayStatuses = statuses;
       _allRecords = allRecords;
@@ -101,20 +104,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    // Navigate to recording screen for the selected date
-    final normalizedDay = DateTime(
+    // CUR-543: TableCalendar returns UTC DateTimes (DateTime.utc(y,m,d)).
+    // Convert to local time for correct timezone handling in RecordingScreen.
+    // This ensures timestamps are stored with the user's local timezone offset.
+    final localDay = DateTime(
       selectedDay.year,
       selectedDay.month,
       selectedDay.day,
     );
-    final status = _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+    final status = _dayStatuses[localDay] ?? DayStatus.notRecorded;
 
     // If no records exist for this day, show the day selection screen
     if (status == DayStatus.notRecorded) {
-      await _showDaySelectionScreen(selectedDay);
+      await _showDaySelectionScreen(localDay);
     } else {
       // Show date records screen with existing events
-      await _showDateRecordsScreen(selectedDay);
+      await _showDateRecordsScreen(localDay);
     }
   }
 
@@ -126,69 +131,90 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     if (!mounted) return;
 
-    final result = await Navigator.push<bool>(
+    final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
           records: records,
-          onAddEvent: () async {
-            Navigator.pop(context);
-            await _navigateToRecordingScreen(selectedDay);
+          onAddEvent: () {
+            // CUR-586: Just pop with result, let parent handle navigation
+            Navigator.pop(context, 'add');
           },
-          onEditEvent: (record) async {
-            Navigator.pop(context);
-            await _navigateToRecordingScreen(
-              selectedDay,
-              existingRecord: record,
-            );
+          onEditEvent: (record) {
+            // CUR-586: Just pop with record, let parent handle navigation
+            Navigator.pop(context, record);
           },
         ),
       ),
     );
 
-    if (result ?? false) {
+    if (!mounted) return;
+
+    // CUR-586: Handle result and refresh after ALL navigation is complete
+    if (result == 'add') {
+      await _navigateToRecordingScreen(selectedDay);
+    } else if (result is NosebleedRecord) {
+      await _navigateToRecordingScreen(selectedDay, existingRecord: result);
+    }
+
+    // Always refresh after returning
+    if (mounted) {
       await _loadDayStatuses();
     }
   }
 
   Future<void> _showDaySelectionScreen(DateTime selectedDay) async {
-    final result = await Navigator.push<bool>(
+    final result = await Navigator.push<String>(
       context,
       AppPageRoute(
         builder: (context) => DaySelectionScreen(
           date: selectedDay,
-          onAddNosebleed: () async {
-            Navigator.pop(context);
-            await _navigateToRecordingScreen(selectedDay);
+          onAddNosebleed: () {
+            // CUR-586: Just pop with result, let parent handle navigation
+            Navigator.pop(context, 'add');
           },
           onNoNosebleeds: () async {
             await widget.nosebleedService.markNoNosebleeds(selectedDay);
             if (context.mounted) {
-              Navigator.pop(context, true);
+              Navigator.pop(context, 'done');
             }
           },
           onUnknown: () async {
             await widget.nosebleedService.markUnknown(selectedDay);
             if (context.mounted) {
-              Navigator.pop(context, true);
+              Navigator.pop(context, 'done');
             }
           },
         ),
       ),
     );
 
-    if (result ?? false) {
+    if (!mounted) return;
+
+    // CUR-586: Handle result and refresh after ALL navigation is complete
+    if (result == 'add') {
+      // Navigate to RecordingScreen THEN refresh
+      await _navigateToRecordingScreen(selectedDay);
+    }
+
+    // Always refresh after returning (whether from add, no-nosebleed, unknown, or back)
+    if (mounted) {
       await _loadDayStatuses();
     }
   }
 
-  Future<void> _navigateToRecordingScreen(
+  /// Navigate to RecordingScreen and return the result.
+  /// Returns: String (record ID) on save, true on delete, null on cancel, false on conflict.
+  Future<dynamic> _navigateToRecordingScreen(
     DateTime selectedDay, {
     NosebleedRecord? existingRecord,
   }) async {
     // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
     // Using dynamic to handle both return types
+    // CUR-543: Only pass diaryEntryDate for new records, not when editing existing records.
+    // RecordingScreen asserts that only one of diaryEntryDate or existingRecord can be non-null.
+    // CUR-543: Must pass onDelete callback when existingRecord is non-null.
     final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
@@ -196,18 +222,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
           nosebleedService: widget.nosebleedService,
           enrollmentService: widget.enrollmentService,
           preferencesService: widget.preferencesService,
-          diaryEntryDate: selectedDay,
+          diaryEntryDate: existingRecord == null ? selectedDay : null,
           existingRecord: existingRecord,
           allRecords: _allRecords,
+          onDelete: existingRecord != null
+              ? (reason) async {
+                  await widget.nosebleedService.deleteRecord(
+                    recordId: existingRecord.id,
+                    reason: reason,
+                  );
+                }
+              : null,
         ),
       ),
     );
 
-    // Refresh calendar if record was saved (String ID) or deleted (true)
-    // Don't refresh if cancelled (null) or conflict view (false)
-    if (result != null && result != false) {
-      await _loadDayStatuses();
-    }
+    // CUR-586: Return the result to the caller instead of handling refresh here.
+    // The caller (_showDateRecordsScreen) handles the refresh in its loop pattern.
+    return result;
   }
 
   @override

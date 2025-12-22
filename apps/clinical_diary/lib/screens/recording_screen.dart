@@ -10,12 +10,12 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
-
 // CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
@@ -150,10 +150,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
   DateTime? _endDateTime;
 
   // CUR-516: Track selected timezone for start time (IANA format, e.g., "America/Los_Angeles")
-  // This is used to restore the timezone selection when reopening incomplete records.
+  // This is used to restore the timezone selection when reopening records.
   String? _startTimeTimezone;
 
   // CUR-516: Track selected timezone for end time (IANA format)
+  // This is used to restore the timezone selection when reopening records.
   String? _endTimeTimezone;
 
   // CUR-408: Notes field removed from recording flow TODO - needs to be put back
@@ -237,6 +238,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// REQ-CAL: Run all validation checks before saving
   /// Returns true if save should proceed, false if cancelled
   Future<bool> _runValidationChecks() async {
+    // CUR-492: Reject negative duration (end time before start time)
+    // This must be checked first before any confirmation dialogs
+    final duration = _durationMinutes();
+    if (duration != null && duration < 0) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
+      return false;
+    }
+
     // REQ-CAL-p00001: Old entry justification check
     if (_needsOldEntryJustification) {
       final justification = await OldEntryJustificationDialog.show(
@@ -308,31 +320,41 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow - TODO - put back
 
   /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
-  /// Times are displayed in the user's current local timezone.
-  String _formatTime(DateTime? time, String locale, AppLocalizations l10n) {
-    if (time == null) {
-      return l10n.notSet;
-    }
-    return DateFormat.jm(locale).format(time);
+  /// CUR-583: Display start time in the selected timezone.
+  /// The stored _startDateTime is adjusted for UTC correctness, so we convert
+  /// it back to the user-selected time/date/timezone for display.
+  String _formatStartTime(String locale, AppLocalizations l10n) {
+    final displayTime = _getDisplayedDateTime(
+      _startDateTime,
+      _startTimeTimezone,
+    );
+    return DateFormat.jm(locale).format(displayTime);
   }
 
   /// Format end time with day offset indicator if dates differ from start.
   /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
-  /// Times are displayed in the user's current local timezone.
-  String _formatEndTime(
-    DateTime? endTime,
-    String locale,
-    AppLocalizations l10n,
-  ) {
-    if (endTime == null) {
+  /// CUR-583: Display end time in the selected timezone, compare dates in
+  /// their respective timezones.
+  String _formatEndTime(String locale, AppLocalizations l10n) {
+    if (_endDateTime == null) {
       return l10n.notSet;
     }
 
-    final timeStr = DateFormat.jm(locale).format(endTime);
+    // CUR-583: Convert stored DateTimes to display times in their timezones
+    final startDisplayTime = _getDisplayedDateTime(
+      _startDateTime,
+      _startTimeTimezone,
+    );
+    final endDisplayTime = _getDisplayedDateTime(
+      _endDateTime!,
+      _endTimeTimezone,
+    );
 
-    // Add day difference suffix
-    final startDate = DateUtils.dateOnly(_startDateTime);
-    final endDate = DateUtils.dateOnly(endTime);
+    final timeStr = DateFormat.jm(locale).format(endDisplayTime);
+
+    // Add day difference suffix based on displayed dates
+    final startDate = DateUtils.dateOnly(startDisplayTime);
+    final endDate = DateUtils.dateOnly(endDisplayTime);
     final dayDiff = endDate.difference(startDate).inDays;
 
     if (dayDiff == 1) {
@@ -463,6 +485,30 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
+  /// CUR-583: Handle start time confirmation with future time validation
+  void _handleStartTimeConfirm(DateTime displayedTime) {
+    // Convert displayed time to stored DateTime using selected timezone
+    final storedStartTime = TimezoneConverter.toStoredDateTime(
+      displayedTime,
+      _startTimeTimezone,
+    );
+
+    // Validate stored start time is not in the future
+    // This can happen when timezone conversion shifts the time forward
+    if (storedStartTime.isAfter(DateTime.now())) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.cannotSelectFutureTime)));
+      return;
+    }
+
+    setState(() {
+      _startDateTime = storedStartTime;
+      _currentStep = RecordingStep.intensity;
+    });
+  }
+
   // void _handleStartTimeConfirm(DateTime time) {
   //   setState(() {
   //     _startDateTime = time;
@@ -477,9 +523,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  Future<void> _handleEndTimeConfirm(DateTime endTime) async {
+  Future<void> _handleEndTimeConfirm(DateTime displayedTime) async {
+    // CUR-583: Convert displayed time to stored DateTime using selected timezone
+    final storedEndTime = TimezoneConverter.toStoredDateTime(
+      displayedTime,
+      _endTimeTimezone,
+    );
+
     // Validate end time is after start time
-    if (endTime.isBefore(_startDateTime)) {
+    if (storedEndTime.isBefore(_startDateTime)) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
@@ -487,8 +539,19 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return;
     }
 
+    // CUR-583: Validate stored end time is not in the future
+    // This can happen when timezone conversion shifts the time forward
+    // (e.g., picking Hawaii time from CET device shifts stored time +11 hours)
+    if (storedEndTime.isAfter(DateTime.now())) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.cannotSelectFutureTime)));
+      return;
+    }
+
     setState(() {
-      _endDateTime = endTime;
+      _endDateTime = storedEndTime;
     });
 
     // CUR-464: When useReviewScreen is false, save immediately and return
@@ -670,13 +733,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     // CUR-516: Get timezone abbreviations to show when different from device TZ
     // Normalize device TZ to abbreviation for proper comparison
-    final deviceTzAbbr = normalizeDeviceTimezone(DateTime.now().timeZoneName);
+    final timeZoneName = DateTime.now().timeZoneName;
+    debugPrint('timeZoneName: $timeZoneName');
+    final deviceTzAbbr = normalizeDeviceTimezone(timeZoneName);
+    debugPrint('normalized deviceTzAbbr: $deviceTzAbbr');
+    debugPrint('_startTimeTimezone: $_startTimeTimezone');
+    debugPrint('_endTimeTimezone: $_endTimeTimezone');
     final startTzAbbr = _startTimeTimezone != null
         ? getTimezoneAbbreviation(_startTimeTimezone!)
         : null;
     final endTzAbbr = _endTimeTimezone != null
         ? getTimezoneAbbreviation(_endTimeTimezone!)
         : null;
+
+    debugPrint('startTzAbbr: $startTzAbbr');
+    debugPrint('endTzAbbr: $endTzAbbr');
 
     // Show timezone in summary when different from device or from each other
     final startDiffersFromDevice =
@@ -685,9 +756,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final timezonesDiffer =
         startTzAbbr != null && endTzAbbr != null && startTzAbbr != endTzAbbr;
 
+    debugPrint('startDiffersFromDevice: $startDiffersFromDevice');
+    debugPrint('endDiffersFromDevice: $endDiffersFromDevice');
+    debugPrint('timezonesDiffer: $timezonesDiffer');
+
     // Show timezone only if it differs from device OR start/end differ
     final showStartTz = startDiffersFromDevice || timezonesDiffer;
     final showEndTz = endDiffersFromDevice || timezonesDiffer;
+    debugPrint('showStartTz: $showStartTz');
+    debugPrint('showEndTz: $showEndTz');
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -702,7 +779,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // Start time
           _buildSummaryItem(
             label: l10n.start,
-            value: _formatTime(_startDateTime, locale, l10n),
+            value: _formatStartTime(locale, l10n),
             subtitle: showStartTz ? startTzAbbr : null,
             isActive: _currentStep == RecordingStep.startTime,
             onTap: () => _goToStep(RecordingStep.startTime),
@@ -735,7 +812,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           // End time - CUR-464: use _handleEndTimeTap to flash intensity if not set
           _buildSummaryItem(
             label: l10n.end,
-            value: _formatEndTime(_endDateTime, locale, l10n),
+            value: _formatEndTime(locale, l10n),
             subtitle: showEndTz ? endTzAbbr : null,
             isActive: _currentStep == RecordingStep.endTime,
             onTap: _handleEndTimeTap,
@@ -829,22 +906,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
-          initialTime: _startDateTime,
+          initialTime: _getDisplayedDateTime(
+            _startDateTime,
+            _startTimeTimezone,
+          ),
           initialTimezone: _startTimeTimezone,
-          onConfirm: (DateTime time) {
-            setStartTimeState(time, _startDateTime);
-            setState(() {
-              _currentStep = RecordingStep.intensity;
-            });
-          },
-          onTimeChanged: (time) {
-            setStartTimeState(time, _startDateTime);
-          },
-          onTimezoneChanged: (timezone) {
-            setState(() {
-              _startTimeTimezone = timezone;
-            });
-          },
+          onConfirm: _handleStartTimeConfirm,
+          onTimeChanged: _setStartDateTime,
+          onTimezoneChanged: _handleStartTimezoneChanged,
           confirmLabel: l10n.setStartTime,
           maxDateTime: DateTime.now(),
         );
@@ -858,24 +927,19 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
       case RecordingStep.endTime:
         // Use start time as default for end time picker when not yet set
-        final endInitialTime = _endDateTime ?? _startDateTime;
+        // CUR-583: Convert stored DateTime to displayed time
+        final endInitialTime = _endDateTime != null
+            ? _getDisplayedDateTime(_endDateTime!, _endTimeTimezone)
+            : _getDisplayedDateTime(_startDateTime, _startTimeTimezone);
         // CUR-516: Pass and track timezone for end time to restore UI selection
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
           initialTime: endInitialTime,
-          initialTimezone: _endTimeTimezone,
+          initialTimezone: _endTimeTimezone ?? _startTimeTimezone,
           onConfirm: _handleEndTimeConfirm,
-          onTimeChanged: (time) {
-            setState(() {
-              _endDateTime = time;
-            });
-          },
-          onTimezoneChanged: (timezone) {
-            setState(() {
-              _endTimeTimezone = timezone;
-            });
-          },
+          onTimeChanged: _setEndDateTime,
+          onTimezoneChanged: _handleEndTimezoneChanged,
           confirmLabel: l10n.setEndTime,
           maxDateTime: DateTime.now(),
         );
@@ -887,11 +951,64 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  void setStartTimeState(DateTime time, DateTime startInitialTime) {
+  /// CUR-583: Convert stored DateTime to displayed time for the selected timezone.
+  /// Uses TimezoneConverter utility for the conversion logic.
+  DateTime _getDisplayedDateTime(DateTime storedDateTime, String? timezone) {
+    return TimezoneConverter.toDisplayedDateTime(storedDateTime, timezone);
+  }
+
+  /// CUR-583: Handle start time/date change - convert displayed time to stored DateTime
+  void _setStartDateTime(DateTime displayedDateTime) {
+    final storedTime = TimezoneConverter.toStoredDateTime(
+      displayedDateTime,
+      _startTimeTimezone,
+    );
     setState(() {
-      _startDateTime = time;
-      // _endDateTime remains null for new records until user explicitly sets it.
-      // The end time picker will use _startDateTime as the default initial value.
+      _startDateTime = storedTime;
+    });
+  }
+
+  /// CUR-583: Handle end time/date change - convert displayed time to stored DateTime
+  void _setEndDateTime(DateTime displayedDateTime) {
+    final storedTime = TimezoneConverter.toStoredDateTime(
+      displayedDateTime,
+      _endTimeTimezone,
+    );
+    setState(() {
+      _endDateTime = storedTime;
+    });
+  }
+
+  /// CUR-583: Handle start timezone change - recalculate stored DateTime for new timezone
+  void _handleStartTimezoneChanged(String newTimezone) {
+    final adjustedTime = TimezoneConverter.recalculateForTimezoneChange(
+      _startDateTime,
+      _startTimeTimezone,
+      newTimezone,
+    );
+    setState(() {
+      _startDateTime = adjustedTime;
+      _startTimeTimezone = newTimezone;
+    });
+  }
+
+  /// CUR-583: Handle end timezone change - recalculate stored DateTime for new timezone
+  void _handleEndTimezoneChanged(String newTimezone) {
+    if (_endDateTime == null) {
+      setState(() {
+        _endTimeTimezone = newTimezone;
+      });
+      return;
+    }
+
+    final adjustedTime = TimezoneConverter.recalculateForTimezoneChange(
+      _endDateTime!,
+      _endTimeTimezone,
+      newTimezone,
+    );
+    setState(() {
+      _endDateTime = adjustedTime;
+      _endTimeTimezone = newTimezone;
     });
   }
 

@@ -9,6 +9,15 @@
  * - Consistent authentication
  */
 
+// Enable proxy support if HTTPS_PROXY is set
+if (process.env.HTTPS_PROXY || process.env.GLOBAL_AGENT_HTTPS_PROXY) {
+    try {
+        require('global-agent/bootstrap');
+    } catch (e) {
+        // global-agent not available, continue without it
+    }
+}
+
 const https = require('https');
 const config = require('./config');
 

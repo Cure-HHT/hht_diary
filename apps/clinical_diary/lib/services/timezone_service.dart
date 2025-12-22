@@ -14,9 +14,15 @@ class TimezoneService {
 
   String? _currentTimezone;
 
+  /// Test-only override for device timezone.
+  /// Set this in tests to ensure consistent behavior regardless of machine timezone.
+  /// Set to null to use actual device timezone detection.
+  String? testTimezoneOverride;
+
   /// The device's current IANA timezone (e.g., "Europe/Paris", "America/New_York").
   /// Returns null if timezone detection hasn't completed or failed.
-  String? get currentTimezone => _currentTimezone;
+  /// Uses [testTimezoneOverride] if set.
+  String? get currentTimezone => testTimezoneOverride ?? _currentTimezone;
 
   /// Initialize the service by detecting the device's timezone.
   /// Should be called at app startup.

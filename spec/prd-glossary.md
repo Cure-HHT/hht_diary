@@ -143,7 +143,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 ### Database
 
-**Definition**: The PostgreSQL database (hosted on Supabase/Cloud SQL) that stores all diary entries, audit trails, user accounts, and configuration.
+**Definition**: The PostgreSQL database (hosted on Cloud SQL) that stores all diary entries, audit trails, user accounts, and configuration.
 
 **Architecture**:
 - Event Store (immutable audit trail)

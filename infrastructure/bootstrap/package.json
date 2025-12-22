@@ -1,0 +1,19 @@
+{
+  "name": "cure-hht-bootstrap",
+  "version": "1.0.0",
+  "description": "Bootstrap infrastructure for creating sponsor GCP projects",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/gcp": "^8.0.0",
+    "@pulumi/pulumi": "^3.0.0"
+  }
+}
