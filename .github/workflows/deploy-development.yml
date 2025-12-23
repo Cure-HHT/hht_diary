@@ -38,7 +38,7 @@ jobs:
 
       - name: Build Flutter web app
         working-directory: apps/clinical_diary
-        run: flutter build web --release --dart-define=APP_FLAVOR=dev
+        run: flutter build web --release --dart-define=APP_FLAVOR=uat
 
       - name: Setup Node.js for Firebase CLI
         uses: actions/setup-node@v4
