@@ -1,8 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
+import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -43,12 +45,28 @@ class CalendarOverlay extends StatefulWidget {
 
 class _CalendarOverlayState extends State<CalendarOverlay> {
   late DateTime _focusedDay;
+  bool _useAnimation = true;
 
   @override
   void initState() {
     super.initState();
     _focusedDay = widget.selectedDate ?? DateTime.now();
+    _loadAnimationPreference();
   }
+
+  Future<void> _loadAnimationPreference() async {
+    final prefs = PreferencesService();
+    final useAnimation = await prefs.getUseAnimation();
+    if (mounted) {
+      setState(() {
+        _useAnimation = useAnimation;
+      });
+    }
+  }
+
+  /// Check if animations are enabled (both feature flag and user preference)
+  bool get _animationsEnabled =>
+      FeatureFlagService.instance.useAnimations && _useAnimation;
 
   /// Get the earliest record date from all records
   DateTime? _getEarliestRecordDate() {
@@ -211,6 +229,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                   ),
 
                   // Calendar
+                  // CUR-599: Fixed height with 6 weeks enforced to prevent flickering
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TableCalendar(
@@ -219,6 +238,10 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                       ),
                       lastDay: DateTime.now().add(const Duration(days: 365)),
                       focusedDay: _focusedDay,
+                      // CUR-599: Always show 6 weeks to prevent height changes
+                      sixWeekMonthsEnforced: true,
+                      // CUR-599: Respect user animation preference for page transitions
+                      pageAnimationEnabled: _animationsEnabled,
                       selectedDayPredicate: (day) {
                         if (widget.selectedDate == null) return false;
                         return isSameDay(day, widget.selectedDate);
