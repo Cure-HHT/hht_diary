@@ -443,7 +443,7 @@ class RlsContext {
     );
   }
 
-  /// Create from verified Firebase token claims
+  /// Create from verified Identity Platform token claims
   factory RlsContext.fromClaims(Map<String, dynamic> claims) {
     return RlsContext(
       userId: claims['sub'] as String,
@@ -929,7 +929,7 @@ class FirebaseAuthVerifier {
 
   FirebaseAuthVerifier({required this.projectId});
 
-  /// Verify Firebase ID token and extract claims
+  /// Verify Identity Platform ID token and extract claims
   Future<Map<String, dynamic>> verifyToken(String idToken) async {
     // Fetch Google public keys (cached)
     _keyStore ??= await _fetchPublicKeys();

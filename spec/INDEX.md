@@ -43,7 +43,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00028 | dev-portal.md | Portal Frontend Framework | 27f467d3 |
 | REQ-d00029 | dev-portal.md | Portal UI Design System | 022edb23 |
 | REQ-d00030 | dev-portal.md | Portal Routing and Navigation | 7429dd55 |
-| REQ-d00031 | dev-portal.md | Firebase Authentication Integration | 85ebe53e |
+| REQ-d00031 | dev-portal.md | Identity Platform Integration | 85ebe53e |
 | REQ-d00032 | dev-portal.md | Role-Based Access Control Implementation | 5aeb5131 |
 | REQ-d00033 | dev-portal.md | Site-Based Data Isolation | 012bc8b5 |
 | REQ-d00034 | dev-portal.md | Login Page Implementation | 90e89cec |

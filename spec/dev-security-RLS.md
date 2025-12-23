@@ -17,7 +17,7 @@ This document specifies the implementation details for PostgreSQL Row-Level Secu
 
 **Technology Stack**:
 - PostgreSQL 15+ Row-Level Security
-- Identity Platform (Firebase Auth) with JWT-based authentication
+- Identity Platform (Identity Platform) with JWT-based authentication
 - Application-set session variables for RLS context
 - PL/pgSQL functions for claim extraction
 - Migration scripts for deployment

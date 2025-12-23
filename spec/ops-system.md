@@ -386,7 +386,7 @@ Third-party assessment SHALL cover:
 | ------- | ---- | ------------------- | ---------------------- |
 | GCP | Infrastructure | Annual | SOC 2, ISO 27001, HIPAA BAA |
 | Doppler | Secrets management | Annual | SOC 2 |
-| Firebase | Authentication | Annual | SOC 2, ISO 27001 |
+| Identity Platform | Authentication | Annual | SOC 2, ISO 27001 |
 | Linear | Issue tracking | Annual | SOC 2 |
 
 **Rationale**: Third-party security is platform security. Automated tracking ensures vendor assessments remain current without manual calendar management.
