@@ -89,7 +89,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('0m'), findsOneWidget);
+        // CUR-601: Short durations show minimum 1m (not 0m)
+        expect(find.text('1m'), findsOneWidget);
       });
 
       testWidgets('displays formatted duration for 1 minute', (tester) async {

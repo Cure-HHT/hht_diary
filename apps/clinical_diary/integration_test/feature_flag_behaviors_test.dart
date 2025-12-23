@@ -243,8 +243,8 @@ void main() {
         expect(find.text('Yes'), findsOneWidget);
         expect(find.text('No'), findsOneWidget);
 
-        // Verify duration is displayed
-        expect(find.text('0m'), findsOneWidget);
+        // CUR-601: Short durations show minimum 1m (not 0m)
+        expect(find.text('1m'), findsOneWidget);
       });
 
       testWidgets('tapping Yes on short duration dialog returns true', (

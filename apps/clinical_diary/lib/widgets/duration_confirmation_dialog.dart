@@ -52,7 +52,9 @@ class DurationConfirmationDialog extends StatelessWidget {
 
   String _formatDuration(int minutes, AppLocalizations l10n) {
     if (minutes < 60) {
-      return l10n.translateWithParams('durationMinutesShort', [minutes]);
+      // CUR-601: Show minimum 1m for short durations (not 0m)
+      final displayMinutes = minutes < 1 ? 1 : minutes;
+      return l10n.translateWithParams('durationMinutesShort', [displayMinutes]);
     }
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
