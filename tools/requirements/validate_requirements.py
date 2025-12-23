@@ -26,10 +26,12 @@ class RequirementValidator:
     VALID_STATUSES = {'Active', 'Draft', 'Deprecated'}
     VALID_LEVELS = {'PRD', 'Ops', 'Dev'}
 
-    def __init__(self, spec_dir: Path):
+    def __init__(self, spec_dir: Path, core_spec_dir: Path = None):
         self.spec_dir = spec_dir
         self.repo_root = spec_dir.parent
+        self.core_spec_dir = core_spec_dir  # For sponsor repos referencing core requirements
         self.requirements: Dict[str, Requirement] = {}
+        self.core_requirements: Dict[str, Requirement] = {}  # Requirements from core repo
         self.errors: List[str] = []
         self.warnings: List[str] = []
         self.info: List[str] = []
@@ -40,6 +42,10 @@ class RequirementValidator:
         print(f"🔍 Scanning {self.spec_dir} for requirements...\n")
 
         self._parse_requirements()
+
+        # Parse core requirements if a core repo was specified
+        if self.core_spec_dir:
+            self._parse_core_requirements()
 
         if not self.requirements:
             print("⚠️  No requirements found")
@@ -77,6 +83,16 @@ class RequirementValidator:
         # Convert parse errors to validation errors
         for error in result.errors:
             self.errors.append(str(error))
+
+    def _parse_core_requirements(self):
+        """Parse requirements from core repo (for sponsor repo validation)"""
+        print(f"🔍 Also scanning core repo: {self.core_spec_dir}\n")
+        parser = RequirementParser(self.core_spec_dir)
+        result = parser.parse_all()
+
+        self.core_requirements = result.requirements
+        print(f"📋 Found {len(self.core_requirements)} core requirements\n")
+        # Note: We don't add core parse errors - those should be caught when validating the core repo
 
     def _check_body_headings_all(self):
         """Check for headings at same or higher level in all requirement bodies"""
@@ -140,9 +156,13 @@ class RequirementValidator:
 
     def _check_implements_links(self):
         """Check that all 'Implements' references exist"""
+        # Combine local and core requirements for link checking
+        all_known_requirements = set(self.requirements.keys())
+        all_known_requirements.update(self.core_requirements.keys())
+
         for req_id, req in self.requirements.items():
             for parent_id in req.implements:
-                if parent_id not in self.requirements:
+                if parent_id not in all_known_requirements:
                     self.errors.append(
                         f"{req.file_path.name}:{req.line_number} - "
                         f"REQ-{req_id}: References non-existent requirement '{parent_id}'"
@@ -205,10 +225,11 @@ class RequirementValidator:
 
         for req_id, req in self.requirements.items():
             for parent_id in req.implements:
-                if parent_id not in self.requirements:
+                # Look up parent in local requirements first, then core
+                parent = self.requirements.get(parent_id) or self.core_requirements.get(parent_id)
+                if parent is None:
                     continue
 
-                parent = self.requirements[parent_id]
                 child_level = level_hierarchy[req.level]
                 parent_level = level_hierarchy[parent.level]
 
@@ -273,20 +294,25 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  # Validate current repo
+  # Validate current repo (auto-detects .core-repo for sponsor repos)
   python validate_requirements.py
 
   # Validate a different repo
   python validate_requirements.py --path /path/to/other/repo
 
-  # Validate sibling repo
-  python validate_requirements.py --path ../sibling-repo
+  # Override core repo path (normally auto-detected from .core-repo)
+  python validate_requirements.py --core-repo ../hht_diary
 '''
     )
     parser.add_argument(
         '--path',
         type=Path,
         help='Path to repository root (default: auto-detect from script location)'
+    )
+    parser.add_argument(
+        '--core-repo',
+        type=Path,
+        help='Path to core repository (default: auto-detect from .core-repo file)'
     )
     args = parser.parse_args()
 
@@ -295,13 +321,37 @@ Examples:
         spec_dir = repo_root / "spec"
     else:
         script_dir = Path(__file__).parent
-        spec_dir = script_dir.parent.parent / "spec"
+        repo_root = script_dir.parent.parent
+        spec_dir = repo_root / "spec"
 
     if not spec_dir.exists():
         print(f"❌ Error: Spec directory not found: {spec_dir}")
         sys.exit(1)
 
-    validator = RequirementValidator(spec_dir)
+    # Resolve core repo spec dir
+    # Priority: 1) --core-repo arg, 2) .core-repo file, 3) None (core repo itself)
+    core_spec_dir = None
+    if args.core_repo:
+        # Explicit command-line argument
+        core_spec_dir = (args.core_repo.resolve() / "spec")
+        if not core_spec_dir.exists():
+            print(f"❌ Error: Core repo spec directory not found: {core_spec_dir}")
+            sys.exit(1)
+    else:
+        # Check for .core-repo file (indicates this is a sponsor repo)
+        core_repo_file = repo_root / ".core-repo"
+        if core_repo_file.exists():
+            core_repo_path = core_repo_file.read_text().strip()
+            if core_repo_path:
+                # Resolve relative to repo root
+                core_repo_resolved = (repo_root / core_repo_path).resolve()
+                core_spec_dir = core_repo_resolved / "spec"
+                if not core_spec_dir.exists():
+                    print(f"⚠️  Warning: Core repo from .core-repo not found: {core_spec_dir}")
+                    print(f"   Run tools/setup-repo.sh to configure core repo path")
+                    core_spec_dir = None
+
+    validator = RequirementValidator(spec_dir, core_spec_dir)
     success = validator.validate_all()
 
     sys.exit(0 if success else 1)
