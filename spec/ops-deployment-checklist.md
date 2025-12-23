@@ -69,7 +69,7 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 - [ ] Configure email templates (via Firebase Console)
 - [ ] Set up SMTP for production emails
 - [ ] Deploy custom claims Cloud Function
-- [ ] Test Firebase ID token contains custom claims
+- [ ] Test Identity Platform ID token contains custom claims
 - [ ] Configure session timeout
 - [ ] Enable MFA for admin roles
 
