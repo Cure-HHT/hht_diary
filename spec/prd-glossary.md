@@ -257,6 +257,8 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **See**: ops-security.md for developer admin procedures
 
+TODO - does the developer admin have access to patient data?
+
 ---
 
 ## Data and Records
@@ -286,7 +288,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Usage Context**: Developer and architecture documentation
 
-**See**: prd-database.md, dev-database.md for Event Sourcing implementation
+**See**: prd-database.md, dev-database.md, prd-event-sourcing-system.md for Event Sourcing implementation
 
 ### Audit Trail
 
@@ -317,9 +319,15 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Contrast**: "Event Store" contains the history; "Record State" contains current values
 
+TODO - perhaps "Materialized View" should be mentioned here.
+
+**See** prd-event-sourcing-system.md
+
 ### Linking Code
 
 **Definition**: A unique, cryptographically random 10-character code used to securely connect a patient's mobile Diary to their clinical trial enrollment record.
+
+TODO - It's it linking the patient id (or "participant Id" below) with the enrollment code?
 
 **Format**: 10 characters, alphanumeric, case-insensitive
 
@@ -371,7 +379,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 **Technical Implementation**: Every diary entry and data modification is automatically signed with:
 - User account ID
 - Timestamp (UTC, cryptographically verified)
-- Device information (platform, app version)
+- Device information (platform, app version, device uuid)
 - Cryptographic hash to prevent tampering
 
 **Usage Context**: Clinical trial data submissions, regulatory compliance
@@ -437,7 +445,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 - Reduces dependency on network reliability
 - Improves user experience and app responsiveness
 
-**Technical Implementation**: Local SQLite database on device, background sync service
+**Technical Implementation**: Local sembast NoSql json database on device, background sync service
 
 **See**: dev-app.md for offline-first implementation
 
@@ -457,7 +465,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Note**: Event Sourcing provides value for both personal health tracking (complete history) and clinical trials (regulatory compliance)
 
-**See**: prd-database.md, dev-database.md for Event Sourcing implementation
+**See**: prd-database.md, dev-database.md, prd-event-sourcing-system.md for Event Sourcing implementation
 
 ### CQRS (Command Query Responsibility Segregation)
 
@@ -502,6 +510,8 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Use Instead**: "Patient" or "Study Participant"
 
+TODO - how about another name for the user not in a study?  They aren't their doctor's patient, yeah?  
+
 ### Avoid: "User" in clinical trial contexts (without qualifier)
 
 **Problem**: In clinical trial contexts, "user" is ambiguous—could refer to patient, investigator, admin, auditor, or analyst
@@ -509,6 +519,8 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 **Use Instead**: Specific role name (Patient, Study Participant, Investigator, Admin, etc.)
 
 **Note**: "User" is acceptable when referring to individuals using the Diary for personal health tracking (non-clinical trial context)
+
+TODO - is there a good generic name for a portal user? "Portal User"?
 
 ### Avoid: "App" (without qualifier in formal docs)
 
@@ -576,6 +588,7 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 **Diary Platform Context**:
 - **PHI examples**: Patient name, email, date of birth, linking code (when associated with identity)
+TODO - linking code is confusing here, it's not PHI, right?
 - **Not PHI**: De-identified study participant ID, aggregate statistics, diary entries with all identifiers removed
 
 **Security**: PHI is encrypted at rest and in transit, subject to strict access controls via RBAC and RLS policies.
@@ -690,9 +703,9 @@ This glossary defines the standard terminology used throughout the Diary Platfor
 
 ### UTC (Coordinated Universal Time)
 
-**Definition**: Primary time standard used worldwide, not affected by time zones or daylight saving time.
+**Definition**: Primary time standard used worldwide, not affected by time zones or daylight saving time.  Equivalent to "Greenwich Mean Time"
 
-**Diary Platform Context**: All timestamps in the database and audit trail are stored in UTC to ensure consistency across geographic regions and to support clinical trials with international sites.
+**Diary Platform Context**: All timestamps in the database and audit trail are stored in UTC (with the patient's timezone offset for ePROs) to ensure consistency across geographic regions and to support clinical trials with international sites.
 
 **Display**: Timestamps are converted to user's local time zone for display in mobile app and Portal.
 
