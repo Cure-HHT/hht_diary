@@ -14,12 +14,12 @@
 
 ## Executive Summary
 
-Authentication configuration and operations guide for the Clinical Trial Diary Platform using Google Identity Platform (Firebase Auth). Each sponsor has an isolated Identity Platform tenant within their GCP project.
+Authentication configuration and operations guide for the Clinical Trial Diary Platform using Google Identity Platform (Identity Platform). Each sponsor has an isolated Identity Platform tenant within their GCP project.
 
 **Technology Stack**:
-- **Provider**: Google Identity Platform (Firebase Auth)
+- **Provider**: Google Identity Platform (Identity Platform)
 - **Authentication Methods**: Email/password, Google OAuth, Apple Sign In, Magic Link
-- **Token Format**: Firebase ID tokens (JWT)
+- **Token Format**: Identity Platform ID tokens (JWT)
 - **MFA**: TOTP and SMS via Identity Platform
 - **Custom Claims**: Set via Cloud Functions
 
@@ -408,7 +408,7 @@ firebase deploy --only functions:addCustomClaims
 ### Session Configuration
 
 **Token Expiration**:
-- ID tokens expire after 1 hour (Firebase default)
+- ID tokens expire after 1 hour (Identity Platform default)
 - Refresh tokens remain valid until revoked
 - Custom session cookies: configurable duration (5 minutes to 2 weeks)
 
@@ -813,7 +813,7 @@ ORDER BY up.mfa_enrolled, up.role;
 **Symptoms**: `Token verification failed: invalid signature`
 
 **Solutions**:
-1. Verify Firebase project ID matches
+1. Verify GCP project ID matches
 2. Check token hasn't expired (1 hour default)
 3. Ensure server time is synchronized
 4. Verify correct public keys are being fetched
@@ -825,7 +825,7 @@ ORDER BY up.mfa_enrolled, up.role;
 **Solutions**:
 1. Verify MFA is enabled in Identity Platform settings
 2. Check user has enrolled at least one MFA factor
-3. Verify Firebase SDK version supports MFA
+3. Verify Identity Platform SDK version supports MFA
 
 ### Custom Claims Not Propagating
 
@@ -842,7 +842,7 @@ ORDER BY up.mfa_enrolled, up.role;
 ## References
 
 - [Identity Platform Documentation](https://cloud.google.com/identity-platform/docs)
-- [Firebase Auth Documentation](https://firebase.google.com/docs/auth)
+- [Identity Platform Documentation](https://firebase.google.com/docs/auth)
 - [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
 - [Custom Claims](https://firebase.google.com/docs/auth/admin/custom-claims)
 - [MFA with Identity Platform](https://cloud.google.com/identity-platform/docs/web/mfa)

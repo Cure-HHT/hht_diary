@@ -13,7 +13,7 @@
 
 ## Executive Summary
 
-This specification defines the implementation details for the Web Diary application, a browser-based companion to the mobile Clinical Diary app. The Web Diary uses Flutter Web for the frontend, a custom HHT Diary Auth service for authentication (avoiding Firebase Auth for GDPR compliance), and Firestore for data storage.
+This specification defines the implementation details for the Web Diary application, a browser-based companion to the mobile Clinical Diary app. The Web Diary uses Flutter Web for the frontend, a custom HHT Diary Auth service for authentication (avoiding Identity Platform for GDPR compliance), and Firestore for data storage.
 
 **Technology Stack**:
 - **Frontend**: Flutter Web (Dart)
@@ -70,7 +70,7 @@ void main() {
 
 **Level**: Dev | **Implements**: p01043 | **Status**: Draft
 
-A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Firebase Authentication or Google Identity Platform.
+A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Identity Platform or Google Identity Platform.
 
 Implementation SHALL include:
 - Cloud Run service written in Dart (shelf or dart_frog framework)
@@ -102,7 +102,7 @@ class AuthToken {
 }
 ```
 
-**Rationale**: A custom auth service avoids GDPR concerns with Firebase Auth while providing full control over the authentication flow. Cloud Run provides auto-scaling and managed infrastructure.
+**Rationale**: A custom auth service avoids GDPR concerns with Identity Platform while providing full control over the authentication flow. Cloud Run provides auto-scaling and managed infrastructure.
 
 **Acceptance Criteria**:
 - Service deployed to Cloud Run with HTTPS endpoint

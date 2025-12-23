@@ -123,7 +123,7 @@ ORDER BY audit_id ASC;
 
 ## Dart Client Examples (Flutter App)
 
-### Initialize HTTP Client with Firebase Auth
+### Initialize HTTP Client with Identity Platform
 
 ```dart
 import 'package:firebase_auth/firebase_auth.dart';
@@ -160,7 +160,7 @@ class ApiClient {
 }
 ```
 
-### Authentication (Firebase Auth)
+### Authentication (Identity Platform)
 
 ```dart
 import 'package:firebase_auth/firebase_auth.dart';
@@ -496,7 +496,7 @@ DB_USER=app_user
 # Cloud SQL (for local development - via Cloud SQL Proxy)
 DATABASE_URL=postgresql://app_user:[PASSWORD]@localhost:5432/clinical_diary
 
-# Firebase Auth (for Flutter app)
+# Identity Platform (for Flutter app)
 FIREBASE_PROJECT_ID=sponsor-project-id
 FIREBASE_API_KEY=AIza...
 
@@ -525,7 +525,7 @@ ENVIRONMENT=production
 
 ### Invalid JWT
 **Error:** "Invalid JWT token" or "Token expired"
-**Fix:** Re-authenticate via Firebase Auth or refresh token with `getIdToken(true)`
+**Fix:** Re-authenticate via Identity Platform or refresh token with `getIdToken(true)`
 
 ---
 
@@ -536,7 +536,7 @@ ENVIRONMENT=production
 - **JSONB Schemas**: dev-data-models-jsonb.md
 - **Compliance**: dev-compliance-practices.md
 - **Cloud SQL Docs**: https://cloud.google.com/sql/docs
-- **Firebase Auth Docs**: https://firebase.google.com/docs/auth
+- **Identity Platform Docs**: https://firebase.google.com/docs/auth
 - **PostgreSQL Docs**: https://www.postgresql.org/docs/
 
 ---
