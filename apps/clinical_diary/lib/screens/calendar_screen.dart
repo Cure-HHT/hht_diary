@@ -2,6 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00008: Mobile App Diary Entry
 
+import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
@@ -36,17 +37,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
   List<NosebleedRecord> _allRecords = [];
-  bool _isLoading = true;
+  bool _useAnimation = true;
 
   @override
   void initState() {
     super.initState();
     _loadDayStatuses();
+    _loadAnimationPreference();
   }
 
+  Future<void> _loadAnimationPreference() async {
+    final useAnimation = await widget.preferencesService.getUseAnimation();
+    if (mounted) {
+      setState(() {
+        _useAnimation = useAnimation;
+      });
+    }
+  }
+
+  /// Check if animations are enabled (both feature flag and user preference)
+  bool get _animationsEnabled =>
+      FeatureFlagService.instance.useAnimations && _useAnimation;
+
+  /// CUR-599: Handle month change - load new data in background
+  void _handleMonthChange(DateTime focusedDay) {
+    _focusedDay = focusedDay;
+    _loadDayStatuses();
+  }
+
+  /// Load day statuses for the current month range.
   Future<void> _loadDayStatuses() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
 
     // Load statuses for current month plus padding
     final firstDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
@@ -66,7 +87,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     setState(() {
       _dayStatuses = statuses;
       _allRecords = allRecords;
-      _isLoading = false;
     });
   }
 
@@ -273,173 +293,169 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
 
             // Calendar
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.all(48),
-                child: CircularProgressIndicator(),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TableCalendar<void>(
-                  firstDay: DateTime(2020, 1, 1),
-                  lastDay: DateTime.now().add(const Duration(days: 365)),
-                  focusedDay: _focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  enabledDayPredicate: (day) => !_isFutureDate(day),
-                  onDaySelected: _onDaySelected,
-                  onPageChanged: (focusedDay) {
-                    _focusedDay = focusedDay;
-                    _loadDayStatuses();
+            // CUR-599: Fixed height with 6 weeks enforced to prevent flickering
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TableCalendar<void>(
+                firstDay: DateTime(2020, 1, 1),
+                lastDay: DateTime.now().add(const Duration(days: 365)),
+                focusedDay: _focusedDay,
+                // CUR-599: Always show 6 weeks to prevent height changes
+                sixWeekMonthsEnforced: true,
+                // CUR-599: Respect user animation preference for page transitions
+                pageAnimationEnabled: _animationsEnabled,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                enabledDayPredicate: (day) => !_isFutureDate(day),
+                onDaySelected: _onDaySelected,
+                onPageChanged: _handleMonthChange,
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  titleTextFormatter: (date, locale) =>
+                      DateFormat('MMMM yyyy').format(date),
+                ),
+                calendarStyle: const CalendarStyle(outsideDaysVisible: true),
+                calendarBuilders: CalendarBuilders<void>(
+                  disabledBuilder: (context, day, focusedDay) {
+                    // Disabled future dates appear grayed out
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      ),
+                    );
                   },
-                  headerStyle: HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                    titleTextFormatter: (date, locale) =>
-                        DateFormat('MMMM yyyy').format(date),
-                  ),
-                  calendarStyle: const CalendarStyle(outsideDaysVisible: true),
-                  calendarBuilders: CalendarBuilders<void>(
-                    disabledBuilder: (context, day, focusedDay) {
-                      // Disabled future dates appear grayed out
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(color: Colors.grey.shade500),
-                          ),
-                        ),
-                      );
-                    },
-                    defaultBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(
-                        day.year,
-                        day.month,
-                        day.day,
-                      );
-                      final status =
-                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
-                      final color = _getColorForStatus(status);
+                  defaultBuilder: (context, day, focusedDay) {
+                    final normalizedDay = DateTime(
+                      day.year,
+                      day.month,
+                      day.day,
+                    );
+                    final status =
+                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final color = _getColorForStatus(status);
 
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: status == DayStatus.notRecorded
-                                  ? Colors.black87
-                                  : Colors.white,
-                            ),
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: status == DayStatus.notRecorded
+                                ? Colors.black87
+                                : Colors.white,
                           ),
                         ),
-                      );
-                    },
-                    outsideBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(
-                        day.year,
-                        day.month,
-                        day.day,
-                      );
-                      final status =
-                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
-                      final color = _getColorForStatus(status);
+                      ),
+                    );
+                  },
+                  outsideBuilder: (context, day, focusedDay) {
+                    final normalizedDay = DateTime(
+                      day.year,
+                      day.month,
+                      day.day,
+                    );
+                    final status =
+                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final color = _getColorForStatus(status);
 
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8),
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(color: Colors.grey.shade600),
                         ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ),
-                      );
-                    },
-                    todayBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(
-                        day.year,
-                        day.month,
-                        day.day,
-                      );
-                      final status =
-                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
-                      final color = _getColorForStatus(status);
+                      ),
+                    );
+                  },
+                  todayBuilder: (context, day, focusedDay) {
+                    final normalizedDay = DateTime(
+                      day.year,
+                      day.month,
+                      day.day,
+                    );
+                    final status =
+                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final color = _getColorForStatus(status);
 
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 2,
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: status == DayStatus.notRecorded
+                                ? Colors.black87
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: status == DayStatus.notRecorded
-                                  ? Colors.black87
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    selectedBuilder: (context, day, focusedDay) {
-                      final normalizedDay = DateTime(
-                        day.year,
-                        day.month,
-                        day.day,
-                      );
-                      final status =
-                          _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
-                      final color = _getColorForStatus(status);
-                      final isToday = isSameDay(day, todayNormalized);
+                      ),
+                    );
+                  },
+                  selectedBuilder: (context, day, focusedDay) {
+                    final normalizedDay = DateTime(
+                      day.year,
+                      day.month,
+                      day.day,
+                    );
+                    final status =
+                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final color = _getColorForStatus(status);
+                    final isToday = isSameDay(day, todayNormalized);
 
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isToday
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.onSurface,
-                            width: 2,
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isToday
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                          width: 2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: status == DayStatus.notRecorded
+                                ? Colors.black87
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: status == DayStatus.notRecorded
-                                  ? Colors.black87
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
+            ),
 
             // Legend
             Padding(
