@@ -213,52 +213,102 @@ check_doppler() {
 check_ghcr_auth() {
   info "Checking GitHub Container Registry authentication..."
 
-  # Try to authenticate with GHCR to pull cached layers
-  local ghcr_authenticated=false
+  # The GHCR registry and org used for caching
+  local GHCR_ORG="cure-hht"
+  local GHCR_TEST_IMAGE="ghcr.io/${GHCR_ORG}/clinical-diary-base:latest"
 
-  # Check if user has docker credentials for ghcr.io
+  # Step 1: Check if credentials exist at all
+  local has_credentials=false
   if docker-credential-desktop.exe get <<< "ghcr.io" &> /dev/null 2>&1 || \
      docker-credential-secretservice get <<< "ghcr.io" &> /dev/null 2>&1 || \
      grep -q "ghcr.io" ~/.docker/config.json 2>/dev/null; then
-    ghcr_authenticated=true
-    success "GHCR authentication found"
+    has_credentials=true
+  fi
+
+  if [ "$has_credentials" = false ]; then
+    warning "GHCR credentials not found"
+    show_ghcr_setup_instructions
+    return
+  fi
+
+  # Step 2: Verify credentials actually work by checking registry access
+  info "  Verifying GHCR credentials work..."
+
+  # Try to inspect the manifest (lightweight check, doesn't download the image)
+  if docker manifest inspect "$GHCR_TEST_IMAGE" &> /dev/null; then
+    success "GHCR authentication verified (can access ${GHCR_ORG} packages)"
   else
-    warning "GHCR authentication not found"
+    # Credentials exist but don't work
+    warning "GHCR credentials found but NOT WORKING"
     echo ""
-    echo "  GitHub Container Registry (GHCR) authentication is recommended for:"
-    echo "    • Faster builds using cached layers from CI/CD"
-    echo "    • Pulling pre-built images instead of building from scratch"
+    echo "  Your Docker has ghcr.io credentials stored, but they failed to"
+    echo "  access the ${GHCR_ORG} container registry."
     echo ""
-    echo "  To authenticate with GHCR:"
+    echo "  Possible causes:"
+    echo "    • Token has expired"
+    echo "    • Token doesn't have 'read:packages' scope"
+    echo "    • Token is for a different GitHub account"
+    echo "    • You don't have access to the ${GHCR_ORG} organization"
     echo ""
-    echo "  1. Create GitHub Personal Access Token (PAT):"
-    echo "     • Go to: https://github.com/settings/tokens/new"
-    echo "     • Name: 'GHCR Access for Clinical Diary'"
-    echo "     • Expiration: 90 days (or longer)"
-    echo "     • Scopes: Select 'read:packages'"
-    echo "     • Click 'Generate token' and copy it"
+    echo "  To fix this:"
     echo ""
-    echo "  2. Store token in Doppler:"
-    echo "     doppler secrets set GITHUB_TOKEN"
-    echo "     # Paste your token when prompted"
+    echo "  1. Log out of GHCR:"
+    echo "     docker logout ghcr.io"
     echo ""
-    echo "  3. Authenticate Docker with GHCR using Doppler:"
-    echo "     doppler run -- bash -c 'echo \$GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin'"
+    echo "  2. Create a new GitHub PAT with 'read:packages' scope:"
+    echo "     https://github.com/settings/tokens/new"
     echo ""
-    echo "  4. Verify authentication:"
-    echo "     docker pull ghcr.io/cure-hht/clinical-diary-base:latest || echo 'Failed to pull'"
+    echo "  3. Log in again:"
+    echo "     echo YOUR_TOKEN | docker login ghcr.io -u YOUR_USERNAME --password-stdin"
     echo ""
-    echo "  Note: The GITHUB_TOKEN will be available in all Doppler-managed environments."
+    echo "  4. Re-run this setup script"
     echo ""
 
-    read -p "Continue without GHCR authentication? Builds will be slower. [Y/n] " -n 1 -r
+    read -p "Continue without working GHCR auth? Builds will be slower. [Y/n] " -n 1 -r
     echo ""
     if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
-      info "Setup cancelled. Please authenticate with GHCR and try again."
+      info "Setup cancelled. Please fix GHCR authentication and try again."
       exit 1
     fi
-    warning "Continuing without GHCR - builds will take longer and use no cache"
+    warning "Continuing with broken GHCR auth - builds will show cache errors and be slower"
   fi
+}
+
+show_ghcr_setup_instructions() {
+  echo ""
+  echo "  GitHub Container Registry (GHCR) authentication is recommended for:"
+  echo "    • Faster builds using cached layers from CI/CD"
+  echo "    • Pulling pre-built images instead of building from scratch"
+  echo ""
+  echo "  To authenticate with GHCR:"
+  echo ""
+  echo "  1. Create GitHub Personal Access Token (PAT):"
+  echo "     • Go to: https://github.com/settings/tokens/new"
+  echo "     • Name: 'GHCR Access for Clinical Diary'"
+  echo "     • Expiration: 90 days (or longer)"
+  echo "     • Scopes: Select 'read:packages'"
+  echo "     • Click 'Generate token' and copy it"
+  echo ""
+  echo "  2. Store token in Doppler:"
+  echo "     doppler secrets set GITHUB_TOKEN"
+  echo "     # Paste your token when prompted"
+  echo ""
+  echo "  3. Authenticate Docker with GHCR using Doppler:"
+  echo "     doppler run -- bash -c 'echo \$GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin'"
+  echo ""
+  echo "  4. Verify authentication:"
+  echo "     docker pull ghcr.io/cure-hht/clinical-diary-base:latest || echo 'Failed to pull'"
+  echo ""
+  echo "  Note: The GITHUB_TOKEN will be available in all Doppler-managed environments."
+  echo ""
+
+  read -p "Continue without GHCR authentication? Builds will be slower. [Y/n] " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ -n $REPLY ]]; then
+    info "Setup cancelled. Please authenticate with GHCR and try again."
+    exit 1
+  fi
+  warning "Continuing without GHCR - builds will take longer and use no cache"
 }
 
 check_node() {
@@ -302,6 +352,150 @@ check_node() {
   if [ "$major_version" -lt 18 ]; then
     warning "Node.js version $node_version is older than recommended (v18+)"
     echo "  Consider upgrading for better compatibility."
+  fi
+}
+
+check_gitleaks() {
+  info "Checking gitleaks (required for secret scanning in pre-commit hooks)..."
+
+  # Load pinned version from versions.env if available
+  local expected_version="${GITLEAKS_VERSION:-8.29.0}"
+
+  if ! command -v gitleaks &> /dev/null; then
+    warning "gitleaks not found on host system."
+    echo ""
+    echo "  gitleaks is REQUIRED for secret scanning in git pre-commit hooks."
+    echo "  Without it, commits will proceed without secret detection."
+    echo ""
+
+    # Offer to install automatically
+    echo "  Options:"
+    echo "    1) Install automatically (version $expected_version)"
+    echo "    2) Show manual installation instructions"
+    echo "    3) Continue without gitleaks (not recommended)"
+    echo ""
+    read -p "  Select [1-3]: " -r choice
+    echo ""
+
+    case $choice in
+      1)
+        # Automatic installation
+        install_gitleaks "$expected_version"
+        ;;
+      2)
+        # Show manual instructions
+        echo "  Installation instructions (version $expected_version):"
+        echo ""
+        if [ "$PLATFORM" = "macOS" ]; then
+          echo "  macOS (using Homebrew):"
+          echo "    brew install gitleaks"
+          echo ""
+        elif [ "$PLATFORM" = "Linux" ]; then
+          echo "  Linux (download binary):"
+          echo "    GITLEAKS_VERSION=$expected_version"
+          echo "    curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v\${GITLEAKS_VERSION}/gitleaks_\${GITLEAKS_VERSION}_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin gitleaks"
+          echo ""
+          echo "  Or using Go:"
+          echo "    go install github.com/gitleaks/gitleaks/v8@v$expected_version"
+          echo ""
+        elif [ "$PLATFORM" = "Windows" ]; then
+          echo "  Windows WSL2:"
+          echo "    # Follow Linux instructions above within WSL2"
+          echo "    # Or use scoop in Windows:"
+          echo "    scoop install gitleaks"
+          echo ""
+        fi
+        echo "  Documentation: https://github.com/gitleaks/gitleaks"
+        echo ""
+        info "Setup cancelled. Please install gitleaks and run setup again."
+        exit 1
+        ;;
+      3)
+        warning "Continuing without gitleaks - pre-commit hooks will skip secret scanning"
+        ;;
+      *)
+        warning "Invalid choice. Continuing without gitleaks - pre-commit hooks will skip secret scanning"
+        ;;
+    esac
+  else
+    local installed_version=$(gitleaks version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    success "gitleaks found: v${installed_version:-unknown}"
+
+    # Version comparison (warn if different from pinned)
+    if [ -n "$installed_version" ] && [ "$installed_version" != "$expected_version" ]; then
+      warning "Installed version ($installed_version) differs from pinned version ($expected_version)"
+      echo "  This may cause inconsistent behavior with CI/CD."
+      echo "  Consider updating: https://github.com/gitleaks/gitleaks/releases/tag/v$expected_version"
+    fi
+  fi
+}
+
+install_gitleaks() {
+  local version=$1
+  info "Installing gitleaks v$version..."
+
+  if [ "$PLATFORM" = "macOS" ]; then
+    if command -v brew &> /dev/null; then
+      info "Installing via Homebrew..."
+      if brew install gitleaks; then
+        success "gitleaks installed successfully"
+      else
+        error "Failed to install gitleaks via Homebrew"
+        exit 1
+      fi
+    else
+      error "Homebrew not found. Please install Homebrew first: https://brew.sh"
+      exit 1
+    fi
+
+  elif [ "$PLATFORM" = "Linux" ]; then
+    info "Downloading gitleaks binary..."
+    local tmp_dir=$(mktemp -d)
+    local tar_file="$tmp_dir/gitleaks.tar.gz"
+    local download_url="https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz"
+
+    if curl -sSfL "$download_url" -o "$tar_file"; then
+      info "Extracting to /usr/local/bin (requires sudo)..."
+      if sudo tar -xzf "$tar_file" -C /usr/local/bin gitleaks; then
+        rm -rf "$tmp_dir"
+        success "gitleaks installed successfully"
+      else
+        rm -rf "$tmp_dir"
+        error "Failed to extract gitleaks"
+        exit 1
+      fi
+    else
+      rm -rf "$tmp_dir"
+      error "Failed to download gitleaks from $download_url"
+      exit 1
+    fi
+
+  elif [ "$PLATFORM" = "Windows" ]; then
+    # In WSL2, use Linux installation
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+      info "Detected WSL2 - using Linux installation method..."
+      PLATFORM="Linux"
+      install_gitleaks "$version"
+      return
+    else
+      error "Automatic installation not supported on native Windows."
+      echo "  Please use scoop: scoop install gitleaks"
+      echo "  Or install manually: https://github.com/gitleaks/gitleaks"
+      exit 1
+    fi
+
+  else
+    error "Automatic installation not supported for platform: $PLATFORM"
+    exit 1
+  fi
+
+  # Verify installation
+  if command -v gitleaks &> /dev/null; then
+    local installed_version=$(gitleaks version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    success "Verified: gitleaks v${installed_version:-unknown} is now available"
+  else
+    error "Installation completed but gitleaks not found in PATH"
+    exit 1
   fi
 }
 
@@ -560,6 +754,9 @@ interactive_setup() {
   check_node
   echo ""
 
+  check_gitleaks
+  echo ""
+
   check_doppler
   echo ""
 
@@ -677,6 +874,7 @@ main() {
       check_docker
       check_docker_compose
       check_node
+      check_gitleaks
       if [ -z "${2:-}" ]; then
         error "Role not specified. Use: dev, qa, ops, or mgmt"
         exit 1
@@ -691,6 +889,7 @@ main() {
       check_docker
       check_docker_compose
       check_node
+      check_gitleaks
       build_all_images
       validate_setup
       ;;
@@ -700,6 +899,7 @@ main() {
       check_docker
       check_docker_compose
       check_node
+      check_gitleaks
       validate_setup
       ;;
     --rebuild)
@@ -708,6 +908,7 @@ main() {
       check_docker
       check_docker_compose
       check_node
+      check_gitleaks
       info "Backing up volumes before rebuild..."
       backup_volumes
       echo ""
