@@ -1,4 +1,6 @@
 Read the following files:
+spec/README.md
+spec/requirements-format.md
 spec/ops-requirements-management.md
 spec/dev-core-practices.md
 spec/dev-compliance-practices.md

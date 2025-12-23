@@ -102,6 +102,7 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
 │   └── functions.sql            (PostgreSQL functions) TODO - necessary?
 │
 ├── docs/                        (Documentationn beyond requirements)
+│   └── adr/                     (Architecture Decision Records)
 │
 ├── infrastucture/               (IaC for creating and managing infrastructure)
 │   ├── boostrap/                (Creates GCP projects, setup IAM roles, for all envs & sponsors)
@@ -116,18 +117,10 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
 │   │   └── services/            (Business logic)
 │   └── Dockerfile
 │
-├── tools/
-│   ├── build_system/            (Build scripts)
-│   ├── requirements/            (Requirement validation)
-│   └── linear-cli/              (Linear ticket tools)
-│
 ├── spec/                        (Core specifications)
 │   ├── prd-*.md                 (Product requirements)
 │   ├── ops-*.md                 (Operations requirements)
 │   └── dev-*.md                 (Development requirements)
-│
-├── docs/                        (Architecture Decision Records)
-│   └── adr/                     (ADRs)
 │
 └── sponsor/                     ⭐ Sponsor-specific code
     ├── lib/                     (Sponsor implementations)
@@ -171,14 +164,20 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
         │   └── (sponsor-specific REQs - imported later)
         └── andromeda/
             └── (sponsor-specific REQs - imported later)
+├── tools/
+│   ├── anspar-cc-plugins/       (Plugins for Claude Code)
+│   ├── build/                   (Speculative Sponsor Integration - TODO fix)
+│   └── dev-env/                 (Development Environment Containers)
+│   └── requirements/            (Tools for managing requirements and validation)
+│   └── vs-code-linear-req-inserter/  (Linear integration for VSCode)
 ```
 
 **What's in root (core platform)**:
 - Database schema (shared by ALL sponsors)
 - Abstract base classes defining extension points
-- Mobile app UI framework
-- Portal UI framework
-- Dart server framework
+- Mobile app UI 
+- Portal UI
+- Portal Server
 - Build tooling
 - Core specifications (prd/ops/dev)
 
@@ -200,7 +199,7 @@ The repository uses a **monorepo** structure with a `sponsor/` directory that mi
 ## Abstract Base Class Architecture
 
 ### Extension Points
-
+TODO - needs adjustment, also should be in ./apps/common-dart or move this to ./dart-common
 The public core defines abstract interfaces that sponsors extend:
 
 **Core Interfaces** (in `packages/core/lib/interfaces/`):
