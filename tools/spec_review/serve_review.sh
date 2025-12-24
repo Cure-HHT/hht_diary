@@ -43,6 +43,37 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Check if port is already in use
+check_port_in_use() {
+    local port=$1
+    # Try multiple methods to check port availability
+    if command -v ss &> /dev/null; then
+        ss -tuln 2>/dev/null | grep -q ":${port} " && return 0
+    elif command -v netstat &> /dev/null; then
+        netstat -tuln 2>/dev/null | grep -q ":${port} " && return 0
+    elif command -v lsof &> /dev/null; then
+        lsof -i ":${port}" &> /dev/null && return 0
+    else
+        # Fallback: try to connect to the port
+        (echo > /dev/tcp/localhost/${port}) 2>/dev/null && return 0
+    fi
+    return 1
+}
+
+if check_port_in_use "$PORT"; then
+    echo "Error: Port $PORT is already in use."
+    echo ""
+    echo "To fix this, either:"
+    echo "  1. Stop the process using port $PORT:"
+    echo "     lsof -i :$PORT    # Find the process"
+    echo "     kill <PID>        # Stop it"
+    echo ""
+    echo "  2. Use a different port:"
+    echo "     $0 --port 8081 --user $USERNAME"
+    echo ""
+    exit 1
+fi
+
 # Output location
 OUTPUT_DIR="$REPO_ROOT/validation-reports"
 OUTPUT_FILE="$OUTPUT_DIR/REQ-report-review.html"
