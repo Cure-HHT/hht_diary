@@ -826,18 +826,23 @@ def _escape_for_js_embedding(json_str: str) -> str:
     return json_str
 
 
-def generate_embedded_review_data(repo_root: Path, req_ids: List[str]) -> str:
+def generate_embedded_review_data(
+    repo_root: Path,
+    req_ids: List[str],
+    static_mode: bool = True
+) -> str:
     """
     Generate JavaScript code to embed review data.
 
     Args:
         repo_root: Repository root path
         req_ids: List of requirement IDs
+        static_mode: If True, disable push features (for static HTTP server)
 
     Returns:
         JavaScript code defining window.REVIEW_DATA
     """
-    data = load_review_data_for_reqs(repo_root, req_ids)
+    data = load_review_data_for_reqs(repo_root, req_ids, static_mode=static_mode)
     # Use ensure_ascii=True to escape all non-ASCII chars as \uXXXX
     json_str = json.dumps(data, indent=2, ensure_ascii=True)
     json_str = _escape_for_js_embedding(json_str)
