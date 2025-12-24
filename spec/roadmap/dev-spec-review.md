@@ -165,3 +165,46 @@ All commands SHALL:
 
 *End* *CLI Interface* | **Hash**: TBD
 ---
+
+### REQ-d00091: JavaScript Review Modules
+
+**Level**: Dev | **Implements**: d00086, d00087 | **Status**: Draft
+
+The spec review system SHALL provide JavaScript modules for browser-side functionality:
+
+1. **review-data.js**: Client-side data structures matching Python models
+   - All data classes with validation and serialization
+   - State management for loaded review data
+   - Utility functions (UUID, timestamps, validation)
+
+2. **review-position.js**: Position resolution and highlighting
+   - Resolve positions with fallback strategies
+   - DOM highlighting for lines, blocks, words
+   - Confidence indicators (exact, approximate, unanchored)
+
+3. **review-comments.js**: Comment thread UI
+   - Thread list rendering (collapsible)
+   - Comment form (new thread, reply)
+   - Resolve/unresolve actions
+   - Position selection UI
+
+4. **review-status.js**: Status request UI
+   - Status change request form
+   - Approval workflow display with progress
+   - Pending request badges
+
+5. **review-sync.js**: Sync and fetch operations
+   - Fetch/push review data via API
+   - Auto-fetch with configurable interval
+   - Conflict detection and resolution dialog
+
+**Rationale**: JavaScript modules enable interactive review functionality in the browser without page reloads.
+
+**Acceptance Criteria**:
+- All modules use ReviewSystem namespace
+- Data classes match Python counterparts
+- UI components emit events for sync hooks
+- Position highlighting works with exact and fallback modes
+
+*End* *JavaScript Review Modules* | **Hash**: TBD
+---
