@@ -602,6 +602,8 @@ def get_review_init_js(current_user: str = "anonymous") -> str:
     """Get JavaScript to initialize review system"""
     return f"""
 // Initialize Review System
+var currentReviewReqId = null;
+
 document.addEventListener('DOMContentLoaded', function() {{
     // Set current user
     ReviewSystem.state.currentUser = '{current_user}';
@@ -620,6 +622,21 @@ document.addEventListener('DOMContentLoaded', function() {{
     // Add review badges to requirements
     updateReviewBadges();
 
+    // Hook into the existing openReqPanel function to track selected requirement
+    if (typeof window.openReqPanel === 'function') {{
+        const originalOpenReqPanel = window.openReqPanel;
+        window.openReqPanel = function(reqId) {{
+            currentReviewReqId = reqId;
+            originalOpenReqPanel(reqId);
+
+            // If review mode is active, update the review panel
+            const reviewToggle = document.getElementById('review-mode-toggle');
+            if (reviewToggle && reviewToggle.checked) {{
+                updateReviewPanelContent('comments');
+            }}
+        }};
+    }}
+
     // Listen for review mode toggle
     const reviewToggle = document.getElementById('review-mode-toggle');
     if (reviewToggle) {{
@@ -627,6 +644,9 @@ document.addEventListener('DOMContentLoaded', function() {{
             document.body.classList.toggle('review-mode-active', this.checked);
             if (this.checked) {{
                 showReviewPanel();
+                if (currentReviewReqId) {{
+                    updateReviewPanelContent('comments');
+                }}
             }} else {{
                 hideReviewPanel();
             }}
@@ -711,20 +731,19 @@ function hideReviewPanel() {{
 
 function updateReviewPanelContent(tab) {{
     const content = document.getElementById('review-panel-content');
-    const selectedReq = document.querySelector('[data-req-id].selected, .req-selected');
-    const reqId = selectedReq ? selectedReq.getAttribute('data-req-id') : null;
+    const reqId = currentReviewReqId;
 
     if (!reqId) {{
-        content.innerHTML = '<p class="rs-no-threads">Select a requirement to view comments.</p>';
+        content.innerHTML = '<p class="rs-no-threads">Click a requirement ID to select it, then view comments here.</p>';
         return;
     }}
 
     if (tab === 'comments') {{
         ReviewSystem.renderThreadList(content, reqId);
     }} else if (tab === 'status') {{
-        // Get current status from the selected REQ
-        const statusEl = selectedReq.querySelector('.req-status, [data-status]');
-        const currentStatus = statusEl ? (statusEl.getAttribute('data-status') || statusEl.textContent.trim()) : 'Draft';
+        // Get current status from REQ_CONTENT_DATA
+        const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+        const currentStatus = reqData ? reqData.status : 'Draft';
         ReviewSystem.renderStatusPanel(content, reqId, currentStatus);
     }}
 }}
