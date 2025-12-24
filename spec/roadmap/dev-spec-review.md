@@ -107,3 +107,31 @@ The spec review system SHALL provide atomic storage operations:
 
 *End* *Review Storage Operations* | **Hash**: TBD
 ---
+
+### REQ-d00089: Git Branch Management
+
+**Level**: Dev | **Implements**: d00086 | **Status**: Draft
+
+The spec review system SHALL manage git branches for collaborative reviews:
+
+1. **Branch naming**: `reviews/{user}/{session}` convention with sanitization
+2. **Branch parsing**: Extract user/session from branch names
+3. **Git utilities**: Current branch detection, remote discovery, branch existence checks
+4. **Branch operations**: Create, checkout, push, fetch review branches
+5. **Listing/discovery**: List local/remote review branches, find all review users
+6. **Cleanup**: Delete local/remote branches, cleanup old branches by age
+7. **Conflict detection**: Check for uncommitted changes before branch operations
+
+All operations SHALL handle missing remotes and invalid repos gracefully.
+
+**Rationale**: Git-based branch management enables distributed collaboration with audit trails while leveraging existing git infrastructure.
+
+**Acceptance Criteria**:
+- Branch names follow `reviews/{user}/{session}` convention
+- Create/checkout/push/fetch operations work with local and remote repos
+- Branch listing correctly filters review branches
+- Error handling gracefully handles edge cases
+- Unit tests cover all operations
+
+*End* *Git Branch Management* | **Hash**: TBD
+---
