@@ -915,10 +915,12 @@ class TraceabilityGenerator:
                 'isCycle': req.is_cycle,
                 'cyclePath': req.cycle_path if req.is_cycle else None
             }
-        json_str = json.dumps(req_data, indent=2)
+        # Use ensure_ascii=True to escape all non-ASCII chars as \uXXXX sequences
+        # This prevents control characters from breaking JSON.parse in the browser
+        json_str = json.dumps(req_data, indent=2, ensure_ascii=True)
         # Escape </script> to prevent premature closing of the script tag
-        # This is safe because JSON strings already escape the backslash
         json_str = json_str.replace('</script>', '<\\/script>')
+        json_str = json_str.replace('</SCRIPT>', '<\\/SCRIPT>')
         return json_str
 
     def _generate_side_panel_js(self) -> str:

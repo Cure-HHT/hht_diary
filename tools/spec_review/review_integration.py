@@ -774,6 +774,27 @@ def load_review_data_for_reqs(repo_root: Path, req_ids: List[str]) -> Dict[str, 
     return result
 
 
+def _escape_for_js_embedding(json_str: str) -> str:
+    """
+    Escape JSON string for safe embedding in <script> tags.
+
+    JSON is valid JavaScript, but some characters that are valid in JSON
+    can break when embedded in HTML <script> tags:
+    - U+2028 (Line Separator) and U+2029 (Paragraph Separator)
+    - </script> sequences
+    - Control characters (0x00-0x1F)
+    """
+    # Escape line/paragraph separators (valid in JSON, breaks JS in HTML)
+    json_str = json_str.replace('\u2028', '\\u2028')
+    json_str = json_str.replace('\u2029', '\\u2029')
+
+    # Escape </script> to prevent premature tag closure
+    json_str = json_str.replace('</script>', '<\\/script>')
+    json_str = json_str.replace('</SCRIPT>', '<\\/SCRIPT>')
+
+    return json_str
+
+
 def generate_embedded_review_data(repo_root: Path, req_ids: List[str]) -> str:
     """
     Generate JavaScript code to embed review data.
@@ -786,7 +807,9 @@ def generate_embedded_review_data(repo_root: Path, req_ids: List[str]) -> str:
         JavaScript code defining window.REVIEW_DATA
     """
     data = load_review_data_for_reqs(repo_root, req_ids)
-    json_str = json.dumps(data, indent=2)
+    # Use ensure_ascii=True to escape all non-ASCII chars as \uXXXX
+    json_str = json.dumps(data, indent=2, ensure_ascii=True)
+    json_str = _escape_for_js_embedding(json_str)
     return f"window.REVIEW_DATA = {json_str};"
 
 
