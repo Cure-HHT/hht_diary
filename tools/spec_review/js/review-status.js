@@ -277,6 +277,19 @@ window.ReviewSystem = window.ReviewSystem || {};
                 }
                 // Refresh status display
                 updateStatusBadge(reqId, newStatus);
+
+                // Handle auto-add to package when status changes to Review
+                if (result.addedToPackage && typeof RS.renderPackagesPanel === 'function') {
+                    // Update local package state
+                    const pkg = RS.packages && RS.packages.items &&
+                                RS.packages.items.find(p => p.packageId === result.addedToPackage.packageId);
+                    if (pkg && !pkg.reqIds.includes(reqId)) {
+                        pkg.reqIds.push(reqId);
+                    }
+                    // Re-render packages panel to update counts
+                    RS.renderPackagesPanel();
+                    console.log(`REQ-${reqId} added to package: ${result.addedToPackage.packageName}`);
+                }
             }
             return result;
         } catch (error) {

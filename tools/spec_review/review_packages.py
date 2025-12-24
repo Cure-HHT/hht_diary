@@ -423,6 +423,48 @@ def get_package_for_req(repo_root: Path, req_id: str) -> Optional[ReviewPackage]
     return None
 
 
+def on_status_changed_to_review(
+    repo_root: Path,
+    req_id: str,
+    source: str = 'gui'
+) -> Optional[ReviewPackage]:
+    """
+    Called when a REQ's status becomes Review.
+
+    Automatically adds the REQ to the appropriate package:
+    - GUI actions: Add to active package (or default if none)
+    - File edits: Add to default package
+
+    Args:
+        repo_root: Path to the repository root
+        req_id: The requirement ID
+        source: 'gui' (user clicked) or 'file' (detected in spec file)
+
+    Returns:
+        The package the REQ was added to, or None if already in a package
+    """
+    # Check if already in a package
+    existing_pkg = get_package_for_req(repo_root, req_id)
+    if existing_pkg:
+        return None  # Already tracked
+
+    pf = load_packages(repo_root)
+
+    if source == 'file':
+        # Manual file edit - add to default package
+        target_pkg = pf.get_default()
+    else:
+        # GUI action - add to active package (or default if none)
+        target_pkg = pf.get_active() or pf.get_default()
+
+    if target_pkg and req_id not in target_pkg.reqIds:
+        target_pkg.reqIds.append(req_id)
+        save_packages(repo_root, pf)
+        return target_pkg
+
+    return None
+
+
 if __name__ == "__main__":
     # Simple CLI for testing
     import sys

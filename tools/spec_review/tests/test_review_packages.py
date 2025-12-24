@@ -28,6 +28,7 @@ from tools.spec_review.review_packages import (
     get_active_package,
     set_active_package,
     get_default_package,
+    on_status_changed_to_review,
     get_package_for_req,
 )
 
@@ -331,6 +332,62 @@ class TestGetPackageForReq:
 
         found = get_package_for_req(tmp_path, "d99999")
         assert found is None
+
+
+class TestOnStatusChangedToReview:
+    """Test auto-add to package when status changes to Review"""
+
+    def test_adds_to_default_package_when_no_active(self, tmp_path):
+        """Should add REQ to default package when no active package"""
+        load_packages(tmp_path)
+
+        pkg = on_status_changed_to_review(tmp_path, "d00001", source='gui')
+
+        assert pkg is not None
+        assert pkg.isDefault is True
+        assert "d00001" in pkg.reqIds
+
+    def test_adds_to_active_package_when_set(self, tmp_path):
+        """Should add REQ to active package when one is set"""
+        active_pkg = create_package(tmp_path, "Active", "Active package", "user")
+        set_active_package(tmp_path, active_pkg.packageId)
+
+        pkg = on_status_changed_to_review(tmp_path, "d00002", source='gui')
+
+        assert pkg is not None
+        assert pkg.packageId == active_pkg.packageId
+        assert "d00002" in pkg.reqIds
+
+    def test_file_source_always_uses_default(self, tmp_path):
+        """Should always use default package for file-based changes"""
+        active_pkg = create_package(tmp_path, "Active", "Active package", "user")
+        set_active_package(tmp_path, active_pkg.packageId)
+
+        pkg = on_status_changed_to_review(tmp_path, "d00003", source='file')
+
+        assert pkg is not None
+        assert pkg.isDefault is True
+        assert "d00003" in pkg.reqIds
+
+    def test_returns_none_if_already_in_package(self, tmp_path):
+        """Should return None if REQ is already in a package"""
+        other_pkg = create_package(tmp_path, "Other", "Other package", "user")
+        add_req_to_package(tmp_path, other_pkg.packageId, "d00004")
+
+        result = on_status_changed_to_review(tmp_path, "d00004", source='gui')
+
+        assert result is None
+
+    def test_does_not_duplicate_req_in_package(self, tmp_path):
+        """Should not add duplicate REQ IDs"""
+        load_packages(tmp_path)
+
+        on_status_changed_to_review(tmp_path, "d00005", source='gui')
+        on_status_changed_to_review(tmp_path, "d00005", source='gui')
+
+        default = get_default_package(tmp_path)
+        count = default.reqIds.count("d00005")
+        assert count == 1
 
 
 if __name__ == "__main__":

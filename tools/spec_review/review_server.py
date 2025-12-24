@@ -55,6 +55,7 @@ from spec_review.review_packages import (
     remove_req_from_package,
     get_active_package,
     set_active_package,
+    on_status_changed_to_review,
 )
 from spec_review.review_data import (
     Thread,
@@ -351,6 +352,14 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         result = change_req_status(repo, normalized_id, new_status, user)
 
         if result.get('success'):
+            # If status changed to Review, auto-add to appropriate package
+            if new_status == 'Review':
+                pkg = on_status_changed_to_review(repo, normalized_id, source='gui')
+                if pkg:
+                    result['addedToPackage'] = {
+                        'packageId': pkg.packageId,
+                        'packageName': pkg.name
+                    }
             return jsonify(result), 200
         else:
             return jsonify(result), 400

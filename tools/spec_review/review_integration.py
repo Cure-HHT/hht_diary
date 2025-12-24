@@ -797,6 +797,156 @@ body.review-mode-active .status-badge.status-draft:hover {
     font-weight: 600;
     color: var(--primary-color, #0066cc);
 }
+
+/* ============================================
+   Review Packages Panel
+   ============================================ */
+
+.review-packages-panel {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: none;  /* Hidden until review mode is active */
+}
+
+body.review-mode-active .review-packages-panel {
+    display: block;
+}
+
+.review-packages-panel.collapsed .packages-content {
+    display: none;
+}
+
+.packages-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #e9ecef);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.review-packages-panel.collapsed .packages-header {
+    border-radius: 8px;
+}
+
+.packages-header .collapse-icon {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+    transition: transform 0.2s;
+}
+
+.packages-header h3 {
+    margin: 0;
+    font-size: 14px;
+    flex: 1;
+}
+
+.packages-header .create-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+.packages-content {
+    padding: 12px;
+}
+
+.package-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.package-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--bg-secondary, #f8f9fa);
+    transition: background 0.2s;
+}
+
+.package-item:hover {
+    background: var(--bg-tertiary, #e9ecef);
+}
+
+.package-item.active {
+    background: rgba(0, 102, 204, 0.1);
+    border: 1px solid var(--primary-color, #0066cc);
+}
+
+.package-item.default {
+    font-style: italic;
+}
+
+.package-item input[type="radio"] {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.package-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.package-name {
+    font-weight: 500;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.package-desc {
+    font-size: 11px;
+    color: var(--text-muted, #666);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.package-count {
+    background: var(--bg-tertiary, #e9ecef);
+    color: var(--text-secondary, #666);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.package-count::after {
+    content: " REQs";
+}
+
+.package-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.package-item:hover .package-actions {
+    opacity: 1;
+}
+
+#packageFilterIndicator {
+    display: none;
+    margin-left: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 102, 204, 0.1);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--primary-color, #0066cc);
+}
 """
 
 
@@ -818,6 +968,7 @@ def get_review_js_files() -> List[Path]:
         js_dir / 'review-comments.js',
         js_dir / 'review-status.js',
         js_dir / 'review-sync.js',
+        js_dir / 'review-packages.js',
     ]
 
 
@@ -879,6 +1030,10 @@ document.addEventListener('DOMContentLoaded', function() {{
             document.body.classList.toggle('review-mode-active', this.checked);
             if (this.checked) {{
                 showReviewPanel();
+                // Initialize packages panel
+                if (typeof ReviewSystem.initPackagesPanel === 'function') {{
+                    ReviewSystem.initPackagesPanel();
+                }}
                 // Add line numbers to current REQ card if one is open
                 if (currentReviewReqId) {{
                     addLineNumbersToReqCard(currentReviewReqId);
@@ -896,6 +1051,10 @@ document.addEventListener('DOMContentLoaded', function() {{
         if (reviewToggle.checked) {{
             document.body.classList.add('review-mode-active');
             showReviewPanel();
+            // Initialize packages panel
+            if (typeof ReviewSystem.initPackagesPanel === 'function') {{
+                ReviewSystem.initPackagesPanel();
+            }}
         }}
     }}
 }});
@@ -1542,5 +1701,29 @@ def get_review_filter_html() -> str:
         <label>
             <input type="checkbox" id="filter-pending"> Pending status change
         </label>
+    </div>
+    """
+
+
+def get_packages_panel_html() -> str:
+    """Get HTML for review packages panel (collapsible, above tree)"""
+    return """
+    <div class="review-packages-panel" id="reviewPackagesPanel">
+        <div class="packages-header" onclick="ReviewSystem.togglePackagesPanel()">
+            <span class="collapse-icon">&#9660;</span>
+            <h3>Review Packages</h3>
+            <button class="rs-btn rs-btn-sm rs-btn-primary create-btn"
+                    onclick="ReviewSystem.showCreatePackageDialog(event)">
+                + New Package
+            </button>
+            <span id="packageFilterIndicator"></span>
+        </div>
+        <div class="packages-content">
+            <div class="package-list">
+                <p style="color: #666; text-align: center; padding: 16px;">
+                    Loading packages...
+                </p>
+            </div>
+        </div>
     </div>
     """
