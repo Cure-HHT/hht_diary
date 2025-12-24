@@ -208,3 +208,63 @@ The spec review system SHALL provide JavaScript modules for browser-side functio
 
 *End* *JavaScript Review Modules* | **Hash**: TBD
 ---
+
+### REQ-d00092: HTML Report Integration
+
+**Level**: Dev | **Implements**: d00086, d00091 | **Status**: Draft
+
+The spec review system SHALL integrate with the HTML traceability report:
+
+1. **CSS Injection**: Review system styles for panels, threads, highlights, badges
+2. **JavaScript Loading**: Load all review-*.js modules in proper order
+3. **Embedded Data Generation**: Generate window.REVIEW_DATA from .reviews/ directory
+4. **Review Mode Toggle**: UI control to enable/disable review features
+5. **REQ ID Extraction**: Parse data-req-id attributes from report HTML
+
+The integration module SHALL:
+- Read JavaScript files from js/ directory
+- Load review data for specific REQ IDs present in the report
+- Generate CSS and JS injection blocks
+- Create review mode toggle HTML component
+
+**Rationale**: Seamless integration with the existing traceability report enables review functionality without requiring a separate application.
+
+**Acceptance Criteria**:
+- get_review_css() returns complete CSS for review system
+- get_review_js_content() returns concatenated JavaScript modules
+- generate_embedded_review_data() creates valid JavaScript data assignment
+- Integration with existing report HTML works without conflicts
+
+*End* *HTML Report Integration* | **Hash**: TBD
+---
+
+### REQ-d00093: Review Mode Server
+
+**Level**: Dev | **Implements**: d00092 | **Status**: Draft
+
+The spec review system SHALL provide a serve script for review mode:
+
+1. **Arguments**: Accept --user, --port options with sensible defaults
+2. **Report Generation**: Generate traceability matrix with --edit-mode
+3. **Asset Injection**: Inject review CSS, JavaScript, and embedded data
+4. **Server**: Serve from repository root for spec/ link resolution
+5. **Browser Launch**: Auto-open browser with cache-busting URL
+
+The serve script SHALL:
+- Generate the base report using generate_traceability.py
+- Read and inject review system assets (CSS, JS)
+- Embed review data from .reviews/ directory
+- Start Python HTTP server on specified port
+- Display informative messages about features and data locations
+
+**Rationale**: A dedicated serve script simplifies review mode setup and ensures all necessary assets are properly injected.
+
+**Acceptance Criteria**:
+- Script accepts --user and --port arguments
+- Review CSS and JS are injected into generated HTML
+- Embedded review data is included
+- Server starts and serves content correctly
+- Browser auto-opens to review URL
+
+*End* *Review Mode Server* | **Hash**: TBD
+---
