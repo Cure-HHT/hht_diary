@@ -1,6 +1,6 @@
 #!/bin/bash
 # Serves traceability report with review mode enabled
-# Usage: ./serve_review.sh [port] [--user username]
+# Usage: ./serve_review.sh [port] [--user username] [--api]
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00092: HTML Report Integration
@@ -12,6 +12,10 @@
 # - Status change request workflow
 # - Review flags for requirements
 #
+# Modes:
+#   Static (default): Simple HTTP server, comments in memory only
+#   API (--api):      Flask API server, comments persist to .reviews/
+#
 # Data is stored in .reviews/ directory and can be synced via git branches.
 
 set -e
@@ -19,7 +23,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PORT="8080"
-USERNAME="anonymous"
+USE_API=false
+
+# Default username from git config, fallback to system user, then "anonymous"
+USERNAME=$(git config user.name 2>/dev/null || echo "")
+if [ -z "$USERNAME" ]; then
+    USERNAME="${USER:-anonymous}"
+fi
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -32,12 +42,21 @@ while [[ $# -gt 0 ]]; do
             PORT="$2"
             shift 2
             ;;
+        --api)
+            USE_API=true
+            shift
+            ;;
         [0-9]*)
             PORT="$1"
             shift
             ;;
         *)
-            echo "Usage: $0 [port] [--user username]"
+            echo "Usage: $0 [port] [--user username] [--api]"
+            echo ""
+            echo "Options:"
+            echo "  --port PORT    Port to serve on (default: 8080)"
+            echo "  --user NAME    Your username for comments (default: anonymous)"
+            echo "  --api          Use Flask API server for comment persistence"
             exit 1
             ;;
     esac
@@ -86,6 +105,11 @@ echo "======================================"
 echo ""
 echo "User: $USERNAME"
 echo "Port: $PORT"
+if [ "$USE_API" = true ]; then
+    echo "Mode: API (comments persist to .reviews/)"
+else
+    echo "Mode: Static (comments in memory only)"
+fi
 echo ""
 
 # Generate the base report
@@ -103,13 +127,19 @@ fi
 
 # Inject review system assets
 echo "Injecting review system..."
-python3 - "$OUTPUT_FILE" "$USERNAME" "$REPO_ROOT" << 'PYTHON_SCRIPT'
+STATIC_MODE="true"
+if [ "$USE_API" = true ]; then
+    STATIC_MODE="false"
+fi
+
+python3 - "$OUTPUT_FILE" "$USERNAME" "$REPO_ROOT" "$STATIC_MODE" << 'PYTHON_SCRIPT'
 import sys
 from pathlib import Path
 
 output_file = Path(sys.argv[1])
 username = sys.argv[2]
 repo_root = Path(sys.argv[3])
+static_mode = sys.argv[4].lower() == 'true'
 
 # Add spec_review to path
 sys.path.insert(0, str(repo_root / 'tools'))
@@ -133,8 +163,8 @@ req_pattern = r'data-req-id="([pod]\d{5})"'
 req_ids = list(set(re.findall(req_pattern, html)))
 print(f"Found {len(req_ids)} requirements in report")
 
-# Generate embedded review data
-review_data_js = generate_embedded_review_data(repo_root, req_ids)
+# Generate embedded review data (static_mode disables push features)
+review_data_js = generate_embedded_review_data(repo_root, req_ids, static_mode=static_mode)
 
 # Get CSS and JS content
 review_css = get_review_css()
@@ -205,10 +235,20 @@ echo "  - Click on requirements to see/add comments"
 echo "  - Comments support line/block/word positions"
 echo "  - Request status changes with approval workflow"
 echo ""
+if [ "$USE_API" = true ]; then
+    echo "API Mode:"
+    echo "  - Comments persist automatically to .reviews/"
+    echo "  - Changes saved in real-time"
+else
+    echo "Static Mode:"
+    echo "  - Comments only live in browser memory"
+    echo "  - Use CLI for persistence: python3 $SCRIPT_DIR/review_cli.py --help"
+    echo "  - Restart with --api flag for persistence"
+fi
+echo ""
 echo "Data storage:"
 echo "  - Review data is stored in: $REPO_ROOT/.reviews/"
 echo "  - Use git branches for collaboration"
-echo "  - CLI: python3 $SCRIPT_DIR/review_cli.py --help"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
@@ -224,6 +264,19 @@ elif command -v open &> /dev/null; then
     open "$URL" &
 fi
 
-# Serve from repo root so spec/ links work
+# Start the appropriate server
 cd "$REPO_ROOT"
-python3 -m http.server "$PORT"
+if [ "$USE_API" = true ]; then
+    # Check for Flask
+    if ! python3 -c "import flask" 2>/dev/null; then
+        echo "Error: Flask is required for API mode."
+        echo ""
+        echo "Install with: pip install flask flask-cors"
+        echo ""
+        echo "Or run without --api flag for static mode."
+        exit 1
+    fi
+    python3 "$SCRIPT_DIR/review_server.py" --port "$PORT" --repo "$REPO_ROOT"
+else
+    python3 -m http.server "$PORT"
+fi
