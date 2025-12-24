@@ -135,3 +135,33 @@ All operations SHALL handle missing remotes and invalid repos gracefully.
 
 *End* *Git Branch Management* | **Hash**: TBD
 ---
+
+### REQ-d00090: CLI Interface
+
+**Level**: Dev | **Implements**: d00086, d00088, d00089 | **Status**: Draft
+
+The spec review system SHALL provide a command-line interface with:
+
+1. **Session commands**: init-session, list-sessions, delete-session
+2. **Flag commands**: flag, unflag
+3. **Comment commands**: comment (creates thread), reply, resolve, unresolve, list-threads
+4. **Status request commands**: request-status, approve, reject, list-requests
+5. **Branch commands**: create-branch, checkout-branch, push, fetch, list-branches
+6. **Output formats**: summary (human-readable) and json (machine-readable)
+
+All commands SHALL:
+- Accept --repo to specify repository root
+- Return 0 on success, non-zero on failure
+- Print informative messages to stdout
+
+**Rationale**: A CLI enables scripting, automation, and integration with other tools while providing a consistent interface for human operators.
+
+**Acceptance Criteria**:
+- All commands have corresponding subparsers with proper arguments
+- Commands integrate with storage and branch modules
+- JSON output is valid and parseable
+- Error cases return appropriate exit codes
+- Unit tests cover all commands
+
+*End* *CLI Interface* | **Hash**: TBD
+---
