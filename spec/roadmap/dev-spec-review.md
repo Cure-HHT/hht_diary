@@ -64,3 +64,46 @@ Position resolution SHALL return confidence levels:
 
 *End* *Position Resolution with Fallback* | **Hash**: TBD
 ---
+
+### REQ-d00088: Review Storage Operations
+
+**Level**: Dev | **Implements**: d00086 | **Status**: Draft
+
+The spec review system SHALL provide atomic storage operations:
+
+1. **Helper functions**:
+   - Atomic JSON writes using temp file + rename pattern
+   - Safe JSON reads with proper error handling
+
+2. **Config operations**: Load/save ReviewConfig with defaults
+
+3. **Session operations**: Create, load, list (sorted by date), delete
+
+4. **Review flag operations**: Load/save with REQ ID normalization
+
+5. **Thread operations**:
+   - Load/save threads files
+   - Add threads and comments
+   - Resolve/unresolve threads
+
+6. **Status request operations**:
+   - Create status change requests
+   - Add approvals with state recalculation
+   - Mark requests as applied
+
+7. **Merge operations** for collaborative workflows:
+   - Merge threads by combining unique threads and merging comments
+   - Merge status files by combining approvals and recalculating state
+   - Merge review flags taking newer timestamp but merging scopes
+
+**Rationale**: Atomic operations ensure data integrity. Merge operations enable multi-user collaboration via git branches.
+
+**Acceptance Criteria**:
+- All file writes are atomic (temp + rename)
+- Missing files return sensible defaults
+- Thread/status operations support CRUD with validation
+- Merge operations correctly combine data from multiple sources
+- Unit tests achieve full coverage
+
+*End* *Review Storage Operations* | **Hash**: TBD
+---
