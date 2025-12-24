@@ -944,7 +944,18 @@ class TraceabilityGenerator:
 
             // Check if card already exists
             if (reqCardStack.includes(reqId)) {
-                return; // Already open
+                // Move existing card to top of stack
+                const existingCard = document.getElementById(`req-card-${reqId}`);
+                if (existingCard) {
+                    cardStack.insertBefore(existingCard, cardStack.firstChild);
+                }
+                // Also move to front of array
+                const idx = reqCardStack.indexOf(reqId);
+                if (idx > 0) {
+                    reqCardStack.splice(idx, 1);
+                    reqCardStack.unshift(reqId);
+                }
+                return;
             }
 
             // Add to stack
@@ -987,18 +998,18 @@ class TraceabilityGenerator:
                 : `Open file (${repoRelPath}:${req.line})`;
 
             card.innerHTML = `
-                <div class="req-card-header">
+                <div class="req-card-header" onclick="selectAndMoveReqCard('${reqId}', true, event)">
                     <span class="req-card-title">REQ-${reqId}: ${req.title}</span>
-                    <button class="close-btn" onclick="closeReqCard('${reqId}')">×</button>
+                    <button class="close-btn" onclick="closeReqCard('${reqId}'); event.stopPropagation();">×</button>
                 </div>
-                <div class="req-card-body">
+                <div class="req-card-body" onclick="selectReqCard('${reqId}', event)">
                     <div class="req-card-meta">
                         <span class="badge">${req.level}</span>
                         <span class="badge">${req.status}</span>
-                        <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); return false;" class="file-ref-link">${req.file}:${req.line}</a>
-                        <a href="${vscodeHref}" title="${vscodeTitle}" class="vscode-link">🔧</a>
+                        <a href="#" onclick="openCodeViewer('${req.filePath}', ${req.line}); event.stopPropagation(); return false;" class="file-ref-link">${req.file}:${req.line}</a>
+                        <a href="${vscodeHref}" title="${vscodeTitle}" class="vscode-link" onclick="event.stopPropagation();">🔧</a>
                     </div>
-                    <div class="req-card-actions edit-actions">
+                    <div class="req-card-actions edit-actions" onclick="event.stopPropagation();">
                         ${moveButtons}
                     </div>
                     ${implementsHtml}
@@ -1011,6 +1022,54 @@ class TraceabilityGenerator:
 
             // Add to top of stack
             cardStack.insertBefore(card, cardStack.firstChild);
+        }
+
+        // Select a REQ card (focus it in review panel)
+        function selectReqCard(reqId, event) {
+            // Don't interfere with text selection
+            if (window.getSelection && window.getSelection().toString().length > 0) {
+                return;
+            }
+
+            // Update global state for review panel
+            if (typeof currentReviewReqId !== 'undefined') {
+                currentReviewReqId = reqId;
+            }
+
+            // Update card selected state visually
+            document.querySelectorAll('.req-card').forEach(c => c.classList.remove('selected'));
+            const card = document.getElementById(`req-card-${reqId}`);
+            if (card) card.classList.add('selected');
+
+            // If review mode is active, update the review panel content
+            const reviewToggle = document.getElementById('review-mode-toggle');
+            if (reviewToggle && reviewToggle.checked) {
+                // Add line numbers to the card if not already done
+                if (typeof addLineNumbersToReqCard === 'function') {
+                    addLineNumbersToReqCard(reqId);
+                }
+                if (typeof updateReviewPanelContent === 'function') {
+                    updateReviewPanelContent('comments');
+                }
+            }
+        }
+
+        // Select and move REQ card to top (for title bar clicks)
+        function selectAndMoveReqCard(reqId, moveToTop, event) {
+            if (moveToTop) {
+                const cardStack = document.getElementById('req-card-stack');
+                const card = document.getElementById(`req-card-${reqId}`);
+                if (card && cardStack) {
+                    cardStack.insertBefore(card, cardStack.firstChild);
+                    // Also update the array
+                    const idx = reqCardStack.indexOf(reqId);
+                    if (idx > 0) {
+                        reqCardStack.splice(idx, 1);
+                        reqCardStack.unshift(reqId);
+                    }
+                }
+            }
+            selectReqCard(reqId, event);
         }
 
         function closeReqCard(reqId) {
@@ -1059,6 +1118,42 @@ class TraceabilityGenerator:
                 if (!isResizing) return;
                 const diff = startX - e.clientX;
                 const newWidth = Math.min(Math.max(startWidth + diff, 250), window.innerWidth * 0.7);
+                panel.style.width = newWidth + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    isResizing = false;
+                    handle.classList.remove('dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        })();
+
+        // Review column resize functionality
+        (function initReviewResize() {
+            const panel = document.getElementById('review-column');
+            const handle = document.getElementById('reviewResizeHandle');
+            if (!panel || !handle) return;
+
+            let isResizing = false;
+            let startX, startWidth;
+
+            handle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = panel.offsetWidth;
+                handle.classList.add('dragging');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizing) return;
+                const diff = startX - e.clientX;
+                const newWidth = Math.min(Math.max(startWidth + diff, 250), window.innerWidth * 0.5);
                 panel.style.width = newWidth + 'px';
             });
 
@@ -2197,6 +2292,23 @@ class TraceabilityGenerator:
         .side-panel.hidden {
             display: none;
         }
+        /* Review column - third column for comments panel */
+        .review-column {
+            width: 350px;
+            min-width: 250px;
+            max-width: 50vw;
+            height: 100vh;
+            background: white;
+            border-left: 2px solid #dee2e6;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .review-column.hidden {
+            display: none;
+        }
         .resize-handle {
             position: absolute;
             left: -4px;
@@ -2244,6 +2356,11 @@ class TraceabilityGenerator:
             border-radius: 4px;
             margin-bottom: 10px;
             overflow: hidden;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .req-card.selected {
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
         }
         .req-card-header {
             background: #e9ecef;
@@ -2252,6 +2369,14 @@ class TraceabilityGenerator:
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .req-card-header:hover {
+            background: #dde1e5;
+        }
+        .req-card.selected .req-card-header {
+            background: #cce0f0;
         }
         .req-card-title {
             font-weight: 600;
@@ -2274,6 +2399,7 @@ class TraceabilityGenerator:
         }
         .req-card-body {
             padding: 12px;
+            cursor: pointer;
         }
         .req-card-meta {
             display: flex;
@@ -2513,10 +2639,26 @@ class TraceabilityGenerator:
             font-size: 12px;
             font-weight: 600;
             color: white;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }}
+        .stat-badge:hover {{
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }}
+        .stat-badge:active {{
+            transform: translateY(0);
+        }}
+        .stat-badge.active {{
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }}
         .stat-badge.prd {{ background: #0066cc; }}
+        .stat-badge.prd:hover {{ background: #0055aa; }}
         .stat-badge.ops {{ background: #fd7e14; }}
+        .stat-badge.ops:hover {{ background: #e56d00; }}
         .stat-badge.dev {{ background: #28a745; }}
+        .stat-badge.dev:hover {{ background: #218838; }}
         .btn-legend {{
             background: #6c757d;
             font-size: 12px;
@@ -3064,9 +3206,9 @@ class TraceabilityGenerator:
         <div class="title-bar">
             <h1>Requirements Traceability</h1>
             <div class="stats-badges">
-                <span class="stat-badge prd" id="badgePRD" data-active="{by_level['active']['PRD']}" data-all="{by_level['all']['PRD']}">PRD: {by_level['active']['PRD']}</span>
-                <span class="stat-badge ops" id="badgeOPS" data-active="{by_level['active']['OPS']}" data-all="{by_level['all']['OPS']}">OPS: {by_level['active']['OPS']}</span>
-                <span class="stat-badge dev" id="badgeDEV" data-active="{by_level['active']['DEV']}" data-all="{by_level['all']['DEV']}">DEV: {by_level['active']['DEV']}</span>
+                <button class="stat-badge prd" id="badgePRD" data-active="{by_level['active']['PRD']}" data-all="{by_level['all']['PRD']}" onclick="filterByLevel('PRD')" title="Click to filter by PRD">PRD: {by_level['active']['PRD']}</button>
+                <button class="stat-badge ops" id="badgeOPS" data-active="{by_level['active']['OPS']}" data-all="{by_level['all']['OPS']}" onclick="filterByLevel('OPS')" title="Click to filter by OPS">OPS: {by_level['active']['OPS']}</button>
+                <button class="stat-badge dev" id="badgeDEV" data-active="{by_level['active']['DEV']}" data-all="{by_level['all']['DEV']}" onclick="filterByLevel('DEV')" title="Click to filter by DEV">DEV: {by_level['active']['DEV']}</button>
             </div>
             <span class="version-badge">v{self.VERSION}</span>
             <button class="btn btn-legend" onclick="openLegendModal()" title="Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}">ℹ️ Legend</button>
@@ -3207,6 +3349,10 @@ class TraceabilityGenerator:
             <button onclick="closeAllCards()">Close All</button>
         </div>
         <div id="req-card-stack"></div>
+    </div>
+    <div id="review-column" class="review-column hidden" style="position: relative;">
+        <div class="resize-handle" id="reviewResizeHandle"></div>
+        <!-- Review panel content will be injected here by review_integration.py -->
     </div>
 """
 
@@ -3645,10 +3791,43 @@ class TraceabilityGenerator:
             toggleIncludeDeprecated();  // This will update badges and call applyFilters
         }
 
+        // Filter by level when clicking on stat badges
+        function filterByLevel(level) {
+            const filterSelect = document.getElementById('filterLevel');
+            const currentValue = filterSelect.value;
+
+            // Toggle: if already filtered to this level, clear the filter
+            if (currentValue === level) {
+                filterSelect.value = '';
+            } else {
+                filterSelect.value = level;
+            }
+
+            // Update visual state of stat badges
+            document.querySelectorAll('.stat-badge').forEach(badge => {
+                badge.classList.remove('active');
+            });
+            if (filterSelect.value) {
+                const activeBadge = document.getElementById('badge' + filterSelect.value);
+                if (activeBadge) activeBadge.classList.add('active');
+            }
+
+            applyFilters();
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Start with flat view - show all unique requirements at indent 0
-            switchView('flat');
+            // Check if edit mode is enabled - if so, start with hierarchy view
+            const editModePanel = document.getElementById('editModePanel');
+            const isEditModeAvailable = editModePanel !== null;
+
+            if (isEditModeAvailable) {
+                // Edit mode available - start with hierarchical view
+                switchView('hierarchy');
+            } else {
+                // Normal mode - start with flat view
+                switchView('flat');
+            }
         });
 """
 

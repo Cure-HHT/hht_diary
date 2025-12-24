@@ -173,8 +173,16 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
             return jsonify({'error': 'No data provided'}), 400
 
         try:
-            comment = Comment.from_dict(data)
-            add_comment_to_thread(repo, normalized_id, thread_id, comment)
+            # Extract author and body from the comment data
+            author = data.get('author')
+            body = data.get('body')
+
+            if not author:
+                return jsonify({'error': 'Comment author is required'}), 400
+            if not body:
+                return jsonify({'error': 'Comment body is required'}), 400
+
+            comment = add_comment_to_thread(repo, normalized_id, thread_id, author, body)
             return jsonify({'success': True, 'comment': comment.to_dict()}), 201
         except Exception as e:
             return jsonify({'error': str(e)}), 400

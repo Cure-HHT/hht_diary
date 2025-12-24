@@ -518,9 +518,69 @@ REVIEW_CSS = """
     margin-top: 16px;
 }
 
-/* Review panel in side panel */
+/* Review panel - now in dedicated third column */
 .review-panel {
     padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.review-panel-header {
+    padding: 15px 16px;
+    margin: -16px -16px 16px -16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.review-panel-title {
+    color: #2c3e50;
+}
+
+.review-panel-req-header {
+    background: var(--primary-color, #0066cc);
+    color: #fff;
+    padding: 10px 12px;
+    margin: 0 -16px 16px -16px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.review-panel-req-header .req-id-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.review-panel-req-header .req-title-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.review-panel-no-selection {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted, #666);
+}
+
+.review-panel-no-selection .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.review-panel-no-selection p {
+    margin: 0 0 8px 0;
 }
 
 .review-panel-tabs {
@@ -543,6 +603,8 @@ REVIEW_CSS = """
 }
 
 .review-panel-content {
+    flex: 1;
+    overflow-y: auto;
     min-height: 200px;
 }
 
@@ -562,6 +624,154 @@ REVIEW_CSS = """
     border: 1px solid var(--border-color, #ddd);
     border-radius: 4px;
     width: 150px;
+}
+
+/* Line numbers for requirement body - table layout for proper alignment */
+.rs-line-numbers-container {
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    margin: 8px 0;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    background: var(--bg-primary, #fff);
+    max-height: 350px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Use table layout for perfect line number alignment with wrapped text */
+.rs-lines-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rs-line-row {
+    display: table-row;
+}
+
+.rs-line-row:hover {
+    background: rgba(0, 102, 204, 0.05);
+}
+
+.rs-line-row.selected {
+    background: rgba(255, 235, 59, 0.3);
+}
+
+.rs-line-number {
+    display: table-cell;
+    padding: 2px 8px 2px 6px;
+    text-align: right;
+    color: var(--text-muted, #999);
+    background: var(--bg-tertiary, #e9ecef);
+    border-right: 1px solid var(--border-color, #ddd);
+    user-select: none;
+    vertical-align: top;  /* Align to top of wrapped content */
+    min-width: 28px;
+    width: 28px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.rs-line-number:hover {
+    background: rgba(0, 102, 204, 0.15);
+    color: var(--primary-color, #0066cc);
+}
+
+.rs-line-row.selected .rs-line-number {
+    background: rgba(0, 102, 204, 0.2);
+    color: var(--primary-color, #0066cc);
+    font-weight: 600;
+}
+
+.rs-line-text {
+    display: table-cell;
+    padding: 2px 10px;
+    vertical-align: top;
+    word-break: break-word;
+    white-space: pre-wrap;
+    cursor: text;  /* Indicate text is selectable */
+}
+
+.review-mode-active .rs-line-row {
+    cursor: crosshair;  /* Indicate drag selection is available */
+}
+
+.review-mode-active .rs-line-row:active {
+    cursor: grabbing;
+}
+
+/* Empty line placeholder */
+.rs-line-text:empty::before {
+    content: " ";
+    white-space: pre;
+}
+
+/* Selected position indicator */
+.rs-selected-position {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rs-selected-position .label {
+    color: var(--text-muted, #666);
+}
+
+.rs-selected-position .value {
+    font-weight: 600;
+    color: var(--primary-color, #0066cc);
+}
+
+.rs-selected-position .clear-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted, #999);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.rs-selected-position .clear-btn:hover {
+    color: var(--danger-color, #dc3545);
+}
+
+/* Line numbers in REQ card body (integrated view) */
+.review-mode-active .req-card-content.rs-with-line-numbers {
+    padding: 0;
+}
+
+.review-mode-active .req-card-content.rs-with-line-numbers .rs-lines-table {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    max-height: none;
+}
+
+.review-mode-active .rs-line-numbers-hint {
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    padding: 4px 8px;
+    background: var(--bg-tertiary, #e9ecef);
+    border-bottom: 1px solid var(--border-color, #ddd);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.review-mode-active .rs-line-numbers-hint .hint-text {
+    font-style: italic;
+}
+
+.review-mode-active .rs-line-numbers-hint .selected-lines {
+    font-weight: 600;
+    color: var(--primary-color, #0066cc);
 }
 """
 
@@ -629,9 +839,10 @@ document.addEventListener('DOMContentLoaded', function() {{
             currentReviewReqId = reqId;
             originalOpenReqPanel(reqId);
 
-            // If review mode is active, update the review panel
+            // If review mode is active, add line numbers to REQ body and update panel
             const reviewToggle = document.getElementById('review-mode-toggle');
             if (reviewToggle && reviewToggle.checked) {{
+                addLineNumbersToReqCard(reqId);
                 updateReviewPanelContent('comments');
             }}
         }};
@@ -644,13 +855,24 @@ document.addEventListener('DOMContentLoaded', function() {{
             document.body.classList.toggle('review-mode-active', this.checked);
             if (this.checked) {{
                 showReviewPanel();
+                // Add line numbers to current REQ card if one is open
                 if (currentReviewReqId) {{
+                    addLineNumbersToReqCard(currentReviewReqId);
                     updateReviewPanelContent('comments');
                 }}
             }} else {{
                 hideReviewPanel();
+                // Remove line numbers from cards when review mode is disabled
+                removeLineNumbersFromCards();
             }}
         }});
+
+        // If review mode is already checked on page load (e.g., when served by serve_review.sh),
+        // initialize review mode immediately
+        if (reviewToggle.checked) {{
+            document.body.classList.add('review-mode-active');
+            showReviewPanel();
+        }}
     }}
 }});
 
@@ -690,13 +912,24 @@ function updateReviewBadges() {{
 }}
 
 function showReviewPanel() {{
-    const sidePanel = document.querySelector('.side-panel, #side-panel');
-    if (sidePanel) {{
-        const existingPanel = sidePanel.querySelector('.review-panel');
+    // Use the dedicated review column (third column) instead of side panel
+    const reviewColumn = document.getElementById('review-column');
+    if (reviewColumn) {{
+        // Show the review column
+        reviewColumn.classList.remove('hidden');
+
+        const existingPanel = reviewColumn.querySelector('.review-panel');
         if (!existingPanel) {{
             const panel = document.createElement('div');
             panel.className = 'review-panel';
             panel.innerHTML = `
+                <div class="review-panel-header">
+                    <span class="review-panel-title">Comments & Status</span>
+                </div>
+                <div class="review-panel-req-header" id="review-req-header" style="display: none;">
+                    <span class="req-id-badge" id="review-req-id"></span>
+                    <span class="req-title-text" id="review-req-title"></span>
+                </div>
                 <div class="review-panel-tabs">
                     <button class="review-panel-tab active" data-tab="comments">Comments</button>
                     <button class="review-panel-tab" data-tab="status">Status</button>
@@ -706,9 +939,15 @@ function showReviewPanel() {{
                     <input type="text" id="rs-current-user" value="${{ReviewSystem.state.currentUser}}"
                            onchange="ReviewSystem.state.currentUser = this.value">
                 </div>
-                <div class="review-panel-content" id="review-panel-content"></div>
+                <div class="review-panel-content" id="review-panel-content">
+                    <div class="review-panel-no-selection">
+                        <div class="icon">&#128196;</div>
+                        <p><strong>No requirement selected</strong></p>
+                        <p>Click a REQ ID in the grid to view and add comments.</p>
+                    </div>
+                </div>
             `;
-            sidePanel.appendChild(panel);
+            reviewColumn.appendChild(panel);
 
             // Tab click handlers
             panel.querySelectorAll('.review-panel-tab').forEach(function(tab) {{
@@ -723,29 +962,379 @@ function showReviewPanel() {{
 }}
 
 function hideReviewPanel() {{
-    const panel = document.querySelector('.review-panel');
-    if (panel) {{
-        panel.remove();
+    // Hide the review column
+    const reviewColumn = document.getElementById('review-column');
+    if (reviewColumn) {{
+        reviewColumn.classList.add('hidden');
+        const panel = reviewColumn.querySelector('.review-panel');
+        if (panel) {{
+            panel.remove();
+        }}
     }}
 }}
 
+// Track selected line for comments
+var selectedLineNumber = null;
+var selectedLineRange = null;
+
 function updateReviewPanelContent(tab) {{
     const content = document.getElementById('review-panel-content');
+    const reqHeader = document.getElementById('review-req-header');
+    const reqIdEl = document.getElementById('review-req-id');
+    const reqTitleEl = document.getElementById('review-req-title');
     const reqId = currentReviewReqId;
 
     if (!reqId) {{
-        content.innerHTML = '<p class="rs-no-threads">Click a requirement ID to select it, then view comments here.</p>';
+        // Hide header, show no-selection message
+        if (reqHeader) reqHeader.style.display = 'none';
+        content.innerHTML = `
+            <div class="review-panel-no-selection">
+                <div class="icon">&#128196;</div>
+                <p><strong>No requirement selected</strong></p>
+                <p>Click a REQ ID in the grid to view and add comments.</p>
+            </div>
+        `;
         return;
+    }}
+
+    // Show header with REQ info
+    const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+    if (reqHeader) {{
+        reqHeader.style.display = 'flex';
+        if (reqIdEl) reqIdEl.textContent = 'REQ-' + reqId;
+        if (reqTitleEl) reqTitleEl.textContent = reqData ? reqData.title : '';
     }}
 
     if (tab === 'comments') {{
         ReviewSystem.renderThreadList(content, reqId);
+        // Line numbers are now shown in the main REQ card - no separate body section needed
     }} else if (tab === 'status') {{
-        // Get current status from REQ_CONTENT_DATA
-        const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
         const currentStatus = reqData ? reqData.status : 'Draft';
         ReviewSystem.renderStatusPanel(content, reqId, currentStatus);
     }}
+}}
+
+function addLineNumberedView(container, body, reqId) {{
+    // Create line-numbered view using table layout for proper alignment
+    const lines = body.split('\\n');
+
+    // Build table rows - each row has line number cell and content cell
+    const tableRowsHtml = lines.map((line, i) => {{
+        const lineNum = i + 1;
+        const escapedContent = escapeHtmlContent(line);
+        return `<div class="rs-line-row" data-line="${{lineNum}}">
+            <span class="rs-line-number" data-line="${{lineNum}}">${{lineNum}}</span>
+            <span class="rs-line-text">${{escapedContent || ''}}</span>
+        </div>`;
+    }}).join('');
+
+    const viewHtml = `
+        <div class="rs-req-body-section" style="margin-top: 16px; border-top: 1px solid #ddd; padding-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h5 style="margin: 0; font-size: 12px; color: #666;">Requirement Body (click line # to select)</h5>
+            </div>
+            <div class="rs-selected-position" id="rs-selected-position" style="display: none;">
+                <span><span class="label">Selected: </span><span class="value" id="rs-position-value"></span></span>
+                <button class="clear-btn" onclick="clearLineSelection()" title="Clear selection">&times;</button>
+            </div>
+            <div class="rs-line-numbers-container">
+                <div class="rs-lines-table">${{tableRowsHtml}}</div>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', viewHtml);
+
+    // Bind click handlers for line number selection
+    const lineNumbers = container.querySelectorAll('.rs-line-number');
+    lineNumbers.forEach(ln => {{
+        ln.addEventListener('click', (e) => {{
+            e.stopPropagation();  // Prevent row click from also firing
+            handleLineClick(e, ln, container);
+        }});
+    }});
+
+    // Bind row clicks (clicking on the text content)
+    const lineRows = container.querySelectorAll('.rs-line-row');
+    lineRows.forEach(row => {{
+        row.addEventListener('click', (e) => {{
+            const lineNum = parseInt(row.getAttribute('data-line'), 10);
+            selectLine(lineNum, container, e.shiftKey);
+        }});
+    }});
+}}
+
+function handleLineClick(e, lineEl, container) {{
+    const lineNum = parseInt(lineEl.getAttribute('data-line'), 10);
+    selectLine(lineNum, container, e.shiftKey);
+}}
+
+function selectLine(lineNum, container, isShift) {{
+    if (isShift && selectedLineNumber) {{
+        // Range selection
+        const start = Math.min(selectedLineNumber, lineNum);
+        const end = Math.max(selectedLineNumber, lineNum);
+        selectedLineRange = [start, end];
+        selectedLineNumber = start;
+        updateLineSelectionUI(container, start, end);
+    }} else {{
+        // Single line selection
+        selectedLineNumber = lineNum;
+        selectedLineRange = null;
+        updateLineSelectionUI(container, lineNum, lineNum);
+    }}
+
+    // Update the comment form if it exists
+    updateCommentFormWithSelection();
+}}
+
+function updateLineSelectionUI(container, startLine, endLine) {{
+    // Clear previous selection - only need to clear rows since number styling comes from parent
+    container.querySelectorAll('.rs-line-row.selected').forEach(el => {{
+        el.classList.remove('selected');
+    }});
+
+    // Add selection to line rows in range
+    for (let i = startLine; i <= endLine; i++) {{
+        const lineRow = container.querySelector(`.rs-line-row[data-line="${{i}}"]`);
+        if (lineRow) lineRow.classList.add('selected');
+    }}
+
+    // Update position indicator
+    const positionEl = document.getElementById('rs-selected-position');
+    const positionValue = document.getElementById('rs-position-value');
+    if (positionEl && positionValue) {{
+        positionEl.style.display = 'flex';
+        if (startLine === endLine) {{
+            positionValue.textContent = `Line ${{startLine}}`;
+        }} else {{
+            positionValue.textContent = `Lines ${{startLine}}-${{endLine}}`;
+        }}
+    }}
+}}
+
+function clearLineSelection() {{
+    selectedLineNumber = null;
+    selectedLineRange = null;
+
+    // Clear UI - only rows have selection class in new table structure
+    document.querySelectorAll('.rs-line-row.selected').forEach(el => {{
+        el.classList.remove('selected');
+    }});
+
+    const positionEl = document.getElementById('rs-selected-position');
+    if (positionEl) positionEl.style.display = 'none';
+
+    // Reset comment form
+    updateCommentFormWithSelection();
+}}
+
+function updateCommentFormWithSelection() {{
+    // If new comment form exists, update position fields
+    const posType = document.querySelector('.rs-position-type');
+    if (!posType) return;
+
+    if (selectedLineRange) {{
+        posType.value = 'block';
+        posType.dispatchEvent(new Event('change'));
+        const startInput = document.querySelector('.rs-block-start');
+        const endInput = document.querySelector('.rs-block-end');
+        if (startInput) startInput.value = selectedLineRange[0];
+        if (endInput) endInput.value = selectedLineRange[1];
+    }} else if (selectedLineNumber) {{
+        posType.value = 'line';
+        posType.dispatchEvent(new Event('change'));
+        const lineNumberInput = document.querySelector('.rs-line-input');
+        if (lineNumberInput) lineNumberInput.value = selectedLineNumber;
+    }}
+}}
+
+function escapeHtmlContent(text) {{
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}}
+
+// Add line numbers to the REQ card body in the side panel
+function addLineNumbersToReqCard(reqId) {{
+    // Find the current REQ card
+    const card = document.getElementById(`req-card-${{reqId}}`);
+    if (!card) return;
+
+    const contentDiv = card.querySelector('.req-card-content');
+    if (!contentDiv || contentDiv.classList.contains('rs-with-line-numbers')) return;
+
+    // Get the raw body text from REQ_CONTENT_DATA
+    const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+    if (!reqData || !reqData.body) return;
+
+    const body = reqData.body;
+    const lines = body.split('\\n');
+
+    // Build table rows
+    const tableRowsHtml = lines.map((line, i) => {{
+        const lineNum = i + 1;
+        const escapedContent = escapeHtmlContent(line);
+        return `<div class="rs-line-row" data-line="${{lineNum}}">
+            <span class="rs-line-number" data-line="${{lineNum}}">${{lineNum}}</span>
+            <span class="rs-line-text">${{escapedContent || ''}}</span>
+        </div>`;
+    }}).join('');
+
+    // Create the line-numbered view
+    const lineNumberedHtml = `
+        <div class="rs-line-numbers-hint">
+            <span class="hint-text">Click line # or drag to select range</span>
+            <span class="selected-lines" id="rs-card-selected-lines"></span>
+        </div>
+        <div class="rs-line-numbers-container">
+            <div class="rs-lines-table">${{tableRowsHtml}}</div>
+        </div>
+    `;
+
+    // Replace the content
+    contentDiv.classList.add('rs-with-line-numbers');
+    contentDiv.innerHTML = lineNumberedHtml;
+
+    // Bind click handlers
+    bindCardLineNumberHandlers(contentDiv);
+}}
+
+// Track drag selection state
+var isDragging = false;
+var dragStartLine = null;
+
+function bindCardLineNumberHandlers(container) {{
+    // Bind click handlers for line number selection
+    const lineNumbers = container.querySelectorAll('.rs-line-number');
+    lineNumbers.forEach(ln => {{
+        ln.addEventListener('click', (e) => {{
+            e.stopPropagation();
+            const lineNum = parseInt(ln.getAttribute('data-line'), 10);
+            selectLineInCard(lineNum, container, e.shiftKey);
+        }});
+    }});
+
+    // Bind row events for click and drag selection
+    const lineRows = container.querySelectorAll('.rs-line-row');
+    lineRows.forEach(row => {{
+        // Click to select single line (or shift-click for range)
+        row.addEventListener('click', (e) => {{
+            if (isDragging) return;  // Don't fire click after drag
+            const lineNum = parseInt(row.getAttribute('data-line'), 10);
+            selectLineInCard(lineNum, container, e.shiftKey);
+        }});
+
+        // Drag to select range
+        row.addEventListener('mousedown', (e) => {{
+            // Only start drag on left mouse button
+            if (e.button !== 0) return;
+            const lineNum = parseInt(row.getAttribute('data-line'), 10);
+            isDragging = true;
+            dragStartLine = lineNum;
+            selectedLineNumber = lineNum;
+            selectedLineRange = null;
+            updateCardLineSelectionUI(container, lineNum, lineNum);
+            e.preventDefault();  // Prevent text selection
+        }});
+
+        row.addEventListener('mousemove', (e) => {{
+            if (!isDragging || dragStartLine === null) return;
+            const lineNum = parseInt(row.getAttribute('data-line'), 10);
+            const start = Math.min(dragStartLine, lineNum);
+            const end = Math.max(dragStartLine, lineNum);
+            selectedLineNumber = start;
+            selectedLineRange = start !== end ? [start, end] : null;
+            updateCardLineSelectionUI(container, start, end);
+        }});
+
+        row.addEventListener('mouseup', (e) => {{
+            if (isDragging) {{
+                isDragging = false;
+                updateCommentFormWithSelection();
+            }}
+        }});
+    }});
+
+    // Handle mouseup outside the container
+    document.addEventListener('mouseup', () => {{
+        if (isDragging) {{
+            isDragging = false;
+            updateCommentFormWithSelection();
+        }}
+    }});
+}}
+
+function selectLineInCard(lineNum, container, isShift) {{
+    if (isShift && selectedLineNumber) {{
+        // Range selection
+        const start = Math.min(selectedLineNumber, lineNum);
+        const end = Math.max(selectedLineNumber, lineNum);
+        selectedLineRange = [start, end];
+        selectedLineNumber = start;
+        updateCardLineSelectionUI(container, start, end);
+    }} else {{
+        // Single line selection
+        selectedLineNumber = lineNum;
+        selectedLineRange = null;
+        updateCardLineSelectionUI(container, lineNum, lineNum);
+    }}
+
+    // Update comment form if open
+    updateCommentFormWithSelection();
+}}
+
+function updateCardLineSelectionUI(container, startLine, endLine) {{
+    // Clear previous selection
+    container.querySelectorAll('.rs-line-row.selected').forEach(el => {{
+        el.classList.remove('selected');
+    }});
+
+    // Add selection to line rows in range
+    for (let i = startLine; i <= endLine; i++) {{
+        const lineRow = container.querySelector(`.rs-line-row[data-line="${{i}}"]`);
+        if (lineRow) lineRow.classList.add('selected');
+    }}
+
+    // Update hint display
+    const selectedLinesEl = document.getElementById('rs-card-selected-lines');
+    if (selectedLinesEl) {{
+        if (startLine === endLine) {{
+            selectedLinesEl.textContent = `Line ${{startLine}} selected`;
+        }} else {{
+            selectedLinesEl.textContent = `Lines ${{startLine}}-${{endLine}} selected`;
+        }}
+    }}
+}}
+
+// Remove line numbers and restore original markdown rendering
+function removeLineNumbersFromCards() {{
+    document.querySelectorAll('.req-card-content.rs-with-line-numbers').forEach(contentDiv => {{
+        const card = contentDiv.closest('.req-card');
+        if (!card) return;
+
+        // Get the reqId from the card
+        const cardId = card.id;  // e.g., "req-card-p00001"
+        const reqId = cardId.replace('req-card-', '');
+
+        // Get the original content from REQ_CONTENT_DATA
+        const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+        if (!reqData) return;
+
+        // Re-render with markdown
+        const bodyHtml = window.marked ? marked.parse(reqData.body) : reqData.body;
+        const rationaleHtml = reqData.rationale ? (window.marked ? marked.parse(reqData.rationale) : reqData.rationale) : '';
+
+        contentDiv.classList.remove('rs-with-line-numbers');
+        contentDiv.innerHTML = `
+            <div class="req-body">${{bodyHtml}}</div>
+            ${{rationaleHtml ? `<div class="req-rationale"><strong>Rationale:</strong> ${{rationaleHtml}}</div>` : ''}}
+        `;
+    }});
+
+    // Clear selection state
+    selectedLineNumber = null;
+    selectedLineRange = null;
 }}
 """
 

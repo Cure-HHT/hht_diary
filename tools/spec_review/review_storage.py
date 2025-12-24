@@ -20,26 +20,48 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from tools.spec_review.review_data import (
-    ReviewConfig,
-    ReviewSession,
-    ReviewFlag,
-    Thread,
-    Comment,
-    ThreadsFile,
-    StatusFile,
-    StatusRequest,
-    Approval,
-    get_config_path,
-    get_sessions_dir,
-    get_session_path,
-    get_threads_path,
-    get_status_path,
-    get_review_flag_path,
-    normalize_req_id,
-    parse_iso_datetime,
-    RequestState,
-)
+try:
+    from tools.spec_review.review_data import (
+        ReviewConfig,
+        ReviewSession,
+        ReviewFlag,
+        Thread,
+        Comment,
+        ThreadsFile,
+        StatusFile,
+        StatusRequest,
+        Approval,
+        get_config_path,
+        get_sessions_dir,
+        get_session_path,
+        get_threads_path,
+        get_status_path,
+        get_review_flag_path,
+        normalize_req_id,
+        parse_iso_datetime,
+        RequestState,
+    )
+except ImportError:
+    from spec_review.review_data import (
+        ReviewConfig,
+        ReviewSession,
+        ReviewFlag,
+        Thread,
+        Comment,
+        ThreadsFile,
+        StatusFile,
+        StatusRequest,
+        Approval,
+        get_config_path,
+        get_sessions_dir,
+        get_session_path,
+        get_threads_path,
+        get_status_path,
+        get_review_flag_path,
+        normalize_req_id,
+        parse_iso_datetime,
+        RequestState,
+    )
 
 
 # =============================================================================

@@ -233,7 +233,7 @@ else:
 # Create toggle HTML that matches the Edit Mode button style
 review_toggle_html = '''<span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
     <label style="display: inline-flex; align-items: center; cursor: pointer;">
-        <input type="checkbox" id="review-mode-toggle" style="margin-right: 8px;">
+        <input type="checkbox" id="review-mode-toggle" style="margin-right: 8px;" checked>
         <span class="btn toggle-btn" style="pointer-events: none;">👁️ Review Mode</span>
     </label>
 </span>'''

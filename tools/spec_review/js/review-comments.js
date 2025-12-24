@@ -133,7 +133,7 @@ window.ReviewSystem = window.ReviewSystem || {};
                 <div class="rs-position-options" style="display: none;">
                     <div class="rs-line-options" style="display: none;">
                         <label>Line number</label>
-                        <input type="number" class="rs-line-number" min="1" value="1">
+                        <input type="number" class="rs-line-input" min="1" value="1">
                     </div>
                     <div class="rs-block-options" style="display: none;">
                         <label>Line range</label>
@@ -294,6 +294,23 @@ window.ReviewSystem = window.ReviewSystem || {};
             wordOpts.style.display = val === 'word' ? 'block' : 'none';
         });
 
+        // Check for existing line selection (global variables from review init)
+        if (typeof selectedLineRange !== 'undefined' && selectedLineRange) {
+            // Range selection
+            posType.value = 'block';
+            posType.dispatchEvent(new Event('change'));
+            const startInput = form.querySelector('.rs-block-start');
+            const endInput = form.querySelector('.rs-block-end');
+            if (startInput) startInput.value = selectedLineRange[0];
+            if (endInput) endInput.value = selectedLineRange[1];
+        } else if (typeof selectedLineNumber !== 'undefined' && selectedLineNumber) {
+            // Single line selection
+            posType.value = 'line';
+            posType.dispatchEvent(new Event('change'));
+            const lineInput = form.querySelector('.rs-line-input');
+            if (lineInput) lineInput.value = selectedLineNumber;
+        }
+
         // Submit handler
         form.querySelector('.rs-submit-comment').addEventListener('click', () => {
             submitNewComment(form, reqId);
@@ -331,7 +348,7 @@ window.ReviewSystem = window.ReviewSystem || {};
         let position;
         switch (posType) {
             case 'line': {
-                const lineNum = parseInt(form.querySelector('.rs-line-number').value, 10);
+                const lineNum = parseInt(form.querySelector('.rs-line-input').value, 10);
                 position = RS.CommentPosition.createLine(hash, lineNum);
                 break;
             }
@@ -364,10 +381,17 @@ window.ReviewSystem = window.ReviewSystem || {};
             detail: { thread, reqId }
         }));
 
-        // Re-render
-        const container = form.closest('.rs-thread-list');
-        if (container) {
-            renderThreadList(container.parentElement, reqId);
+        // Re-render the thread list
+        // The form is inside #review-panel-content, find the thread list's parent container
+        const threadList = form.closest('.rs-thread-list') ||
+                          form.parentElement?.querySelector('.rs-thread-list');
+        const reviewPanelContent = document.getElementById('review-panel-content');
+
+        if (threadList && threadList.parentElement) {
+            renderThreadList(threadList.parentElement, reqId);
+        } else if (reviewPanelContent) {
+            // Form is directly in review-panel-content, re-render there
+            renderThreadList(reviewPanelContent, reqId);
         } else {
             form.remove();
         }
@@ -466,7 +490,10 @@ window.ReviewSystem = window.ReviewSystem || {};
         }
 
         const user = RS.state.currentUser || 'anonymous';
-        const reqId = container.closest('[data-req-id]')?.getAttribute('data-req-id');
+        // Look for data-req-id in the container or its children (thread-list element)
+        const reqId = container.querySelector('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.closest('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.getAttribute('data-req-id');
 
         // Find thread in state
         if (reqId) {
@@ -480,8 +507,10 @@ window.ReviewSystem = window.ReviewSystem || {};
                     detail: { thread, reqId, body }
                 }));
 
-                // Re-render
-                renderThreadList(container.parentElement, reqId);
+                // Re-render - find the proper container
+                const threadListEl = container.querySelector('.rs-thread-list') || container;
+                const renderTarget = threadListEl.parentElement || container;
+                renderThreadList(renderTarget, reqId);
             }
         }
     }
@@ -493,7 +522,8 @@ window.ReviewSystem = window.ReviewSystem || {};
      */
     function resolveThread(threadId, container) {
         const reqId = container.querySelector('[data-req-id]')?.getAttribute('data-req-id') ||
-                      container.closest('[data-req-id]')?.getAttribute('data-req-id');
+                      container.closest('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.getAttribute('data-req-id');
         const user = RS.state.currentUser || 'anonymous';
 
         if (reqId) {
@@ -507,8 +537,10 @@ window.ReviewSystem = window.ReviewSystem || {};
                     detail: { thread, reqId, user }
                 }));
 
-                // Re-render
-                renderThreadList(container.parentElement || container, reqId);
+                // Re-render - find the proper container
+                const threadListEl = container.querySelector('.rs-thread-list') || container;
+                const renderTarget = threadListEl.parentElement || container;
+                renderThreadList(renderTarget, reqId);
             }
         }
     }
@@ -520,7 +552,8 @@ window.ReviewSystem = window.ReviewSystem || {};
      */
     function unresolveThread(threadId, container) {
         const reqId = container.querySelector('[data-req-id]')?.getAttribute('data-req-id') ||
-                      container.closest('[data-req-id]')?.getAttribute('data-req-id');
+                      container.closest('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.getAttribute('data-req-id');
 
         if (reqId) {
             const threads = RS.state.getThreads(reqId);
@@ -533,8 +566,10 @@ window.ReviewSystem = window.ReviewSystem || {};
                     detail: { thread, reqId }
                 }));
 
-                // Re-render
-                renderThreadList(container.parentElement || container, reqId);
+                // Re-render - find the proper container
+                const threadListEl = container.querySelector('.rs-thread-list') || container;
+                const renderTarget = threadListEl.parentElement || container;
+                renderThreadList(renderTarget, reqId);
             }
         }
     }
