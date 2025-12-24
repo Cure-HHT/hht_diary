@@ -106,7 +106,7 @@ class RequirementParser:
     STATUS_PATTERN = re.compile(
         r'^\*\*Level\*\*:\s+(PRD|Ops|Dev)\s+\|\s+'
         r'\*\*Implements\*\*:\s+([^\|]+?)\s+\|\s+'
-        r'\*\*Status\*\*:\s+(Active|Draft|Deprecated)\s*$',
+        r'\*\*Status\*\*:\s+(Active|Draft|Deprecated|Review)\s*$',
         re.MULTILINE
     )
     END_MARKER_PATTERN = re.compile(

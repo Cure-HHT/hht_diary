@@ -301,6 +301,49 @@ This is a test requirement body.
         except ImportError as e:
             self.assert_true(False, f"Import failed: {e}")
 
+    def test_review_status_parsing(self):
+        """Test parser accepts Review status"""
+        print("\n10. Testing Review status parsing...")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spec_dir = Path(tmpdir) / 'spec'
+            spec_dir.mkdir()
+
+            # Create requirement with Review status
+            test_file = spec_dir / 'prd-test.md'
+            body = "This requirement is under review."
+            correct_hash = calculate_requirement_hash(f"\n{body}")
+
+            test_content = f"""# REQ-p00001: Test Requirement Under Review
+
+**Level**: PRD | **Implements**: - | **Status**: Review
+
+{body}
+
+*End* *Test Requirement Under Review* | **Hash**: {correct_hash}
+"""
+            test_file.write_text(test_content)
+
+            # Parse with shared parser
+            parser = RequirementParser(spec_dir)
+            result = parser.parse_all()
+
+            self.assert_equal(len(result.requirements), 1, "Parsed 1 requirement with Review status")
+            self.assert_equal(len(result.errors), 0, "No parsing errors for Review status")
+
+            if 'p00001' in result.requirements:
+                req = result.requirements['p00001']
+                self.assert_equal(req.status, "Review", "Status is 'Review'")
+
+    def test_review_status_validation(self):
+        """Test validator accepts Review as valid status"""
+        print("\n11. Testing Review status validation...")
+
+        # Test that Review is in VALID_STATUSES
+        from validate_requirements import RequirementValidator
+        self.assert_true('Review' in RequirementValidator.VALID_STATUSES,
+                        "Review is a valid status")
+
     def run_all_tests(self):
         """Run all tests"""
         print("="*70)
@@ -316,6 +359,8 @@ This is a test requirement body.
         self.test_real_requirements_have_hashes()
         self.test_hash_format_documentation()
         self.test_shared_parser_module()
+        self.test_review_status_parsing()
+        self.test_review_status_validation()
 
         print("\n" + "="*70)
         print(f"RESULTS: {self.passed}/{self.tests_run} tests passed")

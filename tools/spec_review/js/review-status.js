@@ -27,14 +27,22 @@ window.ReviewSystem = window.ReviewSystem || {};
      * @returns {string} HTML
      */
     function statusPanelTemplate(reqId, currentStatus) {
+        // Show quick toggle button for Draft -> Review
+        const quickToggle = currentStatus === 'Draft' ? `
+            <button class="rs-btn rs-btn-primary rs-quick-toggle" data-req-id="${reqId}">
+                Set to Review
+            </button>
+        ` : '';
+
         return `
             <div class="rs-status-panel" data-req-id="${reqId}">
                 <div class="rs-status-header">
-                    <h4>Status Requests</h4>
-                    <span class="rs-current-status">
-                        Current: <strong>${escapeHtml(currentStatus)}</strong>
+                    <h4>Status</h4>
+                    <span class="rs-current-status status-badge status-${currentStatus.toLowerCase()}">
+                        ${escapeHtml(currentStatus)}
                     </span>
                 </div>
+                ${quickToggle ? `<div class="rs-quick-actions">${quickToggle}</div>` : ''}
                 <div class="rs-status-content">
                     <div class="rs-requests"></div>
                     <div class="rs-no-requests" style="display: none;">
@@ -238,12 +246,82 @@ window.ReviewSystem = window.ReviewSystem || {};
 
     function getValidTransitions(currentStatus) {
         const transitions = {
-            'Draft': ['Active', 'Deprecated'],
+            'Draft': ['Review', 'Active', 'Deprecated'],
+            'Review': ['Active', 'Draft', 'Deprecated'],
             'Active': ['Deprecated'],
             'Deprecated': [] // No transitions from Deprecated
         };
         return transitions[currentStatus] || [];
     }
+
+    /**
+     * Change status directly via API (no approval workflow)
+     * @param {string} reqId - Requirement ID
+     * @param {string} newStatus - New status to set
+     * @returns {Promise<object>} API response
+     */
+    async function changeStatusDirect(reqId, newStatus) {
+        const user = RS.state.currentUser || 'anonymous';
+        try {
+            const response = await fetch(`/api/reviews/reqs/${reqId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newStatus, user })
+            });
+            const result = await response.json();
+            if (result.success) {
+                // Update local state
+                const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+                if (reqData) {
+                    reqData.status = newStatus;
+                }
+                // Refresh status display
+                updateStatusBadge(reqId, newStatus);
+            }
+            return result;
+        } catch (error) {
+            console.error('Error changing status:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    RS.changeStatusDirect = changeStatusDirect;
+
+    /**
+     * Update status badge in the UI
+     * @param {string} reqId - Requirement ID
+     * @param {string} newStatus - New status
+     */
+    function updateStatusBadge(reqId, newStatus) {
+        // Update in grid/tree
+        const statusBadge = document.querySelector(`[data-req-id="${reqId}"] .status-badge`);
+        if (statusBadge) {
+            statusBadge.className = `status-badge status-${newStatus.toLowerCase()}`;
+            statusBadge.textContent = newStatus;
+        }
+        // Update in middle column if visible
+        const middleStatusBadge = document.querySelector(`#req-card-${reqId} .status-badge`);
+        if (middleStatusBadge) {
+            middleStatusBadge.className = `status-badge status-${newStatus.toLowerCase()}`;
+            middleStatusBadge.textContent = newStatus;
+        }
+    }
+    RS.updateStatusBadge = updateStatusBadge;
+
+    /**
+     * Toggle Draft to Review status (shortcut for review mode)
+     * @param {string} reqId - Requirement ID
+     * @returns {Promise<object>} API response
+     */
+    async function toggleToReview(reqId) {
+        const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+        if (!reqData) return { success: false, error: 'REQ not found' };
+
+        if (reqData.status === 'Draft') {
+            return await changeStatusDirect(reqId, 'Review');
+        }
+        return { success: false, error: 'Can only toggle Draft to Review' };
+    }
+    RS.toggleToReview = toggleToReview;
 
     // ==========================================================================
     // UI Components
@@ -269,6 +347,24 @@ window.ReviewSystem = window.ReviewSystem || {};
                 requestsContainer.insertAdjacentHTML('beforeend', requestCardTemplate(request));
             });
             bindRequestEvents(container);
+        }
+
+        // Bind quick toggle button
+        const quickToggleBtn = container.querySelector('.rs-quick-toggle');
+        if (quickToggleBtn) {
+            quickToggleBtn.addEventListener('click', async () => {
+                quickToggleBtn.disabled = true;
+                quickToggleBtn.textContent = 'Updating...';
+                const result = await toggleToReview(reqId);
+                if (result.success) {
+                    // Re-render the panel with new status
+                    renderStatusPanel(container, reqId, 'Review');
+                } else {
+                    quickToggleBtn.disabled = false;
+                    quickToggleBtn.textContent = 'Set to Review';
+                    alert('Failed to change status: ' + (result.error || 'Unknown error'));
+                }
+            });
         }
 
         // Bind request change button

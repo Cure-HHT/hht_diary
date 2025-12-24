@@ -23,7 +23,7 @@ from requirement_parser import Requirement, RequirementParser
 class RequirementValidator:
     """Validates requirements across all spec files"""
 
-    VALID_STATUSES = {'Active', 'Draft', 'Deprecated'}
+    VALID_STATUSES = {'Active', 'Draft', 'Deprecated', 'Review'}
     VALID_LEVELS = {'PRD', 'Ops', 'Dev'}
 
     def __init__(self, spec_dir: Path, core_spec_dir: Path = None):

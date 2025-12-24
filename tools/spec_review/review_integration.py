@@ -323,6 +323,30 @@ REVIEW_CSS = """
     border-top: 1px solid var(--border-color, #ddd);
 }
 
+/* Quick actions for status toggle */
+.rs-quick-actions {
+    padding: 12px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #ddd);
+    display: flex;
+    gap: 8px;
+}
+
+.rs-quick-toggle {
+    flex: 1;
+}
+
+/* Clickable status badges in review mode */
+body.review-mode-active .status-badge.status-draft {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+body.review-mode-active .status-badge.status-draft:hover {
+    opacity: 0.8;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
 /* Request card */
 .rs-request-card {
     background: var(--bg-primary, #fff);
@@ -908,6 +932,59 @@ function updateReviewBadges() {{
                 titleEl.appendChild(badgeContainer);
             }}
         }}
+    }});
+
+    // Make Draft status badges clickable in review mode
+    bindStatusBadgeClicks();
+}}
+
+function bindStatusBadgeClicks() {{
+    // Bind click handlers to Draft status badges
+    document.querySelectorAll('.status-badge.status-draft').forEach(function(badge) {{
+        // Skip if already bound
+        if (badge.hasAttribute('data-status-click-bound')) return;
+        badge.setAttribute('data-status-click-bound', 'true');
+
+        badge.addEventListener('click', async function(e) {{
+            // Only handle in review mode
+            const reviewToggle = document.getElementById('review-mode-toggle');
+            if (!reviewToggle || !reviewToggle.checked) return;
+
+            e.stopPropagation(); // Don't trigger row click
+
+            // Find the REQ ID from the parent row or card
+            const reqRow = badge.closest('[data-req-id]');
+            const reqCard = badge.closest('.req-card');
+            let reqId = null;
+
+            if (reqRow) {{
+                reqId = reqRow.getAttribute('data-req-id');
+            }} else if (reqCard) {{
+                // Extract from card ID like "req-card-d00001"
+                const cardId = reqCard.id;
+                if (cardId && cardId.startsWith('req-card-')) {{
+                    reqId = cardId.replace('req-card-', '');
+                }}
+            }}
+
+            if (!reqId) return;
+
+            // Show loading state
+            const originalText = badge.textContent;
+            badge.textContent = '...';
+            badge.style.pointerEvents = 'none';
+
+            // Toggle to Review
+            const result = await ReviewSystem.toggleToReview(reqId);
+            if (result.success) {{
+                badge.textContent = 'Review';
+                badge.className = 'status-badge status-review';
+            }} else {{
+                badge.textContent = originalText;
+                console.error('Failed to change status:', result.error);
+            }}
+            badge.style.pointerEvents = '';
+        }});
     }});
 }}
 

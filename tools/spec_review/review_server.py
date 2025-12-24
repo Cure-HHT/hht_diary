@@ -40,6 +40,22 @@ from spec_review.review_storage import (
     add_approval,
     load_config,
 )
+from spec_review.status_modifier import (
+    change_req_status,
+    get_req_status,
+)
+from spec_review.review_packages import (
+    load_packages,
+    save_packages,
+    create_package,
+    get_package,
+    update_package,
+    delete_package,
+    add_req_to_package,
+    remove_req_from_package,
+    get_active_package,
+    set_active_package,
+)
 from spec_review.review_data import (
     Thread,
     Comment,
@@ -301,6 +317,171 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
             return jsonify({'error': str(e)}), 400
 
     # ==========================================================================
+    # Status Change API (modifies actual spec files)
+    # ==========================================================================
+
+    @app.route('/api/reviews/reqs/<req_id>/status', methods=['GET'])
+    def get_status(req_id):
+        """Get the current status of a requirement from the spec file"""
+        repo = app.config['REPO_ROOT']
+        normalized_id = normalize_req_id(req_id)
+
+        status = get_req_status(repo, normalized_id)
+        if status is None:
+            return jsonify({'error': f'REQ-{normalized_id} not found'}), 404
+
+        return jsonify({'reqId': normalized_id, 'status': status})
+
+    @app.route('/api/reviews/reqs/<req_id>/status', methods=['POST'])
+    def set_status(req_id):
+        """Change the status of a requirement in its spec file"""
+        repo = app.config['REPO_ROOT']
+        normalized_id = normalize_req_id(req_id)
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        new_status = data.get('newStatus')
+        if not new_status:
+            return jsonify({'error': 'newStatus is required'}), 400
+
+        user = data.get('user', 'api')
+
+        result = change_req_status(repo, normalized_id, new_status, user)
+
+        if result.get('success'):
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    # ==========================================================================
+    # Review Packages API
+    # ==========================================================================
+
+    @app.route('/api/reviews/packages', methods=['GET'])
+    def get_packages():
+        """Get all review packages"""
+        repo = app.config['REPO_ROOT']
+        pf = load_packages(repo)
+        return jsonify({
+            'packages': [p.to_dict() for p in pf.packages],
+            'activePackageId': pf.activePackageId
+        })
+
+    @app.route('/api/reviews/packages', methods=['POST'])
+    def create_package_endpoint():
+        """Create a new review package"""
+        repo = app.config['REPO_ROOT']
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        name = data.get('name')
+        if not name:
+            return jsonify({'error': 'name is required'}), 400
+
+        description = data.get('description', '')
+        user = data.get('user', 'api')
+
+        pkg = create_package(repo, name, description, user)
+        return jsonify({'success': True, 'package': pkg.to_dict()}), 201
+
+    @app.route('/api/reviews/packages/<package_id>', methods=['GET'])
+    def get_package_endpoint(package_id):
+        """Get a specific package"""
+        repo = app.config['REPO_ROOT']
+        pkg = get_package(repo, package_id)
+
+        if not pkg:
+            return jsonify({'error': 'Package not found'}), 404
+
+        return jsonify(pkg.to_dict())
+
+    @app.route('/api/reviews/packages/<package_id>', methods=['PUT'])
+    def update_package_endpoint(package_id):
+        """Update a package"""
+        repo = app.config['REPO_ROOT']
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        success = update_package(
+            repo,
+            package_id,
+            name=data.get('name'),
+            description=data.get('description')
+        )
+
+        if success:
+            pkg = get_package(repo, package_id)
+            return jsonify({'success': True, 'package': pkg.to_dict()})
+        else:
+            return jsonify({'error': 'Package not found'}), 404
+
+    @app.route('/api/reviews/packages/<package_id>', methods=['DELETE'])
+    def delete_package_endpoint(package_id):
+        """Delete a package"""
+        repo = app.config['REPO_ROOT']
+        success = delete_package(repo, package_id)
+
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Package not found or is default'}), 400
+
+    @app.route('/api/reviews/packages/<package_id>/reqs/<req_id>', methods=['POST'])
+    def add_req_to_package_endpoint(package_id, req_id):
+        """Add a REQ to a package"""
+        repo = app.config['REPO_ROOT']
+        normalized_id = normalize_req_id(req_id)
+        success = add_req_to_package(repo, package_id, normalized_id)
+
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Package not found'}), 404
+
+    @app.route('/api/reviews/packages/<package_id>/reqs/<req_id>', methods=['DELETE'])
+    def remove_req_from_package_endpoint(package_id, req_id):
+        """Remove a REQ from a package"""
+        repo = app.config['REPO_ROOT']
+        normalized_id = normalize_req_id(req_id)
+        success = remove_req_from_package(repo, package_id, normalized_id)
+
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Package not found'}), 404
+
+    @app.route('/api/reviews/packages/active', methods=['GET'])
+    def get_active_package_endpoint():
+        """Get the currently active package"""
+        repo = app.config['REPO_ROOT']
+        pkg = get_active_package(repo)
+
+        if pkg:
+            return jsonify(pkg.to_dict())
+        else:
+            return jsonify(None)
+
+    @app.route('/api/reviews/packages/active', methods=['PUT'])
+    def set_active_package_endpoint():
+        """Set the active package"""
+        repo = app.config['REPO_ROOT']
+        data = request.get_json()
+
+        package_id = data.get('packageId') if data else None
+        success = set_active_package(repo, package_id)
+
+        if success:
+            return jsonify({'success': True, 'activePackageId': package_id})
+        else:
+            return jsonify({'error': 'Package not found'}), 404
+
+    # ==========================================================================
     # Health Check
     # ==========================================================================
 
@@ -346,6 +527,12 @@ API Endpoints:
   POST /api/reviews/reqs/<id>/threads/<tid>/comments - Add comment
   POST /api/reviews/reqs/<id>/requests - Create status request
   POST /api/reviews/reqs/<id>/requests/<rid>/approvals - Add approval
+  GET  /api/reviews/reqs/<id>/status   - Get REQ status from spec file
+  POST /api/reviews/reqs/<id>/status   - Change REQ status in spec file
+  GET  /api/reviews/packages           - List all packages
+  POST /api/reviews/packages           - Create new package
+  GET  /api/reviews/packages/active    - Get active package
+  PUT  /api/reviews/packages/active    - Set active package
 
 Press Ctrl+C to stop
 """)

@@ -73,7 +73,7 @@ This allows sponsor-specific requirements to reference:
 ```markdown
 # REQ-{id}: {informal-title}
 
-**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Deprecated|Draft} | **Hash**: {sha256-prefix}
+**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Review|Draft|Deprecated} | **Hash**: {sha256-prefix}
 
 {requirement-body}
 
@@ -107,7 +107,8 @@ This allows sponsor-specific requirements to reference:
 
 #### Status
 - `Active`: Current, must be implemented
-- `Draft`: Under review, not yet approved
+- `Draft`: Initial state, not yet reviewed
+- `Review`: Under active review, pending approval for activation
 - `Deprecated`: Replaced or no longer needed (keep for history)
 
 #### Hash

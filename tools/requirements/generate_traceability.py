@@ -813,6 +813,7 @@ class TraceabilityGenerator:
         status_emoji = {
             'Active': '✅',
             'Draft': '🚧',
+            'Review': '👀',
             'Deprecated': '⚠️'
         }
         emoji = status_emoji.get(req.status, '❓')
@@ -2012,6 +2013,7 @@ class TraceabilityGenerator:
                         <h3>Status</h3>
                         <ul>
                             <li><span class="status-badge status-active">Active</span> Active requirement</li>
+                            <li><span class="status-badge status-review">Review</span> Under review</li>
                             <li><span class="status-badge status-draft">Draft</span> Draft requirement</li>
                             <li><span class="status-badge status-deprecated">Deprecated</span> Deprecated</li>
                         </ul>
@@ -2990,6 +2992,7 @@ class TraceabilityGenerator:
             letter-spacing: 0.3px;
         }}
         .status-active {{ background: #d4edda; color: #155724; }}
+        .status-review {{ background: #d1ecf1; color: #0c5460; }}
         .status-draft {{ background: #fff3cd; color: #856404; }}
         .status-deprecated {{ background: #f8d7da; color: #721c24; }}
         .status-suffix {{
@@ -3283,6 +3286,7 @@ class TraceabilityGenerator:
                 <select id="filterStatus" onchange="applyFilters()">
                     <option value="">All</option>
                     <option value="Active">Active</option>
+                    <option value="Review">Review</option>
                     <option value="Draft">Draft</option>
                     <option value="Deprecated">Deprecated</option>
                 </select>

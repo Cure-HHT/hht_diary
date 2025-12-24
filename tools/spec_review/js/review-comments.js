@@ -376,6 +376,18 @@ window.ReviewSystem = window.ReviewSystem || {};
         const thread = RS.Thread.create(reqId, user, position, body);
         RS.state.addThread(thread);
 
+        // Auto-change status to Review if currently Draft
+        const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+        if (reqData && reqData.status === 'Draft' && typeof RS.toggleToReview === 'function') {
+            RS.toggleToReview(reqId).then(result => {
+                if (result.success) {
+                    console.log(`Auto-changed REQ-${reqId} status to Review`);
+                }
+            }).catch(err => {
+                console.warn('Failed to auto-change status:', err);
+            });
+        }
+
         // Trigger change event
         document.dispatchEvent(new CustomEvent('rs:thread-created', {
             detail: { thread, reqId }
