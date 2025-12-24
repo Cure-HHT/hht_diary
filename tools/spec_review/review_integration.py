@@ -754,22 +754,34 @@ function updateReviewPanelContent(tab) {{
 # Data Loading
 # =============================================================================
 
-def load_review_data_for_reqs(repo_root: Path, req_ids: List[str]) -> Dict[str, Any]:
+def load_review_data_for_reqs(
+    repo_root: Path,
+    req_ids: List[str],
+    static_mode: bool = True
+) -> Dict[str, Any]:
     """
     Load all review data for a list of requirements.
 
     Args:
         repo_root: Repository root path
         req_ids: List of requirement IDs
+        static_mode: If True, disable push features (for static HTTP server)
 
     Returns:
         Dictionary with threads, flags, requests, sessions, config
     """
+    config_dict = load_config(repo_root).to_dict()
+
+    # In static mode, disable push features since there's no API server
+    if static_mode:
+        config_dict['pushOnComment'] = False
+        config_dict['autoFetchOnOpen'] = False
+
     result = {
         'threads': {},
         'flags': {},
         'requests': {},
-        'config': load_config(repo_root).to_dict()
+        'config': config_dict
     }
 
     for req_id in req_ids:
