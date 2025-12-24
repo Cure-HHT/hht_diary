@@ -1,6 +1,6 @@
 #!/bin/bash
 # Serves traceability report with review mode enabled
-# Usage: ./serve_review.sh [port] [--user username] [--api]
+# Usage: ./serve_review.sh [--port PORT] [--user USERNAME] [--no-api]
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00092: HTML Report Integration
@@ -13,17 +13,35 @@
 # - Review flags for requirements
 #
 # Modes:
-#   Static (default): Simple HTTP server, comments in memory only
-#   API (--api):      Flask API server, comments persist to .reviews/
+#   API (default):    Flask API server, comments persist to .reviews/
+#   Static (--no-api): Simple HTTP server, comments in memory only
 #
 # Data is stored in .reviews/ directory and can be synced via git branches.
+#
+# API Endpoints (when using API mode):
+#   GET  /api/health                                    - Health check
+#   GET  /api/reviews                                   - Get all review data
+#   GET  /api/reviews/reqs/<id>                         - Get review data for REQ
+#   POST /api/reviews/reqs/<id>/threads                 - Create comment thread
+#   POST /api/reviews/reqs/<id>/threads/<tid>/comments  - Add comment to thread
+#   POST /api/reviews/reqs/<id>/threads/<tid>/resolve   - Resolve thread
+#   POST /api/reviews/reqs/<id>/threads/<tid>/unresolve - Unresolve thread
+#   GET  /api/reviews/reqs/<id>/flag                    - Get review flag
+#   POST /api/reviews/reqs/<id>/flag                    - Set review flag
+#   DELETE /api/reviews/reqs/<id>/flag                  - Clear review flag
+#   GET  /api/reviews/reqs/<id>/requests                - Get status requests
+#   POST /api/reviews/reqs/<id>/requests                - Create status request
+#   POST /api/reviews/reqs/<id>/requests/<rid>/approvals - Add approval
+#
+# Requirements:
+#   API mode requires Flask: pip install flask flask-cors
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PORT="8080"
-USE_API=false
+USE_API=true  # API mode is the default
 
 # Default username from git config, fallback to system user, then "anonymous"
 USERNAME=$(git config user.name 2>/dev/null || echo "")
@@ -42,21 +60,35 @@ while [[ $# -gt 0 ]]; do
             PORT="$2"
             shift 2
             ;;
-        --api)
-            USE_API=true
+        --no-api)
+            USE_API=false
             shift
             ;;
         [0-9]*)
             PORT="$1"
             shift
             ;;
-        *)
-            echo "Usage: $0 [port] [--user username] [--api]"
+        -h|--help)
+            echo "Usage: $0 [--port PORT] [--user USERNAME] [--no-api]"
+            echo ""
+            echo "Serves the spec review report with comment/review functionality."
             echo ""
             echo "Options:"
             echo "  --port PORT    Port to serve on (default: 8080)"
-            echo "  --user NAME    Your username for comments (default: anonymous)"
-            echo "  --api          Use Flask API server for comment persistence"
+            echo "  --user NAME    Your username for comments (default: git user.name)"
+            echo "  --no-api       Use simple HTTP server (comments don't persist)"
+            echo "  -h, --help     Show this help message"
+            echo ""
+            echo "By default, uses Flask API server for comment persistence."
+            echo "Comments are saved to .reviews/ directory."
+            echo ""
+            echo "Requirements:"
+            echo "  pip install flask flask-cors"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information."
             exit 1
             ;;
     esac
@@ -269,11 +301,32 @@ cd "$REPO_ROOT"
 if [ "$USE_API" = true ]; then
     # Check for Flask
     if ! python3 -c "import flask" 2>/dev/null; then
-        echo "Error: Flask is required for API mode."
         echo ""
-        echo "Install with: pip install flask flask-cors"
+        echo "========================================"
+        echo "  Flask Not Installed"
+        echo "========================================"
         echo ""
-        echo "Or run without --api flag for static mode."
+        echo "API mode requires Flask. Install it with:"
+        echo ""
+        echo "  pip install flask flask-cors"
+        echo ""
+        echo "Or use static mode (comments won't persist):"
+        echo ""
+        echo "  $0 --no-api"
+        echo ""
+        exit 1
+    fi
+    # Check for flask-cors
+    if ! python3 -c "import flask_cors" 2>/dev/null; then
+        echo ""
+        echo "========================================"
+        echo "  flask-cors Not Installed"
+        echo "========================================"
+        echo ""
+        echo "API mode requires flask-cors. Install it with:"
+        echo ""
+        echo "  pip install flask-cors"
+        echo ""
         exit 1
     fi
     python3 "$SCRIPT_DIR/review_server.py" --port "$PORT" --repo "$REPO_ROOT"
