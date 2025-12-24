@@ -111,11 +111,13 @@ review_js = get_review_js_content()
 init_js = get_review_init_js(username)
 toggle_html = get_review_mode_toggle_html()
 
-# Inject CSS before </head>
+# Inject CSS before </head> - only replace FIRST occurrence (the actual HTML tag)
+# Requirement bodies might contain </head> in examples
 css_injection = f"<style id='review-system-css'>\n{review_css}\n</style>\n</head>"
-html = html.replace("</head>", css_injection)
+html = html.replace("</head>", css_injection, 1)
 
-# Inject review data and JS before </body>
+# Inject review data and JS before </body> - only replace LAST occurrence
+# Requirement bodies might contain </body> in examples
 js_injection = f"""
 <script id="review-data">
 {review_data_js}
@@ -127,7 +129,12 @@ js_injection = f"""
 {init_js}
 </script>
 </body>"""
-html = html.replace("</body>", js_injection)
+# Find last </body> and replace only that one
+last_body_idx = html.rfind("</body>")
+if last_body_idx >= 0:
+    html = html[:last_body_idx] + js_injection
+else:
+    html = html.replace("</body>", js_injection, 1)
 
 # Inject toggle button after controls (look for common patterns)
 for pattern in ['class="controls"', 'class="header-controls"', 'id="controls"']:
