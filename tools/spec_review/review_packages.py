@@ -295,7 +295,8 @@ def add_req_to_package(
     req_id: str
 ) -> bool:
     """
-    Add a REQ to a package.
+    Add a REQ to a package. A REQ can only be in one package at a time,
+    so this will remove the REQ from any other package first.
 
     Args:
         repo_root: Path to the repository root
@@ -311,11 +312,16 @@ def add_req_to_package(
     if not pkg:
         return False
 
-    # Idempotent: don't add if already present
+    # Remove from any other package first (REQ can only be in one package)
+    for other_pkg in pf.packages:
+        if other_pkg.packageId != package_id and req_id in other_pkg.reqIds:
+            other_pkg.reqIds.remove(req_id)
+
+    # Add to target package if not already present
     if req_id not in pkg.reqIds:
         pkg.reqIds.append(req_id)
-        save_packages(repo_root, pf)
 
+    save_packages(repo_root, pf)
     return True
 
 

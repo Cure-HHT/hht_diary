@@ -358,55 +358,75 @@
     }
 
     /**
-     * Apply package filter to the requirement tree
+     * Apply package context styling to the requirement tree.
+     * This is a CONTEXT SELECTOR, not a filter - all REQs remain visible.
+     * REQs in the active package are highlighted.
      */
-    function applyPackageFilter() {
+    function applyPackageContext() {
         const activeId = RS.packages.activeId;
 
-        // Get REQ IDs in the active package
-        let filterReqIds = null;
-        if (activeId) {
-            const pkg = RS.packages.items.find(p => p.packageId === activeId);
-            if (pkg) {
-                filterReqIds = new Set(pkg.reqIds || []);
+        // Build a map of which package each REQ belongs to
+        const reqPackageMap = new Map();
+        for (const pkg of RS.packages.items) {
+            for (const reqId of (pkg.reqIds || [])) {
+                reqPackageMap.set(reqId, pkg.packageId);
             }
         }
 
-        // Apply filter to tree items
-        const treeItems = document.querySelectorAll('.tree-item[data-req-id]');
+        // Get REQ IDs in the active package
+        let activeReqIds = new Set();
+        if (activeId) {
+            const pkg = RS.packages.items.find(p => p.packageId === activeId);
+            if (pkg) {
+                activeReqIds = new Set(pkg.reqIds || []);
+            }
+        }
+
+        // Apply context styling to tree items (don't hide, just style)
+        const treeItems = document.querySelectorAll('[data-req-id]');
         treeItems.forEach(item => {
             const reqId = item.getAttribute('data-req-id');
-            if (!filterReqIds) {
-                // No filter - show all
-                item.style.display = '';
-            } else if (filterReqIds.has(reqId)) {
-                // In package - show
-                item.style.display = '';
+
+            // Remove old package classes
+            item.classList.remove('in-active-package', 'in-other-package', 'not-in-package');
+
+            if (activeReqIds.has(reqId)) {
+                // In active package - highlight
+                item.classList.add('in-active-package');
+            } else if (reqPackageMap.has(reqId)) {
+                // In a different package
+                item.classList.add('in-other-package');
             } else {
-                // Not in package - hide
-                item.style.display = 'none';
+                // Not in any package
+                item.classList.add('not-in-package');
             }
         });
 
-        // Update filter indicator
-        updateFilterIndicator(activeId);
+        // Update context indicator
+        updateContextIndicator(activeId);
     }
 
     /**
-     * Update filter indicator in UI
+     * Update context indicator in UI
      */
-    function updateFilterIndicator(activeId) {
+    function updateContextIndicator(activeId) {
         const indicator = document.getElementById('packageFilterIndicator');
         if (!indicator) return;
 
         if (activeId) {
             const pkg = RS.packages.items.find(p => p.packageId === activeId);
             const name = pkg ? pkg.name : 'Unknown';
-            indicator.textContent = `Filtered by: ${name}`;
+            indicator.textContent = `Context: ${name}`;
             indicator.style.display = 'inline-block';
         } else {
-            indicator.style.display = 'none';
+            indicator.textContent = 'Context: Default';
+            indicator.style.display = 'inline-block';
         }
+    }
+
+    // Alias for backwards compatibility
+    function applyPackageFilter() {
+        applyPackageContext();
     }
 
     /**
@@ -446,5 +466,6 @@
     RS.confirmDeletePackage = confirmDeletePackage;
     RS.initPackagesPanel = initPackagesPanel;
     RS.applyPackageFilter = applyPackageFilter;
+    RS.applyPackageContext = applyPackageContext;
 
 })();

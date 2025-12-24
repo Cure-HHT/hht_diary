@@ -947,6 +947,28 @@ body.review-mode-active .review-packages-panel {
     font-size: 12px;
     color: var(--primary-color, #0066cc);
 }
+
+/* Package context styling (context selector, not filter) */
+body.review-mode-active [data-req-id].in-active-package {
+    background: rgba(0, 102, 204, 0.08);
+    border-left: 3px solid var(--primary-color, #0066cc);
+}
+
+body.review-mode-active [data-req-id].in-other-package {
+    opacity: 0.7;
+    border-left: 3px solid #999;
+}
+
+body.review-mode-active [data-req-id].in-other-package::after {
+    content: "(other pkg)";
+    font-size: 10px;
+    color: #999;
+    margin-left: 8px;
+}
+
+body.review-mode-active [data-req-id].not-in-package {
+    /* No special styling - normal appearance */
+}
 """
 
 

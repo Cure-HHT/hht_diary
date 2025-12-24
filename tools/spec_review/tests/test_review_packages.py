@@ -262,6 +262,25 @@ class TestAddRemoveReqFromPackage:
         fetched = get_package(tmp_path, pkg.packageId)
         assert fetched.reqIds.count("d00001") == 1
 
+    def test_add_req_removes_from_other_package(self, tmp_path):
+        """Adding a REQ to a package should remove it from any other package"""
+        pkg1 = create_package(tmp_path, "Package1", "First", "user")
+        pkg2 = create_package(tmp_path, "Package2", "Second", "user")
+
+        # Add to package 1
+        add_req_to_package(tmp_path, pkg1.packageId, "d00001")
+        fetched1 = get_package(tmp_path, pkg1.packageId)
+        assert "d00001" in fetched1.reqIds
+
+        # Add to package 2 - should remove from package 1
+        add_req_to_package(tmp_path, pkg2.packageId, "d00001")
+
+        fetched1 = get_package(tmp_path, pkg1.packageId)
+        fetched2 = get_package(tmp_path, pkg2.packageId)
+
+        assert "d00001" not in fetched1.reqIds
+        assert "d00001" in fetched2.reqIds
+
     def test_remove_req_from_package(self, tmp_path):
         """Should remove a REQ from a package"""
         pkg = create_package(tmp_path, "Test", "Desc", "user")
