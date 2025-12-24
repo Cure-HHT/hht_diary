@@ -136,24 +136,25 @@ if last_body_idx >= 0:
 else:
     html = html.replace("</body>", js_injection, 1)
 
-# Inject toggle button after controls (look for common patterns)
-for pattern in ['class="controls"', 'class="header-controls"', 'id="controls"']:
-    if pattern in html:
-        # Find the closing tag of this element
-        idx = html.find(pattern)
-        if idx > 0:
-            # Find next > after pattern
-            end_tag = html.find(">", idx + len(pattern))
-            if end_tag > 0:
-                # Insert toggle after the opening tag content
-                # Find the closing tag
-                close_patterns = ["</div>", "</header>", "</section>"]
-                for close in close_patterns:
-                    close_idx = html.find(close, end_tag)
-                    if close_idx > 0:
-                        html = html[:close_idx] + toggle_html + html[close_idx:]
-                        break
-                break
+# Inject toggle button after Edit Mode button
+# Create toggle HTML that matches the Edit Mode button style
+review_toggle_html = '''<span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
+    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="review-mode-toggle" style="margin-right: 8px;">
+        <span class="btn toggle-btn" style="pointer-events: none;">👁️ Review Mode</span>
+    </label>
+</span>'''
+
+# Find the Edit Mode button span and insert after it
+edit_mode_marker = 'id="btnEditMode"'
+if edit_mode_marker in html:
+    idx = html.find(edit_mode_marker)
+    # Find the closing </span> after the button
+    close_span_idx = html.find('</span>', idx)
+    if close_span_idx > 0:
+        insert_point = close_span_idx + len('</span>')
+        html = html[:insert_point] + review_toggle_html + html[insert_point:]
+        print("Review mode toggle injected after Edit Mode button")
 
 # Write modified HTML
 output_file.write_text(html)
