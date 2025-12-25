@@ -647,14 +647,16 @@ class TestPackageAwareBranchManagement:
         # Create initial branch and make some changes
         create_review_branch(temp_git_repo, 'pkg1', 'alice')
         checkout_review_branch(temp_git_repo, 'pkg1', 'alice')
-        (temp_git_repo / 'uncommitted.txt').write_text('uncommitted work')
+        # Modify an existing tracked file (README.md was created in fixture)
+        original_content = (temp_git_repo / 'README.md').read_text()
+        (temp_git_repo / 'README.md').write_text('Modified content for stash test')
 
         # Switch should stash changes
         result = switch_to_package_branch(temp_git_repo, 'pkg2', 'alice')
         assert result is True
         assert get_current_branch(temp_git_repo) == 'reviews/pkg2/alice'
-        # The uncommitted file shouldn't exist on new branch
-        assert not (temp_git_repo / 'uncommitted.txt').exists()
+        # The modified file should revert to original (since stashed)
+        assert (temp_git_repo / 'README.md').read_text() == original_content
 
     def test_get_current_package_context_on_review_branch(self, temp_git_repo):
         """Get context when on a review branch"""

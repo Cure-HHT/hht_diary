@@ -208,6 +208,85 @@ def _list_branches_by_pattern(repo_root: Path, pattern: str) -> List[str]:
     return branches
 
 
+def ensure_package_branch(repo_root: Path, package_id: str, user: str) -> str:
+    """
+    Ensure user is on correct package branch.
+
+    Creates the branch if it doesn't exist, checks out if it does.
+    This is the main entry point for starting work on a package.
+
+    Args:
+        repo_root: Repository root path
+        package_id: Review package identifier
+        user: Username
+
+    Returns:
+        Branch name (reviews/{package}/{user})
+    """
+    branch_name = get_review_branch_name(package_id, user)
+
+    if not branch_exists(repo_root, branch_name):
+        # Create the branch
+        result = _run_git(repo_root, ['branch', branch_name])
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to create branch: {result.stderr}")
+
+    # Checkout the branch
+    result = _run_git(repo_root, ['checkout', branch_name])
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed to checkout branch: {result.stderr}")
+
+    return branch_name
+
+
+def switch_to_package_branch(repo_root: Path, package_id: str, user: str) -> bool:
+    """
+    Switch to the package branch for a user.
+
+    Stashes any uncommitted changes before switching and creates
+    the branch if it doesn't exist.
+
+    Args:
+        repo_root: Repository root path
+        package_id: Review package identifier
+        user: Username
+
+    Returns:
+        True if switch succeeded
+    """
+    # Stash any uncommitted changes
+    if has_uncommitted_changes(repo_root):
+        result = _run_git(repo_root, ['stash', 'push', '-m', 'Auto-stash before package switch'])
+        if result.returncode != 0:
+            return False
+
+    try:
+        ensure_package_branch(repo_root, package_id, user)
+        return True
+    except RuntimeError:
+        return False
+
+
+def get_current_package_context(repo_root: Path) -> Optional[Tuple[str, str]]:
+    """
+    Get current (package_id, user) from branch name.
+
+    Returns:
+        Tuple of (package_id, user) or None if not on a review branch
+
+    Examples:
+        >>> get_current_package_context(repo)
+        ('q1-review', 'alice')  # When on reviews/q1-review/alice
+        >>> get_current_package_context(repo)
+        None  # When on main branch
+    """
+    current_branch = get_current_branch(repo_root)
+    if not current_branch:
+        return None
+
+    return parse_review_branch_name(current_branch)
+
+
 # =============================================================================
 # Git Utilities
 # =============================================================================
