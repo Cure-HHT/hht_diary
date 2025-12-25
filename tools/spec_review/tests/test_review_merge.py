@@ -25,13 +25,13 @@ from tools.spec_review.review_branches import (
     get_review_branch_name,
 )
 from tools.spec_review.review_storage import (
-    save_threads,
+    add_thread,
     save_review_flag,
 )
 from tools.spec_review.review_data import (
     Thread,
     Comment,
-    Position,
+    CommentPosition,
     ReviewFlag,
 )
 
@@ -96,9 +96,10 @@ def _create_sample_thread(author: str, thread_id: str, req_id: str) -> Thread:
     """Helper to create a sample thread"""
     return Thread(
         threadId=thread_id,
+        reqId=req_id,
         createdBy=author,
         createdAt="2025-01-15T10:00:00Z",
-        position=Position(type="general"),
+        position=CommentPosition(type="general", hashWhenCreated="abc12345"),
         resolved=False,
         comments=[
             Comment(
@@ -169,15 +170,20 @@ class TestMergePackageReviewData:
 
         # Add some review data
         thread = _create_sample_thread('alice', 't1', 'p00001')
-        save_threads(temp_git_repo, 'p00001', [thread])
+        add_thread(temp_git_repo, 'p00001', thread)
 
         flag = ReviewFlag(
             flaggedForReview=True,
             flaggedBy='alice',
             flaggedAt="2025-01-15T10:00:00Z",
-            reason="Test flag"
+            reason="Test flag",
+            scope=["all"]
         )
         save_review_flag(temp_git_repo, 'p00001', flag)
+
+        # Commit the data so merge can read it via git show
+        subprocess.run(['git', 'add', '.reviews/'], cwd=temp_git_repo, capture_output=True)
+        subprocess.run(['git', 'commit', '-m', 'Alice reviews'], cwd=temp_git_repo, capture_output=True)
 
         # Merge - should get alice's data
         data = merge_package_review_data(temp_git_repo, 'default')
@@ -191,7 +197,7 @@ class TestMergePackageReviewData:
         create_review_branch(temp_git_repo, 'q1', 'alice')
         checkout_review_branch(temp_git_repo, 'q1', 'alice')
         thread_a = _create_sample_thread('alice', 't1', 'p00001')
-        save_threads(temp_git_repo, 'p00001', [thread_a])
+        add_thread(temp_git_repo, 'p00001', thread_a)
 
         # Commit Alice's changes
         subprocess.run(['git', 'add', '.reviews/'], cwd=temp_git_repo, capture_output=True)
@@ -204,7 +210,7 @@ class TestMergePackageReviewData:
         create_review_branch(temp_git_repo, 'q1', 'bob')
         checkout_review_branch(temp_git_repo, 'q1', 'bob')
         thread_b = _create_sample_thread('bob', 't2', 'p00002')
-        save_threads(temp_git_repo, 'p00002', [thread_b])
+        add_thread(temp_git_repo, 'p00002', thread_b)
 
         # Merge should include data from both
         data = merge_package_review_data(temp_git_repo, 'q1')
@@ -217,7 +223,7 @@ class TestMergePackageReviewData:
         create_review_branch(temp_git_repo, 'pkg', 'alice')
         checkout_review_branch(temp_git_repo, 'pkg', 'alice')
         thread_a = _create_sample_thread('alice', 't-alice', 'p00001')
-        save_threads(temp_git_repo, 'p00001', [thread_a])
+        add_thread(temp_git_repo, 'p00001', thread_a)
         subprocess.run(['git', 'add', '.reviews/'], cwd=temp_git_repo, capture_output=True)
         subprocess.run(['git', 'commit', '-m', 'Alice thread'], cwd=temp_git_repo, capture_output=True)
 
@@ -229,7 +235,10 @@ class TestMergePackageReviewData:
         create_review_branch(temp_git_repo, 'pkg', 'bob')
         checkout_review_branch(temp_git_repo, 'pkg', 'bob')
         thread_b = _create_sample_thread('bob', 't-bob', 'p00001')
-        save_threads(temp_git_repo, 'p00001', [thread_b])
+        add_thread(temp_git_repo, 'p00001', thread_b)
+        # Commit Bob's data so merge can read it
+        subprocess.run(['git', 'add', '.reviews/'], cwd=temp_git_repo, capture_output=True)
+        subprocess.run(['git', 'commit', '-m', 'Bob thread'], cwd=temp_git_repo, capture_output=True)
 
         # Merge should combine threads
         data = merge_package_review_data(temp_git_repo, 'pkg')
