@@ -595,3 +595,101 @@ class TestErrorHandling:
         assert get_current_branch(fake_path) is None
         assert not branch_exists(fake_path, 'test')
         assert list_local_review_branches(fake_path) == []
+
+
+# =============================================================================
+# Tests for Package-Aware Branch Management (Module 20)
+# =============================================================================
+
+# Import the new functions for Module 20
+from tools.spec_review.review_branches import (
+    ensure_package_branch,
+    switch_to_package_branch,
+    get_current_package_context,
+)
+
+
+class TestPackageAwareBranchManagement:
+    """Test package-aware branch management functions (Module 20)"""
+
+    def test_ensure_package_branch_creates_new(self, temp_git_repo):
+        """Create branch if it doesn't exist"""
+        branch = ensure_package_branch(temp_git_repo, 'q1-review', 'alice')
+        assert branch == 'reviews/q1-review/alice'
+        assert branch_exists(temp_git_repo, branch)
+        # Should also checkout the branch
+        assert get_current_branch(temp_git_repo) == branch
+
+    def test_ensure_package_branch_checks_out_existing(self, temp_git_repo):
+        """Checkout existing branch"""
+        # Create the branch first
+        create_review_branch(temp_git_repo, 'q1-review', 'alice')
+        # Now ensure - should just checkout
+        branch = ensure_package_branch(temp_git_repo, 'q1-review', 'alice')
+        assert branch == 'reviews/q1-review/alice'
+        assert get_current_branch(temp_git_repo) == branch
+
+    def test_switch_to_package_branch_creates_and_switches(self, temp_git_repo):
+        """Switch creates branch if needed and changes to it"""
+        result = switch_to_package_branch(temp_git_repo, 'default', 'bob')
+        assert result is True
+        assert get_current_branch(temp_git_repo) == 'reviews/default/bob'
+
+    def test_switch_to_package_branch_existing(self, temp_git_repo):
+        """Switch to existing branch"""
+        create_review_branch(temp_git_repo, 'default', 'bob')
+        result = switch_to_package_branch(temp_git_repo, 'default', 'bob')
+        assert result is True
+        assert get_current_branch(temp_git_repo) == 'reviews/default/bob'
+
+    def test_switch_to_package_branch_stashes_uncommitted(self, temp_git_repo):
+        """Stash uncommitted changes before switching"""
+        # Create initial branch and make some changes
+        create_review_branch(temp_git_repo, 'pkg1', 'alice')
+        checkout_review_branch(temp_git_repo, 'pkg1', 'alice')
+        (temp_git_repo / 'uncommitted.txt').write_text('uncommitted work')
+
+        # Switch should stash changes
+        result = switch_to_package_branch(temp_git_repo, 'pkg2', 'alice')
+        assert result is True
+        assert get_current_branch(temp_git_repo) == 'reviews/pkg2/alice'
+        # The uncommitted file shouldn't exist on new branch
+        assert not (temp_git_repo / 'uncommitted.txt').exists()
+
+    def test_get_current_package_context_on_review_branch(self, temp_git_repo):
+        """Get context when on a review branch"""
+        create_review_branch(temp_git_repo, 'q1-review', 'alice')
+        checkout_review_branch(temp_git_repo, 'q1-review', 'alice')
+
+        context = get_current_package_context(temp_git_repo)
+        assert context is not None
+        assert context == ('q1-review', 'alice')
+
+    def test_get_current_package_context_not_on_review_branch(self, temp_git_repo):
+        """Returns None when not on a review branch"""
+        context = get_current_package_context(temp_git_repo)
+        assert context is None
+
+    def test_get_current_package_context_on_main(self, temp_git_repo):
+        """Returns None when on main branch"""
+        # Should be on main/master by default
+        context = get_current_package_context(temp_git_repo)
+        assert context is None
+
+    def test_switch_between_packages_same_user(self, temp_git_repo):
+        """Switch between packages for same user"""
+        # Create and work on first package
+        switch_to_package_branch(temp_git_repo, 'pkg1', 'alice')
+        assert get_current_package_context(temp_git_repo) == ('pkg1', 'alice')
+
+        # Switch to second package
+        switch_to_package_branch(temp_git_repo, 'pkg2', 'alice')
+        assert get_current_package_context(temp_git_repo) == ('pkg2', 'alice')
+
+    def test_ensure_package_branch_sanitizes_names(self, temp_git_repo):
+        """Package and user names are sanitized"""
+        branch = ensure_package_branch(temp_git_repo, 'Q1 Review', 'Alice@company.com')
+        # Should sanitize to lowercase, remove special chars
+        assert 'Q1' not in branch  # Should be lowercase
+        assert '@' not in branch
+        assert branch_exists(temp_git_repo, branch)
