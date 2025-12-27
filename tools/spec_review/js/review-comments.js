@@ -200,11 +200,8 @@ window.ReviewSystem = window.ReviewSystem || {};
     }
 
     function getPositionIcon(thread) {
-        switch (thread.position.type) {
-            case RS.PositionType.LINE: return '📍';
-            case RS.PositionType.BLOCK: return '📋';
-            default: return '📝';  // General and legacy word types
-        }
+        // Icons removed - return empty string
+        return '';
     }
 
     function getPositionTooltip(thread) {
@@ -515,7 +512,7 @@ window.ReviewSystem = window.ReviewSystem || {};
         // Clear any existing highlights
         clearCommentHighlights(lineContainer);
 
-        // Highlight based on position type
+        // Highlight based on position type (line or block only)
         let linesToHighlight = [];
 
         if (position.type === RS.PositionType.LINE && position.lineNumber) {
@@ -525,21 +522,8 @@ window.ReviewSystem = window.ReviewSystem || {};
             for (let i = start; i <= end; i++) {
                 linesToHighlight.push(i);
             }
-        } else if (position.type === RS.PositionType.WORD && position.keyword) {
-            // For word positions, try to find the line containing the keyword
-            const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
-            if (reqData && reqData.body) {
-                const foundLine = RS.findKeywordOccurrence(
-                    reqData.body,
-                    position.keyword,
-                    position.keywordOccurrence || 1
-                );
-                if (foundLine) {
-                    linesToHighlight = [foundLine.line];
-                }
-            }
         }
-        // For 'general' position, no specific lines to highlight
+        // For 'general' position (including legacy word types), no lines to highlight
 
         // Apply highlights and scroll to first highlighted line
         if (linesToHighlight.length > 0) {

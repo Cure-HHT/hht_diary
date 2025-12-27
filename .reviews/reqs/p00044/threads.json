@@ -23,6 +23,31 @@
           "body": "All of these list items have a file listed - that seems odd."
         }
       ]
+    },
+    {
+      "threadId": "52061150-7d41-4dd0-be43-afdd162d5afb",
+      "reqId": "p00044",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-27T05:28:56.830Z",
+      "position": {
+        "type": "block",
+        "hashWhenCreated": "00000000",
+        "lineRange": [
+          4,
+          5
+        ]
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "bf6dac73-2235-4c69-836f-7cb85aba46a8",
+          "author": "Developer",
+          "timestamp": "2025-12-27T05:28:56.831Z",
+          "body": "More stuff to comment on lines 4 and 5"
+        }
+      ]
     }
   ]
 }
