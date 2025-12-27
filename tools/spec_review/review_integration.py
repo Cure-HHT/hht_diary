@@ -1611,18 +1611,11 @@ function escapeHtmlContent(text) {{
     return div.innerHTML;
 }}
 
-// Render inline markdown for a single line (preserves line structure)
+// Render markdown for a single source line
 function renderLineMarkdown(line) {{
     if (!line || !line.trim()) return '';
-    // Use marked for inline rendering
     if (window.marked) {{
-        // parseInline handles inline elements without wrapping in <p>
-        if (typeof marked.parseInline === 'function') {{
-            return marked.parseInline(line);
-        }}
-        // Fallback: use parse but strip outer <p> tags
-        const parsed = marked.parse(line);
-        return parsed.replace(/^<p>/, '').replace(/<\\/p>\\n?$/, '');
+        return marked.parse(line);
     }}
     return escapeHtmlContent(line);
 }}
