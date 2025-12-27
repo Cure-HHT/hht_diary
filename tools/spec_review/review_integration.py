@@ -1118,8 +1118,17 @@ document.addEventListener('DOMContentLoaded', function() {{
     // Add review badges to requirements
     updateReviewBadges();
 
-    // Apply line-numbered markdown view to all REQ cards (this is now the default view)
-    applyLineNumbersToAllCards();
+    // Apply line-numbered markdown view to all REQ cards
+    // Wait for marked library to be available (may load after DOMContentLoaded)
+    function waitForMarkedAndApply() {{
+        if (window.marked) {{
+            applyLineNumbersToAllCards();
+        }} else {{
+            // Retry in 100ms if marked not yet loaded
+            setTimeout(waitForMarkedAndApply, 100);
+        }}
+    }}
+    waitForMarkedAndApply();
 
     // Hook into the existing openReqPanel function to track selected requirement
     if (typeof window.openReqPanel === 'function') {{
@@ -1605,9 +1614,15 @@ function escapeHtmlContent(text) {{
 // Render inline markdown for a single line (preserves line structure)
 function renderLineMarkdown(line) {{
     if (!line || !line.trim()) return '';
-    // Use marked.parseInline if available, otherwise escape HTML
-    if (window.marked && typeof marked.parseInline === 'function') {{
-        return marked.parseInline(line);
+    // Use marked for inline rendering
+    if (window.marked) {{
+        // parseInline handles inline elements without wrapping in <p>
+        if (typeof marked.parseInline === 'function') {{
+            return marked.parseInline(line);
+        }}
+        // Fallback: use parse but strip outer <p> tags
+        const parsed = marked.parse(line);
+        return parsed.replace(/^<p>/, '').replace(/<\/p>\n?$/, '');
     }}
     return escapeHtmlContent(line);
 }}
