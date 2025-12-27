@@ -60,13 +60,11 @@ window.ReviewSystem = window.ReviewSystem || {};
             <div class="rs-thread ${resolvedClass}" data-thread-id="${thread.threadId}">
                 <div class="rs-thread-header">
                     <div class="rs-thread-meta">
-                        <span class="rs-author">${escapeHtml(thread.createdBy)}</span>
-                        <span class="rs-time">${formatTime(thread.createdAt)}</span>
-                        ${resolvedBadge}
-                        <span class="rs-position-indicator ${confidenceClass}"
-                              title="${getPositionTooltip(thread)}">
-                            ${getPositionIcon(thread)}
+                        <span class="rs-position-label ${confidenceClass}"
+                              title="Click to highlight in REQ">
+                            ${getPositionIcon(thread)} ${getPositionLabel(thread)}
                         </span>
+                        ${resolvedBadge}
                     </div>
                     <div class="rs-thread-actions">
                         ${thread.resolved ?
@@ -228,6 +226,20 @@ window.ReviewSystem = window.ReviewSystem || {};
                 return `"${pos.keyword}" (occurrence ${pos.keywordOccurrence || 1})`;
             default:
                 return 'General comment';
+        }
+    }
+
+    function getPositionLabel(thread) {
+        const pos = thread.position;
+        switch (pos.type) {
+            case RS.PositionType.LINE:
+                return `Line ${pos.lineNumber}`;
+            case RS.PositionType.BLOCK:
+                return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
+            case RS.PositionType.WORD:
+                return `"${escapeHtml(pos.keyword)}"`;
+            default:
+                return 'General';
         }
     }
 

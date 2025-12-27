@@ -180,6 +180,16 @@ REVIEW_CSS = """
     font-size: 12px;
 }
 
+.rs-position-label {
+    font-weight: 600;
+    color: var(--primary-color, #0066cc);
+    cursor: pointer;
+}
+
+.rs-position-label:hover {
+    text-decoration: underline;
+}
+
 .rs-author {
     font-weight: 600;
 }
