@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "reqId": "p00006",
+  "threads": [
+    {
+      "threadId": "962290f1-15bd-482e-bce9-39ada5e6393c",
+      "reqId": "p00006",
+      "createdBy": "MCL",
+      "createdAt": "2025-12-24T10:17:32.245Z",
+      "position": {
+        "type": "line",
+        "hashWhenCreated": "00000000",
+        "lineNumber": 1
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "40e71ffb-8714-4ef2-8ca3-19302ab87e6c",
+          "author": "MCL",
+          "timestamp": "2025-12-24T10:17:32.245Z",
+          "body": "Add - Users don't need to be part of a study to use the app"
+        }
+      ]
+    }
+  ]
+}

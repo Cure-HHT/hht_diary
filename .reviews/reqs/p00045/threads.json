@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "reqId": "p00045",
+  "threads": [
+    {
+      "threadId": "65c753ef-fd75-4854-8682-503a9ad9131d",
+      "reqId": "p00045",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-24T16:38:32.398Z",
+      "position": {
+        "type": "line",
+        "hashWhenCreated": "00000000",
+        "lineNumber": 6
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "910d5520-e3fb-4ff2-9fc3-5b0d6d628baf",
+          "author": "Developer",
+          "timestamp": "2025-12-24T16:38:32.399Z",
+          "body": "Cool!"
+        },
+        {
+          "id": "9334b5af-7a51-48a1-ab8c-f2ab67766a75",
+          "author": "Developer",
+          "timestamp": "2025-12-24T16:38:42.568651+00:00",
+          "body": "No its not."
+        }
+      ]
+    }
+  ]
+}

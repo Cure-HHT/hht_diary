@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "reqId": "p00001",
+  "threads": [
+    {
+      "threadId": "9253c73c-75a5-4713-8ee0-4dde7c0b90ba",
+      "reqId": "p00001",
+      "createdBy": "MCL",
+      "createdAt": "2025-12-24T10:10:30.493Z",
+      "position": {
+        "type": "general",
+        "hashWhenCreated": "00000000"
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "45e05659-efae-42df-bf1a-1e55df3df0e2",
+          "author": "MCL",
+          "timestamp": "2025-12-24T10:10:30.494Z",
+          "body": "Add a link to an official ALCOA+ spec"
+        },
+        {
+          "id": "ae460a49-6c9e-4e01-80f6-0c57291aa26d",
+          "author": "Developer",
+          "timestamp": "2025-12-24T10:32:56.983768+00:00",
+          "body": "This REQ isn't about ALCOA"
+        }
+      ]
+    },
+    {
+      "threadId": "66547394-f69e-4379-b518-b8d3bd140fad",
+      "reqId": "p00001",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-24T10:46:47.243Z",
+      "position": {
+        "type": "block",
+        "hashWhenCreated": "00000000",
+        "lineRange": [
+          1,
+          4
+        ]
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "5c58d64b-eb6d-4d38-8380-ee90e05b53ae",
+          "author": "Developer",
+          "timestamp": "2025-12-24T10:46:47.243Z",
+          "body": "Ranged comment"
+        }
+      ]
+    },
+    {
+      "threadId": "5160c7d3-bdba-4343-ad3f-78afb660884d",
+      "reqId": "p00001",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-24T10:49:56.110Z",
+      "position": {
+        "type": "block",
+        "hashWhenCreated": "00000000",
+        "lineRange": [
+          1,
+          2
+        ]
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "9413e8e3-0925-4f66-a159-c0d011d0696d",
+          "author": "Developer",
+          "timestamp": "2025-12-24T10:49:56.110Z",
+          "body": "new comment lines 1 and 2"
+        }
+      ]
+    }
+  ]
+}

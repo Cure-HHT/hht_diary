@@ -1,0 +1,28 @@
+{
+  "packages": [
+    {
+      "packageId": "default",
+      "name": "Default",
+      "description": "REQs manually set to Review status",
+      "reqIds": [],
+      "createdBy": "system",
+      "createdAt": "2025-12-24T17:05:33.829285Z",
+      "isDefault": true
+    },
+    {
+      "packageId": "78b849b9-ecec-4511-b447-d0c66eb53f85",
+      "name": "Test Package",
+      "description": "For testing",
+      "reqIds": [
+        "p00001",
+        "p00018",
+        "p00045",
+        "p00044"
+      ],
+      "createdBy": "Developer",
+      "createdAt": "2025-12-24T17:08:05.017717Z",
+      "isDefault": false
+    }
+  ],
+  "activePackageId": "78b849b9-ecec-4511-b447-d0c66eb53f85"
+}

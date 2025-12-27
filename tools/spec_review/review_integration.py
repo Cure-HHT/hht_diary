@@ -607,23 +607,90 @@ body.review-mode-active .status-badge.status-draft:hover {
     margin: 0 0 8px 0;
 }
 
-.review-panel-tabs {
+/* Status bar - compact inline display */
+.rs-status-bar {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+}
+
+.rs-status-bar-content {
     display: flex;
-    border-bottom: 1px solid var(--border-color, #ddd);
-    margin-bottom: 16px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
 }
 
-.review-panel-tab {
-    padding: 8px 16px;
-    border: none;
+.rs-status-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rs-status-label {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+}
+
+.rs-status-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rs-status-bar .status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+}
+
+/* Status change dialog */
+.rs-status-dialog {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--primary-color, #0066cc);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.rs-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--primary-color, #0066cc);
+    color: #fff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.rs-dialog-close {
     background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
+    padding: 0 4px;
+    line-height: 1;
 }
 
-.review-panel-tab.active {
-    border-bottom-color: var(--primary-color, #0066cc);
-    font-weight: 600;
+.rs-dialog-close:hover {
+    opacity: 0.8;
+}
+
+.rs-dialog-content {
+    padding: 0;
+}
+
+.rs-dialog-content .rs-status-panel {
+    border: none;
+    margin: 0;
+}
+
+/* Comments section */
+.rs-comments-section {
+    flex: 1;
 }
 
 .review-panel-content {
@@ -1040,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             const reviewToggle = document.getElementById('review-mode-toggle');
             if (reviewToggle && reviewToggle.checked) {{
                 addLineNumbersToReqCard(reqId);
-                updateReviewPanelContent('comments');
+                updateReviewPanelContent();
             }}
         }};
     }}
@@ -1188,10 +1255,6 @@ function showReviewPanel() {{
                     <span class="req-id-badge" id="review-req-id"></span>
                     <span class="req-title-text" id="review-req-title"></span>
                 </div>
-                <div class="review-panel-tabs">
-                    <button class="review-panel-tab active" data-tab="comments">Comments</button>
-                    <button class="review-panel-tab" data-tab="status">Status</button>
-                </div>
                 <div class="rs-user-selector">
                     <label>Your name:</label>
                     <input type="text" id="rs-current-user" value="${{ReviewSystem.state.currentUser}}"
@@ -1206,15 +1269,6 @@ function showReviewPanel() {{
                 </div>
             `;
             reviewColumn.appendChild(panel);
-
-            // Tab click handlers
-            panel.querySelectorAll('.review-panel-tab').forEach(function(tab) {{
-                tab.addEventListener('click', function() {{
-                    panel.querySelectorAll('.review-panel-tab').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    updateReviewPanelContent(this.getAttribute('data-tab'));
-                }});
-            }});
         }}
     }}
 }}
@@ -1235,7 +1289,7 @@ function hideReviewPanel() {{
 var selectedLineNumber = null;
 var selectedLineRange = null;
 
-function updateReviewPanelContent(tab) {{
+function updateReviewPanelContent() {{
     const content = document.getElementById('review-panel-content');
     const reqHeader = document.getElementById('review-req-header');
     const reqIdEl = document.getElementById('review-req-id');
@@ -1263,13 +1317,123 @@ function updateReviewPanelContent(tab) {{
         if (reqTitleEl) reqTitleEl.textContent = reqData ? reqData.title : '';
     }}
 
-    if (tab === 'comments') {{
-        ReviewSystem.renderThreadList(content, reqId);
-        // Line numbers are now shown in the main REQ card - no separate body section needed
-    }} else if (tab === 'status') {{
-        const currentStatus = reqData ? reqData.status : 'Draft';
-        ReviewSystem.renderStatusPanel(content, reqId, currentStatus);
+    // Combined view: Status bar at top + Comments below
+    const currentStatus = reqData ? reqData.status : 'Draft';
+    content.innerHTML = '';
+
+    // Add compact status bar
+    const statusBar = document.createElement('div');
+    statusBar.className = 'rs-status-bar';
+    statusBar.innerHTML = createStatusBarHtml(reqId, currentStatus);
+    content.appendChild(statusBar);
+
+    // Bind status bar events
+    bindStatusBarEvents(statusBar, reqId, currentStatus);
+
+    // Add comments section
+    const commentsSection = document.createElement('div');
+    commentsSection.className = 'rs-comments-section';
+    content.appendChild(commentsSection);
+    ReviewSystem.renderThreadList(commentsSection, reqId);
+}}
+
+function createStatusBarHtml(reqId, currentStatus) {{
+    const statusClass = 'status-' + currentStatus.toLowerCase();
+    const canToggle = currentStatus === 'Draft';
+    const toggleBtn = canToggle ?
+        `<button class="rs-btn rs-btn-sm rs-btn-primary rs-status-toggle" data-req-id="${{reqId}}">
+            &#x2192; Review
+        </button>` : '';
+
+    // Show pending requests count
+    const pendingCount = ReviewSystem.getPendingRequestCount(reqId);
+    const pendingBadge = pendingCount > 0 ?
+        `<span class="rs-badge rs-badge-pending">${{pendingCount}} pending</span>` : '';
+
+    return `
+        <div class="rs-status-bar-content">
+            <div class="rs-status-bar-left">
+                <span class="rs-status-label">Status:</span>
+                <span class="status-badge ${{statusClass}}">${{currentStatus}}</span>
+                ${{pendingBadge}}
+            </div>
+            <div class="rs-status-bar-right">
+                ${{toggleBtn}}
+                <button class="rs-btn rs-btn-sm rs-request-change-btn" title="Request status change">
+                    &#x2026;
+                </button>
+            </div>
+        </div>
+    `;
+}}
+
+function bindStatusBarEvents(statusBar, reqId, currentStatus) {{
+    // Toggle to Review button
+    const toggleBtn = statusBar.querySelector('.rs-status-toggle');
+    if (toggleBtn) {{
+        toggleBtn.addEventListener('click', async function() {{
+            toggleBtn.disabled = true;
+            toggleBtn.textContent = '...';
+            const result = await ReviewSystem.toggleToReview(reqId);
+            if (result.success) {{
+                updateReviewPanelContent(); // Refresh the entire panel
+            }} else {{
+                toggleBtn.disabled = false;
+                toggleBtn.innerHTML = '&#x2192; Review';
+                alert('Failed: ' + (result.error || 'Unknown error'));
+            }}
+        }});
     }}
+
+    // Request change button
+    const requestBtn = statusBar.querySelector('.rs-request-change-btn');
+    if (requestBtn) {{
+        const transitions = {{
+            'Draft': ['Review', 'Active', 'Deprecated'],
+            'Review': ['Active', 'Draft', 'Deprecated'],
+            'Active': ['Deprecated'],
+            'Deprecated': []
+        }};
+        const validTransitions = transitions[currentStatus] || [];
+
+        if (validTransitions.length === 0) {{
+            requestBtn.disabled = true;
+            requestBtn.title = 'No valid transitions';
+        }} else {{
+            requestBtn.addEventListener('click', function() {{
+                showStatusChangeDialog(reqId, currentStatus);
+            }});
+        }}
+    }}
+}}
+
+function showStatusChangeDialog(reqId, currentStatus) {{
+    // Create a simple dialog for status change request
+    const content = document.getElementById('review-panel-content');
+    const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+
+    // Create temporary container for the status panel
+    const dialogContainer = document.createElement('div');
+    dialogContainer.className = 'rs-status-dialog';
+    dialogContainer.innerHTML = `
+        <div class="rs-dialog-header">
+            <span>Request Status Change</span>
+            <button class="rs-dialog-close">&times;</button>
+        </div>
+        <div class="rs-dialog-content"></div>
+    `;
+
+    // Insert at top of content
+    content.insertBefore(dialogContainer, content.firstChild);
+
+    // Render status panel in dialog
+    const dialogContent = dialogContainer.querySelector('.rs-dialog-content');
+    ReviewSystem.renderStatusPanel(dialogContent, reqId, currentStatus);
+
+    // Close button
+    dialogContainer.querySelector('.rs-dialog-close').addEventListener('click', function() {{
+        dialogContainer.remove();
+    }});
 }}
 
 function addLineNumberedView(container, body, reqId) {{
@@ -1745,6 +1909,27 @@ def get_packages_panel_html() -> str:
                 <p style="color: #666; text-align: center; padding: 16px;">
                     Loading packages...
                 </p>
+            </div>
+        </div>
+    </div>
+    """
+
+
+def get_git_sync_panel_html() -> str:
+    """Get HTML for git sync controls panel"""
+    return """
+    <div class="git-sync-panel" id="gitSyncPanel">
+        <div class="git-sync-controls">
+            <span id="gitSyncIndicator" class="git-sync-indicator">
+                <span class="git-sync-icon">&#x21bb;</span> Checking...
+            </span>
+            <div class="git-sync-buttons">
+                <button class="rs-btn rs-btn-sm" onclick="ReviewSystem.gitFetch()" title="Fetch from git remote">
+                    &#x2193; Fetch
+                </button>
+                <button class="rs-btn rs-btn-sm" onclick="ReviewSystem.gitPush()" title="Push to git remote">
+                    &#x2191; Push
+                </button>
             </div>
         </div>
     </div>

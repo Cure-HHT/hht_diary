@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "reqId": "p00001",
+  "requests": [
+    {
+      "requestId": "999c00e7-cc0b-4af2-9929-a08bea925125",
+      "reqId": "p00001",
+      "type": "status_change",
+      "fromStatus": "Draft",
+      "toStatus": "Active",
+      "requestedBy": "Developer",
+      "requestedAt": "2025-12-24T10:21:27.690Z",
+      "justification": "Review complete",
+      "approvals": [],
+      "requiredApprovers": [
+        "product_owner",
+        "tech_lead"
+      ],
+      "state": "pending"
+    }
+  ]
+}

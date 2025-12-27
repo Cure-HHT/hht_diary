@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "reqId": "p00044",
+  "threads": [
+    {
+      "threadId": "0f1a7a77-147e-4bd9-b052-d788d21c6259",
+      "reqId": "p00044",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-24T15:56:45.332Z",
+      "position": {
+        "type": "line",
+        "hashWhenCreated": "00000000",
+        "lineNumber": 3
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "12d9586a-eeb1-47bf-a0c3-c85192721fdb",
+          "author": "Developer",
+          "timestamp": "2025-12-24T15:56:45.332Z",
+          "body": "All of these list items have a file listed - that seems odd."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "reqId": "p00018",
+  "threads": [
+    {
+      "threadId": "8a11c5dc-1d52-4ad1-8247-9e0f4cd8a53d",
+      "reqId": "p00018",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-24T15:47:37.418Z",
+      "position": {
+        "type": "line",
+        "hashWhenCreated": "00000000",
+        "lineNumber": 3
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "39510625-a0fa-4d71-bb63-e683c8c8b1a0",
+          "author": "Developer",
+          "timestamp": "2025-12-24T15:47:37.419Z",
+          "body": "Nice list."
+        }
+      ]
+    }
+  ]
+}
