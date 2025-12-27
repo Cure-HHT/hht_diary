@@ -27,6 +27,60 @@
     };
 
     // ==========================================================================
+    // Toast Notification
+    // ==========================================================================
+
+    let toastElement = null;
+
+    /**
+     * Show a toast notification positioned near the packages panel
+     */
+    function showToast(message, showSpinner = false) {
+        if (!toastElement) {
+            toastElement = document.createElement('div');
+            toastElement.className = 'rs-toast';
+            document.body.appendChild(toastElement);
+        }
+
+        toastElement.innerHTML = showSpinner
+            ? `<div class="rs-toast-spinner"></div><span>${message}</span>`
+            : `<span>${message}</span>`;
+
+        // Position near the packages panel header
+        const packagesPanel = document.getElementById('reviewPackagesPanel');
+        if (packagesPanel) {
+            const rect = packagesPanel.getBoundingClientRect();
+            toastElement.style.top = `${rect.top + window.scrollY + 8}px`;
+            toastElement.style.left = `${rect.left + rect.width / 2}px`;
+            toastElement.style.transform = 'translateX(-50%) scale(0.9)';
+        } else {
+            // Fallback to fixed position
+            toastElement.style.position = 'fixed';
+            toastElement.style.top = '80px';
+            toastElement.style.left = '50%';
+            toastElement.style.transform = 'translateX(-50%) scale(0.9)';
+        }
+
+        // Force reflow then show
+        toastElement.offsetHeight;
+        toastElement.classList.add('visible');
+        if (packagesPanel) {
+            toastElement.style.transform = 'translateX(-50%) scale(1)';
+        } else {
+            toastElement.style.transform = 'translateX(-50%) scale(1)';
+        }
+    }
+
+    /**
+     * Hide the toast notification
+     */
+    function hideToast() {
+        if (toastElement) {
+            toastElement.classList.remove('visible');
+        }
+    }
+
+    // ==========================================================================
     // API Functions
     // ==========================================================================
 
@@ -142,6 +196,11 @@
     async function setActivePackage(packageId) {
         const user = RS.state.currentUser || 'anonymous';
 
+        // Show toast when switching to a package (not when selecting None)
+        if (packageId) {
+            showToast('Syncing with GitHub...', true);
+        }
+
         try {
             // 1. Set the active package in packages.json
             const response = await fetch('/api/reviews/packages/active', {
@@ -156,6 +215,7 @@
 
             const result = await response.json();
             if (!result.success) {
+                hideToast();
                 return result;
             }
 
@@ -166,17 +226,27 @@
                 await switchToPackageBranch(packageId, user);
             }
 
-            // 3. Apply context styling
+            // 3. Re-render panel to update radio buttons and highlights
+            renderPackagesPanel();
+
+            // 4. Apply context styling
             applyPackageFilter();
 
-            // 4. Update git sync indicator to show new branch
+            // 5. Update git sync indicator to show new branch
             if (RS.updateGitSyncIndicator) {
                 RS.updateGitSyncIndicator();
+            }
+
+            // Toast is hidden in fetchConsolidatedPackageData after sync completes
+            // But if no packageId, hide it now
+            if (!packageId) {
+                hideToast();
             }
 
             return result;
         } catch (error) {
             console.error('Failed to set active package:', error);
+            hideToast();
             return { success: false, error: error.message };
         }
     }
@@ -203,10 +273,14 @@
 
                 // Fetch consolidated data from all package branches
                 await fetchConsolidatedPackageData();
+            } else {
+                // Branch switch failed, hide the toast
+                hideToast();
             }
             return result;
         } catch (error) {
             console.error('Failed to switch to package branch:', error);
+            hideToast();
             return { success: false, error: error.message };
         }
     }
@@ -215,6 +289,8 @@
      * Fetch consolidated review data from all users' branches for current package
      */
     async function fetchConsolidatedPackageData() {
+        // Toast already shown by setActivePackage
+
         try {
             const response = await fetch('/api/reviews/sync/fetch-all-package', {
                 method: 'POST'
@@ -236,9 +312,11 @@
                 }));
             }
 
+            hideToast();
             return data;
         } catch (error) {
             console.error('Failed to fetch consolidated package data:', error);
+            hideToast();
             return { threads: {}, flags: {}, contributors: [] };
         }
     }
@@ -472,9 +550,9 @@
     }
 
     /**
-     * Apply package context styling to the requirement tree.
-     * This is a CONTEXT SELECTOR, not a filter - all REQs remain visible.
-     * REQs in the active package are highlighted.
+     * Apply package filter to the requirement tree.
+     * When a package is selected, only REQs in that package are shown.
+     * When "None" is selected, all REQs are visible.
      */
     function applyPackageContext() {
         const activeId = RS.packages.activeId;
@@ -496,28 +574,39 @@
             }
         }
 
-        // Apply context styling to tree items (don't hide, just style)
+        // Apply filter - hide items not in active package (when a package is selected)
         const treeItems = document.querySelectorAll('[data-req-id]');
         treeItems.forEach(item => {
             const reqId = item.getAttribute('data-req-id');
 
             // Remove old package classes
-            item.classList.remove('in-active-package', 'in-other-package', 'not-in-package');
+            item.classList.remove('in-active-package', 'in-other-package', 'not-in-package', 'package-filtered');
 
-            if (activeReqIds.has(reqId)) {
-                // In active package - highlight
+            if (!activeId) {
+                // No package selected - show all, apply context styling
+                item.classList.remove('package-filtered');
+                if (reqPackageMap.has(reqId)) {
+                    item.classList.add('in-other-package');
+                } else {
+                    item.classList.add('not-in-package');
+                }
+            } else if (activeReqIds.has(reqId)) {
+                // In active package - show and highlight
+                item.classList.remove('package-filtered');
                 item.classList.add('in-active-package');
-            } else if (reqPackageMap.has(reqId)) {
-                // In a different package
-                item.classList.add('in-other-package');
             } else {
-                // Not in any package
-                item.classList.add('not-in-package');
+                // Not in active package - hide
+                item.classList.add('package-filtered');
             }
         });
 
         // Update context indicator
         updateContextIndicator(activeId);
+
+        // Update icons for items with all children filtered
+        if (typeof updateFilteredChildrenIcons === 'function') {
+            updateFilteredChildrenIcons();
+        }
     }
 
     /**

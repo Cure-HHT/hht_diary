@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "reqId": "p00042",
+  "threads": [
+    {
+      "threadId": "a41864e7-daed-41f4-ab49-28db46e4d6ee",
+      "reqId": "p00042",
+      "createdBy": "Developer",
+      "createdAt": "2025-12-27T09:25:26.011Z",
+      "position": {
+        "type": "line",
+        "hashWhenCreated": "00000000",
+        "lineNumber": 13
+      },
+      "resolved": false,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "comments": [
+        {
+          "id": "182838b8-70d4-4e70-8727-6f7eb2c7fecc",
+          "author": "Developer",
+          "timestamp": "2025-12-27T09:25:26.011Z",
+          "body": "Line 13 comment goes here"
+        },
+        {
+          "id": "20728d0f-e134-4188-9e2d-12942d66ba56",
+          "author": "Developer",
+          "timestamp": "2025-12-27T09:25:38.621741+00:00",
+          "body": "yep, very astute"
+        }
+      ]
+    }
+  ]
+}

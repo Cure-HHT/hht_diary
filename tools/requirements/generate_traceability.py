@@ -1205,68 +1205,45 @@ class TraceabilityGenerator:
                 const ext = filePath.split('.').pop().toLowerCase();
 
                 // For markdown files, render as formatted markdown with line anchors
-                if (ext === 'md' && window.marked) {
-                    // Wrap each source line in a span with line ID before parsing
-                    const lines = text.split('\\n');
-                    const wrappedText = lines.map((line, idx) =>
-                        `<span id="md-line-${idx + 1}" class="md-line">${line}</span>`
-                    ).join('\\n');
+                if (ext === 'md' && window.markdownit && window.markdownitInjectLinenumbers) {
+                    // Use markdown-it with inject-linenumbers for precise line tracking
+                    const md = window.markdownit({
+                        html: true,
+                        linkify: true,
+                        typographer: true
+                    }).use(window.markdownitInjectLinenumbers);
 
-                    // Use custom renderer to preserve line spans through markdown parsing
-                    // Simpler approach: render markdown, then inject line markers
-                    const renderedHtml = marked.parse(text);
+                    const renderedHtml = md.render(text);
                     content.innerHTML = `<div class="markdown-viewer markdown-body">${renderedHtml}</div>`;
                     content.classList.add('markdown-mode');
 
-                    // Find the element containing the target line by searching the raw text position
+                    // Find element with closest source line to target
                     setTimeout(() => {
-                        // Calculate which heading or paragraph contains our target line
                         const targetLine = lineNum;
-                        let currentLine = 1;
                         let targetElement = null;
+                        let closestDiff = Infinity;
 
-                        // Find the nearest heading at or before the target line
-                        const headings = content.querySelectorAll('h1, h2, h3, h4');
-                        for (const heading of headings) {
-                            // Search for this heading's text in the source to find its line
-                            // Only match actual markdown headings (lines starting with #)
-                            const headingText = heading.textContent.trim();
-                            for (let i = 0; i < lines.length; i++) {
-                                const line = lines[i].trim();
-                                // Must be a markdown heading line (starts with #) and contain the heading text
-                                if (line.startsWith('#') && line.includes(headingText)) {
-                                    if (i + 1 <= targetLine) {
-                                        targetElement = heading;
-                                    }
-                                    break;
+                        // data-source-line is 0-based, so target line 30 = source-line 29
+                        const targetSourceLine = targetLine - 1;
+
+                        // Find all elements with line numbers
+                        const elementsWithLines = content.querySelectorAll('[data-source-line]');
+
+                        for (const el of elementsWithLines) {
+                            const sourceLine = parseInt(el.getAttribute('data-source-line'), 10);
+                            // Find element at or just before target line
+                            if (sourceLine <= targetSourceLine) {
+                                const diff = targetSourceLine - sourceLine;
+                                if (diff < closestDiff) {
+                                    closestDiff = diff;
+                                    targetElement = el;
                                 }
                             }
                         }
 
-                        // If no heading found, try to find by searching for the actual line content
-                        if (!targetElement && targetLine <= lines.length) {
-                            const targetText = lines[targetLine - 1].trim();
-                            if (targetText) {
-                                // Search all text nodes for this content
-                                const walker = document.createTreeWalker(
-                                    content,
-                                    NodeFilter.SHOW_TEXT,
-                                    null,
-                                    false
-                                );
-                                let node;
-                                while (node = walker.nextNode()) {
-                                    if (node.textContent.includes(targetText)) {
-                                        targetElement = node.parentElement;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Fallback to first heading
+                        // Fallback to first element with line number or first heading
                         if (!targetElement) {
-                            targetElement = content.querySelector('h1, h2, h3');
+                            targetElement = elementsWithLines[0] || content.querySelector('h1, h2, h3');
                         }
 
                         if (targetElement) {
@@ -1276,6 +1253,11 @@ class TraceabilityGenerator:
                             setTimeout(() => targetElement.classList.remove('highlight-target'), 2000);
                         }
                     }, 100);
+                } else if (ext === 'md' && window.marked) {
+                    // Fallback to marked without line tracking
+                    const renderedHtml = marked.parse(text);
+                    content.innerHTML = `<div class="markdown-viewer markdown-body">${renderedHtml}</div>`;
+                    content.classList.add('markdown-mode');
                 } else {
                     // For code files, show with line numbers
                     content.classList.remove('markdown-mode');
@@ -2890,15 +2872,30 @@ class TraceabilityGenerator:
             padding-left: 110px;
         }}
         .collapse-icon {{
-            font-size: 10px;
+            font-size: 20px;
             color: #6c757d;
             transition: transform 0.15s;
             flex-shrink: 0;
-            width: 12px;
+            width: 20px;
             text-align: center;
+            line-height: 1;
         }}
         .collapse-icon.collapsed {{
             transform: rotate(-90deg);
+        }}
+        /* Icon when children exist but are all hidden by filters */
+        .collapse-icon.children-filtered {{
+            color: transparent !important;  /* Hide the arrow */
+            cursor: default;
+            position: relative;
+        }}
+        .collapse-icon.children-filtered::before {{
+            content: "●";
+            position: absolute;
+            left: 0;
+            right: 0;
+            color: #bbb;
+            font-size: 16px;
         }}
         .req-content {{
             flex: 1;
@@ -3200,7 +3197,7 @@ class TraceabilityGenerator:
         {self._generate_legend_modal_css() if embed_content else ''}
         {self._generate_file_picker_modal_css()}
     </style>
-    {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>') if embed_content else ''}
+    {('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>' + chr(10) + '    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>' + chr(10) + '    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>' + chr(10) + '    <script src="https://cdn.jsdelivr.net/npm/markdown-it-inject-linenumbers@0.3.0/dist/markdown-it-inject-linenumbers.min.js"></script>') if embed_content else ''}
 </head>
 <body>
 <div class="app-layout">
@@ -3393,6 +3390,9 @@ class TraceabilityGenerator:
 
             if (!icon.textContent) return; // No children to collapse
 
+            // Don't toggle if all children are filtered out
+            if (icon.classList.contains('children-filtered')) return;
+
             const isExpanding = collapsedInstances.has(instanceId);
 
             if (isExpanding) {
@@ -3416,6 +3416,40 @@ class TraceabilityGenerator:
                 }
             }
             updateExpandCollapseButtons();
+        }
+
+        // Update icons for items whose children are all hidden by filters
+        function updateFilteredChildrenIcons() {
+            document.querySelectorAll('.req-item:not(.filtered-out):not(.package-filtered)').forEach(item => {
+                const icon = item.querySelector('.collapse-icon');
+                if (!icon || !icon.textContent) return; // No children (empty icon = leaf node)
+
+                const instanceId = item.dataset.instanceId;
+                // Find all direct children
+                const children = document.querySelectorAll(`[data-parent-instance-id="${instanceId}"]`);
+                if (children.length === 0) {
+                    // No children in DOM - shouldn't have expand icon, but handle gracefully
+                    icon.classList.remove('children-filtered');
+                    return;
+                }
+
+                // Check if all children are hidden (filtered-out or package-filtered)
+                let allChildrenHidden = true;
+                children.forEach(child => {
+                    if (!child.classList.contains('filtered-out') &&
+                        !child.classList.contains('package-filtered')) {
+                        allChildrenHidden = false;
+                    }
+                });
+
+                if (allChildrenHidden) {
+                    // All children filtered - show special icon (CSS hides arrow, shows ○)
+                    icon.classList.add('children-filtered');
+                } else {
+                    // Some children visible - restore normal expand/collapse icon
+                    icon.classList.remove('children-filtered');
+                }
+            });
         }
 
         // Hide all descendants of a requirement instance
@@ -3600,6 +3634,14 @@ class TraceabilityGenerator:
                 if (isExpanding) {
                     child.classList.add('hierarchy-visible');
                     child.classList.remove('collapsed-by-parent');
+                    // Ensure children with grandchildren start in collapsed state
+                    // so their icon matches reality (grandchildren not visible yet)
+                    const childIcon = child.querySelector('.collapse-icon');
+                    if (childIcon && childIcon.textContent) {
+                        // Child has grandchildren - ensure it's marked as collapsed
+                        collapsedInstances.add(child.dataset.instanceId);
+                        childIcon.classList.add('collapsed');
+                    }
                 } else {
                     child.classList.remove('hierarchy-visible');
                     child.classList.add('collapsed-by-parent');
@@ -3773,6 +3815,7 @@ class TraceabilityGenerator:
                 statsText = `Showing ${visibleCount} of ${totalCount} requirements`;
             }
             document.getElementById('filterStats').textContent = statsText;
+            updateFilteredChildrenIcons();
             updateExpandCollapseButtons();
         }
 

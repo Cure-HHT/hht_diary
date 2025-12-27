@@ -4,7 +4,9 @@
       "packageId": "default",
       "name": "Default",
       "description": "REQs manually set to Review status",
-      "reqIds": [],
+      "reqIds": [
+        "p00042"
+      ],
       "createdBy": "system",
       "createdAt": "2025-12-24T17:05:33.829285Z",
       "isDefault": true
@@ -17,12 +19,18 @@
         "p00001",
         "p00018",
         "p00045",
-        "p00044"
+        "p00044",
+        "p00021",
+        "p00047",
+        "p00048",
+        "p00049",
+        "p00043",
+        "p01061"
       ],
       "createdBy": "Developer",
       "createdAt": "2025-12-24T17:08:05.017717Z",
       "isDefault": false
     }
   ],
-  "activePackageId": "default"
+  "activePackageId": null
 }

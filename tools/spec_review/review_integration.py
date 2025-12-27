@@ -734,18 +734,13 @@ body.review-mode-active .status-badge.status-draft:hover {
     width: 150px;
 }
 
-/* Line numbers for requirement body - table layout for proper alignment */
+/* Line numbers for requirement body */
 .rs-line-numbers-container {
-    font-family: monospace;
-    font-size: 12px;
+    font-family: inherit;
+    font-size: 13px;
     line-height: 1.6;
     margin: 8px 0;
-    border: 1px solid var(--border-color, #ddd);
-    border-radius: 4px;
     background: var(--bg-primary, #fff);
-    max-height: 350px;
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
 /* Use table layout for perfect line number alignment with wrapped text */
@@ -824,6 +819,37 @@ body.review-mode-active .status-badge.status-draft:hover {
 .rs-markdown-with-lines {
     position: relative;
     padding-left: 45px;  /* Space for line numbers */
+    font-family: inherit;  /* Use same font as rest of page */
+    font-size: inherit;
+    line-height: 1.5;
+}
+
+/* Ensure markdown formatting is visible */
+.rs-markdown-with-lines strong,
+.rs-markdown-with-lines b {
+    font-weight: 700;
+}
+
+.rs-markdown-with-lines em,
+.rs-markdown-with-lines i {
+    font-style: italic;
+}
+
+.rs-markdown-with-lines code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.rs-markdown-with-lines a {
+    color: var(--primary-color, #0066cc);
+    text-decoration: none;
+}
+
+.rs-markdown-with-lines a:hover {
+    text-decoration: underline;
 }
 
 /* Style all block elements with source line numbers */
@@ -834,10 +860,11 @@ body.review-mode-active .status-badge.status-draft:hover {
 
 /* Display line number via ::before pseudo-element */
 /* Uses data-display-line which is 1-based (converted from 0-based data-source-line via JS) */
+/* Uses --line-indent-offset to counteract nesting indentation and keep line numbers aligned */
 .rs-markdown-with-lines [data-display-line]::before {
     content: attr(data-display-line);
     position: absolute;
-    left: -45px;
+    left: calc(-45px - var(--line-indent-offset, 0px));
     width: 35px;
     text-align: right;
     padding-right: 8px;
@@ -868,18 +895,32 @@ body.review-mode-active .status-badge.status-draft:hover {
     outline-offset: -1px;
 }
 
-/* Remove default margins from markdown elements */
+/* Markdown element spacing */
 .rs-markdown-with-lines p,
-.rs-markdown-with-lines ul,
-.rs-markdown-with-lines ol,
 .rs-markdown-with-lines blockquote {
     margin-top: 0.25em;
     margin-bottom: 0.25em;
 }
 
-.rs-markdown-with-lines ul,
+/* List styling - ensure bullets are visible */
+.rs-markdown-with-lines ul {
+    list-style-type: disc;
+    list-style-position: inside;
+    margin: 0.25em 0;
+    padding-left: 0;
+}
+
 .rs-markdown-with-lines ol {
-    padding-left: 1.5em;
+    list-style-type: decimal;
+    list-style-position: inside;
+    margin: 0.25em 0;
+    padding-left: 0;
+}
+
+.rs-markdown-with-lines li {
+    display: list-item;
+    margin: 0.1em 0;
+    padding-left: 0.5em;
 }
 
 /* Legacy line-row styles (for fallback) */
@@ -1122,6 +1163,46 @@ body.review-mode-active [data-req-id].in-active-package {
     border-left: 3px solid var(--primary-color, #0066cc);
 }
 
+/* Toast notification - positioned near packages panel */
+.rs-toast {
+    position: absolute;
+    padding: 10px 16px;
+    background: #1a73e8;
+    color: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.15s, transform 0.15s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.rs-toast.visible {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.rs-toast-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: rs-spin 0.8s linear infinite;
+}
+
+@keyframes rs-spin {
+    to { transform: rotate(360deg); }
+}
+
 body.review-mode-active [data-req-id].in-other-package {
     opacity: 0.7;
     border-left: 3px solid #999;
@@ -1132,6 +1213,11 @@ body.review-mode-active [data-req-id].in-other-package::after {
     font-size: 10px;
     color: #999;
     margin-left: 8px;
+}
+
+/* Hide REQs not in active package when filtering */
+body.review-mode-active [data-req-id].package-filtered {
+    display: none !important;
 }
 
 body.review-mode-active [data-req-id].not-in-package {
@@ -1741,10 +1827,21 @@ function addLineNumbersToReqCard(reqId) {{
     contentDiv.innerHTML = lineNumberedHtml;
 
     // Convert 0-based data-source-line to 1-based data-display-line for CSS
+    // Also calculate left offset to keep line numbers aligned regardless of nesting
     const elementsWithLines = contentDiv.querySelectorAll('[data-source-line]');
+    const containerRect = contentDiv.querySelector('.rs-markdown-with-lines');
+    const containerLeft = containerRect ? containerRect.getBoundingClientRect().left : contentDiv.getBoundingClientRect().left;
+
     elementsWithLines.forEach(el => {{
         const sourceLine = parseInt(el.getAttribute('data-source-line'), 10);
         el.setAttribute('data-display-line', sourceLine + 1);
+
+        // Calculate how far this element is indented from the container
+        const elRect = el.getBoundingClientRect();
+        const indentOffset = elRect.left - containerLeft - 45; // 45px is the padding-left
+        if (indentOffset > 0) {{
+            el.style.setProperty('--line-indent-offset', `${{indentOffset}}px`);
+        }}
     }});
 
     // Bind click handlers for review mode line selection
