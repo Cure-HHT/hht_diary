@@ -688,6 +688,13 @@ body.review-mode-active .status-badge.status-draft:hover {
     margin: 0;
 }
 
+/* Comment highlight in REQ card */
+.rs-comment-highlight {
+    background-color: rgba(255, 235, 59, 0.4) !important;
+    outline: 2px solid #ffc107;
+    outline-offset: -1px;
+}
+
 /* Comments section */
 .rs-comments-section {
     flex: 1;

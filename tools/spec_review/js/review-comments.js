@@ -483,8 +483,106 @@ window.ReviewSystem = window.ReviewSystem || {};
             threadEl.addEventListener('mouseleave', () => {
                 RS.activateHighlight(null);
             });
+
+            // Click to highlight position in REQ card
+            threadEl.addEventListener('click', (e) => {
+                // Don't trigger if clicking on buttons or reply form
+                if (e.target.closest('button') || e.target.closest('.rs-reply-form') ||
+                    e.target.closest('textarea') || e.target.closest('input')) {
+                    return;
+                }
+                const threadId = threadEl.getAttribute('data-thread-id');
+                highlightThreadPositionInCard(threadId, container);
+            });
         });
     }
+
+    /**
+     * Highlight the position referenced by a thread in the REQ card
+     * @param {string} threadId - Thread ID
+     * @param {Element} container - Container element
+     */
+    function highlightThreadPositionInCard(threadId, container) {
+        // Get the reqId and find the thread
+        const reqId = container.querySelector('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.closest('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.getAttribute('data-req-id') ||
+                      (typeof currentReviewReqId !== 'undefined' ? currentReviewReqId : null);
+
+        if (!reqId) return;
+
+        const threads = RS.state.getThreads(reqId);
+        const thread = threads.find(t => t.threadId === threadId);
+        if (!thread || !thread.position) return;
+
+        const position = thread.position;
+
+        // Find the REQ card's line-numbered view
+        const reqCard = document.getElementById(`req-card-${reqId}`);
+        if (!reqCard) return;
+
+        const lineContainer = reqCard.querySelector('.rs-lines-table');
+        if (!lineContainer) return;
+
+        // Clear any existing highlights
+        clearCommentHighlights(lineContainer);
+
+        // Highlight based on position type
+        let linesToHighlight = [];
+
+        if (position.type === RS.PositionType.LINE && position.lineNumber) {
+            linesToHighlight = [position.lineNumber];
+        } else if (position.type === RS.PositionType.BLOCK && position.lineRange) {
+            const [start, end] = position.lineRange;
+            for (let i = start; i <= end; i++) {
+                linesToHighlight.push(i);
+            }
+        } else if (position.type === RS.PositionType.WORD && position.keyword) {
+            // For word positions, try to find the line containing the keyword
+            const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
+            if (reqData && reqData.body) {
+                const foundLine = RS.findKeywordOccurrence(
+                    reqData.body,
+                    position.keyword,
+                    position.keywordOccurrence || 1
+                );
+                if (foundLine) {
+                    linesToHighlight = [foundLine.line];
+                }
+            }
+        }
+        // For 'general' position, no specific lines to highlight
+
+        // Apply highlights and scroll to first highlighted line
+        if (linesToHighlight.length > 0) {
+            let firstRow = null;
+            linesToHighlight.forEach(lineNum => {
+                const lineRow = lineContainer.querySelector(`.rs-line-row[data-line="${lineNum}"]`);
+                if (lineRow) {
+                    lineRow.classList.add('rs-comment-highlight');
+                    if (!firstRow) firstRow = lineRow;
+                }
+            });
+
+            // Scroll the first highlighted line into view
+            if (firstRow) {
+                firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+    RS.highlightThreadPositionInCard = highlightThreadPositionInCard;
+
+    /**
+     * Clear comment highlights from line container
+     * @param {Element} lineContainer - The lines table element
+     */
+    function clearCommentHighlights(lineContainer) {
+        if (!lineContainer) return;
+        lineContainer.querySelectorAll('.rs-comment-highlight').forEach(el => {
+            el.classList.remove('rs-comment-highlight');
+        });
+    }
+    RS.clearCommentHighlights = clearCommentHighlights;
 
     /**
      * Submit reply to a thread
