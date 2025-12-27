@@ -840,34 +840,39 @@ body.review-mode-active .status-badge.status-draft:hover {
     color: var(--danger-color, #dc3545);
 }
 
-/* Line numbers in REQ card body (integrated view) */
-.review-mode-active .req-card-content.rs-with-line-numbers {
+/* Line numbers in REQ card body (integrated view - always active) */
+.req-card-content.rs-with-line-numbers {
     padding: 0;
 }
 
-.review-mode-active .req-card-content.rs-with-line-numbers .rs-lines-table {
+.req-card-content.rs-with-line-numbers .rs-lines-table {
     margin: 0;
     border: none;
     border-radius: 0;
     max-height: none;
 }
 
-.review-mode-active .rs-line-numbers-hint {
+/* Hint bar only shown in review mode (for line selection) */
+.rs-line-numbers-hint {
+    display: none;  /* Hidden by default */
     font-size: 11px;
     color: var(--text-muted, #888);
     padding: 4px 8px;
     background: var(--bg-tertiary, #e9ecef);
     border-bottom: 1px solid var(--border-color, #ddd);
-    display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.review-mode-active .rs-line-numbers-hint .hint-text {
+.review-mode-active .rs-line-numbers-hint {
+    display: flex;  /* Show in review mode */
+}
+
+.rs-line-numbers-hint .hint-text {
     font-style: italic;
 }
 
-.review-mode-active .rs-line-numbers-hint .selected-lines {
+.rs-line-numbers-hint .selected-lines {
     font-weight: 600;
     color: var(--primary-color, #0066cc);
 }
@@ -1103,6 +1108,9 @@ document.addEventListener('DOMContentLoaded', function() {{
     // Add review badges to requirements
     updateReviewBadges();
 
+    // Apply line-numbered markdown view to all REQ cards (this is now the default view)
+    applyLineNumbersToAllCards();
+
     // Hook into the existing openReqPanel function to track selected requirement
     if (typeof window.openReqPanel === 'function') {{
         const originalOpenReqPanel = window.openReqPanel;
@@ -1110,10 +1118,12 @@ document.addEventListener('DOMContentLoaded', function() {{
             currentReviewReqId = reqId;
             originalOpenReqPanel(reqId);
 
-            // If review mode is active, add line numbers to REQ body and update panel
+            // Ensure line numbers are applied to the newly opened card
+            addLineNumbersToReqCard(reqId);
+
+            // If review mode is active, update the review panel content
             const reviewToggle = document.getElementById('review-mode-toggle');
             if (reviewToggle && reviewToggle.checked) {{
-                addLineNumbersToReqCard(reqId);
                 updateReviewPanelContent();
             }}
         }};
@@ -1130,15 +1140,13 @@ document.addEventListener('DOMContentLoaded', function() {{
                 if (typeof ReviewSystem.initPackagesPanel === 'function') {{
                     ReviewSystem.initPackagesPanel();
                 }}
-                // Add line numbers to current REQ card if one is open
+                // Update review panel content for current REQ
                 if (currentReviewReqId) {{
-                    addLineNumbersToReqCard(currentReviewReqId);
                     updateReviewPanelContent('comments');
                 }}
             }} else {{
                 hideReviewPanel();
-                // Remove line numbers from cards when review mode is disabled
-                removeLineNumbersFromCards();
+                // Line numbers stay visible - they're now the default view
             }}
         }});
 
@@ -1584,7 +1592,18 @@ function escapeHtmlContent(text) {{
     return div.innerHTML;
 }}
 
+// Render inline markdown for a single line (preserves line structure)
+function renderLineMarkdown(line) {{
+    if (!line || !line.trim()) return '';
+    // Use marked.parseInline if available, otherwise escape HTML
+    if (window.marked && typeof marked.parseInline === 'function') {{
+        return marked.parseInline(line);
+    }}
+    return escapeHtmlContent(line);
+}}
+
 // Add line numbers to the REQ card body in the side panel
+// This is now the DEFAULT view for REQ cards (always shows line numbers with markdown)
 function addLineNumbersToReqCard(reqId) {{
     // Find the current REQ card
     const card = document.getElementById(`req-card-${{reqId}}`);
@@ -1600,22 +1619,18 @@ function addLineNumbersToReqCard(reqId) {{
     const body = reqData.body;
     const lines = body.split('\\n');
 
-    // Build table rows
+    // Build table rows with inline markdown rendering
     const tableRowsHtml = lines.map((line, i) => {{
         const lineNum = i + 1;
-        const escapedContent = escapeHtmlContent(line);
+        const renderedContent = renderLineMarkdown(line);
         return `<div class="rs-line-row" data-line="${{lineNum}}">
             <span class="rs-line-number" data-line="${{lineNum}}">${{lineNum}}</span>
-            <span class="rs-line-text">${{escapedContent || ''}}</span>
+            <span class="rs-line-text">${{renderedContent || ''}}</span>
         </div>`;
     }}).join('');
 
-    // Create the line-numbered view
+    // Create the line-numbered view (no hint bar needed for default view)
     const lineNumberedHtml = `
-        <div class="rs-line-numbers-hint">
-            <span class="hint-text">Click line # or drag to select range</span>
-            <span class="selected-lines" id="rs-card-selected-lines"></span>
-        </div>
         <div class="rs-line-numbers-container">
             <div class="rs-lines-table">${{tableRowsHtml}}</div>
         </div>
@@ -1625,8 +1640,16 @@ function addLineNumbersToReqCard(reqId) {{
     contentDiv.classList.add('rs-with-line-numbers');
     contentDiv.innerHTML = lineNumberedHtml;
 
-    // Bind click handlers
+    // Bind click handlers for review mode selection
     bindCardLineNumberHandlers(contentDiv);
+}}
+
+// Apply line numbers to all REQ cards on page load
+function applyLineNumbersToAllCards() {{
+    if (!window.REQ_CONTENT_DATA) return;
+    Object.keys(window.REQ_CONTENT_DATA).forEach(reqId => {{
+        addLineNumbersToReqCard(reqId);
+    }});
 }}
 
 // Track drag selection state
