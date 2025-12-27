@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-11-04
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: dev-event-sourcing-postgres.md for implementation details (to be created)
@@ -161,7 +161,7 @@ Offline queue SHALL ensure:
 
 **Acceptance Criteria**:
 - Events saved locally immediately upon creation
-- Automatic sync when network becomes available
+- Automatic sync when network becomes available and application is active on the device.
 - Manual sync trigger for user control
 - Sync status indicator (pending/syncing/complete)
 - Failed events logged with detailed error messages
@@ -181,7 +181,7 @@ The module SHALL implement optimistic concurrency control to handle conflicting 
 Conflict resolution SHALL support:
 - Version vectors or sequence numbers for event ordering
 - Automatic detection of conflicting events
-- Pluggable conflict resolution strategies (last-write-wins, merge, custom)
+- Pluggable conflict resolution strategies (last-write-wins, merge, custom) TODO - waves hands
 - User notification when manual conflict resolution required
 - Preservation of all conflicting events in audit trail
 
@@ -234,8 +234,10 @@ Event storage SHALL ensure:
 The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
 
 Schema management SHALL provide:
-- Client awareness of current database schema version
-- Compatibility checks before event creation
+- Server app awareness of current database schema version
+- Client app awareness of server app version.
+- Compatibility checks on server start (portal, auth).
+- Compatibility checks on client application (diary, portal) start.
 - Automatic data migration for compatible schema changes
 - Clear error messages for incompatible schema versions
 - Rollback capability for failed migrations
@@ -604,6 +606,8 @@ Batch operations SHALL ensure:
 ---
 
 # REQ-p01013: GraphQL or gRPC Transport Option
+
+TODO - This adds unnecessary complexity
 
 **Level**: PRD | **Implements**: p00046 | **Status**: Draft
 

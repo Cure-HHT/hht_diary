@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-02
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: prd-system.md for platform overview
@@ -58,7 +58,7 @@ Ancillary services SHALL provide:
 **Use Cases**:
 - Investigator enrollment notifications
 - Password reset communications
-- Report delivery to staff
+- Report delivery to staff TODO - better as a notification for a report in the portal, email reports are a pain.
 - Audit event notifications
 
 **Requirements**:

@@ -4,7 +4,8 @@
 #   REQ-d00032: Development Tool Specifications
 #
 # DevOps Environment Dockerfile
-# Extends base with: Terraform, Supabase CLI, deployment tools
+# Extends base with: container security tools (cosign, syft, grype)
+# Note: gcloud, cloud-sql-proxy, psql, and pulumi are in base image
 
 ARG BASE_IMAGE_NAME=clinical-diary-base
 ARG BASE_IMAGE_TAG=latest
@@ -16,32 +17,9 @@ FROM ${BASE_IMAGE_REF}
 
 LABEL com.clinical-diary.role="ops"
 LABEL com.clinical-diary.base-image="${BASE_IMAGE_REF}"
-LABEL description="DevOps environment with infrastructure and deployment tools"
+LABEL description="DevOps environment with container security and deployment tools"
 
 USER root
-
-# ============================================================
-# Terraform (1.9+)
-# ============================================================
-RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | \
-    gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-    tee /etc/apt/sources.list.d/hashicorp.list && \
-    apt-get update -y && \
-    apt-get install -y terraform && \
-    terraform --version && \
-    rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# Supabase CLI v2.54.10 (pinned for FDA 21 CFR Part 11 compliance)
-# Version pinned: 2025-10-28
-# ============================================================
-ENV SUPABASE_CLI_VERSION=v2.54.10
-RUN apt-get update -y && \
-    apt-get install -y ca-certificates && \
-    curl -fsSL https://github.com/supabase/cli/releases/download/${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz | tar -xz -C /usr/local/bin && \
-    supabase --version && \
-    rm -rf /var/lib/apt/lists/*
 
 # ============================================================
 # Docker CLI (for container operations)
@@ -50,25 +28,6 @@ RUN apt-get update -y && \
     apt-get install -y \
     docker.io \
     && rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# AWS CLI (optional, for multi-cloud deployment)
-# ============================================================
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip -q awscliv2.zip && \
-    ./aws/install && \
-    rm -rf awscliv2.zip aws && \
-    aws --version
-
-# ============================================================
-# kubectl v1.34.1 (Kubernetes CLI, pinned for compliance)
-# Version pinned: 2025-10-28
-# ============================================================
-ENV KUBECTL_VERSION=v1.34.1
-RUN curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
-    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
-    rm kubectl && \
-    kubectl version --client
 
 # ============================================================
 # Cosign v3.0.2 (container image signing, pinned for compliance)
@@ -123,5 +82,5 @@ CMD ["/bin/bash", "-l"]
 
 # Labels
 LABEL com.clinical-diary.role="ops"
-LABEL com.clinical-diary.tools="terraform,supabase,aws,kubectl,cosign,syft,grype"
+LABEL com.clinical-diary.tools="gcloud,pulumi,psql,cloud-sql-proxy,docker,cosign,syft,grype"
 LABEL com.clinical-diary.requirement="REQ-d00028,REQ-d00032"

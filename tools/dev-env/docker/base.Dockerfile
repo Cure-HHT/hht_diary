@@ -152,6 +152,50 @@ RUN pip3 install --no-cache-dir --break-system-packages --root-user-action=ignor
     npm install -g @anthropic-ai/claude-code
 
 # ============================================================
+# Google Cloud SDK (gcloud CLI)
+# Required for GCP authentication, Cloud SQL access, and deployment
+# ============================================================
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+    tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+    gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
+    apt-get update -y && \
+    apt-get install -y google-cloud-cli && \
+    gcloud --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Cloud SQL Auth Proxy v2.14.3 (secure Cloud SQL connectivity)
+# Version pinned: 2025-12-27
+# ============================================================
+ENV CLOUD_SQL_PROXY_VERSION=v2.14.3
+RUN curl -o /usr/local/bin/cloud-sql-proxy \
+    https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/${CLOUD_SQL_PROXY_VERSION}/cloud-sql-proxy.linux.amd64 && \
+    chmod +x /usr/local/bin/cloud-sql-proxy && \
+    cloud-sql-proxy --version
+
+# ============================================================
+# PostgreSQL Client 16 (psql for database access)
+# ============================================================
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+    gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | \
+    tee /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update -y && \
+    apt-get install -y postgresql-client-16 && \
+    psql --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Pulumi CLI (Infrastructure as Code)
+# Required for managing GCP infrastructure (Cloud SQL, Cloud Run, etc.)
+# ============================================================
+RUN curl -fsSL https://get.pulumi.com | sh && \
+    mv /root/.pulumi/bin/pulumi /usr/local/bin/ && \
+    rm -rf /root/.pulumi && \
+    pulumi version
+
+# ============================================================
 # Create non-root user: ubuntu
 # Ubuntu 24.04 image may already have ubuntu user, so check first
 # ============================================================

@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Development
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: prd-diary-web.md for product requirements
@@ -22,16 +22,23 @@ This specification defines the implementation details for the Web Diary applicat
 - **Hosting**: Firebase Hosting or Cloud Run
 - **Password Hashing**: Argon2id (client-side before transmission)
 
+## Status
+
+Web security does not have the hardware-level safety that mobile apps allow.  The web app needs to have a review of
+it's security posture.
+
+The lack of a local database conflicts with REQ-p01001: Offline Event Queue with Automatic Synchronization
+
 ---
 
 # REQ-d00077: Web Diary Frontend Framework
 
 **Level**: Dev | **Implements**: p01042 | **Status**: Draft
 
-The Web Diary SHALL be implemented using Flutter Web with the HTML renderer, sharing UI components with the mobile application where appropriate.
+The Web Diary SHALL be implemented using Flutter Web, reusing the same codebase as mobile with limited additions.
 
 Implementation SHALL include:
-- Flutter Web application using HTML renderer for broad browser compatibility
+- Flutter Web application
 - Shared widget library with mobile app for consistent UI patterns
 - Material Design 3 theming with sponsor-specific customization
 - Responsive layout supporting desktop and tablet viewports
@@ -49,11 +56,11 @@ void main() {
     });
   }
 
-  runApp(const WebDiaryApp());
+  runApp(const ClinicalDiaryApp());
 }
 ```
 
-**Rationale**: Flutter Web enables code sharing with the mobile app while the HTML renderer ensures compatibility across browsers. Disabling service workers prevents cached data from persisting beyond the session.
+**Rationale**: Flutter Web enables code sharing with the mobile app. Disabling service workers prevents cached data from persisting beyond the session.
 
 **Acceptance Criteria**:
 - Application loads in Chrome, Firefox, Safari, Edge (latest 2 versions)
@@ -66,109 +73,11 @@ void main() {
 
 ---
 
-# REQ-d00078: HHT Diary Auth Service
-
-**Level**: Dev | **Implements**: p01043 | **Status**: Draft
-
-A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Identity Platform or Google Identity Platform.
-
-Implementation SHALL include:
-- Cloud Run service written in Dart (shelf or dart_frog framework)
-- Firestore collection for user credentials storage
-- JWT generation and validation using `dart_jsonwebtoken` package
-- Linking code validation and sponsor routing
-- Rate limiting to prevent brute force attacks
-- Audit logging of all authentication events
-
-```dart
-// Auth service endpoint structure
-class AuthService {
-  // POST /auth/register - Create new account
-  // POST /auth/login - Authenticate and return JWT
-  // POST /auth/refresh - Refresh JWT token
-  // POST /auth/change-password - Update password
-  // POST /auth/validate-linking-code - Validate code and return sponsor info
-}
-
-// JWT payload structure
-class AuthToken {
-  final String sub;           // User document ID
-  final String username;      // Username
-  final String sponsorId;     // Sponsor identifier from linking code
-  final String sponsorUrl;    // Sponsor Portal URL
-  final String appUuid;       // Device/app instance UUID
-  final DateTime iat;         // Issued at
-  final DateTime exp;         // Expiration (short-lived for web)
-}
-```
-
-**Rationale**: A custom auth service avoids GDPR concerns with Identity Platform while providing full control over the authentication flow. Cloud Run provides auto-scaling and managed infrastructure.
-
-**Acceptance Criteria**:
-- Service deployed to Cloud Run with HTTPS endpoint
-- JWT tokens expire after 15 minutes (refreshable)
-- Failed login attempts rate-limited (5 attempts per minute)
-- All auth events logged to Cloud Logging
-- Service responds within 500ms for auth operations
-
-*End* *HHT Diary Auth Service* | **Hash**: 774a18da
-
----
-
-# REQ-d00079: Linking Code Pattern Matching
-
-**Level**: Dev | **Implements**: p01043 | **Status**: Draft
-
-The HHT Diary Auth service SHALL implement pattern-based sponsor identification from linking codes, maintaining a configurable mapping table.
-
-Implementation SHALL include:
-- Firestore collection `sponsor_patterns` storing pattern-to-sponsor mappings
-- Pattern matching using prefix comparison (similar to credit card BIN ranges)
-- Cached pattern table with 5-minute TTL for performance
-- Admin API for pattern table management (add/update/decommission sponsors)
-- Validation of linking code format before pattern matching
-
-```dart
-// Firestore sponsor_patterns collection schema
-class SponsorPattern {
-  final String patternPrefix;    // e.g., "HHT-CUR-" or "1234"
-  final String sponsorId;        // Unique sponsor identifier
-  final String sponsorName;      // Human-readable name
-  final String portalUrl;        // Sponsor Portal base URL
-  final String firestoreProject; // Sponsor's GCP project ID
-  final bool active;             // Whether sponsor is active
-  final DateTime createdAt;
-  final DateTime? decommissionedAt;
-}
-
-// Pattern matching logic
-String? findSponsorByLinkingCode(String linkingCode) {
-  // Patterns sorted by length descending (most specific first)
-  for (final pattern in cachedPatterns) {
-    if (linkingCode.startsWith(pattern.patternPrefix) && pattern.active) {
-      return pattern.sponsorId;
-    }
-  }
-  return null; // No matching sponsor
-}
-```
-
-**Rationale**: Pattern-based routing enables a single auth service to handle multiple sponsors without exposing sponsor selection to users. The prefix approach mirrors proven systems like credit card BIN ranges.
-
-**Acceptance Criteria**:
-- Linking code correctly identifies sponsor from pattern
-- Unknown patterns return clear error message
-- Pattern cache refreshes every 5 minutes
-- Decommissioned sponsors reject new linking codes
-- Admin can add new patterns without service restart
-
-*End* *Linking Code Pattern Matching* | **Hash**: da7b9bb0
-
----
-
 # REQ-d00080: Web Session Management Implementation
 
 **Level**: Dev | **Implements**: p01044 | **Status**: Draft
+
+TODO - is this true for mobile too?  if so, we should just remove or move this.
 
 The Web Diary SHALL implement client-side session management with inactivity timeout, browser close detection, and complete session termination.
 
@@ -230,52 +139,7 @@ class WebSessionManager {
 
 ---
 
-# REQ-d00081: User Document Schema
-
-**Level**: Dev | **Implements**: p01046 | **Status**: Draft
-
-User authentication data SHALL be stored in Firestore with a schema supporting sponsor isolation, password hashing, and audit trail requirements.
-
-Implementation SHALL include:
-- Firestore collection `web_users` in HHT Diary Auth project
-- Document ID generated as UUID v4
-- Compound index on `sponsorId` + `username` for uniqueness
-- Password stored as Argon2id hash
-- Timestamps for audit trail
-
-```dart
-// Firestore web_users collection schema
-class WebUser {
-  final String id;              // UUID v4 document ID
-  final String username;        // User-chosen username (6+ chars, no @)
-  final String passwordHash;    // Argon2id hash
-  final String sponsorId;       // Sponsor identifier from linking code
-  final String linkingCode;     // Original linking code used
-  final String appUuid;         // App instance UUID at registration
-  final DateTime createdAt;     // Account creation timestamp
-  final DateTime? lastLoginAt;  // Last successful login
-  final int failedAttempts;     // Failed login counter (for rate limiting)
-  final DateTime? lockedUntil;  // Account lockout expiry
-}
-
-// Firestore security rules (conceptual)
-// - web_users readable/writable only by auth service account
-// - No client-side access to user documents
-// - Sponsor isolation enforced by service logic
-```
-
-**Rationale**: Storing auth data in a dedicated collection separate from clinical data maintains separation of concerns. The schema supports account lockout, audit requirements, and linking back to the original enrollment.
-
-**Acceptance Criteria**:
-- Document created on successful registration
-- Username + sponsorId combination enforced unique
-- Password hash uses Argon2id with secure parameters
-- lastLoginAt updated on each successful authentication
-- Failed attempts tracked and reset on successful login
-
-*End* *User Document Schema* | **Hash**: cde85fd6
-
----
+TODO - move to dev-app.md
 
 # REQ-d00082: Password Hashing Implementation
 
@@ -424,7 +288,7 @@ class StorageClearer {
 *End* *Browser Storage Clearing* | **Hash**: d5857410
 
 ---
-
+TODO - remove or move to dev-app.md
 # REQ-d00084: Sponsor Configuration Loading
 
 **Level**: Dev | **Implements**: p01042, p01043 | **Status**: Draft

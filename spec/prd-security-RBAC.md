@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-12-27
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
 > **See**: prd-security.md for overall security architecture
@@ -87,6 +87,7 @@ Least privilege SHALL ensure:
 
 - **Single Active Role Context**: A user with multiple roles must explicitly select a single role before performing any action. All actions are attributed to that role.
 - **Explicit Scope Selection**: When a role spans multiple scopes (e.g., multiple sites), the user must select a single scope per session/view. No cross-site blended views.
+- TODO - should site staff users also select a site (would they ever have access to more than one?)
 - **Least Privilege**: Grant only what is necessary for job functions.
 - **Separation of Duties**: Sensitive operations require distinct roles to reduce conflict of interest.
 - **Auditability**: All access and administrative actions must be logged with role context and scope.
@@ -147,12 +148,15 @@ Least privilege SHALL ensure:
 
 1. Use Postgres pgaudit
 2. Keep audit in same DB (audit schema) + daily Storage checkpoint
-3. Edge Functions for break-glass, alerts, scheduler
+3. Cloud functions for break-glass, alerts, scheduler
 4. Skip heavy SIEM initially; add later if needed
 5. De-identify by default (future-proofing); require justification for exports
 6. Enforce single active Role + Site via token claims
 7. Dev/Admin guardrails: no routine PHI; TTL-based elevation with ticket
 8. Weekly automated audit digest email; set 7-year retention
+
+TODO - email? 
+TODO - what's 25 year and what's 7 year?
 
 ### Automated Digest
 

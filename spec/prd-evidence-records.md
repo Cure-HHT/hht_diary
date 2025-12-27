@@ -2,7 +2,7 @@
 
 **Version**: 1.1
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-03
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 ---
@@ -193,6 +193,8 @@ Proof archival SHALL ensure:
 **Level**: PRD | **Implements**: p01025 | **Status**: Draft
 
 The system SHALL record a device fingerprint with each data submission to establish the collection method and enable traceability to the originating device.
+
+TODO - doesn't this conflict with GDPR?
 
 Device fingerprinting SHALL:
 - Capture a unique, non-reversible identifier derived from device hardware attributes

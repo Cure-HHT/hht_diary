@@ -134,6 +134,8 @@ Event storage SHALL ensure:
 - Each event includes: timestamp, user ID, action type, data values, reason for change
 - Current data state derived by replaying events
 
+#TODO - do we need a PRD-level OpenTimestamps description?
+
 **Rationale**: FDA 21 CFR Part 11 requires complete audit trails for electronic records. Event sourcing makes audit trails automatic and tamper-proof by design - you cannot modify data without creating an event, and events cannot be altered after creation. This supports ALCOA+ principles.
 
 **Acceptance Criteria**:
@@ -270,6 +272,9 @@ Patients may use multiple devices (phone and tablet):
 3. Both devices come online
 4. System detects both entries
 5. Most recent change wins (or patient chooses)
+
+TODO - this is needs details.  When does the patient choose? 
+This may be in a separate document that needs referencing - prd-event-sourcing-system.md?
 
 ---
 
