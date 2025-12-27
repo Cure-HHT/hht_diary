@@ -816,22 +816,83 @@ body.review-mode-active .status-badge.status-draft:hover {
     padding-left: 1.5em;
 }
 
+/* ============================================
+   Markdown-it Line Numbers (via data-source-line)
+   ============================================ */
+
+/* Container for markdown with line numbers */
+.rs-markdown-with-lines {
+    position: relative;
+    padding-left: 45px;  /* Space for line numbers */
+}
+
+/* Style all block elements with source line numbers */
+.rs-markdown-with-lines [data-source-line] {
+    position: relative;
+    min-height: 1.4em;
+}
+
+/* Display line number via ::before pseudo-element */
+/* Uses data-display-line which is 1-based (converted from 0-based data-source-line via JS) */
+.rs-markdown-with-lines [data-display-line]::before {
+    content: attr(data-display-line);
+    position: absolute;
+    left: -45px;
+    width: 35px;
+    text-align: right;
+    padding-right: 8px;
+    color: var(--text-muted, #999);
+    font-size: 11px;
+    font-family: monospace;
+    user-select: none;
+    border-right: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Hover effect in review mode */
+.review-mode-active .rs-markdown-with-lines [data-source-line]:hover {
+    background: rgba(0, 102, 204, 0.05);
+    cursor: pointer;
+}
+
+/* Selected line highlight */
+.rs-markdown-with-lines .rs-line-selected {
+    background: rgba(255, 235, 59, 0.3) !important;
+    outline: 2px solid #ffc107;
+    outline-offset: -1px;
+}
+
+/* Comment highlight on lines */
+.rs-markdown-with-lines .rs-comment-highlight {
+    background: rgba(255, 235, 59, 0.4) !important;
+    outline: 2px solid #ffc107;
+    outline-offset: -1px;
+}
+
+/* Remove default margins from markdown elements */
+.rs-markdown-with-lines p,
+.rs-markdown-with-lines ul,
+.rs-markdown-with-lines ol,
+.rs-markdown-with-lines blockquote {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+.rs-markdown-with-lines ul,
+.rs-markdown-with-lines ol {
+    padding-left: 1.5em;
+}
+
+/* Legacy line-row styles (for fallback) */
 .rs-line-row {
-    cursor: text;  /* Indicate text is selectable */
+    cursor: text;
 }
 
 .review-mode-active .rs-line-row {
-    cursor: crosshair;  /* Indicate drag selection is available */
+    cursor: crosshair;
 }
 
 .review-mode-active .rs-line-row:active {
     cursor: grabbing;
-}
-
-/* Empty line placeholder */
-.rs-line-text:empty::before {
-    content: " ";
-    white-space: pre;
 }
 
 /* Selected position indicator */
@@ -1137,16 +1198,16 @@ document.addEventListener('DOMContentLoaded', function() {{
     updateReviewBadges();
 
     // Apply line-numbered markdown view to all REQ cards
-    // Wait for marked library to be available (may load after DOMContentLoaded)
-    function waitForMarkedAndApply() {{
-        if (window.marked) {{
+    // Wait for markdown-it library to be available (may load after DOMContentLoaded)
+    function waitForMarkdownItAndApply() {{
+        if (window.markdownit && window.markdownitInjectLinenumbers) {{
             applyLineNumbersToAllCards();
         }} else {{
-            // Retry in 100ms if marked not yet loaded
-            setTimeout(waitForMarkedAndApply, 100);
+            // Retry in 100ms if markdown-it not yet loaded
+            setTimeout(waitForMarkdownItAndApply, 100);
         }}
     }}
-    waitForMarkedAndApply();
+    waitForMarkdownItAndApply();
 
     // Hook into the existing openReqPanel function to track selected requirement
     if (typeof window.openReqPanel === 'function') {{
@@ -1629,17 +1690,24 @@ function escapeHtmlContent(text) {{
     return div.innerHTML;
 }}
 
-// Render markdown for a single source line
-function renderLineMarkdown(line) {{
-    if (!line || !line.trim()) return '';
-    if (window.marked) {{
-        return marked.parse(line);
+// Create markdown-it instance with line numbers plugin
+var mdWithLineNumbers = null;
+function getMarkdownItWithLineNumbers() {{
+    if (mdWithLineNumbers) return mdWithLineNumbers;
+    if (window.markdownit && window.markdownitInjectLinenumbers) {{
+        mdWithLineNumbers = window.markdownit({{
+            html: true,
+            linkify: true,
+            typographer: true
+        }}).use(window.markdownitInjectLinenumbers);
+        return mdWithLineNumbers;
     }}
-    return escapeHtmlContent(line);
+    return null;
 }}
 
 // Add line numbers to the REQ card body in the side panel
-// This is now the DEFAULT view for REQ cards (always shows line numbers with markdown)
+// Uses markdown-it with inject-linenumbers plugin for proper markdown rendering
+// with source line mapping via data-source-line attributes
 function addLineNumbersToReqCard(reqId) {{
     // Find the current REQ card
     const card = document.getElementById(`req-card-${{reqId}}`);
@@ -1652,23 +1720,19 @@ function addLineNumbersToReqCard(reqId) {{
     const reqData = window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[reqId];
     if (!reqData || !reqData.body) return;
 
-    const body = reqData.body;
-    const lines = body.split('\\n');
+    const md = getMarkdownItWithLineNumbers();
+    if (!md) {{
+        console.warn('markdown-it with linenumbers not available');
+        return;
+    }}
 
-    // Build table rows with inline markdown rendering
-    const tableRowsHtml = lines.map((line, i) => {{
-        const lineNum = i + 1;
-        const renderedContent = renderLineMarkdown(line);
-        return `<div class="rs-line-row" data-line="${{lineNum}}">
-            <span class="rs-line-number" data-line="${{lineNum}}">${{lineNum}}</span>
-            <span class="rs-line-text">${{renderedContent || ''}}</span>
-        </div>`;
-    }}).join('');
+    // Render markdown with source line numbers injected as data-source-line attributes
+    const renderedHtml = md.render(reqData.body);
 
-    // Create the line-numbered view (no hint bar needed for default view)
+    // Create the line-numbered view container
     const lineNumberedHtml = `
-        <div class="rs-line-numbers-container">
-            <div class="rs-lines-table">${{tableRowsHtml}}</div>
+        <div class="rs-line-numbers-container rs-markdown-with-lines">
+            ${{renderedHtml}}
         </div>
     `;
 
@@ -1676,8 +1740,49 @@ function addLineNumbersToReqCard(reqId) {{
     contentDiv.classList.add('rs-with-line-numbers');
     contentDiv.innerHTML = lineNumberedHtml;
 
-    // Bind click handlers for review mode selection
-    bindCardLineNumberHandlers(contentDiv);
+    // Convert 0-based data-source-line to 1-based data-display-line for CSS
+    const elementsWithLines = contentDiv.querySelectorAll('[data-source-line]');
+    elementsWithLines.forEach(el => {{
+        const sourceLine = parseInt(el.getAttribute('data-source-line'), 10);
+        el.setAttribute('data-display-line', sourceLine + 1);
+    }});
+
+    // Bind click handlers for review mode line selection
+    bindLineNumberClickHandlers(contentDiv);
+}}
+
+// Bind click handlers for elements with data-source-line attributes
+function bindLineNumberClickHandlers(container) {{
+    const elementsWithLines = container.querySelectorAll('[data-display-line]');
+    elementsWithLines.forEach(el => {{
+        el.addEventListener('click', (e) => {{
+            // Only handle if in review mode
+            if (!document.body.classList.contains('review-mode-active')) return;
+
+            const lineNum = parseInt(el.getAttribute('data-display-line'), 10); // Already 1-based
+            if (lineNum && !isNaN(lineNum)) {{
+                // Clear previous selections
+                container.querySelectorAll('.rs-line-selected').forEach(sel => {{
+                    sel.classList.remove('rs-line-selected');
+                }});
+                el.classList.add('rs-line-selected');
+
+                // Update global selection state
+                if (typeof window.selectedLineNumber !== 'undefined') {{
+                    window.selectedLineNumber = lineNum;
+                    window.selectedLineRange = null;
+                }}
+
+                // Update selection indicator if exists
+                const indicator = document.getElementById('rs-selected-position');
+                const valueSpan = document.getElementById('rs-position-value');
+                if (indicator && valueSpan) {{
+                    valueSpan.textContent = `Line ${{lineNum}}`;
+                    indicator.style.display = 'flex';
+                }}
+            }}
+        }});
+    }});
 }}
 
 // Apply line numbers to all REQ cards on page load

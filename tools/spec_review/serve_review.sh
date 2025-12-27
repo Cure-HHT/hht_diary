@@ -206,9 +206,12 @@ review_js = get_review_js_content()
 init_js = get_review_init_js(username)
 toggle_html = get_review_mode_toggle_html()
 
-# Inject CSS before </head> - only replace FIRST occurrence (the actual HTML tag)
-# Requirement bodies might contain </head> in examples
-css_injection = f"<style id='review-system-css'>\n{review_css}\n</style>\n</head>"
+# Inject markdown-it libraries and CSS before </head>
+# markdown-it with line numbers plugin for proper markdown rendering with source line mapping
+markdown_it_scripts = '''<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it-inject-linenumbers@0.3.0/dist/markdown-it-inject-linenumbers.min.js"></script>'''
+
+css_injection = f"{markdown_it_scripts}\n<style id='review-system-css'>\n{review_css}\n</style>\n</head>"
 html = html.replace("</head>", css_injection, 1)
 
 # Inject review data and JS before </body> - only replace LAST occurrence
