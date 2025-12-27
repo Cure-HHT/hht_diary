@@ -798,7 +798,25 @@ body.review-mode-active .status-badge.status-draft:hover {
     padding: 2px 10px;
     vertical-align: top;
     word-break: break-word;
-    white-space: pre-wrap;
+    white-space: normal;
+}
+
+/* Remove margins from rendered markdown elements inside line text */
+.rs-line-text p,
+.rs-line-text ul,
+.rs-line-text ol,
+.rs-line-text blockquote,
+.rs-line-text pre {
+    margin: 0;
+    padding: 0;
+}
+
+.rs-line-text ul,
+.rs-line-text ol {
+    padding-left: 1.5em;
+}
+
+.rs-line-row {
     cursor: text;  /* Indicate text is selectable */
 }
 
