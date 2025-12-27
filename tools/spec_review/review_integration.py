@@ -1622,7 +1622,7 @@ function renderLineMarkdown(line) {{
         }}
         // Fallback: use parse but strip outer <p> tags
         const parsed = marked.parse(line);
-        return parsed.replace(/^<p>/, '').replace(/<\/p>\n?$/, '');
+        return parsed.replace(/^<p>/, '').replace(/<\\/p>\\n?$/, '');
     }}
     return escapeHtmlContent(line);
 }}
