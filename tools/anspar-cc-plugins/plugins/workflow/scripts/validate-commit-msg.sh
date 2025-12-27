@@ -93,13 +93,16 @@ fi
 # Validate REQ Reference
 # =====================================================
 
-# Pattern: REQ-{type}{number}
+# Pattern: REQ-{optional-sponsor-prefix}{type}{number}
+# Sponsor prefix: 2-4 uppercase letters (optional, e.g., CAL-, CORE-)
 # Type: p (PRD), o (Ops), d (Dev)
 # Number: 5 digits (00001-99999)
-# Examples: REQ-p00042, REQ-o00015, REQ-d00027
+# Examples:
+#   Core: REQ-p00042, REQ-o00015, REQ-d00027
+#   Sponsor: REQ-CAL-d00001, REQ-TIT-p00003
 
 HAS_REQ=false
-if echo "$COMMIT_MSG" | grep -qE 'REQ-[pdo][0-9]{5}'; then
+if echo "$COMMIT_MSG" | grep -qE 'REQ-([A-Z]{2,4}-)?[pdo][0-9]{5}'; then
     HAS_REQ=true
 fi
 
@@ -139,12 +142,13 @@ else
     echo "  " >&2
     echo "  Optional body with more details." >&2
     echo "  " >&2
-    echo "  Implements: REQ-{type}{number}" >&2
+    echo "  Implements: REQ-{type}{number} or REQ-{sponsor}-{type}{number}" >&2
     echo "" >&2
     echo "Where:" >&2
     echo "  CUR-XXX: Linear ticket number (must match claimed ticket: $ACTIVE_TICKET)" >&2
     echo "  REQ type: p (PRD), o (Ops), d (Dev)" >&2
     echo "  REQ number: 5 digits (e.g., 00042)" >&2
+    echo "  Sponsor prefix: 2-4 letters (e.g., CAL-, TIT-) - optional for sponsor repos" >&2
     echo "" >&2
 
     if [ "$TICKET_MISMATCH" = "true" ]; then

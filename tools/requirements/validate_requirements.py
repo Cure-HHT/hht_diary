@@ -26,10 +26,13 @@ class RequirementValidator:
     VALID_STATUSES = {'Active', 'Draft', 'Deprecated'}
     VALID_LEVELS = {'PRD', 'Ops', 'Dev'}
 
-    def __init__(self, spec_dir: Path, core_spec_dir: Path = None):
+    def __init__(self, spec_dir: Path, core_spec_dir: Path = None,
+                 mode: str = 'core', sponsor: str = None):
         self.spec_dir = spec_dir
         self.repo_root = spec_dir.parent
         self.core_spec_dir = core_spec_dir  # For sponsor repos referencing core requirements
+        self.mode = mode  # 'core', 'sponsor', or 'combined'
+        self.sponsor = sponsor  # Specific sponsor name when mode='sponsor'
         self.requirements: Dict[str, Requirement] = {}
         self.core_requirements: Dict[str, Requirement] = {}  # Requirements from core repo
         self.errors: List[str] = []
@@ -169,11 +172,18 @@ class RequirementValidator:
                     )
 
     def _scan_implementation_files(self):
-        """Scan implementation files for 'IMPLEMENTS REQUIREMENTS:' declarations"""
+        """Scan implementation files for 'IMPLEMENTS REQUIREMENTS:' declarations
+
+        Scans different paths based on mode:
+        - 'core': Only core repo files (excludes sponsor/)
+        - 'sponsor': Core + specific sponsor directory
+        - 'combined': Core + all sponsor directories
+        """
         impl_pattern = re.compile(r'IMPLEMENTS\s+REQUIREMENTS?:\s*\n?(.*?)(?=\n\s*\n|\Z)', re.IGNORECASE | re.DOTALL)
         # Match both core (d00001) and sponsor-specific (CAL-d00001) REQ IDs
         req_pattern = re.compile(r'REQ-(?:([A-Z]{2,4})-)?([pod]\d{5})', re.IGNORECASE)
 
+        # Core patterns (always scanned)
         patterns = [
             '.github/workflows/**/*.yml',
             '.github/workflows/**/*.yaml',
@@ -183,7 +193,51 @@ class RequirementValidator:
             'tools/**/*.js',
             'tools/**/*.ts',
             'tools/dev-env/docker/**/*Dockerfile*',
+            'packages/**/*.dart',
+            'apps/**/*.dart',
+            'server/**/*.dart',
         ]
+
+        # Add sponsor patterns based on mode
+        if self.mode == 'sponsor' and self.sponsor:
+            # Add specific sponsor's implementation files
+            sponsor_patterns = [
+                f'sponsor/{self.sponsor}/**/*.dart',
+                f'sponsor/{self.sponsor}/**/*.sql',
+                f'sponsor/{self.sponsor}/**/*.py',
+                f'sponsor/{self.sponsor}/**/*.sh',
+                f'sponsor/{self.sponsor}/**/*.yml',
+                f'sponsor/{self.sponsor}/**/*.yaml',
+                f'sponsor/{self.sponsor}/**/*Dockerfile*',
+            ]
+            patterns.extend(sponsor_patterns)
+            print(f"📂 Including sponsor/{self.sponsor}/ in implementation scan")
+        elif self.mode == 'combined':
+            # Add all sponsors' implementation files
+            sponsor_patterns = [
+                'sponsor/**/*.dart',
+                'sponsor/**/*.sql',
+                'sponsor/**/*.py',
+                'sponsor/**/*.sh',
+                'sponsor/**/*.yml',
+                'sponsor/**/*.yaml',
+                'sponsor/**/*Dockerfile*',
+            ]
+            patterns.extend(sponsor_patterns)
+            print(f"📂 Including all sponsor/ directories in implementation scan")
+
+        # If this is a sponsor repo (has .core-repo), also scan sponsor's own directories
+        if self.core_spec_dir:
+            sponsor_repo_patterns = [
+                'lib/**/*.dart',
+                'mobile-module/**/*.dart',
+                'portal/**/*.dart',
+                'database/**/*.sql',
+                'config/**/*.yml',
+                'config/**/*.yaml',
+            ]
+            patterns.extend(sponsor_repo_patterns)
+            print(f"📂 Scanning sponsor repo implementation files")
 
         for pattern in patterns:
             for file_path in self.repo_root.glob(pattern):
@@ -302,6 +356,15 @@ Examples:
 
   # Override core repo path (normally auto-detected from .core-repo)
   python validate_requirements.py --core-repo ../hht_diary
+
+  # Validate core only (default - excludes sponsor/ directories)
+  python validate_requirements.py --mode core
+
+  # Validate with a specific sponsor's implementation files
+  python validate_requirements.py --mode sponsor --sponsor callisto
+
+  # Validate with all sponsor implementation files
+  python validate_requirements.py --mode combined
 '''
     )
     parser.add_argument(
@@ -314,7 +377,22 @@ Examples:
         type=Path,
         help='Path to core repository (default: auto-detect from .core-repo file)'
     )
+    parser.add_argument(
+        '--mode',
+        choices=['core', 'sponsor', 'combined'],
+        default='core',
+        help='Validation mode: core (exclude sponsors), sponsor (core + specific sponsor), combined (core + all sponsors)'
+    )
+    parser.add_argument(
+        '--sponsor',
+        type=str,
+        help='Sponsor name when --mode=sponsor (e.g., callisto)'
+    )
     args = parser.parse_args()
+
+    # Validate mode/sponsor combination
+    if args.mode == 'sponsor' and not args.sponsor:
+        parser.error("--sponsor is required when --mode=sponsor")
 
     if args.path:
         repo_root = args.path.resolve()
@@ -351,7 +429,18 @@ Examples:
                     print(f"   Run tools/setup-repo.sh to configure core repo path")
                     core_spec_dir = None
 
-    validator = RequirementValidator(spec_dir, core_spec_dir)
+    # Print mode info
+    mode_info = f"Mode: {args.mode}"
+    if args.mode == 'sponsor':
+        mode_info += f" (sponsor: {args.sponsor})"
+    print(f"🔧 {mode_info}\n")
+
+    validator = RequirementValidator(
+        spec_dir,
+        core_spec_dir,
+        mode=args.mode,
+        sponsor=args.sponsor
+    )
     success = validator.validate_all()
 
     sys.exit(0 if success else 1)

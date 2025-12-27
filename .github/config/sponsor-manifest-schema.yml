@@ -13,37 +13,56 @@ sponsors:
     enabled: boolean          # Include in builds (true/false)
     repo: string              # GitHub repo path or "local" for mono-repo
     tag: string               # Git tag to clone (for multi-repo) or "main" for mono-repo
+    type: string              # NEW: Sponsor type: "production" | "example" | "template"
+    spec_path: string         # NEW: Path to spec/ directory in sponsor repo (default: "spec")
     mobile_module: boolean    # Has mobile module integration code
     portal: boolean           # Has portal application
-    region: string            # AWS region (e.g., "eu-west-1")
+    region: string            # GCP region (e.g., "europe-west1")
 
 # Example Manifest (Current Mono-Repo):
 # sponsors:
 #   - name: callisto
 #     code: CAL
 #     enabled: true
-#     repo: local  # Points to sponsor/callisto/ directory
-#     tag: main    # Not used in mono-repo mode
+#     repo: local                       # Points to sponsor/callisto/ directory
+#     tag: main                         # Not used in mono-repo mode
+#     type: production                  # Active production sponsor
+#     spec_path: spec                   # Default spec directory
 #     mobile_module: true
 #     portal: true
-#     region: eu-west-1
+#     region: europe-west1
 
-# Example Manifest (Future Multi-Repo):
+# Example Manifest (Multi-Repo with Separate Sponsor Repos):
 # sponsors:
 #   - name: callisto
 #     code: CAL
 #     enabled: true
-#     repo: cure-hht/sponsor-callisto  # Separate repository
-#     tag: v1.2.3                       # Locked to specific version
+#     repo: cure-hht/hht_diary_callisto # Separate repository (underscore naming)
+#     tag: v1.2.3                        # Locked to specific version
+#     type: production
+#     spec_path: spec
 #     mobile_module: true
 #     portal: true
-#     region: eu-west-1
+#     region: europe-west1
 #
 #   - name: titan
 #     code: TIT
 #     enabled: true
-#     repo: cure-hht/sponsor-titan
+#     repo: cure-hht/hht_diary_titan
 #     tag: v2.0.1
+#     type: production
+#     spec_path: spec
 #     mobile_module: true
-#     portal: false  # Direct EDC integration, no portal
-#     region: us-west-2
+#     portal: false                      # Direct EDC integration, no portal
+#     region: us-west2
+#
+#   - name: template
+#     code: TMP
+#     enabled: false                     # Not included in builds
+#     repo: local
+#     tag: main
+#     type: example                      # Reference implementation only
+#     spec_path: spec
+#     mobile_module: false
+#     portal: false
+#     region: europe-west1

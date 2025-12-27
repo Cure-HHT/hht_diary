@@ -35,6 +35,7 @@ jobs:
       database: ${{ steps.filter.outputs.database }}
       python: ${{ steps.filter.outputs.python }}
       workflows: ${{ steps.filter.outputs.workflows }}
+      sponsor: ${{ steps.filter.outputs.sponsor }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -52,6 +53,8 @@ jobs:
               - 'tools/**/*.py'
             workflows:
               - '.github/workflows/**'
+            sponsor:
+              - 'sponsor/**'
 
   # Validate commit messages have required CUR-XXX and REQ-XXX references
   validate-commit-messages:
@@ -101,9 +104,11 @@ jobs:
               HAS_CUR=true
             fi
 
-            # Check for REQ-XXX reference (format: REQ-{p|o|d}NNNNN)
+            # Check for REQ-XXX reference
+            # Format: REQ-{p|o|d}NNNNN or REQ-{SPONSOR}-{p|o|d}NNNNN
+            # Examples: REQ-d00018, REQ-CAL-d00001
             HAS_REQ=false
-            if echo "$FULL_MSG" | grep -qE 'REQ-[pdo][0-9]{5}'; then
+            if echo "$FULL_MSG" | grep -qE 'REQ-([A-Z]{2,4}-)?[pdo][0-9]{5}'; then
               HAS_REQ=true
             fi
 
@@ -229,23 +234,40 @@ jobs:
 
       - name: Generate per-sponsor traceability matrices
         if: success()
+        env:
+          SPONSOR_MANIFEST: ${{ secrets.SPONSOR_MANIFEST }}
         run: |
           echo "::group::Generate Sponsor-Specific Traceability Matrices"
-          # Get sponsor list from Doppler/environment
-          # TODO: Pull from Doppler when available, hardcoded for now
-          SPONSORS="callisto titan"
+
+          # Resolve sponsors dynamically using resolve-sponsors.sh
+          SPONSORS=$(tools/build/resolve-sponsors.sh --names --enabled-only --quiet 2>/dev/null || echo "")
+
+          if [ -z "$SPONSORS" ]; then
+            echo "⚠️ No enabled sponsors found, skipping per-sponsor generation"
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          echo "Found sponsors: $SPONSORS"
+
           for sponsor in $SPONSORS; do
+            # Skip template/example sponsors
+            if [ "$sponsor" = "template" ] || [ "$sponsor" = "example" ]; then
+              echo "Skipping example sponsor: $sponsor"
+              continue
+            fi
+
             echo "Generating traceability for sponsor: $sponsor"
             python3 tools/requirements/generate_traceability.py \
               --mode sponsor \
               --sponsor $sponsor \
               --format markdown \
-              --output-dir build-reports/$sponsor/traceability
+              --output-dir build-reports/$sponsor/traceability || echo "⚠️ Failed for $sponsor"
             python3 tools/requirements/generate_traceability.py \
               --mode sponsor \
               --sponsor $sponsor \
               --format html \
-              --output-dir build-reports/$sponsor/traceability
+              --output-dir build-reports/$sponsor/traceability || echo "⚠️ Failed for $sponsor"
           done
           echo "::endgroup::"
 
