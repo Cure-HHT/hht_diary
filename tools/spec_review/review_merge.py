@@ -14,13 +14,13 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from tools.spec_review.review_branches import (
+from spec_review.review_branches import (
     list_package_branches,
     parse_review_branch_name,
     get_remote_name,
     _run_git,
 )
-from tools.spec_review.review_storage import (
+from spec_review.review_storage import (
     load_threads,
     load_review_flag,
     merge_threads,
