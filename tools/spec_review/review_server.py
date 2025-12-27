@@ -57,6 +57,20 @@ from spec_review.review_packages import (
     set_active_package,
     on_status_changed_to_review,
 )
+from spec_review.review_branches import (
+    commit_and_push_reviews,
+    fetch_and_merge_reviews,
+    get_sync_status,
+    has_reviews_changes,
+    ensure_package_branch,
+    switch_to_package_branch,
+    get_current_package_context,
+)
+from spec_review.review_merge import (
+    get_package_contributors,
+    merge_package_review_data,
+    fetch_all_package_branches,
+)
 from spec_review.review_data import (
     Thread,
     Comment,
@@ -68,13 +82,14 @@ from spec_review.review_data import (
 )
 
 
-def create_app(repo_root: Path, static_dir: Optional[Path] = None):
+def create_app(repo_root: Path, static_dir: Optional[Path] = None, auto_sync: bool = True):
     """
     Create Flask app with review API endpoints.
 
     Args:
         repo_root: Repository root path for .reviews/ storage
         static_dir: Optional directory to serve static files from
+        auto_sync: Whether to auto-commit and push after write operations
 
     Returns:
         Flask application
@@ -85,6 +100,24 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
     # Store repo_root in app config
     app.config['REPO_ROOT'] = repo_root
     app.config['STATIC_DIR'] = static_dir or repo_root
+    app.config['AUTO_SYNC'] = auto_sync
+
+    def trigger_auto_sync(message: str, user: str = 'system'):
+        """
+        Trigger auto-sync if enabled.
+
+        Args:
+            message: Commit message describing the change
+            user: Username for commit attribution
+
+        Returns:
+            dict with sync result, or None if auto-sync disabled
+        """
+        if not app.config.get('AUTO_SYNC'):
+            return None
+
+        repo = app.config['REPO_ROOT']
+        return commit_and_push_reviews(repo, message, user)
 
     # ==========================================================================
     # Static File Serving
@@ -175,7 +208,16 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         try:
             thread = Thread.from_dict(data)
             add_thread(repo, normalized_id, thread)
-            return jsonify({'success': True, 'thread': thread.to_dict()}), 201
+
+            # Auto-sync after creating thread
+            user = thread.createdBy or 'system'
+            sync_result = trigger_auto_sync(f"New thread on REQ-{normalized_id}", user)
+
+            response = {'success': True, 'thread': thread.to_dict()}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 201
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -200,7 +242,15 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
                 return jsonify({'error': 'Comment body is required'}), 400
 
             comment = add_comment_to_thread(repo, normalized_id, thread_id, author, body)
-            return jsonify({'success': True, 'comment': comment.to_dict()}), 201
+
+            # Auto-sync after adding comment
+            sync_result = trigger_auto_sync(f"Comment on REQ-{normalized_id}", author)
+
+            response = {'success': True, 'comment': comment.to_dict()}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 201
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -214,7 +264,15 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
 
         try:
             resolve_thread(repo, normalized_id, thread_id, user)
-            return jsonify({'success': True}), 200
+
+            # Auto-sync after resolving thread
+            sync_result = trigger_auto_sync(f"Resolved thread on REQ-{normalized_id}", user)
+
+            response = {'success': True}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -223,10 +281,20 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         """Unresolve a thread"""
         repo = app.config['REPO_ROOT']
         normalized_id = normalize_req_id(req_id)
+        data = request.get_json() or {}
+        user = data.get('user', 'anonymous')
 
         try:
             unresolve_thread(repo, normalized_id, thread_id)
-            return jsonify({'success': True}), 200
+
+            # Auto-sync after unresolving thread
+            sync_result = trigger_auto_sync(f"Unresolved thread on REQ-{normalized_id}", user)
+
+            response = {'success': True}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -256,7 +324,16 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
             flag = ReviewFlag.from_dict(data)
             flag.reqId = normalized_id
             save_review_flag(repo, normalized_id, flag)
-            return jsonify({'success': True, 'flag': flag.to_dict()}), 200
+
+            # Auto-sync after flagging
+            user = flag.flaggedBy or 'system'
+            sync_result = trigger_auto_sync(f"Flagged REQ-{normalized_id} for review", user)
+
+            response = {'success': True, 'flag': flag.to_dict()}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -265,11 +342,21 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         """Clear review flag for a requirement"""
         repo = app.config['REPO_ROOT']
         normalized_id = normalize_req_id(req_id)
+        data = request.get_json() or {}
+        user = data.get('user', 'anonymous')
 
         flag = ReviewFlag.create(normalized_id)
         flag.flaggedForReview = False
         save_review_flag(repo, normalized_id, flag)
-        return jsonify({'success': True}), 200
+
+        # Auto-sync after clearing flag
+        sync_result = trigger_auto_sync(f"Cleared flag on REQ-{normalized_id}", user)
+
+        response = {'success': True}
+        if sync_result:
+            response['sync'] = sync_result
+
+        return jsonify(response), 200
 
     # ==========================================================================
     # Status Request API
@@ -296,7 +383,19 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         try:
             status_request = StatusRequest.from_dict(data)
             create_status_request(repo, normalized_id, status_request)
-            return jsonify({'success': True, 'request': status_request.to_dict()}), 201
+
+            # Auto-sync after creating status request
+            user = status_request.requestedBy or 'system'
+            sync_result = trigger_auto_sync(
+                f"Status change request for REQ-{normalized_id}: {status_request.fromStatus} → {status_request.toStatus}",
+                user
+            )
+
+            response = {'success': True, 'request': status_request.to_dict()}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 201
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -313,7 +412,19 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         try:
             approval = Approval.from_dict(data)
             add_approval(repo, normalized_id, request_id, approval)
-            return jsonify({'success': True, 'approval': approval.to_dict()}), 201
+
+            # Auto-sync after adding approval
+            user = approval.user or 'system'
+            sync_result = trigger_auto_sync(
+                f"Approval on REQ-{normalized_id} status request: {approval.decision}",
+                user
+            )
+
+            response = {'success': True, 'approval': approval.to_dict()}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response), 201
         except Exception as e:
             return jsonify({'error': str(e)}), 400
 
@@ -360,6 +471,15 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
                         'packageId': pkg.packageId,
                         'packageName': pkg.name
                     }
+
+            # Auto-sync after status change
+            sync_result = trigger_auto_sync(
+                f"Changed REQ-{normalized_id} status to {new_status}",
+                user
+            )
+            if sync_result:
+                result['sync'] = sync_result
+
             return jsonify(result), 200
         else:
             return jsonify(result), 400
@@ -395,7 +515,15 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         user = data.get('user', 'api')
 
         pkg = create_package(repo, name, description, user)
-        return jsonify({'success': True, 'package': pkg.to_dict()}), 201
+
+        # Auto-sync after creating package
+        sync_result = trigger_auto_sync(f"Created package: {name}", user)
+
+        response = {'success': True, 'package': pkg.to_dict()}
+        if sync_result:
+            response['sync'] = sync_result
+
+        return jsonify(response), 201
 
     @app.route('/api/reviews/packages/<package_id>', methods=['GET'])
     def get_package_endpoint(package_id):
@@ -417,6 +545,7 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
+        user = data.get('user', 'api')
         success = update_package(
             repo,
             package_id,
@@ -426,7 +555,15 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
 
         if success:
             pkg = get_package(repo, package_id)
-            return jsonify({'success': True, 'package': pkg.to_dict()})
+
+            # Auto-sync after updating package
+            sync_result = trigger_auto_sync(f"Updated package: {pkg.name}", user)
+
+            response = {'success': True, 'package': pkg.to_dict()}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response)
         else:
             return jsonify({'error': 'Package not found'}), 404
 
@@ -434,10 +571,24 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
     def delete_package_endpoint(package_id):
         """Delete a package"""
         repo = app.config['REPO_ROOT']
+        data = request.get_json() or {}
+        user = data.get('user', 'api')
+
+        # Get package name before deleting
+        pkg = get_package(repo, package_id)
+        pkg_name = pkg.name if pkg else package_id
+
         success = delete_package(repo, package_id)
 
         if success:
-            return jsonify({'success': True})
+            # Auto-sync after deleting package
+            sync_result = trigger_auto_sync(f"Deleted package: {pkg_name}", user)
+
+            response = {'success': True}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response)
         else:
             return jsonify({'error': 'Package not found or is default'}), 400
 
@@ -445,11 +596,21 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
     def add_req_to_package_endpoint(package_id, req_id):
         """Add a REQ to a package"""
         repo = app.config['REPO_ROOT']
+        data = request.get_json() or {}
+        user = data.get('user', 'api')
+
         normalized_id = normalize_req_id(req_id)
         success = add_req_to_package(repo, package_id, normalized_id)
 
         if success:
-            return jsonify({'success': True})
+            # Auto-sync after adding REQ to package
+            sync_result = trigger_auto_sync(f"Added REQ-{normalized_id} to package", user)
+
+            response = {'success': True}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response)
         else:
             return jsonify({'error': 'Package not found'}), 404
 
@@ -457,11 +618,21 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
     def remove_req_from_package_endpoint(package_id, req_id):
         """Remove a REQ from a package"""
         repo = app.config['REPO_ROOT']
+        data = request.get_json() or {}
+        user = data.get('user', 'api')
+
         normalized_id = normalize_req_id(req_id)
         success = remove_req_from_package(repo, package_id, normalized_id)
 
         if success:
-            return jsonify({'success': True})
+            # Auto-sync after removing REQ from package
+            sync_result = trigger_auto_sync(f"Removed REQ-{normalized_id} from package", user)
+
+            response = {'success': True}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response)
         else:
             return jsonify({'error': 'Package not found'}), 404
 
@@ -480,15 +651,166 @@ def create_app(repo_root: Path, static_dir: Optional[Path] = None):
     def set_active_package_endpoint():
         """Set the active package"""
         repo = app.config['REPO_ROOT']
-        data = request.get_json()
+        data = request.get_json() or {}
+        user = data.get('user', 'api')
 
         package_id = data.get('packageId') if data else None
         success = set_active_package(repo, package_id)
 
         if success:
-            return jsonify({'success': True, 'activePackageId': package_id})
+            # Auto-sync after setting active package
+            msg = f"Set active package: {package_id}" if package_id else "Cleared active package"
+            sync_result = trigger_auto_sync(msg, user)
+
+            response = {'success': True, 'activePackageId': package_id}
+            if sync_result:
+                response['sync'] = sync_result
+
+            return jsonify(response)
         else:
             return jsonify({'error': 'Package not found'}), 404
+
+    # ==========================================================================
+    # Git Sync API
+    # ==========================================================================
+
+    @app.route('/api/reviews/sync/status', methods=['GET'])
+    def get_sync_status_endpoint():
+        """Get the current sync status"""
+        repo = app.config['REPO_ROOT']
+        status = get_sync_status(repo)
+        status['auto_sync_enabled'] = app.config.get('AUTO_SYNC', True)
+        return jsonify(status)
+
+    @app.route('/api/reviews/sync/push', methods=['POST'])
+    def sync_push():
+        """Manually trigger a sync (commit and push)"""
+        repo = app.config['REPO_ROOT']
+        data = request.get_json() or {}
+        user = data.get('user', 'manual')
+        message = data.get('message', 'Manual sync')
+
+        result = commit_and_push_reviews(repo, message, user)
+        return jsonify(result)
+
+    @app.route('/api/reviews/sync/fetch', methods=['POST'])
+    def sync_fetch():
+        """Fetch and merge latest review data from remote"""
+        repo = app.config['REPO_ROOT']
+        result = fetch_and_merge_reviews(repo)
+        return jsonify(result)
+
+    @app.route('/api/reviews/sync/fetch-all-package', methods=['POST'])
+    def sync_fetch_all_package():
+        """
+        Fetch and merge review data from all users' branches for the current package.
+
+        Returns consolidated view of threads, flags, and contributors.
+        """
+        repo = app.config['REPO_ROOT']
+
+        # Get current package context from branch name
+        context = get_current_package_context(repo)
+        if not context:
+            # Not on a review branch - return empty data
+            return jsonify({
+                'threads': {},
+                'flags': {},
+                'contributors': [],
+                'error': 'Not on a review branch'
+            })
+
+        package_id, _ = context
+
+        # Fetch remote branches first (if remote exists)
+        fetch_all_package_branches(repo, package_id)
+
+        # Merge data from all package branches
+        merged_data = merge_package_review_data(repo, package_id)
+        return jsonify(merged_data)
+
+    # ==========================================================================
+    # Package Branch Management API
+    # ==========================================================================
+
+    @app.route('/api/reviews/context', methods=['GET'])
+    def get_context():
+        """
+        Get current package/user context from the git branch name.
+
+        Returns null if not on a review branch.
+        """
+        repo = app.config['REPO_ROOT']
+        context = get_current_package_context(repo)
+
+        if context:
+            package_id, user = context
+            # Get current branch name
+            import subprocess
+            result = subprocess.run(
+                ['git', 'branch', '--show-current'],
+                cwd=repo,
+                capture_output=True,
+                text=True
+            )
+            branch = result.stdout.strip() if result.returncode == 0 else None
+
+            return jsonify({
+                'packageId': package_id,
+                'user': user,
+                'branch': branch
+            })
+        else:
+            return jsonify(None)
+
+    @app.route('/api/reviews/packages/switch', methods=['POST'])
+    def switch_package():
+        """
+        Switch to a package branch for the current user.
+
+        Creates the branch if it doesn't exist. Stashes uncommitted changes.
+        """
+        repo = app.config['REPO_ROOT']
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        package_id = data.get('packageId')
+        user = data.get('user')
+
+        if not package_id:
+            return jsonify({'error': 'packageId is required'}), 400
+        if not user:
+            return jsonify({'error': 'user is required'}), 400
+
+        try:
+            # Commit any pending changes to current branch first
+            if has_reviews_changes(repo):
+                commit_and_push_reviews(repo, "Auto-save before switch", user)
+
+            # Switch to the package branch (creates if needed)
+            branch = ensure_package_branch(repo, package_id, user)
+
+            return jsonify({
+                'success': True,
+                'branch': branch,
+                'packageId': package_id,
+                'user': user
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/reviews/packages/<package_id>/contributors', methods=['GET'])
+    def get_contributors(package_id):
+        """
+        Get all users who have branches for this package.
+
+        Returns sorted list of usernames.
+        """
+        repo = app.config['REPO_ROOT']
+        contributors = get_package_contributors(repo, package_id)
+        return jsonify({'contributors': contributors})
 
     # ==========================================================================
     # Health Check
@@ -515,11 +837,15 @@ def main():
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
     parser.add_argument('--repo', type=Path, default=Path.cwd(), help='Repository root')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    parser.add_argument('--no-auto-sync', action='store_true',
+                        help='Disable automatic git commit/push after changes')
 
     args = parser.parse_args()
 
-    app = create_app(args.repo.resolve())
+    auto_sync = not args.no_auto_sync
+    app = create_app(args.repo.resolve(), auto_sync=auto_sync)
 
+    sync_status = "ENABLED" if auto_sync else "DISABLED"
     print(f"""
 ======================================
   Spec Review API Server
@@ -528,6 +854,7 @@ def main():
 Repository: {args.repo.resolve()}
 Server:     http://{args.host}:{args.port}
 Report:     http://localhost:{args.port}/validation-reports/REQ-report-review.html
+Auto-Sync:  {sync_status}
 
 API Endpoints:
   GET  /api/reviews                    - All review data
@@ -542,6 +869,9 @@ API Endpoints:
   POST /api/reviews/packages           - Create new package
   GET  /api/reviews/packages/active    - Get active package
   PUT  /api/reviews/packages/active    - Set active package
+  GET  /api/reviews/sync/status        - Get sync status
+  POST /api/reviews/sync/push          - Manual sync (commit + push)
+  POST /api/reviews/sync/fetch         - Fetch from remote
 
 Press Ctrl+C to stop
 """)
