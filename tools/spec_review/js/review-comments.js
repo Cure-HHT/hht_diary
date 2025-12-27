@@ -233,6 +233,33 @@ window.ReviewSystem = window.ReviewSystem || {};
     // ==========================================================================
 
     /**
+     * Get sort key for a thread position (startLine, endLine)
+     * General positions treated as line 0 (always first)
+     */
+    function getThreadSortKey(thread) {
+        const pos = thread.position;
+        if (pos.type === RS.PositionType.LINE && pos.lineNumber) {
+            return [pos.lineNumber, pos.lineNumber];
+        } else if (pos.type === RS.PositionType.BLOCK && pos.lineRange) {
+            return [pos.lineRange[0], pos.lineRange[1]];
+        }
+        // General (and legacy word) positions: line 0
+        return [0, 0];
+    }
+
+    /**
+     * Sort threads by line number
+     */
+    function sortThreadsByLine(threads) {
+        return [...threads].sort((a, b) => {
+            const [aStart, aEnd] = getThreadSortKey(a);
+            const [bStart, bEnd] = getThreadSortKey(b);
+            if (aStart !== bStart) return aStart - bStart;
+            return aEnd - bEnd;
+        });
+    }
+
+    /**
      * Render thread list for a requirement
      * @param {Element} container - Container element
      * @param {string} reqId - Requirement ID
@@ -241,13 +268,14 @@ window.ReviewSystem = window.ReviewSystem || {};
         container.innerHTML = threadListTemplate(reqId);
 
         const threads = RS.state.getThreads(reqId);
+        const sortedThreads = sortThreadsByLine(threads);
         const threadsContainer = container.querySelector('.rs-threads');
         const noThreads = container.querySelector('.rs-no-threads');
 
-        if (threads.length === 0) {
+        if (sortedThreads.length === 0) {
             noThreads.style.display = 'block';
         } else {
-            threads.forEach(thread => {
+            sortedThreads.forEach(thread => {
                 threadsContainer.insertAdjacentHTML('beforeend', threadTemplate(thread));
             });
             bindThreadEvents(container);
