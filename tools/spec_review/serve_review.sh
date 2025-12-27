@@ -183,6 +183,7 @@ from spec_review.review_integration import (
     generate_embedded_review_data,
     get_review_mode_toggle_html,
     get_packages_panel_html,
+    get_git_sync_panel_html,
 )
 from spec_review.review_data import get_reqs_dir
 from spec_review.review_storage import list_sessions
@@ -250,12 +251,13 @@ if edit_mode_marker in html:
         html = html[:insert_point] + review_toggle_html + html[insert_point:]
         print("Review mode toggle injected after Edit Mode button")
 
-# Inject packages panel before the tree title
+# Inject git sync panel and packages panel before the tree title
+git_sync_panel_html = get_git_sync_panel_html()
 packages_panel_html = get_packages_panel_html()
 tree_title_marker = '<h2 id="treeTitle">'
 if tree_title_marker in html:
-    html = html.replace(tree_title_marker, packages_panel_html + tree_title_marker)
-    print("Review packages panel injected before tree")
+    html = html.replace(tree_title_marker, git_sync_panel_html + packages_panel_html + tree_title_marker)
+    print("Git sync panel and review packages panel injected before tree")
 
 # Write modified HTML
 output_file.write_text(html)
@@ -272,7 +274,7 @@ echo ""
 echo "Review features:"
 echo "  - Toggle 'Review Mode' checkbox in the header"
 echo "  - Click on requirements to see/add comments"
-echo "  - Comments support line/block/word positions"
+echo "  - Comments support line and block positions"
 echo "  - Request status changes with approval workflow"
 echo ""
 if [ "$USE_API" = true ]; then

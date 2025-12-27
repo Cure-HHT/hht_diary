@@ -125,7 +125,6 @@ window.ReviewSystem = window.ReviewSystem || {};
                         <option value="general">General (whole requirement)</option>
                         <option value="line">Specific line</option>
                         <option value="block">Line range</option>
-                        <option value="word">Word/phrase</option>
                     </select>
                 </div>
                 <div class="rs-position-options" style="display: none;">
@@ -138,12 +137,6 @@ window.ReviewSystem = window.ReviewSystem || {};
                         <input type="number" class="rs-block-start" min="1" value="1">
                         <span>to</span>
                         <input type="number" class="rs-block-end" min="1" value="1">
-                    </div>
-                    <div class="rs-word-options" style="display: none;">
-                        <label>Word/phrase</label>
-                        <input type="text" class="rs-keyword" placeholder="Enter word or phrase">
-                        <label>Occurrence</label>
-                        <input type="number" class="rs-keyword-occurrence" min="1" value="1">
                     </div>
                 </div>
                 <div class="rs-form-group">
@@ -210,8 +203,7 @@ window.ReviewSystem = window.ReviewSystem || {};
         switch (thread.position.type) {
             case RS.PositionType.LINE: return '📍';
             case RS.PositionType.BLOCK: return '📋';
-            case RS.PositionType.WORD: return '🔤';
-            default: return '📝';
+            default: return '📝';  // General and legacy word types
         }
     }
 
@@ -222,8 +214,6 @@ window.ReviewSystem = window.ReviewSystem || {};
                 return `Line ${pos.lineNumber}`;
             case RS.PositionType.BLOCK:
                 return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
-            case RS.PositionType.WORD:
-                return `"${pos.keyword}" (occurrence ${pos.keywordOccurrence || 1})`;
             default:
                 return 'General comment';
         }
@@ -236,8 +226,6 @@ window.ReviewSystem = window.ReviewSystem || {};
                 return `Line ${pos.lineNumber}`;
             case RS.PositionType.BLOCK:
                 return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
-            case RS.PositionType.WORD:
-                return `"${escapeHtml(pos.keyword)}"`;
             default:
                 return 'General';
         }
@@ -296,14 +284,12 @@ window.ReviewSystem = window.ReviewSystem || {};
         const posOptions = form.querySelector('.rs-position-options');
         const lineOpts = form.querySelector('.rs-line-options');
         const blockOpts = form.querySelector('.rs-block-options');
-        const wordOpts = form.querySelector('.rs-word-options');
 
         posType.addEventListener('change', () => {
             const val = posType.value;
             posOptions.style.display = val === 'general' ? 'none' : 'block';
             lineOpts.style.display = val === 'line' ? 'block' : 'none';
             blockOpts.style.display = val === 'block' ? 'block' : 'none';
-            wordOpts.style.display = val === 'word' ? 'block' : 'none';
         });
 
         // Check for existing line selection (global variables from review init)
@@ -368,16 +354,6 @@ window.ReviewSystem = window.ReviewSystem || {};
                 const start = parseInt(form.querySelector('.rs-block-start').value, 10);
                 const end = parseInt(form.querySelector('.rs-block-end').value, 10);
                 position = RS.CommentPosition.createBlock(hash, start, end);
-                break;
-            }
-            case 'word': {
-                const keyword = form.querySelector('.rs-keyword').value.trim();
-                const occurrence = parseInt(form.querySelector('.rs-keyword-occurrence').value, 10);
-                if (!keyword) {
-                    alert('Please enter a word or phrase');
-                    return;
-                }
-                position = RS.CommentPosition.createWord(hash, keyword, occurrence);
                 break;
             }
             default:
