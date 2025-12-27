@@ -137,14 +137,59 @@
     }
 
     /**
-     * Set the active package
+     * Set the active package and switch to its git branch
      */
     async function setActivePackage(packageId) {
+        const user = RS.state.currentUser || 'anonymous';
+
         try {
+            // 1. Set the active package in packages.json
             const response = await fetch('/api/reviews/packages/active', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ packageId })
+                body: JSON.stringify({ packageId, user })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                return result;
+            }
+
+            RS.packages.activeId = packageId;
+
+            // 2. Switch to package branch (creates branch if needed)
+            if (packageId) {
+                await switchToPackageBranch(packageId, user);
+            }
+
+            // 3. Apply context styling
+            applyPackageFilter();
+
+            // 4. Update git sync indicator to show new branch
+            if (RS.updateGitSyncIndicator) {
+                RS.updateGitSyncIndicator();
+            }
+
+            return result;
+        } catch (error) {
+            console.error('Failed to set active package:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Switch to a package branch for the current user
+     */
+    async function switchToPackageBranch(packageId, user) {
+        try {
+            const response = await fetch('/api/reviews/packages/switch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ packageId, user })
             });
 
             if (!response.ok) {
@@ -153,13 +198,82 @@
 
             const result = await response.json();
             if (result.success) {
-                RS.packages.activeId = packageId;
-                applyPackageFilter();
+                console.log(`Switched to branch: ${result.branch}`);
+                RS.packages.currentBranch = result.branch;
+
+                // Fetch consolidated data from all package branches
+                await fetchConsolidatedPackageData();
             }
             return result;
         } catch (error) {
-            console.error('Failed to set active package:', error);
+            console.error('Failed to switch to package branch:', error);
             return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Fetch consolidated review data from all users' branches for current package
+     */
+    async function fetchConsolidatedPackageData() {
+        try {
+            const response = await fetch('/api/reviews/sync/fetch-all-package', {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            RS.packages.contributors = data.contributors || [];
+
+            // If there's merged thread data, update the state
+            if (data.threads && Object.keys(data.threads).length > 0) {
+                console.log(`Loaded threads from ${data.contributors.length} contributor(s)`);
+                // Trigger refresh event so UI updates
+                document.dispatchEvent(new CustomEvent('rs:data-fetched', {
+                    detail: { data, timestamp: new Date() }
+                }));
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Failed to fetch consolidated package data:', error);
+            return { threads: {}, flags: {}, contributors: [] };
+        }
+    }
+
+    /**
+     * Get package contributors (users who have branches for this package)
+     */
+    async function getPackageContributors(packageId) {
+        try {
+            const response = await fetch(`/api/reviews/packages/${packageId}/contributors`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            return data.contributors || [];
+        } catch (error) {
+            console.error('Failed to get package contributors:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get current package context from git branch
+     */
+    async function getCurrentPackageContext() {
+        try {
+            const response = await fetch('/api/reviews/context');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            return data; // { packageId, user, branch } or null
+        } catch (error) {
+            console.error('Failed to get package context:', error);
+            return null;
         }
     }
 
@@ -456,6 +570,10 @@
     RS.updatePackage = updatePackage;
     RS.deletePackage = deletePackage;
     RS.setActivePackage = setActivePackage;
+    RS.switchToPackageBranch = switchToPackageBranch;
+    RS.fetchConsolidatedPackageData = fetchConsolidatedPackageData;
+    RS.getPackageContributors = getPackageContributors;
+    RS.getCurrentPackageContext = getCurrentPackageContext;
     RS.addReqToPackage = addReqToPackage;
     RS.removeReqFromPackage = removeReqFromPackage;
     RS.addReqToActivePackage = addReqToActivePackage;
