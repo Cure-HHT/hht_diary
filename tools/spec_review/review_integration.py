@@ -1342,7 +1342,7 @@ function createStatusBarHtml(reqId, currentStatus) {{
     const canToggle = currentStatus === 'Draft';
     const toggleBtn = canToggle ?
         `<button class="rs-btn rs-btn-sm rs-btn-primary rs-status-toggle" data-req-id="${{reqId}}">
-            &#x2192; Review
+            Set to Review
         </button>` : '';
 
     // Show pending requests count
@@ -1379,7 +1379,7 @@ function bindStatusBarEvents(statusBar, reqId, currentStatus) {{
                 updateReviewPanelContent(); // Refresh the entire panel
             }} else {{
                 toggleBtn.disabled = false;
-                toggleBtn.innerHTML = '&#x2192; Review';
+                toggleBtn.textContent = 'Set to Review';
                 alert('Failed: ' + (result.error || 'Unknown error'));
             }}
         }});
