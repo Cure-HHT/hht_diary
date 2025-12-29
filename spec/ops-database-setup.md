@@ -1,23 +1,25 @@
 # Cloud SQL Database Setup Guide
 
-**Version**: 2.0
+**Version**: 3.0
 **Audience**: Operations (Database Administrators, DevOps Engineers)
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-12-28
 **Status**: Draft
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
 > **See**: dev-database.md for database implementation details
 > **See**: ops-database-migration.md for schema migration procedures
 > **See**: ops-deployment.md for full deployment workflows
+> **See**: ops-infrastructure-as-code.md for Pulumi component details
 
 ---
 
 ## Executive Summary
 
-Complete guide for deploying the Clinical Trial Diary Database to Google Cloud SQL in a multi-sponsor architecture. Each sponsor operates an independent GCP project with isolated Cloud SQL instances for complete data isolation.
+Complete guide for deploying the Clinical Trial Diary Database to Google Cloud SQL in a multi-sponsor architecture using **Pulumi** for infrastructure as code. Each sponsor operates an independent GCP project with isolated Cloud SQL instances for complete data isolation.
 
 **Key Principles**:
 - **One GCP project per sponsor** - Complete infrastructure isolation
+- **Infrastructure as Code** - All resources defined in Pulumi TypeScript
 - **Identical core schema** - All sponsors use same base schema from core repository
 - **Sponsor-specific extensions** - Each sponsor can add custom tables/functions
 - **Independent operations** - Each sponsor has separate credentials, backups, monitoring
@@ -32,9 +34,12 @@ Sponsor A                    Sponsor B                    Sponsor C
 │ - Cloud Run         │     │ - Cloud Run         │     │ - Cloud Run         │
 │ - Isolated Backups  │     │ - Isolated Backups  │     │ - Isolated Backups  │
 └─────────────────────┘     └─────────────────────┘     └─────────────────────┘
+        │                           │                           │
+        └───────────────────────────┴───────────────────────────┘
+                      Managed via Pulumi stacks
 ```
 
-**This Guide Covers**: Setup procedures for a single sponsor's Cloud SQL instance. Repeat these steps for each sponsor with their own GCP project.
+**This Guide Covers**: Setup procedures for a single sponsor's Cloud SQL instance using Pulumi. Repeat these steps for each sponsor with their own GCP project and Pulumi stack.
 
 ---
 
@@ -45,16 +50,27 @@ Sponsor A                    Sponsor B                    Sponsor C
    - Billing enabled
    - Appropriate IAM permissions (Cloud SQL Admin, IAM Admin)
 
-2. **GCP Project Created**
-   - Create a new project per sponsor
-   - Enable required APIs (Cloud SQL, Compute Engine, Secret Manager)
-   - Note project ID
-
-3. **Local Tools**
-   - `gcloud` CLI installed and configured
+2. **Local Tools**
+   - **Pulumi** v3.x installed (`brew install pulumi` or npm)
+   - **Node.js** v20+ installed
+   - `gcloud` CLI installed and configured (for authentication and ad-hoc operations)
    - `cloud_sql_proxy` for local development
    - `psql` PostgreSQL client
-   - Terraform (optional, for IaC)
+   - **Doppler** CLI for secrets management
+
+3. **Pulumi Setup**
+   ```bash
+   # Install Pulumi
+   curl -fsSL https://get.pulumi.com | sh
+
+   # Login to Pulumi backend (choose one)
+   pulumi login                              # Pulumi Cloud (recommended)
+   pulumi login gs://your-state-bucket       # GCS backend
+
+   # Install project dependencies
+   cd infrastructure/pulumi
+   npm install
+   ```
 
 ---
 
@@ -157,30 +173,79 @@ Configuration SHALL include:
 
 ## Step 1: GCP Project Setup
 
-### Create Project
+### Create Project via Pulumi
+
+```typescript
+// infrastructure/pulumi/components/sponsor-project/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
+
+const config = new pulumi.Config();
+const sponsor = config.require("sponsor");       // e.g., "orion"
+const environment = config.require("environment"); // e.g., "prod"
+const region = config.get("region") || "us-central1";
+const billingAccountId = config.require("billingAccountId");
+const orgId = config.get("orgId"); // Optional for org-managed projects
+
+const projectId = `clinical-diary-${sponsor}-${environment}`;
+
+// Create GCP Project
+const project = new gcp.organizations.Project("sponsor-project", {
+  projectId: projectId,
+  name: `Clinical Diary ${sponsor} ${environment}`,
+  billingAccount: billingAccountId,
+  orgId: orgId,
+  labels: {
+    sponsor: sponsor,
+    environment: environment,
+    managed_by: "pulumi",
+    compliance: "hipaa-fda",
+  },
+});
+
+// Enable required APIs
+const requiredApis = [
+  "sqladmin.googleapis.com",
+  "compute.googleapis.com",
+  "secretmanager.googleapis.com",
+  "run.googleapis.com",
+  "identitytoolkit.googleapis.com",
+  "servicenetworking.googleapis.com",
+  "vpcaccess.googleapis.com",
+];
+
+const enabledApis = requiredApis.map((api, index) =>
+  new gcp.projects.Service(`api-${index}`, {
+    project: project.projectId,
+    service: api,
+    disableOnDestroy: false,
+  }, { dependsOn: [project] })
+);
+
+export const gcpProjectId = project.projectId;
+export const gcpRegion = region;
+```
+
+### Configuration (Pulumi.yaml)
+
+```yaml
+# infrastructure/pulumi/sponsors/orion/prod/Pulumi.yaml
+name: clinical-diary-orion-prod
+runtime: nodejs
+config:
+  gcp:region: us-central1
+  sponsor: orion
+  environment: prod
+  billingAccountId: BILLING_ACCOUNT_ID
+```
+
+### Deploy Project
 
 ```bash
-# Set variables
-export SPONSOR="orion"
-export ENV="prod"
-export PROJECT_ID="clinical-diary-${SPONSOR}-${ENV}"
-export REGION="us-central1"
-
-# Create project (requires org admin or standalone)
-gcloud projects create $PROJECT_ID --name="Clinical Diary ${SPONSOR} ${ENV}"
-
-# Set as active project
-gcloud config set project $PROJECT_ID
-
-# Link billing account
-gcloud billing projects link $PROJECT_ID --billing-account=BILLING_ACCOUNT_ID
-
-# Enable required APIs
-gcloud services enable sqladmin.googleapis.com
-gcloud services enable compute.googleapis.com
-gcloud services enable secretmanager.googleapis.com
-gcloud services enable run.googleapis.com
-gcloud services enable identitytoolkit.googleapis.com
+cd infrastructure/pulumi/sponsors/orion/prod
+npm install
+pulumi stack init orion-prod
+doppler run -- pulumi up
 ```
 
 ---
@@ -213,27 +278,107 @@ Schema deployment SHALL include:
 *End* *Database Schema Deployment* | **Hash**: b9f6a0b5
 ---
 
-### Create Cloud SQL Instance
+### Create Cloud SQL Instance via Pulumi
 
-```bash
-# Create Cloud SQL instance
-gcloud sql instances create "${SPONSOR}-db" \
-  --project=$PROJECT_ID \
-  --database-version=POSTGRES_15 \
-  --tier=db-custom-2-8192 \
-  --region=$REGION \
-  --storage-type=SSD \
-  --storage-size=100GB \
-  --storage-auto-increase \
-  --availability-type=REGIONAL \
-  --backup-start-time=02:00 \
-  --enable-point-in-time-recovery \
-  --maintenance-window-day=SUN \
-  --maintenance-window-hour=03 \
-  --database-flags=cloudsql.enable_pgaudit=on \
-  --root-password=$(openssl rand -base64 32)
+```typescript
+// infrastructure/pulumi/components/cloud-sql/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# Note: Store root password in Doppler immediately!
+export interface CloudSqlArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  sponsor: string;
+  environment: string;
+  privateNetwork: pulumi.Input<string>;
+  databasePassword: pulumi.Input<string>;
+}
+
+export class CloudSqlDatabase extends pulumi.ComponentResource {
+  public readonly instance: gcp.sql.DatabaseInstance;
+  public readonly database: gcp.sql.Database;
+  public readonly user: gcp.sql.User;
+  public readonly connectionName: pulumi.Output<string>;
+
+  constructor(name: string, args: CloudSqlArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:cloud-sql", name, {}, opts);
+
+    const isProduction = args.environment === "production" || args.environment === "prod";
+    const isStaging = args.environment === "staging";
+
+    // Determine tier based on environment
+    const tier = isProduction ? "db-custom-2-8192" :
+                 isStaging ? "db-custom-1-3840" : "db-f1-micro";
+
+    // Create Cloud SQL instance
+    this.instance = new gcp.sql.DatabaseInstance(`${name}-instance`, {
+      project: args.projectId,
+      region: args.region,
+      name: `${args.sponsor}-db`,
+      databaseVersion: "POSTGRES_15",
+      deletionProtection: isProduction,
+      settings: {
+        tier: tier,
+        availabilityType: isProduction ? "REGIONAL" : "ZONAL",
+        diskType: "PD_SSD",
+        diskSize: isProduction ? 100 : (isStaging ? 50 : 10),
+        diskAutoresize: true,
+        backupConfiguration: {
+          enabled: true,
+          startTime: "02:00",
+          pointInTimeRecoveryEnabled: true,
+          backupRetentionSettings: {
+            retainedBackups: isProduction ? 30 : 7,
+            retentionUnit: "COUNT",
+          },
+        },
+        ipConfiguration: {
+          ipv4Enabled: !isProduction, // Disable public IP in production
+          privateNetwork: isProduction ? args.privateNetwork : undefined,
+          requireSsl: true,
+        },
+        databaseFlags: [
+          { name: "cloudsql.enable_pgaudit", value: "on" },
+          { name: "log_checkpoints", value: "on" },
+          { name: "log_connections", value: "on" },
+          { name: "log_disconnections", value: "on" },
+        ],
+        maintenanceWindow: {
+          day: 7,  // Sunday
+          hour: 3, // 3 AM
+        },
+        userLabels: {
+          sponsor: args.sponsor,
+          environment: args.environment,
+          managed_by: "pulumi",
+        },
+      },
+    }, { parent: this });
+
+    // Create database
+    this.database = new gcp.sql.Database(`${name}-database`, {
+      project: args.projectId,
+      instance: this.instance.name,
+      name: "clinical_diary",
+      charset: "UTF8",
+      collation: "en_US.UTF8",
+    }, { parent: this });
+
+    // Create application user (password from Doppler via Pulumi config)
+    this.user = new gcp.sql.User(`${name}-user`, {
+      project: args.projectId,
+      instance: this.instance.name,
+      name: "app_user",
+      password: args.databasePassword,
+    }, { parent: this });
+
+    this.connectionName = this.instance.connectionName;
+    this.registerOutputs({
+      connectionName: this.connectionName,
+      instanceName: this.instance.name,
+    });
+  }
+}
 ```
 
 ### Instance Sizing Guide
@@ -245,47 +390,67 @@ gcloud sql instances create "${SPONSOR}-db" \
 | Production | db-custom-2-8192 | 2 | 8 GB | 100 GB | Yes (Regional) |
 | Production (Large) | db-custom-4-16384 | 4 | 16 GB | 500 GB | Yes |
 
-### Create Database and User
+### Configure Private IP (VPC Networking) via Pulumi
 
-```bash
-# Create clinical diary database
-gcloud sql databases create clinical_diary \
-  --instance="${SPONSOR}-db" \
-  --charset=UTF8 \
-  --collation=en_US.UTF8
+```typescript
+// infrastructure/pulumi/components/vpc-networking/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# Generate secure password
-DB_PASSWORD=$(openssl rand -base64 32)
+export interface VpcNetworkingArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+}
 
-# Create application user
-gcloud sql users create app_user \
-  --instance="${SPONSOR}-db" \
-  --password="$DB_PASSWORD"
+export class VpcNetworking extends pulumi.ComponentResource {
+  public readonly network: gcp.compute.Network;
+  public readonly privateIpRange: gcp.compute.GlobalAddress;
+  public readonly vpcConnection: gcp.servicenetworking.Connection;
+  public readonly networkSelfLink: pulumi.Output<string>;
 
-# Store password in Doppler
-echo "Store this password in Doppler as DATABASE_PASSWORD: $DB_PASSWORD"
+  constructor(name: string, args: VpcNetworkingArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:vpc-networking", name, {}, opts);
+
+    // Create VPC network
+    this.network = new gcp.compute.Network(`${name}-network`, {
+      project: args.projectId,
+      name: "clinical-diary-vpc",
+      autoCreateSubnetworks: false,
+    }, { parent: this });
+
+    // Reserve IP range for VPC peering (Cloud SQL private IP)
+    this.privateIpRange = new gcp.compute.GlobalAddress(`${name}-private-ip`, {
+      project: args.projectId,
+      name: "google-managed-services-range",
+      purpose: "VPC_PEERING",
+      addressType: "INTERNAL",
+      prefixLength: 16,
+      network: this.network.id,
+    }, { parent: this });
+
+    // Create VPC peering connection for Cloud SQL
+    this.vpcConnection = new gcp.servicenetworking.Connection(`${name}-vpc-peering`, {
+      network: this.network.id,
+      service: "servicenetworking.googleapis.com",
+      reservedPeeringRanges: [this.privateIpRange.name],
+    }, { parent: this });
+
+    this.networkSelfLink = this.network.selfLink;
+    this.registerOutputs({
+      networkSelfLink: this.networkSelfLink,
+    });
+  }
+}
 ```
 
-### Configure Private IP (Recommended for Production)
+### Set Database Password via Pulumi Config
 
 ```bash
-# Reserve IP range for VPC peering
-gcloud compute addresses create google-managed-services-default \
-  --global \
-  --purpose=VPC_PEERING \
-  --prefix-length=16 \
-  --network=default
+# Set the database password as a secret (encrypted in state)
+pulumi config set --secret databasePassword "$(openssl rand -base64 32)"
 
-# Create VPC peering connection
-gcloud services vpc-peerings connect \
-  --service=servicenetworking.googleapis.com \
-  --ranges=google-managed-services-default \
-  --network=default
-
-# Update instance to use private IP
-gcloud sql instances patch "${SPONSOR}-db" \
-  --network=default \
-  --no-assign-ip
+# Or use Doppler for secrets management
+# The password will be read from DOPPLER environment at runtime
 ```
 
 ---
@@ -354,85 +519,223 @@ psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema = '
 
 ## Step 4: Authentication Setup (Identity Platform)
 
-### Enable Identity Platform
+### Configure Identity Platform via Pulumi
 
-```bash
-# Enable Identity Platform API
-gcloud services enable identitytoolkit.googleapis.com
+```typescript
+// infrastructure/pulumi/components/identity-platform/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# Configure Identity Platform (via console or Terraform)
-# Console: https://console.cloud.google.com/customer-identity
+export interface IdentityPlatformArgs {
+  projectId: pulumi.Input<string>;
+  sponsor: string;
+  environment: string;
+  googleOAuthClientId?: pulumi.Input<string>;
+  googleOAuthClientSecret?: pulumi.Input<string>;
+  customDomain?: string;
+}
+
+export class IdentityPlatform extends pulumi.ComponentResource {
+  public readonly config: gcp.identityplatform.Config;
+
+  constructor(name: string, args: IdentityPlatformArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:identity-platform", name, {}, opts);
+
+    const isProduction = args.environment === "production" || args.environment === "prod";
+
+    // Configure Identity Platform
+    this.config = new gcp.identityplatform.Config(`${name}-config`, {
+      project: args.projectId,
+      signIn: {
+        allowDuplicateEmails: false,
+        email: {
+          enabled: true,
+          passwordRequired: true,
+        },
+      },
+      mfa: isProduction ? {
+        enabledProviders: ["PHONE_SMS"],
+        state: "ENABLED",
+      } : undefined,
+      authorizedDomains: [
+        `clinical-diary-${args.sponsor}-${args.environment}.web.app`,
+        ...(args.customDomain ? [args.customDomain] : []),
+      ],
+    }, { parent: this });
+
+    // Google OAuth provider (if credentials provided)
+    if (args.googleOAuthClientId && args.googleOAuthClientSecret) {
+      new gcp.identityplatform.DefaultSupportedIdpConfig(`${name}-google`, {
+        project: args.projectId,
+        idpId: "google.com",
+        enabled: true,
+        clientId: args.googleOAuthClientId,
+        clientSecret: args.googleOAuthClientSecret,
+      }, { parent: this });
+    }
+
+    this.registerOutputs({});
+  }
+}
 ```
 
 ### Configure OAuth Providers
 
-1. Navigate to **Identity Platform** in GCP Console
-2. Go to **Providers** tab
-3. Enable required providers:
-   - Email/Password
-   - Google OAuth
-   - Apple Sign-In (requires Apple Developer account)
-   - Microsoft OAuth
+OAuth providers can be configured via Pulumi or the GCP Console:
+
+1. **Email/Password**: Enabled by default in Pulumi config above
+2. **Google OAuth**: Pass `googleOAuthClientId` and `googleOAuthClientSecret` to Pulumi
+3. **Apple Sign-In**: Requires Apple Developer account, configure via console
+4. **Microsoft OAuth**: Register app in Azure AD, configure via console
 
 ### Custom Claims for RBAC
 
-Create a Cloud Function to add custom claims to JWT tokens:
+Custom claims are managed via Dart server endpoints on Cloud Run:
 
-```javascript
-// functions/customClaims/index.js
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+```dart
+// lib/services/custom_claims_service.dart
+import 'package:firebase_admin/firebase_admin.dart';
 
-admin.initializeApp();
+class CustomClaimsService {
+  final FirebaseApp _firebaseApp;
+  final String _sponsorId;
 
-exports.addCustomClaims = functions.auth.user().onCreate(async (user) => {
-  // Default role for new users
-  const defaultRole = 'USER';
+  CustomClaimsService(this._firebaseApp, this._sponsorId);
 
-  try {
-    await admin.auth().setCustomUserClaims(user.uid, {
-      role: defaultRole,
-      sponsorId: process.env.SPONSOR_ID,
+  /// Initialize claims for new user (called during registration)
+  Future<void> initializeUserClaims(String uid) async {
+    const defaultRole = 'USER';
+
+    await _firebaseApp.auth().setCustomUserClaims(uid, {
+      'role': defaultRole,
+      'sponsorId': _sponsorId,
     });
 
-    console.log(`Custom claims set for user ${user.uid}`);
-  } catch (error) {
-    console.error('Error setting custom claims:', error);
-  }
-});
-
-// Function to update role (called by admin)
-exports.updateUserRole = functions.https.onCall(async (data, context) => {
-  // Verify caller is admin
-  if (!context.auth?.token?.role || context.auth.token.role !== 'ADMIN') {
-    throw new functions.https.HttpsError('permission-denied', 'Must be admin');
+    print('Custom claims set for user $uid: role=$defaultRole');
   }
 
-  const { userId, newRole } = data;
-  const validRoles = ['USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN'];
+  /// Update user role (admin only)
+  Future<Map<String, dynamic>> updateUserRole({
+    required String adminRole,
+    required String userId,
+    required String newRole,
+  }) async {
+    if (adminRole != 'ADMIN') {
+      throw Exception('Permission denied: Must be admin');
+    }
 
-  if (!validRoles.includes(newRole)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid role');
+    const validRoles = ['USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN'];
+    if (!validRoles.contains(newRole)) {
+      throw Exception('Invalid role: $newRole');
+    }
+
+    final userRecord = await _firebaseApp.auth().getUser(userId);
+    final currentClaims = userRecord.customClaims ?? {};
+
+    await _firebaseApp.auth().setCustomUserClaims(userId, {
+      ...currentClaims,
+      'role': newRole,
+    });
+
+    return {'success': true, 'newRole': newRole};
   }
-
-  await admin.auth().setCustomUserClaims(userId, {
-    ...context.auth.token,
-    role: newRole,
-  });
-
-  return { success: true };
-});
+}
 ```
 
-Deploy the function:
+### Deploy Cloud Run API Server via Pulumi
+
+```typescript
+// infrastructure/pulumi/components/cloud-run/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
+
+export interface CloudRunArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  sponsor: string;
+  environment: string;
+  imageTag: string;
+  serviceAccountEmail: pulumi.Input<string>;
+  vpcConnectorId?: pulumi.Input<string>;
+  cloudSqlConnectionName: pulumi.Input<string>;
+}
+
+export class CloudRunService extends pulumi.ComponentResource {
+  public readonly service: gcp.cloudrunv2.Service;
+  public readonly serviceUrl: pulumi.Output<string>;
+
+  constructor(name: string, args: CloudRunArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:cloud-run", name, {}, opts);
+
+    const isProduction = args.environment === "production" || args.environment === "prod";
+
+    this.service = new gcp.cloudrunv2.Service(`${name}-service`, {
+      project: args.projectId,
+      location: args.region,
+      name: "api-server",
+      template: {
+        serviceAccount: args.serviceAccountEmail,
+        vpcAccess: args.vpcConnectorId ? {
+          connector: args.vpcConnectorId,
+          egress: "PRIVATE_RANGES_ONLY",
+        } : undefined,
+        scaling: {
+          minInstanceCount: isProduction ? 1 : 0,
+          maxInstanceCount: isProduction ? 10 : 3,
+        },
+        containers: [{
+          image: pulumi.interpolate`gcr.io/${args.projectId}/api-server:${args.imageTag}`,
+          resources: {
+            limits: {
+              cpu: "1000m",
+              memory: "512Mi",
+            },
+          },
+          envs: [
+            { name: "SPONSOR_ID", value: args.sponsor },
+            { name: "ENVIRONMENT", value: args.environment },
+          ],
+          volumeMounts: [{
+            name: "cloudsql",
+            mountPath: "/cloudsql",
+          }],
+        }],
+        volumes: [{
+          name: "cloudsql",
+          cloudSqlInstance: { instances: [args.cloudSqlConnectionName] },
+        }],
+      },
+      labels: {
+        sponsor: args.sponsor,
+        environment: args.environment,
+        managed_by: "pulumi",
+      },
+    }, { parent: this });
+
+    // Allow unauthenticated access (API handles auth via Identity Platform)
+    new gcp.cloudrunv2.ServiceIamMember(`${name}-invoker`, {
+      project: args.projectId,
+      location: args.region,
+      name: this.service.name,
+      role: "roles/run.invoker",
+      member: "allUsers",
+    }, { parent: this });
+
+    this.serviceUrl = this.service.uri;
+    this.registerOutputs({ serviceUrl: this.serviceUrl });
+  }
+}
+```
+
+### Build and Push Docker Image
 
 ```bash
-cd functions/customClaims
-gcloud functions deploy addCustomClaims \
-  --runtime=nodejs18 \
-  --trigger-event=providers/firebase.auth/eventTypes/user.create \
-  --region=$REGION \
-  --set-env-vars=SPONSOR_ID=$SPONSOR
+# Build and push the API server image (CI/CD typically handles this)
+docker build -t gcr.io/${PROJECT_ID}/api-server:${IMAGE_TAG} .
+docker push gcr.io/${PROJECT_ID}/api-server:${IMAGE_TAG}
+
+# Then deploy via Pulumi
+doppler run -- pulumi up
 ```
 
 ---
@@ -491,53 +794,135 @@ SELECT COUNT(*) FROM record_state; -- Should see all data
 
 ## Step 6: Service Account Setup
 
-### Create Service Account for Cloud Run
+### Create Service Account for Cloud Run via Pulumi
 
-```bash
-# Create service account
-gcloud iam service-accounts create clinical-diary-server \
-  --display-name="Clinical Diary Server"
+```typescript
+// infrastructure/pulumi/components/service-accounts/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# Grant Cloud SQL Client role
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/cloudsql.client"
+export interface ServiceAccountsArgs {
+  projectId: pulumi.Input<string>;
+}
 
-# Grant Secret Manager access
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member="serviceAccount:clinical-diary-server@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
+export class ServiceAccounts extends pulumi.ComponentResource {
+  public readonly cloudRunServiceAccount: gcp.serviceaccount.Account;
+  public readonly cloudRunServiceAccountEmail: pulumi.Output<string>;
+
+  constructor(name: string, args: ServiceAccountsArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:service-accounts", name, {}, opts);
+
+    // Create service account for Cloud Run
+    this.cloudRunServiceAccount = new gcp.serviceaccount.Account(`${name}-cloud-run-sa`, {
+      project: args.projectId,
+      accountId: "clinical-diary-server",
+      displayName: "Clinical Diary Server",
+    }, { parent: this });
+
+    // Grant Cloud SQL Client role
+    new gcp.projects.IAMMember(`${name}-cloudsql-client`, {
+      project: args.projectId,
+      role: "roles/cloudsql.client",
+      member: pulumi.interpolate`serviceAccount:${this.cloudRunServiceAccount.email}`,
+    }, { parent: this });
+
+    // Grant Secret Manager access
+    new gcp.projects.IAMMember(`${name}-secretmanager-accessor`, {
+      project: args.projectId,
+      role: "roles/secretmanager.secretAccessor",
+      member: pulumi.interpolate`serviceAccount:${this.cloudRunServiceAccount.email}`,
+    }, { parent: this });
+
+    // Grant Identity Platform Admin (for custom claims)
+    new gcp.projects.IAMMember(`${name}-firebase-admin`, {
+      project: args.projectId,
+      role: "roles/firebaseauth.admin",
+      member: pulumi.interpolate`serviceAccount:${this.cloudRunServiceAccount.email}`,
+    }, { parent: this });
+
+    this.cloudRunServiceAccountEmail = this.cloudRunServiceAccount.email;
+    this.registerOutputs({
+      serviceAccountEmail: this.cloudRunServiceAccountEmail,
+    });
+  }
+}
 ```
 
 ---
 
 ## Step 7: Backup Configuration
 
-### Automated Backups
+### Automated Backups via Pulumi
 
-Cloud SQL provides automated daily backups:
+Backup configuration is included in the Cloud SQL instance definition (see Step 2). Key settings:
 
-```bash
-# Verify backup configuration
-gcloud sql instances describe "${SPONSOR}-db" \
-  --format="get(settings.backupConfiguration)"
-
-# Configure retention (7 days default, up to 365)
-gcloud sql instances patch "${SPONSOR}-db" \
-  --backup-retention-count=30
+```typescript
+// Backup configuration in CloudSqlDatabase component
+backupConfiguration: {
+  enabled: true,
+  startTime: "02:00",
+  pointInTimeRecoveryEnabled: true,
+  backupRetentionSettings: {
+    retainedBackups: isProduction ? 30 : 7,
+    retentionUnit: "COUNT",
+  },
+},
 ```
 
-### Point-in-Time Recovery
+### Long-term Backup Storage via Pulumi
 
-```bash
-# Verify PITR is enabled
-gcloud sql instances describe "${SPONSOR}-db" \
-  --format="get(settings.backupConfiguration.pointInTimeRecoveryEnabled)"
+```typescript
+// infrastructure/pulumi/components/backup-storage/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# PITR retention: 7 days (automatic)
+export interface BackupStorageArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  sponsor: string;
+}
+
+export class BackupStorage extends pulumi.ComponentResource {
+  public readonly bucket: gcp.storage.Bucket;
+  public readonly bucketName: pulumi.Output<string>;
+
+  constructor(name: string, args: BackupStorageArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:backup-storage", name, {}, opts);
+
+    // Create storage bucket for long-term backups
+    this.bucket = new gcp.storage.Bucket(`${name}-backup-bucket`, {
+      project: args.projectId,
+      name: pulumi.interpolate`${args.projectId}-backups`,
+      location: args.region,
+      storageClass: "NEARLINE", // Cost-effective for backups
+      uniformBucketLevelAccess: true,
+      versioning: { enabled: true },
+      lifecycleRules: [
+        {
+          action: { type: "Delete" },
+          condition: { age: 365 }, // Delete after 1 year
+        },
+        {
+          action: { type: "SetStorageClass", storageClass: "COLDLINE" },
+          condition: { age: 90 }, // Move to coldline after 90 days
+        },
+      ],
+      labels: {
+        sponsor: args.sponsor,
+        purpose: "database-backups",
+        managed_by: "pulumi",
+      },
+    }, { parent: this });
+
+    this.bucketName = this.bucket.name;
+    this.registerOutputs({ bucketName: this.bucketName });
+  }
+}
 ```
 
-### Manual Backup
+### Manual Backup Operations
+
+For ad-hoc backups and exports, use `gcloud` CLI (these are operational tasks, not infrastructure):
 
 ```bash
 # Create on-demand backup
@@ -547,13 +932,6 @@ gcloud sql backups create \
 
 # List backups
 gcloud sql backups list --instance="${SPONSOR}-db"
-```
-
-### Export to Cloud Storage (Long-term Retention)
-
-```bash
-# Create storage bucket for backups
-gsutil mb -l $REGION gs://${PROJECT_ID}-backups
 
 # Export database to Cloud Storage
 gcloud sql export sql "${SPONSOR}-db" \
@@ -561,39 +939,165 @@ gcloud sql export sql "${SPONSOR}-db" \
   --database=clinical_diary
 ```
 
+### Point-in-Time Recovery
+
+PITR is enabled automatically in the Pulumi configuration. To restore to a specific point:
+
+```bash
+# Restore to specific timestamp
+gcloud sql instances clone "${SPONSOR}-db" "${SPONSOR}-db-restored" \
+  --point-in-time="2025-01-15T10:30:00.000Z"
+```
+
 ---
 
 ## Step 8: Monitoring Setup
 
-### Enable Cloud SQL Insights
+### Cloud SQL Insights via Pulumi
 
-```bash
-# Enable query insights
-gcloud sql instances patch "${SPONSOR}-db" \
-  --insights-config-query-insights-enabled \
-  --insights-config-query-string-length=4096 \
-  --insights-config-record-application-tags \
-  --insights-config-record-client-address
+Query insights are configured as part of the Cloud SQL instance:
+
+```typescript
+// Add to CloudSqlDatabase component settings
+settings: {
+  // ... other settings
+  insightsConfig: {
+    queryInsightsEnabled: true,
+    queryStringLength: 4096,
+    recordApplicationTags: true,
+    recordClientAddress: true,
+  },
+}
 ```
 
-### Create Monitoring Alerts
+### Create Monitoring Alerts via Pulumi
 
-```bash
-# Alert on high CPU
-gcloud monitoring alert-policies create \
-  --display-name="Cloud SQL High CPU" \
-  --condition-filter='resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/cpu/utilization"' \
-  --condition-threshold-value=0.8 \
-  --condition-threshold-comparison=COMPARISON_GT \
-  --notification-channels=CHANNEL_ID
+```typescript
+// infrastructure/pulumi/components/monitoring/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# Alert on storage usage
-gcloud monitoring alert-policies create \
-  --display-name="Cloud SQL Storage Alert" \
-  --condition-filter='resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/disk/utilization"' \
-  --condition-threshold-value=0.8 \
-  --condition-threshold-comparison=COMPARISON_GT \
-  --notification-channels=CHANNEL_ID
+export interface MonitoringArgs {
+  projectId: pulumi.Input<string>;
+  sponsor: string;
+  notificationChannels: pulumi.Input<string>[];
+}
+
+export class DatabaseMonitoring extends pulumi.ComponentResource {
+  constructor(name: string, args: MonitoringArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:monitoring", name, {}, opts);
+
+    // Alert on high CPU utilization
+    new gcp.monitoring.AlertPolicy(`${name}-cpu-alert`, {
+      project: args.projectId,
+      displayName: `Cloud SQL High CPU - ${args.sponsor}`,
+      combiner: "OR",
+      conditions: [{
+        displayName: "CPU utilization > 80%",
+        conditionThreshold: {
+          filter: 'resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/cpu/utilization"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 0.8,
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_MEAN",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+      alertStrategy: {
+        autoClose: "604800s", // Auto-close after 7 days
+      },
+    }, { parent: this });
+
+    // Alert on high storage utilization
+    new gcp.monitoring.AlertPolicy(`${name}-storage-alert`, {
+      project: args.projectId,
+      displayName: `Cloud SQL Storage Alert - ${args.sponsor}`,
+      combiner: "OR",
+      conditions: [{
+        displayName: "Disk utilization > 80%",
+        conditionThreshold: {
+          filter: 'resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/disk/utilization"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 0.8,
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_MEAN",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+    }, { parent: this });
+
+    // Alert on high memory utilization
+    new gcp.monitoring.AlertPolicy(`${name}-memory-alert`, {
+      project: args.projectId,
+      displayName: `Cloud SQL Memory Alert - ${args.sponsor}`,
+      combiner: "OR",
+      conditions: [{
+        displayName: "Memory utilization > 90%",
+        conditionThreshold: {
+          filter: 'resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/memory/utilization"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 0.9,
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_MEAN",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+    }, { parent: this });
+
+    // Alert on connection count
+    new gcp.monitoring.AlertPolicy(`${name}-connections-alert`, {
+      project: args.projectId,
+      displayName: `Cloud SQL Connection Alert - ${args.sponsor}`,
+      combiner: "OR",
+      conditions: [{
+        displayName: "Connection count > 80% of max",
+        conditionThreshold: {
+          filter: 'resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/network/connections"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 80, // Adjust based on instance tier
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_MEAN",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+    }, { parent: this });
+
+    this.registerOutputs({});
+  }
+}
+```
+
+### Create Notification Channel via Pulumi
+
+```typescript
+// Create email notification channel
+const emailChannel = new gcp.monitoring.NotificationChannel("email-alerts", {
+  project: projectId,
+  displayName: "Database Alerts Email",
+  type: "email",
+  labels: {
+    email_address: config.require("alertEmail"),
+  },
+});
+
+// Use in monitoring component
+const monitoring = new DatabaseMonitoring("db-monitoring", {
+  projectId: project.projectId,
+  sponsor: sponsor,
+  notificationChannels: [emailChannel.name],
+});
 ```
 
 ---
@@ -704,22 +1208,39 @@ WHERE patient_id = 'test_patient';
 
 Before going live:
 
+**Infrastructure (via Pulumi)**:
+- [ ] Pulumi stack created for sponsor/environment
+- [ ] GCP project provisioned via Pulumi
 - [ ] Cloud SQL instance created with appropriate tier
+- [ ] VPC networking configured (private IP for production)
+- [ ] Service accounts created with minimal permissions
+- [ ] Identity Platform configured
+- [ ] Cloud Run service deployed
+- [ ] Backup storage bucket created
+- [ ] Monitoring alerts configured
+
+**Database**:
 - [ ] Database and user created
 - [ ] Schema deployed via migrations
 - [ ] RLS policies verified
-- [ ] Identity Platform configured
-- [ ] Custom claims function deployed
-- [ ] Service account created with minimal permissions
-- [ ] Backup configuration verified (daily + PITR)
 - [ ] Connection pooling configured
-- [ ] Monitoring alerts configured
+
+**Security**:
 - [ ] SSL/TLS enforced (automatic for Cloud SQL)
 - [ ] Credentials stored in Doppler
-- [ ] VPC peering configured (production)
+- [ ] Pulumi secrets configured for sensitive values
+
+**Validation**:
+- [ ] `pulumi preview` shows no unexpected changes
 - [ ] Load testing completed
 - [ ] Documentation reviewed
 - [ ] Incident response plan ready
+
+**Deploy Command**:
+```bash
+cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+doppler run -- pulumi up
+```
 
 ---
 

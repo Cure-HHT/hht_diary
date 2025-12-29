@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Operations/DevOps
-**Last Updated**: 2025-10-17
+**Last Updated**: 2025-12-28
 
 > **See**: prd-security.md for security requirements
 > **See**: ops-security-authentication.md for authentication auditing
@@ -38,6 +38,8 @@ Provide tamper-evident auditing for schema/permission changes and privileged ope
 5. Email/webhook alerts for critical events.
 6. Nightly checkpoint with SHA-256 chain.
 7. Weekly digest; limited read access to Auditor/Admin (RO).
+
+TODO - this seems to need more detail and discovery
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Operations (DevOps, Compliance Officers, System Administrators)
-**Last Updated**: 2025-12-12
+**Last Updated**: 2025-12-28
 **Status**: Draft
 
 > **See**: prd-system.md for platform requirements
@@ -153,6 +153,8 @@ Automated access review SHALL include:
 - Access review evidence exportable for auditors
 - False positive rate < 5%
 
+TODO - this needs details on how alerts are managed.  They often pile up.
+
 *End* *Automated Access Review* | **Hash**: a48497b6
 
 ---
@@ -207,6 +209,7 @@ Data residency enforcement SHALL include:
 
 **Supported Residency Configurations**:
 - US-only: Data restricted to US regions
+TODO - this would violate GDPR for EU residents in the US
 - EU-only: Data restricted to EU regions (GDPR)
 - Global: Data replicated across approved regions
 
@@ -252,6 +255,8 @@ Automated detection SHALL cover:
 - Incident timeline automatically constructed
 - Automated initial containment for defined scenarios
 - Incident evidence preserved automatically
+
+TODO - similar to the above, then what? Incidents need human management.
 
 *End* *Automated Incident Detection* | **Hash**: e946a022
 
