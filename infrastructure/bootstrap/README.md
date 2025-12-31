@@ -12,16 +12,16 @@ This Pulumi project creates the foundational GCP infrastructure for onboarding n
 
 For each new sponsor, this bootstrap creates:
 
-| Resource | Count | Description |
-| -------- | ----- | ----------- |
-| GCP Projects | 4 | `{prefix}-{sponsor}-dev`, `{prefix}-{sponsor}-qa`, `{prefix}-{sponsor}-uat`, `{prefix}-{sponsor}-prod` |
-| APIs | ~13 per project | Cloud Run, SQL, IAM, Monitoring, etc. |
-| Billing Budgets | 4 | Per-environment budgets with alerts |
-| Service Account | 1 | CI/CD service account for deployments |
-| IAM Bindings | ~28 | Roles for CI/CD across all projects |
-| Workload Identity | 1 pool | GitHub Actions OIDC (optional) |
-| Audit Log Buckets | 4 | 25-year retention for FDA compliance |
-| Audit Log Sinks | 4 | Export Cloud Audit Logs to storage |
+| Resource          | Count           | Description                                                                                            |
+|-------------------|-----------------|--------------------------------------------------------------------------------------------------------|
+| GCP Projects      | 4               | `{prefix}-{sponsor}-dev`, `{prefix}-{sponsor}-qa`, `{prefix}-{sponsor}-uat`, `{prefix}-{sponsor}-prod` |
+| APIs              | ~13 per project | Cloud Run, SQL, IAM, Monitoring, etc.                                                                  |
+| Billing Budgets   | 4               | Per-environment budgets with alerts                                                                    |
+| Service Account   | 1               | CI/CD service account for deployments                                                                  |
+| IAM Bindings      | ~28             | Roles for CI/CD across all projects                                                                    |
+| Workload Identity | 1 pool          | GitHub Actions OIDC (optional)                                                                         |
+| Audit Log Buckets | 4               | 25-year retention for FDA compliance                                                                   |
+| Audit Log Sinks   | 4               | Export Cloud Audit Logs to storage                                                                     |
 
 ## Prerequisites
 
@@ -64,20 +64,20 @@ The bootstrap script requires certain environment variables from Doppler. Run th
 
 ### Required Variables
 
-| Variable | Description | Example |
-| -------- | ----------- | ------- |
-| GCP Authentication | One of the following methods | |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account key JSON | `/path/to/key.json` |
-| `CLOUDSDK_AUTH_ACCESS_TOKEN` | GCP access token | `ya29.xxx...` |
-| (or) Application Default Credentials | Via `gcloud auth application-default login` | |
+| Variable                             | Description                                 | Example             |
+|--------------------------------------|---------------------------------------------|---------------------|
+| GCP Authentication                   | One of the following methods                |                     |
+| `GOOGLE_APPLICATION_CREDENTIALS`     | Path to service account key JSON            | `/path/to/key.json` |
+| `CLOUDSDK_AUTH_ACCESS_TOKEN`         | GCP access token                            | `ya29.xxx...`       |
+| (or) Application Default Credentials | Via `gcloud auth application-default login` |                     |
 
 ### Optional Variables
 
-| Variable | Description | Example |
-| -------- | ----------- | ------- |
+| Variable                   | Description                                                     | Example           |
+|----------------------------|-----------------------------------------------------------------|-------------------|
 | `PULUMI_CONFIG_PASSPHRASE` | Passphrase for Pulumi state encryption (secrets in GCS backend) | `your-passphrase` |
-| `PULUMI_ACCESS_TOKEN` | Pulumi Cloud token (if using Pulumi Cloud) | `pul-xxx...` |
-| `GCP_PROJECT` | Default GCP project for gcloud | `cure-hht-admin` |
+| `PULUMI_ACCESS_TOKEN`      | Pulumi Cloud token (if using Pulumi Cloud)                      | `pul-xxx...`      |
+| `GCP_PROJECT`              | Default GCP project for gcloud                                  | `cure-hht-admin`  |
 
 ### Doppler Configuration
 
@@ -167,16 +167,16 @@ pulumi stack output cicdServiceAccountEmail
 
 ## Configuration Options
 
-| Config Key | Required | Description | Example |
-| ---------- | -------- | ----------- | ------- |
-| `sponsor` | Yes | Sponsor name (lowercase) | `orion` |
-| `gcp:orgId` | Yes | GCP Organization ID | `123456789012` |
-| `billingAccountId` | Yes | GCP Billing Account ID | `012345-6789AB-CDEF01` |
-| `projectPrefix` | No | Prefix for project IDs | `cure-hht` (default) |
-| `defaultRegion` | No | Default GCP region | `us-central1` (default) |
-| `folderId` | No | GCP Folder to place projects | `folders/123456` |
-| `githubOrg` | No | GitHub org for Workload Identity | `Cure-HHT` |
-| `githubRepo` | No | GitHub repo for Workload Identity | `hht_diary` |
+| Config Key         | Required | Description                       | Example                 |
+|--------------------|----------|-----------------------------------|-------------------------|
+| `sponsor`          | Yes      | Sponsor name (lowercase)          | `orion`                 |
+| `gcp:orgId`        | Yes      | GCP Organization ID               | `123456789012`          |
+| `billingAccountId` | Yes      | GCP Billing Account ID            | `012345-6789AB-CDEF01`  |
+| `projectPrefix`    | No       | Prefix for project IDs            | `cure-hht` (default)    |
+| `defaultRegion`    | No       | Default GCP region                | `us-central1` (default) |
+| `folderId`         | No       | GCP Folder to place projects      | `folders/123456`        |
+| `githubOrg`        | No       | GitHub org for Workload Identity  | `Cure-HHT`              |
+| `githubRepo`       | No       | GitHub repo for Workload Identity | `hht_diary`             |
 
 ## Project Structure
 
@@ -223,12 +223,12 @@ pulumi up
 
 Default budget amounts per environment:
 
-| Environment | Monthly Budget | Alert Thresholds |
-| ----------- | -------------- | ---------------- |
-| dev | $500 | 50%, 75%, 90%, 100% |
-| qa | $500 | 50%, 75%, 90%, 100% |
-| uat | $1,000 | 50%, 75%, 90%, 100% |
-| prod | $5,000 | 50%, 75%, 90%, 100% |
+| Environment | Monthly Budget | Alert Thresholds    |
+|-------------|----------------|---------------------|
+| dev         | $500           | 50%, 75%, 90%, 100% |
+| qa          | $500           | 50%, 75%, 90%, 100% |
+| uat         | $1,000         | 50%, 75%, 90%, 100% |
+| prod        | $5,000         | 50%, 75%, 90%, 100% |
 
 Alerts are sent to billing account admins by default.
 
@@ -331,25 +331,25 @@ Bootstrap automatically creates tamper-evident audit log storage in each project
 
 Every GCP API call is captured with:
 
-| Field | Description | Example |
-| ----- | ----------- | ------- |
-| Principal | Who performed the action | `user:admin@company.com` |
-| Timestamp | When the action occurred | `2025-12-14T15:30:00Z` |
-| Method | What API was called | `google.cloud.sql.v1.SqlInstancesService.Insert` |
-| Source IP | Where the request came from | `203.0.113.45` |
-| Resource | What was affected | `projects/cure-hht-orion-prod/instances/db` |
-| Request/Response | Full payloads | (JSON) |
+| Field            | Description                 | Example                                          |
+|------------------|-----------------------------|--------------------------------------------------|
+| Principal        | Who performed the action    | `user:admin@company.com`                         |
+| Timestamp        | When the action occurred    | `2025-12-14T15:30:00Z`                           |
+| Method           | What API was called         | `google.cloud.sql.v1.SqlInstancesService.Insert` |
+| Source IP        | Where the request came from | `203.0.113.45`                                   |
+| Resource         | What was affected           | `projects/cure-hht-orion-prod/instances/db`      |
+| Request/Response | Full payloads               | (JSON)                                           |
 
 ### Audit Log Buckets
 
 Each environment gets a dedicated audit bucket:
 
-| Environment | Bucket Name | Retention |
-| ----------- | ----------- | --------- |
-| dev | `{prefix}-{sponsor}-dev-audit-logs` | 25 years (locked) |
-| qa | `{prefix}-{sponsor}-qa-audit-logs` | 25 years (locked) |
-| uat | `{prefix}-{sponsor}-uat-audit-logs` | 25 years (locked) |
-| prod | `{prefix}-{sponsor}-prod-audit-logs` | 25 years (locked) |
+| Environment | Bucket Name                          | Retention         |
+|-------------|--------------------------------------|-------------------|
+| dev         | `{prefix}-{sponsor}-dev-audit-logs`  | 25 years (locked) |
+| qa          | `{prefix}-{sponsor}-qa-audit-logs`   | 25 years (locked) |
+| uat         | `{prefix}-{sponsor}-uat-audit-logs`  | 25 years (locked) |
+| prod        | `{prefix}-{sponsor}-prod-audit-logs` | 25 years (locked) |
 
 ### Retention Policy
 
@@ -364,11 +364,11 @@ The retention policy is **locked**, meaning:
 
 Logs automatically transition to cheaper storage:
 
-| Age | Storage Class | Cost |
-| --- | ------------- | ---- |
-| 0-90 days | Standard | ~$0.020/GB/month |
-| 90-365 days | Coldline | ~$0.004/GB/month |
-| 1-25 years | Archive | ~$0.0012/GB/month |
+| Age         | Storage Class | Cost              |
+|-------------|---------------|-------------------|
+| 0-90 days   | Standard      | ~$0.020/GB/month  |
+| 90-365 days | Coldline      | ~$0.004/GB/month  |
+| 1-25 years  | Archive       | ~$0.0012/GB/month |
 
 ### Verification
 
@@ -404,12 +404,12 @@ Anspar team members access sponsor projects using their `@anspar.org` Google acc
 
 ### Current Access Model
 
-| Environment | Anspar Access | Notes |
-| ----------- | ------------- | ----- |
-| dev | `roles/owner` | Full access for development |
-| qa | `roles/owner` | Full access for testing |
-| uat | `roles/viewer` | Read-only; break-glass for changes |
-| prod | `roles/viewer` | Read-only; break-glass for changes |
+| Environment | Anspar Access  | Notes                              |
+|-------------|----------------|------------------------------------|
+| dev         | `roles/owner`  | Full access for development        |
+| qa          | `roles/owner`  | Full access for testing            |
+| uat         | `roles/viewer` | Read-only; break-glass for changes |
+| prod        | `roles/viewer` | Read-only; break-glass for changes |
 
 ### Configuration
 
@@ -427,12 +427,12 @@ For emergency access to UAT/Prod, two options are available:
 
 GCP's native just-in-time access solution with approval workflows.
 
-| Feature | Description |
-| ------- | ----------- |
-| Just-in-Time Access | Temporary role grants that auto-expire |
-| Approval Workflows | Multi-level approvals (up to 2 levels) |
-| Justification Required | Business reason required for access |
-| Audit Logging | All grants logged to Cloud Audit Logs |
+| Feature                | Description                            |
+|------------------------|----------------------------------------|
+| Just-in-Time Access    | Temporary role grants that auto-expire |
+| Approval Workflows     | Multi-level approvals (up to 2 levels) |
+| Justification Required | Business reason required for access    |
+| Audit Logging          | All grants logged to Cloud Audit Logs  |
 
 **Cost**: Requires Security Command Center Premium (~$15,000/year minimum).
 
