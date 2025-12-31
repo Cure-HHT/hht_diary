@@ -97,6 +97,9 @@ jobs:
         run: npm ci
         working-directory: apps/clinical_diary/functions
 
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
       - name: Run coverage tests (includes integration tests with emulator)
         run: |
           chmod +x tool/coverage.sh
@@ -106,81 +109,10 @@ jobs:
             echo "test" | gnome-keyring-daemon --unlock
             ./tool/coverage.sh -f -t
           '
-
-  deploy-web:
-    name: Deploy Web to Firebase
-    runs-on: ubuntu-latest
-    needs: [analyze, test-clinical-diary]
-    # Only deploy on push to main (not on PRs)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      id-token: write  # Required for Workload Identity Federation
-    defaults:
-      run:
-        working-directory: apps/clinical_diary
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         with:
-          flutter-version: '3.38.5'
-          channel: 'stable'
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Extract version from pubspec.yaml
-        id: version
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Extracted version: $VERSION"
-
-      - name: Build web with embedded version
-        run: |
-          flutter build web --release \
-            --dart-define=APP_FLAVOR=dev \
-            --dart-define=APP_VERSION=${{ steps.version.outputs.version }}
-
-      - name: Generate version.json
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          # Read minVersion and releaseNotes from version-info.json
-          MIN_VERSION=$(jq -r '.minVersion // empty' version-info.json)
-          RELEASE_NOTES=$(jq -r '.releaseNotes // empty' version-info.json)
-
-          # Build version.json with all fields
-          jq -n \
-            --arg version "$VERSION" \
-            --arg minVersion "$MIN_VERSION" \
-            --arg releaseNotes "$RELEASE_NOTES" \
-            '{
-              version: $version,
-              minVersion: (if $minVersion != "" then $minVersion else null end),
-              releaseNotes: (if $releaseNotes != "" then $releaseNotes else null end)
-            }' > build/web/version.json
-
-          echo "Generated version.json:"
-          cat build/web/version.json
-
-      - name: Setup Node.js for Firebase CLI
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-      - name: Deploy to Firebase Hosting
-        run: firebase deploy --only hosting
+          file: apps/clinical_diary/coverage/lcov.info
+          flags: clinical_diary
+          name: clinical-diary-coverage
+          fail_ci_if_error: false
