@@ -1,5 +1,5 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00002: Requirements validation tool
+#   REQ-d00014: Requirement Validation Tooling
 #   REQ-o00052: CI/CD Pipeline for Requirement Traceability
 #   REQ-d00018: Git Hook Implementation
 #   REQ-o00017: Version Control Workflow (commit message validation)
@@ -182,17 +182,25 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Load version configuration
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "elspais_version=${ELSPAIS_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Install elspais
         run: |
           python3 -m pip install --upgrade pip
-          # Note: No additional packages needed - validation uses stdlib only
-          # If requirements needed in future: pip install -r tools/requirements/requirements.txt
+          ELSPAIS_VERSION="${{ steps.versions.outputs.elspais_version }}"
+          echo "Installing elspais v${ELSPAIS_VERSION}..."
+          python3 -m pip install "git+https://github.com/Anspar-Org/elspais.git@v${ELSPAIS_VERSION}"
+          elspais --version
 
       - name: Validate requirement format and IDs
         id: validate
         run: |
           echo "::group::Requirement Validation"
-          python3 tools/requirements/validate_requirements.py
+          elspais validate
           RESULT=$?
           echo "::endgroup::"
 
@@ -211,20 +219,16 @@ jobs:
         if: success()
         run: |
           echo "::group::Generate Combined Traceability Matrix (Markdown)"
-          python3 tools/requirements/generate_traceability.py \
-            --mode combined \
-            --format markdown \
-            --output-dir build-reports/combined/traceability
+          mkdir -p build-reports/combined/traceability
+          elspais trace --format markdown --output build-reports/combined/traceability/traceability_matrix.md
           echo "::endgroup::"
 
       - name: Generate combined traceability matrix (HTML)
         if: success()
         run: |
           echo "::group::Generate Combined Traceability Matrix (HTML)"
-          python3 tools/requirements/generate_traceability.py \
-            --mode combined \
-            --format html \
-            --output-dir build-reports/combined/traceability
+          mkdir -p build-reports/combined/traceability
+          elspais trace --format html --output build-reports/combined/traceability/traceability_matrix.html
           echo "::endgroup::"
 
       - name: Generate per-sponsor traceability matrices
@@ -253,7 +257,7 @@ jobs:
         if: success()
         run: |
           echo "::group::INDEX.md Validation"
-          python3 tools/requirements/validate_index.py
+          elspais index validate
           RESULT=$?
           echo "::endgroup::"
 
