@@ -303,6 +303,57 @@ sudo apt-get install -y bash
 bash --version
 ```
 
+### elspais - Requirement Validation CLI
+
+**Minimum version**: 0.3.0
+
+**Purpose**: Primary tool for requirement validation and traceability management
+
+elspais is the main CLI tool for:
+- Validating requirement format and metadata
+- Checking INDEX.md accuracy and completeness
+- Requirement traceability operations
+- Replaces local Python scripts with a unified, tested tool
+
+**Installation**:
+
+**All platforms** (via pip):
+```bash
+# Install from GitHub (pinned version)
+pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0
+
+# Verify installation
+elspais --version
+```
+
+**Version pinning**:
+The version is pinned in `.github/versions.env` for consistency across CI/CD and local development.
+
+**Common commands**:
+```bash
+# Validate all requirements
+elspais validate
+
+# Validate specific file
+elspais validate spec/prd-diary-app.md
+
+# Validate INDEX.md
+elspais index validate
+
+# Get help
+elspais --help
+elspais validate --help
+```
+
+**Fallback**:
+Local Python scripts in `tools/requirements/` remain available as fallback if elspais is not installed, but elspais is the recommended primary tool.
+
+**Verification**:
+```bash
+elspais --version        # Should be 0.3.0 or higher
+elspais validate --help  # Show validation options
+```
+
 ## Optional Tools
 
 These tools are not required but provide enhanced functionality for specific tasks.
@@ -675,6 +726,9 @@ gcloud secrets versions access latest --secret=SECRET_NAME
 # Install core tools
 brew install git python@3.12 node@20 jq yq gh doppler gitleaks lcov google-cloud-sdk
 
+# Install elspais (requirement validation CLI)
+pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0
+
 # Verify installations
 git --version
 python3 --version
@@ -687,6 +741,7 @@ doppler --version
 gitleaks --version
 lcov --version
 gcloud --version
+elspais --version
 ```
 
 #### Manual Setup
@@ -732,6 +787,9 @@ sudo mv gitleaks-linux-x64 /usr/local/bin/gitleaks
 # Install lcov (for coverage reports)
 sudo apt-get install -y lcov
 
+# Install elspais (requirement validation CLI)
+pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0
+
 # Install gcloud CLI
 echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
   sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
@@ -751,6 +809,7 @@ gh --version
 gitleaks --version
 lcov --version
 gcloud --version
+elspais --version
 ```
 
 ### Windows (WSL2 - Ubuntu 22.04 / 24.04)
@@ -948,6 +1007,7 @@ tools=(
   "node:Node.js runtime:18.0"
   "npm:Node package manager:9.0"
   "bash:Bash shell:4.0"
+  "elspais:Requirement validation CLI:0.3.0"
 )
 
 failed=0
@@ -1021,6 +1081,10 @@ echo '{"test": 1}' | jq .test   # Should output: 1
 
 # Bash
 bash --version                  # Should be 4.0+
+
+# elspais
+elspais --version               # Should be 0.3.0+
+elspais validate --help         # Show validation options
 
 # Optional tools
 gh --version                    # If installed
