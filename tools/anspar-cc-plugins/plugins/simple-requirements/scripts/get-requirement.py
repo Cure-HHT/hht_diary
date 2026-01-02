@@ -19,63 +19,62 @@ import sys
 import json
 import argparse
 from pathlib import Path
+from typing import Dict, Any
 
 # Import shared utilities
-from common import get_repo_root, setup_python_path, normalize_req_id
+from common import get_repo_root, get_requirements_via_cli, normalize_req_id, format_req_id
 
-# Add tools/requirements to Python path for imports
-setup_python_path()
 repo_root = get_repo_root()
 
-from validate_requirements import RequirementValidator, Requirement
 
-
-def format_requirement_markdown(req: Requirement) -> str:
+def format_requirement_markdown(req_id: str, req: Dict[str, Any]) -> str:
     """
     Format requirement as markdown for human reading.
 
     Args:
-        req: Requirement object
+        req_id: Normalized requirement ID (e.g., 'd00027')
+        req: Requirement data dict from elspais CLI
 
     Returns:
         Formatted markdown string
     """
-    implements_str = ', '.join(req.implements) if req.implements else '-'
+    implements_str = ', '.join(req.get('implements', [])) if req.get('implements') else '-'
 
     output = []
-    output.append(f"### REQ-{req.id}: {req.title}")
+    output.append(f"### REQ-{req_id}: {req['title']}")
     output.append("")
-    output.append(f"**Level**: {req.level} | **Implements**: {implements_str} | **Status**: {req.status} | **Hash**: {req.hash}")
+    output.append(f"**Level**: {req['level']} | **Implements**: {implements_str} | **Status**: {req['status']} | **Hash**: {req['hash']}")
     output.append("")
-    output.append(req.body)
+    output.append(req['body'])
     output.append("")
-    output.append(f"**Source**: {req.file_path.name}:{req.line_number}")
+    output.append(f"**Source**: {req['file']}:{req['line']}")
 
     return '\n'.join(output)
 
 
-def format_requirement_json(req: Requirement) -> str:
+def format_requirement_json(req_id: str, req: Dict[str, Any]) -> str:
     """
     Format requirement as JSON for machine reading.
 
     Args:
-        req: Requirement object
+        req_id: Normalized requirement ID (e.g., 'd00027')
+        req: Requirement data dict from elspais CLI
 
     Returns:
         JSON string
     """
     data = {
-        'id': req.id,
-        'full_id': f'REQ-{req.id}',
-        'title': req.title,
-        'level': req.level,
-        'implements': req.implements,
-        'status': req.status,
-        'hash': req.hash,
-        'body': req.body,
+        'id': req_id,
+        'full_id': f'REQ-{req_id}',
+        'title': req['title'],
+        'level': req['level'],
+        'implements': req.get('implements', []),
+        'status': req['status'],
+        'hash': req['hash'],
+        'body': req['body'],
         'source': {
-            'file': str(req.file_path.name),
-            'line': req.line_number
+            'file': req['file'],
+            'line': req['line']
         }
     }
 
@@ -98,30 +97,29 @@ def get_requirement(req_id: str, format_type: str = 'markdown') -> str:
     """
     # Normalize ID
     normalized_id = normalize_req_id(req_id)
+    full_id = format_req_id(normalized_id)
 
-    # Parse all requirements
-    spec_dir = repo_root / 'spec'
-    if not spec_dir.exists():
-        raise FileNotFoundError(f"Spec directory not found: {spec_dir}")
+    # Get all requirements via elspais CLI
+    all_reqs = get_requirements_via_cli()
 
-    validator = RequirementValidator(spec_dir)
-    validator._parse_requirements()
+    if not all_reqs:
+        raise FileNotFoundError("Failed to get requirements from elspais CLI")
 
-    # Find the requirement
-    if normalized_id not in validator.requirements:
-        available_ids = ', '.join(sorted(validator.requirements.keys())[:10])
+    # Find the requirement (elspais uses full IDs like 'REQ-d00027')
+    if full_id not in all_reqs:
+        available_ids = ', '.join(sorted(all_reqs.keys())[:10])
         raise ValueError(
             f"Requirement '{normalized_id}' not found.\n"
             f"Available requirements (first 10): {available_ids}..."
         )
 
-    req = validator.requirements[normalized_id]
+    req = all_reqs[full_id]
 
     # Format based on type
     if format_type == 'json':
-        return format_requirement_json(req)
+        return format_requirement_json(normalized_id, req)
     else:
-        return format_requirement_markdown(req)
+        return format_requirement_markdown(normalized_id, req)
 
 
 def main():

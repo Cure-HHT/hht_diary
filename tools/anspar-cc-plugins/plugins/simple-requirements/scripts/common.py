@@ -308,16 +308,33 @@ def remove_from_tracking(req_id: str) -> Optional[Dict]:
 # Utility Functions
 # =============================================================================
 
-def setup_python_path() -> None:
+def get_requirements_via_cli() -> Dict[str, Dict[str, Any]]:
     """
-    Add tools/requirements to Python path for importing shared validators.
+    Get all requirements by running elspais validate --json.
 
-    Call this at the top of scripts that need to import from tools/requirements.
+    Returns:
+        Dict mapping requirement ID (e.g., 'REQ-d00027') to requirement data dict
+        containing: title, status, level, body, file, filePath, line, implements, hash
     """
-    repo_root = _get_repo_root_cached()
-    requirements_path = str(repo_root / 'tools' / 'requirements')
-    if requirements_path not in sys.path:
-        sys.path.insert(0, requirements_path)
+    try:
+        result = subprocess.run(
+            ['elspais', 'validate', '--json'],
+            capture_output=True,
+            text=True,
+            cwd=str(_get_repo_root_cached())
+        )
+
+        # The JSON starts after the "Found N requirements" line
+        output = result.stdout
+        json_start = output.find('{')
+        if json_start == -1:
+            return {}
+
+        json_str = output[json_start:]
+        return json.loads(json_str)
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"Warning: Failed to get requirements via elspais: {e}", file=sys.stderr)
+        return {}
 
 
 def get_git_config(key: str, default: str = '') -> str:
