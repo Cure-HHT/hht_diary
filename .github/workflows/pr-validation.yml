@@ -211,46 +211,16 @@ jobs:
 
           echo "✅ Requirement validation passed"
 
-      # Phase 4: Multi-sponsor traceability matrix generation
-      # Generates combined (all sponsors) + per-sponsor reports
-      # Output structure: build-reports/{combined|sponsor-name}/traceability/
+      # Phase 4: Traceability matrix generation
+      # Output: build-reports/combined/traceability/
+      # Note: Sponsor-specific traceability now handled in separate sponsor repos
 
-      - name: Generate combined traceability matrix (Markdown)
+      - name: Generate traceability matrix
         if: success()
         run: |
-          echo "::group::Generate Combined Traceability Matrix (Markdown)"
+          echo "::group::Generate Traceability Matrix"
           mkdir -p build-reports/combined/traceability
-          elspais trace --format markdown --output build-reports/combined/traceability/traceability_matrix.md
-          echo "::endgroup::"
-
-      - name: Generate combined traceability matrix (HTML)
-        if: success()
-        run: |
-          echo "::group::Generate Combined Traceability Matrix (HTML)"
-          mkdir -p build-reports/combined/traceability
-          elspais trace --format html --output build-reports/combined/traceability/traceability_matrix.html
-          echo "::endgroup::"
-
-      - name: Generate per-sponsor traceability matrices
-        if: success()
-        run: |
-          echo "::group::Generate Sponsor-Specific Traceability Matrices"
-          # Get sponsor list from Doppler/environment
-          # TODO: Pull from Doppler when available, hardcoded for now
-          SPONSORS="callisto titan"
-          for sponsor in $SPONSORS; do
-            echo "Generating traceability for sponsor: $sponsor"
-            python3 tools/requirements/generate_traceability.py \
-              --mode sponsor \
-              --sponsor $sponsor \
-              --format markdown \
-              --output-dir build-reports/$sponsor/traceability
-            python3 tools/requirements/generate_traceability.py \
-              --mode sponsor \
-              --sponsor $sponsor \
-              --format html \
-              --output-dir build-reports/$sponsor/traceability
-          done
+          elspais trace --format both --output build-reports/combined/traceability/traceability_matrix
           echo "::endgroup::"
 
       - name: Validate INDEX.md accuracy
