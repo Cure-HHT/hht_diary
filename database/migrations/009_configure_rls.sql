@@ -8,6 +8,65 @@
 -- =====================================================
 
 -- =====================================================
+-- DROP EXISTING POLICIES (makes migration idempotent)
+-- =====================================================
+
+-- Sites policies
+DROP POLICY IF EXISTS sites_select_all ON sites;
+DROP POLICY IF EXISTS sites_admin_all ON sites;
+
+-- Record audit policies
+DROP POLICY IF EXISTS audit_user_select ON record_audit;
+DROP POLICY IF EXISTS audit_user_insert ON record_audit;
+DROP POLICY IF EXISTS audit_investigator_select ON record_audit;
+DROP POLICY IF EXISTS audit_investigator_insert ON record_audit;
+DROP POLICY IF EXISTS audit_analyst_select ON record_audit;
+DROP POLICY IF EXISTS audit_admin_all ON record_audit;
+
+-- Record state policies
+DROP POLICY IF EXISTS state_user_select ON record_state;
+DROP POLICY IF EXISTS state_user_insert ON record_state;
+DROP POLICY IF EXISTS state_user_update ON record_state;
+DROP POLICY IF EXISTS state_user_delete ON record_state;
+DROP POLICY IF EXISTS state_investigator_select ON record_state;
+DROP POLICY IF EXISTS state_analyst_select ON record_state;
+DROP POLICY IF EXISTS state_admin_select ON record_state;
+DROP POLICY IF EXISTS state_service_all ON record_state;
+
+-- Annotations policies
+DROP POLICY IF EXISTS annotations_user_select ON investigator_annotations;
+DROP POLICY IF EXISTS annotations_investigator_select ON investigator_annotations;
+DROP POLICY IF EXISTS annotations_investigator_insert ON investigator_annotations;
+DROP POLICY IF EXISTS annotations_investigator_update ON investigator_annotations;
+DROP POLICY IF EXISTS annotations_admin_all ON investigator_annotations;
+
+-- User assignments policies
+DROP POLICY IF EXISTS user_assignments_select ON user_site_assignments;
+DROP POLICY IF EXISTS user_assignments_investigator_select ON user_site_assignments;
+DROP POLICY IF EXISTS user_assignments_admin_all ON user_site_assignments;
+
+-- Investigator assignments policies
+DROP POLICY IF EXISTS investigator_assignments_select ON investigator_site_assignments;
+DROP POLICY IF EXISTS investigator_assignments_admin_all ON investigator_site_assignments;
+
+-- Analyst assignments policies
+DROP POLICY IF EXISTS analyst_assignments_select ON analyst_site_assignments;
+DROP POLICY IF EXISTS analyst_assignments_admin_all ON analyst_site_assignments;
+
+-- Conflicts policies
+DROP POLICY IF EXISTS conflicts_user_select ON sync_conflicts;
+DROP POLICY IF EXISTS conflicts_user_update ON sync_conflicts;
+DROP POLICY IF EXISTS conflicts_investigator_select ON sync_conflicts;
+DROP POLICY IF EXISTS conflicts_admin_all ON sync_conflicts;
+DROP POLICY IF EXISTS conflicts_service_insert ON sync_conflicts;
+
+-- Admin log policies
+DROP POLICY IF EXISTS admin_log_select ON admin_action_log;
+DROP POLICY IF EXISTS admin_log_insert ON admin_action_log;
+DROP POLICY IF EXISTS admin_log_investigator_select ON admin_action_log;
+DROP POLICY IF EXISTS admin_log_investigator_review ON admin_action_log;
+
+-- =====================================================
 -- ENABLE RLS ON ALL TABLES
 -- =====================================================
 
