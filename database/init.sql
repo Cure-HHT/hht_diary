@@ -167,10 +167,16 @@ END $$;
 
 \echo 'Step 7: Setting up system configuration...'
 
--- Note: In Supabase, the first admin user should be created via the auth.users table
+-- Note: The first admin user should be created via the application
 -- This is just a placeholder for documentation
 
-COMMENT ON DATABASE current_database() IS 'Clinical Trial Diary Database - FDA 21 CFR Part 11 Compliant';
+-- Add database comment (use dynamic SQL since COMMENT ON DATABASE needs literal name)
+DO $$
+BEGIN
+    EXECUTE format('COMMENT ON DATABASE %I IS %L',
+        current_database(),
+        'Clinical Trial Diary Database - FDA 21 CFR Part 11 Compliant');
+END $$;
 
 -- =====================================================
 -- COMPLETION

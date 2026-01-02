@@ -135,7 +135,7 @@ BEGIN
         CASE
             WHEN NOT ac.hash_valid THEN 'Hash verification failed - possible tampering detected'
             WHEN ac.parent_audit_id IS NOT NULL AND NOT EXISTS(
-                SELECT 1 FROM record_audit WHERE audit_id = ac.parent_audit_id
+                SELECT 1 FROM record_audit ra2 WHERE ra2.audit_id = ac.parent_audit_id
             ) THEN 'Invalid parent reference - audit chain broken'
             ELSE NULL
         END as error_message

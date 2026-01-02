@@ -188,12 +188,12 @@ CREATE TRIGGER validate_audit_before_insert
 CREATE OR REPLACE FUNCTION log_admin_action()
 RETURNS BOOLEAN AS $$
 DECLARE
-    current_role TEXT;
+    v_user_role TEXT;
 BEGIN
-    current_role := current_user_role();
+    v_user_role := current_user_role();
 
     -- If user is admin, require logging (this is a stub - actual logging done in application layer)
-    IF current_role = 'ADMIN' THEN
+    IF v_user_role = 'ADMIN' THEN
         -- Admin actions are allowed but should be logged
         -- In practice, the application layer will create admin_action_log entries
         RETURN true;

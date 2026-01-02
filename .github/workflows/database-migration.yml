@@ -42,10 +42,13 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          # Pinned to PostgreSQL 15 (matches production database version)
-          # Last updated: 2025-11-11
-          sudo apt-get install -y postgresql-client-15
-          which psql || (echo "ERROR: postgresql-client-15 installation failed" && exit 1)
+          # Add PostgreSQL apt repo for version 17
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update
+          # Pinned to PostgreSQL 17 (matches production database version)
+          sudo apt-get install -y postgresql-client-17
+          which psql || (echo "ERROR: postgresql-client-17 installation failed" && exit 1)
 
       - name: Test schema deployment
         run: |
@@ -59,6 +62,12 @@ jobs:
           psql --set ON_ERROR_STOP=1 -f database/triggers.sql
           echo "Triggers deployed successfully"
 
+      - name: Test roles
+        run: |
+          echo "Testing roles..."
+          psql --set ON_ERROR_STOP=1 -f database/roles.sql
+          echo "Roles deployed successfully"
+
       - name: Test RLS policies
         run: |
           echo "Testing RLS policies..."
@@ -70,6 +79,18 @@ jobs:
           echo "Testing indexes..."
           psql --set ON_ERROR_STOP=1 -f database/indexes.sql
           echo "Indexes deployed successfully"
+
+      - name: Test tamper detection
+        run: |
+          echo "Testing tamper detection (hash triggers)..."
+          psql --set ON_ERROR_STOP=1 -f database/tamper_detection.sql
+          echo "Tamper detection deployed successfully"
+
+      - name: Test compliance verification
+        run: |
+          echo "Testing compliance verification functions..."
+          psql --set ON_ERROR_STOP=1 -f database/compliance_verification.sql
+          echo "Compliance verification deployed successfully"
 
       - name: Run database tests
         run: |

@@ -26,12 +26,14 @@ ALTER TABLE admin_action_log ENABLE ROW LEVEL SECURITY;
 -- =====================================================
 
 -- All authenticated users can view active sites
+DROP POLICY IF EXISTS sites_select_all ON sites;
 CREATE POLICY sites_select_all ON sites
     FOR SELECT
     TO authenticated
     USING (is_active = true);
 
 -- Only admins can insert/update/delete sites
+DROP POLICY IF EXISTS sites_admin_all ON sites;
 CREATE POLICY sites_admin_all ON sites
     FOR ALL
     TO authenticated
@@ -46,12 +48,14 @@ COMMENT ON POLICY sites_admin_all ON sites IS 'Only admins can manage sites';
 -- =====================================================
 
 -- Users can view ONLY their own audit entries
+DROP POLICY IF EXISTS audit_user_select ON record_audit;
 CREATE POLICY audit_user_select ON record_audit
     FOR SELECT
     TO authenticated
     USING (patient_id = current_user_id());
 
 -- Users can insert ONLY their own audit entries
+DROP POLICY IF EXISTS audit_user_insert ON record_audit;
 CREATE POLICY audit_user_insert ON record_audit
     FOR INSERT
     TO authenticated
@@ -62,6 +66,7 @@ CREATE POLICY audit_user_insert ON record_audit
     );
 
 -- Investigators can view audit entries for their assigned sites
+DROP POLICY IF EXISTS audit_investigator_select ON record_audit;
 CREATE POLICY audit_investigator_select ON record_audit
     FOR SELECT
     TO authenticated
@@ -76,6 +81,7 @@ CREATE POLICY audit_investigator_select ON record_audit
     );
 
 -- Investigators can insert audit entries (for transcription, annotations)
+DROP POLICY IF EXISTS audit_investigator_insert ON record_audit;
 CREATE POLICY audit_investigator_insert ON record_audit
     FOR INSERT
     TO authenticated
@@ -93,6 +99,7 @@ CREATE POLICY audit_investigator_insert ON record_audit
     );
 
 -- Analysts can view audit entries for their assigned sites
+DROP POLICY IF EXISTS audit_analyst_select ON record_audit;
 CREATE POLICY audit_analyst_select ON record_audit
     FOR SELECT
     TO authenticated
@@ -107,6 +114,7 @@ CREATE POLICY audit_analyst_select ON record_audit
     );
 
 -- Admins have full access to audit table
+DROP POLICY IF EXISTS audit_admin_all ON record_audit;
 CREATE POLICY audit_admin_all ON record_audit
     FOR ALL
     TO authenticated
@@ -122,6 +130,7 @@ COMMENT ON POLICY audit_investigator_select ON record_audit IS 'Investigators ca
 -- =====================================================
 
 -- Users can view ONLY their own records
+DROP POLICY IF EXISTS state_user_select ON record_state;
 CREATE POLICY state_user_select ON record_state
     FOR SELECT
     TO authenticated
@@ -132,23 +141,27 @@ CREATE POLICY state_user_select ON record_state
 
 -- Users CANNOT directly insert/update/delete state table
 -- (must go through audit table via triggers)
+DROP POLICY IF EXISTS state_user_insert ON record_state;
 CREATE POLICY state_user_insert ON record_state
     FOR INSERT
     TO authenticated
     WITH CHECK (false);  -- No direct inserts allowed
 
+DROP POLICY IF EXISTS state_user_update ON record_state;
 CREATE POLICY state_user_update ON record_state
     FOR UPDATE
     TO authenticated
     USING (false)  -- No direct updates allowed
     WITH CHECK (false);
 
+DROP POLICY IF EXISTS state_user_delete ON record_state;
 CREATE POLICY state_user_delete ON record_state
     FOR DELETE
     TO authenticated
     USING (false);  -- No direct deletes allowed
 
 -- Investigators can view records at their sites
+DROP POLICY IF EXISTS state_investigator_select ON record_state;
 CREATE POLICY state_investigator_select ON record_state
     FOR SELECT
     TO authenticated
@@ -163,6 +176,7 @@ CREATE POLICY state_investigator_select ON record_state
     );
 
 -- Analysts can view records at their sites (including deleted for analysis)
+DROP POLICY IF EXISTS state_analyst_select ON record_state;
 CREATE POLICY state_analyst_select ON record_state
     FOR SELECT
     TO authenticated
@@ -177,12 +191,14 @@ CREATE POLICY state_analyst_select ON record_state
     );
 
 -- Admins have full read access
+DROP POLICY IF EXISTS state_admin_select ON record_state;
 CREATE POLICY state_admin_select ON record_state
     FOR SELECT
     TO authenticated
     USING (current_user_role() = 'ADMIN');
 
 -- Backend service role can modify state table (for triggers)
+DROP POLICY IF EXISTS state_service_all ON record_state;
 CREATE POLICY state_service_all ON record_state
     FOR ALL
     TO service_role
@@ -198,6 +214,7 @@ COMMENT ON POLICY state_investigator_select ON record_state IS 'Investigators ca
 -- =====================================================
 
 -- Users can view annotations on their own records
+DROP POLICY IF EXISTS annotations_user_select ON investigator_annotations;
 CREATE POLICY annotations_user_select ON investigator_annotations
     FOR SELECT
     TO authenticated
@@ -210,6 +227,7 @@ CREATE POLICY annotations_user_select ON investigator_annotations
     );
 
 -- Investigators can view annotations at their sites
+DROP POLICY IF EXISTS annotations_investigator_select ON investigator_annotations;
 CREATE POLICY annotations_investigator_select ON investigator_annotations
     FOR SELECT
     TO authenticated
@@ -224,6 +242,7 @@ CREATE POLICY annotations_investigator_select ON investigator_annotations
     );
 
 -- Investigators can create annotations at their sites
+DROP POLICY IF EXISTS annotations_investigator_insert ON investigator_annotations;
 CREATE POLICY annotations_investigator_insert ON investigator_annotations
     FOR INSERT
     TO authenticated
@@ -240,6 +259,7 @@ CREATE POLICY annotations_investigator_insert ON investigator_annotations
     );
 
 -- Investigators can update their own annotations
+DROP POLICY IF EXISTS annotations_investigator_update ON investigator_annotations;
 CREATE POLICY annotations_investigator_update ON investigator_annotations
     FOR UPDATE
     TO authenticated
@@ -253,6 +273,7 @@ CREATE POLICY annotations_investigator_update ON investigator_annotations
     );
 
 -- Admins have full access
+DROP POLICY IF EXISTS annotations_admin_all ON investigator_annotations;
 CREATE POLICY annotations_admin_all ON investigator_annotations
     FOR ALL
     TO authenticated
@@ -267,12 +288,14 @@ COMMENT ON POLICY annotations_investigator_insert ON investigator_annotations IS
 -- =====================================================
 
 -- Users can view their own site assignments
+DROP POLICY IF EXISTS user_assignments_select ON user_site_assignments;
 CREATE POLICY user_assignments_select ON user_site_assignments
     FOR SELECT
     TO authenticated
     USING (patient_id = current_user_id());
 
 -- Investigators can view assignments at their sites
+DROP POLICY IF EXISTS user_assignments_investigator_select ON user_site_assignments;
 CREATE POLICY user_assignments_investigator_select ON user_site_assignments
     FOR SELECT
     TO authenticated
@@ -287,6 +310,7 @@ CREATE POLICY user_assignments_investigator_select ON user_site_assignments
     );
 
 -- Only admins can insert/update/delete user assignments
+DROP POLICY IF EXISTS user_assignments_admin_all ON user_site_assignments;
 CREATE POLICY user_assignments_admin_all ON user_site_assignments
     FOR ALL
     TO authenticated
@@ -298,6 +322,7 @@ CREATE POLICY user_assignments_admin_all ON user_site_assignments
 -- =====================================================
 
 -- Investigators can view their own assignments
+DROP POLICY IF EXISTS investigator_assignments_select ON investigator_site_assignments;
 CREATE POLICY investigator_assignments_select ON investigator_site_assignments
     FOR SELECT
     TO authenticated
@@ -307,6 +332,7 @@ CREATE POLICY investigator_assignments_select ON investigator_site_assignments
     );
 
 -- Only admins can manage investigator assignments
+DROP POLICY IF EXISTS investigator_assignments_admin_all ON investigator_site_assignments;
 CREATE POLICY investigator_assignments_admin_all ON investigator_site_assignments
     FOR ALL
     TO authenticated
@@ -318,6 +344,7 @@ CREATE POLICY investigator_assignments_admin_all ON investigator_site_assignment
 -- =====================================================
 
 -- Analysts can view their own assignments
+DROP POLICY IF EXISTS analyst_assignments_select ON analyst_site_assignments;
 CREATE POLICY analyst_assignments_select ON analyst_site_assignments
     FOR SELECT
     TO authenticated
@@ -327,6 +354,7 @@ CREATE POLICY analyst_assignments_select ON analyst_site_assignments
     );
 
 -- Only admins can manage analyst assignments
+DROP POLICY IF EXISTS analyst_assignments_admin_all ON analyst_site_assignments;
 CREATE POLICY analyst_assignments_admin_all ON analyst_site_assignments
     FOR ALL
     TO authenticated
@@ -338,12 +366,14 @@ CREATE POLICY analyst_assignments_admin_all ON analyst_site_assignments
 -- =====================================================
 
 -- Users can view their own conflicts
+DROP POLICY IF EXISTS conflicts_user_select ON sync_conflicts;
 CREATE POLICY conflicts_user_select ON sync_conflicts
     FOR SELECT
     TO authenticated
     USING (patient_id = current_user_id());
 
 -- Users can update resolution of their own conflicts
+DROP POLICY IF EXISTS conflicts_user_update ON sync_conflicts;
 CREATE POLICY conflicts_user_update ON sync_conflicts
     FOR UPDATE
     TO authenticated
@@ -351,6 +381,7 @@ CREATE POLICY conflicts_user_update ON sync_conflicts
     WITH CHECK (patient_id = current_user_id());
 
 -- Investigators can view conflicts at their sites
+DROP POLICY IF EXISTS conflicts_investigator_select ON sync_conflicts;
 CREATE POLICY conflicts_investigator_select ON sync_conflicts
     FOR SELECT
     TO authenticated
@@ -365,6 +396,7 @@ CREATE POLICY conflicts_investigator_select ON sync_conflicts
     );
 
 -- Admins have full access
+DROP POLICY IF EXISTS conflicts_admin_all ON sync_conflicts;
 CREATE POLICY conflicts_admin_all ON sync_conflicts
     FOR ALL
     TO authenticated
@@ -372,6 +404,7 @@ CREATE POLICY conflicts_admin_all ON sync_conflicts
     WITH CHECK (current_user_role() = 'ADMIN');
 
 -- Service role can insert conflicts (from triggers)
+DROP POLICY IF EXISTS conflicts_service_insert ON sync_conflicts;
 CREATE POLICY conflicts_service_insert ON sync_conflicts
     FOR INSERT
     TO service_role
@@ -382,11 +415,13 @@ CREATE POLICY conflicts_service_insert ON sync_conflicts
 -- =====================================================
 
 -- Only admins can view and insert admin action logs
+DROP POLICY IF EXISTS admin_log_select ON admin_action_log;
 CREATE POLICY admin_log_select ON admin_action_log
     FOR SELECT
     TO authenticated
     USING (current_user_role() = 'ADMIN');
 
+DROP POLICY IF EXISTS admin_log_insert ON admin_action_log;
 CREATE POLICY admin_log_insert ON admin_action_log
     FOR INSERT
     TO authenticated
@@ -396,6 +431,7 @@ CREATE POLICY admin_log_insert ON admin_action_log
     );
 
 -- Investigators can view admin actions requiring review
+DROP POLICY IF EXISTS admin_log_investigator_select ON admin_action_log;
 CREATE POLICY admin_log_investigator_select ON admin_action_log
     FOR SELECT
     TO authenticated
@@ -405,6 +441,7 @@ CREATE POLICY admin_log_investigator_select ON admin_action_log
     );
 
 -- Investigators can update review status
+DROP POLICY IF EXISTS admin_log_investigator_review ON admin_action_log;
 CREATE POLICY admin_log_investigator_review ON admin_action_log
     FOR UPDATE
     TO authenticated

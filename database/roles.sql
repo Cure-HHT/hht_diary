@@ -1,7 +1,5 @@
 -- =====================================================
 -- Database Roles and Permissions
--- For Supabase, roles are managed via JWT claims
--- This file documents the role structure and provides setup
 -- =====================================================
 --
 -- IMPLEMENTS REQUIREMENTS:
@@ -16,10 +14,33 @@
 -- =====================================================
 
 -- =====================================================
--- SUPABASE ROLE NOTES
+-- RLS ROLES
 -- =====================================================
 
--- Supabase uses three built-in PostgreSQL roles:
+-- Create roles used by RLS policies (if they don't exist)
+-- In managed PostgreSQL (Cloud SQL, Supabase), these may already exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOLOGIN;
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role NOLOGIN;
+    END IF;
+END
+$$;
+
+-- Grant schema access to RLS roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+-- =====================================================
+-- ROLE NOTES
+-- =====================================================
+
+-- PostgreSQL roles for RLS:
 -- 1. anon - Unauthenticated users (public access)
 -- 2. authenticated - Authenticated users (all logged-in users)
 -- 3. service_role - Backend services (full access, bypasses RLS)
@@ -85,13 +106,15 @@ CREATE POLICY profile_select_own ON user_profiles
     USING (user_id = current_user_id());
 
 -- Users can update their own non-role fields
+-- Note: Role change prevention enforced via trigger (RLS can't reference OLD)
 CREATE POLICY profile_update_own ON user_profiles
     FOR UPDATE
     TO authenticated
     USING (user_id = current_user_id())
     WITH CHECK (
         user_id = current_user_id()
-        AND role = OLD.role  -- Cannot change own role
+        -- Prevent role self-modification by checking against current DB value
+        AND role = (SELECT role FROM user_profiles WHERE user_id = current_user_id())
     );
 
 -- Investigators can view profiles at their sites

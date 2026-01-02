@@ -813,11 +813,8 @@ jobs:
         run: |
           echo "::group::Installing Squawk PostgreSQL linter"
 
-          # Download latest Squawk release
-          SQUAWK_VERSION="v0.29.2"
-          wget -q https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x86_64 -O squawk
-          chmod +x squawk
-          sudo mv squawk /usr/local/bin/squawk
+          # Install via npm (more reliable than direct binary download)
+          npm install -g squawk-cli
 
           # Verify installation
           squawk --version
