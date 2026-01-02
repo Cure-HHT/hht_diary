@@ -445,10 +445,10 @@ INDEX.md can be **safely regenerated from scratch** at any time:
 
 ```bash
 # Update all hashes in spec files and INDEX.md
-python3 tools/requirements/update-REQ-hashes.py
+elspais hash update
 
 # Verify consistency
-python3 tools/requirements/validate_index.py
+elspais index validate
 ```
 
 **Why is this safe?**
@@ -460,7 +460,7 @@ python3 tools/requirements/validate_index.py
 ### Hash Management
 
 Hashes are calculated automatically:
-- **Manual update**: `python3 tools/requirements/update-REQ-hashes.py`
+- **Manual update**: `elspais hash update`
 - **Automatic**: Post-commit hooks detect changes and update tracking
 - Hash changes trigger implementation verification workflow
 

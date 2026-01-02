@@ -117,7 +117,7 @@ This allows sponsor-specific requirements to reference:
 - Format: 8 lowercase hexadecimal characters (e.g., `abc12345`)
 - Purpose: Detect requirement changes for implementation tracking
 - Required: Yes
-- Updated automatically using `python3 tools/requirements/update-REQ-hashes.py`
+- Updated automatically using `elspais hash update`
 
 #### Requirement Body
 - **Authoritative statement** of the requirement

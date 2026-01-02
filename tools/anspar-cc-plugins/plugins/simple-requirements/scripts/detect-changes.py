@@ -178,7 +178,7 @@ def detect_changes(format_type: str = 'json') -> str:
         lines.append("1. Review changed requirements above")
         lines.append("2. Verify implementations still satisfy requirements")
         lines.append("3. Update INDEX.md hashes when verified:")
-        lines.append("   python3 tools/requirements/update-REQ-hashes.py")
+        lines.append("   elspais hash update")
         lines.append("")
 
         return '\n'.join(lines)

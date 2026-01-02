@@ -107,7 +107,7 @@ For each changed requirement:
 #   1. Review requirement changes: diff spec/dev-workflow.md
 #   2. Update implementations if needed
 #   3. Create verification ticket: /compliance:verify REQ-d00027
-#   4. Update hash: python3 tools/requirements/update-REQ-hashes.py
+#   4. Update hash: elspais hash update
 #
 # REQ-p00042: Multi-factor authentication via TOTP
 #   File: spec/prd-authentication.md
@@ -142,7 +142,7 @@ For each changed requirement:
 #   1. /compliance:verify REQ-d00027 --old-hash=abc123... --new-hash=def456...
 #   2. Review and update implementations
 #   3. Run tests to verify compliance
-#   4. Update hashes: python3 tools/requirements/update-REQ-hashes.py
+#   4. Update hashes: elspais hash update
 ```
 
 ### Check Specific Requirement
@@ -258,7 +258,7 @@ This command integrates with:
 - **Spec files**: Current requirement content
 - **untracked-notes/outdated-implementations.json**: Tracking file
 - **/compliance:verify**: Creates verification tickets
-- **update-REQ-hashes.py**: Updates hashes after verification
+- **elspais hash update**: Updates hashes after verification
 
 ## Exit Codes
 
@@ -294,7 +294,7 @@ Error: spec/INDEX.md not found
 INDEX.md is required for hash comparison.
 
 Generate INDEX.md:
-  python3 tools/requirements/regenerate-index.py
+  elspais index regenerate
 ```
 
 ### Hash Calculation Failed
@@ -337,7 +337,7 @@ Validate spec file:
 
 5. **Update hashes**:
    ```bash
-   python3 tools/requirements/update-REQ-hashes.py
+   elspais hash update
    ```
 
 ### Automated CI/CD Integration
@@ -369,7 +369,7 @@ Validate spec file:
 - **/compliance:verify** - Create verification ticket
 - **/requirements:report** - Generate compliance reports
 - **/spec:validate** - Validate spec files
-- **update-REQ-hashes.py** - Update hashes after verification
+- **elspais hash update** - Update hashes after verification
 
 ## Implementation
 

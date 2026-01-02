@@ -4,7 +4,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 
 **Maintenance Rules:**
 - When adding a new requirement, add it to this index with the correct file reference and hash (calculate from requirement body)
-- When modifying a requirement, update its hash using `python3 tools/requirements/update-REQ-hashes.py`
+- When modifying a requirement, update its hash using `elspais hash update`
 - When moving a requirement to a different file, update the file reference
 - When removing/deprecating a requirement, change its file reference to `obsolete` and leave description blank
 - Keep requirements sorted by ID (REQ-p, REQ-o, REQ-d in ascending numerical order)

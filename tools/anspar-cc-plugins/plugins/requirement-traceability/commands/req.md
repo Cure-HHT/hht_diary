@@ -100,7 +100,7 @@ To create a new requirement:
    - Criterion 2
 
 4. **Update the hash**:
-   python3 tools/requirements/update-REQ-hashes.py --req-id={number}
+   elspais hash update --req-id={number}
 
 5. **Add to INDEX.md**:
    python3 tools/requirements/add-missing-to-index.py

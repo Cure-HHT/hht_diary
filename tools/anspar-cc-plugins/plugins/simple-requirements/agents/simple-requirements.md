@@ -237,13 +237,13 @@ Requirements link to:
 
 2. **INDEX.md can be regenerated from scratch at any time**
    - INDEX.md is derived from spec/*.md files
-   - Run `python3 tools/requirements/update-REQ-hashes.py` to update hashes
-   - Use validate_index.py to verify consistency
+   - Run `elspais hash update` to update hashes
+   - Use `elspais index validate` to verify consistency
    - Regeneration is safe and won't lose data (source of truth is in spec/*.md files)
 
 3. **Hash updates are automatic**
    - Hashes are calculated from requirement content
-   - Use update-REQ-hashes.py to recalculate when requirements change
+   - Use `elspais hash update` to recalculate when requirements change
    - Post-commit hooks detect changes and update tracking automatically
 
 ## Error Handling
