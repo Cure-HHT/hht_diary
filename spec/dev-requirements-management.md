@@ -30,10 +30,11 @@ This document defines the implementation requirements for requirements managemen
 
 **Level**: Dev | **Implements**: o00013 | **Status**: Draft
 
-The system SHALL implement automated requirement validation via `tools/requirements/validate_requirements.py`, checking format compliance, ID uniqueness, valid parent links, and level consistency, with integration into pre-commit hooks to prevent invalid requirements from entering the codebase.
+The system SHALL implement automated requirement validation via the `elspais` CLI tool (primary) and `tools/requirements/validate_requirements.py` (fallback/programmatic access), checking format compliance, ID uniqueness, valid parent links, and level consistency, with integration into git hooks to prevent invalid requirements from entering the codebase.
 
 Implementation SHALL include:
-- Python script scanning `spec/` directory for requirement blocks
+- Primary CLI tool: `elspais validate` configured via `.elspais.toml`
+- Fallback Python scripts in `tools/requirements/` for programmatic/plugin use
 - Validation of ID format: `REQ-[pod]NNNNN` pattern
 - Uniqueness check: no duplicate IDs across all spec/ files
 - Parent validation: all "Implements" references point to existing requirements
@@ -43,11 +44,12 @@ Implementation SHALL include:
 - Exit code 0 on success, 1 on validation errors
 - Warning reporting for unusual patterns (e.g., PRD implements PRD)
 
-**Rationale**: Automated validation catches errors before code review, reducing rework and ensuring consistency. Machine validation is faster and more reliable than human review for format compliance. Integration with pre-commit hooks prevents invalid requirements from entering git history, maintaining requirement quality over time. Clear error messages enable developers to fix issues quickly.
+**Rationale**: The elspais CLI provides standardized requirement validation across projects with consistent configuration via `.elspais.toml`. Local Python scripts remain available for programmatic access by plugins and internal tooling. Automated validation catches errors before code review, reducing rework and ensuring consistency. Integration with git hooks prevents invalid requirements from entering git history, maintaining requirement quality over time.
 
 **Acceptance Criteria**:
-- validate_requirements.py implemented in Python 3.8+ with no external dependencies
-- Script scans all .md files in spec/ directory recursively
+- elspais CLI installed and available in PATH
+- `.elspais.toml` configuration file present in repository root
+- `elspais validate` scans all .md files in spec/ directory recursively
 - Validates requirement format matches spec/requirements-format.md specification
 - Detects and reports duplicate IDs with file locations
 - Validates all "Implements" references exist and are reachable
@@ -56,19 +58,21 @@ Implementation SHALL include:
 - Outputs summary statistics: total requirements, by level, by status
 - Returns exit code 0 only when all requirements valid
 - Error messages include file path, line number, and specific issue
-- Runnable manually: `python3 tools/requirements/validate_requirements.py`
+- Runnable manually: `elspais validate`
+- Local scripts available as fallback: `python3 tools/requirements/validate_requirements.py`
 
-*End* *Requirement Validation Tooling* | **Hash**: 2263dc21
+*End* *Requirement Validation Tooling* | **Hash**: 0d6697dc
 ---
 
 # REQ-d00015: Traceability Matrix Auto-Generation
 
 **Level**: Dev | **Implements**: o00013 | **Status**: Draft
 
-The system SHALL implement automated traceability matrix generation via `tools/requirements/generate_traceability.py`, producing markdown and HTML formats showing requirement hierarchies, with pre-commit hook integration to auto-regenerate matrices whenever spec/ files change.
+The system SHALL implement automated traceability matrix generation via the `elspais trace` CLI command (primary) and `tools/requirements/generate_traceability.py` (fallback/programmatic access), producing markdown and HTML formats showing requirement hierarchies, with output to the `build-reports/` directory.
 
 Implementation SHALL include:
-- Python script parsing requirements from spec/ directory
+- Primary CLI tool: `elspais trace` configured via `.elspais.toml`
+- Fallback Python scripts in `tools/requirements/` for programmatic/plugin use
 - Hierarchical tree structure showing parent-child relationships
 - Output formats: markdown (.md), HTML (.html), CSV (.csv)
 - HTML format with interactive collapsible tree using JavaScript
@@ -76,28 +80,26 @@ Implementation SHALL include:
 - Status badges showing Active/Draft/Deprecated
 - Summary statistics: total requirements, counts by level and status
 - Orphaned requirement detection (no children implementing them)
-- Pre-commit hook auto-regeneration when spec/*.md files change
-- Auto-staging of generated matrices for commit
+- Output directory: `build-reports/combined/traceability/` (configurable in .elspais.toml)
 
-**Rationale**: Traceability matrices provide visual representation of requirement relationships essential for regulatory audits and impact analysis. Auto-generation ensures matrices never become outdated or inconsistent with requirements. HTML format with interactive features enables easy browsing of complex requirement hierarchies. Pre-commit hook integration eliminates manual regeneration step, preventing outdated matrices from being committed.
+**Rationale**: The elspais CLI provides standardized traceability matrix generation with output to `build-reports/` for CI/CD integration. Local Python scripts remain available for programmatic access by plugins and internal tooling. Traceability matrices provide visual representation of requirement relationships essential for regulatory audits and impact analysis. Auto-generation ensures matrices never become outdated or inconsistent with requirements.
 
 **Acceptance Criteria**:
-- generate_traceability.py implemented in Python 3.8+
-- Supports --format argument: markdown, html, csv, both (md+html)
+- elspais CLI installed and available in PATH
+- `elspais trace` generates traceability matrices
+- Supports multiple output formats: markdown, html, csv
 - Markdown output shows hierarchical tree with indentation
 - HTML output includes collapsible tree with expand/collapse functionality
 - HTML uses color coding: PRD blue, OPS orange, DEV green
 - HTML includes "Expand All" and "Collapse All" buttons
 - CSV output suitable for import into spreadsheets
 - Script detects orphaned requirements (no implementing children)
-- Pre-commit hook detects spec/*.md file changes
-- Hook runs both markdown and HTML generation automatically
-- Hook stages generated traceability_matrix.md and traceability_matrix.html
 - Generated files include timestamp and requirement count
-- Output filename: traceability_matrix.{md,html,csv}
-- Runnable manually: `python3 tools/requirements/generate_traceability.py --format both`
+- Output directory: `build-reports/combined/traceability/` (per .elspais.toml)
+- Runnable manually: `elspais trace`
+- Local scripts available as fallback: `python3 tools/requirements/generate_traceability.py --format both`
 
-*End* *Traceability Matrix Auto-Generation* | **Hash**: 240a754c
+*End* *Traceability Matrix Auto-Generation* | **Hash**: 0d6697dc
 ---
 
 # REQ-d00016: Code-to-Requirement Linking
@@ -169,38 +171,37 @@ Implementation SHALL include:
 
 **Level**: Dev | **Implements**: o00017 | **Status**: Draft
 
-The system SHALL implement pre-commit hook in `.githooks/pre-commit` that enforces requirement validation, auto-regenerates traceability matrices when spec/ files change, and blocks commits with validation errors, with configuration instructions in `.githooks/README.md`.
+The system SHALL implement pre-push hook in `.githooks/pre-push` that enforces requirement validation using `elspais validate` and `elspais index validate`, blocking pushes with validation errors, with configuration instructions in `.githooks/README.md`.
 
 Implementation SHALL include:
-- Bash script in .githooks/pre-commit executable by git
-- Detection of spec/*.md files in staged changes
-- Auto-regeneration of traceability matrices when spec/ files changed
-- Execution of validate_requirements.py before commit
-- Exit code 1 (block commit) on validation failure
+- Bash script in .githooks/pre-push executable by git
+- Execution of `elspais validate` for requirement format validation
+- Execution of `elspais index validate` for INDEX.md consistency
+- Exit code 1 (block push) on validation failure
 - Clear error messages directing developer to fix issues
-- Auto-staging of regenerated traceability matrices
 - Configuration command: `git config core.hooksPath .githooks`
 - Documentation in .githooks/README.md with troubleshooting
-- Bypass mechanism documented: `git commit --no-verify` (discouraged)
+- Bypass mechanism documented: `git push --no-verify` (discouraged)
+- Requirement: elspais CLI must be installed for hooks to function
 
-**Rationale**: Pre-commit hooks enforce quality gates before code enters git history, preventing invalid requirements from being committed and requiring rework later. Auto-regeneration of traceability matrices ensures they're always current with requirements. Automatic staging of matrices simplifies developer workflow. Hook configuration per repository enables consistent enforcement across team. Clear error messages help developers fix issues quickly.
+**Rationale**: Pre-push hooks enforce quality gates before code enters remote repository, preventing invalid requirements from being shared with the team. Using the elspais CLI provides standardized validation consistent with CI/CD. Clear error messages help developers fix issues before pushing. Hook configuration per repository enables consistent enforcement across team.
 
 **Acceptance Criteria**:
-- .githooks/pre-commit executable bash script (chmod +x)
-- Hook detects spec/*.md in staged changes using `git diff --cached`
-- When spec/ files changed, runs generate_traceability.py --format both
-- Stages traceability_matrix.md and traceability_matrix.html automatically
-- Runs validate_requirements.py before accepting commit
-- Returns exit code 1 to block commit if validation fails
+- .githooks/pre-push executable bash script (chmod +x)
+- Hook runs `elspais validate` for requirement validation
+- Hook runs `elspais index validate` for INDEX.md validation
+- Returns exit code 1 to block push if validation fails
 - Outputs clear error messages with file/line references
 - Documents configuration in .githooks/README.md
 - Includes troubleshooting section for common issues
 - Documents bypass method: --no-verify (with warnings)
 - Configuration required once per developer: git config core.hooksPath .githooks
 - Hook works correctly on Linux, macOS, Windows Git Bash
+- elspais CLI must be installed (hook fails gracefully with clear message if missing)
 - CLAUDE.md documents hook setup requirement
+- Local Python scripts remain available for plugin/programmatic use
 
-*End* *Git Hook Implementation* | **Hash**: 85098bca
+*End* *Git Hook Implementation* | **Hash**: 0d6697dc
 ---
 
 # REQ-d00053: Development Environment and Tooling Setup
@@ -233,48 +234,53 @@ Development environment setup SHALL include:
 
 ## Tool Usage Examples
 
-### Manual Requirement Validation
+### Manual Requirement Validation (elspais CLI - Primary)
 
 ```bash
-# Validate all requirements in spec/ directory
-python3 tools/requirements/validate_requirements.py
+# Validate all requirements using elspais CLI
+elspais validate
+
+# Validate INDEX.md consistency
+elspais index validate
 
 # Example output on success:
-# 🔍 Scanning /path/to/spec for requirements...
-# 📋 Found 42 requirements
-# ✅ ALL REQUIREMENTS VALID
-# 📊 SUMMARY:
-#   Total requirements: 42
-#   By level: PRD=20, Ops=12, Dev=10
-#   By status: Active=42, Draft=0, Deprecated=0
+# Validating requirements in spec/...
+# Found 42 requirements
+# All requirements valid
+# Summary: PRD=20, Ops=12, Dev=10
 
 # Example output on error:
-# ❌ ERROR: Duplicate requirement ID
+# ERROR: Duplicate requirement ID
 #   REQ-p00036 found in:
 #     - spec/prd-requirements.md:45
 #     - spec/prd-diary-app.md:123
 ```
 
+### Manual Requirement Validation (Local Scripts - Fallback/Plugins)
+
+```bash
+# Local Python scripts remain available for programmatic/plugin use
+python3 tools/requirements/validate_requirements.py
+
+# These scripts are used by:
+# - Claude Code plugins (pending elspais --json support)
+# - Internal tooling requiring programmatic access
+```
+
 ### Manual Traceability Matrix Generation
 
 ```bash
-# Generate markdown format (for documentation)
-python3 tools/requirements/generate_traceability.py --format markdown
+# Generate traceability matrix using elspais CLI (primary)
+elspais trace
 
-# Generate HTML format (for interactive browsing)
-python3 tools/requirements/generate_traceability.py --format html
+# Output goes to build-reports/combined/traceability/ (per .elspais.toml)
 
-# Generate both markdown and HTML (recommended)
+# Fallback: Local Python scripts for programmatic use
 python3 tools/requirements/generate_traceability.py --format both
-
-# Generate CSV (for spreadsheet import)
 python3 tools/requirements/generate_traceability.py --format csv
-
-# Output to custom location
-python3 tools/requirements/generate_traceability.py --format html --output docs/trace.html
 ```
 
-### Pre-commit Hook Setup
+### Git Hook Setup
 
 ```bash
 # One-time setup per developer
@@ -284,17 +290,18 @@ git config core.hooksPath .githooks
 git config --get core.hooksPath
 # Should output: .githooks
 
-# Test hook manually
-.githooks/pre-commit
+# Ensure elspais is installed (required for hooks)
+which elspais || echo "Install elspais: pip install elspais"
 
-# Hook runs automatically on git commit
-git commit -m "Add new requirement"
-# Pre-commit hook will:
-# 1. Detect spec/*.md files changed
-# 2. Regenerate traceability matrices
-# 3. Validate all requirements
-# 4. Stage updated matrices
-# 5. Allow commit if valid, block if invalid
+# Test hook manually
+.githooks/pre-push
+
+# Hook runs automatically on git push
+git push origin feature-branch
+# Pre-push hook will:
+# 1. Run elspais validate
+# 2. Run elspais index validate
+# 3. Allow push if valid, block if invalid
 ```
 
 ### Code Header Comment Examples
