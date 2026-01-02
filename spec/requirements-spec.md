@@ -216,15 +216,3 @@ The hash SHALL be calculated from:
 - every line AFTER the Header line
 - every line BEFORE the Footer line
 
----
-
-## Canonical Template Reference
-
-The authoritative copy/paste template for authoring requirements is defined in:
-
-```
-spec/requirements-template.md
-```
-
-This document defines **rules and grammar**.
-The template defines **structure and layout**.
