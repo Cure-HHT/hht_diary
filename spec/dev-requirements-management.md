@@ -61,7 +61,7 @@ Implementation SHALL include:
 - Runnable manually: `elspais validate`
 - Local scripts available as fallback: `python3 tools/requirements/validate_requirements.py`
 
-*End* *Requirement Validation Tooling* | **Hash**: 0d6697dc
+*End* *Requirement Validation Tooling* | **Hash**: 4ff6c66e
 ---
 
 # REQ-d00015: Traceability Matrix Auto-Generation
@@ -99,7 +99,7 @@ Implementation SHALL include:
 - Runnable manually: `elspais trace`
 - Local scripts available as fallback: `python3 tools/requirements/generate_traceability.py --format both`
 
-*End* *Traceability Matrix Auto-Generation* | **Hash**: 0d6697dc
+*End* *Traceability Matrix Auto-Generation* | **Hash**: 4ff6c66e
 ---
 
 # REQ-d00016: Code-to-Requirement Linking
@@ -201,7 +201,7 @@ Implementation SHALL include:
 - CLAUDE.md documents hook setup requirement
 - Local Python scripts remain available for plugin/programmatic use
 
-*End* *Git Hook Implementation* | **Hash**: 0d6697dc
+*End* *Git Hook Implementation* | **Hash**: 4ff6c66e
 ---
 
 # REQ-d00053: Development Environment and Tooling Setup
