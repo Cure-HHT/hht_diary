@@ -42,9 +42,32 @@ from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-# Import shared parser and hash calculation
-from requirement_parser import RequirementParser, Requirement as BaseRequirement
-from requirement_hash import calculate_requirement_hash
+# No local parser imports - use elspais CLI instead
+
+
+def get_requirements_via_cli() -> Dict[str, Dict]:
+    """Get all requirements by running elspais validate --json.
+
+    Returns:
+        Dict mapping requirement ID (e.g., 'REQ-d00027') to requirement data
+    """
+    try:
+        result = subprocess.run(
+            ['elspais', 'validate', '--json'],
+            capture_output=True,
+            text=True
+        )
+
+        output = result.stdout
+        json_start = output.find('{')
+        if json_start == -1:
+            return {}
+
+        json_str = output[json_start:]
+        return json.loads(json_str)
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"   ⚠️  Failed to get requirements via elspais: {e}")
+        return {}
 
 
 def get_git_modified_files(repo_root: Path) -> Tuple[Set[str], Set[str]]:
@@ -250,8 +273,9 @@ class TraceabilityRequirement:
     def _check_modified_in_fileset(self, file_set: Set[str]) -> bool:
         """Check if requirement is modified based on a set of changed files
 
-        For modified files, checks if hash has changed.
-        For untracked files, all REQs are considered new (no hash check needed).
+        For untracked files, all REQs are considered new.
+        For modified files, requirement is considered changed if file is in the set.
+        Note: Hash comparison is no longer needed since pre-commit updates hashes.
         """
         rel_path = self._get_spec_relative_path()
 
@@ -260,19 +284,7 @@ class TraceabilityRequirement:
             return True
 
         # Check if file is in the modified set
-        if not file_set or rel_path not in file_set:
-            return False
-
-        # File is modified - check if it has TBD hash or stale hash
-        if self.hash == 'TBD':
-            return True
-
-        # Calculate hash to verify content actually changed
-        full_content = self.body
-        if self.rationale:
-            full_content = f"{self.body}\n\n**Rationale**: {self.rationale}"
-        calculated_hash = calculate_requirement_hash(full_content)
-        return self.hash != calculated_hash
+        return file_set and rel_path in file_set
 
     @property
     def is_uncommitted(self) -> bool:
@@ -319,27 +331,36 @@ class TraceabilityRequirement:
         return False
 
     @classmethod
-    def from_base(cls, base_req: BaseRequirement, is_roadmap: bool = False) -> 'TraceabilityRequirement':
-        """Create TraceabilityRequirement from shared parser Requirement
+    def from_elspais_json(cls, req_id: str, data: Dict) -> 'TraceabilityRequirement':
+        """Create TraceabilityRequirement from elspais validate --json output
 
         Args:
-            base_req: Requirement from shared parser
-            is_roadmap: True if this requirement is from spec/roadmap/ directory
+            req_id: Full requirement ID (e.g., 'REQ-d00027')
+            data: Dict from elspais JSON with keys: title, level, status, body, rationale,
+                  file, filePath, line, implements, hash, subdir, isConflict, conflictWith,
+                  isCycle, cyclePath
         """
         # Map level to uppercase for consistency
-        level_map = {'PRD': 'PRD', 'Ops': 'OPS', 'Dev': 'DEV'}
+        level_map = {'PRD': 'PRD', 'Ops': 'OPS', 'Dev': 'DEV', 'prd': 'PRD', 'ops': 'OPS', 'dev': 'DEV'}
+        level = data.get('level', '')
+        is_roadmap = data.get('subdir', '') == 'roadmap'
+
         return cls(
-            id=base_req.id,
-            title=base_req.title,
-            level=level_map.get(base_req.level, base_req.level),
-            implements=base_req.implements,
-            status=base_req.status,
-            file_path=base_req.file_path,
-            line_number=base_req.line_number,
-            hash=base_req.hash,
-            body=base_req.body,
-            rationale=base_req.rationale,
-            is_roadmap=is_roadmap
+            id=req_id.replace('REQ-', ''),  # Strip REQ- prefix for internal use
+            title=data.get('title', ''),
+            level=level_map.get(level, level.upper()),
+            implements=data.get('implements', []),
+            status=data.get('status', 'Active'),
+            file_path=Path(data.get('filePath', '')),
+            line_number=data.get('line', 0),
+            hash=data.get('hash', ''),
+            body=data.get('body', ''),
+            rationale=data.get('rationale', ''),
+            is_roadmap=is_roadmap,
+            is_conflict=data.get('isConflict', False),
+            conflict_with=data.get('conflictWith', '') or '',
+            is_cycle=data.get('isCycle', False),
+            cycle_path=data.get('cyclePath', '') or ''
         )
 
 
@@ -485,121 +506,59 @@ class TraceabilityGenerator:
             self._base_path = '../'
 
     def _parse_requirements(self):
-        """Parse all requirements from spec files using shared parser
+        """Parse all requirements using elspais CLI
 
-        Scans both spec/ and spec/roadmap/ directories.
-        Roadmap requirements are tagged with is_roadmap=True.
+        elspais handles both spec/ and spec/roadmap/ directories,
+        including conflict and cycle detection.
         """
-        # Parse main spec directory
-        parser = RequirementParser(self.spec_dir)
-        result = parser.parse_all()
+        # Get all requirements via elspais
+        reqs_json = get_requirements_via_cli()
 
-        # Convert base requirements to traceability requirements
-        for req_id, base_req in result.requirements.items():
-            self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=False)
+        if not reqs_json:
+            print("   ⚠️  No requirements found (elspais returned empty)")
+            return
 
-        # Log any parse errors (but don't fail - traceability is best-effort)
-        if result.errors:
-            for error in result.errors:
-                print(f"   ⚠️  Parse warning: {error}")
+        roadmap_count = 0
+        conflict_count = 0
+        cycle_count = 0
 
-        # Parse roadmap/ subdirectory if it exists
-        roadmap_dir = self.spec_dir / 'roadmap'
-        if roadmap_dir.exists() and roadmap_dir.is_dir():
-            roadmap_parser = RequirementParser(roadmap_dir)
-            roadmap_result = roadmap_parser.parse_all()
+        for req_id, data in reqs_json.items():
+            req = TraceabilityRequirement.from_elspais_json(req_id, data)
 
-            roadmap_count = len(roadmap_result.requirements)
-            if roadmap_count > 0:
-                print(f"   🗺️  Found {roadmap_count} roadmap requirements")
+            # Count roadmap and conflict/cycle requirements for logging
+            if req.is_roadmap:
+                roadmap_count += 1
+            if req.is_conflict:
+                conflict_count += 1
+                # Log conflict
+                print(f"   ⚠️  Conflict: {req_id} conflicts with {req.conflict_with}")
+            if req.is_cycle:
+                cycle_count += 1
 
-            # Convert roadmap requirements with is_roadmap=True
-            for req_id, base_req in roadmap_result.requirements.items():
-                if req_id in self.requirements:
-                    # Conflict detected - load as orphaned conflict item
-                    existing_req = self.requirements[req_id]
-                    existing_loc = f"spec/{existing_req.file_path.name}"
-                    roadmap_loc = f"spec/roadmap/{base_req.file_path.name}"
-                    print(f"   ⚠️  Roadmap REQ-{req_id} ({roadmap_loc}) conflicts with existing REQ-{req_id} ({existing_loc})")
+            # Use internal ID (without REQ- prefix) as key
+            self.requirements[req.id] = req
 
-                    # Create conflict entry with modified key and no parent links
-                    conflict_key = f"{req_id}__conflict"
-                    conflict_req = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
-                    conflict_req.is_conflict = True
-                    conflict_req.conflict_with = req_id
-                    conflict_req.implements = []  # Treat as orphaned top-level item
-                    self.requirements[conflict_key] = conflict_req
-                    continue
-                self.requirements[req_id] = TraceabilityRequirement.from_base(base_req, is_roadmap=True)
-
-            if roadmap_result.errors:
-                for error in roadmap_result.errors:
-                    print(f"   ⚠️  Roadmap parse warning: {error}")
+        if roadmap_count > 0:
+            print(f"   🗺️  Found {roadmap_count} roadmap requirements")
+        if conflict_count > 0:
+            print(f"   ⚠️  Found {conflict_count} conflicts")
+        if cycle_count > 0:
+            print(f"   🔄 Found {cycle_count} requirements in dependency cycles")
 
     def _detect_and_mark_cycles(self):
-        """Pre-detect dependency cycles and mark affected requirements.
+        """Clear implements for cycle members so they appear as orphaned items.
 
-        Requirements involved in cycles are marked with is_cycle=True and their
-        implements list is cleared so they appear as orphaned top-level items.
-        This allows them to be inspected and fixed.
+        Cycle detection is now handled by elspais (sets is_cycle=True, cycle_path).
+        This method just clears the implements list for UI purposes.
         """
-        # Track all requirements involved in any cycle
-        cycle_members: set[str] = set()
-        unique_cycles: set[frozenset[str]] = set()  # For deduplication
+        cycle_count = 0
+        for req_id, req in self.requirements.items():
+            if req.is_cycle and req.implements:
+                req.implements = []  # Treat as orphaned top-level item
+                cycle_count += 1
 
-        def find_cycles_from(req_id: str, path: list[str], in_stack: set[str]):
-            """DFS to find all cycles reachable from req_id."""
-            if req_id in in_stack:
-                # Found cycle - extract it
-                cycle_start = path.index(req_id)
-                cycle_nodes = path[cycle_start:]
-                # Normalize cycle for deduplication (use frozenset of members)
-                cycle_key = frozenset(cycle_nodes)
-                if cycle_key not in unique_cycles:
-                    unique_cycles.add(cycle_key)
-                    cycle_members.update(cycle_nodes)
-                    # Create readable cycle string
-                    cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_nodes + [req_id]])
-                    print(f"   🔄 CYCLE DETECTED: {cycle_str}")
-                return
-
-            if req_id in cycle_members:
-                return  # Already part of a known cycle
-
-            if req_id not in self.requirements:
-                return  # Reference to non-existent requirement
-
-            req = self.requirements[req_id]
-            path.append(req_id)
-            in_stack.add(req_id)
-
-            for parent_id in req.implements:
-                find_cycles_from(parent_id, path, in_stack)
-
-            path.pop()
-            in_stack.remove(req_id)
-
-        # Find all cycles starting from each requirement
-        for req_id in self.requirements:
-            if req_id not in cycle_members:
-                find_cycles_from(req_id, [], set())
-
-        # Mark all requirements involved in cycles
-        if cycle_members:
-            for req_id in cycle_members:
-                if req_id in self.requirements:
-                    req = self.requirements[req_id]
-                    # Find the cycle this req is part of for the path string
-                    for cycle_key in unique_cycles:
-                        if req_id in cycle_key:
-                            cycle_list = sorted(cycle_key)
-                            cycle_str = " -> ".join([f"REQ-{rid}" for rid in cycle_list])
-                            req.is_cycle = True
-                            req.cycle_path = cycle_str
-                            req.implements = []  # Treat as orphaned top-level item
-                            break
-
-            print(f"   ⚠️  {len(cycle_members)} requirements marked as cyclic (shown as orphaned items)")
+        if cycle_count > 0:
+            print(f"   ⚠️  {cycle_count} requirements marked as cyclic (shown as orphaned items)")
 
     def _scan_implementation_files(self):
         """Scan implementation files for requirement references"""
