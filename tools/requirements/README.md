@@ -2,119 +2,164 @@
 
 Tools for validating and tracking requirements across PRD, Operations, and Development specifications.
 
-> **Git Hook Integration**: These tools are automatically run via git hooks through the
-> simple-requirements and traceability-matrix plugins in `tools/anspar-cc-plugins/plugins/`.
+> **Primary Tool**: The `elspais` CLI is the primary tool for requirement validation and traceability.
+> Local scripts in this directory provide supplementary features (domain analysis, test mapping).
 > See `.githooks/README.md` for hook configuration.
 
 ## Prerequisites
 
-See the following guides:
-- [Development Prerequisites](../../docs/development-prerequisites.md) - Installing Python, jq, and other required tools
-- [Git Hooks Setup](../../docs/git-hooks-setup.md) - Configuring requirement validation hooks
+- **elspais CLI**: Install with `pip install elspais` (version pinned in `.github/versions.env`)
+- **Python 3.11+**: Required for supplementary scripts
 
-For requirement format details, see [spec/README.md](../../spec/README.md) (single source of truth).
+See also:
+- [Development Prerequisites](../../docs/development-prerequisites.md)
+- [Git Hooks Setup](../../docs/git-hooks-setup.md)
 
-## Overview
+For requirement format details, see [spec/README.md](../../spec/README.md).
 
-This directory contains Python scripts that:
-- Validate requirement format and consistency
-- Generate traceability matrices showing requirement relationships
-- Check for broken links and orphaned requirements
-- Provide visibility into implementation coverage
+## elspais CLI (Primary)
 
-## Tools
+The `elspais` CLI handles core requirement operations. Configuration is in `.elspais.toml`.
 
-### 1. validate_requirements.py
+### Validation
 
-Validates all requirements in the `spec/` directory.
-
-**Usage:**
 ```bash
-python3 tools/requirements/validate_requirements.py
+# Validate all requirements
+elspais validate
+
+# Output as JSON (for programmatic use)
+elspais validate --json
 ```
 
 **Checks:**
-- ✅ Unique requirement IDs
-- ✅ Proper format compliance (`[pod]NNNNN`)
-- ✅ Valid "Implements" links exist
-- ✅ Level prefix matches stated level
-- ✅ Consistent status values
-- ⚠️ Orphaned requirements (no children)
-- ⚠️ Hierarchy consistency (PRD → Ops → Dev)
+- Unique requirement IDs
+- Proper format compliance (`REQ-[pod]NNNNN`)
+- Valid "Implements" links exist
+- Level prefix matches stated level
+- Consistent status values
+- Hash verification
 
-**Exit codes:**
-- `0`: All requirements valid
-- `1`: Validation errors found
+### Traceability Matrix
 
-**Example output:**
-```
-🔍 Scanning /path/to/spec for requirements...
-
-📋 Found 6 requirements
-
-======================================================================
-
-✅ ALL REQUIREMENTS VALID
-
-📊 SUMMARY:
-  Total requirements: 6
-  By level: PRD=2, Ops=2, Dev=2
-  By status: Active=6, Draft=0, Deprecated=0
-======================================================================
-```
-
-### 2. generate_traceability.py
-
-Generates traceability matrix showing requirement relationships.
-
-**Usage:**
 ```bash
-# Markdown format (default)
-python3 tools/requirements/generate_traceability.py
+# Generate both markdown and HTML
+elspais trace --format both
 
-# HTML format (interactive with collapsible hierarchy)
-python3 tools/requirements/generate_traceability.py --format html
-
-# Generate BOTH markdown and HTML (recommended!)
-python3 tools/requirements/generate_traceability.py --format both
-
-# CSV format (for spreadsheets)
-python3 tools/requirements/generate_traceability.py --format csv
-
-# Custom output path
-python3 tools/requirements/generate_traceability.py --format html --output docs/traceability.html
+# Generate specific format
+elspais trace --format html --output docs/traceability.html
 ```
 
 **Output formats:**
+- **Markdown**: Documentation-friendly hierarchical tree
+- **HTML**: Interactive collapsible tree with color-coding
+- **CSV**: Import into spreadsheets
 
-**Markdown** (`traceability_matrix.md`):
-- Documentation-friendly format
-- Shows hierarchical tree structure
-- Includes summary statistics
-- Identifies orphaned requirements
+### INDEX.md Management
 
-**HTML** (`traceability_matrix.html`) - **ENHANCED with collapsible hierarchy!**:
-- Interactive web page with **collapsible requirement tree**
-- **Click to expand/collapse** individual requirements
-- **Expand All / Collapse All** buttons for convenience
-- Color-coded by level (PRD=blue, Ops=orange, Dev=green)
-- Status badges (Active/Draft/Deprecated)
-- Professional, responsive design
-- Generated from markdown source for consistency
-- Can be hosted or shared
+```bash
+# Validate INDEX.md accuracy
+elspais index validate
 
-**CSV** (`traceability_matrix.csv`):
-- Import into Excel, Google Sheets
-- All requirement fields in table format
-- Good for reporting and filtering
+# Regenerate INDEX.md from scratch
+elspais index regenerate
+```
+
+### Hash Management
+
+```bash
+# Verify requirement hashes
+elspais hash verify
+
+# Update stale hashes
+elspais hash update
+```
+
+### Editing Requirements
+
+```bash
+# Change implements field
+elspais edit --req-id REQ-d00027 --implements "d00014,p00020"
+
+# Change status
+elspais edit --req-id REQ-d00027 --status Deprecated
+
+# Move to different file
+elspais edit --req-id REQ-d00027 --move-to dev-new-file.md
+
+# Batch edit from JSON
+elspais edit --from-json changes.json
+
+# Preview without applying
+elspais edit --from-json changes.json --dry-run
+```
+
+### Hierarchy Analysis
+
+```bash
+# Show requirement hierarchy tree
+elspais analyze hierarchy
+
+# Find orphaned requirements
+elspais analyze orphans
+
+# Implementation coverage report
+elspais analyze coverage
+```
+
+## Local Scripts (Supplementary)
+
+These scripts provide features beyond elspais core functionality.
+
+### generate_traceability.py
+
+Extended traceability with test coverage integration and HTML edit mode.
+
+```bash
+# Basic usage (same as elspais trace)
+python3 tools/requirements/generate_traceability.py --format both
+
+# With test mapping data
+python3 tools/requirements/generate_traceability.py --test-mapping build-reports/test_mapping.json
+
+# Embed full content for offline viewing
+python3 tools/requirements/generate_traceability.py --format html --embed-content
+
+# Enable edit mode UI
+python3 tools/requirements/generate_traceability.py --format html --edit-mode
+
+# Generate planning CSV
+python3 tools/requirements/generate_traceability.py --export-planning
+
+# Coverage statistics
+python3 tools/requirements/generate_traceability.py --coverage-report
+```
+
+### analyze_hierarchy.py
+
+Domain classification and parent proposal for orphaned PRD requirements.
+
+```bash
+# Generate analysis report
+python3 tools/requirements/analyze_hierarchy.py --report
+
+# Output proposals as JSON
+python3 tools/requirements/analyze_hierarchy.py --json
+
+# Output for elspais edit --from-json
+python3 tools/requirements/analyze_hierarchy.py --elspais
+
+# Apply changes via elspais
+python3 tools/requirements/analyze_hierarchy.py --apply
+
+# Preview without applying
+python3 tools/requirements/analyze_hierarchy.py --dry-run
+```
 
 ## CI/CD Integration
 
-See [CI/CD Setup Guide](../../docs/cicd-setup-guide.md) for comprehensive GitHub Actions integration examples.
+See [CI/CD Setup Guide](../../docs/cicd-setup-guide.md).
 
 ### GitHub Actions
-
-Add to `.github/workflows/validate.yml`:
 
 ```yaml
 name: Validate Requirements
@@ -123,9 +168,6 @@ on:
   pull_request:
     paths:
       - 'spec/**'
-  push:
-    branches:
-      - main
 
 jobs:
   validate:
@@ -134,181 +176,77 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      - name: Install elspais
+        run: pip install elspais==${{ env.ELSPAIS_VERSION }}
+
       - name: Validate Requirements
-        run: python3 tools/requirements/validate_requirements.py
+        run: elspais validate
 
       - name: Generate Traceability Matrix
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: python3 tools/requirements/generate_traceability.py --format both
-
-      - name: Upload Traceability Matrix
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v3
-        with:
-          name: traceability-matrix
-          path: |
-            traceability_matrix.html
-            traceability_matrix.md
+        run: elspais trace --format both
 ```
 
-### Pre-commit Hook
+### Git Hooks
 
-Add to `.git/hooks/pre-commit`:
-
+Pre-push hook runs:
 ```bash
-#!/bin/bash
-# Validate requirements before commit
-
-if git diff --cached --name-only | grep -q "^spec/.*\.md$"; then
-    echo "Validating requirements..."
-    python3 tools/requirements/validate_requirements.py
-    if [ $? -ne 0 ]; then
-        echo "❌ Requirement validation failed. Commit aborted."
-        exit 1
-    fi
-fi
+elspais validate
+elspais index validate
 ```
+
+See `.githooks/README.md` for setup: `git config core.hooksPath .githooks`
 
 ## Usage in Development Workflow
 
 ### Adding New Requirements
 
-1. **Create requirement in spec file:**
-```markdown
-### REQ-p00003: Data Retention Policies
+1. Create requirement in spec file following format in `spec/requirements-format.md`
+2. Run `elspais validate` to check format
+3. Run `elspais index regenerate` to update INDEX.md
+4. Run `elspais hash update` if hash is missing
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+### Referencing Requirements in Code
 
-The system SHALL retain clinical trial data for minimum 25 years...
-
-**Rationale**: FDA requirement for clinical trial data retention.
-
-**Acceptance Criteria**:
-- Data retained for 25+ years
-- Archival storage available
-- Data retrievable on demand
-
-**Traced by**: -
-```
-
-2. **Validate format:**
-```bash
-python3 tools/requirements/validate_requirements.py
-```
-
-3. **Add implementing requirements at lower levels**
-
-4. **Regenerate traceability matrix:**
-```bash
-python3 tools/requirements/generate_traceability.py --format both
-```
-
-This generates both `traceability_matrix.md` (for documentation) and `traceability_matrix.html` (for interactive viewing).
-
-### Referencing Requirements
-
-**In code comments:**
 ```dart
-// REQ-d00001: Load sponsor-specific configuration
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00001: Sponsor Configuration Loading
 final config = SupabaseConfig.fromEnvironment();
 ```
 
-**In commit messages:**
+### Commit Messages
+
 ```
-[p00001] Add multi-sponsor database isolation
+[CUR-123] Add multi-sponsor database isolation
 
-Implements REQ-p00001 by creating separate Supabase projects.
-Also addresses REQ-o00001, REQ-o00002.
+Implements: REQ-p00001, REQ-o00001, REQ-d00001
 ```
-
-**In pull requests:**
-```markdown
-## Requirements
-- REQ-p00001: Multi-Sponsor Data Isolation
-- REQ-o00001: Separate Supabase Projects
-
-## Changes
-...
-```
-
-**In GitHub issues:**
-```markdown
-**Requirements**: p00001, o00001, d00001
-
-Implement database isolation per requirements above.
-```
-
-## Requirements Format
-
-See `spec/requirements-format.md` for full format specification.
-
-**Quick reference:**
-
-```markdown
-### REQ-{id}: {informal-title}
-
-**Level**: {PRD|Ops|Dev} | **Implements**: {parent-ids} | **Status**: {Active|Draft|Deprecated}
-
-{requirement-body-using-SHALL/MUST-language}
-
-**Rationale**: {why-this-exists}
-
-**Acceptance Criteria**:
-- {testable-criterion-1}
-- {testable-criterion-2}
-```
-
-**Note**: Child requirements are automatically discovered by tools. No manual "Traced by" field needed.
 
 ## Troubleshooting
 
-### No requirements found
+### elspais not found
 
-**Cause**: No files match the requirement pattern.
+Install: `pip install elspais`
 
-**Solution**: Ensure requirements follow the format exactly:
-- Header: `### REQ-p00001: Title`
-- Metadata line immediately after header
-- All required fields present
+### Validation errors
 
-### Duplicate requirement ID
+Run `elspais validate` and follow error messages with file:line references.
 
-**Cause**: Same ID used twice.
+### Stale hashes
 
-**Solution**: Each requirement must have unique ID. Check both files mentioned in error.
+Run `elspais hash update` to recalculate requirement hashes.
 
-### Invalid ID format
+### INDEX.md out of sync
 
-**Cause**: ID doesn't match `[pod]NNNNN` or `[SPONSOR]-[pod]NNNNN` pattern.
-
-**Solution**: Use correct format:
-- Core: `p00001` to `p99999` for PRD, `o00001` for Ops, `d00001` for Dev
-- Sponsor-specific: `CAL-p00001`, `CAL-d00005`, etc. (2-4 uppercase letter prefix)
-
-### Missing parent requirement
-
-**Cause**: "Implements" references non-existent requirement.
-
-**Solution**: Ensure parent requirement exists or use `-` for top-level requirements.
-
-**Note for sponsor-specific requirements**: In Implements fields, use:
-- `CAL-p00001` for sponsor-specific parent (keep sponsor prefix)
-- `p00001` for core parent (no prefix)
-
-### Level mismatch
-
-**Cause**: ID prefix doesn't match stated level.
-
-**Solution**: If ID is `p00001`, level must be `PRD`. If `o00001`, level must be `Ops`. If `d00001`, level must be `Dev`.
+Run `elspais index regenerate` to rebuild from scratch.
 
 ## Dependencies
 
-- Python 3.8+
-- No external dependencies (uses only Python standard library)
+- **elspais**: Primary CLI tool (version in `.github/versions.env`)
+- **Python 3.11+**: For supplementary scripts (standard library only)
 
 ## License
 
