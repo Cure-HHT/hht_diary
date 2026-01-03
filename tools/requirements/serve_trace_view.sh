@@ -2,6 +2,7 @@
 # Generates traceability report with embedded content and serves it locally
 # Usage: ./serve_traceability.sh [port]
 #
+# Uses trace_view (trace-view) to generate interactive HTML reports.
 # When served locally, edit mode is enabled for batch moving requirements.
 # The portable version (in git) does not include edit mode.
 
@@ -26,7 +27,7 @@ OUTPUT_FILE="$OUTPUT_DIR/REQ-report.html"
 mkdir -p "$OUTPUT_DIR"
 
 echo "Generating traceability matrix with embedded content and edit mode..."
-python3 "$SCRIPT_DIR/generate_traceability.py" --format html --embed-content --edit-mode --output "$OUTPUT_FILE"
+python3 "$SCRIPT_DIR/trace_view.py" --format html --embed-content --edit-mode --output "$OUTPUT_FILE"
 
 if [ ! -f "$OUTPUT_FILE" ]; then
     echo "Error: Output file not generated at $OUTPUT_FILE"

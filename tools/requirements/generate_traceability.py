@@ -2,6 +2,14 @@
 """
 Requirements Traceability Matrix Generator
 
+DEPRECATED: This module is deprecated. Use trace_view instead:
+    from trace_view import TraceViewGenerator, Requirement
+    # or run: python trace_view.py
+
+This file is maintained for backward compatibility only.
+
+---
+
 Generates traceability matrix showing relationships between requirements
 at different levels (PRD -> Ops -> Dev).
 
@@ -37,10 +45,19 @@ import sys
 import csv
 import json
 import subprocess
+import warnings
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
+
+# Emit deprecation warning when this module is imported directly
+warnings.warn(
+    "generate_traceability is deprecated, use trace_view instead: "
+    "from trace_view import TraceViewGenerator, Requirement",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 # No local parser imports - use elspais CLI instead
 
