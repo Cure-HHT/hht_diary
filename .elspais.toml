@@ -43,7 +43,26 @@ leading_zeros = true
 
 [patterns.associated]
 # Disabled for core repo - no sponsor prefix in requirement IDs
+# Sponsor repos enable this with their own prefix (e.g., CAL, TIT)
+# Example for sponsor repos:
+#   enabled = true
+#   prefix = "CAL"  # Results in REQ-CAL-d00001 format
 enabled = false
+
+[sponsors]
+# Multi-repo sponsor architecture configuration
+# See: spec/dev-sponsor-repos.md for full specification
+config_file = ".github/config/sponsors.yml"
+manifest_env = "SPONSOR_MANIFEST"
+
+# Local sponsors (in sponsor/ directory of core repo)
+local_dir = "sponsor"
+
+# Remote sponsor clone destination (for CI/CD)
+clone_dir = "build/sponsors"
+
+# Sponsor repository naming convention
+repo_pattern = "hht_diary_{sponsor-name}"
 
 [spec]
 index_file = "INDEX.md"
@@ -91,6 +110,8 @@ hash_length = 8
 [traceability]
 output_formats = ["markdown", "html"]
 output_dir = "build-reports/combined/traceability"
+
+# Core implementation patterns
 scan_patterns = [
     "database/**/*.sql",
     "apps/**/*.dart",
@@ -98,3 +119,16 @@ scan_patterns = [
     "tools/**/*.py",
     ".github/workflows/**/*.yml",
 ]
+
+# Sponsor-specific patterns (used when mode = "sponsor" or "combined")
+sponsor_patterns = [
+    "sponsor/{sponsor}/**/*.dart",
+    "sponsor/{sponsor}/**/*.sql",
+    "sponsor/{sponsor}/**/*.py",
+]
+
+# Multi-repo modes: core, sponsor, combined
+# core: Only core directories (default)
+# sponsor: Specific sponsor + core
+# combined: All sponsors + core
+default_mode = "core"

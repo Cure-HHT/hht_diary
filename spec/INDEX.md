@@ -5,7 +5,7 @@ This file provides a complete index of all requirements.
 ## Product Requirements (PRD)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-p00001 | Complete Multi-Sponsor Data Separation | prd-security.md | e82cbd48 |
 | REQ-p00002 | Multi-Factor Authentication for Staff | prd-security.md | 4e8e0638 |
 | REQ-p00003 | Separate Database Per Sponsor | prd-database.md | 6a207b1a |
@@ -43,7 +43,7 @@ This file provides a complete index of all requirements.
 | REQ-p00040 | Event Sourcing State Protection | prd-security-RLS.md | 0e94f5cf |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard | prd-epistaxis-terminology.md | e2501d13 |
 | REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | 5062a707 |
-| REQ-p00044 | Clinical Trial Diary Platform | prd-system.md | 0e8a8d5b |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | 83459af7 |
 | REQ-p00045 | Sponsor Portal Application | prd-portal.md | 0f70e13b |
 | REQ-p00046 | Clinical Data Storage System | prd-database.md | d8a1fdf2 |
 | REQ-p00047 | Data Backup and Archival | prd-backup.md | 4e13d1c2 |
@@ -91,7 +91,7 @@ This file provides a complete index of all requirements.
 | REQ-p01038 | Regulatory Event Support | prd-SLA.md | fec701fa |
 | REQ-p01039 | Diary Start Day Definition | prd-diary-app.md | ef7a7921 |
 | REQ-p01040 | Calendar Visual Indicators for Entry Status | prd-diary-app.md | 75dc8f26 |
-| REQ-p01041 | Open Source Licensing | prd-system.md | 8c10dd61 |
+| REQ-p01041 | Open Source Licensing | prd-system.md | 85c600f4 |
 | REQ-p01042 | Web Diary Application | prd-diary-web.md | f663bc1b |
 | REQ-p01043 | Web Diary Authentication via Linking Code | prd-diary-web.md | 31d36807 |
 | REQ-p01044 | Web Diary Session Management | prd-diary-web.md | cdc397b5 |
@@ -117,7 +117,7 @@ This file provides a complete index of all requirements.
 ## Operations Requirements (OPS)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-o00001 | Separate GCP Projects Per Sponsor | ops-deployment.md | 6d281a2e |
 | REQ-o00002 | Environment-Specific Configuration Management | ops-deployment.md | c6ed3379 |
 | REQ-o00003 | GCP Project Provisioning Per Sponsor | ops-database-setup.md | 5c8ec50e |
@@ -177,11 +177,13 @@ This file provides a complete index of all requirements.
 | REQ-o00073 | Automated Change Control | ops-system.md | cb807e9b |
 | REQ-o00074 | Automated Backup Verification | ops-system.md | d580ec6f |
 | REQ-o00075 | Third-Party Security Assessment | ops-system.md | 4d0d53e7 |
+| REQ-o00076 | Sponsor Repository Provisioning | ops-sponsor-repos.md | d6cb1b36 |
+| REQ-o00077 | Sponsor CI/CD Integration | ops-sponsor-repos.md | 672b8201 |
 
 ## Development Requirements (DEV)
 
 | ID | Title | File | Hash |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | REQ-d00001 | Sponsor-Specific Configuration Loading | dev-configuration.md | cf4bce54 |
 | REQ-d00002 | Pre-Build Configuration Validation | dev-configuration.md | b551cfb0 |
 | REQ-d00003 | Identity Platform Configuration Per Sponsor | dev-security.md | 27095b5c |
@@ -195,10 +197,10 @@ This file provides a complete index of all requirements.
 | REQ-d00011 | Multi-Site Schema Implementation | dev-database.md | bf785d33 |
 | REQ-d00013 | Application Instance UUID Generation | dev-app.md | 447e987e |
 | REQ-d00014 | Requirement Validation Tooling | dev-requirements-management.md | 0d6697dc |
-| REQ-d00015 | Traceability Matrix Auto-Generation | dev-requirements-management.md | 0d6697dc |
+| REQ-d00015 | Traceability Matrix Auto-Generation | dev-requirements-management.md | 4ff6c66e |
 | REQ-d00016 | Code-to-Requirement Linking | dev-requirements-management.md | c857235a |
 | REQ-d00017 | ADR Template and Lifecycle Tooling | dev-requirements-management.md | 36997d8f |
-| REQ-d00018 | Git Hook Implementation | dev-requirements-management.md | 0d6697dc |
+| REQ-d00018 | Git Hook Implementation | dev-requirements-management.md | b2aee05d |
 | REQ-d00019 | Patient Data Isolation RLS Implementation | dev-security-RLS.md | 42079679 |
 | REQ-d00020 | Investigator Site-Scoped RLS Implementation | dev-security-RLS.md | 0b438bc8 |
 | REQ-d00021 | Investigator Annotation RLS Implementation | dev-security-RLS.md | 024f5863 |
@@ -251,6 +253,10 @@ This file provides a complete index of all requirements.
 | REQ-d00083 | Browser Storage Clearing | dev-diary-web.md | d5857410 |
 | REQ-d00084 | Sponsor Configuration Loading | dev-diary-web.md | 5a79a42d |
 | REQ-d00085 | Local Database Export and Import | dev-app.md | d922d9e8 |
+| REQ-d00086 | Sponsor Repository Structure Template | dev-sponsor-repos.md | fadb6266 |
+| REQ-d00087 | Core Repo Reference Configuration | dev-sponsor-repos.md | 71b148c5 |
+| REQ-d00088 | Sponsor Requirement Namespace Validation | dev-sponsor-repos.md | bdf0c216 |
+| REQ-d00089 | Cross-Repository Traceability | dev-sponsor-repos.md | 285f6952 |
 
 ---
 

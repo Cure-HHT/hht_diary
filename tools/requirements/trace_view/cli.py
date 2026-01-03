@@ -5,11 +5,44 @@ Provides the main entry point for the trace-view tool.
 """
 
 import argparse
+import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
 
 from .git_state import get_elspais_config
+
+
+def resolve_sponsors(repo_root: Path, enabled_only: bool = True) -> list:
+    """Resolve sponsors using resolve-sponsors.sh script.
+
+    Args:
+        repo_root: Repository root path
+        enabled_only: Only include enabled sponsors
+
+    Returns:
+        List of sponsor dicts with name, code, path, etc.
+    """
+    script_path = repo_root / 'tools' / 'build' / 'resolve-sponsors.sh'
+
+    if not script_path.exists():
+        print(f"Warning: resolve-sponsors.sh not found at {script_path}")
+        return []
+
+    cmd = [str(script_path), '--json', '--quiet']
+    if enabled_only:
+        cmd.append('--enabled-only')
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: resolve-sponsors.sh failed: {e.stderr}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Warning: Failed to parse sponsor JSON: {e}")
+        return []
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -87,6 +120,16 @@ Examples:
         action='store_true',
         help='Generate coverage report showing implementation status statistics'
     )
+    parser.add_argument(
+        '--sponsor-manifest',
+        type=str,
+        help='Path to sponsor manifest YAML or JSON file for multi-repo scanning'
+    )
+    parser.add_argument(
+        '--resolve-sponsors',
+        action='store_true',
+        help='Use tools/build/resolve-sponsors.sh to discover sponsors'
+    )
 
     return parser
 
@@ -95,7 +138,8 @@ def get_impl_dirs(
     repo_root: Path,
     mode: str,
     sponsor: Optional[str],
-    elspais_config: dict
+    elspais_config: dict,
+    use_resolve_sponsors: bool = False
 ) -> List[Path]:
     """Get implementation directories based on mode and config.
 
@@ -104,6 +148,7 @@ def get_impl_dirs(
         mode: Report mode ('core', 'sponsor', 'combined')
         sponsor: Sponsor name for sponsor mode
         elspais_config: Elspais configuration dict
+        use_resolve_sponsors: Use resolve-sponsors.sh for discovery
 
     Returns:
         List of implementation directory paths
@@ -133,7 +178,20 @@ def get_impl_dirs(
 
     elif mode == 'sponsor':
         print(f"Mode: SPONSOR ({sponsor}) - scanning sponsor + core directories")
-        sponsor_dir = repo_root / 'sponsor' / sponsor
+
+        # Try to find sponsor via resolve-sponsors if enabled
+        sponsor_dir = None
+        if use_resolve_sponsors:
+            sponsors = resolve_sponsors(repo_root, enabled_only=False)
+            for s in sponsors:
+                if s.get('name') == sponsor and s.get('path'):
+                    sponsor_dir = Path(s['path'])
+                    break
+
+        # Fall back to default location
+        if not sponsor_dir:
+            sponsor_dir = repo_root / 'sponsor' / sponsor
+
         if not sponsor_dir.exists():
             print(f"Warning: Sponsor directory not found: {sponsor_dir}")
         else:
@@ -143,12 +201,23 @@ def get_impl_dirs(
     elif mode == 'combined':
         print(f"Mode: COMBINED - scanning all directories")
         add_core_impl_dirs()
-        sponsor_root = repo_root / 'sponsor'
-        if sponsor_root.exists():
-            for sponsor_dir in sponsor_root.iterdir():
-                if sponsor_dir.is_dir() and not sponsor_dir.name.startswith('.'):
-                    impl_dirs.append(sponsor_dir)
-                    print(f"   Including sponsor: {sponsor_dir.name}")
+
+        if use_resolve_sponsors:
+            # Use resolve-sponsors.sh for discovery
+            sponsors = resolve_sponsors(repo_root, enabled_only=True)
+            for s in sponsors:
+                sponsor_path = s.get('path')
+                if sponsor_path and Path(sponsor_path).exists():
+                    impl_dirs.append(Path(sponsor_path))
+                    print(f"   Including sponsor: {s.get('name')} ({s.get('code')})")
+        else:
+            # Fall back to directory scan
+            sponsor_root = repo_root / 'sponsor'
+            if sponsor_root.exists():
+                for sponsor_dir in sponsor_root.iterdir():
+                    if sponsor_dir.is_dir() and not sponsor_dir.name.startswith('.'):
+                        impl_dirs.append(sponsor_dir)
+                        print(f"   Including sponsor: {sponsor_dir.name}")
 
     return impl_dirs
 
@@ -235,7 +304,8 @@ def main():
         sys.exit(1)
 
     # Get implementation directories
-    impl_dirs = get_impl_dirs(repo_root, args.mode, args.sponsor, elspais_config)
+    use_resolve = args.resolve_sponsors or args.sponsor_manifest is not None
+    impl_dirs = get_impl_dirs(repo_root, args.mode, args.sponsor, elspais_config, use_resolve)
 
     # Create generator
     generator = TraceabilityGenerator(
