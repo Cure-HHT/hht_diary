@@ -11,8 +11,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PORT="${1:-8080}"
 
-# Output location
-OUTPUT_DIR="$REPO_ROOT/validation-reports"
+# Get output directory from elspais config (uses traceability.output_dir)
+OUTPUT_DIR_REL=$(elspais config show --json 2>/dev/null | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('traceability', {}).get('output_dir', 'build-reports/combined/traceability'))
+except:
+    print('build-reports/combined/traceability')
+")
+OUTPUT_DIR="$REPO_ROOT/$OUTPUT_DIR_REL"
 OUTPUT_FILE="$OUTPUT_DIR/REQ-report.html"
 
 mkdir -p "$OUTPUT_DIR"
@@ -26,13 +34,13 @@ if [ ! -f "$OUTPUT_FILE" ]; then
 fi
 
 echo ""
-echo "Starting server at http://localhost:$PORT/validation-reports/REQ-report.html"
+echo "Starting server at http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html"
 echo "Press Ctrl+C to stop"
 echo ""
 
 # Cache-busting timestamp
 CACHE_BUST="?t=$(date +%s)"
-URL="http://localhost:$PORT/validation-reports/REQ-report.html${CACHE_BUST}"
+URL="http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html${CACHE_BUST}"
 
 # Open browser (works on Linux/macOS)
 if command -v xdg-open &> /dev/null; then

@@ -148,6 +148,72 @@ Either:
 
 ---
 
+## 5. Test Mapping and Coverage
+
+**Local Script**: `tools/requirements/generate_traceability.py` (removed `--test-mapping`)
+**elspais Command**: `elspais validate --json` (proposed extension)
+
+### Gap Description
+
+The local script previously supported loading test mapping data from a JSON file to display test coverage per requirement. This has been removed in favor of having elspais provide test data directly.
+
+### Proposed Feature
+
+Extend `elspais validate --json` output to include test data for each requirement:
+
+**Per-Requirement Fields**:
+```json
+{
+  "REQ-d00004": {
+    "title": "...",
+    "status": "Active",
+    ... existing fields ...
+
+    "test_count": 5,
+    "test_passed": 4,
+    "test_result_files": [
+      "build-reports/flutter_test/TEST-calendar_screen_test.xml",
+      "build-reports/flutter_test/TEST-recording_screen_test.xml"
+    ]
+  }
+}
+```
+
+**Command Line Options**:
+```bash
+elspais validate --json              # Includes test data if [testing] configured
+elspais validate --json --no-tests   # Skip test scanning
+elspais validate --json --tests      # Force test scanning even if disabled
+```
+
+**Configuration Section** (for `.elspais.toml`):
+```toml
+[testing]
+enabled = true
+
+# Test file scanning
+test_dirs = ["apps/**/test", "packages/**/test", "tools/**/tests"]
+patterns = ["*_test.dart", "test_*.py", "*_test.sql"]
+
+# Test result files to parse for pass/fail counts
+result_files = [
+    "build-reports/**/TEST-*.xml",
+    "build-reports/pytest-results.json"
+]
+```
+
+### Impact
+
+- `generate_traceability.py` already updated to read test fields from elspais output
+- Test badges (✅/❌/⚡) will display when elspais provides the data
+- No functional test coverage until elspais implements this feature
+
+### Status
+
+**FEATURE REQUEST** - Pending implementation in elspais
+
+---
+
 ## Migration Status Summary
 
 | Capability | Local Script | elspais Equivalent | Status |
@@ -161,6 +227,7 @@ Either:
 | Hierarchy analysis | analyze_hierarchy.py | Partial (`elspais analyze`) | **PARTIAL** |
 | Hierarchy application | apply_hierarchy_changes.py | None | **BLOCKED** |
 | Requirement moves | move_reqs.py | None | **BLOCKED** |
+| Test mapping | generate_traceability.py --test-mapping | None | **FEATURE REQUEST** |
 
 ---
 
@@ -168,8 +235,9 @@ Either:
 
 1. **File issue in elspais repo**: Request sponsor-specific traceability support
 2. **File issue in elspais repo**: Request JSON output for analyze commands
-3. **Decision needed**: Should hierarchy tools move to elspais or remain local?
-4. **Decision needed**: Should move_reqs.py become a plugin command?
+3. **File issue in elspais repo**: Request test mapping support (test_count, test_passed, test_result_files)
+4. **Decision needed**: Should hierarchy tools move to elspais or remain local?
+5. **Decision needed**: Should move_reqs.py become a plugin command?
 
 ---
 

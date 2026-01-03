@@ -112,14 +112,15 @@ These scripts provide features beyond elspais core functionality.
 
 ### generate_traceability.py
 
-Extended traceability with test coverage integration and HTML edit mode.
+Extended traceability with test coverage display, HTML edit mode, and git change detection.
+
+**Configuration**: Uses `.elspais.toml` for directories (`spec`, `code`, `database`) and output paths (`traceability.output_dir`).
+
+**Test Coverage**: Test data (pass/fail counts) comes from `elspais validate --json` when elspais `[testing]` is configured. See `docs/elspais-missing-capabilities.md` for feature request status.
 
 ```bash
 # Basic usage (same as elspais trace)
 python3 tools/requirements/generate_traceability.py --format both
-
-# With test mapping data
-python3 tools/requirements/generate_traceability.py --test-mapping build-reports/test_mapping.json
 
 # Embed full content for offline viewing
 python3 tools/requirements/generate_traceability.py --format html --embed-content
@@ -154,6 +155,22 @@ python3 tools/requirements/analyze_hierarchy.py --apply
 # Preview without applying
 python3 tools/requirements/analyze_hierarchy.py --dry-run
 ```
+
+### serve_traceability.sh
+
+Local development server for interactive traceability viewing with edit mode.
+
+**Configuration**: Uses `.elspais.toml` for output directory (`traceability.output_dir`).
+
+```bash
+# Start server on default port 8080
+./tools/requirements/serve_traceability.sh
+
+# Start on custom port
+./tools/requirements/serve_traceability.sh 3000
+```
+
+Opens browser automatically and serves the HTML report with edit mode enabled for batch moving requirements.
 
 ## CI/CD Integration
 

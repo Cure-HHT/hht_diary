@@ -70,6 +70,35 @@ def get_requirements_via_cli() -> Dict[str, Dict]:
         return {}
 
 
+def get_elspais_config() -> Dict:
+    """Get elspais configuration via elspais config show --json.
+
+    Returns:
+        Dict with elspais configuration including:
+        - directories.spec: spec directory path
+        - directories.code: list of implementation directories
+        - directories.database: database directory path
+        - traceability.output_dir: default output directory
+    """
+    try:
+        result = subprocess.run(
+            ['elspais', 'config', 'show', '--json'],
+            capture_output=True,
+            text=True
+        )
+
+        output = result.stdout
+        json_start = output.find('{')
+        if json_start == -1:
+            return {}
+
+        json_str = output[json_start:]
+        return json.loads(json_str)
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"   ⚠️  Failed to get elspais config: {e}")
+        return {}
+
+
 def get_git_modified_files(repo_root: Path) -> Tuple[Set[str], Set[str]]:
     """Get sets of modified and untracked files according to git status (relative to repo root)
 
@@ -339,13 +368,34 @@ class TraceabilityRequirement:
             data: Dict from elspais JSON with keys: title, level, status, body, rationale,
                   file, filePath, line, implements, hash, subdir, isConflict, conflictWith,
                   isCycle, cyclePath
+
+                  When elspais [testing] is configured, also includes:
+                  test_count, test_passed, test_result_files
         """
         # Map level to uppercase for consistency
         level_map = {'PRD': 'PRD', 'Ops': 'OPS', 'Dev': 'DEV', 'prd': 'PRD', 'ops': 'OPS', 'dev': 'DEV'}
         level = data.get('level', '')
         is_roadmap = data.get('subdir', '') == 'roadmap'
 
-        return cls(
+        # Extract test info if provided by elspais (when [testing] is configured)
+        test_info = None
+        test_count = data.get('test_count', 0)
+        if test_count > 0:
+            test_passed = data.get('test_passed', 0)
+            # Determine status: passed if all tests pass, failed otherwise
+            if test_passed == test_count:
+                test_status = 'passed'
+            else:
+                test_status = 'failed'
+            test_info = TestInfo(
+                test_count=test_count,
+                manual_test_count=0,
+                test_status=test_status,
+                test_details=data.get('test_result_files', []),
+                notes=''
+            )
+
+        req = cls(
             id=req_id.replace('REQ-', ''),  # Strip REQ- prefix for internal use
             title=data.get('title', ''),
             level=level_map.get(level, level.upper()),
@@ -362,6 +412,8 @@ class TraceabilityRequirement:
             is_cycle=data.get('isCycle', False),
             cycle_path=data.get('cyclePath', '') or ''
         )
+        req.test_info = test_info
+        return req
 
 
 # Alias for backward compatibility within this file
@@ -381,12 +433,10 @@ class TraceabilityGenerator:
         'Dev': 'DEV'
     }
 
-    def __init__(self, spec_dir: Path, test_mapping_file: Optional[Path] = None, impl_dirs: Optional[List[Path]] = None,
+    def __init__(self, spec_dir: Path, impl_dirs: Optional[List[Path]] = None,
                  sponsor: Optional[str] = None, mode: str = 'core', repo_root: Optional[Path] = None):
         self.spec_dir = spec_dir
         self.requirements: Dict[str, Requirement] = {}
-        self.test_mapping_file = test_mapping_file
-        self.test_data: Dict[str, TestInfo] = {}
         self.impl_dirs = impl_dirs or []  # Directories containing implementation files
         self.sponsor = sponsor  # Sponsor name (e.g., 'callisto', 'titan')
         self.mode = mode  # Report mode: 'core', 'sponsor', 'combined'
@@ -444,12 +494,8 @@ class TraceabilityGenerator:
             print(f"🔎 Scanning implementation files...")
             self._scan_implementation_files()
 
-        # Load test data if mapping file provided
-        if self.test_mapping_file and self.test_mapping_file.exists():
-            print(f"📊 Loading test results from {self.test_mapping_file}...")
-            self._load_test_data()
-        else:
-            print("⚠️  No test mapping file provided - all requirements marked as 'not tested'")
+        # Test data comes from elspais validate --json when [testing] is configured
+        # See docs/elspais-missing-capabilities.md for feature request specification
         print(f"📝 Generating {format.upper()} traceability matrix...")
 
         if format == 'html':
@@ -4141,40 +4187,6 @@ class TraceabilityGenerator:
         html += '        </div>\n'
         return html
 
-    def _load_test_data(self):
-        """Load test coverage data from JSON mapping file"""
-        try:
-            with open(self.test_mapping_file, 'r') as f:
-                data = json.load(f)
-
-            mappings = data.get('mappings', {})
-
-            for req_id, test_data in mappings.items():
-                tests = test_data.get('tests', [])
-                manual_tests = test_data.get('manual_tests', [])
-                coverage = test_data.get('coverage', 'not_tested')
-                notes = test_data.get('notes', '')
-
-                test_info = TestInfo(
-                    test_count=len(tests),
-                    manual_test_count=len(manual_tests),
-                    test_status=coverage,
-                    test_details=tests + manual_tests,
-                    notes=notes
-                )
-
-                # Attach test info to requirement
-                if req_id in self.requirements:
-                    self.requirements[req_id].test_info = test_info
-
-            tested = sum(1 for r in self.requirements.values() if r.test_info and r.test_info.test_count > 0)
-            print(f"   ✅ Loaded test data for {len(mappings)} requirements")
-            print(f"   📊 Test coverage: {tested}/{len(self.requirements)} requirements have tests")
-
-        except Exception as e:
-            print(f"   ⚠️  Error loading test data: {e}")
-            print(f"   All requirements will be marked as 'not tested'")
-
     def _generate_csv(self) -> str:
         """Generate CSV traceability matrix"""
         from io import StringIO
@@ -4444,11 +4456,6 @@ Examples:
         help='Output file path (default: traceability_matrix.{format})'
     )
     parser.add_argument(
-        '--test-mapping',
-        type=Path,
-        help='Path to requirement-test mapping JSON file (default: build-reports/templates/requirement_test_mapping.template.json)'
-    )
-    parser.add_argument(
         '--sponsor',
         type=str,
         help='Sponsor name for sponsor-specific reports (e.g., "callisto", "titan"). Required when --mode is "sponsor"'
@@ -4497,39 +4504,51 @@ Examples:
         print("Error: --sponsor is required when --mode is 'sponsor'")
         sys.exit(1)
 
-    # Find spec directory
+    # Get elspais configuration for directories
+    elspais_config = get_elspais_config()
+    directories_config = elspais_config.get('directories', {})
+    traceability_config = elspais_config.get('traceability', {})
+
+    # Find repo root and spec directory
     if args.path:
         repo_root = args.path.resolve()
     else:
         script_dir = Path(__file__).parent
         repo_root = script_dir.parent.parent
-    spec_dir = repo_root / 'spec'
+
+    # Use elspais config for spec directory, fallback to 'spec'
+    spec_dir_name = directories_config.get('spec', 'spec')
+    spec_dir = repo_root / spec_dir_name
 
     if not spec_dir.exists():
         print(f"❌ Spec directory not found: {spec_dir}")
         sys.exit(1)
 
-    # Determine test mapping file
-    if args.test_mapping:
-        test_mapping_file = args.test_mapping
-    else:
-        # Default location (template file for reference)
-        test_mapping_file = repo_root / 'build-reports' / 'templates' / 'requirement_test_mapping.template.json'
+    # Get implementation directories from elspais config
+    # directories.code is a list, directories.database is a single path
+    code_dirs = directories_config.get('code', ['apps', 'packages', 'server', 'tools'])
+    database_dir_name = directories_config.get('database', 'database')
 
     # Collect implementation directories to scan based on mode
     impl_dirs = []
 
-    if args.mode == 'core':
-        # Core mode: scan core directories only (exclude /sponsor/)
-        print(f"Mode: CORE - scanning core directories only")
-        database_dir = repo_root / 'database'
+    def add_core_impl_dirs():
+        """Add core implementation directories from elspais config"""
+        # Add database directory
+        database_dir = repo_root / database_dir_name
         if database_dir.exists():
             impl_dirs.append(database_dir)
 
-        # Scan apps directory if it exists
-        apps_dir = repo_root / 'apps'
-        if apps_dir.exists():
-            impl_dirs.append(apps_dir)
+        # Add code directories (apps, packages, server, tools)
+        for code_dir_name in code_dirs:
+            code_dir = repo_root / code_dir_name
+            if code_dir.exists():
+                impl_dirs.append(code_dir)
+
+    if args.mode == 'core':
+        # Core mode: scan core directories only (exclude /sponsor/)
+        print(f"Mode: CORE - scanning core directories only")
+        add_core_impl_dirs()
 
     elif args.mode == 'sponsor':
         # Sponsor mode: scan specific sponsor + core directories
@@ -4543,26 +4562,14 @@ Examples:
             impl_dirs.append(sponsor_dir)
 
         # Also scan core directories
-        database_dir = repo_root / 'database'
-        if database_dir.exists():
-            impl_dirs.append(database_dir)
-
-        apps_dir = repo_root / 'apps'
-        if apps_dir.exists():
-            impl_dirs.append(apps_dir)
+        add_core_impl_dirs()
 
     elif args.mode == 'combined':
         # Combined mode: scan ALL directories (core + all sponsors)
         print(f"Mode: COMBINED - scanning all directories")
 
         # Add core directories
-        database_dir = repo_root / 'database'
-        if database_dir.exists():
-            impl_dirs.append(database_dir)
-
-        apps_dir = repo_root / 'apps'
-        if apps_dir.exists():
-            impl_dirs.append(apps_dir)
+        add_core_impl_dirs()
 
         # Add all sponsor directories
         sponsor_root = repo_root / 'sponsor'
@@ -4574,7 +4581,6 @@ Examples:
 
     generator = TraceabilityGenerator(
         spec_dir,
-        test_mapping_file=test_mapping_file,
         impl_dirs=impl_dirs,
         sponsor=args.sponsor,
         mode=args.mode,
@@ -4595,13 +4601,14 @@ Examples:
             ext = '.html' if args.format == 'html' else ('.csv' if args.format == 'csv' else '.md')
             output_file = output_dir / f'traceability_matrix{ext}'
     else:
-        # Use default output path based on mode
-        if args.mode == 'core':
-            output_dir = repo_root / 'build-reports' / 'combined' / 'traceability'
-        elif args.mode == 'sponsor':
+        # Use default output path from elspais config, with mode-specific override for sponsor
+        default_output_dir = traceability_config.get('output_dir', 'build-reports/combined/traceability')
+        if args.mode == 'sponsor':
+            # Sponsor mode uses sponsor-specific subdirectory
             output_dir = repo_root / 'build-reports' / args.sponsor / 'traceability'
-        elif args.mode == 'combined':
-            output_dir = repo_root / 'build-reports' / 'combined' / 'traceability'
+        else:
+            # Core and combined modes use the elspais config default
+            output_dir = repo_root / default_output_dir
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
