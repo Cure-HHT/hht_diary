@@ -1,10 +1,10 @@
 -- =====================================================
--- Mobile App User Tables
+-- Migration: Add Mobile App User Tables
+-- Number: 010
+-- Description: Creates app_users and study_enrollments tables for mobile app auth
+-- Dependencies: Requires base schema (001), sites table
+-- Reference: spec/prd-security-RBAC.md
 -- =====================================================
---
--- IMPLEMENTS REQUIREMENTS:
---   REQ-p00008: User Account Management
---   REQ-d00005: Sponsor Configuration Detection Implementation
 --
 -- Tables for mobile app authentication and study enrollment
 -- Sync goes to record_audit (event store), not separate tables
