@@ -60,6 +60,16 @@ $$;
 -- Grant schema access to RLS roles
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
+-- Grant RLS roles to app_user (for local dev container)
+-- This allows app_user to SET ROLE to these roles for testing
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_user') THEN
+        GRANT anon, authenticated, service_role TO app_user;
+    END IF;
+END
+$$;
+
 -- =====================================================
 -- USER PROFILES
 -- =====================================================

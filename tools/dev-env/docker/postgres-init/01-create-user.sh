@@ -31,8 +31,8 @@ psql -v ON_ERROR_STOP=1 --username postgres --dbname "$DB_NAME" <<-EOSQL
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO $DB_USER;
 
-    -- Grant RLS roles so app_user can SET ROLE to them
-    GRANT anon, authenticated, service_role TO $DB_USER;
+    -- Note: RLS roles (anon, authenticated, service_role) are created and
+    -- granted to app_user in database/roles.sql
 EOSQL
 
 echo "User $DB_USER created successfully"

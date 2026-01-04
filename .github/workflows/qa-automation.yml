@@ -839,6 +839,14 @@ jobs:
 
           while IFS= read -r sql_file; do
             if [ -f "$sql_file" ]; then
+              # Skip files with psql meta-commands (not pure SQL)
+              if grep -qE '^\\(echo|ir|i|include)' "$sql_file" 2>/dev/null; then
+                echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
+                echo "⏭️ Skipped (contains psql meta-commands)" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                continue
+              fi
+
               echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -875,6 +883,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           find database -name "*.sql" -type f | while IFS= read -r sql_file; do
+            # Skip files with psql meta-commands (not pure SQL)
+            if grep -qE '^\\(echo|ir|i|include)' "$sql_file" 2>/dev/null; then
+              echo "Skipping: $sql_file (contains psql meta-commands)"
+              continue
+            fi
             echo "Linting: $sql_file"
             squawk "$sql_file" || true
           done
