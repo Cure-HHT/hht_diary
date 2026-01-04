@@ -140,9 +140,7 @@ class TraceViewGenerator:
         else:
             content = generate_markdown(
                 self.requirements,
-                self._base_path,
-                self.mode,
-                self.sponsor
+                self._base_path
             )
 
         output_file.write_text(content)
