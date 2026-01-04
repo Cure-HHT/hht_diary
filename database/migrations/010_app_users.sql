@@ -6,43 +6,37 @@
 --   REQ-p00008: User Account Management
 --   REQ-d00005: Sponsor Configuration Detection Implementation
 --
--- Tables for mobile app authentication (separate from portal users)
--- Used by diary server for app user management
+-- Tables for mobile app authentication and study enrollment
+-- Sync goes to record_audit (event store), not separate tables
 --
 
 -- =====================================================
 -- APP USERS TABLE
 -- =====================================================
--- Mobile app user accounts (username/password or enrollment code)
+-- Mobile app user accounts - any user can use the app
+-- Study enrollment is separate (see study_enrollments)
 
 CREATE TABLE IF NOT EXISTS app_users (
     user_id TEXT PRIMARY KEY,
     username TEXT UNIQUE,
     password_hash TEXT,
     auth_code TEXT NOT NULL UNIQUE,
-    enrollment_code TEXT UNIQUE,
     app_uuid TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
     last_active_at TIMESTAMPTZ DEFAULT now(),
     is_active BOOLEAN DEFAULT true,
-    metadata JSONB DEFAULT '{}'::jsonb,
-    -- Require either username+password or enrollment code
-    CONSTRAINT valid_auth CHECK (
-        (username IS NOT NULL AND password_hash IS NOT NULL) OR
-        enrollment_code IS NOT NULL
-    )
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE app_users IS 'Mobile app user accounts for diary app';
+COMMENT ON TABLE app_users IS 'Mobile app user accounts - any user can use the app to track nosebleeds';
 COMMENT ON COLUMN app_users.auth_code IS 'Random code used in JWT for user lookup';
-COMMENT ON COLUMN app_users.enrollment_code IS 'One-time enrollment code (e.g., CUREHHT1)';
 COMMENT ON COLUMN app_users.app_uuid IS 'Device/app instance identifier';
+COMMENT ON COLUMN app_users.username IS 'Optional username for registered users';
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_app_users_username ON app_users(username);
 CREATE INDEX IF NOT EXISTS idx_app_users_auth_code ON app_users(auth_code);
-CREATE INDEX IF NOT EXISTS idx_app_users_enrollment_code ON app_users(enrollment_code);
 
 -- Updated at trigger
 CREATE OR REPLACE FUNCTION update_app_users_updated_at()
@@ -60,33 +54,41 @@ CREATE TRIGGER update_app_users_updated_at
     EXECUTE FUNCTION update_app_users_updated_at();
 
 -- =====================================================
--- USER RECORDS TABLE
+-- STUDY ENROLLMENTS TABLE
 -- =====================================================
--- Append-only diary records for mobile app users
+-- Links app users to clinical studies via enrollment code
+-- User can enroll in multiple studies (different sponsors)
 
-CREATE TABLE IF NOT EXISTS user_records (
-    id BIGSERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS study_enrollments (
+    enrollment_id BIGSERIAL PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES app_users(user_id) ON DELETE CASCADE,
-    record_id TEXT NOT NULL,
-    data JSONB NOT NULL,
-    synced_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(user_id, record_id)
+    enrollment_code TEXT NOT NULL UNIQUE,
+    site_id TEXT REFERENCES sites(site_id),
+    patient_id TEXT,  -- From sponsor's EDC, may be assigned later
+    sponsor_id TEXT,  -- Identifies which sponsor/study
+    enrolled_at TIMESTAMPTZ DEFAULT now(),
+    status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'WITHDRAWN')),
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE user_records IS 'Append-only diary records from mobile app';
-COMMENT ON COLUMN user_records.record_id IS 'Client-generated record ID';
-COMMENT ON COLUMN user_records.data IS 'Full record data as JSON';
+COMMENT ON TABLE study_enrollments IS 'Links app users to clinical studies via enrollment code';
+COMMENT ON COLUMN study_enrollments.enrollment_code IS 'One-time code from study coordinator (e.g., CUREHHT1)';
+COMMENT ON COLUMN study_enrollments.patient_id IS 'De-identified patient ID from sponsor EDC (assigned after enrollment)';
+COMMENT ON COLUMN study_enrollments.site_id IS 'Clinical trial site where patient is enrolled';
+COMMENT ON COLUMN study_enrollments.sponsor_id IS 'Sponsor/study identifier';
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_user_records_user_id ON user_records(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_records_synced_at ON user_records(synced_at DESC);
+CREATE INDEX IF NOT EXISTS idx_study_enrollments_user_id ON study_enrollments(user_id);
+CREATE INDEX IF NOT EXISTS idx_study_enrollments_enrollment_code ON study_enrollments(enrollment_code);
+CREATE INDEX IF NOT EXISTS idx_study_enrollments_patient_id ON study_enrollments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_study_enrollments_site_id ON study_enrollments(site_id);
 
 -- =====================================================
 -- ROW LEVEL SECURITY
 -- =====================================================
 
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_enrollments ENABLE ROW LEVEL SECURITY;
 
 -- Service role has full access (for backend server)
 CREATE POLICY app_users_service ON app_users
@@ -95,7 +97,7 @@ CREATE POLICY app_users_service ON app_users
     USING (true)
     WITH CHECK (true);
 
-CREATE POLICY user_records_service ON user_records
+CREATE POLICY study_enrollments_service ON study_enrollments
     FOR ALL
     TO service_role
     USING (true)
@@ -103,5 +105,5 @@ CREATE POLICY user_records_service ON user_records
 
 -- Grant permissions
 GRANT SELECT, INSERT, UPDATE ON app_users TO service_role;
-GRANT SELECT, INSERT ON user_records TO service_role;
-GRANT USAGE, SELECT ON SEQUENCE user_records_id_seq TO service_role;
+GRANT SELECT, INSERT, UPDATE ON study_enrollments TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE study_enrollments_enrollment_id_seq TO service_role;
