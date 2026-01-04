@@ -14,7 +14,7 @@ import 'jwt.dart';
 
 // Validation constants
 const _minUsernameLength = 6;
-const _usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');
+final _usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');
 
 /// Validate username format
 String? _validateUsername(String? username) {

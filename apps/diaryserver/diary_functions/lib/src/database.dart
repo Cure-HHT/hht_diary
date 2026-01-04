@@ -71,14 +71,6 @@ class Database {
     _pool = Pool.withEndpoints([endpoint], settings: settings);
   }
 
-  /// Get a connection from the pool
-  Future<Connection> getConnection() async {
-    if (_pool == null) {
-      throw StateError('Database not initialized. Call initialize() first.');
-    }
-    return _pool!.run((connection) async => connection);
-  }
-
   /// Execute a query with the pool
   Future<Result> execute(
     String query, {
