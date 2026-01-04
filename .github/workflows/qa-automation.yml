@@ -813,8 +813,12 @@ jobs:
         run: |
           echo "::group::Installing Squawk PostgreSQL linter"
 
-          # Install via npm (more reliable than direct binary download)
-          npm install -g squawk-cli
+          SQUAWK_VERSION="v0.29.2"
+          SQUAWK_SHA256=""
+          curl -fsSL "https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x86_64" -o squawk
+          echo "${SQUAWK_SHA256} squawk" | sha256sum -c -
+          chmod +x squawk
+          sudo mv squawk /usr/local/bin/squawk
 
           # Verify installation
           squawk --version
