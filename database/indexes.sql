@@ -23,207 +23,205 @@
 -- SITES TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_sites_active ON sites(is_active) WHERE is_active = true;
-CREATE INDEX idx_sites_site_number ON sites(site_number);
+CREATE INDEX IF NOT EXISTS idx_sites_active ON sites(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_sites_site_number ON sites(site_number);
 
 -- =====================================================
 -- EVENT STORE (record_audit) INDEXES
 -- =====================================================
 
 -- Primary lookup patterns
-CREATE INDEX idx_audit_event_uuid ON record_audit(event_uuid);
-CREATE INDEX idx_audit_patient_id ON record_audit(patient_id);
-CREATE INDEX idx_audit_site_id ON record_audit(site_id);
-CREATE INDEX idx_audit_created_by ON record_audit(created_by);
-CREATE INDEX idx_audit_parent_id ON record_audit(parent_audit_id);
+CREATE INDEX IF NOT EXISTS idx_audit_event_uuid ON record_audit(event_uuid);
+CREATE INDEX IF NOT EXISTS idx_audit_patient_id ON record_audit(patient_id);
+CREATE INDEX IF NOT EXISTS idx_audit_site_id ON record_audit(site_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created_by ON record_audit(created_by);
+CREATE INDEX IF NOT EXISTS idx_audit_parent_id ON record_audit(parent_audit_id);
 
 -- Time-based queries (common for reporting)
-CREATE INDEX idx_audit_server_timestamp ON record_audit(server_timestamp DESC);
-CREATE INDEX idx_audit_client_timestamp ON record_audit(client_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_server_timestamp ON record_audit(server_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_client_timestamp ON record_audit(client_timestamp DESC);
 
 -- Composite indexes for common query patterns
-CREATE INDEX idx_audit_patient_site ON record_audit(patient_id, site_id);
-CREATE INDEX idx_audit_site_timestamp ON record_audit(site_id, server_timestamp DESC);
-CREATE INDEX idx_audit_patient_timestamp ON record_audit(patient_id, server_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_patient_site ON record_audit(patient_id, site_id);
+CREATE INDEX IF NOT EXISTS idx_audit_site_timestamp ON record_audit(site_id, server_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_patient_timestamp ON record_audit(patient_id, server_timestamp DESC);
 
 -- JSONB GIN index for flexible querying of diary data
-CREATE INDEX idx_audit_data_gin ON record_audit USING GIN (data);
+CREATE INDEX IF NOT EXISTS idx_audit_data_gin ON record_audit USING GIN (data);
 
 -- Index for conflict detection queries
-CREATE INDEX idx_audit_event_parent ON record_audit(event_uuid, parent_audit_id);
+CREATE INDEX IF NOT EXISTS idx_audit_event_parent ON record_audit(event_uuid, parent_audit_id);
 
 -- Role-based query optimization
-CREATE INDEX idx_audit_role_operation ON record_audit(role, operation);
+CREATE INDEX IF NOT EXISTS idx_audit_role_operation ON record_audit(role, operation);
 
 -- Partial index for unresolved conflicts
-CREATE INDEX idx_audit_conflicts ON record_audit(event_uuid)
+CREATE INDEX IF NOT EXISTS idx_audit_conflicts ON record_audit(event_uuid)
     WHERE conflict_resolved = false;
 
 -- Indexes for new ALCOA+ compliance fields (TICKET-001)
-CREATE INDEX idx_audit_session_id ON record_audit(session_id) WHERE session_id IS NOT NULL;
-CREATE INDEX idx_audit_ip_address ON record_audit(ip_address) WHERE ip_address IS NOT NULL;
-CREATE INDEX idx_audit_device_info_gin ON record_audit USING GIN (device_info) WHERE device_info IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_session_id ON record_audit(session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_ip_address ON record_audit(ip_address) WHERE ip_address IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_device_info_gin ON record_audit USING GIN (device_info) WHERE device_info IS NOT NULL;
 
 -- =====================================================
 -- READ MODEL (record_state) INDEXES
 -- =====================================================
 
 -- Foreign key indexes
-CREATE INDEX idx_state_patient_id ON record_state(patient_id);
-CREATE INDEX idx_state_site_id ON record_state(site_id);
-CREATE INDEX idx_state_last_audit_id ON record_state(last_audit_id);
+CREATE INDEX IF NOT EXISTS idx_state_patient_id ON record_state(patient_id);
+CREATE INDEX IF NOT EXISTS idx_state_site_id ON record_state(site_id);
+CREATE INDEX IF NOT EXISTS idx_state_last_audit_id ON record_state(last_audit_id);
 
 -- Common query patterns
-CREATE INDEX idx_state_patient_site ON record_state(patient_id, site_id);
-CREATE INDEX idx_state_site_updated ON record_state(site_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_state_patient_site ON record_state(patient_id, site_id);
+CREATE INDEX IF NOT EXISTS idx_state_site_updated ON record_state(site_id, updated_at DESC);
 
 -- JSONB GIN index for current data
-CREATE INDEX idx_state_data_gin ON record_state USING GIN (current_data);
+CREATE INDEX IF NOT EXISTS idx_state_data_gin ON record_state USING GIN (current_data);
 
 -- Partial index for active records (not deleted)
-CREATE INDEX idx_state_active ON record_state(patient_id, site_id)
+CREATE INDEX IF NOT EXISTS idx_state_active ON record_state(patient_id, site_id)
     WHERE is_deleted = false;
 
 -- Partial index for sync metadata queries
-CREATE INDEX idx_state_sync_gin ON record_state USING GIN (sync_metadata)
+CREATE INDEX IF NOT EXISTS idx_state_sync_gin ON record_state USING GIN (sync_metadata)
     WHERE sync_metadata != '{}'::jsonb;
 
 -- =====================================================
 -- INVESTIGATOR_ANNOTATIONS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_annotations_event_uuid ON investigator_annotations(event_uuid);
-CREATE INDEX idx_annotations_investigator ON investigator_annotations(investigator_id);
-CREATE INDEX idx_annotations_site ON investigator_annotations(site_id);
-CREATE INDEX idx_annotations_created ON investigator_annotations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_annotations_event_uuid ON investigator_annotations(event_uuid);
+CREATE INDEX IF NOT EXISTS idx_annotations_investigator ON investigator_annotations(investigator_id);
+CREATE INDEX IF NOT EXISTS idx_annotations_site ON investigator_annotations(site_id);
+CREATE INDEX IF NOT EXISTS idx_annotations_created ON investigator_annotations(created_at DESC);
 
 -- Composite for common queries
-CREATE INDEX idx_annotations_site_created ON investigator_annotations(site_id, created_at DESC);
-CREATE INDEX idx_annotations_investigator_created ON investigator_annotations(investigator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_annotations_site_created ON investigator_annotations(site_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_annotations_investigator_created ON investigator_annotations(investigator_id, created_at DESC);
 
 -- Partial index for unresolved annotations
-CREATE INDEX idx_annotations_unresolved ON investigator_annotations(event_uuid, investigator_id)
+CREATE INDEX IF NOT EXISTS idx_annotations_unresolved ON investigator_annotations(event_uuid, investigator_id)
     WHERE resolved = false;
 
 -- Partial index for queries requiring response
-CREATE INDEX idx_annotations_requires_response ON investigator_annotations(event_uuid)
+CREATE INDEX IF NOT EXISTS idx_annotations_requires_response ON investigator_annotations(event_uuid)
     WHERE requires_response = true AND resolved = false;
 
 -- Parent annotation tracking
-CREATE INDEX idx_annotations_parent ON investigator_annotations(parent_annotation_id)
+CREATE INDEX IF NOT EXISTS idx_annotations_parent ON investigator_annotations(parent_annotation_id)
     WHERE parent_annotation_id IS NOT NULL;
 
 -- =====================================================
 -- USER_SITE_ASSIGNMENTS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_user_site_patient ON user_site_assignments(patient_id);
-CREATE INDEX idx_user_site_site ON user_site_assignments(site_id);
-CREATE INDEX idx_user_site_enrolled ON user_site_assignments(enrolled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_site_patient ON user_site_assignments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_user_site_site ON user_site_assignments(site_id);
+CREATE INDEX IF NOT EXISTS idx_user_site_enrolled ON user_site_assignments(enrolled_at DESC);
 
 -- Partial index for active enrollments
-CREATE INDEX idx_user_site_active ON user_site_assignments(patient_id, site_id)
+CREATE INDEX IF NOT EXISTS idx_user_site_active ON user_site_assignments(patient_id, site_id)
     WHERE enrollment_status = 'ACTIVE';
 
 -- Study patient ID lookup
-CREATE INDEX idx_user_site_study_id ON user_site_assignments(study_patient_id);
+CREATE INDEX IF NOT EXISTS idx_user_site_study_id ON user_site_assignments(study_patient_id);
 
 -- =====================================================
 -- INVESTIGATOR_SITE_ASSIGNMENTS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_inv_site_investigator ON investigator_site_assignments(investigator_id);
-CREATE INDEX idx_inv_site_site ON investigator_site_assignments(site_id);
-CREATE INDEX idx_inv_site_assigned ON investigator_site_assignments(assigned_at DESC);
+CREATE INDEX IF NOT EXISTS idx_inv_site_investigator ON investigator_site_assignments(investigator_id);
+CREATE INDEX IF NOT EXISTS idx_inv_site_site ON investigator_site_assignments(site_id);
+CREATE INDEX IF NOT EXISTS idx_inv_site_assigned ON investigator_site_assignments(assigned_at DESC);
 
 -- Partial index for active assignments
-CREATE INDEX idx_inv_site_active ON investigator_site_assignments(investigator_id, site_id)
+CREATE INDEX IF NOT EXISTS idx_inv_site_active ON investigator_site_assignments(investigator_id, site_id)
     WHERE is_active = true;
 
 -- =====================================================
 -- ANALYST_SITE_ASSIGNMENTS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_analyst_site_analyst ON analyst_site_assignments(analyst_id);
-CREATE INDEX idx_analyst_site_site ON analyst_site_assignments(site_id);
-CREATE INDEX idx_analyst_site_assigned ON analyst_site_assignments(assigned_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analyst_site_analyst ON analyst_site_assignments(analyst_id);
+CREATE INDEX IF NOT EXISTS idx_analyst_site_site ON analyst_site_assignments(site_id);
+CREATE INDEX IF NOT EXISTS idx_analyst_site_assigned ON analyst_site_assignments(assigned_at DESC);
 
 -- Partial index for active assignments
-CREATE INDEX idx_analyst_site_active ON analyst_site_assignments(analyst_id, site_id)
+CREATE INDEX IF NOT EXISTS idx_analyst_site_active ON analyst_site_assignments(analyst_id, site_id)
     WHERE is_active = true;
 
 -- =====================================================
 -- SYNC_CONFLICTS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_conflicts_event_uuid ON sync_conflicts(event_uuid);
-CREATE INDEX idx_conflicts_patient ON sync_conflicts(patient_id);
-CREATE INDEX idx_conflicts_site ON sync_conflicts(site_id);
-CREATE INDEX idx_conflicts_detected ON sync_conflicts(conflict_detected_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conflicts_event_uuid ON sync_conflicts(event_uuid);
+CREATE INDEX IF NOT EXISTS idx_conflicts_patient ON sync_conflicts(patient_id);
+CREATE INDEX IF NOT EXISTS idx_conflicts_site ON sync_conflicts(site_id);
+CREATE INDEX IF NOT EXISTS idx_conflicts_detected ON sync_conflicts(conflict_detected_at DESC);
 
 -- Partial index for unresolved conflicts
-CREATE INDEX idx_conflicts_unresolved ON sync_conflicts(event_uuid, patient_id)
+CREATE INDEX IF NOT EXISTS idx_conflicts_unresolved ON sync_conflicts(event_uuid, patient_id)
     WHERE resolved = false;
 
 -- JSONB indexes for conflict data analysis
-CREATE INDEX idx_conflicts_client_data ON sync_conflicts USING GIN (client_data);
-CREATE INDEX idx_conflicts_server_data ON sync_conflicts USING GIN (server_data);
+CREATE INDEX IF NOT EXISTS idx_conflicts_client_data ON sync_conflicts USING GIN (client_data);
+CREATE INDEX IF NOT EXISTS idx_conflicts_server_data ON sync_conflicts USING GIN (server_data);
 
 -- =====================================================
 -- ADMIN_ACTION_LOG TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_admin_log_admin ON admin_action_log(admin_id);
-CREATE INDEX idx_admin_log_action_type ON admin_action_log(action_type);
-CREATE INDEX idx_admin_log_created ON admin_action_log(created_at DESC);
-CREATE INDEX idx_admin_log_target ON admin_action_log(target_resource);
+CREATE INDEX IF NOT EXISTS idx_admin_log_admin ON admin_action_log(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_log_action_type ON admin_action_log(action_type);
+CREATE INDEX IF NOT EXISTS idx_admin_log_created ON admin_action_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_log_target ON admin_action_log(target_resource);
 
 -- Partial index for pending reviews
-CREATE INDEX idx_admin_log_pending_review ON admin_action_log(created_at DESC)
+CREATE INDEX IF NOT EXISTS idx_admin_log_pending_review ON admin_action_log(created_at DESC)
     WHERE requires_review = true AND approval_status = 'PENDING';
 
 -- JSONB index for action details
-CREATE INDEX idx_admin_log_details_gin ON admin_action_log USING GIN (action_details);
+CREATE INDEX IF NOT EXISTS idx_admin_log_details_gin ON admin_action_log USING GIN (action_details);
 
 -- =====================================================
 -- USER_PROFILES TABLE INDEXES
 -- =====================================================
+-- Note: role column moved to user_roles junction table (see RBAC redesign)
 
-CREATE INDEX idx_profiles_email ON user_profiles(email);
-CREATE INDEX idx_profiles_role ON user_profiles(role);
-CREATE INDEX idx_profiles_last_login ON user_profiles(last_login_at DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON user_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_last_login ON user_profiles(last_login_at DESC NULLS LAST);
 
 -- Partial index for active users
-CREATE INDEX idx_profiles_active ON user_profiles(role, email)
+CREATE INDEX IF NOT EXISTS idx_profiles_active ON user_profiles(email)
     WHERE is_active = true;
 
 -- Partial index for users requiring 2FA
-CREATE INDEX idx_profiles_2fa ON user_profiles(user_id)
+CREATE INDEX IF NOT EXISTS idx_profiles_2fa ON user_profiles(user_id)
     WHERE two_factor_enabled = true;
 
 -- =====================================================
 -- ROLE_CHANGE_LOG TABLE INDEXES
 -- =====================================================
+-- Note: Simplified table in RBAC redesign - no approval workflow
 
-CREATE INDEX idx_role_changes_user ON role_change_log(user_id);
-CREATE INDEX idx_role_changes_changed_by ON role_change_log(changed_by);
-CREATE INDEX idx_role_changes_created ON role_change_log(created_at DESC);
-
--- Partial index for pending approvals
-CREATE INDEX idx_role_changes_pending ON role_change_log(created_at DESC)
-    WHERE approval_status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_role_changes_user ON role_change_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_role_changes_changed_by ON role_change_log(changed_by);
+CREATE INDEX IF NOT EXISTS idx_role_changes_created ON role_change_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_role_changes_action ON role_change_log(action);
 
 -- =====================================================
 -- USER_SESSIONS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX idx_sessions_user ON user_sessions(user_id);
-CREATE INDEX idx_sessions_expires ON user_sessions(expires_at);
-CREATE INDEX idx_sessions_last_activity ON user_sessions(last_activity_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON user_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON user_sessions(last_activity_at DESC);
 
--- Partial index for active sessions
-CREATE INDEX idx_sessions_active ON user_sessions(user_id, last_activity_at DESC)
-    WHERE is_active = true AND expires_at > now();
+-- Partial index for active sessions (expiration checked in queries, not index)
+CREATE INDEX IF NOT EXISTS idx_sessions_active ON user_sessions(user_id, last_activity_at DESC)
+    WHERE is_active = true;
 
 -- =====================================================
 -- TABLE PARTITIONING (for record_audit)
@@ -300,7 +298,7 @@ SELECT
 FROM record_audit
 GROUP BY site_id, DATE(server_timestamp);
 
-CREATE UNIQUE INDEX idx_daily_site_summary ON daily_site_summary(site_id, summary_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_site_summary ON daily_site_summary(site_id, summary_date);
 
 COMMENT ON MATERIALIZED VIEW daily_site_summary IS 'Daily activity summary by site - refresh periodically';
 
@@ -317,7 +315,7 @@ FROM record_audit
 WHERE operation LIKE 'USER_%'
 GROUP BY patient_id, site_id;
 
-CREATE UNIQUE INDEX idx_patient_activity_summary ON patient_activity_summary(patient_id, site_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_patient_activity_summary ON patient_activity_summary(patient_id, site_id);
 
 COMMENT ON MATERIALIZED VIEW patient_activity_summary IS 'Patient activity metrics - refresh periodically';
 
@@ -371,46 +369,46 @@ ALTER TABLE record_state ALTER COLUMN site_id SET STATISTICS 1000;
 -- AUDITOR_EXPORT_LOG TABLE INDEXES (REQ-d00024)
 -- =====================================================
 
-CREATE INDEX idx_export_log_auditor ON auditor_export_log(auditor_id);
-CREATE INDEX idx_export_log_timestamp ON auditor_export_log(export_timestamp DESC);
-CREATE INDEX idx_export_log_case_id ON auditor_export_log(case_id);
-CREATE INDEX idx_export_log_table ON auditor_export_log(table_name);
+CREATE INDEX IF NOT EXISTS idx_export_log_auditor ON auditor_export_log(auditor_id);
+CREATE INDEX IF NOT EXISTS idx_export_log_timestamp ON auditor_export_log(export_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_export_log_case_id ON auditor_export_log(case_id);
+CREATE INDEX IF NOT EXISTS idx_export_log_table ON auditor_export_log(table_name);
 
 -- Composite index for auditor activity reports
-CREATE INDEX idx_export_log_auditor_timestamp ON auditor_export_log(auditor_id, export_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_export_log_auditor_timestamp ON auditor_export_log(auditor_id, export_timestamp DESC);
 
 -- JSONB index for filter queries
-CREATE INDEX idx_export_log_filters_gin ON auditor_export_log USING GIN (filters)
+CREATE INDEX IF NOT EXISTS idx_export_log_filters_gin ON auditor_export_log USING GIN (filters)
     WHERE filters != '{}'::jsonb;
 
 -- =====================================================
 -- BREAK_GLASS_AUTHORIZATIONS TABLE INDEXES (REQ-d00025)
 -- =====================================================
 
-CREATE INDEX idx_breakglass_admin ON break_glass_authorizations(admin_id);
-CREATE INDEX idx_breakglass_granted_at ON break_glass_authorizations(granted_at DESC);
-CREATE INDEX idx_breakglass_expires_at ON break_glass_authorizations(expires_at);
-CREATE INDEX idx_breakglass_granted_by ON break_glass_authorizations(granted_by);
-CREATE INDEX idx_breakglass_ticket ON break_glass_authorizations(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_breakglass_admin ON break_glass_authorizations(admin_id);
+CREATE INDEX IF NOT EXISTS idx_breakglass_granted_at ON break_glass_authorizations(granted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_breakglass_expires_at ON break_glass_authorizations(expires_at);
+CREATE INDEX IF NOT EXISTS idx_breakglass_granted_by ON break_glass_authorizations(granted_by);
+CREATE INDEX IF NOT EXISTS idx_breakglass_ticket ON break_glass_authorizations(ticket_id);
 
--- Partial index for active (non-revoked, non-expired) authorizations
-CREATE INDEX idx_breakglass_active ON break_glass_authorizations(admin_id, expires_at DESC)
-    WHERE revoked_at IS NULL AND expires_at > now();
+-- Partial index for non-revoked authorizations (expiration checked in queries)
+CREATE INDEX IF NOT EXISTS idx_breakglass_active ON break_glass_authorizations(admin_id, expires_at DESC)
+    WHERE revoked_at IS NULL;
 
 -- =====================================================
 -- BREAK_GLASS_ACCESS_LOG TABLE INDEXES (REQ-d00025)
 -- =====================================================
 
-CREATE INDEX idx_breakglass_log_authorization ON break_glass_access_log(authorization_id);
-CREATE INDEX idx_breakglass_log_admin ON break_glass_access_log(admin_id);
-CREATE INDEX idx_breakglass_log_timestamp ON break_glass_access_log(access_timestamp DESC);
-CREATE INDEX idx_breakglass_log_table ON break_glass_access_log(accessed_table);
+CREATE INDEX IF NOT EXISTS idx_breakglass_log_authorization ON break_glass_access_log(authorization_id);
+CREATE INDEX IF NOT EXISTS idx_breakglass_log_admin ON break_glass_access_log(admin_id);
+CREATE INDEX IF NOT EXISTS idx_breakglass_log_timestamp ON break_glass_access_log(access_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_breakglass_log_table ON break_glass_access_log(accessed_table);
 
 -- Composite index for admin activity tracking
-CREATE INDEX idx_breakglass_log_admin_timestamp ON break_glass_access_log(admin_id, access_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_breakglass_log_admin_timestamp ON break_glass_access_log(admin_id, access_timestamp DESC);
 
 -- JSONB index for query details analysis
-CREATE INDEX idx_breakglass_log_query_gin ON break_glass_access_log USING GIN (query_details)
+CREATE INDEX IF NOT EXISTS idx_breakglass_log_query_gin ON break_glass_access_log USING GIN (query_details)
     WHERE query_details IS NOT NULL;
 
 -- =====================================================
@@ -418,8 +416,8 @@ CREATE INDEX idx_breakglass_log_query_gin ON break_glass_access_log USING GIN (q
 -- =====================================================
 
 -- Primary key already provides index on config_key
-CREATE INDEX idx_config_modified_at ON system_config(last_modified_at DESC);
-CREATE INDEX idx_config_modified_by ON system_config(last_modified_by);
+CREATE INDEX IF NOT EXISTS idx_config_modified_at ON system_config(last_modified_at DESC);
+CREATE INDEX IF NOT EXISTS idx_config_modified_by ON system_config(last_modified_by);
 
 -- =====================================================
 -- COMMENTS

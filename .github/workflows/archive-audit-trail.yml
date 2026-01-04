@@ -23,9 +23,13 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          # Pinned to PostgreSQL 15 (matches production database version)
-          # Last updated: 2025-11-11
-          sudo apt-get install -y postgresql-client-15
+          # Add PostgreSQL apt repo for version 17
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update
+          # Pinned to PostgreSQL 17 (matches production database version)
+          sudo apt-get install -y postgresql-client-17
+          which psql || (echo "ERROR: postgresql-client-17 installation failed" && exit 1)
 
       - name: Load secrets from Doppler
         uses: dopplerhq/cli-action@v3

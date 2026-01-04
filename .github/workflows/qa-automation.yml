@@ -813,9 +813,11 @@ jobs:
         run: |
           echo "::group::Installing Squawk PostgreSQL linter"
 
-          # Download latest Squawk release
-          SQUAWK_VERSION="v0.29.2"
-          wget -q https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x86_64 -O squawk
+          # Load version from central versions.env
+          source .github/versions.env
+          SQUAWK_VERSION="v${SQUAWK_VERSION}"
+
+          curl -fsSL "https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x64" -o squawk
           chmod +x squawk
           sudo mv squawk /usr/local/bin/squawk
 
@@ -837,6 +839,14 @@ jobs:
 
           while IFS= read -r sql_file; do
             if [ -f "$sql_file" ]; then
+              # Skip files with psql meta-commands (not pure SQL)
+              if grep -qE '^\\(echo|ir|i|include)' "$sql_file" 2>/dev/null; then
+                echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
+                echo "⏭️ Skipped (contains psql meta-commands)" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                continue
+              fi
+
               echo "### 📄 $sql_file" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -873,6 +883,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           find database -name "*.sql" -type f | while IFS= read -r sql_file; do
+            # Skip files with psql meta-commands (not pure SQL)
+            if grep -qE '^\\(echo|ir|i|include)' "$sql_file" 2>/dev/null; then
+              echo "Skipping: $sql_file (contains psql meta-commands)"
+              continue
+            fi
             echo "Linting: $sql_file"
             squawk "$sql_file" || true
           done

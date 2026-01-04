@@ -42,34 +42,55 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          # Pinned to PostgreSQL 15 (matches production database version)
-          # Last updated: 2025-11-11
-          sudo apt-get install -y postgresql-client-15
-          which psql || (echo "ERROR: postgresql-client-15 installation failed" && exit 1)
+          # Add PostgreSQL apt repo for version 17
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update
+          # Pinned to PostgreSQL 17 (matches production database version)
+          sudo apt-get install -y postgresql-client-17
+          which psql || (echo "ERROR: postgresql-client-17 installation failed" && exit 1)
 
-      - name: Test schema deployment
+      - name: Deploy schema
         run: |
-          echo "Testing schema deployment..."
+          echo "Deploying schema..."
           psql --set ON_ERROR_STOP=1 -f database/schema.sql
           echo "Schema deployed successfully"
 
-      - name: Test triggers
+      - name: Deploytriggers
         run: |
-          echo "Testing triggers..."
+          echo "Deploying triggers..."
           psql --set ON_ERROR_STOP=1 -f database/triggers.sql
           echo "Triggers deployed successfully"
 
-      - name: Test RLS policies
+      - name: Deploy roles
         run: |
-          echo "Testing RLS policies..."
+          echo "Deploying roles..."
+          psql --set ON_ERROR_STOP=1 -f database/roles.sql
+          echo "Roles deployed successfully"
+
+      - name: Deploy RLS policies
+        run: |
+          echo "Deploying  RLS policies..."
           psql --set ON_ERROR_STOP=1 -f database/rls_policies.sql
           echo "RLS policies deployed successfully"
 
-      - name: Test indexes
+      - name: Deploy indexes
         run: |
-          echo "Testing indexes..."
+          echo "Deploying indexes..."
           psql --set ON_ERROR_STOP=1 -f database/indexes.sql
           echo "Indexes deployed successfully"
+
+      - name: Deploy tamper detection
+        run: |
+          echo "Deploying  tamper detection (hash triggers)..."
+          psql --set ON_ERROR_STOP=1 -f database/tamper_detection.sql
+          echo "Tamper detection deployed successfully"
+
+      - name: Deploy compliance verification
+        run: |
+          echo "Deploying  compliance verification functions..."
+          psql --set ON_ERROR_STOP=1 -f database/compliance_verification.sql
+          echo "Compliance verification deployed successfully"
 
       - name: Run database tests
         run: |

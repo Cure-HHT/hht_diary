@@ -22,7 +22,7 @@ Following TDD principles and phased rollout as per REQ-p01019, with FDA 21 CFR P
 
 **2. append_only_datastore** (Flutter package - client storage)
 
-- SQLite implementation for offline storage
+- sembast implementation for offline storage
 - Event repository and sync engine
 - Query services and conflict resolution
 - Depends on: trial_data_types

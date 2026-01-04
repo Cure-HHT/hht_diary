@@ -625,15 +625,15 @@ node add-subsystem-checklists.js --token=$LINEAR_API_TOKEN
 
 **Local PostgreSQL Testing** (optional):
 ```bash
-# Install PostgreSQL 15+
+# Install PostgreSQL 17
 # macOS:
-brew install postgresql@15
+brew install postgresql@17
 
 # Linux:
-sudo apt-get install postgresql-15 postgresql-client-15
+sudo apt-get install postgresql-17 postgresql-client-17
 
 # Start PostgreSQL
-brew services start postgresql@15  # macOS
+brew services start postgresql@17  # macOS
 sudo systemctl start postgresql    # Linux
 
 # Create test database

@@ -29,14 +29,24 @@
 
 BEGIN;
 
--- Insert test audit entry
+-- Set up test fixtures: site and patient enrollment
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_001', 'Test Site 001', 'TS001')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_001', 'test_site_001', 'STUDY-001', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
+-- Insert test audit entry with valid EventRecord data
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000001'::UUID, 'test_patient_001', 'test_site_001', 'USER_CREATE',
-    '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
+    '{"id": "00000000-0000-0000-0000-000000000001", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "11111111-1111-1111-1111-111111111111", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -78,13 +88,23 @@ ROLLBACK;
 
 BEGIN;
 
+-- Set up test fixtures
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_002', 'Test Site 002', 'TS002')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_002', 'test_site_002', 'STUDY-002', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000002'::UUID, 'test_patient_002', 'test_site_002', 'USER_CREATE',
-    '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
+    '{"id": "00000000-0000-0000-0000-000000000002", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "22222222-2222-2222-2222-222222222222", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -122,13 +142,23 @@ ROLLBACK;
 
 BEGIN;
 
+-- Set up test fixtures
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_003', 'Test Site 003', 'TS003')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_003', 'test_site_003', 'STUDY-003', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000003'::UUID, 'test_patient_003', 'test_site_003', 'USER_CREATE',
-    '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
+    '{"id": "00000000-0000-0000-0000-000000000003", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "33333333-3333-3333-3333-333333333333", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -157,13 +187,23 @@ ROLLBACK;
 
 BEGIN;
 
+-- Set up test fixtures
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_004', 'Test Site 004', 'TS004')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_004', 'test_site_004', 'STUDY-004', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000004'::UUID, 'test_patient_004', 'test_site_004', 'USER_CREATE',
-    '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
+    '{"id": "00000000-0000-0000-0000-000000000004", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "44444444-4444-4444-4444-444444444444", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -195,13 +235,23 @@ ROLLBACK;
 
 BEGIN;
 
+-- Set up test fixtures
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_005', 'Test Site 005', 'TS005')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_005', 'test_site_005', 'STUDY-005', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000005'::UUID, 'test_patient_005', 'test_site_005', 'USER_CREATE',
-    '{"symptoms": ["headache"]}'::jsonb, 'test_user', 'USER', now(), 'initial entry',
+    '{"id": "00000000-0000-0000-0000-000000000005", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "55555555-5555-5555-5555-555555555555", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'initial entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -219,7 +269,7 @@ BEGIN
     FROM record_state
     WHERE event_uuid = '00000000-0000-0000-0000-000000000005'::UUID;
 
-    IF v_state_exists AND v_state_data->>'symptoms' = '["headache"]' THEN
+    IF v_state_exists AND v_state_data->>'id' = '00000000-0000-0000-0000-000000000005' THEN
         RAISE NOTICE 'PASS: Read model automatically updated via trigger';
     ELSE
         RAISE EXCEPTION 'FAIL: Read model not updated or data mismatch';
@@ -236,13 +286,23 @@ ROLLBACK;
 
 BEGIN;
 
+-- Set up test fixtures
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_006', 'Test Site 006', 'TS006')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_006', 'test_site_006', 'STUDY-006', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000006'::UUID, 'test_patient_006', 'test_site_006', 'USER_CREATE',
-    '{"test": "data"}'::jsonb, 'test_user', 'USER', now(), 'test entry',
+    '{"id": "00000000-0000-0000-0000-000000000006", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "66666666-6666-6666-6666-666666666666", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -283,6 +343,15 @@ ROLLBACK;
 
 BEGIN;
 
+-- Set up test fixtures
+INSERT INTO sites (site_id, site_name, site_number)
+VALUES ('test_site_007', 'Test Site 007', 'TS007')
+ON CONFLICT (site_id) DO NOTHING;
+
+INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
+VALUES ('test_patient_007', 'test_site_007', 'STUDY-007', 'ACTIVE')
+ON CONFLICT (patient_id, site_id) DO NOTHING;
+
 -- Create parent entry
 INSERT INTO record_audit (
     event_uuid, patient_id, site_id, operation,
@@ -290,7 +359,8 @@ INSERT INTO record_audit (
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000007'::UUID, 'test_patient_007', 'test_site_007', 'USER_CREATE',
-    '{"value": 1}'::jsonb, 'test_user', 'USER', now(), 'initial',
+    '{"id": "00000000-0000-0000-0000-000000000007", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "77777777-7777-7777-7777-777777777771", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    'test_user', 'USER', now(), 'initial',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
 
@@ -301,7 +371,8 @@ INSERT INTO record_audit (
     device_info, ip_address, session_id, parent_audit_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000007'::UUID, 'test_patient_007', 'test_site_007', 'USER_UPDATE',
-    '{"value": 2}'::jsonb, 'test_user', 'USER', now(), 'update',
+    '{"id": "00000000-0000-0000-0000-000000000007", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "77777777-7777-7777-7777-777777777772", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:10:00Z", "severity": "moderate"}}'::jsonb,
+    'test_user', 'USER', now(), 'update',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session',
     (SELECT audit_id FROM record_audit WHERE patient_id = 'test_patient_007' ORDER BY audit_id LIMIT 1)
 );
@@ -327,6 +398,8 @@ ROLLBACK;
 
 \echo ''
 \echo '========================================='
-\echo 'Audit Trail Tests Complete'
+\echo '    ALL 7 TESTS PASSED'
 \echo '========================================='
+\echo ''
+\echo 'Audit Trail Tests Complete'
 \echo ''

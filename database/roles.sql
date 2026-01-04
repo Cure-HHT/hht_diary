@@ -1,7 +1,5 @@
 -- =====================================================
 -- Database Roles and Permissions
--- For Supabase, roles are managed via JWT claims
--- This file documents the role structure and provides setup
 -- =====================================================
 --
 -- IMPLEMENTS REQUIREMENTS:
@@ -9,59 +7,79 @@
 --   REQ-p00014: Least Privilege Access
 --   REQ-o00007: Role-Based Permission Configuration
 --
--- ROLE DEFINITIONS:
---   Defines user_profiles table storing role assignments and helper
---   functions for role verification used by RLS policies.
+-- ROLE DESIGN:
+--   Users can have MULTIPLE application roles assigned
+--   Users select ONE active role at login (carried in JWT)
+--   Each transaction validates active role is in user's allowed roles
 --
 -- =====================================================
 
 -- =====================================================
--- SUPABASE ROLE NOTES
+-- APPLICATION ROLE DEFINITIONS
 -- =====================================================
+-- These are the valid application roles per prd-security-RBAC.md
+-- Note: These are NOT PostgreSQL roles - they are application-level roles
+-- stored in user data and JWT claims
 
--- Supabase uses three built-in PostgreSQL roles:
--- 1. anon - Unauthenticated users (public access)
--- 2. authenticated - Authenticated users (all logged-in users)
--- 3. service_role - Backend services (full access, bypasses RLS)
+-- Role type for validation
+CREATE TYPE app_role AS ENUM (
+    'PATIENT',       -- Read/write own data only
+    'INVESTIGATOR',  -- Site-scoped read/write, enroll/de-enroll patients
+    'SPONSOR',       -- De-identified only, user management, oversight
+    'AUDITOR',       -- Read-only across study, compliance monitoring
+    'ANALYST',       -- Site-scoped read, de-identified datasets
+    'ADMIN',         -- User/role/config management, no routine PHI
+    'DEV_ADMIN'      -- Infrastructure ops, break-glass management
+);
 
--- User roles (USER, INVESTIGATOR, ANALYST, ADMIN) are stored in JWT claims
--- and accessed via current_user_role() function
+COMMENT ON TYPE app_role IS 'Application roles per prd-security-RBAC.md - users can have multiple, one active at a time';
 
 -- =====================================================
--- ROLE VERIFICATION FUNCTIONS
+-- RLS (ROW-LEVEL SECURITY) ROLES
 -- =====================================================
+-- These ARE PostgreSQL roles used by RLS policies to control access levels
+-- In managed PostgreSQL (Cloud SQL, Supabase), these may already exist
 
--- Function to check if current user has a specific role
-CREATE OR REPLACE FUNCTION has_role(required_role TEXT)
-RETURNS BOOLEAN AS $$
+DO $$
 BEGIN
-    RETURN current_user_role() = required_role;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon NOLOGIN;
+        COMMENT ON ROLE anon IS 'Role for unauthenticated access';
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+        COMMENT ON ROLE authenticated IS 'Role for authenticated users';
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+        CREATE ROLE service_role NOLOGIN;
+        COMMENT ON ROLE service_role IS 'Role for backend services';
+    END IF;
+END
+$$;
 
-COMMENT ON FUNCTION has_role(TEXT) IS 'Check if current user has the specified role';
+-- Grant schema access to RLS roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
--- Function to check if current user has any of the specified roles
-CREATE OR REPLACE FUNCTION has_any_role(required_roles TEXT[])
-RETURNS BOOLEAN AS $$
+-- Grant RLS roles to app_user (for local dev container)
+-- This allows app_user to SET ROLE to these roles for testing
+DO $$
 BEGIN
-    RETURN current_user_role() = ANY(required_roles);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
-
-COMMENT ON FUNCTION has_any_role(TEXT[]) IS 'Check if current user has any of the specified roles';
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_user') THEN
+        GRANT anon, authenticated, service_role TO app_user;
+    END IF;
+END
+$$;
 
 -- =====================================================
--- USER METADATA AND PROFILES
+-- USER PROFILES
 -- =====================================================
+-- Core user identity (linked to auth provider)
+-- Note: role is NOT stored here - see user_roles table
 
--- Table to store user profiles and role assignments
--- This integrates with Supabase auth.users table
-CREATE TABLE user_profiles (
-    user_id TEXT PRIMARY KEY,  -- References auth.users.id in Supabase
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id TEXT PRIMARY KEY,  -- References auth provider user ID
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
-    role TEXT NOT NULL CHECK (role IN ('USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN')),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
@@ -71,191 +89,349 @@ CREATE TABLE user_profiles (
     must_change_password BOOLEAN DEFAULT false
 );
 
-COMMENT ON TABLE user_profiles IS 'User profiles linked to Supabase auth.users';
-COMMENT ON COLUMN user_profiles.role IS 'Primary role - used in JWT claims';
+COMMENT ON TABLE user_profiles IS 'User profiles - roles stored in user_roles table';
 COMMENT ON COLUMN user_profiles.two_factor_enabled IS '2FA requirement for FDA compliance';
 
--- Enable RLS on user_profiles
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+-- =====================================================
+-- USER ROLES (Junction Table)
+-- =====================================================
+-- Users can have MULTIPLE roles assigned
+-- The active role is selected at login and carried in JWT
 
--- Users can view their own profile
-CREATE POLICY profile_select_own ON user_profiles
-    FOR SELECT
-    TO authenticated
-    USING (user_id = current_user_id());
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id TEXT NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+    role app_role NOT NULL,
+    granted_at TIMESTAMPTZ DEFAULT now(),
+    granted_by TEXT NOT NULL,  -- User ID of admin who granted the role
+    is_active BOOLEAN DEFAULT true,  -- Can be disabled without removing
+    notes TEXT,  -- Reason for granting, special conditions, etc.
+    PRIMARY KEY (user_id, role)
+);
 
--- Users can update their own non-role fields
-CREATE POLICY profile_update_own ON user_profiles
-    FOR UPDATE
-    TO authenticated
-    USING (user_id = current_user_id())
-    WITH CHECK (
-        user_id = current_user_id()
-        AND role = OLD.role  -- Cannot change own role
-    );
+COMMENT ON TABLE user_roles IS 'Junction table for user role assignments - users can have multiple roles';
+COMMENT ON COLUMN user_roles.is_active IS 'Role can be temporarily disabled without removing';
+COMMENT ON COLUMN user_roles.granted_by IS 'Admin who granted this role - for audit trail';
 
--- Investigators can view profiles at their sites
-CREATE POLICY profile_investigator_select ON user_profiles
-    FOR SELECT
-    TO authenticated
-    USING (
-        current_user_role() = 'INVESTIGATOR'
-        AND user_id IN (
-            SELECT patient_id
-            FROM user_site_assignments
-            WHERE site_id IN (
-                SELECT site_id
-                FROM investigator_site_assignments
-                WHERE investigator_id = current_user_id()
-                AND is_active = true
-            )
-        )
-    );
-
--- Admins have full access
-CREATE POLICY profile_admin_all ON user_profiles
-    FOR ALL
-    TO authenticated
-    USING (current_user_role() = 'ADMIN')
-    WITH CHECK (current_user_role() = 'ADMIN');
+-- Index for common lookups
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role);
 
 -- =====================================================
--- ROLE ASSIGNMENT AUDIT
+-- JWT CLAIM FUNCTIONS
+-- =====================================================
+-- Functions to access JWT claims set by the application
+
+-- Get current user ID from JWT claims
+CREATE OR REPLACE FUNCTION current_user_id()
+RETURNS TEXT AS $$
+BEGIN
+    RETURN COALESCE(
+        current_setting('request.jwt.claims', true)::json->>'sub',
+        current_setting('app.user_id', true)
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION current_user_id() IS 'Get current user ID from JWT claims or app settings';
+
+-- Get current ACTIVE role from JWT claims
+-- This is the role the user selected at login
+CREATE OR REPLACE FUNCTION current_user_role()
+RETURNS TEXT AS $$
+BEGIN
+    RETURN COALESCE(
+        current_setting('request.jwt.claims', true)::json->>'active_role',
+        current_setting('app.role', true)
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION current_user_role() IS 'Get active role from JWT - the role user selected at login';
+
+-- Get ALL allowed roles for current user from JWT claims
+-- This is used to validate the active role
+CREATE OR REPLACE FUNCTION current_user_allowed_roles()
+RETURNS TEXT[] AS $$
+DECLARE
+    roles_json JSON;
+BEGIN
+    roles_json := current_setting('request.jwt.claims', true)::json->'allowed_roles';
+    IF roles_json IS NULL THEN
+        -- Fallback to app settings for testing
+        RETURN string_to_array(COALESCE(current_setting('app.allowed_roles', true), ''), ',');
+    END IF;
+    RETURN ARRAY(SELECT json_array_elements_text(roles_json));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION current_user_allowed_roles() IS 'Get all allowed roles from JWT claims';
+
+-- =====================================================
+-- ROLE VALIDATION FUNCTIONS
 -- =====================================================
 
+-- Validate that active role is in user's allowed roles
+-- CRITICAL: This must be called at the start of every transaction
+CREATE OR REPLACE FUNCTION validate_active_role()
+RETURNS BOOLEAN AS $$
+DECLARE
+    active_role TEXT;
+    allowed_roles TEXT[];
+BEGIN
+    active_role := current_user_role();
+    allowed_roles := current_user_allowed_roles();
+
+    -- No role context means anonymous access
+    IF active_role IS NULL OR active_role = '' THEN
+        RETURN true;
+    END IF;
+
+    -- Validate active role is in allowed roles
+    IF active_role = ANY(allowed_roles) THEN
+        RETURN true;
+    END IF;
+
+    -- Role mismatch - potential security issue
+    RAISE EXCEPTION 'Active role % not in allowed roles %', active_role, allowed_roles;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION validate_active_role() IS 'Validate active role is in user allowed roles - call at transaction start';
+
+-- Check if current user has a specific role (from their allowed roles)
+CREATE OR REPLACE FUNCTION has_role(required_role TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN current_user_role() = required_role;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION has_role(TEXT) IS 'Check if current ACTIVE role matches required role';
+
+-- Check if current user has any of the specified roles
+CREATE OR REPLACE FUNCTION has_any_role(required_roles TEXT[])
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN current_user_role() = ANY(required_roles);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION has_any_role(TEXT[]) IS 'Check if current active role is any of the required roles';
+
+-- Check if user has a role in their allowed_roles (not necessarily active)
+CREATE OR REPLACE FUNCTION user_can_assume_role(check_role TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN check_role = ANY(current_user_allowed_roles());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION user_can_assume_role(TEXT) IS 'Check if user has the specified role in their allowed roles';
+
+-- =====================================================
+-- ROLE ASSIGNMENT FUNCTIONS
+-- =====================================================
+
+-- Get all active roles for a specific user (for building JWT claims)
+CREATE OR REPLACE FUNCTION get_user_roles(p_user_id TEXT)
+RETURNS app_role[] AS $$
+BEGIN
+    RETURN ARRAY(
+        SELECT role FROM user_roles
+        WHERE user_id = p_user_id AND is_active = true
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+COMMENT ON FUNCTION get_user_roles(TEXT) IS 'Get all active roles for a user - used when building JWT at login';
+
+-- Grant a role to a user (admin function)
+CREATE OR REPLACE FUNCTION grant_user_role(
+    p_user_id TEXT,
+    p_role app_role,
+    p_notes TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+    -- Only ADMIN or DEV_ADMIN can grant roles
+    IF NOT has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']) THEN
+        RAISE EXCEPTION 'Only ADMIN or DEV_ADMIN can grant roles';
+    END IF;
+
+    INSERT INTO user_roles (user_id, role, granted_by, notes)
+    VALUES (p_user_id, p_role, current_user_id(), p_notes)
+    ON CONFLICT (user_id, role) DO UPDATE SET
+        is_active = true,
+        granted_by = current_user_id(),
+        granted_at = now(),
+        notes = COALESCE(p_notes, user_roles.notes);
+
+    RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION grant_user_role(TEXT, app_role, TEXT) IS 'Grant a role to a user - requires ADMIN or DEV_ADMIN';
+
+-- Revoke a role from a user (admin function)
+CREATE OR REPLACE FUNCTION revoke_user_role(
+    p_user_id TEXT,
+    p_role app_role,
+    p_notes TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+    -- Only ADMIN or DEV_ADMIN can revoke roles
+    IF NOT has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']) THEN
+        RAISE EXCEPTION 'Only ADMIN or DEV_ADMIN can revoke roles';
+    END IF;
+
+    -- Soft delete - set is_active to false
+    UPDATE user_roles
+    SET is_active = false,
+        notes = COALESCE(p_notes, notes) || ' [Revoked by ' || current_user_id() || ' at ' || now()::text || ']'
+    WHERE user_id = p_user_id AND role = p_role;
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION revoke_user_role(TEXT, app_role, TEXT) IS 'Revoke a role from a user - requires ADMIN or DEV_ADMIN';
+
+-- =====================================================
+-- ROLE CHANGE AUDIT LOG
+-- =====================================================
 -- Track all role changes for compliance
-CREATE TABLE role_change_log (
+
+CREATE TABLE IF NOT EXISTS role_change_log (
     change_id BIGSERIAL PRIMARY KEY,
     user_id TEXT NOT NULL,
-    old_role TEXT,
-    new_role TEXT NOT NULL CHECK (new_role IN ('USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN')),
+    action TEXT NOT NULL CHECK (action IN ('GRANT', 'REVOKE', 'ENABLE', 'DISABLE')),
+    role app_role NOT NULL,
     changed_by TEXT NOT NULL,
-    reason TEXT NOT NULL,
-    approved_by TEXT,
-    approval_required BOOLEAN DEFAULT true,
-    approval_status TEXT DEFAULT 'PENDING' CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    reason TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
-    approved_at TIMESTAMPTZ,
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
 COMMENT ON TABLE role_change_log IS 'Audit trail for all role changes';
 
--- Enable RLS
-ALTER TABLE role_change_log ENABLE ROW LEVEL SECURITY;
-
--- Admins can view all role changes
-CREATE POLICY role_changes_admin_select ON role_change_log
-    FOR SELECT
-    TO authenticated
-    USING (current_user_role() = 'ADMIN');
-
--- Admins can create role change requests
-CREATE POLICY role_changes_admin_insert ON role_change_log
-    FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        current_user_role() = 'ADMIN'
-        AND changed_by = current_user_id()
-    );
-
--- Admins can approve role changes (different admin than requester)
-CREATE POLICY role_changes_admin_update ON role_change_log
-    FOR UPDATE
-    TO authenticated
-    USING (
-        current_user_role() = 'ADMIN'
-        AND approved_by = current_user_id()
-        AND changed_by != current_user_id()  -- Different admin must approve
-    )
-    WITH CHECK (
-        current_user_role() = 'ADMIN'
-        AND approved_by = current_user_id()
-    );
-
--- =====================================================
--- ROLE CHANGE TRIGGER
--- =====================================================
-
--- Automatically log role changes
+-- Trigger to log role changes
 CREATE OR REPLACE FUNCTION log_role_change()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF OLD.role IS DISTINCT FROM NEW.role THEN
-        INSERT INTO role_change_log (
-            user_id,
-            old_role,
-            new_role,
-            changed_by,
-            reason,
-            approval_status
-        ) VALUES (
-            NEW.user_id,
-            OLD.role,
-            NEW.role,
-            current_user_id(),
-            'Role changed via user_profiles update',
-            'PENDING'
-        );
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO role_change_log (user_id, action, role, changed_by, reason)
+        VALUES (NEW.user_id, 'GRANT', NEW.role, NEW.granted_by, NEW.notes);
+        RETURN NEW;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.is_active = true AND NEW.is_active = false THEN
+            INSERT INTO role_change_log (user_id, action, role, changed_by, reason)
+            VALUES (NEW.user_id, 'DISABLE', NEW.role, current_user_id(), NEW.notes);
+        ELSIF OLD.is_active = false AND NEW.is_active = true THEN
+            INSERT INTO role_change_log (user_id, action, role, changed_by, reason)
+            VALUES (NEW.user_id, 'ENABLE', NEW.role, current_user_id(), NEW.notes);
+        END IF;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO role_change_log (user_id, action, role, changed_by, reason)
+        VALUES (OLD.user_id, 'REVOKE', OLD.role, current_user_id(), 'Hard delete');
+        RETURN OLD;
     END IF;
-    RETURN NEW;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER log_role_change_trigger
-    AFTER UPDATE ON user_profiles
+DROP TRIGGER IF EXISTS trg_log_role_change ON user_roles;
+CREATE TRIGGER trg_log_role_change
+    AFTER INSERT OR UPDATE OR DELETE ON user_roles
     FOR EACH ROW
-    WHEN (OLD.role IS DISTINCT FROM NEW.role)
     EXECUTE FUNCTION log_role_change();
 
 -- =====================================================
--- AUTHENTICATION HELPERS
+-- RLS POLICIES FOR ROLE TABLES
 -- =====================================================
 
--- Function to record login
-CREATE OR REPLACE FUNCTION record_login()
-RETURNS void AS $$
-BEGIN
-    UPDATE user_profiles
-    SET last_login_at = now()
-    WHERE user_id = current_user_id();
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Enable RLS
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE role_change_log ENABLE ROW LEVEL SECURITY;
 
-COMMENT ON FUNCTION record_login() IS 'Call this function after successful authentication';
+-- User Profiles: Users can view their own profile
+DROP POLICY IF EXISTS profile_select_own ON user_profiles;
+CREATE POLICY profile_select_own ON user_profiles
+    FOR SELECT TO authenticated
+    USING (user_id = current_user_id());
 
--- Function to check if user requires 2FA
-CREATE OR REPLACE FUNCTION requires_two_factor()
-RETURNS BOOLEAN AS $$
-DECLARE
-    user_role TEXT;
-    two_fa_enabled BOOLEAN;
-BEGIN
-    SELECT role, two_factor_enabled
-    INTO user_role, two_fa_enabled
-    FROM user_profiles
-    WHERE user_id = current_user_id();
+-- User Profiles: Users can update their own non-sensitive fields
+DROP POLICY IF EXISTS profile_update_own ON user_profiles;
+CREATE POLICY profile_update_own ON user_profiles
+    FOR UPDATE TO authenticated
+    USING (user_id = current_user_id())
+    WITH CHECK (user_id = current_user_id());
 
-    -- Admins and Investigators must have 2FA
-    IF user_role IN ('ADMIN', 'INVESTIGATOR') THEN
-        RETURN true;
-    END IF;
+-- User Profiles: Admins can view all profiles
+DROP POLICY IF EXISTS profile_admin_select ON user_profiles;
+CREATE POLICY profile_admin_select ON user_profiles
+    FOR SELECT TO authenticated
+    USING (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN', 'SPONSOR']));
 
-    -- Otherwise return user preference
-    RETURN COALESCE(two_fa_enabled, false);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+-- User Profiles: Admins can manage profiles
+DROP POLICY IF EXISTS profile_admin_all ON user_profiles;
+CREATE POLICY profile_admin_all ON user_profiles
+    FOR ALL TO authenticated
+    USING (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']))
+    WITH CHECK (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']));
 
-COMMENT ON FUNCTION requires_two_factor() IS 'Check if current user requires two-factor authentication';
+-- User Roles: Users can view their own roles
+DROP POLICY IF EXISTS roles_select_own ON user_roles;
+CREATE POLICY roles_select_own ON user_roles
+    FOR SELECT TO authenticated
+    USING (user_id = current_user_id());
+
+-- User Roles: Admins can view all roles
+DROP POLICY IF EXISTS roles_admin_select ON user_roles;
+CREATE POLICY roles_admin_select ON user_roles
+    FOR SELECT TO authenticated
+    USING (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN', 'SPONSOR']));
+
+-- User Roles: Admins can manage roles
+DROP POLICY IF EXISTS roles_admin_all ON user_roles;
+CREATE POLICY roles_admin_all ON user_roles
+    FOR ALL TO authenticated
+    USING (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']))
+    WITH CHECK (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']));
+
+-- Role Change Log: Admins can view
+DROP POLICY IF EXISTS role_log_admin_select ON role_change_log;
+CREATE POLICY role_log_admin_select ON role_change_log
+    FOR SELECT TO authenticated
+    USING (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN', 'AUDITOR']));
+
+-- Service role has full access
+DROP POLICY IF EXISTS profile_service ON user_profiles;
+CREATE POLICY profile_service ON user_profiles
+    FOR ALL TO service_role
+    USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS roles_service ON user_roles;
+CREATE POLICY roles_service ON user_roles
+    FOR ALL TO service_role
+    USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS role_log_service ON role_change_log;
+CREATE POLICY role_log_service ON role_change_log
+    FOR ALL TO service_role
+    USING (true) WITH CHECK (true);
 
 -- =====================================================
 -- SESSION MANAGEMENT
 -- =====================================================
 
--- Track active sessions for security monitoring
-CREATE TABLE user_sessions (
+CREATE TABLE IF NOT EXISTS user_sessions (
     session_id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES user_profiles(user_id),
+    active_role app_role NOT NULL,  -- The role selected for this session
+    active_site_id TEXT,  -- For site-scoped roles, the selected site
     ip_address INET,
     user_agent TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -265,29 +441,27 @@ CREATE TABLE user_sessions (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE user_sessions IS 'Active user sessions for security monitoring';
+COMMENT ON TABLE user_sessions IS 'Active user sessions with role context';
+COMMENT ON COLUMN user_sessions.active_role IS 'The role user selected at login - one of their allowed roles';
+COMMENT ON COLUMN user_sessions.active_site_id IS 'For site-scoped roles, the site user is working in';
 
--- Enable RLS
+-- RLS for sessions
 ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
 
--- Users can view their own sessions
+DROP POLICY IF EXISTS sessions_select_own ON user_sessions;
 CREATE POLICY sessions_select_own ON user_sessions
-    FOR SELECT
-    TO authenticated
+    FOR SELECT TO authenticated
     USING (user_id = current_user_id());
 
--- Admins can view all sessions
+DROP POLICY IF EXISTS sessions_admin_select ON user_sessions;
 CREATE POLICY sessions_admin_select ON user_sessions
-    FOR SELECT
-    TO authenticated
-    USING (current_user_role() = 'ADMIN');
+    FOR SELECT TO authenticated
+    USING (has_any_role(ARRAY['ADMIN', 'DEV_ADMIN']));
 
--- Service role can manage sessions
-CREATE POLICY sessions_service_all ON user_sessions
-    FOR ALL
-    TO service_role
-    USING (true)
-    WITH CHECK (true);
+DROP POLICY IF EXISTS sessions_service ON user_sessions;
+CREATE POLICY sessions_service ON user_sessions
+    FOR ALL TO service_role
+    USING (true) WITH CHECK (true);
 
 -- =====================================================
 -- PERMISSION HELPER FUNCTIONS
@@ -297,17 +471,17 @@ CREATE POLICY sessions_service_all ON user_sessions
 CREATE OR REPLACE FUNCTION can_access_site(check_site_id TEXT)
 RETURNS BOOLEAN AS $$
 DECLARE
-    user_role TEXT;
+    active_role TEXT;
 BEGIN
-    user_role := current_user_role();
+    active_role := current_user_role();
 
-    -- Admins can access all sites
-    IF user_role = 'ADMIN' THEN
+    -- Global roles can access all sites
+    IF active_role IN ('ADMIN', 'DEV_ADMIN', 'SPONSOR', 'AUDITOR') THEN
         RETURN true;
     END IF;
 
-    -- Users can access sites where they're enrolled
-    IF user_role = 'USER' THEN
+    -- Patients can access sites where they're enrolled
+    IF active_role = 'PATIENT' THEN
         RETURN EXISTS (
             SELECT 1 FROM user_site_assignments
             WHERE patient_id = current_user_id()
@@ -317,7 +491,7 @@ BEGIN
     END IF;
 
     -- Investigators can access their assigned sites
-    IF user_role = 'INVESTIGATOR' THEN
+    IF active_role = 'INVESTIGATOR' THEN
         RETURN EXISTS (
             SELECT 1 FROM investigator_site_assignments
             WHERE investigator_id = current_user_id()
@@ -327,7 +501,7 @@ BEGIN
     END IF;
 
     -- Analysts can access their assigned sites
-    IF user_role = 'ANALYST' THEN
+    IF active_role = 'ANALYST' THEN
         RETURN EXISTS (
             SELECT 1 FROM analyst_site_assignments
             WHERE analyst_id = current_user_id()
@@ -340,61 +514,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
-COMMENT ON FUNCTION can_access_site(TEXT) IS 'Check if current user can access the specified site';
-
--- Check if user can modify a record
-CREATE OR REPLACE FUNCTION can_modify_record(check_event_uuid UUID)
-RETURNS BOOLEAN AS $$
-DECLARE
-    user_role TEXT;
-    record_patient_id TEXT;
-    record_site_id TEXT;
-BEGIN
-    user_role := current_user_role();
-
-    -- Get record details
-    SELECT patient_id, site_id
-    INTO record_patient_id, record_site_id
-    FROM record_state
-    WHERE event_uuid = check_event_uuid;
-
-    IF NOT FOUND THEN
-        RETURN false;
-    END IF;
-
-    -- Admins can modify any record
-    IF user_role = 'ADMIN' THEN
-        RETURN true;
-    END IF;
-
-    -- Users can only modify their own records
-    IF user_role = 'USER' THEN
-        RETURN record_patient_id = current_user_id();
-    END IF;
-
-    -- Investigators can create annotations but not modify original data
-    -- This function is for direct modifications only
-    RETURN false;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
-
-COMMENT ON FUNCTION can_modify_record(UUID) IS 'Check if current user can modify the specified record';
+COMMENT ON FUNCTION can_access_site(TEXT) IS 'Check if current user (in active role) can access the specified site';
 
 -- =====================================================
--- GRANT PERMISSIONS
+-- GRANTS
 -- =====================================================
 
--- Grant access to new tables
 GRANT SELECT ON user_profiles TO authenticated;
 GRANT UPDATE ON user_profiles TO authenticated;
-GRANT INSERT, SELECT ON role_change_log TO authenticated;
-GRANT UPDATE ON role_change_log TO authenticated;
+GRANT SELECT ON user_roles TO authenticated;
+GRANT SELECT ON role_change_log TO authenticated;
 GRANT SELECT ON user_sessions TO authenticated;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 
--- Service role needs full access
-GRANT ALL ON user_profiles, role_change_log, user_sessions TO service_role;
+GRANT ALL ON user_profiles, user_roles, role_change_log, user_sessions TO service_role;
 
--- Updated at trigger for user_profiles
-CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
+-- =====================================================
+-- UPDATED_AT TRIGGER
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
+CREATE TRIGGER update_user_profiles_updated_at
+    BEFORE UPDATE ON user_profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

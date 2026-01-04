@@ -1,0 +1,97 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-p00013: PostgreSQL database with RLS
+#
+# Local PostgreSQL for Dart Server Development
+#
+# Usage:
+#   doppler run -- docker compose -f docker-compose.db.yml up -d
+#   doppler run -- docker compose -f docker-compose.db.yml down
+#
+# Connect from Dart:
+#   doppler run -- dart run bin/server.dart
+#
+# REQUIRED Doppler secrets (will fail if not set):
+#   LOCAL_DB_PASSWORD      - Password for app_user
+#   LOCAL_DB_ROOT_PASSWORD - Password for postgres admin
+#
+# Optional Doppler secrets:
+#   LOCAL_DB_USER          - App username (default: app_user)
+#   LOCAL_DB_NAME          - Database name (default: clinical_diary)
+#   LOCAL_DB_PORT          - Port to expose (default: 5432)
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: clinical-diary-postgres
+    hostname: postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      # REQUIRED: Will fail if not set in Doppler
+      POSTGRES_PASSWORD: ${LOCAL_DB_ROOT_PASSWORD:?Set LOCAL_DB_ROOT_PASSWORD in Doppler}
+      POSTGRES_DB: ${LOCAL_DB_NAME:-clinical_diary}
+      # App user credentials (created by init script)
+      APP_USER: ${LOCAL_DB_USER:-app_user}
+      # REQUIRED: Will fail if not set in Doppler
+      APP_PASSWORD: ${LOCAL_DB_PASSWORD:?Set LOCAL_DB_PASSWORD in Doppler}
+
+    ports:
+      - "${LOCAL_DB_PORT:-5432}:5432"
+
+    volumes:
+      # Persistent data
+      - postgres-data:/var/lib/postgresql/data
+      # Init scripts (run in alphabetical order)
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+      # Mount entire repo for development (Claude Code, specs, etc.)
+      - ../..:/workspace
+      # Convenience symlink for database files
+      - ../../database:/database:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clinical_diary"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - clinical-diary-net
+
+  # Optional: pgAdmin for database management UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: clinical-diary-pgadmin
+    profiles:
+      - ui  # Only start with: docker compose --profile ui up
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@localhost.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 5050
+
+    ports:
+      - "5050:5050"
+
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - clinical-diary-net
+
+volumes:
+  postgres-data:
+    driver: local
+    labels:
+      com.clinical-diary.description: "PostgreSQL data"
+  pgadmin-data:
+    driver: local
+
+networks:
+  clinical-diary-net:
+    driver: bridge

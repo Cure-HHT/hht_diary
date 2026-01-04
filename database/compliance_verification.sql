@@ -18,11 +18,18 @@
 --
 -- =====================================================
 
+-- Set timeouts to prevent long-running operations
+SET statement_timeout = '30s';
+SET lock_timeout = '10s';
+
 -- =====================================================
 -- FUNCTION 1: Check for Gaps in Audit Sequence
 -- =====================================================
 
-CREATE OR REPLACE FUNCTION check_audit_sequence_gaps()
+-- Drop existing version (may have different return type from tamper_detection.sql)
+DROP FUNCTION IF EXISTS check_audit_sequence_gaps();
+
+CREATE FUNCTION check_audit_sequence_gaps()
 RETURNS TABLE(
     gap_start BIGINT,
     gap_end BIGINT,
@@ -137,22 +144,22 @@ BEGIN
     SELECT
         'Hash chain valid'::TEXT,
         NOT EXISTS(
-            SELECT 1 FROM validate_audit_chain(p_event_uuid)
-            WHERE is_valid = false
+            SELECT 1 FROM validate_audit_chain(p_event_uuid) vac
+            WHERE vac.is_valid = false
         ),
         CASE
             WHEN NOT EXISTS(
-                SELECT 1 FROM validate_audit_chain(p_event_uuid)
-                WHERE is_valid = false
+                SELECT 1 FROM validate_audit_chain(p_event_uuid) vac
+                WHERE vac.is_valid = false
             )
             THEN 'All hashes verified'
             ELSE format('%s hash failures detected',
-                (SELECT COUNT(*) FROM validate_audit_chain(p_event_uuid) WHERE is_valid = false))
+                (SELECT COUNT(*) FROM validate_audit_chain(p_event_uuid) vac WHERE vac.is_valid = false))
         END,
         CASE
             WHEN NOT EXISTS(
-                SELECT 1 FROM validate_audit_chain(p_event_uuid)
-                WHERE is_valid = false
+                SELECT 1 FROM validate_audit_chain(p_event_uuid) vac
+                WHERE vac.is_valid = false
             )
             THEN 'PASS'::TEXT
             ELSE 'FAIL'::TEXT
@@ -332,9 +339,9 @@ BEGIN
         format('Entries by %s', role)::TEXT,
         COUNT(*)::TEXT,
         'INFO'::TEXT,
-        format('%.1f%% of total', (COUNT(*) * 100.0 / NULLIF(
+        format('%s%% of total', round((COUNT(*) * 100.0 / NULLIF(
             (SELECT COUNT(*) FROM record_audit WHERE server_timestamp BETWEEN p_start_date AND p_end_date), 0
-        )))
+        ))::numeric, 1))
     FROM record_audit
     WHERE server_timestamp BETWEEN p_start_date AND p_end_date
     GROUP BY role
@@ -346,9 +353,9 @@ BEGIN
         format('Operation: %s', operation)::TEXT,
         COUNT(*)::TEXT,
         'INFO'::TEXT,
-        format('%.1f%% of total', (COUNT(*) * 100.0 / NULLIF(
+        format('%s%% of total', round((COUNT(*) * 100.0 / NULLIF(
             (SELECT COUNT(*) FROM record_audit WHERE server_timestamp BETWEEN p_start_date AND p_end_date), 0
-        )))
+        ))::numeric, 1))
     FROM record_audit
     WHERE server_timestamp BETWEEN p_start_date AND p_end_date
     GROUP BY operation

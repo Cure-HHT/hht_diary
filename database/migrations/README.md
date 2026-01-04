@@ -2,7 +2,11 @@
 
 ## Overview
 
-This directory contains database migration scripts for Supabase deployment. Migrations are **deployment artifacts** that modify the database schema over time in a controlled, versioned manner.
+This directory contains database migration scripts for production deployment. Migrations are **deployment artifacts** that modify the database schema over time in a controlled, versioned manner.
+
+**IMPORTANT: Pre-Deployment (v0.x.x)**
+
+Until v1.0.0 deployment, this directory should remain empty. All schema changes should be made directly to the source schema files (`database/schema.sql`, `database/roles.sql`, etc.). Migrations are only needed after the first production deployment to evolve the schema without data loss.
 
 **Key Principles**:
 - Migrations are numbered sequentially and applied in order
