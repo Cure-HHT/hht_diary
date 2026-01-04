@@ -1,0 +1,47 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: Container infrastructure for Cloud Run
+#
+# Cloud Build configuration for base Dart container
+# Pushes to Artifact Registry (not Container Registry)
+#
+# Usage:
+#   gcloud builds submit --config=cloudbuild.yaml \
+#     --substitutions=_DART_VERSION=3.6.0
+#
+# Or trigger via GitHub push to infrastructure/dart-base/**
+
+substitutions:
+  _DART_VERSION: '3.6.0'
+  _REGION: 'us-central1'
+  _REPOSITORY: 'hht-diary'
+
+steps:
+  # Build the base Dart image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg=DART_VERSION=${_DART_VERSION}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:${_DART_VERSION}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:latest'
+      - '.'
+    dir: 'infrastructure/dart-base'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base'
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:${_DART_VERSION}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+tags:
+  - 'dart-base'
+  - 'infrastructure'
