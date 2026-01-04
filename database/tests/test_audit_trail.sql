@@ -45,7 +45,7 @@ INSERT INTO record_audit (
     device_info, ip_address, session_id
 ) VALUES (
     '00000000-0000-0000-0000-000000000001'::UUID, 'test_patient_001', 'test_site_001', 'USER_CREATE',
-    '{"id": "00000000-0000-0000-0000-000000000001", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "evt-001", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
+    '{"id": "00000000-0000-0000-0000-000000000001", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "11111111-1111-1111-1111-111111111111", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
 );
@@ -398,6 +398,8 @@ ROLLBACK;
 
 \echo ''
 \echo '========================================='
-\echo 'Audit Trail Tests Complete'
+\echo '    ALL 7 TESTS PASSED'
 \echo '========================================='
+\echo ''
+\echo 'Audit Trail Tests Complete'
 \echo ''

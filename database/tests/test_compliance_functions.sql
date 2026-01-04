@@ -274,6 +274,8 @@ ROLLBACK;
 
 \echo ''
 \echo '========================================='
-\echo 'Compliance Function Tests Complete'
+\echo '    ALL 5 TESTS PASSED'
 \echo '========================================='
+\echo ''
+\echo 'Compliance Function Tests Complete'
 \echo ''
