@@ -13,13 +13,12 @@ import pytest
 class TestCSSEmbedding:
     """Tests for CSS embedding in generated HTML."""
 
-    def test_css_embedded_in_style_tags(self, html_generator_class, sample_requirements):
+    def test_css_embedded_in_style_tags(self, html_generator):
         """
         REQ-tv-d00004-A: The generator SHALL embed CSS content inline within
         `<style>` tags in the generated HTML.
         """
-        generator = html_generator_class(requirements=sample_requirements)
-        html = generator.generate()
+        html = html_generator.generate()
 
         # Must have style tags
         assert "<style>" in html or "<style " in html, \
@@ -35,13 +34,12 @@ class TestCSSEmbedding:
 class TestJSEmbedding:
     """Tests for JavaScript embedding in generated HTML."""
 
-    def test_js_embedded_in_script_tags(self, html_generator_class, sample_requirements):
+    def test_js_embedded_in_script_tags(self, html_generator):
         """
         REQ-tv-d00004-B: The generator SHALL embed JavaScript content inline
         within `<script>` tags in the generated HTML.
         """
-        generator = html_generator_class(requirements=sample_requirements)
-        html = generator.generate(embed_content=True)
+        html = html_generator.generate(embed_content=True)
 
         # Must have script tags with content (not just src references)
         import re
@@ -60,7 +58,7 @@ class TestJSEmbedding:
 class TestFileReadTiming:
     """Tests for file reading timing."""
 
-    def test_files_read_at_render_time(self, html_generator_class, sample_requirements, tmp_path):
+    def test_files_read_at_render_time(self, html_generator):
         """
         REQ-tv-d00004-C: Asset files SHALL be read from disk at template
         render time, not at module import time.
@@ -68,15 +66,12 @@ class TestFileReadTiming:
         # This test verifies that changes to asset files are reflected
         # in subsequent renders without reimporting the module
 
-        # Create a generator
-        generator = html_generator_class(requirements=sample_requirements)
-
         # First render
-        html1 = generator.generate()
+        html1 = html_generator.generate()
 
         # Modify the CSS file (if we can access it)
         # The key is that re-rendering should pick up changes
-        html2 = generator.generate()
+        html2 = html_generator.generate()
 
         # Both renders should succeed
         assert html1 is not None
@@ -86,31 +81,27 @@ class TestFileReadTiming:
 class TestHelperMethods:
     """Tests for asset loading helper methods."""
 
-    def test_has_load_css_method(self, html_generator_class, sample_requirements):
+    def test_has_load_css_method(self, html_generator):
         """
         REQ-tv-d00004-D: The generator SHALL provide a helper method
         `_load_css()` that reads and returns the CSS file content.
         """
-        generator = html_generator_class(requirements=sample_requirements)
+        assert hasattr(html_generator, '_load_css'), "Generator must have _load_css method"
+        assert callable(html_generator._load_css), "_load_css must be callable"
 
-        assert hasattr(generator, '_load_css'), "Generator must have _load_css method"
-        assert callable(generator._load_css), "_load_css must be callable"
-
-        css_content = generator._load_css()
+        css_content = html_generator._load_css()
         assert isinstance(css_content, str), "_load_css must return string"
         assert len(css_content) > 0, "_load_css must return non-empty content"
 
-    def test_has_load_js_method(self, html_generator_class, sample_requirements):
+    def test_has_load_js_method(self, html_generator):
         """
         REQ-tv-d00004-E: The generator SHALL provide a helper method
         `_load_js()` that reads and returns the JavaScript file content.
         """
-        generator = html_generator_class(requirements=sample_requirements)
+        assert hasattr(html_generator, '_load_js'), "Generator must have _load_js method"
+        assert callable(html_generator._load_js), "_load_js must be callable"
 
-        assert hasattr(generator, '_load_js'), "Generator must have _load_js method"
-        assert callable(generator._load_js), "_load_js must be callable"
-
-        js_content = generator._load_js()
+        js_content = html_generator._load_js()
         assert isinstance(js_content, str), "_load_js must return string"
         assert len(js_content) > 0, "_load_js must return non-empty content"
 
@@ -118,23 +109,19 @@ class TestHelperMethods:
 class TestErrorHandling:
     """Tests for file reading error handling."""
 
-    def test_file_errors_include_path(self, html_generator_class, sample_requirements, monkeypatch):
+    def test_file_errors_include_path(self, html_generator, monkeypatch):
         """
         REQ-tv-d00004-F: File reading errors SHALL raise informative
         exceptions including the expected file path.
         """
-        generator = html_generator_class(requirements=sample_requirements)
-
         # Temporarily break the file path to trigger an error
-        original_load_css = generator._load_css
-
         def broken_load_css():
             raise FileNotFoundError("Missing: /path/to/styles.css")
 
-        monkeypatch.setattr(generator, '_load_css', broken_load_css)
+        monkeypatch.setattr(html_generator, '_load_css', broken_load_css)
 
         with pytest.raises(Exception) as exc_info:
-            generator._load_css()
+            html_generator._load_css()
 
         # Error message should include path information
         error_msg = str(exc_info.value)
@@ -145,14 +132,13 @@ class TestErrorHandling:
 class TestSelfContainedOutput:
     """Tests for self-contained HTML output."""
 
-    def test_output_is_self_contained(self, html_generator_class, sample_requirements):
+    def test_output_is_self_contained(self, html_generator):
         """
         REQ-tv-d00004-G: The generated HTML document SHALL be completely
         self-contained with no external file dependencies (except for CDN
         libraries in embedded mode).
         """
-        generator = html_generator_class(requirements=sample_requirements)
-        html = generator.generate(embed_content=True)
+        html = html_generator.generate(embed_content=True)
 
         import re
 
@@ -201,27 +187,25 @@ class TestTemplateVariables:
 class TestCaching:
     """Tests for render-time caching."""
 
-    def test_caches_content_during_render(self, html_generator_class, sample_requirements):
+    def test_caches_content_during_render(self, html_generator):
         """
         REQ-tv-d00004-I: The generator SHALL cache file content during a
         single render operation to avoid redundant disk reads.
         """
-        generator = html_generator_class(requirements=sample_requirements)
-
         # Track file reads (implementation-specific test)
         # If the implementation has a cache, it should be used
         read_count = 0
-        original_load_css = generator._load_css
+        original_load_css = html_generator._load_css
 
         def counting_load_css():
             nonlocal read_count
             read_count += 1
             return original_load_css()
 
-        generator._load_css = counting_load_css
+        html_generator._load_css = counting_load_css
 
         # Single render should not re-read CSS multiple times
-        html = generator.generate()
+        html = html_generator.generate()
 
         # CSS should only be loaded once per render
         assert read_count <= 1, \
@@ -231,14 +215,13 @@ class TestCaching:
 class TestContentEscaping:
     """Tests for proper content escaping."""
 
-    def test_script_content_properly_escaped(self, html_generator_class, sample_requirements):
+    def test_script_content_properly_escaped(self, html_generator):
         """
         REQ-tv-d00004-J: The embedded content SHALL be properly escaped to
         prevent HTML injection from file content (e.g., `</script>` within
         JavaScript).
         """
-        generator = html_generator_class(requirements=sample_requirements)
-        html = generator.generate(embed_content=True)
+        html = html_generator.generate(embed_content=True)
 
         import re
 

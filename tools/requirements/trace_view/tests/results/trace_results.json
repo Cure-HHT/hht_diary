@@ -1,7 +1,7 @@
 {
   "format_version": "1.0",
-  "generated_at": "2026-01-04T05:34:41.852084+00:00",
-  "test_run_id": "9bd415b1",
+  "generated_at": "2026-01-04T05:57:26.861446+00:00",
+  "test_run_id": "3f86e0bc",
   "results": [
     {
       "requirement_id": "REQ-tv-d00004",
@@ -10,10 +10,10 @@
       "test_name": "test_css_embedded_in_style_tags",
       "test_file": "test_build_embedding.py",
       "test_line": 15,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:22: in test_css_embedded_in_style_tags\n    html = generator.generate()\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/generator.py:319",
-      "timestamp": "2026-01-04T05:34:41.655739+00:00"
+      "status": "passed",
+      "duration_ms": 5,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.774180+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -21,11 +21,11 @@
       "full_id": "REQ-tv-d00004-B",
       "test_name": "test_js_embedded_in_script_tags",
       "test_file": "test_build_embedding.py",
-      "test_line": 37,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:44: in test_js_embedded_in_script_tags\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtm",
-      "timestamp": "2026-01-04T05:34:41.671764+00:00"
+      "test_line": 36,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.779460+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -33,11 +33,11 @@
       "full_id": "REQ-tv-d00004-C",
       "test_name": "test_files_read_at_render_time",
       "test_file": "test_build_embedding.py",
-      "test_line": 62,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:75: in test_files_read_at_render_time\n    html1 = generator.generate()\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/generator.py:319",
-      "timestamp": "2026-01-04T05:34:41.683177+00:00"
+      "test_line": 60,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.784623+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -45,11 +45,11 @@
       "full_id": "REQ-tv-d00004-D",
       "test_name": "test_has_load_css_method",
       "test_file": "test_build_embedding.py",
-      "test_line": 88,
+      "test_line": 83,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.683639+00:00"
+      "timestamp": "2026-01-04T05:57:26.785435+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -57,11 +57,11 @@
       "full_id": "REQ-tv-d00004-E",
       "test_name": "test_has_load_js_method",
       "test_file": "test_build_embedding.py",
-      "test_line": 102,
+      "test_line": 95,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.684012+00:00"
+      "timestamp": "2026-01-04T05:57:26.786096+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -69,11 +69,11 @@
       "full_id": "REQ-tv-d00004-F",
       "test_name": "test_file_errors_include_path",
       "test_file": "test_build_embedding.py",
-      "test_line": 120,
+      "test_line": 111,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.684370+00:00"
+      "timestamp": "2026-01-04T05:57:26.786713+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -81,11 +81,11 @@
       "full_id": "REQ-tv-d00004-G",
       "test_name": "test_output_is_self_contained",
       "test_file": "test_build_embedding.py",
-      "test_line": 147,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:155: in test_output_is_self_contained\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml",
-      "timestamp": "2026-01-04T05:34:41.694917+00:00"
+      "test_line": 134,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.791927+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -93,11 +93,11 @@
       "full_id": "REQ-tv-d00004-H",
       "test_name": "test_supports_template_variables_in_assets",
       "test_file": "test_build_embedding.py",
-      "test_line": 177,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:189: in test_supports_template_variables_in_assets\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2477: in _generate_html\n    import html as html_module\nhtml/__init__.py:7: in <module>\n    from .generator import HTMLGenerator\nhtml/generator.py:24: in <module>\n    from ..models import Requirement\nE   ImportError: attempted relative i",
-      "timestamp": "2026-01-04T05:34:41.704301+00:00"
+      "test_line": 163,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.796476+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -105,11 +105,11 @@
       "full_id": "REQ-tv-d00004-I",
       "test_name": "test_caches_content_during_render",
       "test_file": "test_build_embedding.py",
-      "test_line": 203,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:224: in test_caches_content_during_render\n    html = generator.generate()\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/generator.py:",
-      "timestamp": "2026-01-04T05:34:41.715383+00:00"
+      "test_line": 189,
+      "status": "passed",
+      "duration_ms": 3,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.800866+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -117,11 +117,11 @@
       "full_id": "REQ-tv-d00004-J",
       "test_name": "test_script_content_properly_escaped",
       "test_file": "test_build_embedding.py",
-      "test_line": 233,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_build_embedding.py:241: in test_script_content_properly_escaped\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mod",
-      "timestamp": "2026-01-04T05:34:41.726250+00:00"
+      "test_line": 217,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.806156+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -133,7 +133,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.726689+00:00"
+      "timestamp": "2026-01-04T05:57:26.806578+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -145,7 +145,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.727032+00:00"
+      "timestamp": "2026-01-04T05:57:26.806903+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -157,7 +157,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.727362+00:00"
+      "timestamp": "2026-01-04T05:57:26.807221+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -169,7 +169,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.727644+00:00"
+      "timestamp": "2026-01-04T05:57:26.807493+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -178,10 +178,10 @@
       "test_name": "test_css_loaded_at_render_time",
       "test_file": "test_css_extraction.py",
       "test_line": 115,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_css_extraction.py:122: in test_css_loaded_at_render_time\n    html = generator.generate()\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/generator.py:3190",
-      "timestamp": "2026-01-04T05:34:41.739525+00:00"
+      "status": "passed",
+      "duration_ms": 3,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.812010+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -189,11 +189,11 @@
       "full_id": "REQ-tv-d00002-F",
       "test_name": "test_css_produces_identical_output",
       "test_file": "test_css_extraction.py",
-      "test_line": 142,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_css_extraction.py:151: in test_css_produces_identical_output\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\n",
-      "timestamp": "2026-01-04T05:34:41.749901+00:00"
+      "test_line": 141,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.816856+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -201,11 +201,11 @@
       "full_id": "REQ-tv-d00002-G",
       "test_name": "test_no_duplicate_css_between_file_and_inline",
       "test_file": "test_css_extraction.py",
-      "test_line": 174,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_css_extraction.py:182: in test_no_duplicate_css_between_file_and_inline\n    html = generator.generate()\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/ge",
-      "timestamp": "2026-01-04T05:34:41.760284+00:00"
+      "test_line": 172,
+      "status": "passed",
+      "duration_ms": 3,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.821474+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -213,11 +213,11 @@
       "full_id": "REQ-tv-d00002-H",
       "test_name": "test_css_uses_consistent_formatting",
       "test_file": "test_css_extraction.py",
-      "test_line": 205,
+      "test_line": 201,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.760824+00:00"
+      "timestamp": "2026-01-04T05:57:26.822072+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -229,7 +229,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.761176+00:00"
+      "timestamp": "2026-01-04T05:57:26.822419+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -241,7 +241,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.761534+00:00"
+      "timestamp": "2026-01-04T05:57:26.822764+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -253,7 +253,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.761880+00:00"
+      "timestamp": "2026-01-04T05:57:26.823106+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -265,7 +265,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.762311+00:00"
+      "timestamp": "2026-01-04T05:57:26.823485+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -277,7 +277,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.762696+00:00"
+      "timestamp": "2026-01-04T05:57:26.823840+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -289,7 +289,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.763029+00:00"
+      "timestamp": "2026-01-04T05:57:26.824155+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -301,7 +301,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.763348+00:00"
+      "timestamp": "2026-01-04T05:57:26.824455+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -313,7 +313,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.763662+00:00"
+      "timestamp": "2026-01-04T05:57:26.824750+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -325,7 +325,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.763904+00:00"
+      "timestamp": "2026-01-04T05:57:26.824992+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -337,7 +337,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.764170+00:00"
+      "timestamp": "2026-01-04T05:57:26.825252+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -349,7 +349,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.764703+00:00"
+      "timestamp": "2026-01-04T05:57:26.825775+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -361,7 +361,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.764963+00:00"
+      "timestamp": "2026-01-04T05:57:26.826038+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -373,7 +373,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.765285+00:00"
+      "timestamp": "2026-01-04T05:57:26.826352+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -385,7 +385,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.765590+00:00"
+      "timestamp": "2026-01-04T05:57:26.826654+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -397,7 +397,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.765935+00:00"
+      "timestamp": "2026-01-04T05:57:26.826993+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -409,7 +409,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.766305+00:00"
+      "timestamp": "2026-01-04T05:57:26.827363+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -421,7 +421,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.766569+00:00"
+      "timestamp": "2026-01-04T05:57:26.827624+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -433,7 +433,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.766829+00:00"
+      "timestamp": "2026-01-04T05:57:26.827882+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -445,7 +445,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.767095+00:00"
+      "timestamp": "2026-01-04T05:57:26.828150+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -454,10 +454,10 @@
       "test_name": "test_js_loaded_at_render_time",
       "test_file": "test_js_extraction.py",
       "test_line": 159,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_js_extraction.py:166: in test_js_loaded_at_render_time\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/g",
-      "timestamp": "2026-01-04T05:34:41.777644+00:00"
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.833193+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -465,11 +465,11 @@
       "full_id": "REQ-tv-d00003-H",
       "test_name": "test_js_produces_identical_behavior",
       "test_file": "test_js_extraction.py",
-      "test_line": 179,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_js_extraction.py:186: in test_js_produces_identical_behavior\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\n",
-      "timestamp": "2026-01-04T05:34:41.788440+00:00"
+      "test_line": 178,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.838152+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -477,11 +477,11 @@
       "full_id": "REQ-tv-d00003-I",
       "test_name": "test_global_state_encapsulated",
       "test_file": "test_js_extraction.py",
-      "test_line": 201,
+      "test_line": 199,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.788953+00:00"
+      "timestamp": "2026-01-04T05:57:26.838656+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -489,11 +489,11 @@
       "full_id": "REQ-tv-d00003-J",
       "test_name": "test_dynamic_elements_use_addEventListener",
       "test_file": "test_js_extraction.py",
-      "test_line": 231,
+      "test_line": 229,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.789274+00:00"
+      "timestamp": "2026-01-04T05:57:26.838970+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -501,11 +501,11 @@
       "full_id": "REQ-tv-d00003-K",
       "test_name": "test_public_functions_have_jsdoc",
       "test_file": "test_js_extraction.py",
-      "test_line": 251,
+      "test_line": 249,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.789669+00:00"
+      "timestamp": "2026-01-04T05:57:26.839369+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -514,10 +514,10 @@
       "test_name": "test_generator_uses_jinja2_environment",
       "test_file": "test_template_architecture.py",
       "test_line": 18,
-      "status": "failed",
-      "duration_ms": 8,
-      "error_message": "tests/test_template_architecture.py:30: in test_generator_uses_jinja2_environment\n    assert hasattr(generator, 'env'), \"Generator must have 'env' attribute\"\nE   AssertionError: Generator must have 'env' attribute\nE   assert False\nE    +  where False = hasattr(<trace_view.html.generator.HTMLGenerator object at 0x70d0d5e32b90>, 'env')",
-      "timestamp": "2026-01-04T05:34:41.799624+00:00"
+      "status": "passed",
+      "duration_ms": 0,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.839732+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -529,7 +529,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.800026+00:00"
+      "timestamp": "2026-01-04T05:57:26.840042+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -538,10 +538,10 @@
       "test_name": "test_uses_filesystem_loader",
       "test_file": "test_template_architecture.py",
       "test_line": 45,
-      "status": "failed",
+      "status": "passed",
       "duration_ms": 0,
-      "error_message": "tests/test_template_architecture.py:57: in test_uses_filesystem_loader\n    assert hasattr(generator.env, 'loader'), \"Environment must have loader\"\nE   AttributeError: 'HTMLGenerator' object has no attribute 'env'",
-      "timestamp": "2026-01-04T05:34:41.801372+00:00"
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.840355+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -550,10 +550,10 @@
       "test_name": "test_context_contains_required_data",
       "test_file": "test_template_architecture.py",
       "test_line": 64,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_template_architecture.py:76: in test_context_contains_required_data\n    html = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit",
-      "timestamp": "2026-01-04T05:34:41.812136+00:00"
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.845189+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -561,11 +561,11 @@
       "full_id": "REQ-tv-d00001-E",
       "test_name": "test_base_template_defines_document_structure",
       "test_file": "test_template_architecture.py",
-      "test_line": 81,
-      "status": "failed",
+      "test_line": 79,
+      "status": "passed",
       "duration_ms": 0,
-      "error_message": "tests/test_template_architecture.py:91: in test_base_template_defines_document_structure\n    assert base_template.exists(), \"base.html template must exist\"\nE   AssertionError: base.html template must exist\nE   assert False\nE    +  where False = exists()\nE    +    where exists = PosixPath('/home/metagamer/cure-hht/hht_diary-worktrees/extract-tools/tools/requirements/trace_view/html/templates/base.html').exists",
-      "timestamp": "2026-01-04T05:34:41.813442+00:00"
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.845636+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -573,11 +573,11 @@
       "full_id": "REQ-tv-d00001-F",
       "test_name": "test_supports_embed_content_flag",
       "test_file": "test_template_architecture.py",
-      "test_line": 102,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_template_architecture.py:111: in test_supports_embed_content_flag\n    html_embedded = generator.generate(embed_content=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_conten",
-      "timestamp": "2026-01-04T05:34:41.830044+00:00"
+      "test_line": 100,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.850706+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -585,11 +585,11 @@
       "full_id": "REQ-tv-d00001-G",
       "test_name": "test_supports_edit_mode_flag",
       "test_file": "test_template_architecture.py",
-      "test_line": 118,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_template_architecture.py:126: in test_supports_edit_mode_flag\n    html_edit = generator.generate(embed_content=True, edit_mode=True)\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embe",
-      "timestamp": "2026-01-04T05:34:41.840470+00:00"
+      "test_line": 114,
+      "status": "passed",
+      "duration_ms": 4,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.856134+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -597,11 +597,11 @@
       "full_id": "REQ-tv-d00001-H",
       "test_name": "test_generate_method_signature",
       "test_file": "test_template_architecture.py",
-      "test_line": 137,
+      "test_line": 131,
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-04T05:34:41.840933+00:00"
+      "timestamp": "2026-01-04T05:57:26.856831+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -609,18 +609,18 @@
       "full_id": "REQ-tv-d00001-I",
       "test_name": "test_template_errors_include_location",
       "test_file": "test_template_architecture.py",
-      "test_line": 170,
-      "status": "failed",
-      "duration_ms": 0,
-      "error_message": "tests/test_template_architecture.py:182: in test_template_errors_include_location\n    html = generator.generate()\nhtml/generator.py:72: in generate\n    return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:2453: in _generate_html\n    html += self._format_item_flat_html(item_data, embed_content=embed_content, edit_mode=edit_mode)\nhtml/generator.py:3042: in _format_item_flat_html\n    return self._format_req_html(item_data, embed_content, edit_mode)\nhtml/gen",
-      "timestamp": "2026-01-04T05:34:41.851891+00:00"
+      "test_line": 162,
+      "status": "passed",
+      "duration_ms": 3,
+      "error_message": null,
+      "timestamp": "2026-01-04T05:57:26.861206+00:00"
     }
   ],
   "summary": {
     "total": 51,
-    "passed": 32,
-    "failed": 19,
+    "passed": 51,
+    "failed": 0,
     "skipped": 0,
-    "coverage_percentage": 62.7
+    "coverage_percentage": 100.0
   }
 }

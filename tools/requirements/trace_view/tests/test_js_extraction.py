@@ -157,13 +157,12 @@ class TestModulePattern:
 class TestJSLoading:
     """Tests for JavaScript loading at render time."""
 
-    def test_js_loaded_at_render_time(self, html_generator_class, sample_requirements):
+    def test_js_loaded_at_render_time(self, html_generator):
         """
         REQ-tv-d00003-G: JavaScript content SHALL be loaded from the file
         at template render time.
         """
-        generator = html_generator_class(requirements=sample_requirements)
-        html = generator.generate(embed_content=True)
+        html = html_generator.generate(embed_content=True)
 
         # JS should be present in the generated HTML
         assert "<script>" in html.lower() or "<script " in html.lower(), \
@@ -177,13 +176,12 @@ class TestJSLoading:
 class TestJSEquivalence:
     """Tests for functional equivalence with original."""
 
-    def test_js_produces_identical_behavior(self, html_generator_class, sample_requirements):
+    def test_js_produces_identical_behavior(self, html_generator):
         """
         REQ-tv-d00003-H: The extracted JavaScript SHALL produce functionally
         identical behavior to the current inline JavaScript generation.
         """
-        generator = html_generator_class(requirements=sample_requirements)
-        html = generator.generate(embed_content=True)
+        html = html_generator.generate(embed_content=True)
 
         # Key functions must be present for identical behavior
         key_functions = [

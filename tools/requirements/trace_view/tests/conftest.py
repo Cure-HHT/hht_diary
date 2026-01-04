@@ -227,3 +227,16 @@ def html_generator_class():
         return HTMLGenerator
     except ImportError:
         pytest.skip("HTMLGenerator not yet available")
+
+
+@pytest.fixture
+def html_generator(html_generator_class, sample_requirements, sample_repo_root):
+    """Provide a fully configured HTMLGenerator instance for testing.
+
+    This fixture combines the generator class with sample data and repo root
+    to avoid the 'repo_root is None' errors in tests.
+    """
+    return html_generator_class(
+        requirements=sample_requirements,
+        repo_root=sample_repo_root
+    )

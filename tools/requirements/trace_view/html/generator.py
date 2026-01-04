@@ -21,6 +21,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
 from ..models import Requirement
 from ..coverage import count_by_level, find_orphaned_requirements, calculate_coverage, get_implementation_status
 
@@ -59,17 +61,47 @@ class HTMLGenerator:
         self._instance_counter = 0
         self._visited_req_ids: Set[str] = set()
 
-    def generate(self, embed_content: bool = False, edit_mode: bool = False) -> str:
+        # Jinja2 template environment
+        template_dir = Path(__file__).parent / "templates"
+        self.env = Environment(
+            loader=FileSystemLoader(template_dir),
+            autoescape=select_autoescape(['html', 'xml']),
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
+
+        # Register custom filters for templates
+        self.env.filters['status_class'] = lambda s: s.lower() if s else ''
+        self.env.filters['level_class'] = lambda s: s.lower() if s else ''
+
+    def generate(
+        self,
+        embed_content: bool = False,
+        edit_mode: bool = False,
+        use_templates: bool = True
+    ) -> str:
         """Generate the complete HTML report.
 
         Args:
             embed_content: If True, embed full requirement content as JSON
             edit_mode: If True, include edit mode UI elements
+            use_templates: If True, use Jinja2 templates (default: True)
 
         Returns:
             Complete HTML document as string
         """
-        return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)
+        if use_templates:
+            try:
+                context = self._build_render_context(embed_content, edit_mode)
+                template = self.env.get_template('base.html')
+                return template.render(**context)
+            except Exception as e:
+                # Fall back to legacy method on template errors
+                import sys
+                print(f"Template rendering failed: {e}, using legacy method", file=sys.stderr)
+                return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)
+        else:
+            return self._generate_html(embed_content=embed_content, edit_mode=edit_mode)
 
     def _count_by_level(self) -> Dict[str, Dict[str, int]]:
         """Count requirements by level, with and without deprecated."""
@@ -114,6 +146,108 @@ class HTMLGenerator:
         if js_path.exists():
             return js_path.read_text()
         return ""
+
+    def _build_render_context(
+        self,
+        embed_content: bool = False,
+        edit_mode: bool = False
+    ) -> dict:
+        """Build the template render context.
+
+        Creates a dictionary with all data needed by Jinja2 templates.
+
+        Args:
+            embed_content: If True, embed full requirement content
+            edit_mode: If True, include edit mode UI
+
+        Returns:
+            Dictionary containing template context variables
+        """
+        by_level = self._count_by_level()
+
+        # Collect topics
+        all_topics = set()
+        for req in self.requirements.values():
+            topic = req.file_path.stem.split('-', 1)[1] if '-' in req.file_path.stem else req.file_path.stem
+            all_topics.add(topic)
+        sorted_topics = sorted(all_topics)
+
+        # Build requirements HTML using existing method
+        requirements_html = self._generate_requirements_html(embed_content, edit_mode)
+
+        # Build JSON data for embedded mode
+        req_json_data = ""
+        if embed_content:
+            req_json_data = self._generate_req_json_data()
+
+        return {
+            # Configuration flags
+            'embed_content': embed_content,
+            'edit_mode': edit_mode,
+            'version': self.VERSION,
+
+            # Statistics
+            'stats': {
+                'prd': {
+                    'active': by_level['active']['PRD'],
+                    'all': by_level['all']['PRD']
+                },
+                'ops': {
+                    'active': by_level['active']['OPS'],
+                    'all': by_level['all']['OPS']
+                },
+                'dev': {
+                    'active': by_level['active']['DEV'],
+                    'all': by_level['all']['DEV']
+                }
+            },
+
+            # Requirements data
+            'topics': sorted_topics,
+            'requirements_html': requirements_html,
+            'req_json_data': req_json_data,
+
+            # Asset content (CSS/JS loaded from external files)
+            'css': self._load_css(),
+            'js': self._load_js(),
+
+            # Metadata
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'repo_root': str(self.repo_root) if self.repo_root else '',
+        }
+
+    def _generate_requirements_html(
+        self,
+        embed_content: bool = False,
+        edit_mode: bool = False
+    ) -> str:
+        """Generate the HTML for all requirements.
+
+        This extracts the requirement tree generation logic to be used
+        by both the legacy _generate_html() method and the template-based
+        rendering.
+
+        Args:
+            embed_content: If True, embed full requirement content
+            edit_mode: If True, include edit mode UI
+
+        Returns:
+            HTML string with all requirement rows
+        """
+        # Build flat list for rendering
+        flat_list = self._build_flat_requirement_list()
+
+        html_parts = []
+        for item_data in flat_list:
+            html_parts.append(
+                self._format_item_flat_html(
+                    item_data,
+                    embed_content=embed_content,
+                    edit_mode=edit_mode
+                )
+            )
+
+        return '\n'.join(html_parts)
 
     def _generate_legend_html(self) -> str:
         """Generate HTML legend section"""
