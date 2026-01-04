@@ -266,5 +266,5 @@ When errors occur:
 
 - Plugin location: `tools/anspar-cc-plugins/plugins/simple-requirements/`
 - Requirement format: `spec/README.md`
-- Validation system: `tools/requirements/validate_requirements.py`
-- Traceability: `tools/requirements/generate_traceability.py`
+- Validation system: `elspais validate`
+- Traceability: `elspais trace`

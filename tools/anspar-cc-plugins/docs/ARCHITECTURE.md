@@ -336,12 +336,15 @@ Plugins can be validated in CI:
 
 ### Requirement Validation
 
-Existing CI/CD scripts remain in `tools/requirements/`:
-- `validate_requirements.py`
-- `generate_traceability.py`
-- `validate_index.py`
+Requirement validation and traceability generation now uses the `elspais` CLI:
+- `elspais validate` - Validate requirement format, links, hashes
+- `elspais trace` - Generate traceability matrices
+- `elspais hash verify/update` - Manage requirement hashes
+- `elspais index` - Validate or regenerate INDEX.md
+- `elspais analyze` - Hierarchy, orphans, and coverage analysis
 
-**Future**: May migrate to `shared/validators/` or requirement plugin
+Install with: `pip install elspais`
+Configuration: `.elspais.toml` in repository root
 
 ### Plugin Testing Framework
 

@@ -40,10 +40,10 @@ For requirement format details, see [spec/README.md](../../../../spec/README.md)
 
 ### Prerequisites
 
-- **Python**: >=3.8
+- **Python**: >=3.9
 - **Git**: For hook integration
 - **Bash**: >=4.0
-- **Validation Script**: `tools/requirements/validate_requirements.py` must exist in parent project
+- **elspais**: Install with `pip install elspais`
 
 ## Setup
 
@@ -80,21 +80,20 @@ git commit -m "test" --dry-run
 
 ### Reference Architecture
 
-This plugin is a **thin wrapper** that calls the shared validation script:
+This plugin is a **thin wrapper** that calls the `elspais` CLI:
 
 ```
 simple-requirements/
 └── hooks/
     └── pre-commit-requirement-validation  ← Git hook (this plugin)
- |
-                 v
-        tools/requirements/
-        └── validate_requirements.py       ← Shared script (CI/CD compatible)
+                     |
+                     v
+              elspais validate            ← CLI tool (pip install elspais)
 ```
 
 **Why this architecture?**
 - ✅ Single source of truth for validation logic
-- ✅ CI/CD and git hooks use the same script
+- ✅ CI/CD and git hooks use the same tool
 - ✅ Updates to validation automatically apply everywhere
 - ✅ No code duplication
 
@@ -335,10 +334,10 @@ Run the validation script directly:
 
 ```bash
 # From repository root
-python3 tools/requirements/validate_requirements.py
+elspais validate
 
 # Or with specific files
-python3 tools/requirements/validate_requirements.py spec/dev-api.md
+elspais validate spec/dev-api.md
 ```
 
 ### Bypassing Validation (Not Recommended)
@@ -521,13 +520,13 @@ This plugin uses the **same validation script** as CI/CD:
 
 **Git Hook** (local):
 ```bash
-python3 tools/requirements/validate_requirements.py
+elspais validate
 ```
 
 **CI Pipeline** (GitHub Actions):
 ```yaml
 - name: Validate Requirements
-  run: python3 tools/requirements/validate_requirements.py
+  run: elspais validate
 ```
 
 **Benefits**:

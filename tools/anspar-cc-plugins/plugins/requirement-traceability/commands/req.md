@@ -103,10 +103,10 @@ To create a new requirement:
    elspais hash update --req-id={number}
 
 5. **Add to INDEX.md**:
-   python3 tools/requirements/add-missing-to-index.py
+   elspais index
 
 6. **Validate**:
-   python3 tools/requirements/validate_requirements.py
+   elspais validate
 
 See spec/README.md for full documentation.
 ```
@@ -115,7 +115,7 @@ See spec/README.md for full documentation.
 **Pattern**: `/req validate`
 
 **Action**:
-1. Run validation script: `python3 tools/requirements/validate_requirements.py`
+1. Run validation script: `elspais validate`
 2. Display validation results
 3. If errors found, show specific issues and suggested fixes
 
@@ -193,7 +193,7 @@ The requirement may not exist, or INDEX.md may be out of sync.
 
 💡 Try:
 - /req search <keyword>
-- Run: python3 tools/requirements/validate_index.py
+- Run: elspais index --verify
 ```
 
 ### Invalid Format

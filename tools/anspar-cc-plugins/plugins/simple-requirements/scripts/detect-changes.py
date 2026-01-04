@@ -13,12 +13,16 @@ Usage:
 Output Formats:
     - json: Machine-readable JSON (default)
     - summary: Human-readable summary
+
+Requires:
+    pip install elspais
 """
 
 import sys
 import json
 import argparse
 import re
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -26,7 +30,6 @@ from datetime import datetime, timezone
 from common import get_repo_root, get_requirements_via_cli, normalize_req_id
 
 repo_root = get_repo_root()
-
 
 def parse_index_md(index_path: Path) -> dict:
     """

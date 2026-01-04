@@ -9,7 +9,7 @@
 
 The Anspar Traceability Matrix plugin auto-regenerates requirement traceability matrices whenever spec/ files change. It ensures traceability matrices are always up-to-date with the latest requirements.
 
-This plugin provides the **git hook integration** for the matrix generation script located at `tools/requirements/generate_traceability.py` (shared with CI/CD).
+This plugin provides the **git hook integration** for the `elspais trace` command (shared with CI/CD).
 
 **Key Features**:
 - ✅ Automatic matrix regeneration on spec/ changes
@@ -28,10 +28,10 @@ This plugin provides the **git hook integration** for the matrix generation scri
 
 ### Prerequisites
 
-- **Python**: >=3.8
+- **Python**: >=3.9
 - **Git**: For hook integration
 - **Bash**: >=4.0
-- **Generation Script**: `tools/requirements/generate_traceability.py` must exist in parent project
+- **elspais**: Install with `pip install elspais`
 
 See the following guides for setup requirements:
 - [Development Prerequisites](../../../../docs/development-prerequisites.md) - Required tools (jq, yq)
@@ -76,25 +76,24 @@ ls -l traceability_matrix.md traceability_matrix.html
 
 ### Reference Architecture
 
-This plugin is a **thin wrapper** that calls the shared generation script:
+This plugin is a **thin wrapper** that calls the `elspais trace` command:
 
 ```
 traceability-matrix/
 └── hooks/
     └── pre-commit-traceability-matrix  ← Git hook (this plugin)
- |
-                 v
-        tools/requirements/
-        └── generate_traceability.py    ← Shared script (CI/CD compatible)
- |
-                 v
+                     |
+                     v
+              elspais trace             ← CLI tool (pip install elspais)
+                     |
+                     v
         traceability_matrix.md          ← Generated output (gitignored)
         traceability_matrix.html
 ```
 
 **Why this architecture?**
 - ✅ Single source of truth for generation logic
-- ✅ CI/CD and git hooks use the same script
+- ✅ CI/CD and git hooks use the same tool
 - ✅ Updates automatically apply everywhere
 - ✅ No code duplication
 
@@ -140,15 +139,15 @@ git commit -m "Add API requirements"
 
 ### Manual Generation
 
-Run the generation script directly:
+Run elspais directly:
 
 ```bash
 # From repository root
-python3 tools/requirements/generate_traceability.py --format markdown
-python3 tools/requirements/generate_traceability.py --format html
+elspais trace --format markdown
+elspais trace --format html
 
-# Or generate both
-python3 tools/requirements/generate_traceability.py --format markdown --format html
+# Or generate both (default)
+elspais trace
 ```
 
 ### Viewing Matrices
@@ -221,10 +220,11 @@ Summary statistics:
 
 ### Generation Options
 
-To modify generation options, edit:
-- **Location**: `tools/requirements/generate_traceability.py`
+To modify generation options, configure `.elspais.toml`:
+- **Location**: `.elspais.toml` in repository root
 - **Shared with**: CI/CD pipeline
-- **Options**: Output format, filters, styling
+- **Options**: Output format, patterns, validation rules
+- **Documentation**: See `elspais config --help`
 
 ### Hook Behavior
 
@@ -260,22 +260,22 @@ git config core.hooksPath .githooks
 chmod +x tools/anspar-cc-plugins/plugins/traceability-matrix/hooks/pre-commit-traceability-matrix
 ```
 
-### Python Script Not Found
+### elspais Not Found
 
-**Cause**: Generation script missing or wrong path
+**Cause**: elspais CLI not installed
 
 **Solution**:
 ```bash
-# Verify script exists
-ls -l tools/requirements/generate_traceability.py
+# Install elspais
+pip install elspais
 
-# If missing, check if it was moved or renamed
-find . -name "generate_traceability.py"
+# Verify installation
+elspais --version
 ```
 
 ### Matrices Not Updated
 
-**Cause**: Script ran but matrices look old
+**Cause**: elspais ran but matrices look old
 
 **Solution**:
 ```bash
@@ -283,7 +283,7 @@ find . -name "generate_traceability.py"
 rm traceability_matrix.md traceability_matrix.html
 
 # Regenerate manually
-python3 tools/requirements/generate_traceability.py --format markdown --format html
+elspais trace
 
 # Verify they're current
 ls -l traceability_matrix.*
@@ -309,17 +309,20 @@ This plugin works alongside:
 
 ### With CI/CD
 
-This plugin uses the **same generation script** as CI/CD:
+This plugin uses the **same elspais CLI** as CI/CD:
 
 **Git Hook** (local):
 ```bash
-python3 tools/requirements/generate_traceability.py --format markdown
+elspais trace --format markdown
 ```
 
 **CI Pipeline** (GitHub Actions):
 ```yaml
+- name: Install elspais
+  run: pip install elspais
+
 - name: Generate Traceability Matrix
-  run: python3 tools/requirements/generate_traceability.py --format html
+  run: elspais trace --format html
 
 - name: Publish Matrix
   uses: actions/upload-artifact@v3
@@ -338,36 +341,34 @@ python3 tools/requirements/generate_traceability.py --format markdown
 ### Custom Output Paths
 
 ```bash
-python3 tools/requirements/generate_traceability.py \
-  --format markdown \
-  --output docs/traceability.md
+elspais trace --output docs/traceability.md
 ```
 
 ### Filtering Requirements
 
 ```bash
 # Only PRD requirements
-python3 tools/requirements/generate_traceability.py --level PRD
+elspais trace --level PRD
 
 # Only Active requirements
-python3 tools/requirements/generate_traceability.py --status Active
+elspais trace --status Active
 ```
 
 ### Scripting
 
 ```bash
 # Generate and commit matrices in one step
-python3 tools/requirements/generate_traceability.py --format markdown --format html
+elspais trace
 git add traceability_matrix.*
 git commit -m "Update traceability matrices"
 ```
 
 ## Dependencies
 
-- **Python**: >=3.8
+- **Python**: >=3.9
 - **Bash**: >=4.0
 - **Git**: For hook integration
-- **Generation Script**: `tools/requirements/generate_traceability.py`
+- **elspais**: Install with `pip install elspais`
 
 ## License
 
@@ -389,7 +390,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 ## Related Documentation
 
 - **Requirement Format**: See spec/requirements-format.md in parent project
-- **Generation Script**: `tools/requirements/generate_traceability.py`
+- **elspais CLI**: https://github.com/anspar/elspais
 - **Requirement Validation**: `tools/anspar-cc-plugins/plugins/simple-requirements`
 - **Claude Code Plugins**: https://docs.claude.com/en/docs/claude-code/plugins-reference
 

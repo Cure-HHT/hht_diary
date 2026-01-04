@@ -71,7 +71,7 @@ Output includes:
 ## Integration
 
 This skill integrates with:
-- **Validation system**: Uses same parser as validate_requirements.py
+- **Validation system**: Uses same parser as elspais
 - **Hash system**: Displays hash for change detection
 - **Traceability**: Shows implements hierarchy
 - **Change tracking**: Used to review changed requirements
