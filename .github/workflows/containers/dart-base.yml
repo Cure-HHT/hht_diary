@@ -1,0 +1,91 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: Container infrastructure for Cloud Run
+#
+# Dart Base Container Build & Push
+# Builds and pushes the base Dart runtime image to Artifact Registry
+# Triggered on changes to infrastructure/dart-base/** or manual dispatch
+
+name: Build Dart Base Container
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/dart-base/**'
+      - '.github/versions.env'
+      - '.github/workflows/containers/dart-base.yml'
+  pull_request:
+    paths:
+      - 'infrastructure/dart-base/**'
+      - '.github/versions.env'
+      - '.github/workflows/containers/dart-base.yml'
+  workflow_dispatch:
+
+env:
+  REGION: europe-west1
+  REPOSITORY: hht-diary
+
+permissions:
+  contents: read
+  id-token: write  # Required for Workload Identity Federation
+
+jobs:
+  build:
+    name: Build & Push Dart Base
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load versions from versions.env
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=$DART_VERSION" >> $GITHUB_OUTPUT
+          echo "Building dart-base:$DART_VERSION"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name != 'pull_request'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name != 'pull_request'
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: infrastructure/dart-base
+          file: infrastructure/dart-base/Dockerfile
+          build-args: |
+            DART_VERSION=${{ steps.versions.outputs.dart_version }}
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/dart-base:${{ steps.versions.outputs.dart_version }}
+            ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/dart-base:latest
+
+      - name: Push to Artifact Registry
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/dart-base:${{ steps.versions.outputs.dart_version }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/dart-base:latest
+
+      - name: Summary
+        run: |
+          echo "## Dart Base Container Build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dart Version:** ${{ steps.versions.outputs.dart_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "- **Status:** Pushed to Artifact Registry" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status:** Build only (PR or non-main branch)" >> $GITHUB_STEP_SUMMARY
+          fi
