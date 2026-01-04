@@ -1,0 +1,30 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00005: Sponsor Configuration Detection Implementation
+#   REQ-p00013: GDPR compliance - EU-only regions
+#
+# Dart conversion of Firebase Cloud Functions
+# These functions run as shelf handlers in diary_server
+
+name: diary_functions
+description: Clinical Daily Diary Server Side Functions
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # Database
+  postgres: ^3.5.9
+
+  # Utilities
+  crypto: ^3.0.7
+  uuid: ^4.5.2
+
+  # Shared types
+  trial_data_types:
+    path: ../../common-dart/trial_data_types
+
+dev_dependencies:
+  test: ^1.25.15
+  mocktail: ^1.0.4
