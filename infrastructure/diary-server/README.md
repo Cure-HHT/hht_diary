@@ -4,7 +4,8 @@ Shelf HTTP server hosting diary functions for Cloud Run.
 
 ## Overview
 
-This container runs the Dart conversion of Firebase Cloud Functions as a shelf HTTP server. It uses the `dart-base` image as its build stage parent.
+This container runs the Dart functions for the dairy app as a shelf HTTP server. 
+It uses the `dart-base` image as its build stage parent.
 
 ## What's Included
 
@@ -21,12 +22,12 @@ This container runs the Dart conversion of Firebase Cloud Functions as a shelf H
 
 ## Endpoints
 
-| Path | Method | Description |
-|------|--------|-------------|
-| `/health` | GET | Health check for Cloud Run |
-| `/api/v1/auth/register` | POST | User registration (planned) |
-| `/api/v1/auth/login` | POST | User login (planned) |
-| `/api/v1/sponsor/config` | GET | Sponsor configuration (planned) |
+| Path                     | Method | Description                     |
+|--------------------------|--------|---------------------------------|
+| `/health`                | GET    | Health check for Cloud Run      |
+| `/api/v1/auth/register`  | POST   | User registration (planned)     |
+| `/api/v1/auth/login`     | POST   | User login (planned)            |
+| `/api/v1/sponsor/config` | GET    | Sponsor configuration (planned) |
 
 ## Building
 
@@ -57,9 +58,9 @@ curl http://localhost:8080/health
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | HTTP port (set by Cloud Run) | 8080 |
+| Variable | Description                  | Default |
+|----------|------------------------------|---------|
+| `PORT`   | HTTP port (set by Cloud Run) | 8080    |
 
 ## Artifact Registry
 
