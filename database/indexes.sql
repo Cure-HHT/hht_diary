@@ -204,14 +204,12 @@ CREATE INDEX IF NOT EXISTS idx_profiles_2fa ON user_profiles(user_id)
 -- =====================================================
 -- ROLE_CHANGE_LOG TABLE INDEXES
 -- =====================================================
+-- Note: Simplified table in RBAC redesign - no approval workflow
 
 CREATE INDEX IF NOT EXISTS idx_role_changes_user ON role_change_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_role_changes_changed_by ON role_change_log(changed_by);
 CREATE INDEX IF NOT EXISTS idx_role_changes_created ON role_change_log(created_at DESC);
-
--- Partial index for pending approvals
-CREATE INDEX IF NOT EXISTS idx_role_changes_pending ON role_change_log(created_at DESC)
-    WHERE approval_status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_role_changes_action ON role_change_log(action);
 
 -- =====================================================
 -- USER_SESSIONS TABLE INDEXES
