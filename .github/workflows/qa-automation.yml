@@ -813,10 +813,11 @@ jobs:
         run: |
           echo "::group::Installing Squawk PostgreSQL linter"
 
-          SQUAWK_VERSION="v0.29.2"
-          SQUAWK_SHA256=""
-          curl -fsSL "https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x86_64" -o squawk
-          echo "${SQUAWK_SHA256} squawk" | sha256sum -c -
+          # Load version from central versions.env
+          source .github/versions.env
+          SQUAWK_VERSION="v${SQUAWK_VERSION}"
+
+          curl -fsSL "https://github.com/sbdchd/squawk/releases/download/${SQUAWK_VERSION}/squawk-linux-x64" -o squawk
           chmod +x squawk
           sudo mv squawk /usr/local/bin/squawk
 
