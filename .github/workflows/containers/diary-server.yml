@@ -1,0 +1,97 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: Container infrastructure for Cloud Run
+#
+# Diary Server Container Build & Push
+# Builds and pushes the diary server image to Artifact Registry
+# Triggered on changes to diary_functions, diary_server, or infrastructure
+
+name: Build Diary Server Container
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/diaryserver/**'
+      - 'apps/common-dart/trial_data_types/**'
+      - 'infrastructure/diary-server/**'
+      - '.github/versions.env'
+      - '.github/workflows/containers/diary-server.yml'
+  pull_request:
+    paths:
+      - 'apps/diaryserver/**'
+      - 'apps/common-dart/trial_data_types/**'
+      - 'infrastructure/diary-server/**'
+      - '.github/versions.env'
+      - '.github/workflows/containers/diary-server.yml'
+  workflow_dispatch:
+
+env:
+  REGION: europe-west1
+  REPOSITORY: hht-diary
+
+permissions:
+  contents: read
+  id-token: write  # Required for Workload Identity Federation
+
+jobs:
+  build:
+    name: Build & Push Diary Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load versions from versions.env
+        id: versions
+        run: |
+          source .github/versions.env
+          echo "dart_version=$DART_VERSION" >> $GITHUB_OUTPUT
+          echo "Building diary-server with Dart $DART_VERSION"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name != 'pull_request'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        if: github.event_name != 'pull_request'
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/diary-server/Dockerfile
+          build-args: |
+            DART_VERSION=${{ steps.versions.outputs.dart_version }}
+            GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/diary-server:${{ steps.versions.outputs.dart_version }}-${{ github.sha }}
+            ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/diary-server:latest
+
+      - name: Push to Artifact Registry
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/diary-server:${{ steps.versions.outputs.dart_version }}-${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY }}/diary-server:latest
+
+      - name: Summary
+        run: |
+          echo "## Diary Server Container Build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dart Version:** ${{ steps.versions.outputs.dart_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "- **Status:** Pushed to Artifact Registry" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status:** Build only (PR or non-main branch)" >> $GITHUB_STEP_SUMMARY
+          fi
