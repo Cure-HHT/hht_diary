@@ -28,7 +28,8 @@ RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
 # Runtime stage - minimal image
-FROM gcr.io/distroless/cc-debian12
+# Using :nonroot tag for security (DS001, DS002)
+FROM gcr.io/distroless/cc-debian12:nonroot
 
 COPY --from=build /app/apps/diaryserver/diary_server/bin/server /app/server
 
@@ -36,5 +37,10 @@ COPY --from=build /app/apps/diaryserver/diary_server/bin/server /app/server
 ENV PORT=8080
 EXPOSE 8080
 
-# Run as non-root (distroless default)
+# Explicit non-root user (uid 65532 in distroless)
+USER nonroot:nonroot
+
+# Note: HEALTHCHECK not used - Cloud Run uses HTTP probes to /health endpoint
+# See: https://cloud.google.com/run/docs/configuring/healthchecks
+
 ENTRYPOINT ["/app/server"]
