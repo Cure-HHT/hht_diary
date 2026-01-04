@@ -188,13 +188,13 @@ CREATE INDEX IF NOT EXISTS idx_admin_log_details_gin ON admin_action_log USING G
 -- =====================================================
 -- USER_PROFILES TABLE INDEXES
 -- =====================================================
+-- Note: role column moved to user_roles junction table (see RBAC redesign)
 
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON user_profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_role ON user_profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_last_login ON user_profiles(last_login_at DESC NULLS LAST);
 
 -- Partial index for active users
-CREATE INDEX IF NOT EXISTS idx_profiles_active ON user_profiles(role, email)
+CREATE INDEX IF NOT EXISTS idx_profiles_active ON user_profiles(email)
     WHERE is_active = true;
 
 -- Partial index for users requiring 2FA
