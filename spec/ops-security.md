@@ -166,28 +166,31 @@ SELECT COUNT(*) FROM record_state; -- Should see all data
 
 # REQ-o00007: Role-Based Permission Configuration
 
-**Level**: Ops | **Implements**: p00005, p00014, p00015 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00005, p00014, p00015
 
-User roles and permissions SHALL be configured in the database and authentication system, enforcing role-based access control at both application and database layers.
+## Rationale
 
-Permission configuration SHALL include:
-- Role definitions stored in database (USER, INVESTIGATOR, ANALYST, ADMIN)
-- Role assignment tracked with audit trail
-- JWT claims include user role for application-level checks
-- Application sets session variables for database RLS enforcement
-- Permission matrix documented and enforced
-- Role changes require administrator approval
+This requirement ensures role-based access control (RBAC) is consistently enforced across all system layers to comply with FDA 21 CFR Part 11 requirements for access control and audit trails. The configuration establishes clear role definitions (USER, INVESTIGATOR, ANALYST, ADMIN) and enforces least privilege principles by validating permissions at both the application layer (via JWT claims) and database layer (via Row-Level Security policies). Dual-layer enforcement prevents unauthorized access even if application-level checks are bypassed. All role assignments and changes are tracked in tamper-evident audit trails to maintain regulatory compliance. This operational configuration implements the RBAC framework defined in product requirements p00005, p00014, and p00015, ensuring consistent security posture across the Identity Platform and database.
 
-**Rationale**: Implements RBAC (p00005), least privilege (p00014), and database-level enforcement (p00015) through operational configuration. Roles must be consistently configured across Identity Platform and database.
+## Assertions
 
-**Acceptance Criteria**:
-- Roles defined in both Identity Platform (custom claims) and database tables
-- Application extracts role from JWT and sets session variables
-- Database RLS policies reference session variables
-- Role assignment changes logged in audit trail
-- Permission matrix matches specification exactly
+A. The system SHALL store role definitions in the database for USER, INVESTIGATOR, ANALYST, and ADMIN roles.
+B. The system SHALL store role definitions in the authentication system for USER, INVESTIGATOR, ANALYST, and ADMIN roles.
+C. The system SHALL track all role assignments with an audit trail.
+D. The system SHALL include user role information in JWT claims.
+E. The application SHALL extract the user role from JWT claims.
+F. The application SHALL set session variables for the extracted user role.
+G. Database Row-Level Security policies SHALL reference session variables to enforce permissions.
+H. The system SHALL enforce role-based access control at the application layer.
+I. The system SHALL enforce role-based access control at the database layer.
+J. The system SHALL maintain a documented permission matrix.
+K. The system SHALL enforce permissions according to the documented permission matrix.
+L. Role assignment changes SHALL require administrator approval.
+M. The system SHALL log all role assignment changes in the audit trail.
+N. Role definitions in the Identity Platform custom claims SHALL match role definitions in database tables.
+O. Database RLS policies SHALL enforce permissions based on session variables set by the application.
 
-*End* *Role-Based Permission Configuration* | **Hash**: d77cbde8
+*End* *Role-Based Permission Configuration* | **Hash**: bafee84e
 ---
 
 ### Role-Based Access Control (RBAC)

@@ -30,72 +30,68 @@ This document specifies the continuous integration and continuous delivery (CI/C
 
 # REQ-o00052: CI/CD Pipeline for Requirement Traceability
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00010
 
-**Description**: The system SHALL provide automated CI/CD validation of requirement traceability on every pull request and commit to protected branches.
+## Rationale
 
-**Acceptance Criteria**:
+This requirement establishes the CI/CD automation necessary to enforce requirement traceability across the development lifecycle. FDA 21 CFR Part 11 compliance demands complete traceability between requirements, implementation, and validation. Automated validation ensures that all code changes are properly linked to requirements before merging, preventing gaps in the audit trail. The requirement supports REQ-p00010 by providing the technical infrastructure for continuous traceability verification. Retention of artifacts for 2 years aligns with regulatory expectations for audit trail preservation. Performance constraints ensure the validation process doesn't impede development velocity.
 
-1. ✅ GitHub Actions workflow validates requirement format and IDs
-2. ✅ Workflow generates traceability matrix automatically
-3. ✅ Pull requests cannot merge without passing validation
-4. ✅ Validation results posted as PR comments
-5. ✅ Artifacts retained for 2 years for audit purposes
-6. ✅ Failed validations trigger notifications
-7. ✅ Workflow runs complete within 10 minutes
+## Assertions
 
-**Validation Method**: Trigger workflow with intentional errors, verify failure detection
+A. The system SHALL provide automated CI/CD validation of requirement traceability on every pull request to protected branches.
+B. The system SHALL provide automated CI/CD validation of requirement traceability on every commit to protected branches.
+C. The validation workflow SHALL verify requirement format correctness.
+D. The validation workflow SHALL verify requirement ID validity.
+E. The system SHALL automatically generate a traceability matrix during workflow execution.
+F. Pull requests SHALL NOT be mergeable without passing requirement traceability validation.
+G. The system SHALL post validation results as comments on pull requests.
+H. The system SHALL retain validation artifacts for a minimum of 2 years.
+I. The system SHALL trigger notifications when validation fails.
+J. The validation workflow SHALL complete execution within 10 minutes.
 
-**Implementation Files**:
-- `.github/workflows/pr-validation.yml`
-- `tools/requirements/validate_requirements.py`
-- `tools/requirements/generate_traceability.py`
-
-*End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 150d2b29
+*End* *CI/CD Pipeline for Requirement Traceability* | **Hash**: 3d8981f4
 ---
 
 # REQ-o00053: Branch Protection Enforcement
 
-**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: o00052, p00010
 
-**Description**: The system SHALL enforce branch protection rules on `main` and `develop` branches that require passing CI/CD checks before merge.
+## Rationale
 
-**Acceptance Criteria**:
+This requirement establishes the branch protection rules necessary to maintain code quality and regulatory compliance in the clinical trial diary platform. By preventing direct commits and requiring review and validation, the system ensures that all changes undergo proper verification before integration. This supports FDA 21 CFR Part 11 compliance by enforcing quality gates and maintaining audit trails for critical branch modifications. The requirement implements higher-level operational controls (o00052) and product requirements (p00010) that mandate validated deployment processes.
 
-1. ✅ Direct commits to `main` blocked
-2. ✅ Direct commits to `develop` blocked
-3. ✅ Merge requires PR approval
-4. ✅ Merge requires passing status checks
-5. ✅ Status checks include requirement validation
-6. ✅ Administrators can override in emergencies (with audit trail)
+## Assertions
 
-**Validation Method**: Attempt direct commit to protected branch, verify rejection
+A. The system SHALL block direct commits to the main branch.
+B. The system SHALL block direct commits to the develop branch.
+C. The system SHALL require pull request approval before merge to protected branches.
+D. The system SHALL require all status checks to pass before merge to protected branches.
+E. Status checks SHALL include requirement validation before merge is permitted.
+F. The system SHALL allow administrators to override branch protection rules in emergency situations.
+G. The system SHALL create an audit trail when administrators override branch protection rules.
 
-**Implementation**: GitHub repository settings (see [Branch Protection Configuration](#branch-protection-configuration))
-
-*End* *Branch Protection Enforcement* | **Hash**: d0584e9a
+*End* *Branch Protection Enforcement* | **Hash**: d714ab83
 ---
 
 # REQ-o00054: Audit Trail Generation for CI/CD
 
-**Level**: Ops | **Implements**: o00052, p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: o00052, p00010
 
-**Description**: The system SHALL generate and archive traceability matrices as build artifacts for every CI/CD run, maintaining audit trail compliance.
+## Rationale
 
-**Acceptance Criteria**:
+This requirement ensures that every CI/CD run produces auditable artifacts documenting requirement traceability, supporting FDA 21 CFR Part 11 compliance for electronic records. The traceability matrices serve as tamper-evident evidence that code changes are properly linked to requirements, enabling regulatory audits and quality assurance reviews. Multiple format outputs (HTML, Markdown) support different stakeholder needs, while retention policies and metadata (commit SHA, timestamp) ensure long-term auditability and version correlation. This implements the broader traceability framework (o00052) and audit trail requirements (p00010) at the CI/CD infrastructure level.
 
-1. ✅ Traceability matrix generated in HTML format
-2. ✅ Traceability matrix generated in Markdown format
-3. ✅ Artifacts uploaded to GitHub Actions
-4. ✅ Artifacts retained for 90 days minimum
-5. ✅ Artifacts include commit SHA and timestamp
-6. ✅ Artifacts downloadable by authorized personnel
+## Assertions
 
-**Validation Method**: Review GitHub Actions artifacts tab, verify presence and retention
+A. The system SHALL generate a traceability matrix in HTML format for every CI/CD run.
+B. The system SHALL generate a traceability matrix in Markdown format for every CI/CD run.
+C. The system SHALL upload traceability matrix artifacts to GitHub Actions.
+D. The system SHALL retain artifacts for a minimum of 90 days.
+E. Traceability matrix artifacts SHALL include the commit SHA of the build.
+F. Traceability matrix artifacts SHALL include the timestamp of the build.
+G. The system SHALL make artifacts downloadable by authorized personnel.
 
-**Implementation Files**: `.github/workflows/pr-validation.yml` (upload-artifact step)
-
-*End* *Audit Trail Generation for CI/CD* | **Hash**: 7da5e2e7
+*End* *Audit Trail Generation for CI/CD* | **Hash**: ed8f0362
 ---
 
 ## CI/CD Pipeline Architecture

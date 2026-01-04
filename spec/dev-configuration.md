@@ -29,41 +29,33 @@ Technical implementation guide for sponsor-specific configuration management in 
 
 # REQ-d00001: Sponsor-Specific Configuration Loading
 
-**Level**: Dev | **Implements**: o00001, o00002 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00001, o00002
 
-The application SHALL load sponsor-specific configuration from environment variables that specify GCP connection parameters and sponsor settings.
+## Rationale
 
-Configuration SHALL be loaded via Doppler for development and CI/CD environments, with the following required variables:
+This requirement ensures that sponsor-specific applications load configuration securely from environment variables rather than hardcoded values, supporting the multi-sponsor deployment model where each sponsor operates in an isolated GCP project. The configuration encompasses database connectivity (Cloud SQL), authentication (Firebase Identity Platform), sponsor identification, and server deployment settings. By loading configuration through Doppler and validating all required fields at startup, the system prevents runtime errors from misconfiguration and maintains complete separation between sponsors as mandated by the infrastructure isolation requirements. This approach aligns with 21 CFR Part 11 security principles by eliminating hardcoded credentials and ensuring tamper-evident configuration management.
 
-**Database Configuration (Cloud SQL)**:
-- `DATABASE_URL`: Cloud SQL connection string (format: `postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance`)
-- `DATABASE_INSTANCE`: Cloud SQL instance connection name (format: `project:region:instance`)
+## Assertions
 
-**Authentication Configuration (Identity Platform)**:
-- `FIREBASE_PROJECT_ID`: GCP project ID for Identity Platform
-- `FIREBASE_API_KEY`: Firebase/Identity Platform API key (for client SDK)
+A. The application SHALL load sponsor-specific configuration from environment variables.
+B. The application SHALL load configuration via Doppler for development environments.
+C. The application SHALL load configuration via Doppler for CI/CD environments.
+D. The application SHALL require the DATABASE_URL environment variable containing a Cloud SQL connection string in the format postgresql://user:pass@/dbname?host=/cloudsql/project:region:instance.
+E. The application SHALL require the DATABASE_INSTANCE environment variable containing a Cloud SQL instance connection name in the format project:region:instance.
+F. The application SHALL require the FIREBASE_PROJECT_ID environment variable containing the GCP project ID for Identity Platform.
+G. The application SHALL require the FIREBASE_API_KEY environment variable containing the Firebase/Identity Platform API key for client SDK.
+H. The application SHALL require the SPONSOR_ID environment variable containing a unique sponsor identifier in the format {vendor_code}.
+I. The application SHALL require the GCP_PROJECT_ID environment variable containing the GCP project ID for the sponsor/environment.
+J. The application SHALL require the CLOUD_RUN_SERVICE_URL environment variable for server-only deployments.
+K. The application SHALL require the PORT environment variable for server-only deployments.
+L. The application SHALL validate that all required configuration fields are present at application startup.
+M. The application SHALL fail fast with a clear error message if any required configuration field is invalid.
+N. The application SHALL fail fast with a clear error message if any required configuration field is missing.
+O. The build process SHALL validate all required fields are present before compilation.
+P. The application SHALL NOT contain hardcoded credentials in Dart source code.
+Q. Configuration fields SHALL be immutable after loading.
 
-**Sponsor Configuration**:
-- `SPONSOR_ID`: Unique sponsor identifier (format: `{vendor_code}`)
-- `GCP_PROJECT_ID`: GCP project ID for this sponsor/environment
-
-**Server Configuration (Cloud Run - server only)**:
-- `CLOUD_RUN_SERVICE_URL`: Cloud Run service URL
-- `PORT`: Server port (typically 8080 for Cloud Run)
-
-The application SHALL validate all required fields are present at application startup and SHALL fail fast if configuration is invalid or missing.
-
-**Rationale**: Implements infrastructure isolation (o00001) at the application layer. GCP project-level isolation ensures complete separation between sponsors. Type-safe configuration prevents runtime errors from misconfiguration.
-
-**Acceptance Criteria**:
-- Configuration loaded from Doppler in development (`doppler run -- flutter run`)
-- Build process validates all required fields present before compilation
-- No hardcoded credentials in Dart source code
-- Application throws clear error message if configuration missing
-- Configuration is immutable after loading (final fields)
-- Cloud SQL connection uses appropriate format for environment
-
-*End* *Sponsor-Specific Configuration Loading* | **Hash**: cf4bce54
+*End* *Sponsor-Specific Configuration Loading* | **Hash**: 5950765d
 ---
 
 ### Implementation Example
@@ -222,31 +214,27 @@ void main() async {
 
 # REQ-d00002: Pre-Build Configuration Validation
 
-**Level**: Dev | **Implements**: o00002 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00002
 
-The build system SHALL validate sponsor configuration before compilation begins.
+## Rationale
 
-Validation checks SHALL include:
-- All required environment variables are defined (via Doppler)
-- GCP project ID format is valid
-- Cloud SQL instance connection name format is valid
-- No credential files are tracked in git
-- `.gitignore` properly excludes `*.env` files
+This requirement prevents deployment of misconfigured applications by implementing a fail-fast validation approach that catches configuration errors before the lengthy build process begins. Early detection saves development time and prevents runtime failures in deployed environments. The requirement enforces security best practices around credential management by verifying that sensitive files are not tracked in version control and that credentials are managed through approved secret management systems (Doppler). This validation aligns with FDA 21 CFR Part 11 requirements for controlled access to electronic records and audit trails by ensuring that only properly configured systems can be built and deployed.
 
-The build SHALL fail immediately if validation fails, with clear error messages indicating which configuration is missing or invalid.
+## Assertions
 
-**Rationale**: Prevents deployment of misconfigured applications. Fail-fast approach saves time by catching configuration errors before lengthy build process. Enforces security best practices around credential management.
+A. The build system SHALL validate sponsor configuration before compilation begins.
+B. The build system SHALL validate that all required environment variables are defined via Doppler.
+C. The build system SHALL validate that GCP project ID format is valid.
+D. The build system SHALL validate that Cloud SQL instance connection name format is valid.
+E. The build system SHALL validate that no credential files are tracked in git.
+F. The build system SHALL validate that .gitignore properly excludes *.env files.
+G. The build system SHALL fail immediately if any validation check fails.
+H. The build system SHALL provide clear error messages indicating which configuration is missing or invalid.
+I. Error messages SHALL indicate exactly which field is invalid.
+J. The validation process SHALL complete in less than 1 second.
+K. The build system SHALL return a non-zero exit code on validation failure.
 
-**Acceptance Criteria**:
-- Build script validates Doppler configuration before starting
-- Script validates GCP project ID format
-- Script validates Cloud SQL instance name format
-- Script verifies no credential files are git-tracked
-- Clear error messages indicate exactly which field is invalid
-- Validation completes in <1 second
-- Non-zero exit code on validation failure
-
-*End* *Pre-Build Configuration Validation* | **Hash**: b551cfb0
+*End* *Pre-Build Configuration Validation* | **Hash**: c7f7afe9
 ---
 
 ### Validation Script
