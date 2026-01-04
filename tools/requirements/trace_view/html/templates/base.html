@@ -9,7 +9,7 @@
 
     {# Embedded CSS from external stylesheet #}
     <style>
-        {{ css }}
+        {{ css|safe }}
     </style>
 
     {# External libraries for embedded mode (code viewer, markdown) #}
@@ -199,7 +199,7 @@
 {# Main JavaScript functionality #}
 {% block scripts %}
 <script>
-    {{ js }}
+    {{ js|safe }}
 </script>
 {% endblock %}
 

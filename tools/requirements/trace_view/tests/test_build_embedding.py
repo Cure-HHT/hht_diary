@@ -152,6 +152,7 @@ class TestSelfContainedOutput:
             if not ref.startswith('#')  # anchor links OK
             and not ref.startswith('vscode://')  # VS Code links OK
             and not ref.startswith('data:')  # data URIs OK
+            and not ref.startswith('${')  # JS template literals OK (runtime-resolved)
         ]
 
         assert len(invalid_refs) == 0, \

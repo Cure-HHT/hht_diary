@@ -27,7 +27,10 @@ const TraceView = (function() {
         filePickerState: { reqId: null, sourceFile: null },
         allSpecFiles: [],
         userAddedFiles: new Set(),
-        originalStatusSuffixes: new Map()
+        originalStatusSuffixes: new Map(),
+        // Navigation state
+        collapsedInstances: new Set(),
+        currentView: 'flat'
     };
 
     // ==========================================================================
@@ -790,6 +793,411 @@ const TraceView = (function() {
     };
 
     // ==========================================================================
+    // Navigation & View Management
+    // ==========================================================================
+
+    /**
+     * Navigation operations for requirement tree
+     */
+    const navigation = {
+        /**
+         * Toggle a single requirement instance's children
+         * @param {HTMLElement} element - The clicked element
+         */
+        toggleRequirement: function(element) {
+            const item = element.closest('.req-item');
+            const instanceId = item.dataset.instanceId;
+            const icon = element.querySelector('.collapse-icon');
+
+            if (!icon || !icon.textContent) return; // No children to collapse
+
+            const isExpanding = state.collapsedInstances.has(instanceId);
+
+            if (isExpanding) {
+                state.collapsedInstances.delete(instanceId);
+                icon.classList.remove('collapsed');
+            } else {
+                state.collapsedInstances.add(instanceId);
+                icon.classList.add('collapsed');
+            }
+
+            if (state.currentView === 'hierarchy') {
+                this.toggleRequirementHierarchy(instanceId, isExpanding);
+            } else {
+                if (isExpanding) {
+                    this.showDescendants(instanceId);
+                } else {
+                    this.hideDescendants(instanceId);
+                }
+            }
+            this.updateExpandCollapseButtons();
+        },
+
+        /**
+         * Hide all descendants of a requirement instance
+         * @param {string} parentInstanceId - Parent instance ID
+         */
+        hideDescendants: function(parentInstanceId) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                child.classList.add('collapsed-by-parent');
+                this.hideDescendants(child.dataset.instanceId);
+            });
+        },
+
+        /**
+         * Show immediate children of a requirement instance
+         * @param {string} parentInstanceId - Parent instance ID
+         */
+        showDescendants: function(parentInstanceId) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                child.classList.remove('collapsed-by-parent');
+            });
+        },
+
+        /**
+         * Modified toggle for hierarchy view
+         * @param {string} parentInstanceId - Parent instance ID
+         * @param {boolean} isExpanding - Whether expanding or collapsing
+         */
+        toggleRequirementHierarchy: function(parentInstanceId, isExpanding) {
+            document.querySelectorAll(`[data-parent-instance-id="${parentInstanceId}"]`).forEach(child => {
+                if (isExpanding) {
+                    child.classList.add('hierarchy-visible');
+                    child.classList.remove('collapsed-by-parent');
+                } else {
+                    child.classList.remove('hierarchy-visible');
+                    child.classList.add('collapsed-by-parent');
+                    const childIcon = child.querySelector('.collapse-icon');
+                    if (childIcon && childIcon.textContent) {
+                        state.collapsedInstances.add(child.dataset.instanceId);
+                        childIcon.classList.add('collapsed');
+                        this.toggleRequirementHierarchy(child.dataset.instanceId, false);
+                    }
+                }
+            });
+        },
+
+        /**
+         * Update expand/collapse button states
+         */
+        updateExpandCollapseButtons: function() {
+            const btnExpand = document.getElementById('btnExpandAll');
+            const btnCollapse = document.getElementById('btnCollapseAll');
+
+            let expandableCount = 0;
+            let expandedCount = 0;
+            let collapsedCount = 0;
+
+            document.querySelectorAll('.req-item:not(.filtered-out)').forEach(item => {
+                const icon = item.querySelector('.collapse-icon');
+                if (icon && icon.textContent) {
+                    expandableCount++;
+                    if (icon.classList.contains('collapsed')) {
+                        collapsedCount++;
+                    } else {
+                        expandedCount++;
+                    }
+                }
+            });
+
+            if (expandableCount > 0 && expandedCount === expandableCount) {
+                btnExpand.classList.add('active');
+                btnExpand.textContent = '▼ All Expanded';
+            } else {
+                btnExpand.classList.remove('active');
+                btnExpand.textContent = '▼ Expand All';
+            }
+
+            if (expandableCount > 0 && collapsedCount === expandableCount) {
+                btnCollapse.classList.add('active');
+                btnCollapse.textContent = '▶ All Collapsed';
+            } else {
+                btnCollapse.classList.remove('active');
+                btnCollapse.textContent = '▶ Collapse All';
+            }
+        },
+
+        /**
+         * Expand all requirements
+         */
+        expandAll: function() {
+            state.collapsedInstances.clear();
+            const isHierarchyView = state.currentView === 'hierarchy';
+            document.querySelectorAll('.req-item').forEach(item => {
+                item.classList.remove('collapsed-by-parent');
+                if (isHierarchyView && item.dataset.isRoot !== 'true') {
+                    item.classList.add('hierarchy-visible');
+                }
+            });
+            document.querySelectorAll('.collapse-icon').forEach(el => {
+                el.classList.remove('collapsed');
+            });
+            this.updateExpandCollapseButtons();
+        },
+
+        /**
+         * Collapse all requirements
+         */
+        collapseAll: function() {
+            const isHierarchyView = state.currentView === 'hierarchy';
+            document.querySelectorAll('.req-item').forEach(item => {
+                const icon = item.querySelector('.collapse-icon');
+                if (isHierarchyView && item.dataset.isRoot !== 'true') {
+                    item.classList.remove('hierarchy-visible');
+                    item.classList.add('collapsed-by-parent');
+                }
+                if (icon && icon.textContent) {
+                    state.collapsedInstances.add(item.dataset.instanceId);
+                    this.hideDescendants(item.dataset.instanceId);
+                    icon.classList.add('collapsed');
+                }
+            });
+            this.updateExpandCollapseButtons();
+        },
+
+        /**
+         * Switch between view modes
+         * @param {string} viewMode - 'flat', 'hierarchy', 'uncommitted', or 'branch'
+         */
+        switchView: function(viewMode) {
+            state.currentView = viewMode;
+            const reqTree = document.getElementById('reqTree');
+            const btnFlat = document.getElementById('btnFlatView');
+            const btnHierarchy = document.getElementById('btnHierarchyView');
+            const btnUncommitted = document.getElementById('btnUncommittedView');
+            const btnBranch = document.getElementById('btnBranchView');
+            const treeTitle = document.getElementById('treeTitle');
+
+            btnFlat.classList.remove('active');
+            btnHierarchy.classList.remove('active');
+            btnUncommitted.classList.remove('active');
+            btnBranch.classList.remove('active');
+            reqTree.classList.remove('hierarchy-view');
+            reqTree.classList.remove('flat-view');
+
+            if (viewMode === 'hierarchy') {
+                reqTree.classList.add('hierarchy-view');
+                btnHierarchy.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Hierarchical View';
+                state.collapsedInstances.clear();
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('collapsed-by-parent');
+                    item.classList.remove('hierarchy-visible');
+                    const icon = item.querySelector('.collapse-icon');
+                    if (icon && icon.textContent && item.dataset.isRoot === 'true') {
+                        state.collapsedInstances.add(item.dataset.instanceId);
+                        icon.classList.add('collapsed');
+                    }
+                });
+            } else if (viewMode === 'uncommitted') {
+                btnUncommitted.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Uncommitted Changes';
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+                this.collapseAll();
+            } else if (viewMode === 'branch') {
+                btnBranch.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Changed vs Main';
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                });
+                this.collapseAll();
+            } else {
+                btnFlat.classList.add('active');
+                treeTitle.textContent = 'Traceability Tree - Flat View';
+                reqTree.classList.add('flat-view');
+                document.querySelectorAll('.req-item').forEach(item => {
+                    item.classList.remove('hierarchy-visible');
+                    item.classList.remove('collapsed-by-parent');
+                });
+            }
+
+            applyFilters();
+        }
+    };
+
+    // ==========================================================================
+    // Filtering
+    // ==========================================================================
+
+    /**
+     * Apply all filters to the requirement tree
+     */
+    function applyFilters() {
+        const filterReqId = document.getElementById('filterReqId');
+        const filterTitle = document.getElementById('filterTitle');
+        const filterLevel = document.getElementById('filterLevel');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterTopic = document.getElementById('filterTopic');
+        const filterTests = document.getElementById('filterTests');
+        const filterCoverage = document.getElementById('filterCoverage');
+        const chkIncludeDeprecated = document.getElementById('chkIncludeDeprecated');
+        const chkIncludeRoadmap = document.getElementById('chkIncludeRoadmap');
+
+        const reqIdFilter = filterReqId ? filterReqId.value.toLowerCase().trim() : '';
+        const titleFilter = filterTitle ? filterTitle.value.toLowerCase().trim() : '';
+        const levelFilter = filterLevel ? filterLevel.value : '';
+        const statusFilter = filterStatus ? filterStatus.value : '';
+        const topicFilter = filterTopic ? filterTopic.value.toLowerCase().trim() : '';
+        const testFilter = filterTests ? filterTests.value : '';
+        const coverageFilter = filterCoverage ? filterCoverage.value : '';
+        const isLeafOnly = state.leafOnlyActive;
+        const includeDeprecated = chkIncludeDeprecated ? chkIncludeDeprecated.checked : false;
+        const includeRoadmap = chkIncludeRoadmap ? chkIncludeRoadmap.checked : false;
+
+        const isUncommittedView = state.currentView === 'uncommitted';
+        const isBranchView = state.currentView === 'branch';
+        const isModifiedView = isUncommittedView || isBranchView;
+        const anyFilterActive = reqIdFilter || titleFilter || levelFilter || statusFilter ||
+                               topicFilter || testFilter || coverageFilter || isLeafOnly || isModifiedView;
+
+        let visibleCount = 0;
+        const seenReqIds = new Set();
+        const seenVisibleReqIds = new Set();
+        const allReqIds = new Set();
+
+        document.querySelectorAll('.req-item').forEach(item => {
+            const reqId = item.dataset.reqId ? item.dataset.reqId.toLowerCase() : '';
+            const isImplFile = item.classList.contains('impl-file');
+            const status = item.dataset.status;
+
+            if (!isImplFile && reqId) {
+                if (includeDeprecated || status !== 'Deprecated') {
+                    allReqIds.add(reqId);
+                }
+            }
+
+            const level = item.dataset.level;
+            const topic = item.dataset.topic ? item.dataset.topic.toLowerCase() : '';
+            const title = item.dataset.title ? item.dataset.title.toLowerCase() : '';
+            const isUncommitted = item.dataset.uncommitted === 'true';
+            const isBranchChanged = item.dataset.branchChanged === 'true';
+
+            let matches = true;
+
+            if (isUncommittedView) {
+                if (isImplFile) {
+                    const parentId = item.dataset.parentInstanceId;
+                    const parent = document.querySelector(`[data-instance-id="${parentId}"]`);
+                    if (!parent || parent.dataset.uncommitted !== 'true') {
+                        matches = false;
+                    }
+                } else if (!isUncommitted) {
+                    matches = false;
+                }
+            }
+
+            if (isBranchView) {
+                if (isImplFile) {
+                    const parentId = item.dataset.parentInstanceId;
+                    const parent = document.querySelector(`[data-instance-id="${parentId}"]`);
+                    if (!parent || parent.dataset.branchChanged !== 'true') {
+                        matches = false;
+                    }
+                } else if (!isBranchChanged) {
+                    matches = false;
+                }
+            }
+
+            if (reqIdFilter && !reqId.includes(reqIdFilter)) matches = false;
+            if (titleFilter && !title.includes(titleFilter)) matches = false;
+            if (levelFilter && level !== levelFilter) matches = false;
+            if (statusFilter && status !== statusFilter) matches = false;
+            if (topicFilter && topic !== topicFilter && !topic.startsWith(topicFilter + '-')) {
+                matches = false;
+            }
+
+            if (testFilter && matches) {
+                const testStatus = item.dataset.testStatus || 'not-tested';
+                if (testFilter !== testStatus) matches = false;
+            }
+
+            if (coverageFilter && matches) {
+                const coverage = item.dataset.coverage || 'none';
+                if (coverageFilter !== coverage) matches = false;
+            }
+
+            if (isLeafOnly && matches && !isImplFile) {
+                const hasChildren = item.dataset.hasChildren === 'true';
+                if (hasChildren) matches = false;
+            }
+
+            if (!includeDeprecated && matches && !isImplFile) {
+                if (status === 'Deprecated') matches = false;
+            }
+
+            if (!includeRoadmap && matches && !isImplFile) {
+                const isRoadmap = item.dataset.roadmap === 'true';
+                const isConflict = item.dataset.conflict === 'true';
+                const isCycle = item.dataset.cycle === 'true';
+                if (isRoadmap && !isConflict && !isCycle) matches = false;
+            }
+
+            if (matches && anyFilterActive && !isImplFile && seenReqIds.has(reqId)) {
+                matches = false;
+            }
+
+            if (matches) {
+                item.classList.remove('filtered-out');
+                if (anyFilterActive) {
+                    item.classList.remove('collapsed-by-parent');
+                    if (!isImplFile) seenReqIds.add(reqId);
+                }
+                if (!isImplFile && reqId && !seenVisibleReqIds.has(reqId)) {
+                    seenVisibleReqIds.add(reqId);
+                    visibleCount++;
+                }
+            } else {
+                item.classList.add('filtered-out');
+            }
+        });
+
+        const totalCount = allReqIds.size;
+        let statsText;
+        if (isUncommittedView) {
+            statsText = `Showing ${visibleCount} uncommitted requirements`;
+        } else if (isBranchView) {
+            statsText = `Showing ${visibleCount} requirements changed vs main`;
+        } else {
+            statsText = `Showing ${visibleCount} of ${totalCount} requirements`;
+        }
+        document.getElementById('filterStats').textContent = statsText;
+        navigation.updateExpandCollapseButtons();
+    }
+
+    /**
+     * Clear all filters
+     */
+    function clearFilters() {
+        const filterReqId = document.getElementById('filterReqId');
+        const filterTitle = document.getElementById('filterTitle');
+        const filterLevel = document.getElementById('filterLevel');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterTopic = document.getElementById('filterTopic');
+        const filterTests = document.getElementById('filterTests');
+        const filterCoverage = document.getElementById('filterCoverage');
+        const btnLeafOnly = document.getElementById('btnLeafOnly');
+        const chkIncludeDeprecated = document.getElementById('chkIncludeDeprecated');
+        const chkIncludeRoadmap = document.getElementById('chkIncludeRoadmap');
+
+        if (filterReqId) filterReqId.value = '';
+        if (filterTitle) filterTitle.value = '';
+        if (filterLevel) filterLevel.value = '';
+        if (filterStatus) filterStatus.value = '';
+        if (filterTopic) filterTopic.value = '';
+        if (filterTests) filterTests.value = '';
+        if (filterCoverage) filterCoverage.value = '';
+
+        state.leafOnlyActive = false;
+        if (btnLeafOnly) btnLeafOnly.classList.remove('active');
+        if (chkIncludeDeprecated) chkIncludeDeprecated.checked = false;
+        if (chkIncludeRoadmap) chkIncludeRoadmap.checked = false;
+
+        toggleIncludeDeprecated();
+    }
+
+    // ==========================================================================
     // Leaf Only Filter
     // ==========================================================================
 
@@ -862,13 +1270,16 @@ const TraceView = (function() {
         editMode: editMode,
         filePicker: filePicker,
         legend: legend,
+        navigation: navigation,
         state: state,
 
         // Functions
         init: init,
         toggleLeafOnly: toggleLeafOnly,
         toggleIncludeDeprecated: toggleIncludeDeprecated,
-        toggleIncludeRoadmap: toggleIncludeRoadmap
+        toggleIncludeRoadmap: toggleIncludeRoadmap,
+        applyFilters: applyFilters,
+        clearFilters: clearFilters
     };
 })();
 
@@ -898,7 +1309,17 @@ function toggleLeafOnly() { TraceView.toggleLeafOnly(); }
 function toggleIncludeDeprecated() { TraceView.toggleIncludeDeprecated(); }
 function toggleIncludeRoadmap() { TraceView.toggleIncludeRoadmap(); }
 
+// Navigation functions
+function toggleRequirement(element) { TraceView.navigation.toggleRequirement(element); }
+function expandAll() { TraceView.navigation.expandAll(); }
+function collapseAll() { TraceView.navigation.collapseAll(); }
+function switchView(viewMode) { TraceView.navigation.switchView(viewMode); }
+function applyFilters() { TraceView.applyFilters(); }
+function clearFilters() { TraceView.clearFilters(); }
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
     TraceView.init();
+    // Start with flat view - show all unique requirements at indent 0
+    TraceView.navigation.switchView('flat');
 });
