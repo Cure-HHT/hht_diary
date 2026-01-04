@@ -1,0 +1,57 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: Container infrastructure for Cloud Run
+#
+# Cloud Build configuration for base Dart container
+# Pushes to Artifact Registry in Europe (GDPR compliance)
+#
+# Version comes from .github/versions.env (single source of truth)
+# Can override via: --substitutions=_DART_VERSION=x.y.z
+
+substitutions:
+  _REGION: 'europe-west1'
+  _REPOSITORY: 'hht-diary'
+
+steps:
+  # Step 1: Load version from versions.env
+  - name: 'bash'
+    id: 'load-versions'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source .github/versions.env
+        echo "DART_VERSION=$${DART_VERSION}" > /workspace/versions.txt
+        echo "Building dart-base:$${DART_VERSION}"
+
+  # Step 2: Build the base Dart image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/versions.txt
+        docker build \
+          --build-arg=DART_VERSION=$${DART_VERSION} \
+          -t ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:$${DART_VERSION} \
+          -t ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:latest \
+          .
+    dir: 'infrastructure/dart-base'
+
+  # Step 3: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        source /workspace/versions.txt
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:$${DART_VERSION}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+tags:
+  - 'dart-base'
+  - 'infrastructure'
