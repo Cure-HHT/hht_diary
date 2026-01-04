@@ -1,6 +1,6 @@
 -- =====================================================
--- Migration: Add Mobile App User Tables
--- Number: 010
+-- Migration: 010 - Add Mobile App User Tables
+-- Date: 2026-01-04
 -- Description: Creates app_users and study_enrollments tables for mobile app auth
 -- Dependencies: Requires base schema (001), sites table
 -- Reference: spec/prd-security-RBAC.md
