@@ -5,12 +5,10 @@
 # Base Dart Runtime Container
 # Used as parent image for all Dart server containers
 #
-# Build: gcloud builds submit --tag gcr.io/PROJECT/dart-base:VERSION
-# Or via Cloud Build: see cloudbuild.yaml
+# DART_VERSION must be passed as build arg (from .github/versions.env)
+# Build via Cloud Build: see cloudbuild.yaml
 
-ARG DART_VERSION=3.6.0
-
-# Use official Dart image as base
+ARG DART_VERSION
 FROM dart:${DART_VERSION} AS base
 
 # Install minimal utilities for health checks and debugging

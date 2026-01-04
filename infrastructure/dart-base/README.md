@@ -8,7 +8,7 @@ Provides a minimal, secure Dart runtime that child containers inherit from. This
 
 ## What's Included
 
-- Dart SDK (version pinned in `.github/versions.env`)
+- Dart SDK (version from `.github/versions.env`)
 - curl (for health checks)
 - ca-certificates (for HTTPS)
 - Non-root user (`appuser`) for security
@@ -19,13 +19,23 @@ Provides a minimal, secure Dart runtime that child containers inherit from. This
 - Flutter SDK (use separate Flutter images for web builds)
 - Application code (added by child containers)
 
+## Version Management
+
+**Single source of truth**: `.github/versions.env`
+
+```bash
+DART_VERSION=3.10.1
+```
+
+The cloudbuild.yaml reads from versions.env automatically.
+
 ## Usage
 
 ### In Child Dockerfiles
 
 ```dockerfile
-ARG DART_VERSION=3.6.0
-FROM us-central1-docker.pkg.dev/PROJECT_ID/hht-diary/dart-base:${DART_VERSION}
+ARG DART_VERSION
+FROM europe-west1-docker.pkg.dev/PROJECT_ID/hht-diary/dart-base:${DART_VERSION}
 
 # Copy pubspec files and get dependencies
 COPY pubspec.* ./
@@ -38,12 +48,6 @@ RUN dart compile exe bin/server.dart -o bin/server
 CMD ["./bin/server"]
 ```
 
-### Building Locally
-
-```bash
-docker build -t dart-base:local .
-```
-
 ### Building with Cloud Build
 
 ```bash
@@ -51,14 +55,20 @@ cd infrastructure/dart-base
 gcloud builds submit --config=cloudbuild.yaml
 ```
 
-## Version Management
+Version is read from `.github/versions.env` automatically.
 
-Dart version is pinned in `.github/versions.env`:
-```
-DART_VERSION=3.6.0
+### Building Locally (for testing)
+
+```bash
+source .github/versions.env
+docker build --build-arg DART_VERSION=$DART_VERSION -t dart-base:local .
 ```
 
-Update the version there, then rebuild and push the base image.
+## Artifact Registry
+
+- **Region**: europe-west1 (GDPR compliance)
+- **Repository**: hht-diary
+- **Image**: `europe-west1-docker.pkg.dev/PROJECT_ID/hht-diary/dart-base:VERSION`
 
 ## Security
 
