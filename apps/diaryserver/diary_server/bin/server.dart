@@ -7,6 +7,7 @@
 
 import 'dart:io';
 
+import 'package:diary_functions/diary_functions.dart';
 import 'package:diary_server/diary_server.dart';
 import 'package:logging/logging.dart';
 
@@ -24,6 +25,12 @@ void main(List<String> args) async {
 
   final log = Logger('diary_server');
 
+  // Initialize database connection pool
+  log.info('Initializing database connection...');
+  final dbConfig = DatabaseConfig.fromEnvironment();
+  await Database.instance.initialize(dbConfig);
+  log.info('Database connected to ${dbConfig.host}:${dbConfig.port}');
+
   // Get port from environment (Cloud Run sets PORT)
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
 
@@ -35,12 +42,14 @@ void main(List<String> args) async {
   // Handle shutdown signals
   ProcessSignal.sigint.watch().listen((_) async {
     log.info('Received SIGINT, shutting down...');
+    await Database.instance.close();
     await server.close();
     exit(0);
   });
 
   ProcessSignal.sigterm.watch().listen((_) async {
     log.info('Received SIGTERM, shutting down...');
+    await Database.instance.close();
     await server.close();
     exit(0);
   });
