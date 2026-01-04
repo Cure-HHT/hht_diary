@@ -17,6 +17,7 @@ Contains:
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -85,6 +86,34 @@ class HTMLGenerator:
     def _get_implementation_status(self, req_id: str) -> str:
         """Get implementation status for a requirement."""
         return get_implementation_status(self.requirements, req_id)
+
+    def _load_css(self) -> str:
+        """Load CSS content from external stylesheet.
+
+        Loads styles from templates/partials/styles.css for embedding
+        in the HTML output.
+
+        Returns:
+            CSS content as string, or empty string if file not found.
+        """
+        css_path = Path(__file__).parent / "templates" / "partials" / "styles.css"
+        if css_path.exists():
+            return css_path.read_text()
+        return ""
+
+    def _load_js(self) -> str:
+        """Load JavaScript content from external script file.
+
+        Loads scripts from templates/partials/scripts.js for embedding
+        in the HTML output.
+
+        Returns:
+            JavaScript content as string, or empty string if file not found.
+        """
+        js_path = Path(__file__).parent / "templates" / "partials" / "scripts.js"
+        if js_path.exists():
+            return js_path.read_text()
+        return ""
 
     def _generate_legend_html(self) -> str:
         """Generate HTML legend section"""
@@ -1647,10 +1676,7 @@ class HTMLGenerator:
             embed_content: If True, embed full requirement content as JSON and include side panel
             edit_mode: If True, include edit mode UI for batch moving requirements
         """
-        # First generate markdown to ensure consistency
-        markdown_content = self._generate_markdown()
-
-        # Parse markdown for HTML rendering
+        # Parse requirements for HTML rendering
         by_level = self._count_by_level()
 
         # Collect all unique topics from requirements

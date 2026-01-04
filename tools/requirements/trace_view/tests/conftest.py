@@ -201,6 +201,16 @@ def sample_requirements():
 
 
 @pytest.fixture
+def sample_repo_root(tmp_path):
+    """Provide a temporary repo root for testing."""
+    # Create minimal spec directory structure
+    spec_dir = tmp_path / "spec"
+    spec_dir.mkdir()
+    (spec_dir / "prd-test.md").write_text("# REQ-p00001: Test\n\nTest content")
+    return tmp_path
+
+
+@pytest.fixture
 def html_generator_class():
     """Import and return HTMLGenerator class (for testing new implementation).
 
