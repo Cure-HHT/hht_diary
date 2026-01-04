@@ -15,9 +15,11 @@ void main(List<String> args) async {
   Logger.root.level = Level.INFO;
   Logger.root.onRecord.listen((record) {
     // Cloud Run structured logging format
-    print('{"severity":"${record.level.name}",'
-        '"message":"${record.message}",'
-        '"time":"${record.time.toIso8601String()}"}');
+    print(
+      '{"severity":"${record.level.name}",'
+      '"message":"${record.message}",'
+      '"time":"${record.time.toIso8601String()}"}',
+    );
   });
 
   final log = Logger('diary_server');

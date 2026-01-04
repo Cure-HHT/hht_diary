@@ -7,6 +7,7 @@
 library diary_functions;
 
 export 'src/health.dart';
+
 // Future exports as functions are converted:
 // export 'src/auth.dart';
 // export 'src/user.dart';

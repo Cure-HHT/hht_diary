@@ -18,8 +18,5 @@ Response healthHandler(Request request) {
     'service': 'diary-server',
   });
 
-  return Response.ok(
-    body,
-    headers: {'Content-Type': 'application/json'},
-  );
+  return Response.ok(body, headers: {'Content-Type': 'application/json'});
 }

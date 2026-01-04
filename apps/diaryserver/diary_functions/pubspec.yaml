@@ -6,7 +6,7 @@
 # These functions run as shelf handlers in diary_server
 
 name: diary_functions
-description: Business logic converted from Firebase Cloud Functions
+description: Clinical Daily Diary Server Side Functions
 version: 0.1.0
 publish_to: none
 
@@ -15,11 +15,11 @@ environment:
 
 dependencies:
   # Database
-  postgres: ^3.5.5
+  postgres: ^3.5.9
 
   # Utilities
-  crypto: ^3.0.6
-  uuid: ^4.5.1
+  crypto: ^3.0.7
+  uuid: ^4.5.2
 
   # Shared types
   trial_data_types:

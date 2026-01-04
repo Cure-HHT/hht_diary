@@ -4,7 +4,6 @@
 //
 // Route definitions for diary server
 
-import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
 import 'package:diary_functions/diary_functions.dart';
