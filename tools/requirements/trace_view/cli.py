@@ -14,15 +14,15 @@ from typing import List, Optional
 from .git_state import get_elspais_config
 
 
-def resolve_sponsors(repo_root: Path, enabled_only: bool = True) -> list:
-    """Resolve sponsors using resolve-sponsors.sh script.
+def resolve_associated_repos(repo_root: Path, enabled_only: bool = True) -> list:
+    """Resolve associated repos using resolve-sponsors.sh script.
 
     Args:
         repo_root: Repository root path
-        enabled_only: Only include enabled sponsors
+        enabled_only: Only include enabled repos
 
     Returns:
-        List of sponsor dicts with name, code, path, etc.
+        List of repo dicts with name, code, path, etc.
     """
     script_path = repo_root / 'tools' / 'build' / 'resolve-sponsors.sh'
 
@@ -41,7 +41,7 @@ def resolve_sponsors(repo_root: Path, enabled_only: bool = True) -> list:
         print(f"Warning: resolve-sponsors.sh failed: {e.stderr}")
         return []
     except json.JSONDecodeError as e:
-        print(f"Warning: Failed to parse sponsor JSON: {e}")
+        print(f"Warning: Failed to parse repo JSON: {e}")
         return []
 
 
@@ -58,11 +58,14 @@ def create_parser() -> argparse.ArgumentParser:
 Tip: Use --format both to generate both markdown and HTML versions
 
 Examples:
-  # Generate matrix for current repo
+  # Generate matrix using config defaults
   python trace_view.py
 
-  # Generate matrix for a different repo
-  python trace_view.py --path /path/to/other/repo
+  # Generate matrix excluding associated repos
+  python trace_view.py --mode core
+
+  # Generate matrix for specific repo only
+  python trace_view.py --only-repo callisto
 
   # Generate for sibling repo with HTML output
   python trace_view.py --path ../sibling-repo --format html
@@ -80,15 +83,15 @@ Examples:
         help='Output file path (default: traceability_matrix.{format})'
     )
     parser.add_argument(
-        '--sponsor',
+        '--only-repo',
         type=str,
-        help='Sponsor name for sponsor-specific reports (e.g., "callisto", "titan")'
+        metavar='NAME',
+        help='Filter to specific repo only (e.g., "callisto", "titan")'
     )
     parser.add_argument(
         '--mode',
-        choices=['core', 'sponsor', 'combined'],
-        default='core',
-        help='Report mode: "core" (exclude sponsor code), "sponsor" (specific sponsor + core), "combined" (all code)'
+        choices=['core'],
+        help='Override mode: "core" excludes associated repos'
     )
     parser.add_argument(
         '--output-dir',
@@ -121,14 +124,9 @@ Examples:
         help='Generate coverage report showing implementation status statistics'
     )
     parser.add_argument(
-        '--sponsor-manifest',
-        type=str,
-        help='Path to sponsor manifest YAML or JSON file for multi-repo scanning'
-    )
-    parser.add_argument(
-        '--resolve-sponsors',
+        '--resolve-repos',
         action='store_true',
-        help='Use tools/build/resolve-sponsors.sh to discover sponsors'
+        help='Use tools/build/resolve-sponsors.sh to discover associated repos'
     )
 
     return parser
@@ -136,26 +134,35 @@ Examples:
 
 def get_impl_dirs(
     repo_root: Path,
-    mode: str,
-    sponsor: Optional[str],
     elspais_config: dict,
-    use_resolve_sponsors: bool = False
+    mode_override: Optional[str] = None,
+    only_repo: Optional[str] = None,
+    use_resolve_repos: bool = False
 ) -> List[Path]:
-    """Get implementation directories based on mode and config.
+    """Get implementation directories based on config and overrides.
 
     Args:
         repo_root: Repository root path
-        mode: Report mode ('core', 'sponsor', 'combined')
-        sponsor: Sponsor name for sponsor mode
         elspais_config: Elspais configuration dict
-        use_resolve_sponsors: Use resolve-sponsors.sh for discovery
+        mode_override: Optional mode override ('core' to exclude associated)
+        only_repo: Filter to specific repo only
+        use_resolve_repos: Use resolve-sponsors.sh for discovery
 
     Returns:
         List of implementation directory paths
     """
     directories_config = elspais_config.get('directories', {})
+    traceability_config = elspais_config.get('traceability', {})
+
     code_dirs = directories_config.get('code', ['apps', 'packages', 'server', 'tools'])
     database_dir_name = directories_config.get('database', 'database')
+
+    # Read default from config
+    include_associated = traceability_config.get('include_associated', True)
+
+    # Apply mode override
+    if mode_override == 'core':
+        include_associated = False
 
     impl_dirs = []
 
@@ -172,52 +179,48 @@ def get_impl_dirs(
             if code_dir.exists():
                 impl_dirs.append(code_dir)
 
-    if mode == 'core':
-        print(f"Mode: CORE - scanning core directories only")
-        add_core_impl_dirs()
-
-    elif mode == 'sponsor':
-        print(f"Mode: SPONSOR ({sponsor}) - scanning sponsor + core directories")
-
-        # Try to find sponsor via resolve-sponsors if enabled
-        sponsor_dir = None
-        if use_resolve_sponsors:
-            sponsors = resolve_sponsors(repo_root, enabled_only=False)
-            for s in sponsors:
-                if s.get('name') == sponsor and s.get('path'):
-                    sponsor_dir = Path(s['path'])
-                    break
-
-        # Fall back to default location
-        if not sponsor_dir:
-            sponsor_dir = repo_root / 'sponsor' / sponsor
-
-        if not sponsor_dir.exists():
-            print(f"Warning: Sponsor directory not found: {sponsor_dir}")
-        else:
-            impl_dirs.append(sponsor_dir)
-        add_core_impl_dirs()
-
-    elif mode == 'combined':
-        print(f"Mode: COMBINED - scanning all directories")
-        add_core_impl_dirs()
-
-        if use_resolve_sponsors:
+    def add_associated_dirs(filter_name: Optional[str] = None):
+        """Add associated repo directories"""
+        if use_resolve_repos:
             # Use resolve-sponsors.sh for discovery
-            sponsors = resolve_sponsors(repo_root, enabled_only=True)
-            for s in sponsors:
-                sponsor_path = s.get('path')
-                if sponsor_path and Path(sponsor_path).exists():
-                    impl_dirs.append(Path(sponsor_path))
-                    print(f"   Including sponsor: {s.get('name')} ({s.get('code')})")
+            repos = resolve_associated_repos(repo_root, enabled_only=True)
+            for repo in repos:
+                repo_name = repo.get('name')
+                repo_path = repo.get('path')
+
+                # Skip if filtering and doesn't match
+                if filter_name and repo_name != filter_name:
+                    continue
+
+                if repo_path and Path(repo_path).exists():
+                    impl_dirs.append(Path(repo_path))
+                    print(f"   Including: {repo_name} ({repo.get('code')})")
         else:
             # Fall back to directory scan
-            sponsor_root = repo_root / 'sponsor'
-            if sponsor_root.exists():
-                for sponsor_dir in sponsor_root.iterdir():
-                    if sponsor_dir.is_dir() and not sponsor_dir.name.startswith('.'):
-                        impl_dirs.append(sponsor_dir)
-                        print(f"   Including sponsor: {sponsor_dir.name}")
+            associated_root = repo_root / 'sponsor'
+            if associated_root.exists():
+                for repo_dir in associated_root.iterdir():
+                    if repo_dir.is_dir() and not repo_dir.name.startswith('.'):
+                        # Skip if filtering and doesn't match
+                        if filter_name and repo_dir.name != filter_name:
+                            continue
+                        impl_dirs.append(repo_dir)
+                        print(f"   Including: {repo_dir.name}")
+
+    # Handle --only-repo: specific repo + core
+    if only_repo:
+        print(f"Mode: ONLY-REPO ({only_repo}) - scanning specific repo + core")
+        add_associated_dirs(filter_name=only_repo)
+        add_core_impl_dirs()
+    # Handle --mode core: exclude associated
+    elif not include_associated:
+        print(f"Mode: CORE - scanning core directories only")
+        add_core_impl_dirs()
+    # Default: include associated repos per config
+    else:
+        print(f"Mode: DEFAULT - scanning all directories (include_associated=true)")
+        add_core_impl_dirs()
+        add_associated_dirs()
 
     return impl_dirs
 
@@ -252,8 +255,8 @@ def get_output_path(
 
     # Use default output path from elspais config
     default_output_dir = traceability_config.get('output_dir', 'build-reports/combined/traceability')
-    if args.mode == 'sponsor':
-        output_dir = repo_root / 'build-reports' / args.sponsor / 'traceability'
+    if args.only_repo:
+        output_dir = repo_root / 'build-reports' / args.only_repo / 'traceability'
     else:
         output_dir = repo_root / default_output_dir
 
@@ -280,11 +283,6 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    # Validate sponsor argument
-    if args.mode == 'sponsor' and not args.sponsor:
-        print("Error: --sponsor is required when --mode is 'sponsor'")
-        sys.exit(1)
-
     # Get elspais configuration
     elspais_config = get_elspais_config()
     directories_config = elspais_config.get('directories', {})
@@ -304,15 +302,28 @@ def main():
         sys.exit(1)
 
     # Get implementation directories
-    use_resolve = args.resolve_sponsors or args.sponsor_manifest is not None
-    impl_dirs = get_impl_dirs(repo_root, args.mode, args.sponsor, elspais_config, use_resolve)
+    impl_dirs = get_impl_dirs(
+        repo_root,
+        elspais_config,
+        mode_override=args.mode,
+        only_repo=args.only_repo,
+        use_resolve_repos=args.resolve_repos
+    )
+
+    # Determine effective mode for generator (for backwards compatibility)
+    if args.only_repo:
+        effective_mode = 'sponsor'  # Legacy mode name for generator
+    elif args.mode == 'core':
+        effective_mode = 'core'
+    else:
+        effective_mode = 'combined'  # Default includes associated
 
     # Create generator
     generator = TraceabilityGenerator(
         spec_dir,
         impl_dirs=impl_dirs,
-        sponsor=args.sponsor,
-        mode=args.mode,
+        sponsor=args.only_repo,  # Legacy parameter name
+        mode=effective_mode,
         repo_root=repo_root
     )
 

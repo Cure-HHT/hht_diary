@@ -111,6 +111,9 @@ hash_length = 8
 output_formats = ["markdown", "html"]
 output_dir = "build-reports/combined/traceability"
 
+# Include associated repos by default (override with --mode core)
+include_associated = true
+
 # Core implementation patterns
 scan_patterns = [
     "database/**/*.sql",
@@ -120,12 +123,18 @@ scan_patterns = [
     ".github/workflows/**/*.yml",
 ]
 
-# Sponsor-specific patterns (used when mode = "sponsor" or "combined")
-sponsor_patterns = [
-    "sponsor/{sponsor}/**/*.dart",
-    "sponsor/{sponsor}/**/*.sql",
-    "sponsor/{sponsor}/**/*.py",
+# Associated repo patterns ({name} is replaced with repo name)
+associated_patterns = [
+    "sponsor/{name}/**/*.dart",
+    "sponsor/{name}/**/*.sql",
+    "sponsor/{name}/**/*.py",
 ]
+
+[testing]
+enabled = true
+test_dirs = ["apps/**/test", "packages/**/test", "tools/**/tests"]
+patterns = ["*_test.dart", "test_*.py", "*_test.sql"]
+result_files = ["build-reports/**/TEST-*.xml", "build-reports/pytest-results.json"]
 
 # Multi-repo modes: core, sponsor, combined
 # core: Only core directories (default)

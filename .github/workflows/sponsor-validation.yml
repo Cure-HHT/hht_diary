@@ -185,14 +185,13 @@ jobs:
 
           echo "::endgroup::"
 
-      - name: Generate sponsor traceability
+      - name: Generate repo traceability
         run: |
           echo "::group::Generating traceability for ${{ matrix.sponsor.name }}"
 
           python3 tools/requirements/trace_view.py \
-            --mode sponsor \
-            --sponsor "${{ matrix.sponsor.name }}" \
-            --resolve-sponsors \
+            --only-repo "${{ matrix.sponsor.name }}" \
+            --resolve-repos \
             --format markdown \
             --output-dir "build-reports/${{ matrix.sponsor.name }}/traceability" || echo "⚠️ Traceability generation failed"
 
