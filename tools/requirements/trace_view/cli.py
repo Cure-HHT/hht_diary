@@ -269,16 +269,8 @@ def get_output_path(
 
 
 def main():
-    """Main entry point for trace-view CLI.
-
-    Note: Currently delegates to the original TraceabilityGenerator for
-    backward compatibility. Future versions will use TraceViewGenerator.
-    """
-    # Import here to avoid circular imports during module extraction
-    # This will be replaced with TraceViewGenerator once fully migrated
-    import sys
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from generate_traceability import TraceabilityGenerator
+    """Main entry point for trace-view CLI."""
+    from .generators import TraceViewGenerator
 
     parser = create_parser()
     args = parser.parse_args()
@@ -319,7 +311,7 @@ def main():
         effective_mode = 'combined'  # Default includes associated
 
     # Create generator
-    generator = TraceabilityGenerator(
+    generator = TraceViewGenerator(
         spec_dir,
         impl_dirs=impl_dirs,
         sponsor=args.only_repo,  # Legacy parameter name

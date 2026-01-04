@@ -80,12 +80,6 @@ class TraceViewGenerator:
             embed_content: If True, embed full requirement content in HTML
             edit_mode: If True, include edit mode UI in HTML output
         """
-        # For HTML format, delegate to original TraceabilityGenerator
-        # until HTML extraction is complete
-        if format == 'html':
-            self._generate_via_legacy(format, output_file, embed_content, edit_mode)
-            return
-
         # Initialize git state
         self._init_git_state()
 
@@ -115,8 +109,14 @@ class TraceViewGenerator:
 
         print(f"📝 Generating {format.upper()} traceability matrix...")
 
-        # Determine output path
-        ext = '.csv' if format == 'csv' else '.md'
+        # Determine output path and extension
+        if format == 'html':
+            ext = '.html'
+        elif format == 'csv':
+            ext = '.csv'
+        else:
+            ext = '.md'
+
         if output_file is None:
             output_file = Path(f'traceability_matrix{ext}')
 
@@ -124,7 +124,18 @@ class TraceViewGenerator:
         self._calculate_base_path(output_file)
 
         # Generate content
-        if format == 'csv':
+        if format == 'html':
+            from ..html import HTMLGenerator
+            html_gen = HTMLGenerator(
+                requirements=self.requirements,
+                base_path=self._base_path,
+                mode=self.mode,
+                sponsor=self.sponsor,
+                version=self.VERSION,
+                repo_root=self.repo_root
+            )
+            content = html_gen.generate(embed_content=embed_content, edit_mode=edit_mode)
+        elif format == 'csv':
             content = generate_csv(self.requirements)
         else:
             content = generate_markdown(
@@ -136,35 +147,6 @@ class TraceViewGenerator:
 
         output_file.write_text(content)
         print(f"✅ Traceability matrix written to: {output_file}")
-
-    def _generate_via_legacy(
-        self,
-        format: str,
-        output_file: Optional[Path],
-        embed_content: bool,
-        edit_mode: bool
-    ):
-        """Delegate to legacy TraceabilityGenerator for HTML.
-
-        This will be removed once HTML generation is fully extracted.
-        """
-        import sys
-        sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-        from generate_traceability import TraceabilityGenerator
-
-        legacy = TraceabilityGenerator(
-            self.spec_dir,
-            impl_dirs=self.impl_dirs,
-            sponsor=self.sponsor,
-            mode=self.mode,
-            repo_root=self.repo_root
-        )
-        legacy.generate(
-            format=format,
-            output_file=output_file,
-            embed_content=embed_content,
-            edit_mode=edit_mode
-        )
 
     def _init_git_state(self):
         """Initialize git state for requirement status detection."""
