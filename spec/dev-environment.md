@@ -29,7 +29,7 @@ The Clinical Diary development environment provides role-based containerized wor
 
 # REQ-d00027: Containerized Development Environments
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00050| **Status**: Draft
 
 Development environments SHALL be containerized using Docker to ensure reproducible, platform-independent workspaces that maintain parity between local development, continuous integration, and production build environments.
 
@@ -90,7 +90,7 @@ T. Documentation SHALL explain what each role cannot do outside its designated p
 
 # REQ-d00056: Cross-Platform Development Support
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00050| **Status**: Draft
 
 Development environments SHALL function identically on Windows, Linux, and macOS without platform-specific code paths or manual configuration, enabling team members to use their preferred operating systems while maintaining environment parity.
 
@@ -117,7 +117,7 @@ Cross-platform support SHALL ensure:
 
 # REQ-d00057: CI/CD Environment Parity
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00052| **Status**: Draft
 
 Local development environments SHALL use identical Docker images as CI/CD pipelines to eliminate environment drift and ensure that code tested locally behaves identically in automated builds.
 
@@ -178,7 +178,7 @@ T. Documentation SHALL include secret rotation procedures.
 
 # REQ-d00059: Development Tool Specifications
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00041| **Status**: Draft
 
 Development environments SHALL include specific tool versions selected for stability, long-term support, and compatibility with FDA validation requirements, with each tool version justified and documented.
 
@@ -234,7 +234,7 @@ Tool specifications SHALL include:
 
 # REQ-d00060: VS Code Dev Containers Integration
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: d00027| **Status**: Draft
 
 Development environments SHALL provide VS Code Dev Containers configuration enabling developers to open projects directly in containerized environments with one click, with role-specific extensions and settings pre-configured.
 
@@ -264,7 +264,7 @@ Dev Containers SHALL provide:
 
 # REQ-d00061: Automated QA Workflow
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00052| **Status**: Draft
 
 Development environments SHALL include automated quality assurance workflows that execute Flutter and Playwright tests on pull requests, generate PDF reports, integrate with GitHub Checks, and maintain artifact retention policies.
 
@@ -406,7 +406,7 @@ I. Deprecation notices SHALL be provided at least 90 days before environment ver
 
 # REQ-d00063: Shared Workspace and File Exchange
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: d00027| **Status**: Draft
 
 Development environments SHALL provide shared Docker volumes for code repositories and a designated exchange volume for transferring files between roles, without exposing host file system internals or creating platform-specific path issues.
 

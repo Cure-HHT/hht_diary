@@ -9,7 +9,7 @@
 
 # REQ-d00064: Plugin JSON Validation Tooling
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00013| **Status**: Draft
 
 ## Overview
 
@@ -225,7 +225,7 @@ Path validation tooling for Claude Code plugin configuration files to verify tha
 
 # REQ-d00067: Streamlined Ticket Creation Agent
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00017| **Status**: Draft
 
 ## Overview
 
@@ -292,7 +292,7 @@ Intelligent, context-aware ticket creation agent that reduces manual steps and e
 
 # REQ-d00068: Enhanced Workflow New Work Detection
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00017| **Status**: Draft
 
 ## Overview
 

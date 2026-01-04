@@ -1,6 +1,6 @@
 # REQ-d00069: Dev Container Detection and Warnings
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: d00027| **Status**: Draft
 
 ## Overview
 

@@ -294,8 +294,9 @@ G. The system SHALL report monthly uptime metrics to each sponsor.
 H. The system SHALL automatically notify sponsors when approaching the chronic failure threshold.
 I. The platform SHALL maintain a remediation plan template for chronic failure scenarios.
 J. The system SHALL document escalation contacts per sponsor.
+K. The platform SHALL provide service remedies when uptime commitments are not met, as defined in operational specifications.
 
-*End* *Chronic Failure Escalation* | **Hash**: d7f7597f
+*End* *Chronic Failure Escalation* | **Hash**: 3a07854b
 ---
 
 # REQ-p01038: Regulatory Event Support

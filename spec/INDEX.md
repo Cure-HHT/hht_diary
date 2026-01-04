@@ -28,7 +28,7 @@ This file provides a complete index of all requirements.
 | REQ-p00021 | Architecture Decision Documentation | prd-requirements-management.md | a6a58cac |
 | REQ-p00022 | Analyst Read-Only Access | prd-security-RLS.md | e0c5d1bf |
 | REQ-p00023 | Sponsor Global Data Access | prd-security-RLS.md | 5a7a105f |
-| REQ-p00024 | Portal User Roles and Permissions | prd-portal.md | 6e91a35c |
+| REQ-p00024 | Portal User Roles and Permissions | prd-portal.md | 9fed6800 |
 | REQ-p00025 | Patient Enrollment Workflow | prd-portal.md | 62a86445 |
 | REQ-p00026 | Patient Monitoring Dashboard | prd-portal.md | 074525bb |
 | REQ-p00027 | Questionnaire Management | prd-portal.md | 8644b9aa |
@@ -45,14 +45,14 @@ This file provides a complete index of all requirements.
 | REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | caa9ec6d |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | 83459af7 |
 | REQ-p00045 | Sponsor Portal Application | prd-portal.md | 0df6d1e4 |
-| REQ-p00046 | Clinical Data Storage System | prd-database.md | 583cd3da |
+| REQ-p00046 | Clinical Data Storage System | prd-database.md | 19625356 |
 | REQ-p00047 | Data Backup and Archival | prd-backup.md | 88006e73 |
 | REQ-p00048 | Platform Operations and Monitoring | prd-devops.md | 54f66258 |
 | REQ-p00049 | Ancillary Platform Services | prd-services.md | cb9bb123 |
 | REQ-p00050 | Temporal Entry Validation | prd-diary-app.md | 1b811708 |
 | REQ-p01000 | Event Sourcing Client Interface | prd-event-sourcing-system.md | a2659668 |
 | REQ-p01001 | Offline Event Queue with Automatic Synchronization | prd-event-sourcing-system.md | 71ae0996 |
-| REQ-p01002 | Optimistic Concurrency Control | prd-event-sourcing-system.md | c7d96051 |
+| REQ-p01002 | Optimistic Concurrency Control | prd-event-sourcing-system.md | c23d60b0 |
 | REQ-p01003 | Immutable Event Storage with Audit Trail | prd-event-sourcing-system.md | bbd8203e |
 | REQ-p01004 | Schema Version Management | prd-event-sourcing-system.md | 5c270dbb |
 | REQ-p01005 | Real-time Event Subscription | prd-event-sourcing-system.md | 80ad09e2 |
@@ -87,7 +87,7 @@ This file provides a complete index of all requirements.
 | REQ-p01034 | Root Cause Analysis | prd-SLA.md | 69a5318a |
 | REQ-p01035 | Corrective and Preventive Action | prd-SLA.md | 23046f23 |
 | REQ-p01036 | Data Recovery Guarantee | prd-SLA.md | 0224912a |
-| REQ-p01037 | Chronic Failure Escalation | prd-SLA.md | d7f7597f |
+| REQ-p01037 | Chronic Failure Escalation | prd-SLA.md | 3a07854b |
 | REQ-p01038 | Regulatory Event Support | prd-SLA.md | 64f84d80 |
 | REQ-p01039 | Diary Start Day Definition | prd-diary-app.md | 92fbaa8d |
 | REQ-p01040 | Calendar Visual Indicators for Entry Status | prd-diary-app.md | 13bc322c |
@@ -107,16 +107,18 @@ This file provides a complete index of all requirements.
 | REQ-p01054 | Complete Infrastructure Isolation Per Sponsor | prd-architecture-multi-sponsor.md | 50003dac |
 | REQ-p01055 | Sponsor Confidentiality | prd-architecture-multi-sponsor.md | 14fed63e |
 | REQ-p01056 | Confidentiality Sufficiency | prd-architecture-multi-sponsor.md | 7822e4ed |
-| REQ-p01057 | Mono Repository with Sponsor Repositories | prd-architecture-multi-sponsor.md | bb25f80c |
+| REQ-p01057 | Mono Repository with Sponsor Repositories | prd-architecture-multi-sponsor.md | 41c4d680 |
 | REQ-p01058 | Unified App Deployment | prd-architecture-multi-sponsor.md | e71aff32 |
 | REQ-p01059 | Customization Policy | prd-architecture-multi-sponsor.md | 0d5c9cdd |
 | REQ-p01060 | UX Changes During Trials | prd-architecture-multi-sponsor.md | f44c1d75 |
-| REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | 1928e7db |
+| REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
 | REQ-p01063 | Epistaxis Daily Status Capture | prd-epistaxis-terminology.md | 12d00c64 |
 | REQ-p01064 | Epistaxis Event Timing | prd-epistaxis-terminology.md | 1d8e291a |
 | REQ-p01065 | Epistaxis Intensity Classification | prd-epistaxis-terminology.md | 4381765a |
 | REQ-p01066 | Epistaxis Notes and Context | prd-epistaxis-terminology.md | 9c24e2a0 |
+| REQ-p01067 | Clinical Site Management | prd-portal.md | ecf462ab |
+| REQ-p01068 | Sponsor-Defined Questionnaire Schemas | prd-event-sourcing-system.md | 8d47fd08 |
 
 ## Operations Requirements (OPS)
 
@@ -165,7 +167,7 @@ This file provides a complete index of all requirements.
 | REQ-o00057 | Automated Uptime Monitoring | ops-SLA.md | 3d0a47f6 |
 | REQ-o00058 | On-Call Automation | ops-SLA.md | 2a99b2cc |
 | REQ-o00059 | Automated Status Page | ops-SLA.md | 5645788d |
-| REQ-o00060 | SLA Reporting Automation | ops-SLA.md | 96e29719 |
+| REQ-o00060 | SLA Reporting Automation | ops-SLA.md | 4e49c4c5 |
 | REQ-o00061 | Incident Classification Automation | ops-SLA.md | c22e84e1 |
 | REQ-o00062 | RCA and CAPA Workflow | ops-SLA.md | 2d9df605 |
 | REQ-o00063 | Error Budget Alerting | ops-SLA.md | 1d760fd6 |
