@@ -128,16 +128,6 @@ Examples:
         action='store_true',
         help='Use tools/build/resolve-sponsors.sh to discover associated repos'
     )
-    parser.add_argument(
-        '--check-duplicates',
-        action='store_true',
-        help='Check for duplicate REQ definitions across files and exit with error if found'
-    )
-    parser.add_argument(
-        '--skip-duplicate-check',
-        action='store_true',
-        help='Skip the automatic duplicate REQ check (runs by default)'
-    )
 
     return parser
 
@@ -302,28 +292,6 @@ def main():
     if not spec_dir.exists():
         print(f"❌ Spec directory not found: {spec_dir}")
         sys.exit(1)
-
-    # Check for duplicate REQ definitions
-    from .validation import find_duplicate_req_definitions, validate_no_duplicate_reqs
-
-    if args.check_duplicates:
-        # Standalone duplicate check mode - just check and exit
-        print("🔍 Checking for duplicate REQ definitions...")
-        if validate_no_duplicate_reqs(spec_dir):
-            sys.exit(0)
-        else:
-            sys.exit(1)
-
-    if not args.skip_duplicate_check:
-        # Run duplicate check as part of normal flow (warning only)
-        duplicates = find_duplicate_req_definitions(spec_dir)
-        if duplicates:
-            print(f"⚠️  Warning: Found {len(duplicates)} REQ ID(s) defined in multiple files:")
-            for dup in duplicates:
-                files = ', '.join(f"{path}" for path, _ in dup.locations)
-                print(f"   REQ-{dup.req_id}: {files}")
-            print("   Use --check-duplicates for details or --skip-duplicate-check to suppress")
-            print()
 
     # Get implementation directories
     impl_dirs = get_impl_dirs(
