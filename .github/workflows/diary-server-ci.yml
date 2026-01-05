@@ -65,13 +65,19 @@ jobs:
         with:
           sdk: stable
 
-      - name: Install dependencies
-        working-directory: apps/diaryserver/diary_server
-        run: |
-          dart pub get --directory=../diary_functions
-          dart pub get
+      - name: Install dependencies (diary_functions)
+        working-directory: apps/diaryserver/diary_functions
+        run: dart pub get
 
-      - name: Run unit tests
+      - name: Install dependencies (diary_server)
+        working-directory: apps/diaryserver/diary_server
+        run: dart pub get
+
+      - name: Run diary_functions unit tests
+        working-directory: apps/diaryserver/diary_functions
+        run: dart test test/
+
+      - name: Run diary_server unit tests
         working-directory: apps/diaryserver/diary_server
         run: dart test test/
 
@@ -114,13 +120,27 @@ jobs:
         run: |
           psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
 
-      - name: Install dependencies
-        working-directory: apps/diaryserver/diary_server
-        run: |
-          dart pub get --directory=../diary_functions
-          dart pub get
+      - name: Install dependencies (diary_functions)
+        working-directory: apps/diaryserver/diary_functions
+        run: dart pub get
 
-      - name: Run integration tests
+      - name: Install dependencies (diary_server)
+        working-directory: apps/diaryserver/diary_server
+        run: dart pub get
+
+      - name: Run diary_functions integration tests
+        working-directory: apps/diaryserver/diary_functions
+        env:
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: sponsor_portal
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL: 'false'
+          JWT_SECRET: test-jwt-secret-for-ci
+        run: dart test integration_test/
+
+      - name: Run diary_server integration tests
         working-directory: apps/diaryserver/diary_server
         env:
           DB_HOST: localhost
