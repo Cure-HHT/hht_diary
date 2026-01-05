@@ -61,7 +61,9 @@ window.ReviewSystem = window.ReviewSystem || {};
                 <div class="rs-thread-header">
                     <div class="rs-thread-meta">
                         <span class="rs-position-label ${confidenceClass}"
-                              title="Click to highlight in REQ">
+                              data-thread-id="${thread.threadId}"
+                              data-position-type="${thread.position?.type || 'general'}"
+                              title="Click to highlight in REQ (click again to clear)">
                             ${getPositionIcon(thread)} ${getPositionLabel(thread)}
                         </span>
                         ${resolvedBadge}
@@ -200,9 +202,31 @@ window.ReviewSystem = window.ReviewSystem || {};
         return html;
     }
 
+    /**
+     * Get CSS class based on resolved position confidence
+     * @param {Thread} thread - Thread object
+     * @returns {string} CSS class for confidence styling
+     */
     function getConfidenceClass(thread) {
-        // This would be set based on resolved position confidence
-        // For now, return empty
+        // If thread has a resolved position with confidence, use it
+        if (thread.resolvedPosition && thread.resolvedPosition.confidence) {
+            const confidence = thread.resolvedPosition.confidence;
+            if (confidence === RS.Confidence.EXACT || confidence === 'exact') {
+                return 'rs-confidence-exact';
+            } else if (confidence === RS.Confidence.APPROXIMATE || confidence === 'approximate') {
+                return 'rs-confidence-approximate';
+            } else if (confidence === RS.Confidence.UNANCHORED || confidence === 'unanchored') {
+                return 'rs-confidence-unanchored';
+            }
+        }
+        // Fallback: infer from position type
+        if (thread.position) {
+            if (thread.position.type === RS.PositionType.GENERAL) {
+                return 'rs-confidence-unanchored';
+            }
+            // If position has specific location data, assume exact until resolved
+            return 'rs-confidence-exact';
+        }
         return '';
     }
 
@@ -495,22 +519,70 @@ window.ReviewSystem = window.ReviewSystem || {};
             threadEl.addEventListener('mouseleave', () => {
                 RS.activateHighlight(null);
             });
+        });
 
-            // Click to highlight position in REQ card
-            threadEl.addEventListener('click', (e) => {
-                // Don't trigger if clicking on buttons or reply form
-                if (e.target.closest('button') || e.target.closest('.rs-reply-form') ||
-                    e.target.closest('textarea') || e.target.closest('input')) {
-                    return;
+        // Position label click handler with toggle behavior
+        container.querySelectorAll('.rs-position-label').forEach(label => {
+            label.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent thread click handler
+
+                const threadId = label.getAttribute('data-thread-id');
+                const isActive = label.classList.contains('rs-position-active');
+
+                // Clear all active position labels
+                container.querySelectorAll('.rs-position-label.rs-position-active').forEach(l => {
+                    l.classList.remove('rs-position-active');
+                });
+
+                if (isActive) {
+                    // Toggle off - clear highlights
+                    clearAllPositionHighlights(container);
+                } else {
+                    // Toggle on - highlight position
+                    label.classList.add('rs-position-active');
+                    highlightThreadPositionInCard(threadId, container);
                 }
-                const threadId = threadEl.getAttribute('data-thread-id');
-                highlightThreadPositionInCard(threadId, container);
             });
         });
     }
 
     /**
+     * Get highlight class based on thread's resolved position confidence
+     * IMPLEMENTS REQUIREMENTS:
+     *   REQ-d00092: HTML Report Integration
+     *   REQ-d00087: Position Resolution with Fallback
+     *
+     * @param {Thread} thread - Thread object
+     * @returns {string} CSS class for highlight style
+     */
+    function getHighlightClassForThread(thread) {
+        // Check resolved position confidence first
+        if (thread.resolvedPosition && thread.resolvedPosition.confidence) {
+            const confidence = thread.resolvedPosition.confidence;
+            if (confidence === RS.Confidence.EXACT || confidence === 'exact') {
+                return 'rs-highlight-exact';
+            } else if (confidence === RS.Confidence.APPROXIMATE || confidence === 'approximate') {
+                return 'rs-highlight-approximate';
+            } else if (confidence === RS.Confidence.UNANCHORED || confidence === 'unanchored') {
+                return 'rs-highlight-unanchored';
+            }
+        }
+        // Fallback based on position type
+        if (thread.position) {
+            if (thread.position.type === RS.PositionType.GENERAL) {
+                return 'rs-highlight-unanchored';
+            }
+        }
+        // Default to exact for specific positions
+        return 'rs-highlight-exact';
+    }
+
+    /**
      * Highlight the position referenced by a thread in the REQ card
+     * IMPLEMENTS REQUIREMENTS:
+     *   REQ-d00092: HTML Report Integration
+     *   REQ-d00087: Position Resolution with Fallback
+     *
      * @param {string} threadId - Thread ID
      * @param {Element} container - Container element
      */
@@ -539,6 +611,9 @@ window.ReviewSystem = window.ReviewSystem || {};
         // Clear any existing highlights
         clearCommentHighlights(lineContainer);
 
+        // Determine highlight class based on confidence
+        const highlightClass = getHighlightClassForThread(thread);
+
         // Highlight based on position type
         let linesToHighlight = [];
 
@@ -563,7 +638,11 @@ window.ReviewSystem = window.ReviewSystem || {};
                 }
             }
         }
-        // For 'general' position, no specific lines to highlight
+        // For 'general' position, highlight whole REQ card with unanchored style
+        if (position.type === RS.PositionType.GENERAL) {
+            reqCard.classList.add('rs-highlight-unanchored');
+            return;
+        }
 
         // Apply highlights and scroll to first highlighted line
         if (linesToHighlight.length > 0) {
@@ -571,7 +650,10 @@ window.ReviewSystem = window.ReviewSystem || {};
             linesToHighlight.forEach(lineNum => {
                 const lineRow = lineContainer.querySelector(`.rs-line-row[data-line="${lineNum}"]`);
                 if (lineRow) {
+                    // Add confidence-specific highlight class
+                    lineRow.classList.add(highlightClass);
                     lineRow.classList.add('rs-comment-highlight');
+                    lineRow.setAttribute('data-highlight-thread', threadId);
                     if (!firstRow) firstRow = lineRow;
                 }
             });
@@ -585,13 +667,50 @@ window.ReviewSystem = window.ReviewSystem || {};
     RS.highlightThreadPositionInCard = highlightThreadPositionInCard;
 
     /**
+     * Clear all position highlights from the REQ card
+     * @param {Element} container - Container element
+     */
+    function clearAllPositionHighlights(container) {
+        // Get the reqId
+        const reqId = container.querySelector('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.closest('[data-req-id]')?.getAttribute('data-req-id') ||
+                      container.getAttribute('data-req-id') ||
+                      (typeof currentReviewReqId !== 'undefined' ? currentReviewReqId : null);
+
+        if (!reqId) return;
+
+        // Find the REQ card
+        const reqCard = document.getElementById(`req-card-${reqId}`);
+        if (!reqCard) return;
+
+        // Remove unanchored highlight from whole card
+        reqCard.classList.remove('rs-highlight-unanchored');
+
+        const lineContainer = reqCard.querySelector('.rs-lines-table');
+        if (lineContainer) {
+            clearCommentHighlights(lineContainer);
+        }
+    }
+    RS.clearAllPositionHighlights = clearAllPositionHighlights;
+
+    /**
      * Clear comment highlights from line container
+     * Removes all highlight classes: comment-highlight and confidence-based classes
      * @param {Element} lineContainer - The lines table element
      */
     function clearCommentHighlights(lineContainer) {
         if (!lineContainer) return;
-        lineContainer.querySelectorAll('.rs-comment-highlight').forEach(el => {
-            el.classList.remove('rs-comment-highlight');
+        // Clear all highlight classes
+        const allHighlightClasses = [
+            'rs-comment-highlight',
+            'rs-highlight-exact',
+            'rs-highlight-approximate',
+            'rs-highlight-unanchored',
+            'rs-highlight-active'
+        ];
+        lineContainer.querySelectorAll('[class*="rs-highlight"], .rs-comment-highlight').forEach(el => {
+            allHighlightClasses.forEach(cls => el.classList.remove(cls));
+            el.removeAttribute('data-highlight-thread');
         });
     }
     RS.clearCommentHighlights = clearCommentHighlights;
