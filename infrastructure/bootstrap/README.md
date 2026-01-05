@@ -12,16 +12,16 @@ This Pulumi project creates the foundational GCP infrastructure for onboarding n
 
 For each new sponsor, this bootstrap creates:
 
-| Resource | Count | Description |
-| -------- | ----- | ----------- |
-| GCP Projects | 4 | `{prefix}-{sponsor}-dev`, `{prefix}-{sponsor}-qa`, `{prefix}-{sponsor}-uat`, `{prefix}-{sponsor}-prod` |
-| APIs | ~13 per project | Cloud Run, SQL, IAM, Monitoring, etc. |
-| Billing Budgets | 4 | Per-environment budgets with alerts |
-| Service Account | 1 | CI/CD service account for deployments |
-| IAM Bindings | ~28 | Roles for CI/CD across all projects |
-| Workload Identity | 1 pool | GitHub Actions OIDC (optional) |
-| Audit Log Buckets | 4 | 25-year retention for FDA compliance |
-| Audit Log Sinks | 4 | Export Cloud Audit Logs to storage |
+| Resource          | Count           | Description                                                                                            |
+|-------------------|-----------------|--------------------------------------------------------------------------------------------------------|
+| GCP Projects      | 4               | `{prefix}-{sponsor}-dev`, `{prefix}-{sponsor}-qa`, `{prefix}-{sponsor}-uat`, `{prefix}-{sponsor}-prod` |
+| APIs              | ~13 per project | Cloud Run, SQL, IAM, Monitoring, etc.                                                                  |
+| Billing Budgets   | 4               | Per-environment budgets with alerts                                                                    |
+| Service Account   | 1               | CI/CD service account for deployments                                                                  |
+| IAM Bindings      | ~28             | Roles for CI/CD across all projects                                                                    |
+| Workload Identity | 1 pool          | GitHub Actions OIDC (optional)                                                                         |
+| Audit Log Buckets | 4               | 25-year retention for FDA compliance                                                                   |
+| Audit Log Sinks   | 4               | Export Cloud Audit Logs to storage                                                                     |
 
 ## Prerequisites
 
