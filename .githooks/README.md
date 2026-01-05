@@ -59,7 +59,7 @@ git push --no-verify
 
 **Requirements**:
 
-- `elspais` CLI for requirement validation (primary): `pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0`
+- `elspais` CLI for requirement validation (primary): `pip install git+https://github.com/Anspar-Org/elspais.git@v0.9.3`
 - `gh` CLI for PR detection: <https://cli.github.com/>
 - `jq` for JSON parsing (used with gh CLI)
 - Python 3.8+ for validation scripts (fallback if elspais not available)

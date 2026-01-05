@@ -1,8 +1,9 @@
 # Elspais Missing Capabilities Report
 
 **Created**: 2026-01-01
+**Updated**: 2026-01-05
 **Context**: CUR-514 - Migration from local `tools/requirements/` scripts to elspais CLI
-**elspais Version**: 0.4.0
+**elspais Version**: 0.9.3
 
 ## Overview
 

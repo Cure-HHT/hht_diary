@@ -305,7 +305,7 @@ bash --version
 
 ### elspais - Requirement Validation CLI
 
-**Minimum version**: 0.3.0
+**Minimum version**: 0.9.3
 
 **Purpose**: Primary tool for requirement validation and traceability management
 
@@ -320,7 +320,7 @@ elspais is the main CLI tool for:
 **All platforms** (via pip):
 ```bash
 # Install from GitHub (pinned version)
-pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0
+pip install git+https://github.com/Anspar-Org/elspais.git@v0.9.3
 
 # Verify installation
 elspais --version
@@ -350,7 +350,7 @@ Local Python scripts in `tools/requirements/` remain available as fallback if el
 
 **Verification**:
 ```bash
-elspais --version        # Should be 0.3.0 or higher
+elspais --version        # Should be 0.9.3 or higher
 elspais validate --help  # Show validation options
 ```
 
@@ -727,7 +727,7 @@ gcloud secrets versions access latest --secret=SECRET_NAME
 brew install git python@3.12 node@20 jq yq gh doppler gitleaks lcov google-cloud-sdk
 
 # Install elspais (requirement validation CLI)
-pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0
+pip install git+https://github.com/Anspar-Org/elspais.git@v0.9.3
 
 # Verify installations
 git --version
@@ -788,7 +788,7 @@ sudo mv gitleaks-linux-x64 /usr/local/bin/gitleaks
 sudo apt-get install -y lcov
 
 # Install elspais (requirement validation CLI)
-pip install git+https://github.com/Anspar-Org/elspais.git@v0.3.0
+pip install git+https://github.com/Anspar-Org/elspais.git@v0.9.3
 
 # Install gcloud CLI
 echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
