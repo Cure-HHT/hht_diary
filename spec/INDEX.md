@@ -159,9 +159,9 @@ This file provides a complete index of all requirements.
 | REQ-o00049 | Artifact Retention and Archival | ops-artifact-management.md | 657b1be8 |
 | REQ-o00050 | Environment Parity and Separation | ops-artifact-management.md | 6e251c7f |
 | REQ-o00051 | Change Control and Audit Trail | ops-artifact-management.md | 245582fc |
-| REQ-o00052 | CI/CD Pipeline for Requirement Traceability | ops-cicd.md | 3d8981f4 |
-| REQ-o00053 | Branch Protection Enforcement | ops-cicd.md | d714ab83 |
-| REQ-o00054 | Audit Trail Generation for CI/CD | ops-cicd.md | ed8f0362 |
+| REQ-o00052 | CI/CD Pipeline for Requirement Traceability | ops-cicd.md | 1997bd7f |
+| REQ-o00053 | Branch Protection Enforcement | ops-cicd.md | 6f17c0af |
+| REQ-o00054 | Audit Trail Generation for CI/CD | ops-cicd.md | 501b33ec |
 | REQ-o00055 | Role-Based Visual Indicator Verification | ops-portal.md | 00e842fa |
 | REQ-o00056 | SLO Definition and Tracking | ops-SLA.md | bc5b89e6 |
 | REQ-o00057 | Automated Uptime Monitoring | ops-SLA.md | 3d0a47f6 |
@@ -249,7 +249,6 @@ This file provides a complete index of all requirements.
 | REQ-d00066 | Plugin-Specific Permission Management | dev-marketplace-permissions.md | 0dd52eec |
 | REQ-d00067 | Streamlined Ticket Creation Agent | dev-ai-claude.md | 335415e6 |
 | REQ-d00068 | Enhanced Workflow New Work Detection | dev-ai-claude.md | f5f3570e |
-| REQ-d00069 | Dev Container Detection and Warnings | dev-marketplace-devcontainer-detection.md | 18471ae1 |
 | REQ-d00077 | Web Diary Frontend Framework | dev-diary-web.md | 19d5641f |
 | REQ-d00078 | HHT Diary Auth Service | dev-diary-web.md | 86a881a9 |
 | REQ-d00079 | Linking Code Pattern Matching | dev-diary-web.md | 220d5687 |
