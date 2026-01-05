@@ -18,15 +18,20 @@ import 'package:test/test.dart';
 void main() {
   setUpAll(() async {
     // Initialize database
+    // For local dev, default to no SSL (docker container doesn't support it)
+    final sslEnv = Platform.environment['DB_SSL'];
+    final useSsl = sslEnv == 'true';
+
     final config = DatabaseConfig(
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
       database: Platform.environment['DB_NAME'] ?? 'sponsor_portal',
       username: Platform.environment['DB_USER'] ?? 'postgres',
-      password: Platform.environment['DB_PASSWORD'] ??
+      password:
+          Platform.environment['DB_PASSWORD'] ??
           Platform.environment['LOCAL_DB_PASSWORD'] ??
           'postgres',
-      useSsl: Platform.environment['DB_SSL'] != 'false',
+      useSsl: useSsl,
     );
 
     await Database.instance.initialize(config);
@@ -42,16 +47,16 @@ void main() {
     return jsonDecode(body) as Map<String, dynamic>;
   }
 
-  Request createPostRequest(String path, Map<String, dynamic> body,
-      {Map<String, String>? headers}) {
+  Request createPostRequest(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String>? headers,
+  }) {
     return Request(
       'POST',
       Uri.parse('http://localhost$path'),
       body: jsonEncode(body),
-      headers: {
-        'Content-Type': 'application/json',
-        ...?headers,
-      },
+      headers: {'Content-Type': 'application/json', ...?headers},
     );
   }
 
@@ -278,9 +283,7 @@ void main() {
     });
 
     test('returns 401 without authorization', () async {
-      final request = createPostRequest('/api/v1/user/sync', {
-        'events': [],
-      });
+      final request = createPostRequest('/api/v1/user/sync', {'events': []});
 
       final response = await syncHandler(request);
       expect(response.statusCode, equals(401));
@@ -328,7 +331,7 @@ void main() {
               'client_timestamp': DateTime.now().toIso8601String(),
               'data': {'severity': 2, 'duration_minutes': 10},
               'metadata': {'change_reason': 'Initial entry'},
-            }
+            },
           ],
         },
         headers: {'Authorization': 'Bearer $testAuthToken'},
@@ -355,7 +358,7 @@ void main() {
               'event_id': eventId,
               'event_type': 'create',
               'data': {'test': true},
-            }
+            },
           ],
         },
         headers: {'Authorization': 'Bearer $testAuthToken'},
@@ -374,7 +377,7 @@ void main() {
               'event_id': eventId,
               'event_type': 'create',
               'data': {'test': true},
-            }
+            },
           ],
         },
         headers: {'Authorization': 'Bearer $testAuthToken'},
@@ -395,7 +398,7 @@ void main() {
               'event_id': eventId,
               'event_type': 'nosebleedrecorded',
               'data': {'severity': 3},
-            }
+            },
           ],
         },
         headers: {'Authorization': 'Bearer $testAuthToken'},
@@ -422,7 +425,7 @@ void main() {
               'event_id': eventId,
               'event_type': 'nosebleedupdated',
               'data': {'severity': 4},
-            }
+            },
           ],
         },
         headers: {'Authorization': 'Bearer $testAuthToken'},
@@ -444,11 +447,7 @@ void main() {
         '/api/v1/user/sync',
         {
           'events': [
-            {
-              'event_id': eventId,
-              'event_type': 'nosebleeddeleted',
-              'data': {},
-            }
+            {'event_id': eventId, 'event_type': 'nosebleeddeleted', 'data': {}},
           ],
         },
         headers: {'Authorization': 'Bearer $testAuthToken'},
@@ -538,7 +537,10 @@ void main() {
 
       expect(lastActiveAfter, isNotNull);
       if (lastActiveBefore != null) {
-        expect((lastActiveAfter as DateTime).isAfter(lastActiveBefore as DateTime), isTrue);
+        expect(
+          (lastActiveAfter as DateTime).isAfter(lastActiveBefore as DateTime),
+          isTrue,
+        );
       }
     });
   });

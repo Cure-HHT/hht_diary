@@ -1,6 +1,5 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: Container infrastructure for Cloud Run
-#   REQ-p00013: GDPR compliance - EU-only regions
 #
 # Shelf HTTP server for HHT Diary API
 # Hosts diary_functions as HTTP endpoints

@@ -111,7 +111,9 @@ void main() {
     test('trims whitespace from sponsorId', () async {
       final request = Request(
         'GET',
-        Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=%20curehht%20'),
+        Uri.parse(
+          'http://localhost/api/v1/sponsor/config?sponsorId=%20curehht%20',
+        ),
       );
 
       final response = sponsorConfigHandler(request);
@@ -123,7 +125,9 @@ void main() {
     test('returns default config for unknown sponsor', () async {
       final request = Request(
         'GET',
-        Uri.parse('http://localhost/api/v1/sponsor/config?sponsorId=unknown_sponsor'),
+        Uri.parse(
+          'http://localhost/api/v1/sponsor/config?sponsorId=unknown_sponsor',
+        ),
       );
 
       final response = sponsorConfigHandler(request);

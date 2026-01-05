@@ -10,7 +10,8 @@ import 'package:test/test.dart';
 void main() {
   group('JWT Token Generation', () {
     const testUserId = 'test-user-123';
-    const testAuthCode = 'abc123def456abc123def456abc123def456abc123def456abc123def456abc1';
+    const testAuthCode =
+        'abc123def456abc123def456abc123def456abc123def456abc123def456abc1';
     const testUsername = 'testuser';
 
     test('createJwtToken generates valid 3-part token', () {
@@ -40,10 +41,7 @@ void main() {
     });
 
     test('createJwtToken works without username', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final payload = verifyJwtToken(token);
       expect(payload, isNotNull);
@@ -69,13 +67,11 @@ void main() {
 
   group('JWT Token Verification', () {
     const testUserId = 'test-user-123';
-    const testAuthCode = 'abc123def456abc123def456abc123def456abc123def456abc123def456abc1';
+    const testAuthCode =
+        'abc123def456abc123def456abc123def456abc123def456abc123def456abc1';
 
     test('verifyJwtToken returns payload for valid token', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final payload = verifyJwtToken(token);
 
@@ -92,10 +88,7 @@ void main() {
     });
 
     test('verifyJwtToken returns null for tampered signature', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final parts = token.split('.');
       final tamperedToken = '${parts[0]}.${parts[1]}.invalid_signature';
@@ -104,10 +97,7 @@ void main() {
     });
 
     test('verifyJwtToken returns null for tampered payload', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final parts = token.split('.');
       // Modify payload
@@ -139,13 +129,11 @@ void main() {
 
   group('Auth Header Verification', () {
     const testUserId = 'test-user-123';
-    const testAuthCode = 'abc123def456abc123def456abc123def456abc123def456abc123def456abc1';
+    const testAuthCode =
+        'abc123def456abc123def456abc123def456abc123def456abc123def456abc1';
 
     test('verifyAuthHeader extracts token from Bearer header', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final payload = verifyAuthHeader('Bearer $token');
       expect(payload, isNotNull);
@@ -153,10 +141,7 @@ void main() {
     });
 
     test('verifyAuthHeader is case-sensitive for Bearer', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       // Only "Bearer " with capital B is valid
       expect(verifyAuthHeader('bearer $token'), isNull);
@@ -164,10 +149,7 @@ void main() {
     });
 
     test('verifyAuthHeader returns null for missing prefix', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       expect(verifyAuthHeader(token), isNull);
     });

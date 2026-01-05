@@ -293,9 +293,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/auth/login'),
-        body: jsonEncode({
-          'username': 'testuser',
-        }),
+        body: jsonEncode({'username': 'testuser'}),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -310,10 +308,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse('http://localhost/api/v1/auth/login'),
-        body: jsonEncode({
-          'username': 'testuser',
-          'passwordHash': '',
-        }),
+        body: jsonEncode({'username': 'testuser', 'passwordHash': ''}),
         headers: {'Content-Type': 'application/json'},
       );
 

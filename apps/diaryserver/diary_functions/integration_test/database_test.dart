@@ -18,15 +18,20 @@ void main() {
 
   setUpAll(() async {
     // Get database configuration from environment
+    // For local dev, default to no SSL (docker container doesn't support it)
+    final sslEnv = Platform.environment['DB_SSL'];
+    final useSsl = sslEnv == 'true';
+
     config = DatabaseConfig(
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
       database: Platform.environment['DB_NAME'] ?? 'sponsor_portal',
       username: Platform.environment['DB_USER'] ?? 'postgres',
-      password: Platform.environment['DB_PASSWORD'] ??
+      password:
+          Platform.environment['DB_PASSWORD'] ??
           Platform.environment['LOCAL_DB_PASSWORD'] ??
           'postgres',
-      useSsl: Platform.environment['DB_SSL'] != 'false',
+      useSsl: useSsl,
     );
 
     await Database.instance.initialize(config);
@@ -88,71 +93,61 @@ void main() {
 
   group('Database Schema Verification', () {
     test('app_users table exists', () async {
-      final result = await Database.instance.execute(
-        '''
+      final result = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
           AND table_name = 'app_users'
         ) as exists
-        ''',
-      );
+        ''');
 
       expect(result.first[0], isTrue);
     });
 
     test('study_enrollments table exists', () async {
-      final result = await Database.instance.execute(
-        '''
+      final result = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
           AND table_name = 'study_enrollments'
         ) as exists
-        ''',
-      );
+        ''');
 
       expect(result.first[0], isTrue);
     });
 
     test('record_audit table exists', () async {
-      final result = await Database.instance.execute(
-        '''
+      final result = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
           AND table_name = 'record_audit'
         ) as exists
-        ''',
-      );
+        ''');
 
       expect(result.first[0], isTrue);
     });
 
     test('record_state table exists', () async {
-      final result = await Database.instance.execute(
-        '''
+      final result = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
           AND table_name = 'record_state'
         ) as exists
-        ''',
-      );
+        ''');
 
       expect(result.first[0], isTrue);
     });
 
     test('sites table exists', () async {
-      final result = await Database.instance.execute(
-        '''
+      final result = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
           AND table_name = 'sites'
         ) as exists
-        ''',
-      );
+        ''');
 
       expect(result.first[0], isTrue);
     });
@@ -222,10 +217,7 @@ void main() {
         SET password_hash = @newPasswordHash, updated_at = now()
         WHERE user_id = @userId
         ''',
-        parameters: {
-          'userId': testUserId,
-          'newPasswordHash': newPasswordHash,
-        },
+        parameters: {'userId': testUserId, 'newPasswordHash': newPasswordHash},
       );
 
       // Verify update
@@ -314,14 +306,12 @@ void main() {
       expect(result.isEmpty, isTrue);
 
       // Verify table still exists
-      final tableCheck = await Database.instance.execute(
-        '''
+      final tableCheck = await Database.instance.execute('''
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_name = 'app_users'
         )
-        ''',
-      );
+        ''');
       expect(tableCheck.first[0], isTrue);
     });
 

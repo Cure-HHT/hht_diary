@@ -18,15 +18,20 @@ import 'package:test/test.dart';
 void main() {
   setUpAll(() async {
     // Initialize database
+    // For local dev, default to no SSL (docker container doesn't support it)
+    final sslEnv = Platform.environment['DB_SSL'];
+    final useSsl = sslEnv == 'true';
+
     final config = DatabaseConfig(
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
       database: Platform.environment['DB_NAME'] ?? 'sponsor_portal',
       username: Platform.environment['DB_USER'] ?? 'postgres',
-      password: Platform.environment['DB_PASSWORD'] ??
+      password:
+          Platform.environment['DB_PASSWORD'] ??
           Platform.environment['LOCAL_DB_PASSWORD'] ??
           'postgres',
-      useSsl: Platform.environment['DB_SSL'] != 'false',
+      useSsl: useSsl,
     );
 
     await Database.instance.initialize(config);
@@ -42,16 +47,16 @@ void main() {
     return jsonDecode(body) as Map<String, dynamic>;
   }
 
-  Request createPostRequest(String path, Map<String, dynamic> body,
-      {Map<String, String>? headers}) {
+  Request createPostRequest(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String>? headers,
+  }) {
     return Request(
       'POST',
       Uri.parse('http://localhost$path'),
       body: jsonEncode(body),
-      headers: {
-        'Content-Type': 'application/json',
-        ...?headers,
-      },
+      headers: {'Content-Type': 'application/json', ...?headers},
     );
   }
 
@@ -136,7 +141,8 @@ void main() {
     });
 
     test('accepts username with underscore', () async {
-      final uniqueUsername = 'test_user_${DateTime.now().millisecondsSinceEpoch}';
+      final uniqueUsername =
+          'test_user_${DateTime.now().millisecondsSinceEpoch}';
       final request = createPostRequest('/api/v1/auth/register', {
         'username': uniqueUsername,
         'passwordHash': testPasswordHash,
@@ -361,10 +367,7 @@ void main() {
     test('rejects invalid new password format', () async {
       final request = createPostRequest(
         '/api/v1/auth/change-password',
-        {
-          'currentPasswordHash': newPasswordHash,
-          'newPasswordHash': 'invalid',
-        },
+        {'currentPasswordHash': newPasswordHash, 'newPasswordHash': 'invalid'},
         headers: {'Authorization': 'Bearer $testAuthToken'},
       );
 

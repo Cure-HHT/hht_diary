@@ -32,7 +32,7 @@ usage() {
     echo "  --no-threshold       Skip coverage threshold checks"
     echo "  -h, --help           Show this help message"
     echo ""
-    echo "If no flags are specified, unit tests coverage is run."
+    echo "If no flags are specified, both unit and integration tests are run."
     echo ""
     echo "Coverage Threshold: ${MIN_COVERAGE}%"
 }
@@ -71,9 +71,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no test flags specified, run unit tests only
+# If no test flags specified, run both unit and integration tests
 if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
     RUN_UNIT=true
+    RUN_INTEGRATION=true
 fi
 
 echo "=============================================="
