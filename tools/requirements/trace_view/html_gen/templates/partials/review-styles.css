@@ -1579,3 +1579,45 @@ body.review-mode-active [data-req-id].not-in-package {
     position: relative;
     z-index: 1999;
 }
+
+/* ============================================
+   Mode Toggle Buttons (Edit/Review)
+   Phase 4.3: Style Edit and Review mode toggle
+   buttons as proper buttons in the title bar.
+   IMPLEMENTS REQUIREMENTS:
+       REQ-d00092: HTML Report Integration
+   ============================================ */
+
+.mode-toggle-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #333;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.mode-toggle-btn:hover {
+    background: #e9ecef;
+    border-color: #ccc;
+}
+
+.mode-toggle-btn.active {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+}
+
+.mode-toggle-btn.active:hover {
+    background: #0052a3;
+}
+
+.mode-toggle-group {
+    display: flex;
+    gap: 8px;
+    margin-left: 20px;
+    border-left: 1px solid #ccc;
+    padding-left: 20px;
+}

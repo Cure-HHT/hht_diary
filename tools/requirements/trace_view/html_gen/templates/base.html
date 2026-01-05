@@ -73,15 +73,15 @@
                 <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
                 <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
                 <span class="filter-stats" id="filterStats"></span>
-                {% if edit_mode %}
-                <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
-                    <button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button>
-                </span>
-                {% endif %}
-                {% if review_mode %}
-                <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
-                    <button class="btn toggle-btn" id="btnReviewMode" onclick="ReviewSystem.toggleReviewMode()">💬 Review Mode</button>
-                </span>
+                {% if edit_mode or review_mode %}
+                <div class="mode-toggle-group">
+                    {% if edit_mode %}
+                    <button class="mode-toggle-btn" id="btnEditMode" onclick="toggleEditMode()">Edit</button>
+                    {% endif %}
+                    {% if review_mode %}
+                    <button class="mode-toggle-btn" id="btnReviewMode" onclick="ReviewSystem.toggleReviewMode()">Review</button>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
             {% endblock %}
