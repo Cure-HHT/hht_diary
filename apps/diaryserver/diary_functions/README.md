@@ -94,6 +94,60 @@ Additional input validation provides defense-in-depth:
 | `DB_SSL`      | Enable SSL         | `true`                        |
 | `JWT_SECRET`  | JWT signing secret | (dev default, change in prod) |
 
+## Testing
+
+### Running Tests Locally
+
+Tests require a PostgreSQL database. Use Doppler to provide credentials:
+
+```bash
+# Run all tests (unit + integration) with coverage
+doppler run -- ./tool/coverage.sh
+
+# Run only unit tests
+doppler run -- ./tool/coverage.sh -u
+
+# Run only integration tests
+doppler run -- ./tool/coverage.sh -i
+```
+
+### Coverage Threshold
+
+The project requires **85% code coverage**. The coverage script will fail if coverage drops below this threshold.
+
+### Test Structure
+
+| Directory           | Description                             | Database Required |
+|---------------------|-----------------------------------------|-------------------|
+| `test/`             | Unit tests (HTTP validation, JWT, etc.) | No                |
+| `integration_test/` | Integration tests (database operations) | Yes               |
+
+### CI/CD
+
+In GitHub Actions, tests run automatically with a PostgreSQL service container. Environment variables are set in the workflow:
+
+```yaml
+env:
+  DB_HOST: localhost
+  DB_PORT: '5432'
+  DB_NAME: sponsor_portal
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  DB_SSL: 'false'
+  JWT_SECRET: test-jwt-secret-for-ci
+```
+
+See `.github/workflows/diary-server-ci.yml` for the full configuration.
+
+### Troubleshooting
+
+**"password authentication failed"**: Run with Doppler to get credentials:
+```bash
+doppler run -- ./tool/coverage.sh
+```
+
+**SSL errors**: The local Docker database doesn't support SSL. The tests default to `DB_SSL=false` when the environment variable is not set to `'true'`.
+
 ## Usage
 
 ```dart
