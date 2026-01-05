@@ -36,7 +36,7 @@ class TestJinja2Environment:
         subdirectory relative to the `html/` module.
         """
         # Get the html module path
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         templates_path = html_path / "templates"
 
@@ -82,7 +82,7 @@ class TestContextRendering:
         REQ-tv-d00001-E: The base template SHALL define the complete HTML
         document structure including DOCTYPE, html, head, and body elements.
         """
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         base_template = html_path / "templates" / "base.html"
 

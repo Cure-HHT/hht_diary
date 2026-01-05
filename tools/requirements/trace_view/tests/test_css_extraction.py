@@ -19,7 +19,7 @@ class TestCSSFileLocation:
         literals to a standalone `styles.css` file located at
         `templates/partials/styles.css`.
         """
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
 
@@ -40,7 +40,7 @@ class TestCSSContent:
         `_generate_code_viewer_css()`, `_generate_legend_modal_css()`,
         and `_generate_file_picker_modal_css()`.
         """
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
 
@@ -73,7 +73,7 @@ class TestCSSValidity:
         REQ-tv-d00002-C: The CSS file SHALL be a valid CSS document that can
         be parsed by standard CSS tools and linters.
         """
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
 
@@ -97,7 +97,7 @@ class TestCSSValidity:
         REQ-tv-d00002-D: The CSS file SHALL be readable by IDEs with proper
         syntax highlighting and autocomplete support.
         """
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
 
@@ -125,7 +125,7 @@ class TestCSSLoading:
             "Generated HTML must contain style tags"
 
         # Should contain actual CSS content
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
         css_content = styles_path.read_text()
@@ -158,7 +158,7 @@ class TestCSSEquivalence:
             ".badge",
         ]
 
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
         css_content = styles_path.read_text()
@@ -205,7 +205,7 @@ class TestCSSFormatting:
         4-space indentation, one property per line, and blank lines
         between rule blocks.
         """
-        import trace_view.html as html_module
+        import trace_view.html_gen as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "styles.css"
 

@@ -12,6 +12,13 @@
         {{ css|safe }}
     </style>
 
+    {# Review mode CSS (conditional) #}
+    {% if review_mode %}
+    <style>
+        {{ review_css|safe }}
+    </style>
+    {% endif %}
+
     {# External libraries for embedded mode (code viewer, markdown) #}
     {% if embed_content %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
@@ -19,7 +26,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
     {% endif %}
 </head>
-<body{% if edit_mode %} class="edit-mode-available"{% endif %}>
+<body{% if edit_mode %} class="edit-mode-available"{% endif %}{% if review_mode %} data-review-mode="true"{% endif %}>
 <div class="app-layout">
     <div class="main-content">
         <div class="container">
@@ -69,6 +76,11 @@
                 {% if edit_mode %}
                 <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
                     <button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button>
+                </span>
+                {% endif %}
+                {% if review_mode %}
+                <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
+                    <button class="btn toggle-btn" id="btnReviewMode" onclick="ReviewSystem.toggleReviewMode()">💬 Review Mode</button>
                 </span>
                 {% endif %}
             </div>
@@ -178,6 +190,27 @@
     </div>
     {% endblock %}
     {% endif %}
+
+    {# Review panel (third column, only in review mode) #}
+    {% if review_mode %}
+    {% block review_panel %}
+    <div id="review-column" class="review-column hidden">
+        <div class="review-resize-handle" id="reviewResizeHandle"></div>
+        <div class="review-panel">
+            <div class="review-panel-header">
+                <span class="review-panel-title">Review Panel</span>
+            </div>
+            <div class="review-panel-content">
+                <div class="review-panel-no-selection">
+                    <div class="icon">💬</div>
+                    <p>Click on a requirement to review it</p>
+                    <p><small>Add comments, request status changes, flag for review</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+    {% endif %}
 </div>
 
 {# JSON data for embedded mode (requirement content) #}
@@ -196,12 +229,36 @@
 {% endblock %}
 {% endif %}
 
+{# Review data (only in review mode) #}
+{% if review_mode %}
+{% block review_data %}
+<script id="review-data" type="application/json">
+{{ review_json_data|safe }}
+</script>
+<script>
+    // Load review data into global scope
+    window.REVIEW_DATA = JSON.parse(document.getElementById('review-data').textContent);
+    // Review API endpoint
+    window.REVIEW_API_URL = '{{ review_api_url|default("/api/reviews") }}';
+</script>
+{% endblock %}
+{% endif %}
+
 {# Main JavaScript functionality #}
 {% block scripts %}
 <script>
     {{ js|safe }}
 </script>
 {% endblock %}
+
+{# Review JavaScript modules (only in review mode) #}
+{% if review_mode %}
+{% block review_scripts %}
+<script>
+    {{ review_js|safe }}
+</script>
+{% endblock %}
+{% endif %}
 
 {# Modals (file picker always included, others only in embedded mode) #}
 {% block modals %}

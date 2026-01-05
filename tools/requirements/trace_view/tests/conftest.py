@@ -218,7 +218,7 @@ def html_generator_class():
     The refactored version will have an 'env' attribute (Jinja2 Environment).
     """
     try:
-        from trace_view.html.generator import HTMLGenerator
+        from trace_view.html_gen.generator import HTMLGenerator
         # Check if this is the refactored version with Jinja2
         # The refactored version will have template-related attributes
         generator = HTMLGenerator.__new__(HTMLGenerator)

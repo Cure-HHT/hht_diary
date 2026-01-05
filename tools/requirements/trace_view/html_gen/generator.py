@@ -78,6 +78,7 @@ class HTMLGenerator:
         self,
         embed_content: bool = False,
         edit_mode: bool = False,
+        review_mode: bool = False,
         use_templates: bool = True
     ) -> str:
         """Generate the complete HTML report.
@@ -85,6 +86,7 @@ class HTMLGenerator:
         Args:
             embed_content: If True, embed full requirement content as JSON
             edit_mode: If True, include edit mode UI elements
+            review_mode: If True, include review mode UI elements
             use_templates: If True, use Jinja2 templates (default: True)
 
         Returns:
@@ -92,7 +94,7 @@ class HTMLGenerator:
         """
         if use_templates:
             try:
-                context = self._build_render_context(embed_content, edit_mode)
+                context = self._build_render_context(embed_content, edit_mode, review_mode)
                 template = self.env.get_template('base.html')
                 return template.render(**context)
             except Exception as e:
@@ -147,10 +149,57 @@ class HTMLGenerator:
             return js_path.read_text()
         return ""
 
+    def _load_review_css(self) -> str:
+        """Load review mode CSS content.
+
+        Loads styles from templates/partials/review-styles.css for embedding
+        in the HTML output when review mode is enabled.
+
+        Returns:
+            CSS content as string, or empty string if file not found.
+        """
+        css_path = Path(__file__).parent / "templates" / "partials" / "review-styles.css"
+        if css_path.exists():
+            return css_path.read_text()
+        return ""
+
+    def _load_review_js(self) -> str:
+        """Load review mode JavaScript content.
+
+        Loads all JS modules from templates/partials/review/ and concatenates them.
+
+        Returns:
+            Combined JavaScript content as string.
+        """
+        js_dir = Path(__file__).parent / "templates" / "partials" / "review"
+        if not js_dir.exists():
+            return ""
+
+        js_parts = []
+        # Load JS files in specific order for dependencies
+        js_files = [
+            "review-data.js",
+            "review-position.js",
+            "review-comments.js",
+            "review-status.js",
+            "review-packages.js",
+            "review-sync.js",
+            "review-help.js",
+            "review-resize.js",
+        ]
+        for filename in js_files:
+            js_path = js_dir / filename
+            if js_path.exists():
+                js_parts.append(f"// ========== {filename} ==========")
+                js_parts.append(js_path.read_text())
+
+        return "\n\n".join(js_parts)
+
     def _build_render_context(
         self,
         embed_content: bool = False,
-        edit_mode: bool = False
+        edit_mode: bool = False,
+        review_mode: bool = False
     ) -> dict:
         """Build the template render context.
 
@@ -159,10 +208,12 @@ class HTMLGenerator:
         Args:
             embed_content: If True, embed full requirement content
             edit_mode: If True, include edit mode UI
+            review_mode: If True, include review mode UI
 
         Returns:
             Dictionary containing template context variables
         """
+        import json as json_module
         by_level = self._count_by_level()
 
         # Collect topics
@@ -180,10 +231,29 @@ class HTMLGenerator:
         if embed_content:
             req_json_data = self._generate_req_json_data()
 
+        # Build review data for review mode
+        review_json_data = ""
+        review_css = ""
+        review_js = ""
+        if review_mode:
+            review_css = self._load_review_css()
+            review_js = self._load_review_js()
+            # Build minimal review data structure
+            review_json_data = json_module.dumps({
+                'threads': {},
+                'flags': {},
+                'requests': {},
+                'config': {
+                    'currentUser': '',
+                    'autoSync': False
+                }
+            })
+
         return {
             # Configuration flags
             'embed_content': embed_content,
             'edit_mode': edit_mode,
+            'review_mode': review_mode,
             'version': self.VERSION,
 
             # Statistics
@@ -210,6 +280,11 @@ class HTMLGenerator:
             # Asset content (CSS/JS loaded from external files)
             'css': self._load_css(),
             'js': self._load_js(),
+
+            # Review mode assets (conditional)
+            'review_css': review_css,
+            'review_js': review_js,
+            'review_json_data': review_json_data,
 
             # Metadata
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M'),
