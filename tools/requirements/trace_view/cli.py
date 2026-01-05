@@ -114,6 +114,11 @@ Examples:
         help='Enable edit mode UI in HTML output'
     )
     parser.add_argument(
+        '--review-mode',
+        action='store_true',
+        help='Enable review mode UI in HTML output (comment threads, status requests)'
+    )
+    parser.add_argument(
         '--export-planning',
         action='store_true',
         help='Generate planning CSV with actionable requirements'
@@ -358,10 +363,12 @@ def main():
         generator.generate(format='markdown', output_file=md_output)
         html_output = md_output.with_suffix('.html')
         generator.generate(format='html', output_file=html_output,
-                          embed_content=args.embed_content, edit_mode=args.edit_mode)
+                          embed_content=args.embed_content, edit_mode=args.edit_mode,
+                          review_mode=args.review_mode)
     else:
         generator.generate(format=args.format, output_file=output_file,
-                          embed_content=args.embed_content, edit_mode=args.edit_mode)
+                          embed_content=args.embed_content, edit_mode=args.edit_mode,
+                          review_mode=args.review_mode)
 
 
 if __name__ == '__main__':

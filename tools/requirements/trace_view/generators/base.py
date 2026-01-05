@@ -70,7 +70,8 @@ class TraceViewGenerator:
         format: str = 'markdown',
         output_file: Optional[Path] = None,
         embed_content: bool = False,
-        edit_mode: bool = False
+        edit_mode: bool = False,
+        review_mode: bool = False
     ):
         """Generate traceability matrix in specified format.
 
@@ -79,6 +80,7 @@ class TraceViewGenerator:
             output_file: Path to write output (default: traceability_matrix.{ext})
             embed_content: If True, embed full requirement content in HTML
             edit_mode: If True, include edit mode UI in HTML output
+            review_mode: If True, include review mode UI in HTML output
         """
         # Initialize git state
         self._init_git_state()
@@ -125,7 +127,7 @@ class TraceViewGenerator:
 
         # Generate content
         if format == 'html':
-            from ..html import HTMLGenerator
+            from ..html_gen.generator import HTMLGenerator
             html_gen = HTMLGenerator(
                 requirements=self.requirements,
                 base_path=self._base_path,
@@ -134,7 +136,11 @@ class TraceViewGenerator:
                 version=self.VERSION,
                 repo_root=self.repo_root
             )
-            content = html_gen.generate(embed_content=embed_content, edit_mode=edit_mode)
+            content = html_gen.generate(
+                embed_content=embed_content,
+                edit_mode=edit_mode,
+                review_mode=review_mode
+            )
         elif format == 'csv':
             content = generate_csv(self.requirements)
         else:
