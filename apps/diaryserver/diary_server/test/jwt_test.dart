@@ -51,10 +51,7 @@ void main() {
     });
 
     test('verifyJwtToken returns null for tampered token', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       // Tamper with the payload
       final parts = token.split('.');
@@ -76,10 +73,7 @@ void main() {
     });
 
     test('verifyAuthHeader extracts token from Bearer header', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final payload = verifyAuthHeader('Bearer $token');
 
@@ -88,10 +82,7 @@ void main() {
     });
 
     test('verifyAuthHeader returns null for missing Bearer prefix', () {
-      final token = createJwtToken(
-        authCode: testAuthCode,
-        userId: testUserId,
-      );
+      final token = createJwtToken(authCode: testAuthCode, userId: testUserId);
 
       final payload = verifyAuthHeader(token);
       expect(payload, isNull);
@@ -123,8 +114,9 @@ void main() {
 
       // UUID format: 8-4-4-4-12
       expect(
-        RegExp(r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$')
-            .hasMatch(userId),
+        RegExp(
+          r'^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$',
+        ).hasMatch(userId),
         isTrue,
       );
     });

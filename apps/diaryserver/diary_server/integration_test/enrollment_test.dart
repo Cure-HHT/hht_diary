@@ -32,7 +32,6 @@ void main() {
 
   group('Enrollment Integration Tests', () {
     late String authToken;
-    late String userId;
     final testUsername = 'enrolltest_${DateTime.now().millisecondsSinceEpoch}';
     const testPasswordHash =
         '5e884898da28047d9166540d34e4b5eb9d06d6b9f7c0c0d3a75a3a75e8e0ab57';
@@ -52,7 +51,6 @@ void main() {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
         authToken = body['jwt'] as String;
-        userId = body['userId'] as String;
       }
     });
 
@@ -66,22 +64,24 @@ void main() {
       expect(response.statusCode, equals(401));
     });
 
-    test('POST /api/v1/user/enroll rejects invalid enrollment code format',
-        () async {
-      final response = await client.post(
-        Uri.parse('${server.baseUrl}/api/v1/user/enroll'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({'code': 'INVALID'}),
-      );
+    test(
+      'POST /api/v1/user/enroll rejects invalid enrollment code format',
+      () async {
+        final response = await client.post(
+          Uri.parse('${server.baseUrl}/api/v1/user/enroll'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+          body: jsonEncode({'code': 'INVALID'}),
+        );
 
-      expect(response.statusCode, equals(400));
+        expect(response.statusCode, equals(400));
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      expect(body['error'], contains('Invalid enrollment code'));
-    });
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        expect(body['error'], contains('Invalid enrollment code'));
+      },
+    );
 
     test('POST /api/v1/user/enroll rejects empty code', () async {
       final response = await client.post(
@@ -176,20 +176,22 @@ void main() {
       expect(response.statusCode, equals(401));
     });
 
-    test('POST /api/v1/user/records returns empty records for new user',
-        () async {
-      final response = await client.post(
-        Uri.parse('${server.baseUrl}/api/v1/user/records'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-      );
+    test(
+      'POST /api/v1/user/records returns empty records for new user',
+      () async {
+        final response = await client.post(
+          Uri.parse('${server.baseUrl}/api/v1/user/records'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+        );
 
-      expect(response.statusCode, equals(200));
+        expect(response.statusCode, equals(200));
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      expect(body['records'], isA<List>());
-    });
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        expect(body['records'], isA<List>());
+      },
+    );
   });
 }

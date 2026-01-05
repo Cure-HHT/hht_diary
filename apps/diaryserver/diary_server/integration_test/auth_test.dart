@@ -9,7 +9,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
@@ -226,9 +225,7 @@ void main() {
 
   group('Health Check', () {
     test('GET /health returns ok status', () async {
-      final response = await client.get(
-        Uri.parse('${server.baseUrl}/health'),
-      );
+      final response = await client.get(Uri.parse('${server.baseUrl}/health'));
 
       expect(response.statusCode, equals(200));
 
