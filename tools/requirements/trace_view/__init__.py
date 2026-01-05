@@ -35,3 +35,10 @@ from .scanning import scan_implementation_files
 
 # Generator
 from .generators import TraceViewGenerator
+
+# Validation
+from .validation import (
+    DuplicateReq,
+    find_duplicate_req_definitions,
+    validate_no_duplicate_reqs,
+)

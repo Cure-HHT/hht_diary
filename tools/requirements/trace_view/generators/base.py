@@ -20,7 +20,7 @@ from ..git_state import (
     set_git_modified_files,
 )
 from ..scanning import scan_implementation_files
-from ..coverage import calculate_coverage, generate_coverage_report
+from ..coverage import calculate_coverage, generate_coverage_report, get_implementation_status
 from .csv import generate_csv, generate_planning_csv
 from .markdown import generate_markdown
 
@@ -230,7 +230,24 @@ class TraceViewGenerator:
 
     def _generate_planning_csv(self) -> str:
         """Generate planning CSV with actionable requirements."""
-        return generate_planning_csv(self.requirements)
+        # Create callback functions that close over self.requirements
+        get_status = lambda req_id: get_implementation_status(self.requirements, req_id)
+        calc_coverage = lambda req_id: calculate_coverage(self.requirements, req_id)
+        return generate_planning_csv(self.requirements, get_status, calc_coverage)
+
+    def _scan_implementation_files(self):
+        """Scan implementation files for requirement references.
+
+        This method wraps the scanning function for use by CLI and other callers.
+        """
+        if self.impl_dirs:
+            scan_implementation_files(
+                self.requirements,
+                self.impl_dirs,
+                self.repo_root,
+                self.mode,
+                self.sponsor
+            )
 
     def _generate_coverage_report(self) -> str:
         """Generate coverage report showing implementation status."""
