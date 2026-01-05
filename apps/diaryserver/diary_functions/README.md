@@ -1,12 +1,11 @@
 # Diary Functions
 
-Dart library containing business logic for the HHT Diary API, converted from TypeScript Firebase Cloud Functions.
+Dart library containing business logic for the HHT Diary API.
 
 ## Requirements Implemented
 
 - REQ-d00005: Sponsor Configuration Detection Implementation
 - REQ-p00008: User Account Management
-- REQ-p00013: GDPR compliance - EU-only regions
 - REQ-p00004: Immutable Audit Trail via Event Sourcing
 
 ## Architecture
@@ -33,16 +32,16 @@ Dart library containing business logic for the HHT Diary API, converted from Typ
 
 ### Handlers
 
-| Endpoint | Handler | Description |
-|----------|---------|-------------|
-| GET /health | `healthHandler` | Cloud Run health check |
-| POST /api/v1/auth/register | `registerHandler` | Create new user account |
-| POST /api/v1/auth/login | `loginHandler` | Authenticate user |
-| POST /api/v1/auth/change-password | `changePasswordHandler` | Update password |
-| POST /api/v1/user/enroll | `enrollHandler` | Enroll in clinical study |
-| POST /api/v1/user/sync | `syncHandler` | Sync events to record_audit |
-| POST /api/v1/user/records | `getRecordsHandler` | Get current record state |
-| GET /api/v1/sponsor/config | `sponsorConfigHandler` | Get sponsor feature flags |
+| Endpoint                          | Handler                 | Description                 |
+|-----------------------------------|-------------------------|-----------------------------|
+| GET /health                       | `healthHandler`         | Cloud Run health check      |
+| POST /api/v1/auth/register        | `registerHandler`       | Create new user account     |
+| POST /api/v1/auth/login           | `loginHandler`          | Authenticate user           |
+| POST /api/v1/auth/change-password | `changePasswordHandler` | Update password             |
+| POST /api/v1/user/enroll          | `enrollHandler`         | Enroll in clinical study    |
+| POST /api/v1/user/sync            | `syncHandler`           | Sync events to record_audit |
+| POST /api/v1/user/records         | `getRecordsHandler`     | Get current record state    |
+| GET /api/v1/sponsor/config        | `sponsorConfigHandler`  | Get sponsor feature flags   |
 
 ## Security
 
@@ -64,11 +63,11 @@ The `Sql.named()` function binds parameters at the driver level, ensuring that e
 
 Additional input validation provides defense-in-depth:
 
-| Input | Validation | Pattern |
-|-------|------------|---------|
-| Username | Alphanumeric + underscore only | `^[a-zA-Z0-9_]+$` |
-| Password hash | 64-char hex string (SHA-256) | `^[a-f0-9]{64}$` |
-| Enrollment code | Fixed format | `^CUREHHT[0-9]$` |
+| Input           | Validation                     | Pattern           |
+|-----------------|--------------------------------|-------------------|
+| Username        | Alphanumeric + underscore only | `^[a-zA-Z0-9_]+$` |
+| Password hash   | 64-char hex string (SHA-256)   | `^[a-f0-9]{64}$`  |
+| Enrollment code | Fixed format                   | `^CUREHHT[0-9]$`  |
 
 ### JWT Authentication
 
@@ -85,15 +84,15 @@ Additional input validation provides defense-in-depth:
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_HOST` | PostgreSQL host | `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `DB_NAME` | Database name | `hht_diary` |
-| `DB_USER` | Database user | `app_user` |
-| `DB_PASSWORD` | Database password | (required) |
-| `DB_SSL` | Enable SSL | `true` |
-| `JWT_SECRET` | JWT signing secret | (dev default, change in prod) |
+| Variable      | Description        | Default                       |
+|---------------|--------------------|-------------------------------|
+| `DB_HOST`     | PostgreSQL host    | `localhost`                   |
+| `DB_PORT`     | PostgreSQL port    | `5432`                        |
+| `DB_NAME`     | Database name      | `hht_diary`                   |
+| `DB_USER`     | Database user      | `app_user`                    |
+| `DB_PASSWORD` | Database password  | (required)                    |
+| `DB_SSL`      | Enable SSL         | `true`                        |
+| `JWT_SECRET`  | JWT signing secret | (dev default, change in prod) |
 
 ## Usage
 
