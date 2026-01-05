@@ -232,13 +232,25 @@ get_coverage_percentage() {
         return
     fi
 
-    local lines_found=$(grep -c "^DA:" "$lcov_file" 2>/dev/null || echo "0")
-    local lines_hit=$(grep "^DA:" "$lcov_file" 2>/dev/null | grep -v ",0$" | wc -l | tr -d ' ')
+    # Count total DA: lines and non-zero hits
+    # Use awk for reliable cross-platform counting
+    local lines_found
+    local lines_hit
+    lines_found=$(grep -c "^DA:" "$lcov_file" 2>/dev/null) || lines_found=0
+    lines_hit=$(grep "^DA:" "$lcov_file" 2>/dev/null | grep -cv ",0$") || lines_hit=0
 
-    if [ "$lines_found" -eq 0 ]; then
+    # Ensure we have integers (strip any whitespace/newlines)
+    lines_found=$(echo "$lines_found" | tr -d '[:space:]')
+    lines_hit=$(echo "$lines_hit" | tr -d '[:space:]')
+
+    # Default to 0 if empty
+    lines_found=${lines_found:-0}
+    lines_hit=${lines_hit:-0}
+
+    if [ "$lines_found" -eq 0 ] 2>/dev/null; then
         echo "0"
     else
-        echo "$lines_hit $lines_found" | awk '{printf "%.1f", ($1/$2)*100}'
+        awk "BEGIN {printf \"%.1f\", ($lines_hit/$lines_found)*100}"
     fi
 }
 
