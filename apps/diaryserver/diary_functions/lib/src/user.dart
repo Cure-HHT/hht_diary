@@ -60,10 +60,9 @@ Future<Response> enrollHandler(Request request) async {
     );
 
     if (existing.isNotEmpty) {
-      return _jsonResponse(
-        {'error': 'This enrollment code has already been used'},
-        409,
-      );
+      return _jsonResponse({
+        'error': 'This enrollment code has already been used',
+      }, 409);
     }
 
     // Verify user exists
@@ -79,7 +78,9 @@ Future<Response> enrollHandler(Request request) async {
     final userId = userResult.first[0] as String;
 
     // Extract sponsor from enrollment code (e.g., CUREHHT1 -> curehht)
-    final sponsorId = normalizedCode.replaceAll(RegExp(r'[0-9]$'), '').toLowerCase();
+    final sponsorId = normalizedCode
+        .replaceAll(RegExp(r'[0-9]$'), '')
+        .toLowerCase();
 
     // Create study enrollment
     await db.execute(
@@ -191,8 +192,10 @@ Future<Response> syncHandler(Request request) async {
             'operation': operation,
             'data': jsonEncode(event['data'] ?? {}),
             'userId': userId,
-            'clientTimestamp': event['client_timestamp'] ?? DateTime.now().toIso8601String(),
-            'changeReason': event['metadata']?['change_reason'] ?? 'Synced from mobile app',
+            'clientTimestamp':
+                event['client_timestamp'] ?? DateTime.now().toIso8601String(),
+            'changeReason':
+                event['metadata']?['change_reason'] ?? 'Synced from mobile app',
           },
         );
 

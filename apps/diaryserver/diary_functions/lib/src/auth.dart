@@ -263,10 +263,7 @@ Future<Response> changePasswordHandler(Request request) async {
       SET password_hash = @newPasswordHash, updated_at = now()
       WHERE user_id = @userId
       ''',
-      parameters: {
-        'userId': userId,
-        'newPasswordHash': newPasswordHash,
-      },
+      parameters: {'userId': userId, 'newPasswordHash': newPasswordHash},
     );
 
     return _jsonResponse({'success': true});
