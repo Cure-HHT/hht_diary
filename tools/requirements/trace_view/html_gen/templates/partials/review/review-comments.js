@@ -6,9 +6,12 @@
  * - Comment form (new thread, reply)
  * - Resolve/unresolve actions
  * - Position selection UI
+ * - Position labels in thread headers (Phase 5.3)
  *
  * IMPLEMENTS REQUIREMENTS:
  *   REQ-d00086: Spec Review Data Model
+ *   REQ-d00092: HTML Report Integration
+ *   REQ-d00087: Position Resolution with Fallback
  */
 
 // Ensure ReviewSystem namespace exists
@@ -230,38 +233,99 @@ window.ReviewSystem = window.ReviewSystem || {};
         return '';
     }
 
+    /**
+     * Get icon/emoji for position type indicator
+     * IMPLEMENTS REQUIREMENTS:
+     *   REQ-d00092: HTML Report Integration
+     *
+     * Icons:
+     * - LINE: Pin icon (location marker)
+     * - BLOCK: Clipboard/list icon (range indicator)
+     * - WORD: Text/letters icon (keyword indicator)
+     * - GENERAL: Document icon (general comment)
+     *
+     * @param {Thread} thread - Thread object with position
+     * @returns {string} Icon/emoji for position type
+     */
     function getPositionIcon(thread) {
+        if (!thread.position) return '📝';
+
         switch (thread.position.type) {
             case RS.PositionType.LINE: return '📍';
             case RS.PositionType.BLOCK: return '📋';
             case RS.PositionType.WORD: return '🔤';
+            case RS.PositionType.GENERAL:
             default: return '📝';
         }
     }
 
+    /**
+     * Get tooltip text for position label hover
+     * IMPLEMENTS REQUIREMENTS:
+     *   REQ-d00092: HTML Report Integration
+     *
+     * Provides more detailed information than the label:
+     * - LINE: "Line N"
+     * - BLOCK: "Lines N-M"
+     * - WORD: "Keyword 'xyz' (occurrence N)"
+     * - GENERAL: "General comment"
+     *
+     * @param {Thread} thread - Thread object with position
+     * @returns {string} Tooltip text for position
+     */
     function getPositionTooltip(thread) {
         const pos = thread.position;
+        if (!pos) return 'General comment';
+
         switch (pos.type) {
             case RS.PositionType.LINE:
-                return `Line ${pos.lineNumber}`;
+                return pos.lineNumber ? `Line ${pos.lineNumber}` : 'General comment';
             case RS.PositionType.BLOCK:
-                return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
+                if (pos.lineRange && pos.lineRange.length === 2) {
+                    return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
+                }
+                return 'General comment';
             case RS.PositionType.WORD:
-                return `"${pos.keyword}" (occurrence ${pos.keywordOccurrence || 1})`;
+                if (pos.keyword) {
+                    return `Keyword '${pos.keyword}' (occurrence ${pos.keywordOccurrence || 1})`;
+                }
+                return 'General comment';
+            case RS.PositionType.GENERAL:
             default:
                 return 'General comment';
         }
     }
 
+    /**
+     * Get human-readable position label for thread header
+     * IMPLEMENTS REQUIREMENTS:
+     *   REQ-d00092: HTML Report Integration
+     *   REQ-d00087: Position Resolution with Fallback
+     *
+     * Label formats:
+     * - LINE: "Line N" (e.g., "Line 15")
+     * - BLOCK: "Lines N-M" (e.g., "Lines 10-20")
+     * - WORD: "Keyword: xyz" (e.g., "Keyword: authentication")
+     * - GENERAL: "General" (no specific location)
+     *
+     * @param {Thread} thread - Thread object with position
+     * @returns {string} Human-readable position label
+     */
     function getPositionLabel(thread) {
         const pos = thread.position;
+        if (!pos) return 'General';
+
         switch (pos.type) {
             case RS.PositionType.LINE:
-                return `Line ${pos.lineNumber}`;
+                return pos.lineNumber ? `Line ${pos.lineNumber}` : 'General';
             case RS.PositionType.BLOCK:
-                return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
+                if (pos.lineRange && pos.lineRange.length === 2) {
+                    return `Lines ${pos.lineRange[0]}-${pos.lineRange[1]}`;
+                }
+                return 'General';
             case RS.PositionType.WORD:
-                return `"${escapeHtml(pos.keyword)}"`;
+                return pos.keyword ? `Keyword: ${escapeHtml(pos.keyword)}` : 'General';
+            case RS.PositionType.GENERAL:
             default:
                 return 'General';
         }

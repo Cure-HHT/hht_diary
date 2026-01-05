@@ -243,7 +243,11 @@
     text-decoration: none;
 }
 
-/* Confidence-based position label styling */
+/* Confidence-based position label styling
+   IMPLEMENTS REQUIREMENTS:
+       REQ-d00092: HTML Report Integration
+       REQ-d00087: Position Resolution with Fallback
+*/
 .rs-position-label.rs-confidence-exact {
     border-left: 3px solid #ffc107;
 }
@@ -255,6 +259,30 @@
 .rs-position-label.rs-confidence-unanchored {
     border-left: 3px solid #9e9e9e;
     color: var(--text-muted, #666);
+}
+
+/* Position type visual indicators (Phase 5.3)
+   Different background hints based on position type
+*/
+.rs-position-label[data-position-type="line"] {
+    background: linear-gradient(to right, rgba(33, 150, 243, 0.05), transparent);
+}
+
+.rs-position-label[data-position-type="block"] {
+    background: linear-gradient(to right, rgba(76, 175, 80, 0.05), transparent);
+}
+
+.rs-position-label[data-position-type="word"] {
+    background: linear-gradient(to right, rgba(156, 39, 176, 0.05), transparent);
+}
+
+.rs-position-label[data-position-type="general"] {
+    background: linear-gradient(to right, rgba(158, 158, 158, 0.05), transparent);
+}
+
+/* Position label icon spacing */
+.rs-position-label .rs-position-icon {
+    margin-right: 4px;
 }
 
 .rs-author {
