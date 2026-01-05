@@ -196,6 +196,23 @@
     {% block review_panel %}
     <div id="review-column" class="review-column hidden">
         <div class="review-resize-handle" id="reviewResizeHandle"></div>
+
+        {# Review packages panel - collapsible section for managing packages #}
+        <div class="review-packages-panel" id="reviewPackagesPanel">
+            <div class="packages-header" onclick="ReviewSystem.togglePackagesPanel()">
+                <span class="collapse-icon">&#9660;</span>
+                <h3>Review Packages</h3>
+                <button class="create-btn rs-btn" onclick="ReviewSystem.showCreatePackageDialog(event)">+ New Package</button>
+                <button class="rs-filter-toggle" id="packageFilterToggle" onclick="ReviewSystem.togglePackageFilter(event)">Show Package REQs</button>
+                <span id="packageFilterIndicator"></span>
+            </div>
+            <div class="packages-content">
+                <div class="package-list">
+                    {# Package list is rendered by review-packages.js #}
+                </div>
+            </div>
+        </div>
+
         <div class="review-panel">
             <div class="review-panel-header">
                 <span class="review-panel-title">Review Panel</span>
