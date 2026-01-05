@@ -186,13 +186,35 @@ jobs:
           psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
 
       - name: Install dependencies
-        working-directory: apps/diaryserver/diary_server
         run: |
-          dart pub get --directory=../diary_functions
-          dart pub get
+          dart pub get --directory=apps/diaryserver/diary_functions
+          dart pub get --directory=apps/diaryserver/diary_server
           dart pub global activate coverage
 
-      - name: Run tests with coverage
+      - name: Run diary_functions tests with coverage
+        working-directory: apps/diaryserver/diary_functions
+        env:
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: sponsor_portal
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL: 'false'
+          JWT_SECRET: test-jwt-secret-for-ci
+        run: |
+          dart test --coverage=coverage test/ integration_test/
+
+      - name: Generate diary_functions coverage report
+        working-directory: apps/diaryserver/diary_functions
+        run: |
+          dart pub global run coverage:format_coverage \
+            --lcov \
+            --in=coverage \
+            --out=coverage/lcov.info \
+            --report-on=lib \
+            --packages=.dart_tool/package_config.json || true
+
+      - name: Run diary_server tests with coverage
         working-directory: apps/diaryserver/diary_server
         env:
           DB_HOST: localhost
@@ -205,7 +227,7 @@ jobs:
         run: |
           dart test --coverage=coverage test/ integration_test/
 
-      - name: Generate coverage report
+      - name: Generate diary_server coverage report
         working-directory: apps/diaryserver/diary_server
         run: |
           dart pub global run coverage:format_coverage \
@@ -215,9 +237,25 @@ jobs:
             --report-on=lib \
             --packages=.dart_tool/package_config.json || true
 
-      - name: Upload coverage to Codecov
+      - name: Upload diary_functions coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: apps/diaryserver/diary_functions/coverage/lcov.info
+          flags: diary-functions
+          fail_ci_if_error: false
+
+      - name: Upload diary_server coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: apps/diaryserver/diary_server/coverage/lcov.info
           flags: diary-server
           fail_ci_if_error: false
+
+      - name: Upload coverage reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            apps/diaryserver/diary_functions/coverage/lcov.info
+            apps/diaryserver/diary_server/coverage/lcov.info
+          retention-days: 30

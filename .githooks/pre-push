@@ -269,11 +269,11 @@ echo ""
 if command -v dart &> /dev/null; then
     DART_FORMAT_FAILED=false
 
-    # Check each app directory with a pubspec.yaml
-    for pubspec in "$REPO_ROOT"/apps/*/pubspec.yaml; do
+    # Find all pubspec.yaml files in apps/ (including nested packages)
+    while IFS= read -r pubspec; do
         if [ -f "$pubspec" ]; then
             APP_DIR=$(dirname "$pubspec")
-            APP_NAME=$(basename "$APP_DIR")
+            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
 
             echo "  Checking $APP_NAME..."
 
@@ -287,7 +287,7 @@ if command -v dart &> /dev/null; then
                 echo -e "${GREEN}  ✅ $APP_NAME formatting OK${NC}"
             fi
         fi
-    done
+    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
 
     if [ "$DART_FORMAT_FAILED" = true ]; then
         VALIDATION_FAILED=true
@@ -302,6 +302,56 @@ if command -v dart &> /dev/null; then
 else
     echo -e "${RED}ERROR: dart not installed - Dart format check is required${NC}"
     echo -e "${RED}       Install Flutter/Dart: https://docs.flutter.dev/get-started/install${NC}"
+    echo ""
+    VALIDATION_FAILED=true
+fi
+
+echo ""
+
+# =====================================================
+# 5.5. Dart Analyze Check
+# =====================================================
+# Verify ALL dart code in apps/ passes dart analyze --fatal-infos
+
+echo -e "${BLUE}Running Dart static analysis...${NC}"
+echo ""
+
+# Check if dart is available
+if command -v dart &> /dev/null; then
+    DART_ANALYZE_FAILED=false
+
+    # Find all pubspec.yaml files in apps/ (including nested packages)
+    while IFS= read -r pubspec; do
+        if [ -f "$pubspec" ]; then
+            APP_DIR=$(dirname "$pubspec")
+            APP_NAME=${APP_DIR#$REPO_ROOT/apps/}
+
+            echo "  Analyzing $APP_NAME..."
+
+            # Run dart analyze with fatal-infos (even info-level issues fail)
+            if ! (cd "$APP_DIR" && dart analyze --fatal-infos 2>&1); then
+                DART_ANALYZE_FAILED=true
+                echo ""
+                echo -e "${RED}  ❌ $APP_NAME has analysis issues${NC}"
+                echo ""
+            else
+                echo -e "${GREEN}  ✅ $APP_NAME analysis OK${NC}"
+            fi
+        fi
+    done < <(find "$REPO_ROOT/apps" -name "pubspec.yaml" -type f 2>/dev/null)
+
+    if [ "$DART_ANALYZE_FAILED" = true ]; then
+        VALIDATION_FAILED=true
+        echo ""
+        echo -e "${RED}Dart analyze check failed!${NC}"
+        echo -e "${RED}Fix all analysis issues (including infos) before pushing.${NC}"
+        echo ""
+    else
+        echo ""
+        echo -e "${GREEN}Dart analyze check passed!${NC}"
+    fi
+else
+    echo -e "${RED}ERROR: dart not installed - Dart analyze check is required${NC}"
     echo ""
     VALIDATION_FAILED=true
 fi
@@ -340,6 +390,7 @@ fi
 #
 # Runs ./tool/test.sh in any app directory that has code changes.
 # Each app should have its own tool/test.sh script.
+# Supports nested packages (e.g., apps/diaryserver/diary_functions/).
 
 echo -e "${BLUE}Running test suites...${NC}"
 echo ""
@@ -352,21 +403,27 @@ else
 fi
 
 # Find unique app directories with test.sh scripts
+# Walk up from each changed file to find the nearest tool/test.sh
 TEST_DIRS=""
 while IFS= read -r changed_file; do
     # Check if file is in an app directory
     if [[ "$changed_file" == apps/* ]]; then
-        # Extract the app directory (e.g., apps/clinical_diary)
-        APP_DIR=$(echo "$changed_file" | cut -d'/' -f1-2)
-        TEST_SCRIPT="$REPO_ROOT/$APP_DIR/tool/test.sh"
-
-        if [ -f "$TEST_SCRIPT" ] && [ -x "$TEST_SCRIPT" ]; then
-            # Add to list if not already present
-            if ! echo "$TEST_DIRS" | grep -q "^$APP_DIR$"; then
-                TEST_DIRS="$TEST_DIRS
-$APP_DIR"
+        # Walk up from the changed file to find nearest tool/test.sh
+        DIR=$(dirname "$REPO_ROOT/$changed_file")
+        while [[ "$DIR" == "$REPO_ROOT/apps"* ]] && [ "$DIR" != "$REPO_ROOT/apps" ]; do
+            TEST_SCRIPT="$DIR/tool/test.sh"
+            if [ -f "$TEST_SCRIPT" ] && [ -x "$TEST_SCRIPT" ]; then
+                # Get relative path from repo root
+                REL_DIR=${DIR#$REPO_ROOT/}
+                # Add to list if not already present
+                if ! echo "$TEST_DIRS" | grep -q "^$REL_DIR$"; then
+                    TEST_DIRS="$TEST_DIRS
+$REL_DIR"
+                fi
+                break
             fi
-        fi
+            DIR=$(dirname "$DIR")
+        done
     fi
 done <<< "$CHANGED_FILES"
 
