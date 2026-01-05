@@ -262,7 +262,7 @@ jobs:
           fi
 
       - name: Comment on PR with validation results
-        if: github.event_name == 'pull_request' && steps.check-changes.outputs.spec_changed == 'true'
+        if: success() && github.event_name == 'pull_request' && steps.check-changes.outputs.spec_changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
