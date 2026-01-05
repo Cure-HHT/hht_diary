@@ -180,7 +180,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          # Note: No pip cache - only elspais installed, no requirements.txt
 
       - name: Load version configuration
         id: versions
@@ -193,7 +193,7 @@ jobs:
           python3 -m pip install --upgrade pip
           ELSPAIS_VERSION="${{ steps.versions.outputs.elspais_version }}"
           echo "Installing elspais v${ELSPAIS_VERSION}..."
-          python3 -m pip install "git+https://github.com/Anspar-Org/elspais.git@v${ELSPAIS_VERSION}"
+          pip install elspais==${ELSPAIS_VERSION}
           elspais --version
 
       - name: Validate requirement format and IDs
@@ -644,7 +644,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          # Note: No pip cache - pre-pr-compliance-check.py has no external deps
 
       - name: Run compliance check
         id: compliance
