@@ -180,12 +180,14 @@ class HTMLGenerator:
         js_files = [
             "review-data.js",
             "review-position.js",
+            "review-line-numbers.js",  # Phase 5.2: Line-numbered markdown view
             "review-comments.js",
             "review-status.js",
             "review-packages.js",
             "review-sync.js",
             "review-help.js",
             "review-resize.js",
+            "review-init.js",  # Must be last: orchestrates other modules
         ]
         for filename in js_files:
             js_path = js_dir / filename
