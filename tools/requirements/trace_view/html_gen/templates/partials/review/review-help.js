@@ -261,8 +261,17 @@
 
     /**
      * Toggle help panel visibility
+     * Uses static panel in DOM if present, otherwise creates dynamic one
      */
     function toggleHelpPanel() {
+        // Check if there's a static panel in the DOM (from base.html)
+        const staticPanel = document.getElementById('rs-help-panel');
+        if (staticPanel) {
+            toggleStaticHelpPanel();
+            return;
+        }
+
+        // Fall back to dynamic panel creation
         if (helpPanelVisible) {
             hideHelpPanel();
         } else {
@@ -547,6 +556,17 @@
     }
 
     /**
+     * Toggle help menu from button element (for onclick handlers in HTML)
+     * @param {HTMLElement} btn - The button element that was clicked
+     */
+    function toggleHelpMenuFromBtn(btn) {
+        const dropdown = btn?.nextElementSibling;
+        if (dropdown) {
+            toggleHelpMenu(btn, dropdown);
+        }
+    }
+
+    /**
      * Close help menu
      */
     function closeHelpMenu(btn, dropdown) {
@@ -555,9 +575,137 @@
         dropdown?.classList.remove('open');
     }
 
+    /**
+     * Close help menu globally (finds elements by ID)
+     */
+    function closeHelpMenuGlobal() {
+        const btn = document.getElementById('rs-help-menu-btn');
+        const dropdown = document.getElementById('rs-help-menu-dropdown');
+        closeHelpMenu(btn, dropdown);
+    }
+
+    /**
+     * Start the onboarding tour (resets completion state)
+     */
+    function startTour() {
+        closeHelpMenuGlobal();
+        // Reset onboarding state so it shows
+        const storageKey = onboardingData?.wizard?.settings?.storageKey || 'spec-review-onboarding-complete';
+        localStorage.removeItem(storageKey);
+        showOnboarding();
+    }
+
+    /**
+     * Filter help content in the static help panel (searches within rendered sections)
+     * @param {string} query - Search query
+     */
+    function filterHelpContent(query) {
+        const sectionsContainer = document.getElementById('rs-help-sections');
+        if (!sectionsContainer) return;
+
+        const normalizedQuery = query.toLowerCase().trim();
+
+        // Find all help items within the panel
+        sectionsContainer.querySelectorAll('.rs-help-item').forEach(item => {
+            const question = item.querySelector('.rs-help-question')?.textContent?.toLowerCase() || '';
+            const answer = item.querySelector('.rs-help-answer')?.textContent?.toLowerCase() || '';
+
+            if (normalizedQuery === '' || question.includes(normalizedQuery) || answer.includes(normalizedQuery)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Show sections that have visible items, expand them if searching
+        sectionsContainer.querySelectorAll('.rs-help-section').forEach(section => {
+            const content = section.querySelector('.rs-help-section-content');
+            const visibleItems = section.querySelectorAll('.rs-help-item:not([style*="display: none"])');
+
+            if (visibleItems.length > 0) {
+                section.style.display = 'block';
+                // Auto-expand sections when searching
+                if (normalizedQuery && content) {
+                    content.style.display = 'block';
+                }
+            } else {
+                section.style.display = 'none';
+            }
+        });
+    }
+
     // ==========================================================================
     // Initialization
     // ==========================================================================
+
+    /**
+     * Render help panel content from loaded JSON data
+     * Called when help panel is initialized or shown
+     */
+    function renderHelpPanelContent() {
+        const sectionsContainer = document.getElementById('rs-help-sections');
+        if (!sectionsContainer || !helpPanelData?.helpPanel) return;
+
+        const panel = helpPanelData.helpPanel;
+
+        sectionsContainer.innerHTML = panel.sections.map(section => `
+            <div class="rs-help-section" data-section-id="${section.id}">
+                <h4 class="rs-help-section-header" ${panel.settings.collapsible ? 'style="cursor: pointer;"' : ''}>
+                    <span>${section.title}</span>
+                    ${panel.settings.collapsible ? '<span class="rs-help-expand-icon">&#9660;</span>' : ''}
+                </h4>
+                <div class="rs-help-section-content" ${panel.settings.defaultExpanded?.includes(section.id) ? '' : 'style="display: none;"'}>
+                    ${section.items.map(item => `
+                        <div class="rs-help-item" data-item-id="${item.id}">
+                            <div class="rs-help-question">${item.question}</div>
+                            <div class="rs-help-answer">${formatMarkdownSimple(item.answer)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+
+        // Bind collapsible section click handlers
+        if (panel.settings.collapsible) {
+            sectionsContainer.querySelectorAll('.rs-help-section-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('.rs-help-expand-icon');
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        if (icon) icon.innerHTML = '&#9660;';
+                    } else {
+                        content.style.display = 'none';
+                        if (icon) icon.innerHTML = '&#9654;';
+                    }
+                });
+            });
+        }
+    }
+
+    /**
+     * Toggle the static help panel visibility (the one in base.html)
+     */
+    function toggleStaticHelpPanel() {
+        const panel = document.getElementById('rs-help-panel');
+        if (!panel) return;
+
+        if (panel.classList.contains('hidden')) {
+            // Show panel
+            panel.classList.remove('hidden');
+            helpPanelVisible = true;
+
+            // Render content if not already done
+            const sectionsContainer = document.getElementById('rs-help-sections');
+            if (sectionsContainer && sectionsContainer.innerHTML.trim() === '' && helpPanelData) {
+                renderHelpPanelContent();
+            }
+        } else {
+            // Hide panel
+            panel.classList.add('hidden');
+            helpPanelVisible = false;
+        }
+    }
 
     /**
      * Initialize help system
@@ -571,12 +719,52 @@
         // Initialize tooltips
         initTooltips(document);
 
+        // Set up global event handlers for help menu
+        setupGlobalHelpHandlers();
+
+        // Render help panel content if panel exists in DOM
+        if (document.getElementById('rs-help-panel') && helpPanelData) {
+            renderHelpPanelContent();
+        }
+
         // Show onboarding if first visit
         if (shouldShowOnboarding()) {
             showOnboarding();
         }
 
         console.log('Help system initialized');
+    }
+
+    /**
+     * Set up global event handlers for help menu
+     */
+    function setupGlobalHelpHandlers() {
+        // Close help menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const helpMenu = document.getElementById('rs-help-menu');
+            if (helpMenu && !helpMenu.contains(e.target) && helpMenuOpen) {
+                closeHelpMenuGlobal();
+            }
+        });
+
+        // Close help menu on ESC key, also close help panel
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (helpMenuOpen) {
+                    closeHelpMenuGlobal();
+                }
+                // Also hide help panel on ESC
+                const panel = document.getElementById('rs-help-panel');
+                if (panel && !panel.classList.contains('hidden')) {
+                    panel.classList.add('hidden');
+                    helpPanelVisible = false;
+                }
+            }
+            // '?' key toggles help panel (when not in an input)
+            if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+                toggleStaticHelpPanel();
+            }
+        });
     }
 
     // ==========================================================================
@@ -594,7 +782,12 @@
         toggleHelpPanel,
         createHelpButton,
         createReplayOnboardingButton,
-        createHelpMenu
+        createHelpMenu,
+        renderHelpPanelContent,
+        // Functions called from HTML onclick handlers
+        toggleHelpMenuFromBtn,
+        startTour,
+        filterHelpContent
     };
 
 })(window.ReviewSystem = window.ReviewSystem || {});

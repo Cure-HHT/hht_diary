@@ -1,7 +1,7 @@
 {
   "format_version": "1.0",
-  "generated_at": "2026-01-05T09:36:00.980973+00:00",
-  "test_run_id": "a8449b1d",
+  "generated_at": "2026-01-05T09:41:00.479684+00:00",
+  "test_run_id": "b9092c2b",
   "results": [
     {
       "requirement_id": "REQ-tv-d00004",
@@ -13,7 +13,7 @@
       "status": "passed",
       "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.404997+00:00"
+      "timestamp": "2026-01-05T09:40:59.892266+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -25,7 +25,7 @@
       "status": "passed",
       "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.412289+00:00"
+      "timestamp": "2026-01-05T09:40:59.899246+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -35,9 +35,9 @@
       "test_file": "test_build_embedding.py",
       "test_line": 60,
       "status": "passed",
-      "duration_ms": 5,
+      "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.418235+00:00"
+      "timestamp": "2026-01-05T09:40:59.906553+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -49,7 +49,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.419168+00:00"
+      "timestamp": "2026-01-05T09:40:59.907472+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -61,7 +61,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.420004+00:00"
+      "timestamp": "2026-01-05T09:40:59.908217+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -73,7 +73,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.420827+00:00"
+      "timestamp": "2026-01-05T09:40:59.908809+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -83,9 +83,9 @@
       "test_file": "test_build_embedding.py",
       "test_line": 134,
       "status": "passed",
-      "duration_ms": 6,
+      "duration_ms": 7,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.427791+00:00"
+      "timestamp": "2026-01-05T09:40:59.916467+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -97,7 +97,7 @@
       "status": "passed",
       "duration_ms": 5,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.433588+00:00"
+      "timestamp": "2026-01-05T09:40:59.922507+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -107,9 +107,9 @@
       "test_file": "test_build_embedding.py",
       "test_line": 190,
       "status": "passed",
-      "duration_ms": 4,
+      "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.439089+00:00"
+      "timestamp": "2026-01-05T09:40:59.929236+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00004",
@@ -119,9 +119,9 @@
       "test_file": "test_build_embedding.py",
       "test_line": 218,
       "status": "passed",
-      "duration_ms": 5,
+      "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.445674+00:00"
+      "timestamp": "2026-01-05T09:40:59.935936+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -133,7 +133,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.458759+00:00"
+      "timestamp": "2026-01-05T09:40:59.952087+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -145,7 +145,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.459034+00:00"
+      "timestamp": "2026-01-05T09:40:59.952381+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -157,7 +157,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.459309+00:00"
+      "timestamp": "2026-01-05T09:40:59.952670+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -169,7 +169,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.459543+00:00"
+      "timestamp": "2026-01-05T09:40:59.952917+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -179,9 +179,9 @@
       "test_file": "test_css_extraction.py",
       "test_line": 115,
       "status": "passed",
-      "duration_ms": 5,
+      "duration_ms": 7,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.465902+00:00"
+      "timestamp": "2026-01-05T09:40:59.961033+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -191,9 +191,9 @@
       "test_file": "test_css_extraction.py",
       "test_line": 141,
       "status": "passed",
-      "duration_ms": 5,
+      "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.472278+00:00"
+      "timestamp": "2026-01-05T09:40:59.967923+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -203,9 +203,9 @@
       "test_file": "test_css_extraction.py",
       "test_line": 172,
       "status": "passed",
-      "duration_ms": 5,
+      "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.478270+00:00"
+      "timestamp": "2026-01-05T09:40:59.975339+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00002",
@@ -217,7 +217,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.478823+00:00"
+      "timestamp": "2026-01-05T09:40:59.976089+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -229,7 +229,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.479136+00:00"
+      "timestamp": "2026-01-05T09:40:59.976415+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -241,7 +241,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.479409+00:00"
+      "timestamp": "2026-01-05T09:40:59.976705+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -253,7 +253,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.479663+00:00"
+      "timestamp": "2026-01-05T09:40:59.976969+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -265,7 +265,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.479954+00:00"
+      "timestamp": "2026-01-05T09:40:59.977339+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -277,7 +277,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.480240+00:00"
+      "timestamp": "2026-01-05T09:40:59.977644+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -289,7 +289,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.480483+00:00"
+      "timestamp": "2026-01-05T09:40:59.977909+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -301,7 +301,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.480720+00:00"
+      "timestamp": "2026-01-05T09:40:59.978168+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -313,7 +313,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.480958+00:00"
+      "timestamp": "2026-01-05T09:40:59.978410+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -325,7 +325,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.481184+00:00"
+      "timestamp": "2026-01-05T09:40:59.978628+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -337,7 +337,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.481421+00:00"
+      "timestamp": "2026-01-05T09:40:59.978866+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -349,7 +349,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.481998+00:00"
+      "timestamp": "2026-01-05T09:40:59.979464+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -361,7 +361,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.482269+00:00"
+      "timestamp": "2026-01-05T09:40:59.979713+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00005",
@@ -373,7 +373,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.482629+00:00"
+      "timestamp": "2026-01-05T09:40:59.979962+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -385,7 +385,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.508896+00:00"
+      "timestamp": "2026-01-05T09:41:00.019655+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -397,7 +397,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.509313+00:00"
+      "timestamp": "2026-01-05T09:41:00.020068+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -409,7 +409,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.509706+00:00"
+      "timestamp": "2026-01-05T09:41:00.020504+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -421,7 +421,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.510012+00:00"
+      "timestamp": "2026-01-05T09:41:00.020785+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -433,7 +433,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.510315+00:00"
+      "timestamp": "2026-01-05T09:41:00.021047+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -445,7 +445,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.510575+00:00"
+      "timestamp": "2026-01-05T09:41:00.021303+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -457,7 +457,7 @@
       "status": "passed",
       "duration_ms": 5,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.516889+00:00"
+      "timestamp": "2026-01-05T09:41:00.027770+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -469,7 +469,7 @@
       "status": "passed",
       "duration_ms": 5,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.523014+00:00"
+      "timestamp": "2026-01-05T09:41:00.033927+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -481,7 +481,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.523552+00:00"
+      "timestamp": "2026-01-05T09:41:00.034446+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -493,7 +493,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.523850+00:00"
+      "timestamp": "2026-01-05T09:41:00.034739+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00003",
@@ -505,7 +505,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.524276+00:00"
+      "timestamp": "2026-01-05T09:41:00.035138+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -517,7 +517,7 @@
       "status": "passed",
       "duration_ms": 2,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.560520+00:00"
+      "timestamp": "2026-01-05T09:41:00.069041+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -529,7 +529,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.560826+00:00"
+      "timestamp": "2026-01-05T09:41:00.069344+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -541,7 +541,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.561067+00:00"
+      "timestamp": "2026-01-05T09:41:00.069577+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -553,7 +553,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.561283+00:00"
+      "timestamp": "2026-01-05T09:41:00.069846+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -565,7 +565,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.561494+00:00"
+      "timestamp": "2026-01-05T09:41:00.070134+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -577,7 +577,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.561707+00:00"
+      "timestamp": "2026-01-05T09:41:00.070384+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -589,7 +589,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.561913+00:00"
+      "timestamp": "2026-01-05T09:41:00.070601+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -601,7 +601,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.562127+00:00"
+      "timestamp": "2026-01-05T09:41:00.070811+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -613,7 +613,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.562336+00:00"
+      "timestamp": "2026-01-05T09:41:00.071025+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -625,7 +625,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.562547+00:00"
+      "timestamp": "2026-01-05T09:41:00.071241+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -637,7 +637,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.562757+00:00"
+      "timestamp": "2026-01-05T09:41:00.071452+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -649,7 +649,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.563175+00:00"
+      "timestamp": "2026-01-05T09:41:00.071805+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -661,7 +661,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.563521+00:00"
+      "timestamp": "2026-01-05T09:41:00.072064+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -673,7 +673,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.563770+00:00"
+      "timestamp": "2026-01-05T09:41:00.072284+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -685,7 +685,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.563997+00:00"
+      "timestamp": "2026-01-05T09:41:00.072494+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -697,7 +697,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.564228+00:00"
+      "timestamp": "2026-01-05T09:41:00.072702+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -709,7 +709,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.564440+00:00"
+      "timestamp": "2026-01-05T09:41:00.072907+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -721,7 +721,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.564652+00:00"
+      "timestamp": "2026-01-05T09:41:00.073118+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -733,7 +733,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.564947+00:00"
+      "timestamp": "2026-01-05T09:41:00.073405+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -745,7 +745,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.565177+00:00"
+      "timestamp": "2026-01-05T09:41:00.073624+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -757,7 +757,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.565385+00:00"
+      "timestamp": "2026-01-05T09:41:00.073831+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -769,7 +769,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.565593+00:00"
+      "timestamp": "2026-01-05T09:41:00.074041+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -781,7 +781,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.565803+00:00"
+      "timestamp": "2026-01-05T09:41:00.074247+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -793,7 +793,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.566020+00:00"
+      "timestamp": "2026-01-05T09:41:00.074454+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -805,7 +805,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.566350+00:00"
+      "timestamp": "2026-01-05T09:41:00.074677+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -817,7 +817,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.566873+00:00"
+      "timestamp": "2026-01-05T09:41:00.075022+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -829,7 +829,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.567185+00:00"
+      "timestamp": "2026-01-05T09:41:00.075236+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -841,7 +841,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.567476+00:00"
+      "timestamp": "2026-01-05T09:41:00.075442+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -853,7 +853,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.567731+00:00"
+      "timestamp": "2026-01-05T09:41:00.075675+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -865,7 +865,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.567945+00:00"
+      "timestamp": "2026-01-05T09:41:00.075888+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -877,7 +877,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.568161+00:00"
+      "timestamp": "2026-01-05T09:41:00.076093+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -889,7 +889,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.568399+00:00"
+      "timestamp": "2026-01-05T09:41:00.076328+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -901,7 +901,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.568631+00:00"
+      "timestamp": "2026-01-05T09:41:00.076561+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -913,7 +913,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.568861+00:00"
+      "timestamp": "2026-01-05T09:41:00.076794+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -925,7 +925,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.569098+00:00"
+      "timestamp": "2026-01-05T09:41:00.077030+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -937,7 +937,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.569328+00:00"
+      "timestamp": "2026-01-05T09:41:00.077260+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -949,7 +949,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.569596+00:00"
+      "timestamp": "2026-01-05T09:41:00.077491+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -961,7 +961,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.569861+00:00"
+      "timestamp": "2026-01-05T09:41:00.077728+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -973,7 +973,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.570103+00:00"
+      "timestamp": "2026-01-05T09:41:00.077954+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -985,7 +985,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.570329+00:00"
+      "timestamp": "2026-01-05T09:41:00.078186+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -997,7 +997,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.570550+00:00"
+      "timestamp": "2026-01-05T09:41:00.078417+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1009,7 +1009,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.570840+00:00"
+      "timestamp": "2026-01-05T09:41:00.078646+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1021,7 +1021,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.571077+00:00"
+      "timestamp": "2026-01-05T09:41:00.078936+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1033,7 +1033,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.571316+00:00"
+      "timestamp": "2026-01-05T09:41:00.079185+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1045,7 +1045,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.571549+00:00"
+      "timestamp": "2026-01-05T09:41:00.079419+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1057,7 +1057,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.571778+00:00"
+      "timestamp": "2026-01-05T09:41:00.079651+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1069,7 +1069,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.572009+00:00"
+      "timestamp": "2026-01-05T09:41:00.079883+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1081,7 +1081,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.572246+00:00"
+      "timestamp": "2026-01-05T09:41:00.080121+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1093,7 +1093,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.572457+00:00"
+      "timestamp": "2026-01-05T09:41:00.080335+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1105,7 +1105,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.572680+00:00"
+      "timestamp": "2026-01-05T09:41:00.080564+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1117,7 +1117,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.572911+00:00"
+      "timestamp": "2026-01-05T09:41:00.080836+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1129,7 +1129,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.573143+00:00"
+      "timestamp": "2026-01-05T09:41:00.081086+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1141,7 +1141,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.573370+00:00"
+      "timestamp": "2026-01-05T09:41:00.081321+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1153,7 +1153,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.573596+00:00"
+      "timestamp": "2026-01-05T09:41:00.081549+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1165,7 +1165,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.573818+00:00"
+      "timestamp": "2026-01-05T09:41:00.081779+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1177,7 +1177,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.574046+00:00"
+      "timestamp": "2026-01-05T09:41:00.082009+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1189,7 +1189,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.574270+00:00"
+      "timestamp": "2026-01-05T09:41:00.082246+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1201,7 +1201,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.574501+00:00"
+      "timestamp": "2026-01-05T09:41:00.082478+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1213,7 +1213,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.574760+00:00"
+      "timestamp": "2026-01-05T09:41:00.082737+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1225,7 +1225,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.575012+00:00"
+      "timestamp": "2026-01-05T09:41:00.082990+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1237,7 +1237,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.575263+00:00"
+      "timestamp": "2026-01-05T09:41:00.083245+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1249,7 +1249,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.575507+00:00"
+      "timestamp": "2026-01-05T09:41:00.083493+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1261,7 +1261,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.575774+00:00"
+      "timestamp": "2026-01-05T09:41:00.083758+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1273,7 +1273,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.576131+00:00"
+      "timestamp": "2026-01-05T09:41:00.084010+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1285,7 +1285,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.576466+00:00"
+      "timestamp": "2026-01-05T09:41:00.084258+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1297,7 +1297,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.576799+00:00"
+      "timestamp": "2026-01-05T09:41:00.084517+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1309,7 +1309,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.577212+00:00"
+      "timestamp": "2026-01-05T09:41:00.084762+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1321,7 +1321,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.577596+00:00"
+      "timestamp": "2026-01-05T09:41:00.085042+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1333,7 +1333,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.577935+00:00"
+      "timestamp": "2026-01-05T09:41:00.085338+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1345,7 +1345,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.578290+00:00"
+      "timestamp": "2026-01-05T09:41:00.085606+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1357,7 +1357,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.578740+00:00"
+      "timestamp": "2026-01-05T09:41:00.085899+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1369,7 +1369,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.579192+00:00"
+      "timestamp": "2026-01-05T09:41:00.086298+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1381,7 +1381,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.579607+00:00"
+      "timestamp": "2026-01-05T09:41:00.086608+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1393,7 +1393,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.579935+00:00"
+      "timestamp": "2026-01-05T09:41:00.086902+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1405,7 +1405,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.580259+00:00"
+      "timestamp": "2026-01-05T09:41:00.087221+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1417,7 +1417,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.580556+00:00"
+      "timestamp": "2026-01-05T09:41:00.087516+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1429,7 +1429,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.580891+00:00"
+      "timestamp": "2026-01-05T09:41:00.087848+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1441,7 +1441,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.581244+00:00"
+      "timestamp": "2026-01-05T09:41:00.088198+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1453,7 +1453,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.581588+00:00"
+      "timestamp": "2026-01-05T09:41:00.088534+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1465,7 +1465,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.581941+00:00"
+      "timestamp": "2026-01-05T09:41:00.088873+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1477,7 +1477,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.582298+00:00"
+      "timestamp": "2026-01-05T09:41:00.089214+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1489,7 +1489,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.582646+00:00"
+      "timestamp": "2026-01-05T09:41:00.089547+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1501,7 +1501,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.583064+00:00"
+      "timestamp": "2026-01-05T09:41:00.089867+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1513,7 +1513,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.583486+00:00"
+      "timestamp": "2026-01-05T09:41:00.090170+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1525,7 +1525,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.583945+00:00"
+      "timestamp": "2026-01-05T09:41:00.090476+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1537,7 +1537,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.584365+00:00"
+      "timestamp": "2026-01-05T09:41:00.090753+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1549,7 +1549,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.585565+00:00"
+      "timestamp": "2026-01-05T09:41:00.091138+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1561,7 +1561,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.586117+00:00"
+      "timestamp": "2026-01-05T09:41:00.091495+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1573,7 +1573,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.586635+00:00"
+      "timestamp": "2026-01-05T09:41:00.091836+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1585,7 +1585,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.587152+00:00"
+      "timestamp": "2026-01-05T09:41:00.092186+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1597,7 +1597,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.587590+00:00"
+      "timestamp": "2026-01-05T09:41:00.092494+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1609,7 +1609,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.587994+00:00"
+      "timestamp": "2026-01-05T09:41:00.092778+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1621,7 +1621,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.588484+00:00"
+      "timestamp": "2026-01-05T09:41:00.093120+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1633,7 +1633,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.588867+00:00"
+      "timestamp": "2026-01-05T09:41:00.093380+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1645,7 +1645,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.589265+00:00"
+      "timestamp": "2026-01-05T09:41:00.093608+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1657,7 +1657,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.589601+00:00"
+      "timestamp": "2026-01-05T09:41:00.093840+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1669,7 +1669,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.589885+00:00"
+      "timestamp": "2026-01-05T09:41:00.094054+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1681,7 +1681,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.590151+00:00"
+      "timestamp": "2026-01-05T09:41:00.094282+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1693,7 +1693,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.590412+00:00"
+      "timestamp": "2026-01-05T09:41:00.094516+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1705,7 +1705,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.590671+00:00"
+      "timestamp": "2026-01-05T09:41:00.094759+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1717,7 +1717,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.590927+00:00"
+      "timestamp": "2026-01-05T09:41:00.095005+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1729,7 +1729,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.591150+00:00"
+      "timestamp": "2026-01-05T09:41:00.095224+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1741,7 +1741,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.591396+00:00"
+      "timestamp": "2026-01-05T09:41:00.095465+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1753,7 +1753,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.591649+00:00"
+      "timestamp": "2026-01-05T09:41:00.095739+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1765,7 +1765,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.591898+00:00"
+      "timestamp": "2026-01-05T09:41:00.095981+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1777,7 +1777,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.592143+00:00"
+      "timestamp": "2026-01-05T09:41:00.096221+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1789,7 +1789,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.592373+00:00"
+      "timestamp": "2026-01-05T09:41:00.096452+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1801,7 +1801,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.592606+00:00"
+      "timestamp": "2026-01-05T09:41:00.096715+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1813,7 +1813,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.592840+00:00"
+      "timestamp": "2026-01-05T09:41:00.096949+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1825,7 +1825,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.593080+00:00"
+      "timestamp": "2026-01-05T09:41:00.097193+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1837,7 +1837,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.593345+00:00"
+      "timestamp": "2026-01-05T09:41:00.097440+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1849,7 +1849,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.593582+00:00"
+      "timestamp": "2026-01-05T09:41:00.097676+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1861,7 +1861,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.593822+00:00"
+      "timestamp": "2026-01-05T09:41:00.097926+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1873,7 +1873,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.594156+00:00"
+      "timestamp": "2026-01-05T09:41:00.098188+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1885,7 +1885,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.594522+00:00"
+      "timestamp": "2026-01-05T09:41:00.098449+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1897,7 +1897,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.594820+00:00"
+      "timestamp": "2026-01-05T09:41:00.098705+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1909,7 +1909,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.595116+00:00"
+      "timestamp": "2026-01-05T09:41:00.098974+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1921,7 +1921,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.595397+00:00"
+      "timestamp": "2026-01-05T09:41:00.099235+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1933,7 +1933,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.595670+00:00"
+      "timestamp": "2026-01-05T09:41:00.099492+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1945,7 +1945,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.595934+00:00"
+      "timestamp": "2026-01-05T09:41:00.099761+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1957,7 +1957,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.596193+00:00"
+      "timestamp": "2026-01-05T09:41:00.100024+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1969,7 +1969,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.596461+00:00"
+      "timestamp": "2026-01-05T09:41:00.100295+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1981,7 +1981,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.596719+00:00"
+      "timestamp": "2026-01-05T09:41:00.100552+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -1993,7 +1993,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.596986+00:00"
+      "timestamp": "2026-01-05T09:41:00.100815+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2005,7 +2005,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.597454+00:00"
+      "timestamp": "2026-01-05T09:41:00.101103+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2017,7 +2017,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.597784+00:00"
+      "timestamp": "2026-01-05T09:41:00.101384+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2029,7 +2029,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.598095+00:00"
+      "timestamp": "2026-01-05T09:41:00.101650+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2041,7 +2041,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.598397+00:00"
+      "timestamp": "2026-01-05T09:41:00.101945+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2053,7 +2053,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.598688+00:00"
+      "timestamp": "2026-01-05T09:41:00.102299+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2065,7 +2065,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.598974+00:00"
+      "timestamp": "2026-01-05T09:41:00.102590+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2077,7 +2077,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.599262+00:00"
+      "timestamp": "2026-01-05T09:41:00.102860+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2089,7 +2089,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.599550+00:00"
+      "timestamp": "2026-01-05T09:41:00.103142+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2101,7 +2101,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.599828+00:00"
+      "timestamp": "2026-01-05T09:41:00.103410+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2113,7 +2113,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.600099+00:00"
+      "timestamp": "2026-01-05T09:41:00.103659+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2125,7 +2125,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.600354+00:00"
+      "timestamp": "2026-01-05T09:41:00.103943+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2137,7 +2137,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.600602+00:00"
+      "timestamp": "2026-01-05T09:41:00.104191+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2149,7 +2149,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.600844+00:00"
+      "timestamp": "2026-01-05T09:41:00.104428+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2161,7 +2161,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.601109+00:00"
+      "timestamp": "2026-01-05T09:41:00.104688+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2173,7 +2173,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.601397+00:00"
+      "timestamp": "2026-01-05T09:41:00.104927+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2185,7 +2185,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.601657+00:00"
+      "timestamp": "2026-01-05T09:41:00.105179+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2197,7 +2197,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.601910+00:00"
+      "timestamp": "2026-01-05T09:41:00.105424+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2209,7 +2209,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.602162+00:00"
+      "timestamp": "2026-01-05T09:41:00.105660+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2221,7 +2221,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.602389+00:00"
+      "timestamp": "2026-01-05T09:41:00.105878+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2233,7 +2233,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.602614+00:00"
+      "timestamp": "2026-01-05T09:41:00.106096+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2245,7 +2245,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.602830+00:00"
+      "timestamp": "2026-01-05T09:41:00.106305+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2257,7 +2257,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.603052+00:00"
+      "timestamp": "2026-01-05T09:41:00.106511+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2269,7 +2269,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.603267+00:00"
+      "timestamp": "2026-01-05T09:41:00.106714+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2281,7 +2281,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.603486+00:00"
+      "timestamp": "2026-01-05T09:41:00.106924+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2293,7 +2293,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.603703+00:00"
+      "timestamp": "2026-01-05T09:41:00.107137+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2305,7 +2305,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.603917+00:00"
+      "timestamp": "2026-01-05T09:41:00.107348+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2317,7 +2317,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.604134+00:00"
+      "timestamp": "2026-01-05T09:41:00.107554+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2329,7 +2329,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.604353+00:00"
+      "timestamp": "2026-01-05T09:41:00.107763+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2341,7 +2341,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.604570+00:00"
+      "timestamp": "2026-01-05T09:41:00.107970+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2353,7 +2353,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.604784+00:00"
+      "timestamp": "2026-01-05T09:41:00.108186+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2365,7 +2365,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.605031+00:00"
+      "timestamp": "2026-01-05T09:41:00.108423+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2377,7 +2377,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.605273+00:00"
+      "timestamp": "2026-01-05T09:41:00.108649+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2389,7 +2389,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.605510+00:00"
+      "timestamp": "2026-01-05T09:41:00.108876+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2401,7 +2401,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.605800+00:00"
+      "timestamp": "2026-01-05T09:41:00.109165+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2413,7 +2413,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.606061+00:00"
+      "timestamp": "2026-01-05T09:41:00.109408+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2425,7 +2425,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.606310+00:00"
+      "timestamp": "2026-01-05T09:41:00.109637+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2437,7 +2437,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.606585+00:00"
+      "timestamp": "2026-01-05T09:41:00.109899+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2449,7 +2449,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.606822+00:00"
+      "timestamp": "2026-01-05T09:41:00.110127+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00010",
@@ -2461,7 +2461,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.607045+00:00"
+      "timestamp": "2026-01-05T09:41:00.110333+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2473,7 +2473,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.620272+00:00"
+      "timestamp": "2026-01-05T09:41:00.122312+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2485,7 +2485,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.620538+00:00"
+      "timestamp": "2026-01-05T09:41:00.122565+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2497,7 +2497,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.620769+00:00"
+      "timestamp": "2026-01-05T09:41:00.122787+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2509,7 +2509,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.620991+00:00"
+      "timestamp": "2026-01-05T09:41:00.122997+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2521,7 +2521,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.621254+00:00"
+      "timestamp": "2026-01-05T09:41:00.123254+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2533,7 +2533,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.621504+00:00"
+      "timestamp": "2026-01-05T09:41:00.123498+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2545,7 +2545,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.621752+00:00"
+      "timestamp": "2026-01-05T09:41:00.123734+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2557,7 +2557,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.622000+00:00"
+      "timestamp": "2026-01-05T09:41:00.123975+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2569,7 +2569,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.622252+00:00"
+      "timestamp": "2026-01-05T09:41:00.124227+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2581,7 +2581,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.622500+00:00"
+      "timestamp": "2026-01-05T09:41:00.124465+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2593,7 +2593,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.622747+00:00"
+      "timestamp": "2026-01-05T09:41:00.124698+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2605,7 +2605,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.622991+00:00"
+      "timestamp": "2026-01-05T09:41:00.124931+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2617,7 +2617,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.623237+00:00"
+      "timestamp": "2026-01-05T09:41:00.125168+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2629,7 +2629,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.623484+00:00"
+      "timestamp": "2026-01-05T09:41:00.125409+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2641,7 +2641,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.623733+00:00"
+      "timestamp": "2026-01-05T09:41:00.125645+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2653,7 +2653,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.623979+00:00"
+      "timestamp": "2026-01-05T09:41:00.125879+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2665,7 +2665,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.624261+00:00"
+      "timestamp": "2026-01-05T09:41:00.126120+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2677,7 +2677,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.624514+00:00"
+      "timestamp": "2026-01-05T09:41:00.126359+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2689,7 +2689,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.624765+00:00"
+      "timestamp": "2026-01-05T09:41:00.126592+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2701,7 +2701,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.625014+00:00"
+      "timestamp": "2026-01-05T09:41:00.126825+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2713,7 +2713,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.625267+00:00"
+      "timestamp": "2026-01-05T09:41:00.127059+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2725,7 +2725,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.625516+00:00"
+      "timestamp": "2026-01-05T09:41:00.127290+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2737,7 +2737,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.625761+00:00"
+      "timestamp": "2026-01-05T09:41:00.127522+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2749,7 +2749,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.626012+00:00"
+      "timestamp": "2026-01-05T09:41:00.127752+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2761,7 +2761,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.626262+00:00"
+      "timestamp": "2026-01-05T09:41:00.127982+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2773,7 +2773,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.626514+00:00"
+      "timestamp": "2026-01-05T09:41:00.128270+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2785,7 +2785,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.626760+00:00"
+      "timestamp": "2026-01-05T09:41:00.128507+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2797,7 +2797,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.627004+00:00"
+      "timestamp": "2026-01-05T09:41:00.128736+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2809,7 +2809,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.627260+00:00"
+      "timestamp": "2026-01-05T09:41:00.128965+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2821,7 +2821,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.627496+00:00"
+      "timestamp": "2026-01-05T09:41:00.129195+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2833,7 +2833,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.627801+00:00"
+      "timestamp": "2026-01-05T09:41:00.129422+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2845,7 +2845,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.628046+00:00"
+      "timestamp": "2026-01-05T09:41:00.129648+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2857,7 +2857,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.628267+00:00"
+      "timestamp": "2026-01-05T09:41:00.129854+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2869,7 +2869,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.628505+00:00"
+      "timestamp": "2026-01-05T09:41:00.130084+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2881,7 +2881,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.628776+00:00"
+      "timestamp": "2026-01-05T09:41:00.130314+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2893,7 +2893,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.629026+00:00"
+      "timestamp": "2026-01-05T09:41:00.130539+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2905,7 +2905,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.629262+00:00"
+      "timestamp": "2026-01-05T09:41:00.130762+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2917,7 +2917,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.629491+00:00"
+      "timestamp": "2026-01-05T09:41:00.130985+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2929,7 +2929,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.629703+00:00"
+      "timestamp": "2026-01-05T09:41:00.131196+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2941,7 +2941,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.629929+00:00"
+      "timestamp": "2026-01-05T09:41:00.131419+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2953,7 +2953,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.630174+00:00"
+      "timestamp": "2026-01-05T09:41:00.131648+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2965,7 +2965,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.630418+00:00"
+      "timestamp": "2026-01-05T09:41:00.131874+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2977,7 +2977,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.630658+00:00"
+      "timestamp": "2026-01-05T09:41:00.132104+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -2989,7 +2989,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.630895+00:00"
+      "timestamp": "2026-01-05T09:41:00.132333+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3001,7 +3001,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.631140+00:00"
+      "timestamp": "2026-01-05T09:41:00.132563+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3013,7 +3013,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.631369+00:00"
+      "timestamp": "2026-01-05T09:41:00.132787+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3025,7 +3025,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.631596+00:00"
+      "timestamp": "2026-01-05T09:41:00.133016+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3037,7 +3037,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.631825+00:00"
+      "timestamp": "2026-01-05T09:41:00.133244+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3049,7 +3049,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.632086+00:00"
+      "timestamp": "2026-01-05T09:41:00.133472+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3061,7 +3061,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.632326+00:00"
+      "timestamp": "2026-01-05T09:41:00.133701+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3073,7 +3073,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.632558+00:00"
+      "timestamp": "2026-01-05T09:41:00.133939+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3085,7 +3085,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.632770+00:00"
+      "timestamp": "2026-01-05T09:41:00.134209+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3097,7 +3097,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.633004+00:00"
+      "timestamp": "2026-01-05T09:41:00.134498+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3109,7 +3109,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.633254+00:00"
+      "timestamp": "2026-01-05T09:41:00.134735+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3121,7 +3121,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.633492+00:00"
+      "timestamp": "2026-01-05T09:41:00.134965+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3133,7 +3133,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.633722+00:00"
+      "timestamp": "2026-01-05T09:41:00.135202+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3145,7 +3145,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.633949+00:00"
+      "timestamp": "2026-01-05T09:41:00.135431+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3157,7 +3157,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.634191+00:00"
+      "timestamp": "2026-01-05T09:41:00.135658+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3169,7 +3169,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.634416+00:00"
+      "timestamp": "2026-01-05T09:41:00.135880+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3181,7 +3181,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.634698+00:00"
+      "timestamp": "2026-01-05T09:41:00.136164+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3193,7 +3193,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.634977+00:00"
+      "timestamp": "2026-01-05T09:41:00.136438+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3205,7 +3205,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.635260+00:00"
+      "timestamp": "2026-01-05T09:41:00.136715+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3217,7 +3217,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.635545+00:00"
+      "timestamp": "2026-01-05T09:41:00.136986+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3229,7 +3229,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.635826+00:00"
+      "timestamp": "2026-01-05T09:41:00.137277+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3241,7 +3241,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.636111+00:00"
+      "timestamp": "2026-01-05T09:41:00.137550+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3253,7 +3253,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.636389+00:00"
+      "timestamp": "2026-01-05T09:41:00.137822+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3265,7 +3265,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.636683+00:00"
+      "timestamp": "2026-01-05T09:41:00.138118+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3277,7 +3277,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.636962+00:00"
+      "timestamp": "2026-01-05T09:41:00.138396+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3289,7 +3289,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.637239+00:00"
+      "timestamp": "2026-01-05T09:41:00.138668+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3301,7 +3301,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.637507+00:00"
+      "timestamp": "2026-01-05T09:41:00.138941+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3313,7 +3313,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.637766+00:00"
+      "timestamp": "2026-01-05T09:41:00.139208+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3325,7 +3325,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.638038+00:00"
+      "timestamp": "2026-01-05T09:41:00.139514+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3337,7 +3337,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.638311+00:00"
+      "timestamp": "2026-01-05T09:41:00.139779+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3349,7 +3349,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.638579+00:00"
+      "timestamp": "2026-01-05T09:41:00.140054+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3361,7 +3361,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.638840+00:00"
+      "timestamp": "2026-01-05T09:41:00.140320+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3373,7 +3373,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.639103+00:00"
+      "timestamp": "2026-01-05T09:41:00.140575+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3385,7 +3385,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.639359+00:00"
+      "timestamp": "2026-01-05T09:41:00.140829+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3397,7 +3397,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.639615+00:00"
+      "timestamp": "2026-01-05T09:41:00.141089+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3409,7 +3409,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.639871+00:00"
+      "timestamp": "2026-01-05T09:41:00.141342+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3421,7 +3421,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.640166+00:00"
+      "timestamp": "2026-01-05T09:41:00.141594+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3433,7 +3433,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.640422+00:00"
+      "timestamp": "2026-01-05T09:41:00.141854+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3445,7 +3445,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.640688+00:00"
+      "timestamp": "2026-01-05T09:41:00.142114+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3457,7 +3457,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.640952+00:00"
+      "timestamp": "2026-01-05T09:41:00.142359+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3469,7 +3469,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.641237+00:00"
+      "timestamp": "2026-01-05T09:41:00.142614+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3481,7 +3481,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.641520+00:00"
+      "timestamp": "2026-01-05T09:41:00.142882+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3493,7 +3493,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.641795+00:00"
+      "timestamp": "2026-01-05T09:41:00.143150+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3505,7 +3505,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.875060+00:00"
+      "timestamp": "2026-01-05T09:41:00.376304+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3517,7 +3517,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.875640+00:00"
+      "timestamp": "2026-01-05T09:41:00.376875+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3529,7 +3529,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.876390+00:00"
+      "timestamp": "2026-01-05T09:41:00.377530+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3541,7 +3541,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.876995+00:00"
+      "timestamp": "2026-01-05T09:41:00.378195+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3553,7 +3553,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.877609+00:00"
+      "timestamp": "2026-01-05T09:41:00.378817+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3565,7 +3565,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.878106+00:00"
+      "timestamp": "2026-01-05T09:41:00.379354+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3577,7 +3577,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.878560+00:00"
+      "timestamp": "2026-01-05T09:41:00.379921+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3589,7 +3589,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.879039+00:00"
+      "timestamp": "2026-01-05T09:41:00.380429+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3601,7 +3601,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.879586+00:00"
+      "timestamp": "2026-01-05T09:41:00.380913+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3613,7 +3613,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.880178+00:00"
+      "timestamp": "2026-01-05T09:41:00.381492+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3625,7 +3625,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.880757+00:00"
+      "timestamp": "2026-01-05T09:41:00.382049+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3637,7 +3637,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.881313+00:00"
+      "timestamp": "2026-01-05T09:41:00.382607+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3649,7 +3649,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.881911+00:00"
+      "timestamp": "2026-01-05T09:41:00.383214+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3661,7 +3661,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.882596+00:00"
+      "timestamp": "2026-01-05T09:41:00.383791+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3673,7 +3673,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.883096+00:00"
+      "timestamp": "2026-01-05T09:41:00.384273+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3685,7 +3685,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.883698+00:00"
+      "timestamp": "2026-01-05T09:41:00.384862+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3697,7 +3697,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.884189+00:00"
+      "timestamp": "2026-01-05T09:41:00.385336+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3709,7 +3709,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.884922+00:00"
+      "timestamp": "2026-01-05T09:41:00.386080+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3721,7 +3721,7 @@
       "status": "passed",
       "duration_ms": 10,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.895911+00:00"
+      "timestamp": "2026-01-05T09:41:00.396899+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3731,9 +3731,9 @@
       "test_file": "test_review_storage.py",
       "test_line": 467,
       "status": "passed",
-      "duration_ms": 1,
+      "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.898047+00:00"
+      "timestamp": "2026-01-05T09:41:00.397609+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3745,7 +3745,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.898682+00:00"
+      "timestamp": "2026-01-05T09:41:00.398148+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3757,7 +3757,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.899336+00:00"
+      "timestamp": "2026-01-05T09:41:00.398767+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3769,7 +3769,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.899865+00:00"
+      "timestamp": "2026-01-05T09:41:00.399277+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3781,7 +3781,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.900526+00:00"
+      "timestamp": "2026-01-05T09:41:00.399913+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3793,7 +3793,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.901161+00:00"
+      "timestamp": "2026-01-05T09:41:00.400540+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3805,7 +3805,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.901795+00:00"
+      "timestamp": "2026-01-05T09:41:00.401170+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3817,7 +3817,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.902304+00:00"
+      "timestamp": "2026-01-05T09:41:00.401673+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3829,7 +3829,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.903041+00:00"
+      "timestamp": "2026-01-05T09:41:00.402421+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3841,7 +3841,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.903785+00:00"
+      "timestamp": "2026-01-05T09:41:00.403220+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3853,7 +3853,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.904691+00:00"
+      "timestamp": "2026-01-05T09:41:00.404277+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3865,7 +3865,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.905409+00:00"
+      "timestamp": "2026-01-05T09:41:00.405027+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3877,7 +3877,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.906279+00:00"
+      "timestamp": "2026-01-05T09:41:00.405999+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3889,7 +3889,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.906905+00:00"
+      "timestamp": "2026-01-05T09:41:00.406622+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3901,7 +3901,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.907852+00:00"
+      "timestamp": "2026-01-05T09:41:00.407453+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3913,7 +3913,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.908737+00:00"
+      "timestamp": "2026-01-05T09:41:00.408318+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3925,7 +3925,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.909569+00:00"
+      "timestamp": "2026-01-05T09:41:00.409164+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3937,7 +3937,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.910097+00:00"
+      "timestamp": "2026-01-05T09:41:00.409697+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3949,7 +3949,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.910985+00:00"
+      "timestamp": "2026-01-05T09:41:00.410615+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3961,7 +3961,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.911527+00:00"
+      "timestamp": "2026-01-05T09:41:00.411172+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3973,7 +3973,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.912020+00:00"
+      "timestamp": "2026-01-05T09:41:00.411676+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3985,7 +3985,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.912687+00:00"
+      "timestamp": "2026-01-05T09:41:00.412410+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -3997,7 +3997,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.913364+00:00"
+      "timestamp": "2026-01-05T09:41:00.413110+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4009,7 +4009,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.914148+00:00"
+      "timestamp": "2026-01-05T09:41:00.413905+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4021,7 +4021,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.914877+00:00"
+      "timestamp": "2026-01-05T09:41:00.414575+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4033,7 +4033,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.915724+00:00"
+      "timestamp": "2026-01-05T09:41:00.415371+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4045,7 +4045,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.916348+00:00"
+      "timestamp": "2026-01-05T09:41:00.415952+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4057,7 +4057,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.917104+00:00"
+      "timestamp": "2026-01-05T09:41:00.416699+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4069,7 +4069,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.917961+00:00"
+      "timestamp": "2026-01-05T09:41:00.417546+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4081,7 +4081,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.918501+00:00"
+      "timestamp": "2026-01-05T09:41:00.418086+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4093,7 +4093,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.919213+00:00"
+      "timestamp": "2026-01-05T09:41:00.418785+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4105,7 +4105,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.919550+00:00"
+      "timestamp": "2026-01-05T09:41:00.419128+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4117,7 +4117,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.919918+00:00"
+      "timestamp": "2026-01-05T09:41:00.419595+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4129,7 +4129,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.920264+00:00"
+      "timestamp": "2026-01-05T09:41:00.419996+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4141,7 +4141,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.920548+00:00"
+      "timestamp": "2026-01-05T09:41:00.420301+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4153,7 +4153,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.920869+00:00"
+      "timestamp": "2026-01-05T09:41:00.420632+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4165,7 +4165,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.921127+00:00"
+      "timestamp": "2026-01-05T09:41:00.420917+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4177,7 +4177,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.921372+00:00"
+      "timestamp": "2026-01-05T09:41:00.421215+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4189,7 +4189,7 @@
       "status": "passed",
       "duration_ms": 10,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.931744+00:00"
+      "timestamp": "2026-01-05T09:41:00.431555+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4201,7 +4201,7 @@
       "status": "passed",
       "duration_ms": 10,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.942236+00:00"
+      "timestamp": "2026-01-05T09:41:00.441905+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4213,7 +4213,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.943040+00:00"
+      "timestamp": "2026-01-05T09:41:00.442531+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4225,7 +4225,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.943579+00:00"
+      "timestamp": "2026-01-05T09:41:00.443024+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4237,7 +4237,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.944087+00:00"
+      "timestamp": "2026-01-05T09:41:00.443499+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4249,7 +4249,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.944600+00:00"
+      "timestamp": "2026-01-05T09:41:00.443984+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4261,7 +4261,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.945116+00:00"
+      "timestamp": "2026-01-05T09:41:00.444464+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4273,7 +4273,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.945706+00:00"
+      "timestamp": "2026-01-05T09:41:00.444939+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4285,7 +4285,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.946206+00:00"
+      "timestamp": "2026-01-05T09:41:00.445408+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4297,7 +4297,7 @@
       "status": "passed",
       "duration_ms": 2,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.949261+00:00"
+      "timestamp": "2026-01-05T09:41:00.448533+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00011",
@@ -4309,7 +4309,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.950099+00:00"
+      "timestamp": "2026-01-05T09:41:00.449317+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4321,7 +4321,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.950521+00:00"
+      "timestamp": "2026-01-05T09:41:00.449714+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4333,7 +4333,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.950802+00:00"
+      "timestamp": "2026-01-05T09:41:00.449987+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4345,7 +4345,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.951097+00:00"
+      "timestamp": "2026-01-05T09:41:00.450278+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4357,7 +4357,7 @@
       "status": "passed",
       "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.958145+00:00"
+      "timestamp": "2026-01-05T09:41:00.457398+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4369,7 +4369,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.958598+00:00"
+      "timestamp": "2026-01-05T09:41:00.457850+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4381,7 +4381,7 @@
       "status": "passed",
       "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.965795+00:00"
+      "timestamp": "2026-01-05T09:41:00.464592+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4393,7 +4393,7 @@
       "status": "passed",
       "duration_ms": 6,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.973294+00:00"
+      "timestamp": "2026-01-05T09:41:00.471972+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4405,7 +4405,7 @@
       "status": "passed",
       "duration_ms": 0,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.974285+00:00"
+      "timestamp": "2026-01-05T09:41:00.472809+00:00"
     },
     {
       "requirement_id": "REQ-tv-d00001",
@@ -4417,7 +4417,7 @@
       "status": "passed",
       "duration_ms": 5,
       "error_message": null,
-      "timestamp": "2026-01-05T09:36:00.980096+00:00"
+      "timestamp": "2026-01-05T09:41:00.478804+00:00"
     }
   ],
   "summary": {
