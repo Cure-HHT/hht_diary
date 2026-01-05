@@ -92,15 +92,15 @@ docker compose up -d dev
 docker compose exec dev bash
 
 # Or
-docker exec -it clinical-diary-postgres sh
+docker exec -it sponsor-portal-postgres sh
 
 # Or use VS Code Dev Containers extension
 # F1 → "Dev Containers: Reopen in Container"
 ```
 In the container, sql tests can be run like so:
 ```bash
-psql -U postgres -d clinical_diary -f /database/tests/test_audit_trail.sql 
-psql -U postgres -d clinical_diary -f /database/tests/test_compliance_functions.sql 
+psql -U postgres -d sponsor_portal -f /database/tests/test_audit_trail.sql 
+psql -U postgres -d sponsor_portal -f /database/tests/test_compliance_functions.sql 
 ```
 
 ## Architecture
@@ -124,7 +124,7 @@ doppler secrets set LOCAL_DB_ROOT_PASSWORD  # Postgres admin password
 
 # Optional overrides (have sensible defaults)
 # doppler secrets set LOCAL_DB_USER         # Default: app_user
-# doppler secrets set LOCAL_DB_NAME         # Default: clinical_diary
+# doppler secrets set LOCAL_DB_NAME         # Default: sponsor_portal
 # doppler secrets set LOCAL_DB_PORT         # Default: 5432
 ```
 
@@ -164,7 +164,7 @@ doppler run -- docker compose -f docker-compose.db.yml down -v
 | ------------- | ------------------------ | -------- | ---------------- |
 | Host          | -                        | -        | `localhost`      |
 | Port          | `LOCAL_DB_PORT`          | No       | `5432`           |
-| Database      | `LOCAL_DB_NAME`          | No       | `clinical_diary` |
+| Database      | `LOCAL_DB_NAME`          | No       | `sponsor_portal` |
 | User          | `LOCAL_DB_USER`          | No       | `app_user`       |
 | Password      | `LOCAL_DB_PASSWORD`      | **Yes**  | -                |
 | Root Password | `LOCAL_DB_ROOT_PASSWORD` | **Yes**  | -                |

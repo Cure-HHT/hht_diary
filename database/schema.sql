@@ -481,12 +481,6 @@ COMMENT ON COLUMN app_users.username IS 'Optional username for registered users'
 CREATE INDEX idx_app_users_username ON app_users(username);
 CREATE INDEX idx_app_users_auth_code ON app_users(auth_code);
 
--- Updated at trigger
-CREATE TRIGGER update_app_users_updated_at
-    BEFORE UPDATE ON app_users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
 -- =====================================================
 -- STUDY ENROLLMENTS TABLE
 -- =====================================================
@@ -993,4 +987,7 @@ CREATE TRIGGER update_record_state_updated_at BEFORE UPDATE ON record_state
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_investigator_annotations_updated_at BEFORE UPDATE ON investigator_annotations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -17,20 +17,20 @@
 #
 # Optional Doppler secrets:
 #   LOCAL_DB_USER          - App username (default: app_user)
-#   LOCAL_DB_NAME          - Database name (default: clinical_diary)
+#   LOCAL_DB_NAME          - Database name (default: sponsor_portal)
 #   LOCAL_DB_PORT          - Port to expose (default: 5432)
 
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: clinical-diary-postgres
+    container_name: sponsor-portal-postgres
     hostname: postgres
 
     environment:
       POSTGRES_USER: postgres
       # REQUIRED: Will fail if not set in Doppler
       POSTGRES_PASSWORD: ${LOCAL_DB_ROOT_PASSWORD:?Set LOCAL_DB_ROOT_PASSWORD in Doppler}
-      POSTGRES_DB: ${LOCAL_DB_NAME:-clinical_diary}
+      POSTGRES_DB: ${LOCAL_DB_NAME:-sponsor_portal}
       # App user credentials (created by init script)
       APP_USER: ${LOCAL_DB_USER:-app_user}
       # REQUIRED: Will fail if not set in Doppler
@@ -50,19 +50,19 @@ services:
       - ../../database:/database:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d clinical_diary"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sponsor_portal"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
     networks:
-      - clinical-diary-net
+      - sponsor-portal-net
 
   # Optional: pgAdmin for database management UI
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: clinical-diary-pgadmin
+    container_name: sponsor-portal-pgadmin
     profiles:
       - ui  # Only start with: docker compose --profile ui up
 
@@ -82,16 +82,16 @@ services:
         condition: service_healthy
 
     networks:
-      - clinical-diary-net
+      - sponsor-portal-net
 
 volumes:
   postgres-data:
     driver: local
     labels:
-      com.clinical-diary.description: "PostgreSQL data"
+      com.sponsor-portal.description: "PostgreSQL data"
   pgadmin-data:
     driver: local
 
 networks:
-  clinical-diary-net:
+  sponsor-portal-net:
     driver: bridge
