@@ -29,10 +29,9 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 # Import shared utilities
-from common import get_repo_root, setup_python_path, load_tracking_file
+from common import get_repo_root, load_tracking_file
 
 # Setup paths
-setup_python_path()
 repo_root = get_repo_root()
 
 
