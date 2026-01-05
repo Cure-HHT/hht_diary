@@ -88,27 +88,26 @@ if [ "$REVIEW_MODE" = true ]; then
         open "$URL" &
     fi
 
-    # Start Flask API server
+    # Start Flask API server with static file serving
     cd "$REPO_ROOT"
     python3 -c "
+from pathlib import Path
+from flask import send_from_directory
 from tools.requirements.trace_view.review.server import create_app
-import os
 
 app = create_app(
-    repo_root='$REPO_ROOT',
-    auto_sync=True,
-    static_folder='$REPO_ROOT',
-    static_url_path=''
+    repo_root=Path('$REPO_ROOT'),
+    auto_sync=True
 )
 
 # Serve static files from repo root
 @app.route('/')
 def index():
-    return app.send_static_file('$OUTPUT_DIR_REL/REQ-report.html')
+    return send_from_directory('$REPO_ROOT', '$OUTPUT_DIR_REL/REQ-report.html')
 
 @app.route('/<path:path>')
 def serve_static(path):
-    return app.send_static_file(path)
+    return send_from_directory('$REPO_ROOT', path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=$PORT, debug=False)
