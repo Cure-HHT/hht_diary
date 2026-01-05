@@ -249,11 +249,38 @@
             <div class="review-panel-header">
                 <span class="review-panel-title">Review Panel</span>
             </div>
-            <div class="review-panel-content">
-                <div class="review-panel-no-selection">
-                    <div class="icon">💬</div>
+            <div class="review-panel-content" id="review-panel-content">
+                <div class="review-panel-no-selection" id="review-panel-no-selection">
+                    <div class="icon">&#128172;</div>
                     <p>Click on a requirement to review it</p>
                     <p><small>Add comments, request status changes, flag for review</small></p>
+                </div>
+
+                {# Combined Status & Comments View (hidden until REQ selected) #}
+                <div class="review-panel-combined" id="review-panel-combined" style="display: none;">
+                    {# Status Section (Quick Actions) - at top for visibility #}
+                    <div class="rs-status-section" id="rs-status-section">
+                        <div class="rs-section-header">
+                            <h4>Status & Actions</h4>
+                        </div>
+                        <div class="rs-status-content" id="rs-status-content">
+                            {# Status bar and quick actions rendered by review-status.js #}
+                        </div>
+                    </div>
+
+                    {# Divider between sections #}
+                    <div class="rs-section-divider"></div>
+
+                    {# Comments Section #}
+                    <div class="rs-comments-section" id="rs-comments-section">
+                        <div class="rs-section-header">
+                            <h4>Comments</h4>
+                            <button class="rs-btn rs-btn-sm rs-btn-primary" id="rs-add-comment-btn">+ Add Comment</button>
+                        </div>
+                        <div class="rs-comments-content" id="rs-comments-content">
+                            {# Thread list rendered by review-comments.js #}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
