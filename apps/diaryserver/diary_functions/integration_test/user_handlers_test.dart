@@ -298,6 +298,13 @@ void main() {
       testUserId = userId;
       testAuthToken = token;
 
+      // Ensure DEFAULT site exists for testing
+      await Database.instance.execute('''
+        INSERT INTO sites (site_id, site_name, site_number, is_active)
+        VALUES ('DEFAULT', 'Default Test Site', 'TEST-000', true)
+        ON CONFLICT (site_id) DO UPDATE SET is_active = true
+        ''');
+
       // Create a patient_id for this user and enroll at DEFAULT site
       testPatientId = generateUserId();
 
