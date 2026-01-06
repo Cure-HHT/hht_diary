@@ -36,6 +36,54 @@ const TraceView = (function() {
     };
 
     // ==========================================================================
+    // Helper Functions
+    // ==========================================================================
+
+    /**
+     * Escape HTML special characters
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Render markdown body with line numbers (table-based layout for alignment)
+     * Line numbers are file-relative (starting from req.line)
+     * @param {string} body - Markdown body text
+     * @param {number} startLine - Starting line number in source file
+     * @returns {string} HTML with line numbers
+     */
+    function renderMarkdownWithLines(body, startLine) {
+        const lines = body.split('\n');
+        const tableRowsHtml = lines.map((line, i) => {
+            const lineNum = startLine + i;
+            // Render each line as markdown (basic inline formatting)
+            let content = escapeHtml(line);
+            // Apply basic markdown formatting
+            content = content
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')  // Bold
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')              // Italic
+                .replace(/`([^`]+)`/g, '<code>$1</code>')          // Inline code
+                .replace(/^(#{1,6})\s+(.+)$/, (m, h, t) =>         // Headers
+                    `<span class="md-heading md-h${h.length}">${t}</span>`)
+                .replace(/^[-*+]\s+(.+)$/, '<span class="md-list-item">• $1</span>')  // Bullet list items
+                .replace(/^\d+\.\s+(.+)$/, '<span class="md-list-item">$1</span>')    // Numbered list (1. 2. 3.)
+                .replace(/^([A-Za-z])\.\s+(.+)$/, '<span class="md-list-item">$1. $2</span>');  // Lettered list (A. B. C.)
+
+            return `<div class="rs-line-row" data-line="${lineNum}">
+                <span class="rs-line-number">${lineNum}</span>
+                <span class="rs-line-text">${content || ' '}</span>
+            </div>`;
+        }).join('');
+
+        return `<div class="rs-lines-table">${tableRowsHtml}</div>`;
+    }
+
+    // ==========================================================================
     // Panel Management (REQ-tv-d00003-F: Logical sub-objects)
     // ==========================================================================
 
@@ -60,9 +108,18 @@ const TraceView = (function() {
             // Show panel if hidden
             panelEl.classList.remove('hidden');
 
-            // Check if card already exists
+            // Check if card already exists - if so, move it to top
             if (state.reqCardStack.includes(reqId)) {
-                return; // Already open
+                // Remove existing card and re-add at top
+                const existingCard = document.getElementById(`req-card-${reqId}`);
+                if (existingCard) {
+                    existingCard.remove();
+                }
+                const index = state.reqCardStack.indexOf(reqId);
+                if (index > -1) {
+                    state.reqCardStack.splice(index, 1);
+                }
+                // Continue to create new card at top
             }
 
             // Add to stack
@@ -74,9 +131,14 @@ const TraceView = (function() {
             card.className = 'req-card';
             card.id = `req-card-${reqId}`;
 
-            // Render markdown content
-            const bodyHtml = window.marked ? marked.parse(req.body) : req.body;
-            const rationaleHtml = req.rationale ? (window.marked ? marked.parse(req.rationale) : req.rationale) : '';
+            // Render markdown content with line numbers
+            // Line numbers are file-relative (starting from req.line)
+            const bodyHtml = renderMarkdownWithLines(req.body, req.line);
+            // Rationale starts after body - calculate line offset
+            const rationaleStartLine = req.line + req.body.split('\n').length + 2; // +2 for "Rationale:" header
+            const rationaleHtml = req.rationale
+                ? renderMarkdownWithLines(req.rationale, rationaleStartLine)
+                : '';
 
             // Build implements links
             let implementsHtml = '';
@@ -120,9 +182,16 @@ const TraceView = (function() {
                         ${moveButtons}
                     </div>
                     ${implementsHtml}
-                    <div class="req-card-content markdown-body">
-                        <div class="req-body">${bodyHtml}</div>
-                        ${rationaleHtml ? `<div class="req-rationale"><strong>Rationale:</strong> ${rationaleHtml}</div>` : ''}
+                    <div class="req-card-content rs-lined-content">
+                        <div class="req-body-section">
+                            <h5 class="rs-section-label">Body</h5>
+                            ${bodyHtml}
+                        </div>
+                        ${rationaleHtml ? `
+                        <div class="req-rationale-section">
+                            <h5 class="rs-section-label">Rationale</h5>
+                            ${rationaleHtml}
+                        </div>` : ''}
                     </div>
                 </div>
             `;
@@ -1383,9 +1452,27 @@ function switchView(viewMode) { TraceView.navigation.switchView(viewMode); }
 function applyFilters() { TraceView.applyFilters(); }
 function clearFilters() { TraceView.clearFilters(); }
 
+// Filter by clicking stat badges (PRD/OPS/DEV)
+function filterByLevel(level) {
+    const filterLevel = document.getElementById('filterLevel');
+    const badges = document.querySelectorAll('.stat-badge');
+
+    // Toggle: if already selected, clear it
+    if (filterLevel.value === level) {
+        filterLevel.value = '';
+        badges.forEach(b => b.classList.remove('active'));
+    } else {
+        filterLevel.value = level;
+        // Update active state on badges
+        badges.forEach(b => b.classList.remove('active'));
+        document.getElementById('badge' + level).classList.add('active');
+    }
+    applyFilters();
+}
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
     TraceView.init();
-    // Start with flat view - show all unique requirements at indent 0
-    TraceView.navigation.switchView('flat');
+    // Start with hierarchical view - show tree structure with collapsible nodes
+    TraceView.navigation.switchView('hierarchy');
 });

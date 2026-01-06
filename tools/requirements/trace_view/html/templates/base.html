@@ -37,13 +37,19 @@
                 <div class="stats-badges">
                     <span class="stat-badge prd" id="badgePRD"
                           data-active="{{ stats.prd.active }}"
-                          data-all="{{ stats.prd.all }}">PRD: {{ stats.prd.active }}</span>
+                          data-all="{{ stats.prd.all }}"
+                          onclick="filterByLevel('PRD')"
+                          title="Click to filter by PRD">PRD: {{ stats.prd.active }}</span>
                     <span class="stat-badge ops" id="badgeOPS"
                           data-active="{{ stats.ops.active }}"
-                          data-all="{{ stats.ops.all }}">OPS: {{ stats.ops.active }}</span>
+                          data-all="{{ stats.ops.all }}"
+                          onclick="filterByLevel('OPS')"
+                          title="Click to filter by OPS">OPS: {{ stats.ops.active }}</span>
                     <span class="stat-badge dev" id="badgeDEV"
                           data-active="{{ stats.dev.active }}"
-                          data-all="{{ stats.dev.all }}">DEV: {{ stats.dev.active }}</span>
+                          data-all="{{ stats.dev.all }}"
+                          onclick="filterByLevel('DEV')"
+                          title="Click to filter by DEV">DEV: {{ stats.dev.active }}</span>
                 </div>
                 <span class="version-badge">v{{ version }}</span>
                 <button class="btn btn-legend" onclick="openLegendModal()"
