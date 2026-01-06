@@ -110,7 +110,11 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=$PORT, debug=False)
 " 2>&1
 else
-    # Edit mode: Use simple HTTP server
+    # Edit mode: Use Flask server with apply-moves API
+    echo "Starting Edit Mode server at http://localhost:$PORT"
+    echo "Edit features: batch move requirements via Apply Moves button"
+    echo ""
+
     # Open browser (works on Linux/macOS)
     if command -v xdg-open &> /dev/null; then
         xdg-open "$URL" &
@@ -118,7 +122,77 @@ else
         open "$URL" &
     fi
 
-    # Serve from repo root so spec/ links work
+    # Serve from repo root with Flask for API support
     cd "$REPO_ROOT"
-    python3 -m http.server "$PORT"
+    python3 -c "
+import json
+import subprocess
+from pathlib import Path
+from flask import Flask, send_from_directory, request, jsonify
+
+app = Flask(__name__)
+REPO_ROOT = Path('$REPO_ROOT')
+
+@app.route('/')
+def index():
+    return send_from_directory(str(REPO_ROOT), '$OUTPUT_DIR_REL/REQ-report.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory(str(REPO_ROOT), path)
+
+@app.route('/api/apply-moves', methods=['POST'])
+def apply_moves():
+    '''Execute requirement moves via elspais edit --from-json'''
+    try:
+        moves = request.get_json()
+        if not moves or not isinstance(moves, list):
+            return jsonify({'success': False, 'error': 'Invalid moves data'}), 400
+
+        # Convert to elspais format (reqId -> move-to mapping)
+        elspais_moves = []
+        for move in moves:
+            req_id = move.get('reqId', '')
+            target = move.get('target', '')
+            if req_id and target:
+                # elspais expects REQ- prefix
+                if not req_id.startswith('REQ-'):
+                    req_id = f'REQ-{req_id}'
+                elspais_moves.append({
+                    'req_id': req_id,
+                    'move_to': target
+                })
+
+        if not elspais_moves:
+            return jsonify({'success': False, 'error': 'No valid moves'}), 400
+
+        # Run elspais edit --from-json with moves piped to stdin
+        result = subprocess.run(
+            ['elspais', 'edit', '--from-json', '-'],
+            input=json.dumps(elspais_moves),
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT)
+        )
+
+        if result.returncode != 0:
+            return jsonify({
+                'success': False,
+                'error': result.stderr or 'elspais edit failed',
+                'stdout': result.stdout
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Moved {len(elspais_moves)} requirement(s)',
+            'moves': elspais_moves,
+            'stdout': result.stdout
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=$PORT, debug=False)
+" 2>&1
 fi

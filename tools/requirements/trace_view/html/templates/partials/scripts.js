@@ -21,6 +21,7 @@ const TraceView = (function() {
     const state = {
         reqCardStack: [],
         pendingMoves: [],
+        movedRequirements: new Map(),  // Track moved reqs: reqId -> {from, to}
         editModeActive: false,
         leafOnlyActive: false,
         pendingMovesCollapsed: false,
@@ -48,6 +49,41 @@ const TraceView = (function() {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Show a toast notification
+     * @param {string} message - Message to display
+     * @param {string} type - Type: 'success', 'error', 'warning', 'info'
+     */
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+
+        // Add to container
+        container.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
     }
 
     /**
@@ -552,11 +588,11 @@ const TraceView = (function() {
         },
 
         /**
-         * Generate and download moves JSON
+         * Apply moves via server API
          */
-        generateScript: function() {
+        applyMoves: async function() {
             if (state.pendingMoves.length === 0) {
-                alert('No pending moves to generate script for.');
+                showToast('No pending moves to apply.', 'warning');
                 return;
             }
 
@@ -569,20 +605,79 @@ const TraceView = (function() {
                 }));
 
             if (moves.length === 0) {
-                alert('No valid moves (all moves need target files).');
+                showToast('No valid moves (all moves need target files).', 'warning');
                 return;
             }
 
-            const jsonOutput = JSON.stringify(moves, null, 2);
-            const blob = new Blob([jsonOutput], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'moves.json';
-            a.click();
-            URL.revokeObjectURL(url);
+            // Disable button during operation
+            const btn = document.getElementById('btnApplyMoves');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Applying...';
+            }
 
-            alert('Saved moves.json\n\nRun with:\n  python3 tools/requirements/move_reqs.py moves.json\n\nOr preview first:\n  python3 tools/requirements/move_reqs.py --dry-run moves.json');
+            try {
+                const response = await fetch('/api/apply-moves', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(moves)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Track moved requirements for visual indicator
+                    moves.forEach(move => {
+                        state.movedRequirements.set(move.reqId, {
+                            from: move.source,
+                            to: move.target
+                        });
+                        // Update the file in REQ_CONTENT_DATA
+                        if (window.REQ_CONTENT_DATA && window.REQ_CONTENT_DATA[move.reqId]) {
+                            window.REQ_CONTENT_DATA[move.reqId].file = move.target;
+                        }
+                    });
+
+                    // Clear pending moves
+                    this.clearMoves();
+
+                    // Update tree to show moved indicators
+                    this._updateMovedIndicators();
+
+                    showToast(`Successfully moved ${moves.length} requirement(s)`, 'success');
+                } else {
+                    showToast(`Move failed: ${result.error}`, 'error');
+                }
+            } catch (err) {
+                showToast(`Move failed: ${err.message}`, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = state.pendingMoves.length === 0;
+                    btn.textContent = 'Apply Moves';
+                }
+            }
+        },
+
+        /**
+         * Update tree nodes to show moved indicators
+         * @private
+         */
+        _updateMovedIndicators: function() {
+            state.movedRequirements.forEach((info, reqId) => {
+                // Find tree nodes with this reqId
+                const nodes = document.querySelectorAll(`[data-req-id="${reqId}"]`);
+                nodes.forEach(node => {
+                    // Add moved indicator if not already present
+                    if (!node.querySelector('.moved-indicator')) {
+                        const indicator = document.createElement('span');
+                        indicator.className = 'moved-indicator';
+                        indicator.textContent = ' 📦';
+                        indicator.title = `Moved from: ${info.from}`;
+                        const label = node.querySelector('.req-label') || node;
+                        label.appendChild(indicator);
+                    }
+                });
+            });
         },
 
         /**
@@ -608,7 +703,7 @@ const TraceView = (function() {
         _updateUI: function() {
             const list = document.getElementById('pendingMovesList');
             const count = document.getElementById('pendingChangesCount');
-            const btn = document.getElementById('btnExportMoves');
+            const btn = document.getElementById('btnApplyMoves');
 
             count.textContent = state.pendingMoves.length + ' pending';
             btn.disabled = state.pendingMoves.length === 0;
@@ -1460,7 +1555,7 @@ function addPendingMove(reqId, sourceFile, moveType) { TraceView.editMode.addMov
 function removePendingMove(index) { TraceView.editMode.removeMove(index); }
 function clearPendingMoves() { TraceView.editMode.clearMoves(); }
 function togglePendingMoves() { TraceView.editMode.togglePendingMoves(); }
-function generateMoveScript() { TraceView.editMode.generateScript(); }
+function applyMoves() { TraceView.editMode.applyMoves(); }
 function showMoveToFile(reqId, sourceFile) { TraceView.filePicker.show(reqId, sourceFile); }
 function closeFilePicker() { TraceView.filePicker.close(); }
 function filterFiles(value) { TraceView.filePicker.filter(value); }
