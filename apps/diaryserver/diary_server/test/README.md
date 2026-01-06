@@ -49,56 +49,7 @@ dart test integration_test/
 
 Integration tests run in GitHub Actions using PostgreSQL as a service container.
 
-### GitHub Actions Configuration
-
-The workflow uses `services` to spin up PostgreSQL:
-
-```yaml
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sponsor_portal
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-
-      - name: Apply database schema
-        run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -d sponsor_portal \
-            -f database/init.sql
-
-      - name: Run tests
-        working-directory: apps/diaryserver/diary_server
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: sponsor_portal
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_SSL: false
-        run: |
-          dart pub get --directory=../diary_functions
-          dart pub get
-          dart test
-```
+See `.github/workflows/diary-server-ci.yml`
 
 ### Environment Variables for Tests
 
