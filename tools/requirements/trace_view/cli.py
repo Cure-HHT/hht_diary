@@ -116,7 +116,7 @@ Examples:
     parser.add_argument(
         '--review-mode',
         action='store_true',
-        help='Enable review mode UI in HTML output (comment threads, status requests)'
+        help='Enable review mode UI in HTML output for collaborative spec reviews'
     )
     parser.add_argument(
         '--export-planning',

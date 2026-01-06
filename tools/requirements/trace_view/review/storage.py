@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """
-Review Storage Operations Module
+Review Storage Operations Module for trace_view
 
-CRUD operations for the spec review system:
+CRUD operations for the review system:
 - Config operations (load/save)
-- Session operations (create/load/list/delete)
 - Review flag operations (load/save)
 - Thread operations (load/save/add/resolve/unresolve)
 - Status request operations (load/save/create/approve/apply)
+- Package operations (load/save/create/update/delete)
 - Merge operations for combining multiple user branches
 
 IMPLEMENTS REQUIREMENTS:
-    REQ-d00027: Workflow plugin state management
+    REQ-tv-d00011: Review Storage Operations
 """
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .models import (
     ReviewConfig,
-    ReviewSession,
     ReviewFlag,
     Thread,
     Comment,
@@ -30,27 +30,22 @@ from .models import (
     StatusFile,
     StatusRequest,
     Approval,
-    get_config_path,
-    get_sessions_dir,
-    get_session_path,
-    get_threads_path,
-    get_status_path,
-    get_review_flag_path,
-    normalize_req_id,
+    ReviewPackage,
+    PackagesFile,
     parse_iso_datetime,
-    RequestState,
 )
 
 
 # =============================================================================
 # Helper Functions
+# REQ-tv-d00011-A: Atomic write operations
 # =============================================================================
 
-def _atomic_write_json(path: Path, data: Dict[str, Any]) -> None:
+def atomic_write_json(path: Path, data: Dict[str, Any]) -> None:
     """
     Atomically write JSON data to a file.
 
-    Uses temp file + rename pattern to ensure file is either
+    REQ-tv-d00011-A: Uses temp file + rename pattern to ensure file is either
     fully written or not changed at all.
 
     Args:
@@ -78,7 +73,7 @@ def _atomic_write_json(path: Path, data: Dict[str, Any]) -> None:
         raise
 
 
-def _read_json(path: Path) -> Dict[str, Any]:
+def read_json(path: Path) -> Dict[str, Any]:
     """
     Read JSON file and return dictionary.
 
@@ -97,14 +92,146 @@ def _read_json(path: Path) -> Dict[str, Any]:
 
 
 # =============================================================================
+# Path Functions
+# REQ-tv-d00011-H: Storage paths convention
+# REQ-tv-d00011-I: Requirement ID normalization
+# =============================================================================
+
+def normalize_req_id(req_id: str) -> str:
+    """
+    Normalize requirement ID for use in file paths.
+
+    REQ-tv-d00011-I: Replace colons and slashes with underscores.
+
+    Args:
+        req_id: Original requirement ID
+
+    Returns:
+        Normalized requirement ID safe for file paths
+    """
+    return re.sub(r'[:/]', '_', req_id)
+
+
+def get_reviews_root(repo_root: Path) -> Path:
+    """
+    Get the root directory for review storage.
+
+    REQ-tv-d00011-H: Returns .reviews directory.
+
+    Args:
+        repo_root: Repository root path
+
+    Returns:
+        Path to .reviews directory
+    """
+    return repo_root / '.reviews'
+
+
+def get_req_dir(repo_root: Path, req_id: str) -> Path:
+    """
+    Get the directory for a specific requirement's review data.
+
+    REQ-tv-d00011-H: Returns .reviews/reqs/{normalized-req-id}/
+
+    Args:
+        repo_root: Repository root path
+        req_id: Requirement ID
+
+    Returns:
+        Path to requirement's review directory
+    """
+    normalized = normalize_req_id(req_id)
+    return get_reviews_root(repo_root) / 'reqs' / normalized
+
+
+def get_threads_path(repo_root: Path, req_id: str) -> Path:
+    """
+    Get path to threads.json file for a requirement.
+
+    REQ-tv-d00011-H: Returns .reviews/reqs/{normalized-req-id}/threads.json
+
+    Args:
+        repo_root: Repository root path
+        req_id: Requirement ID
+
+    Returns:
+        Path to threads.json
+    """
+    return get_req_dir(repo_root, req_id) / 'threads.json'
+
+
+def get_status_path(repo_root: Path, req_id: str) -> Path:
+    """
+    Get path to status.json file for a requirement.
+
+    REQ-tv-d00011-H: Returns .reviews/reqs/{normalized-req-id}/status.json
+
+    Args:
+        repo_root: Repository root path
+        req_id: Requirement ID
+
+    Returns:
+        Path to status.json
+    """
+    return get_req_dir(repo_root, req_id) / 'status.json'
+
+
+def get_review_flag_path(repo_root: Path, req_id: str) -> Path:
+    """
+    Get path to flag.json file for a requirement.
+
+    REQ-tv-d00011-H: Returns .reviews/reqs/{normalized-req-id}/flag.json
+
+    Args:
+        repo_root: Repository root path
+        req_id: Requirement ID
+
+    Returns:
+        Path to flag.json
+    """
+    return get_req_dir(repo_root, req_id) / 'flag.json'
+
+
+def get_config_path(repo_root: Path) -> Path:
+    """
+    Get path to config.json file.
+
+    REQ-tv-d00011-H: Returns .reviews/config.json
+
+    Args:
+        repo_root: Repository root path
+
+    Returns:
+        Path to config.json
+    """
+    return get_reviews_root(repo_root) / 'config.json'
+
+
+def get_packages_path(repo_root: Path) -> Path:
+    """
+    Get path to packages.json file.
+
+    REQ-tv-d00011-H: Returns .reviews/packages.json
+
+    Args:
+        repo_root: Repository root path
+
+    Returns:
+        Path to packages.json
+    """
+    return get_reviews_root(repo_root) / 'packages.json'
+
+
+# =============================================================================
 # Config Operations
+# REQ-tv-d00011-F: Config storage operations
 # =============================================================================
 
 def load_config(repo_root: Path) -> ReviewConfig:
     """
     Load review system configuration.
 
-    Returns default config if file doesn't exist.
+    REQ-tv-d00011-F: Returns default config if file doesn't exist.
 
     Args:
         repo_root: Repository root path
@@ -115,7 +242,7 @@ def load_config(repo_root: Path) -> ReviewConfig:
     config_path = get_config_path(repo_root)
     if not config_path.exists():
         return ReviewConfig.default()
-    data = _read_json(config_path)
+    data = read_json(config_path)
     return ReviewConfig.from_dict(data)
 
 
@@ -123,107 +250,26 @@ def save_config(repo_root: Path, config: ReviewConfig) -> None:
     """
     Save review system configuration.
 
+    REQ-tv-d00011-F: Uses atomic write for safety.
+
     Args:
         repo_root: Repository root path
         config: ReviewConfig instance to save
     """
     config_path = get_config_path(repo_root)
-    _atomic_write_json(config_path, config.to_dict())
-
-
-# =============================================================================
-# Session Operations
-# =============================================================================
-
-def create_session(repo_root: Path, session: ReviewSession) -> ReviewSession:
-    """
-    Create a new review session.
-
-    Args:
-        repo_root: Repository root path
-        session: ReviewSession to create
-
-    Returns:
-        The created session
-    """
-    session_path = get_session_path(repo_root, session.sessionId)
-    _atomic_write_json(session_path, session.to_dict())
-    return session
-
-
-def load_session(repo_root: Path, session_id: str) -> Optional[ReviewSession]:
-    """
-    Load a session by ID.
-
-    Args:
-        repo_root: Repository root path
-        session_id: Session UUID
-
-    Returns:
-        ReviewSession if found, None otherwise
-    """
-    session_path = get_session_path(repo_root, session_id)
-    if not session_path.exists():
-        return None
-    data = _read_json(session_path)
-    return ReviewSession.from_dict(data)
-
-
-def list_sessions(repo_root: Path) -> List[ReviewSession]:
-    """
-    List all sessions sorted by creation date (newest first).
-
-    Args:
-        repo_root: Repository root path
-
-    Returns:
-        List of ReviewSession instances
-    """
-    sessions_dir = get_sessions_dir(repo_root)
-    if not sessions_dir.exists():
-        return []
-
-    sessions = []
-    for path in sessions_dir.glob('*.json'):
-        try:
-            data = _read_json(path)
-            sessions.append(ReviewSession.from_dict(data))
-        except (json.JSONDecodeError, KeyError):
-            # Skip invalid session files
-            continue
-
-    # Sort by creation date, newest first
-    sessions.sort(key=lambda s: parse_iso_datetime(s.createdAt), reverse=True)
-    return sessions
-
-
-def delete_session(repo_root: Path, session_id: str) -> bool:
-    """
-    Delete a session by ID.
-
-    Args:
-        repo_root: Repository root path
-        session_id: Session UUID
-
-    Returns:
-        True if deleted, False if not found
-    """
-    session_path = get_session_path(repo_root, session_id)
-    if not session_path.exists():
-        return False
-    session_path.unlink()
-    return True
+    atomic_write_json(config_path, config.to_dict())
 
 
 # =============================================================================
 # Review Flag Operations
+# REQ-tv-d00011-D: Review flag storage operations
 # =============================================================================
 
 def load_review_flag(repo_root: Path, req_id: str) -> ReviewFlag:
     """
     Load review flag for a requirement.
 
-    Returns cleared flag if file doesn't exist.
+    REQ-tv-d00011-D: Returns cleared flag if file doesn't exist.
 
     Args:
         repo_root: Repository root path
@@ -235,7 +281,7 @@ def load_review_flag(repo_root: Path, req_id: str) -> ReviewFlag:
     flag_path = get_review_flag_path(repo_root, req_id)
     if not flag_path.exists():
         return ReviewFlag.cleared()
-    data = _read_json(flag_path)
+    data = read_json(flag_path)
     return ReviewFlag.from_dict(data)
 
 
@@ -243,24 +289,27 @@ def save_review_flag(repo_root: Path, req_id: str, flag: ReviewFlag) -> None:
     """
     Save review flag for a requirement.
 
+    REQ-tv-d00011-D: Uses atomic write for safety.
+
     Args:
         repo_root: Repository root path
         req_id: Requirement ID
         flag: ReviewFlag instance to save
     """
     flag_path = get_review_flag_path(repo_root, req_id)
-    _atomic_write_json(flag_path, flag.to_dict())
+    atomic_write_json(flag_path, flag.to_dict())
 
 
 # =============================================================================
 # Thread Operations
+# REQ-tv-d00011-B: Thread storage operations
 # =============================================================================
 
 def load_threads(repo_root: Path, req_id: str) -> ThreadsFile:
     """
     Load threads for a requirement.
 
-    Returns empty threads file if doesn't exist.
+    REQ-tv-d00011-B: Returns empty threads file if doesn't exist.
 
     Args:
         repo_root: Repository root path
@@ -273,7 +322,7 @@ def load_threads(repo_root: Path, req_id: str) -> ThreadsFile:
     threads_path = get_threads_path(repo_root, req_id)
     if not threads_path.exists():
         return ThreadsFile(reqId=normalized_id, threads=[])
-    data = _read_json(threads_path)
+    data = read_json(threads_path)
     return ThreadsFile.from_dict(data)
 
 
@@ -281,18 +330,22 @@ def save_threads(repo_root: Path, req_id: str, threads_file: ThreadsFile) -> Non
     """
     Save threads file for a requirement.
 
+    REQ-tv-d00011-B: Uses atomic write for safety.
+
     Args:
         repo_root: Repository root path
         req_id: Requirement ID
         threads_file: ThreadsFile instance to save
     """
     threads_path = get_threads_path(repo_root, req_id)
-    _atomic_write_json(threads_path, threads_file.to_dict())
+    atomic_write_json(threads_path, threads_file.to_dict())
 
 
 def add_thread(repo_root: Path, req_id: str, thread: Thread) -> Thread:
     """
     Add a new thread to a requirement.
+
+    REQ-tv-d00011-B: Creates file if needed and appends thread.
 
     Args:
         repo_root: Repository root path
@@ -317,6 +370,8 @@ def add_comment_to_thread(
 ) -> Comment:
     """
     Add a comment to an existing thread.
+
+    REQ-tv-d00011-B: Persists comment and returns it.
 
     Args:
         repo_root: Repository root path
@@ -357,6 +412,8 @@ def resolve_thread(
     """
     Mark a thread as resolved.
 
+    REQ-tv-d00011-B: Persists resolution state.
+
     Args:
         repo_root: Repository root path
         req_id: Requirement ID
@@ -381,6 +438,8 @@ def unresolve_thread(repo_root: Path, req_id: str, thread_id: str) -> bool:
     """
     Mark a thread as unresolved.
 
+    REQ-tv-d00011-B: Persists unresolved state.
+
     Args:
         repo_root: Repository root path
         req_id: Requirement ID
@@ -402,13 +461,14 @@ def unresolve_thread(repo_root: Path, req_id: str, thread_id: str) -> bool:
 
 # =============================================================================
 # Status Request Operations
+# REQ-tv-d00011-C: Status request storage operations
 # =============================================================================
 
 def load_status_requests(repo_root: Path, req_id: str) -> StatusFile:
     """
     Load status requests for a requirement.
 
-    Returns empty status file if doesn't exist.
+    REQ-tv-d00011-C: Returns empty status file if doesn't exist.
 
     Args:
         repo_root: Repository root path
@@ -421,7 +481,7 @@ def load_status_requests(repo_root: Path, req_id: str) -> StatusFile:
     status_path = get_status_path(repo_root, req_id)
     if not status_path.exists():
         return StatusFile(reqId=normalized_id, requests=[])
-    data = _read_json(status_path)
+    data = read_json(status_path)
     return StatusFile.from_dict(data)
 
 
@@ -429,13 +489,15 @@ def save_status_requests(repo_root: Path, req_id: str, status_file: StatusFile) 
     """
     Save status requests file for a requirement.
 
+    REQ-tv-d00011-C: Uses atomic write for safety.
+
     Args:
         repo_root: Repository root path
         req_id: Requirement ID
         status_file: StatusFile instance to save
     """
     status_path = get_status_path(repo_root, req_id)
-    _atomic_write_json(status_path, status_file.to_dict())
+    atomic_write_json(status_path, status_file.to_dict())
 
 
 def create_status_request(
@@ -445,6 +507,8 @@ def create_status_request(
 ) -> StatusRequest:
     """
     Create a new status change request.
+
+    REQ-tv-d00011-C: Persists request and returns it.
 
     Args:
         repo_root: Repository root path
@@ -470,6 +534,8 @@ def add_approval(
 ) -> Approval:
     """
     Add an approval to a status request.
+
+    REQ-tv-d00011-C: Persists approval and returns it.
 
     Args:
         repo_root: Repository root path
@@ -506,6 +572,8 @@ def mark_request_applied(repo_root: Path, req_id: str, request_id: str) -> bool:
     """
     Mark a status request as applied.
 
+    REQ-tv-d00011-C: Persists applied state.
+
     Args:
         repo_root: Repository root path
         req_id: Requirement ID
@@ -529,12 +597,183 @@ def mark_request_applied(repo_root: Path, req_id: str, request_id: str) -> bool:
 
 
 # =============================================================================
+# Package Operations
+# REQ-tv-d00011-E: Package storage operations
+# =============================================================================
+
+def load_packages(repo_root: Path) -> PackagesFile:
+    """
+    Load packages file.
+
+    REQ-tv-d00011-E: Returns file with default package if doesn't exist.
+
+    Args:
+        repo_root: Repository root path
+
+    Returns:
+        PackagesFile instance
+    """
+    packages_path = get_packages_path(repo_root)
+    if not packages_path.exists():
+        # Create default package
+        default_pkg = ReviewPackage.create_default()
+        return PackagesFile(packages=[default_pkg])
+    data = read_json(packages_path)
+    packages_file = PackagesFile.from_dict(data)
+
+    # Ensure default package exists
+    if packages_file.get_default() is None:
+        default_pkg = ReviewPackage.create_default()
+        packages_file.packages.insert(0, default_pkg)
+
+    return packages_file
+
+
+def save_packages(repo_root: Path, packages_file: PackagesFile) -> None:
+    """
+    Save packages file.
+
+    REQ-tv-d00011-E: Uses atomic write for safety.
+
+    Args:
+        repo_root: Repository root path
+        packages_file: PackagesFile instance to save
+    """
+    packages_path = get_packages_path(repo_root)
+    atomic_write_json(packages_path, packages_file.to_dict())
+
+
+def create_package(repo_root: Path, package: ReviewPackage) -> ReviewPackage:
+    """
+    Create a new package.
+
+    REQ-tv-d00011-E: Persists package and returns it.
+
+    Args:
+        repo_root: Repository root path
+        package: ReviewPackage to create
+
+    Returns:
+        The created package
+    """
+    packages_file = load_packages(repo_root)
+    packages_file.packages.append(package)
+    save_packages(repo_root, packages_file)
+    return package
+
+
+def update_package(repo_root: Path, package: ReviewPackage) -> bool:
+    """
+    Update an existing package.
+
+    REQ-tv-d00011-E: Persists updated package.
+
+    Args:
+        repo_root: Repository root path
+        package: ReviewPackage with updated data
+
+    Returns:
+        True if updated, False if package not found
+    """
+    packages_file = load_packages(repo_root)
+
+    for i, p in enumerate(packages_file.packages):
+        if p.packageId == package.packageId:
+            packages_file.packages[i] = package
+            save_packages(repo_root, packages_file)
+            return True
+
+    return False
+
+
+def delete_package(repo_root: Path, package_id: str) -> bool:
+    """
+    Delete a package by ID.
+
+    REQ-tv-d00011-E: Removes package and persists change.
+
+    Args:
+        repo_root: Repository root path
+        package_id: Package UUID
+
+    Returns:
+        True if deleted, False if package not found
+    """
+    packages_file = load_packages(repo_root)
+
+    for i, p in enumerate(packages_file.packages):
+        if p.packageId == package_id:
+            del packages_file.packages[i]
+            save_packages(repo_root, packages_file)
+            return True
+
+    return False
+
+
+def add_req_to_package(repo_root: Path, package_id: str, req_id: str) -> bool:
+    """
+    Add a requirement ID to a package.
+
+    REQ-tv-d00011-E: Prevents duplicates.
+
+    Args:
+        repo_root: Repository root path
+        package_id: Package UUID
+        req_id: Requirement ID to add
+
+    Returns:
+        True if added, False if package not found
+    """
+    packages_file = load_packages(repo_root)
+
+    for package in packages_file.packages:
+        if package.packageId == package_id:
+            if req_id not in package.reqIds:
+                package.reqIds.append(req_id)
+            save_packages(repo_root, packages_file)
+            return True
+
+    return False
+
+
+def remove_req_from_package(repo_root: Path, package_id: str, req_id: str) -> bool:
+    """
+    Remove a requirement ID from a package.
+
+    REQ-tv-d00011-E: Persists change.
+
+    Args:
+        repo_root: Repository root path
+        package_id: Package UUID
+        req_id: Requirement ID to remove
+
+    Returns:
+        True if removed, False if package not found
+    """
+    packages_file = load_packages(repo_root)
+
+    for package in packages_file.packages:
+        if package.packageId == package_id:
+            if req_id in package.reqIds:
+                package.reqIds.remove(req_id)
+            save_packages(repo_root, packages_file)
+            return True
+
+    return False
+
+
+# =============================================================================
 # Merge Operations
+# REQ-tv-d00011-G: Merge operations
+# REQ-tv-d00011-J: Deduplication and timestamp-based conflict resolution
 # =============================================================================
 
 def merge_threads(local: ThreadsFile, remote: ThreadsFile) -> ThreadsFile:
     """
     Merge thread files from local and remote.
+
+    REQ-tv-d00011-G: Combines data from multiple user branches.
+    REQ-tv-d00011-J: Deduplicates by ID and uses timestamp-based conflict resolution.
 
     Strategy:
     - Unique threads (by threadId) are combined
@@ -572,7 +811,11 @@ def merge_threads(local: ThreadsFile, remote: ThreadsFile) -> ThreadsFile:
 
 
 def _merge_single_thread(local: Thread, remote: Thread) -> Thread:
-    """Merge two versions of the same thread."""
+    """
+    Merge two versions of the same thread.
+
+    REQ-tv-d00011-J: Deduplicates comments by ID and sorts by timestamp.
+    """
     # Merge comments by ID
     local_comment_map = {c.id: c for c in local.comments}
     remote_comment_map = {c.id: c for c in remote.comments}
@@ -611,6 +854,9 @@ def merge_status_files(local: StatusFile, remote: StatusFile) -> StatusFile:
     """
     Merge status files from local and remote.
 
+    REQ-tv-d00011-G: Combines data from multiple user branches.
+    REQ-tv-d00011-J: Deduplicates by ID and uses timestamp-based conflict resolution.
+
     Strategy:
     - Unique requests (by requestId) are combined
     - Matching requests merge their approvals
@@ -647,7 +893,11 @@ def merge_status_files(local: StatusFile, remote: StatusFile) -> StatusFile:
 
 
 def _merge_single_request(local: StatusRequest, remote: StatusRequest) -> StatusRequest:
-    """Merge two versions of the same status request."""
+    """
+    Merge two versions of the same status request.
+
+    REQ-tv-d00011-J: Uses timestamp-based conflict resolution for approvals.
+    """
     # Merge approvals by user (later approval wins)
     local_approval_map = {a.user: a for a in local.approvals}
     remote_approval_map = {a.user: a for a in remote.approvals}
@@ -660,7 +910,7 @@ def _merge_single_request(local: StatusRequest, remote: StatusRequest) -> Status
         remote_approval = remote_approval_map.get(user)
 
         if local_approval and remote_approval:
-            # Take the later one
+            # Take the later one (timestamp-based conflict resolution)
             local_time = parse_iso_datetime(local_approval.at)
             remote_time = parse_iso_datetime(remote_approval.at)
             if remote_time >= local_time:
@@ -696,6 +946,9 @@ def _merge_single_request(local: StatusRequest, remote: StatusRequest) -> Status
 def merge_review_flags(local: ReviewFlag, remote: ReviewFlag) -> ReviewFlag:
     """
     Merge review flags from local and remote.
+
+    REQ-tv-d00011-G: Combines data from multiple user branches.
+    REQ-tv-d00011-J: Uses timestamp-based conflict resolution.
 
     Strategy:
     - If neither flagged, return unflagged

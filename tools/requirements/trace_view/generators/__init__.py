@@ -5,4 +5,4 @@ from .csv import generate_csv, generate_planning_csv
 from .markdown import generate_markdown, generate_legend_markdown, format_req_tree_md
 
 # Will export HTML generator when fully extracted
-# from .html_gen import HTMLGenerator
+# from .html import HTMLGenerator

@@ -1,39 +1,45 @@
 #!/usr/bin/env python3
 """
-Review Git Branch Management Module
+Review Branch Management Module for trace_view
 
 Handles git branch operations for the review system:
 - Branch naming and parsing
 - Branch creation, checkout, push, fetch
 - Branch listing and discovery
-- Cleanup operations
 - Conflict detection
 
-Branch naming convention: reviews/{package}/{user}
+Branch naming convention: reviews/{package_id}/{username}
 - Package-first naming enables discovery of all branches for a package
 - User-specific branches enable isolated work without merge conflicts
 
 IMPLEMENTS REQUIREMENTS:
-    REQ-d00027: Workflow plugin state management
+    REQ-tv-d00013: Git Branch Management
 """
 
 import re
 import subprocess
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 # =============================================================================
-# Branch Naming
+# Constants
 # =============================================================================
 
 REVIEW_BRANCH_PREFIX = 'reviews/'
 
 
+# =============================================================================
+# Branch Naming (REQ-tv-d00013-A, B)
+# =============================================================================
+
 def get_review_branch_name(package_id: str, user: str) -> str:
     """
     Generate a review branch name from package and user.
+
+    REQ-tv-d00013-A: Review branches SHALL follow the naming convention
+                     `reviews/{package_id}/{username}`.
+    REQ-tv-d00013-B: This function SHALL return the formatted branch name.
 
     Args:
         package_id: Review package identifier (e.g., 'default', 'q1-2025-review')
@@ -41,6 +47,12 @@ def get_review_branch_name(package_id: str, user: str) -> str:
 
     Returns:
         Branch name in format: reviews/{package}/{user}
+
+    Examples:
+        >>> get_review_branch_name('default', 'alice')
+        'reviews/default/alice'
+        >>> get_review_branch_name('q1-review', 'bob')
+        'reviews/q1-review/bob'
     """
     # Sanitize both package and user for git branch
     sanitized_package = _sanitize_branch_name(package_id)
@@ -64,15 +76,30 @@ def _sanitize_branch_name(name: str) -> str:
     return name.lower()
 
 
+# =============================================================================
+# Branch Parsing (REQ-tv-d00013-C, D)
+# =============================================================================
+
 def parse_review_branch_name(branch_name: str) -> Optional[Tuple[str, str]]:
     """
     Parse a review branch name into (package_id, user).
+
+    REQ-tv-d00013-C: This function SHALL extract and return a tuple of
+                     `(package_id, username)` from a valid branch name.
 
     Args:
         branch_name: Full branch name
 
     Returns:
         Tuple of (package_id, user) or None if not a valid review branch
+
+    Examples:
+        >>> parse_review_branch_name('reviews/default/alice')
+        ('default', 'alice')
+        >>> parse_review_branch_name('reviews/q1-review/bob')
+        ('q1-review', 'bob')
+        >>> parse_review_branch_name('main')
+        None
     """
     if not is_review_branch(branch_name):
         return None
@@ -92,11 +119,24 @@ def is_review_branch(branch_name: str) -> bool:
     """
     Check if a branch name is a valid review branch.
 
+    REQ-tv-d00013-D: This function SHALL return True only for branches
+                     matching the `reviews/{package}/{user}` pattern.
+
     Args:
         branch_name: Branch name to check
 
     Returns:
         True if valid review branch format (reviews/{package}/{user})
+
+    Examples:
+        >>> is_review_branch('reviews/default/alice')
+        True
+        >>> is_review_branch('reviews/q1-review/bob')
+        True
+        >>> is_review_branch('main')
+        False
+        >>> is_review_branch('reviews/default')  # Missing user
+        False
     """
     if not branch_name.startswith(REVIEW_BRANCH_PREFIX):
         return False
@@ -106,222 +146,6 @@ def is_review_branch(branch_name: str) -> bool:
 
     # Must have both package and user
     return len(parts) == 2 and bool(parts[0]) and bool(parts[1])
-
-
-# =============================================================================
-# Package-Aware Discovery
-# =============================================================================
-
-def list_package_branches(repo_root: Path, package_id: str) -> List[str]:
-    """
-    List all local review branches for a specific package.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Package identifier (e.g., 'default', 'q1-review')
-
-    Returns:
-        List of branch names matching reviews/{package_id}/*
-    """
-    sanitized_package = _sanitize_branch_name(package_id)
-    pattern = f"{REVIEW_BRANCH_PREFIX}{sanitized_package}/*"
-    return _list_branches_by_pattern(repo_root, pattern)
-
-
-def list_user_branches(repo_root: Path, user: str) -> List[str]:
-    """
-    List all local review branches for a specific user across all packages.
-
-    Args:
-        repo_root: Repository root path
-        user: Username
-
-    Returns:
-        List of branch names matching reviews/*/{user}
-    """
-    branches = []
-    sanitized_user = _sanitize_branch_name(user)
-
-    # Get all review branches and filter by user (second component)
-    for branch in list_local_review_branches(repo_root):
-        parsed = parse_review_branch_name(branch)
-        if parsed and parsed[1] == sanitized_user:
-            branches.append(branch)
-
-    return branches
-
-
-def _list_branches_by_pattern(repo_root: Path, pattern: str) -> List[str]:
-    """
-    List local branches matching a pattern.
-
-    Args:
-        repo_root: Repository root path
-        pattern: Git branch pattern (e.g., 'reviews/default/*')
-
-    Returns:
-        List of matching branch names
-    """
-    result = _run_git(repo_root, ['branch', '--list', pattern])
-    if result.returncode != 0:
-        return []
-
-    branches = []
-    for line in result.stdout.strip().split('\n'):
-        branch = line.strip().lstrip('* ')
-        if branch and is_review_branch(branch):
-            branches.append(branch)
-
-    return branches
-
-
-def ensure_package_branch(repo_root: Path, package_id: str, user: str) -> str:
-    """
-    Ensure user is on correct package branch.
-
-    Creates the branch if it doesn't exist, checks out if it does.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-
-    Returns:
-        Branch name (reviews/{package}/{user})
-    """
-    branch_name = get_review_branch_name(package_id, user)
-
-    if not branch_exists(repo_root, branch_name):
-        # Create the branch
-        result = _run_git(repo_root, ['branch', branch_name])
-        if result.returncode != 0:
-            raise RuntimeError(f"Failed to create branch: {result.stderr}")
-
-    # Checkout the branch
-    result = _run_git(repo_root, ['checkout', branch_name])
-    if result.returncode != 0:
-        raise RuntimeError(f"Failed to checkout branch: {result.stderr}")
-
-    return branch_name
-
-
-def switch_to_package_branch(repo_root: Path, package_id: str, user: str) -> bool:
-    """
-    Switch to the package branch for a user.
-
-    Stashes any uncommitted changes before switching.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-
-    Returns:
-        True if switch succeeded
-    """
-    # Stash any uncommitted changes
-    if has_uncommitted_changes(repo_root):
-        result = _run_git(repo_root, ['stash', 'push', '-m', 'Auto-stash before package switch'])
-        if result.returncode != 0:
-            return False
-
-    try:
-        ensure_package_branch(repo_root, package_id, user)
-        return True
-    except RuntimeError:
-        return False
-
-
-def get_current_package_context(repo_root: Path) -> Optional[Tuple[str, str]]:
-    """
-    Get current (package_id, user) from branch name.
-
-    Returns:
-        Tuple of (package_id, user) or None if not on a review branch
-    """
-    current_branch = get_current_branch(repo_root)
-    if not current_branch:
-        return None
-
-    return parse_review_branch_name(current_branch)
-
-
-@contextmanager
-def temporary_branch_switch(repo_root: Path, target_branch: str):
-    """
-    Context manager for temporary branch switching.
-
-    Saves the current branch, switches to target_branch, yields,
-    then switches back to the original branch.
-
-    Args:
-        repo_root: Repository root path
-        target_branch: Branch to temporarily switch to
-
-    Yields:
-        True if switch succeeded, False otherwise
-    """
-    original_branch = get_current_branch(repo_root)
-
-    # If already on target branch, no switch needed
-    if original_branch == target_branch:
-        yield True
-        return
-
-    # Try to switch to target branch
-    result = _run_git(repo_root, ['checkout', target_branch])
-    switched = result.returncode == 0
-
-    try:
-        yield switched
-    finally:
-        # Always try to switch back
-        if switched and original_branch:
-            _run_git(repo_root, ['checkout', original_branch])
-
-
-def commit_and_return(
-    repo_root: Path,
-    package_id: str,
-    user: str,
-    message: str,
-    remote: str = 'origin'
-) -> Dict:
-    """
-    Commit review changes to a package branch, then return to original branch.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-        message: Commit message
-        remote: Remote name to push to
-
-    Returns:
-        dict with keys: success, committed, pushed, error, returned
-    """
-    branch_name = get_review_branch_name(package_id, user)
-
-    result = {
-        'success': False,
-        'committed': False,
-        'pushed': False,
-        'returned': False,
-        'error': None
-    }
-
-    with temporary_branch_switch(repo_root, branch_name) as switched:
-        if not switched:
-            result['error'] = f'Failed to switch to branch: {branch_name}'
-            return result
-
-        # Commit and push
-        commit_result = commit_and_push_reviews(repo_root, message, user, remote)
-        result.update(commit_result)
-
-    # If we got here, we're back on original branch
-    result['returned'] = True
-    return result
 
 
 # =============================================================================
@@ -425,6 +249,122 @@ def remote_branch_exists(repo_root: Path, branch_name: str,
 
 
 # =============================================================================
+# Package Context (REQ-tv-d00013-F)
+# =============================================================================
+
+def get_current_package_context(repo_root: Path) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Get current (package_id, user) from branch name.
+
+    REQ-tv-d00013-F: This function SHALL return `(package_id, username)` when
+                     on a review branch, or `(None, None)` otherwise.
+
+    Args:
+        repo_root: Repository root path
+
+    Returns:
+        Tuple of (package_id, user) or (None, None) if not on a review branch
+
+    Examples:
+        >>> get_current_package_context(repo)
+        ('q1-review', 'alice')  # When on reviews/q1-review/alice
+        >>> get_current_package_context(repo)
+        (None, None)  # When on main branch
+    """
+    current_branch = get_current_branch(repo_root)
+    if not current_branch:
+        return (None, None)
+
+    parsed = parse_review_branch_name(current_branch)
+    if parsed:
+        return parsed
+    return (None, None)
+
+
+# =============================================================================
+# Branch Discovery (REQ-tv-d00013-E)
+# =============================================================================
+
+def list_package_branches(repo_root: Path, package_id: str) -> List[str]:
+    """
+    List all local review branches for a specific package.
+
+    REQ-tv-d00013-E: This function SHALL return all branch names for a given
+                     package across all users.
+
+    Args:
+        repo_root: Repository root path
+        package_id: Package identifier (e.g., 'default', 'q1-review')
+
+    Returns:
+        List of branch names matching reviews/{package_id}/*
+
+    Examples:
+        >>> list_package_branches(repo, 'default')
+        ['reviews/default/alice', 'reviews/default/bob']
+    """
+    sanitized_package = _sanitize_branch_name(package_id)
+    pattern = f"{REVIEW_BRANCH_PREFIX}{sanitized_package}/*"
+    return _list_branches_by_pattern(repo_root, pattern)
+
+
+def _list_branches_by_pattern(repo_root: Path, pattern: str) -> List[str]:
+    """
+    List local branches matching a pattern.
+
+    Args:
+        repo_root: Repository root path
+        pattern: Git branch pattern (e.g., 'reviews/default/*')
+
+    Returns:
+        List of matching branch names
+    """
+    result = _run_git(repo_root, ['branch', '--list', pattern])
+    if result.returncode != 0:
+        return []
+
+    branches = []
+    for line in result.stdout.strip().split('\n'):
+        branch = line.strip().lstrip('* ')
+        if branch and is_review_branch(branch):
+            branches.append(branch)
+
+    return branches
+
+
+def list_local_review_branches(repo_root: Path,
+                               user: Optional[str] = None) -> List[str]:
+    """
+    List all local review branches.
+
+    Args:
+        repo_root: Repository root path
+        user: Optional filter by username (matches second component of branch)
+
+    Returns:
+        List of branch names
+    """
+    result = _run_git(repo_root, ['branch', '--list', 'reviews/*'])
+    if result.returncode != 0:
+        return []
+
+    branches = []
+    for line in result.stdout.strip().split('\n'):
+        # Remove leading * and whitespace
+        branch = line.strip().lstrip('* ')
+        if branch and is_review_branch(branch):
+            if user is None:
+                branches.append(branch)
+            else:
+                parsed = parse_review_branch_name(branch)
+                # User is second component: reviews/{package}/{user}
+                if parsed and parsed[1] == user:
+                    branches.append(branch)
+
+    return branches
+
+
+# =============================================================================
 # Branch Operations
 # =============================================================================
 
@@ -442,6 +382,7 @@ def create_review_branch(repo_root: Path, package_id: str, user: str) -> str:
 
     Raises:
         ValueError: If branch already exists
+        RuntimeError: If branch creation fails
     """
     branch_name = get_review_branch_name(package_id, user)
 
@@ -476,237 +417,15 @@ def checkout_review_branch(repo_root: Path, package_id: str, user: str) -> bool:
     return result.returncode == 0
 
 
-def push_review_branch(repo_root: Path, package_id: str, user: str,
-                       remote: str = 'origin') -> bool:
-    """
-    Push a review branch to remote.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-        remote: Remote name
-
-    Returns:
-        True if push succeeded
-    """
-    # Check if remote exists
-    if get_remote_name(repo_root) is None:
-        return False
-
-    branch_name = get_review_branch_name(package_id, user)
-    result = _run_git(repo_root, ['push', '-u', remote, branch_name])
-    return result.returncode == 0
-
-
-def fetch_review_branches(repo_root: Path, remote: str = 'origin') -> bool:
-    """
-    Fetch all review branches from remote.
-
-    Args:
-        repo_root: Repository root path
-        remote: Remote name
-
-    Returns:
-        True if fetch succeeded
-    """
-    if get_remote_name(repo_root) is None:
-        return False
-
-    result = _run_git(repo_root, ['fetch', remote, '--prune'])
-    return result.returncode == 0
-
-
 # =============================================================================
-# Listing and Discovery
-# =============================================================================
-
-def list_local_review_branches(repo_root: Path,
-                               user: Optional[str] = None) -> List[str]:
-    """
-    List all local review branches.
-
-    Args:
-        repo_root: Repository root path
-        user: Optional filter by username (matches second component of branch)
-
-    Returns:
-        List of branch names
-    """
-    result = _run_git(repo_root, ['branch', '--list', 'reviews/*'])
-    if result.returncode != 0:
-        return []
-
-    branches = []
-    for line in result.stdout.strip().split('\n'):
-        # Remove leading * and whitespace
-        branch = line.strip().lstrip('* ')
-        if branch and is_review_branch(branch):
-            if user is None:
-                branches.append(branch)
-            else:
-                parsed = parse_review_branch_name(branch)
-                # User is second component: reviews/{package}/{user}
-                if parsed and parsed[1] == user:
-                    branches.append(branch)
-
-    return branches
-
-
-def list_remote_review_branches(repo_root: Path,
-                                remote: str = 'origin') -> List[str]:
-    """
-    List all remote review branches.
-
-    Args:
-        repo_root: Repository root path
-        remote: Remote name
-
-    Returns:
-        List of branch names (with remote/ prefix)
-    """
-    result = _run_git(repo_root, ['branch', '-r', '--list', f'{remote}/reviews/*'])
-    if result.returncode != 0:
-        return []
-
-    branches = []
-    for line in result.stdout.strip().split('\n'):
-        branch = line.strip()
-        if branch:
-            branches.append(branch)
-
-    return branches
-
-
-def list_all_review_users(repo_root: Path,
-                          include_remote: bool = True) -> List[str]:
-    """
-    List all users who have review branches.
-
-    Args:
-        repo_root: Repository root path
-        include_remote: Include users from remote branches
-
-    Returns:
-        List of unique usernames
-    """
-    users = set()
-
-    # Get local branches
-    for branch in list_local_review_branches(repo_root):
-        parsed = parse_review_branch_name(branch)
-        if parsed:
-            # User is second component: reviews/{package}/{user}
-            users.add(parsed[1])
-
-    # Get remote branches
-    if include_remote:
-        for branch in list_remote_review_branches(repo_root):
-            # Remove remote prefix for parsing
-            if '/' in branch:
-                branch_name = '/'.join(branch.split('/')[1:])
-                parsed = parse_review_branch_name(branch_name)
-                if parsed:
-                    # User is second component: reviews/{package}/{user}
-                    users.add(parsed[1])
-
-    return sorted(list(users))
-
-
-# =============================================================================
-# Cleanup
-# =============================================================================
-
-def delete_local_review_branch(repo_root: Path, package_id: str, user: str) -> bool:
-    """
-    Delete a local review branch.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-
-    Returns:
-        True if deleted, False if not found or couldn't delete
-    """
-    branch_name = get_review_branch_name(package_id, user)
-
-    if not branch_exists(repo_root, branch_name):
-        return False
-
-    # Can't delete current branch
-    current = get_current_branch(repo_root)
-    if current == branch_name:
-        return False
-
-    result = _run_git(repo_root, ['branch', '-d', branch_name])
-    return result.returncode == 0
-
-
-def delete_remote_review_branch(repo_root: Path, package_id: str, user: str,
-                                remote: str = 'origin') -> bool:
-    """
-    Delete a remote review branch.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-        remote: Remote name
-
-    Returns:
-        True if deleted
-    """
-    branch_name = get_review_branch_name(package_id, user)
-    result = _run_git(repo_root, ['push', remote, '--delete', branch_name])
-    return result.returncode == 0
-
-
-def cleanup_old_branches(repo_root: Path, older_than_days: int = 90,
-                         dry_run: bool = True) -> List[str]:
-    """
-    Find review branches older than specified days.
-
-    Args:
-        repo_root: Repository root path
-        older_than_days: Age threshold in days
-        dry_run: If True, just list branches without deleting
-
-    Returns:
-        List of branches that are/would be deleted
-    """
-    import time
-
-    threshold = time.time() - (older_than_days * 24 * 60 * 60)
-    old_branches = []
-
-    for branch in list_local_review_branches(repo_root):
-        # Get last commit date
-        result = _run_git(repo_root, [
-            'log', '-1', '--format=%ct', branch
-        ])
-        if result.returncode == 0 and result.stdout.strip():
-            try:
-                commit_time = int(result.stdout.strip())
-                if commit_time < threshold:
-                    old_branches.append(branch)
-                    if not dry_run:
-                        parsed = parse_review_branch_name(branch)
-                        if parsed:
-                            delete_local_review_branch(repo_root, parsed[0], parsed[1])
-            except ValueError:
-                pass
-
-    return old_branches
-
-
-# =============================================================================
-# Conflict Detection
+# Change Detection
 # =============================================================================
 
 def has_uncommitted_changes(repo_root: Path) -> bool:
     """
     Check if there are uncommitted changes.
+
+    REQ-tv-d00013-H: Part of conflict detection - detects local changes.
 
     Args:
         repo_root: Repository root path
@@ -718,32 +437,6 @@ def has_uncommitted_changes(repo_root: Path) -> bool:
     return bool(result.stdout.strip())
 
 
-def check_review_branch_conflicts(repo_root: Path, package_id: str,
-                                  user: str) -> List[str]:
-    """
-    Check for potential conflicts before switching to a review branch.
-
-    Args:
-        repo_root: Repository root path
-        package_id: Review package identifier
-        user: Username
-
-    Returns:
-        List of conflict/warning messages (empty if safe)
-    """
-    conflicts = []
-
-    # Check for uncommitted changes
-    if has_uncommitted_changes(repo_root):
-        conflicts.append("You have uncommitted changes that may be lost")
-
-    return conflicts
-
-
-# =============================================================================
-# Auto-Sync Operations
-# =============================================================================
-
 def has_reviews_changes(repo_root: Path) -> bool:
     """
     Check if there are uncommitted changes in .reviews/ directory.
@@ -754,9 +447,46 @@ def has_reviews_changes(repo_root: Path) -> bool:
     Returns:
         True if .reviews/ has uncommitted changes
     """
+    reviews_dir = repo_root / '.reviews'
+    if not reviews_dir.exists():
+        return False
+
     result = _run_git(repo_root, ['status', '--porcelain', '.reviews/'])
     return bool(result.stdout.strip())
 
+
+def has_conflicts(repo_root: Path) -> bool:
+    """
+    Check if there are merge conflicts in the repository.
+
+    REQ-tv-d00013-H: Branch operations SHALL detect and report conflicts.
+
+    Args:
+        repo_root: Repository root path
+
+    Returns:
+        True if there are unresolved merge conflicts
+    """
+    # Check for merge in progress
+    git_dir = repo_root / '.git'
+    if (git_dir / 'MERGE_HEAD').exists():
+        # Merge in progress, check for conflict markers
+        result = _run_git(repo_root, ['diff', '--check'])
+        return result.returncode != 0
+
+    # Check for conflict markers in staged files
+    result = _run_git(repo_root, ['diff', '--cached', '--check'])
+    if result.returncode != 0:
+        return True
+
+    # Also check working tree
+    result = _run_git(repo_root, ['diff', '--check'])
+    return result.returncode != 0
+
+
+# =============================================================================
+# Commit and Push Operations (REQ-tv-d00013-G)
+# =============================================================================
 
 def commit_reviews(repo_root: Path, message: str, user: str = 'system') -> bool:
     """
@@ -790,9 +520,12 @@ def commit_and_push_reviews(
     message: str,
     user: str = 'system',
     remote: str = 'origin'
-) -> Dict:
+) -> Tuple[bool, str]:
     """
     Commit changes to .reviews/ and push to remote.
+
+    REQ-tv-d00013-G: This function SHALL commit all changes in `.reviews/`
+                     and push to the remote tracking branch.
 
     Args:
         repo_root: Repository root path
@@ -801,142 +534,96 @@ def commit_and_push_reviews(
         remote: Remote name to push to
 
     Returns:
-        dict with keys: success, committed, pushed, error
+        Tuple of (success: bool, message: str)
     """
-    result = {
-        'success': False,
-        'committed': False,
-        'pushed': False,
-        'error': None
-    }
-
     # Check if there are changes
     if not has_reviews_changes(repo_root):
-        result['success'] = True
-        return result  # No changes, nothing to do
+        return (True, 'No changes to commit')
 
-    # Commit changes
-    if not commit_reviews(repo_root, message, user):
-        result['error'] = 'Failed to commit review changes'
-        return result
+    # Stage .reviews/ changes
+    result = _run_git(repo_root, ['add', '.reviews/'])
+    if result.returncode != 0:
+        return (False, f'Failed to stage changes: {result.stderr}')
 
-    result['committed'] = True
+    # Commit with message
+    full_message = f"[review] {message}\n\nBy: {user}"
+    result = _run_git(repo_root, ['commit', '-m', full_message])
+    if result.returncode != 0:
+        return (False, f'Failed to commit: {result.stderr}')
+
+    # Check if remote exists
+    if get_remote_name(repo_root) is None:
+        return (True, 'Committed locally (no remote configured)')
 
     # Push to remote
     current_branch = get_current_branch(repo_root)
     if current_branch:
         push_result = _run_git(repo_root, ['push', remote, current_branch])
         if push_result.returncode == 0:
-            result['pushed'] = True
-            result['success'] = True
+            return (True, 'Committed and pushed successfully')
         else:
-            # Commit succeeded but push failed - partial success
-            result['error'] = f'Push failed: {push_result.stderr}'
-            result['success'] = True  # Commit worked, push can retry
-    else:
-        result['error'] = 'Could not determine current branch'
-        result['success'] = True  # Commit worked
+            # Commit succeeded but push failed - still return success for commit
+            return (True, f'Committed locally (push failed: {push_result.stderr})')
 
-    return result
+    return (True, 'Committed locally')
 
 
-def fetch_and_merge_reviews(
-    repo_root: Path,
-    remote: str = 'origin'
-) -> Dict:
+# =============================================================================
+# Fetch Operations (REQ-tv-d00013-I)
+# =============================================================================
+
+def fetch_package_branches(repo_root: Path, package_id: str,
+                           remote: str = 'origin') -> List[str]:
     """
-    Fetch latest review data from remote and merge.
+    Fetch all remote branches for a package.
+
+    REQ-tv-d00013-I: This function SHALL fetch all remote branches for a
+                     package to enable merge operations.
 
     Args:
         repo_root: Repository root path
+        package_id: Package identifier
         remote: Remote name
 
     Returns:
-        dict with keys: success, fetched, merged, error
+        List of fetched branch names for the package
     """
-    result = {
-        'success': False,
-        'fetched': False,
-        'merged': False,
-        'error': None
-    }
-
-    # Check for remote
+    # Check if remote exists
     if get_remote_name(repo_root) is None:
-        result['error'] = 'No remote configured'
-        return result
+        return []
 
-    current_branch = get_current_branch(repo_root)
-    if not current_branch:
-        result['error'] = 'Could not determine current branch'
-        return result
+    sanitized_package = _sanitize_branch_name(package_id)
+    refspec = f'refs/heads/{REVIEW_BRANCH_PREFIX}{sanitized_package}/*:refs/remotes/{remote}/{REVIEW_BRANCH_PREFIX}{sanitized_package}/*'
 
-    # Fetch from remote
-    fetch_result = _run_git(repo_root, ['fetch', remote])
-    if fetch_result.returncode != 0:
-        result['error'] = f'Fetch failed: {fetch_result.stderr}'
-        return result
+    # Fetch the specific package branches
+    result = _run_git(repo_root, ['fetch', remote, refspec])
 
-    result['fetched'] = True
+    # Even if fetch fails (e.g., no matching refs), list what we have
+    branches = []
+    list_result = _run_git(repo_root, ['branch', '-r', '--list', f'{remote}/{REVIEW_BRANCH_PREFIX}{sanitized_package}/*'])
 
-    # Check if remote branch exists
-    if not remote_branch_exists(repo_root, current_branch, remote):
-        # No remote branch, nothing to merge
-        result['success'] = True
-        return result
+    if list_result.returncode == 0:
+        for line in list_result.stdout.strip().split('\n'):
+            branch = line.strip()
+            if branch:
+                branches.append(branch)
 
-    # Try to merge (fast-forward only for safety)
-    remote_ref = f'{remote}/{current_branch}'
-    merge_result = _run_git(repo_root, ['merge', '--ff-only', remote_ref])
-    if merge_result.returncode == 0:
-        result['merged'] = True
-        result['success'] = True
-    else:
-        # Can't fast-forward, might have conflicts
-        result['error'] = 'Merge conflict - manual resolution required'
-        result['success'] = False
-
-    return result
+    return branches
 
 
-def get_sync_status(repo_root: Path, remote: str = 'origin') -> Dict:
+def fetch_review_branches(repo_root: Path, remote: str = 'origin') -> bool:
     """
-    Get the current sync status of review data.
+    Fetch all review branches from remote.
 
     Args:
         repo_root: Repository root path
         remote: Remote name
 
     Returns:
-        dict with keys: has_local_changes, ahead, behind, branch, last_sync
+        True if fetch succeeded
     """
-    status = {
-        'has_local_changes': has_reviews_changes(repo_root),
-        'ahead': 0,
-        'behind': 0,
-        'branch': get_current_branch(repo_root),
-        'last_sync': None
-    }
+    if get_remote_name(repo_root) is None:
+        return False
 
-    branch = status['branch']
-    if not branch:
-        return status
-
-    # Check ahead/behind
-    remote_ref = f'{remote}/{branch}'
-    if remote_branch_exists(repo_root, branch, remote):
-        # Get commit counts
-        result = _run_git(repo_root, [
-            'rev-list', '--left-right', '--count',
-            f'{branch}...{remote_ref}'
-        ])
-        if result.returncode == 0 and result.stdout.strip():
-            parts = result.stdout.strip().split()
-            if len(parts) == 2:
-                try:
-                    status['ahead'] = int(parts[0])
-                    status['behind'] = int(parts[1])
-                except ValueError:
-                    pass
-
-    return status
+    result = _run_git(repo_root, ['fetch', remote, '--prune'])
+    return result.returncode == 0

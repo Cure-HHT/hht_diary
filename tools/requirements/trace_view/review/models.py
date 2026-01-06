@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Review Data Models
+Review Data Models for trace_view
 
-Data classes for the spec review system including:
+Data classes for the review system including:
 - ReviewFlag: Mark REQs for review
 - CommentPosition: Position-aware comment anchoring
 - Comment: Individual comments
@@ -11,9 +11,10 @@ Data classes for the spec review system including:
 - Approval: Individual approvals
 - ReviewSession: Review session metadata
 - ReviewConfig: System configuration
+- ReviewPackage: Named collections of REQs under review
 
 IMPLEMENTS REQUIREMENTS:
-    REQ-d00027: Workflow plugin state management
+    REQ-tv-d00010: Review Data Models
 """
 
 import re
@@ -21,12 +22,12 @@ import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
 # =============================================================================
 # Enums and Constants
+# REQ-tv-d00010-B: String enums for JSON compatibility
 # =============================================================================
 
 class PositionType(str, Enum):
@@ -72,7 +73,11 @@ def generate_uuid() -> str:
 
 
 def now_iso() -> str:
-    """Get current UTC timestamp in ISO 8601 format"""
+    """
+    Get current UTC timestamp in ISO 8601 format.
+
+    REQ-tv-d00010-J: All timestamps SHALL be UTC in ISO 8601 format.
+    """
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -108,25 +113,20 @@ def validate_hash(hash_value: str) -> bool:
     return bool(re.match(r'^[a-fA-F0-9]{8}$', hash_value))
 
 
-def normalize_req_id(req_id: str) -> str:
-    """
-    Normalize requirement ID to standard format.
-
-    Removes REQ- prefix if present and lowercases.
-    """
-    if req_id.upper().startswith('REQ-'):
-        req_id = req_id[4:]
-    return req_id.lower()
-
-
 # =============================================================================
 # Data Classes
+# REQ-tv-d00010-A: All types implemented as dataclasses
+# REQ-tv-d00010-C: Each dataclass implements to_dict()
+# REQ-tv-d00010-D: Each dataclass implements from_dict()
+# REQ-tv-d00010-E: Each dataclass implements validate()
 # =============================================================================
 
 @dataclass
 class CommentPosition:
     """
     Position anchor for a comment within a requirement.
+
+    REQ-tv-d00010-H: Supports four anchor types: LINE, BLOCK, WORD, GENERAL.
 
     Supports multiple anchor types:
     - "line": Specific line number
@@ -195,8 +195,7 @@ class CommentPosition:
         """
         Validate position fields based on type.
 
-        Returns:
-            Tuple of (is_valid, list_of_error_messages)
+        REQ-tv-d00010-E: Returns (is_valid, list_of_error_messages)
         """
         errors = []
 
@@ -230,7 +229,11 @@ class CommentPosition:
         return len(errors) == 0, errors
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to JSON-serializable dictionary"""
+        """
+        Convert to JSON-serializable dictionary.
+
+        REQ-tv-d00010-C: Returns JSON-serializable dict.
+        """
         result: Dict[str, Any] = {
             'type': self.type,
             'hashWhenCreated': self.hashWhenCreated
@@ -249,7 +252,11 @@ class CommentPosition:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'CommentPosition':
-        """Create from dictionary (JSON deserialization)"""
+        """
+        Create from dictionary (JSON deserialization).
+
+        REQ-tv-d00010-D: Deserializes from dictionaries.
+        """
         line_range = data.get('lineRange')
         if line_range is not None:
             line_range = tuple(line_range)  # List to tuple
@@ -279,7 +286,12 @@ class Comment:
 
     @classmethod
     def create(cls, author: str, body: str) -> 'Comment':
-        """Factory for creating new comment with auto-generated fields"""
+        """
+        Factory for creating new comment with auto-generated fields.
+
+        REQ-tv-d00010-F: Auto-generates IDs and timestamps.
+        REQ-tv-d00010-J: Uses UTC timestamps.
+        """
         return cls(
             id=generate_uuid(),
             author=author,
@@ -347,6 +359,8 @@ class Thread:
                initial_comment: Optional[str] = None) -> 'Thread':
         """
         Factory for creating new thread.
+
+        REQ-tv-d00010-F: Auto-generates IDs and timestamps.
 
         Args:
             req_id: Requirement ID this thread is about
@@ -579,6 +593,8 @@ class StatusRequest:
     """
     Request to change a requirement's status.
 
+    REQ-tv-d00010-I: Automatically calculates state based on approval votes.
+
     Status changes require approvals from designated approvers.
     Valid transitions:
     - Draft -> Active (requires product_owner, tech_lead)
@@ -603,6 +619,8 @@ class StatusRequest:
                required_approvers: Optional[List[str]] = None) -> 'StatusRequest':
         """
         Factory for creating new status change request.
+
+        REQ-tv-d00010-F: Auto-generates IDs and timestamps.
 
         Args:
             req_id: Requirement ID
@@ -642,7 +660,11 @@ class StatusRequest:
         return approval
 
     def _update_state(self) -> None:
-        """Update state based on approvals"""
+        """
+        Update state based on approvals.
+
+        REQ-tv-d00010-I: State automatically calculated from approval votes.
+        """
         if self.state == RequestState.APPLIED.value:
             return  # Already applied, don't change
 
@@ -864,8 +886,95 @@ class ReviewConfig:
         )
 
 
+@dataclass
+class ReviewPackage:
+    """
+    Named collection of REQs under review.
+
+    Packages group related requirements for coordinated review.
+    """
+    packageId: str  # UUID
+    name: str
+    description: str
+    reqIds: List[str]
+    createdBy: str  # Username
+    createdAt: str  # ISO 8601 datetime
+    isDefault: bool = False
+
+    @classmethod
+    def create(cls, name: str, description: str, created_by: str) -> 'ReviewPackage':
+        """
+        Factory for creating new package.
+
+        REQ-tv-d00010-F: Auto-generates IDs and timestamps.
+        """
+        return cls(
+            packageId=generate_uuid(),
+            name=name,
+            description=description,
+            reqIds=[],
+            createdBy=created_by,
+            createdAt=now_iso(),
+            isDefault=False
+        )
+
+    @classmethod
+    def create_default(cls) -> 'ReviewPackage':
+        """Create the default package"""
+        return cls(
+            packageId="default",
+            name="Default",
+            description="REQs manually set to Review status",
+            reqIds=[],
+            createdBy="system",
+            createdAt=now_iso(),
+            isDefault=True
+        )
+
+    def validate(self) -> Tuple[bool, List[str]]:
+        """Validate package"""
+        errors = []
+
+        if not self.packageId:
+            errors.append("packageId is required")
+        if not self.name:
+            errors.append("name is required")
+        if not self.createdBy:
+            errors.append("createdBy is required")
+        if not self.createdAt:
+            errors.append("createdAt is required")
+
+        return len(errors) == 0, errors
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to JSON-serializable dictionary"""
+        return {
+            'packageId': self.packageId,
+            'name': self.name,
+            'description': self.description,
+            'reqIds': self.reqIds.copy(),
+            'createdBy': self.createdBy,
+            'createdAt': self.createdAt,
+            'isDefault': self.isDefault
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ReviewPackage':
+        """Create from dictionary"""
+        return cls(
+            packageId=data.get('packageId', ''),
+            name=data.get('name', ''),
+            description=data.get('description', ''),
+            reqIds=data.get('reqIds', []).copy(),
+            createdBy=data.get('createdBy', ''),
+            createdAt=data.get('createdAt', ''),
+            isDefault=data.get('isDefault', False)
+        )
+
+
 # =============================================================================
 # Container Classes for JSON File Contents
+# REQ-tv-d00010-G: Container classes with version tracking
 # =============================================================================
 
 @dataclass
@@ -918,52 +1027,50 @@ class StatusFile:
         )
 
 
-# =============================================================================
-# File Path Helpers
-# =============================================================================
+@dataclass
+class PackagesFile:
+    """Container for packages.json file contents"""
+    packages: List[ReviewPackage]
+    activePackageId: Optional[str] = None
+    version: str = "1.0"
 
-def get_reviews_dir(repo_root: Path) -> Path:
-    """Get path to .reviews directory"""
-    return repo_root / '.reviews'
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to JSON-serializable dictionary"""
+        return {
+            'version': self.version,
+            'packages': [p.to_dict() for p in self.packages],
+            'activePackageId': self.activePackageId
+        }
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'PackagesFile':
+        """Create from dictionary"""
+        packages = [ReviewPackage.from_dict(p) for p in data.get('packages', [])]
+        return cls(
+            version=data.get('version', '1.0'),
+            packages=packages,
+            activePackageId=data.get('activePackageId')
+        )
 
-def get_config_path(repo_root: Path) -> Path:
-    """Get path to config.json"""
-    return get_reviews_dir(repo_root) / 'config.json'
+    def get_default(self) -> Optional[ReviewPackage]:
+        """Get the default package"""
+        for pkg in self.packages:
+            if pkg.isDefault:
+                return pkg
+        return None
 
+    def get_active(self) -> Optional[ReviewPackage]:
+        """Get the currently active package"""
+        if not self.activePackageId:
+            return None
+        for pkg in self.packages:
+            if pkg.packageId == self.activePackageId:
+                return pkg
+        return None
 
-def get_sessions_dir(repo_root: Path) -> Path:
-    """Get path to sessions directory"""
-    return get_reviews_dir(repo_root) / 'sessions'
-
-
-def get_session_path(repo_root: Path, session_id: str) -> Path:
-    """Get path to specific session file"""
-    return get_sessions_dir(repo_root) / f'{session_id}.json'
-
-
-def get_reqs_dir(repo_root: Path) -> Path:
-    """Get path to reqs directory"""
-    return get_reviews_dir(repo_root) / 'reqs'
-
-
-def get_req_dir(repo_root: Path, req_id: str) -> Path:
-    """Get path to specific requirement's review directory"""
-    # Normalize req_id to lowercase
-    normalized_id = normalize_req_id(req_id)
-    return get_reqs_dir(repo_root) / normalized_id
-
-
-def get_threads_path(repo_root: Path, req_id: str) -> Path:
-    """Get path to requirement's threads.json"""
-    return get_req_dir(repo_root, req_id) / 'threads.json'
-
-
-def get_status_path(repo_root: Path, req_id: str) -> Path:
-    """Get path to requirement's status.json"""
-    return get_req_dir(repo_root, req_id) / 'status.json'
-
-
-def get_review_flag_path(repo_root: Path, req_id: str) -> Path:
-    """Get path to requirement's review-flag.json"""
-    return get_req_dir(repo_root, req_id) / 'review-flag.json'
+    def get_by_id(self, package_id: str) -> Optional[ReviewPackage]:
+        """Get a package by ID"""
+        for pkg in self.packages:
+            if pkg.packageId == package_id:
+                return pkg
+        return None

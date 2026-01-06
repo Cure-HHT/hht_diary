@@ -1,57 +1,113 @@
+#!/usr/bin/env python3
 """
-Tests for review/server.py - Flask API endpoints
-
-TDD Red Phase: These tests are written BEFORE the implementation.
-They will fail until server.py is implemented.
-
-Each test function documents which assertion it verifies in its docstring.
-The Elspais reporter extracts these references for traceability.
+Tests for Review API Server
 
 IMPLEMENTS REQUIREMENTS:
-    REQ-d00088: Review Storage Operations
-    REQ-d00093: Review Mode Server
+    REQ-tv-d00014: Review API Server
+
+This test file follows TDD (Test-Driven Development) methodology.
+Each test references the specific assertion from REQ-tv-d00014 that it verifies.
+
+TDD RED-GREEN-REFACTOR cycle:
+1. RED: Write failing tests first
+2. GREEN: Implement just enough code to pass
+3. REFACTOR: Clean up while keeping tests green
 """
 
 import json
+import os
+import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 from unittest.mock import patch, MagicMock
 
 import pytest
 
 
 # =============================================================================
-# Test Fixtures
+# Test Imports (will fail initially - RED phase)
+# =============================================================================
+
+def import_server():
+    """Helper to import server module - enables better error messages during TDD."""
+    from trace_view.review.server import create_app
+    return create_app
+
+
+def import_models():
+    """Helper to import models module."""
+    from trace_view.review.models import (
+        Thread,
+        Comment,
+        ThreadsFile,
+        StatusFile,
+        StatusRequest,
+        ReviewFlag,
+        ReviewConfig,
+        ReviewPackage,
+        PackagesFile,
+        Approval,
+        CommentPosition,
+    )
+    return {
+        'Thread': Thread,
+        'Comment': Comment,
+        'ThreadsFile': ThreadsFile,
+        'StatusFile': StatusFile,
+        'StatusRequest': StatusRequest,
+        'ReviewFlag': ReviewFlag,
+        'ReviewConfig': ReviewConfig,
+        'ReviewPackage': ReviewPackage,
+        'PackagesFile': PackagesFile,
+        'Approval': Approval,
+        'CommentPosition': CommentPosition,
+    }
+
+
+def import_storage():
+    """Helper to import storage module."""
+    from trace_view.review.storage import (
+        load_threads,
+        save_threads,
+        add_thread,
+        load_packages,
+        save_packages,
+        load_review_flag,
+        save_review_flag,
+        load_status_requests,
+    )
+    return {
+        'load_threads': load_threads,
+        'save_threads': save_threads,
+        'add_thread': add_thread,
+        'load_packages': load_packages,
+        'save_packages': save_packages,
+        'load_review_flag': load_review_flag,
+        'save_review_flag': save_review_flag,
+        'load_status_requests': load_status_requests,
+    }
+
+
+# =============================================================================
+# Fixtures
 # =============================================================================
 
 @pytest.fixture
-def temp_repo(tmp_path):
-    """
-    Create a temporary repo structure with .reviews directory.
-
-    Sets up the basic directory structure needed for review storage.
-    """
-    # Create .reviews directory structure
-    reviews_dir = tmp_path / '.reviews'
-    reviews_dir.mkdir()
-    (reviews_dir / 'reqs').mkdir()
-    (reviews_dir / 'sessions').mkdir()
-
-    # Create a minimal spec directory for validation
-    spec_dir = tmp_path / 'spec'
-    spec_dir.mkdir()
-
-    return tmp_path
+def app(tmp_path):
+    """Create Flask app configured for testing."""
+    create_app = import_server()
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    return create_app(repo_root=tmp_path, static_dir=static_dir, auto_sync=False)
 
 
 @pytest.fixture
-def app(temp_repo):
-    """Create Flask test app with auto_sync disabled."""
-    from trace_view.review.server import create_app
-
-    app = create_app(temp_repo, auto_sync=False)
-    app.config['TESTING'] = True
-    return app
+def app_with_sync(tmp_path):
+    """Create Flask app with auto_sync enabled."""
+    create_app = import_server()
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    return create_app(repo_root=tmp_path, static_dir=static_dir, auto_sync=True)
 
 
 @pytest.fixture
@@ -61,261 +117,91 @@ def client(app):
 
 
 @pytest.fixture
-def valid_req_id():
-    """Provide a valid requirement ID."""
-    return "d00027"
+def client_with_sync(app_with_sync):
+    """Create Flask test client with auto_sync enabled."""
+    return app_with_sync.test_client()
 
 
 @pytest.fixture
-def valid_hash():
-    """Provide a valid 8-character hex hash."""
-    return "a1b2c3d4"
-
-
-@pytest.fixture
-def sample_author():
-    """Provide a sample author username."""
-    return "test_user"
-
-
-@pytest.fixture
-def sample_thread_data(valid_req_id, valid_hash, sample_author):
-    """Provide sample thread creation data."""
-    from trace_view.review.models import Thread, CommentPosition
-
-    position = CommentPosition.create_line(valid_hash, line_number=42, context="sample context")
-    thread = Thread.create(
-        req_id=valid_req_id,
-        creator=sample_author,
-        position=position,
-        initial_comment="Initial comment on thread"
-    )
-    return thread.to_dict()
-
-
-@pytest.fixture
-def sample_comment_data(sample_author):
-    """Provide sample comment creation data."""
-    return {
-        "author": sample_author,
-        "body": "This is a test comment"
-    }
-
-
-@pytest.fixture
-def sample_flag_data(sample_author):
-    """Provide sample review flag data."""
-    from trace_view.review.models import ReviewFlag
-
-    flag = ReviewFlag.create(
-        user=sample_author,
-        reason="Needs review",
-        scope=["product_owner", "tech_lead"]
-    )
-    return flag.to_dict()
-
-
-@pytest.fixture
-def sample_status_request_data(valid_req_id, sample_author):
-    """Provide sample status request data."""
-    from trace_view.review.models import StatusRequest
-
-    request = StatusRequest.create(
-        req_id=valid_req_id,
-        from_status="Draft",
-        to_status="Active",
-        requested_by=sample_author,
-        justification="Ready for review"
-    )
-    return request.to_dict()
-
-
-@pytest.fixture
-def sample_approval_data():
-    """Provide sample approval data."""
-    from trace_view.review.models import Approval
-
-    approval = Approval.create(
-        user="product_owner",
-        decision="approve",
-        comment="Looks good"
-    )
-    return approval.to_dict()
-
-
-@pytest.fixture
-def repo_with_thread(temp_repo, valid_req_id, valid_hash, sample_author):
-    """Create a repo with an existing thread for testing."""
-    from trace_view.review.storage import add_thread
-    from trace_view.review.models import Thread, CommentPosition
-
-    position = CommentPosition.create_line(valid_hash, line_number=42)
-    thread = Thread.create(
-        req_id=valid_req_id,
-        creator=sample_author,
-        position=position,
-        initial_comment="Existing thread"
-    )
-    add_thread(temp_repo, valid_req_id, thread)
-
-    return temp_repo, thread
-
-
-@pytest.fixture
-def repo_with_status_request(temp_repo, valid_req_id, sample_author):
-    """Create a repo with an existing status request for testing."""
-    from trace_view.review.storage import create_status_request
-    from trace_view.review.models import StatusRequest
-
-    request = StatusRequest.create(
-        req_id=valid_req_id,
-        from_status="Draft",
-        to_status="Active",
-        requested_by=sample_author,
-        justification="Ready for review",
-        required_approvers=["product_owner"]
-    )
-    create_status_request(temp_repo, valid_req_id, request)
-
-    return temp_repo, request
+def repo_root(tmp_path):
+    """Get the repo root from the app fixture."""
+    return tmp_path
 
 
 # =============================================================================
-# Health Check Tests
+# Assertion A: Flask Application Factory
 # =============================================================================
 
-class TestHealthCheck:
-    """Tests for the health check endpoint."""
+class TestFlaskApplicationFactory:
+    """REQ-tv-d00014-A: The API server SHALL be implemented as a Flask
+    application with a `create_app(repo_root, static_dir)` factory function."""
 
-    def test_health_returns_ok(self, client):
-        """
-        REQ-d00093-A: GET /api/health SHALL return status 'ok'.
-        """
-        response = client.get('/api/health')
+    def test_create_app_returns_flask_app(self, tmp_path):
+        """REQ-tv-d00014-A: create_app returns a Flask application instance"""
+        from flask import Flask
+        create_app = import_server()
 
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['status'] == 'ok'
+        app = create_app(repo_root=tmp_path, static_dir=tmp_path)
 
-    def test_health_includes_repo_root(self, client, temp_repo):
-        """
-        REQ-d00093-A: GET /api/health SHALL include repo_root in response.
-        """
-        response = client.get('/api/health')
+        assert isinstance(app, Flask)
 
-        assert response.status_code == 200
-        data = response.get_json()
-        assert 'repo_root' in data
-        assert str(temp_repo) in data['repo_root']
+    def test_create_app_accepts_repo_root_parameter(self, tmp_path):
+        """REQ-tv-d00014-A: create_app accepts repo_root parameter"""
+        create_app = import_server()
 
-    def test_health_includes_reviews_dir(self, client, temp_repo):
-        """
-        REQ-d00093-A: GET /api/health SHALL include reviews_dir in response.
-        """
-        response = client.get('/api/health')
+        app = create_app(repo_root=tmp_path, static_dir=tmp_path)
 
-        assert response.status_code == 200
-        data = response.get_json()
-        assert 'reviews_dir' in data
-        assert '.reviews' in data['reviews_dir']
+        assert app.config['REPO_ROOT'] == tmp_path
 
+    def test_create_app_accepts_static_dir_parameter(self, tmp_path):
+        """REQ-tv-d00014-A: create_app accepts static_dir parameter"""
+        create_app = import_server()
+        static_dir = tmp_path / "custom_static"
+        static_dir.mkdir()
 
-# =============================================================================
-# Reviews API Tests
-# =============================================================================
+        app = create_app(repo_root=tmp_path, static_dir=static_dir)
 
-class TestReviewsAPI:
-    """Tests for the reviews data API endpoints."""
+        assert app.config['STATIC_DIR'] == static_dir
 
-    def test_get_all_reviews_empty(self, client):
-        """
-        REQ-d00093-B: GET /api/reviews SHALL return empty structure when no reviews exist.
-        """
-        response = client.get('/api/reviews')
+    def test_create_app_accepts_auto_sync_parameter(self, tmp_path):
+        """REQ-tv-d00014-A: create_app accepts optional auto_sync parameter"""
+        create_app = import_server()
 
-        assert response.status_code == 200
-        data = response.get_json()
-        assert 'threads' in data
-        assert 'flags' in data
-        assert 'requests' in data
-        assert 'config' in data
-        assert data['threads'] == {}
-        assert data['flags'] == {}
-        assert data['requests'] == {}
+        app_no_sync = create_app(repo_root=tmp_path, static_dir=tmp_path, auto_sync=False)
+        app_with_sync = create_app(repo_root=tmp_path, static_dir=tmp_path, auto_sync=True)
 
-    def test_get_all_reviews_with_data(self, client, temp_repo, valid_req_id,
-                                        valid_hash, sample_author):
-        """
-        REQ-d00093-B: GET /api/reviews SHALL return all review data.
-        """
-        from trace_view.review.storage import add_thread, save_review_flag
-        from trace_view.review.models import Thread, CommentPosition, ReviewFlag
-
-        # Create thread
-        position = CommentPosition.create_line(valid_hash, line_number=10)
-        thread = Thread.create(valid_req_id, sample_author, position, "Test thread")
-        add_thread(temp_repo, valid_req_id, thread)
-
-        # Create flag
-        flag = ReviewFlag.create(sample_author, "Needs review", ["reviewer"])
-        save_review_flag(temp_repo, valid_req_id, flag)
-
-        response = client.get('/api/reviews')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert valid_req_id in data['threads']
-        assert valid_req_id in data['flags']
-
-    def test_get_req_reviews_empty(self, client, valid_req_id):
-        """
-        REQ-d00093-C: GET /api/reviews/reqs/<req_id> SHALL return empty data
-        for non-existent REQ.
-        """
-        response = client.get(f'/api/reviews/reqs/{valid_req_id}')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['threads'] == []
-        assert data['flag'] is None
-        assert data['requests'] == []
-
-    def test_get_req_reviews_normalizes_id(self, client, temp_repo, sample_author, valid_hash):
-        """
-        REQ-d00093-C: GET /api/reviews/reqs/<req_id> SHALL normalize req_id
-        (handle REQ- prefix, case).
-        """
-        from trace_view.review.storage import add_thread
-        from trace_view.review.models import Thread, CommentPosition
-
-        # Add thread using lowercase ID
-        position = CommentPosition.create_line(valid_hash, line_number=10)
-        thread = Thread.create("d00027", sample_author, position, "Test")
-        add_thread(temp_repo, "d00027", thread)
-
-        # Request with uppercase and prefix
-        response = client.get('/api/reviews/reqs/REQ-D00027')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert len(data['threads']) == 1
+        assert app_no_sync.config['AUTO_SYNC'] is False
+        assert app_with_sync.config['AUTO_SYNC'] is True
 
 
 # =============================================================================
-# Thread API Tests
+# Assertion B: Thread Endpoints
 # =============================================================================
 
-class TestThreadAPI:
-    """Tests for thread management endpoints."""
+class TestThreadEndpoints:
+    """REQ-tv-d00014-B: Thread endpoints SHALL support: POST create thread,
+    POST add comment, POST resolve, POST unresolve."""
 
-    def test_create_thread_success(self, client, valid_req_id, sample_thread_data):
-        """
-        REQ-d00093-D: POST /api/reviews/reqs/<req_id>/threads SHALL create
-        a new thread and return 201.
-        """
+    def test_post_create_thread(self, client, tmp_path):
+        """REQ-tv-d00014-B: POST /api/reviews/reqs/<req_id>/threads creates thread"""
+        m = import_models()
+
+        thread_data = {
+            'threadId': 'test-thread-id',
+            'reqId': 'd00001',
+            'createdBy': 'alice',
+            'createdAt': '2024-01-15T10:00:00+00:00',
+            'position': {
+                'type': 'general',
+                'hashWhenCreated': '12345678'
+            },
+            'resolved': False,
+            'comments': []
+        }
+
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
-            data=json.dumps(sample_thread_data),
+            '/api/reviews/reqs/d00001/threads',
+            json=thread_data,
             content_type='application/json'
         )
 
@@ -324,59 +210,38 @@ class TestThreadAPI:
         assert data['success'] is True
         assert 'thread' in data
 
-    def test_create_thread_returns_thread_data(self, client, valid_req_id, sample_thread_data):
-        """
-        REQ-d00093-D: POST /api/reviews/reqs/<req_id>/threads SHALL return
-        the created thread data.
-        """
+    def test_post_create_thread_returns_400_without_data(self, client):
+        """REQ-tv-d00014-B: POST /api/reviews/reqs/<req_id>/threads returns 400 without data"""
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
-            data=json.dumps(sample_thread_data),
-            content_type='application/json'
-        )
-
-        data = response.get_json()
-        assert data['thread']['threadId'] == sample_thread_data['threadId']
-        assert data['thread']['reqId'] == sample_thread_data['reqId']
-
-    def test_create_thread_no_data(self, client, valid_req_id):
-        """
-        REQ-d00093-D: POST /api/reviews/reqs/<req_id>/threads SHALL return
-        400 if no data provided.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
+            '/api/reviews/reqs/d00001/threads',
+            data='',
             content_type='application/json'
         )
 
         assert response.status_code == 400
         data = response.get_json()
+        assert data is not None
         assert 'error' in data
 
-    def test_create_thread_invalid_data(self, client, valid_req_id):
-        """
-        REQ-d00093-D: POST /api/reviews/reqs/<req_id>/threads SHALL return
-        400 for invalid thread data.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
-            data=json.dumps({"invalid": "data"}),
-            content_type='application/json'
-        )
+    def test_post_add_comment(self, client, tmp_path):
+        """REQ-tv-d00014-B: POST .../threads/<thread_id>/comments adds comment"""
+        m = import_models()
+        s = import_storage()
 
-        assert response.status_code == 400
+        # First create a thread
+        pos = m['CommentPosition'].create_general('12345678')
+        thread = m['Thread'].create('d00001', 'alice', pos)
+        s['add_thread'](tmp_path, 'd00001', thread)
 
-    def test_add_comment_success(self, client, valid_req_id, sample_comment_data,
-                                  repo_with_thread):
-        """
-        REQ-d00093-E: POST /api/reviews/reqs/<req_id>/threads/<thread_id>/comments
-        SHALL add comment and return 201.
-        """
-        temp_repo, thread = repo_with_thread
+        # Now add a comment
+        comment_data = {
+            'author': 'bob',
+            'body': 'This is a reply'
+        }
 
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/comments',
-            data=json.dumps(sample_comment_data),
+            f'/api/reviews/reqs/d00001/threads/{thread.threadId}/comments',
+            json=comment_data,
             content_type='application/json'
         )
 
@@ -384,91 +249,48 @@ class TestThreadAPI:
         data = response.get_json()
         assert data['success'] is True
         assert 'comment' in data
+        assert data['comment']['author'] == 'bob'
+        assert data['comment']['body'] == 'This is a reply'
 
-    def test_add_comment_returns_comment_data(self, client, valid_req_id,
-                                               sample_comment_data, repo_with_thread):
-        """
-        REQ-d00093-E: POST .../comments SHALL return the created comment data.
-        """
-        temp_repo, thread = repo_with_thread
-
+    def test_post_add_comment_requires_author(self, client, tmp_path):
+        """REQ-tv-d00014-B: POST .../comments returns 400 without author"""
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/comments',
-            data=json.dumps(sample_comment_data),
-            content_type='application/json'
-        )
-
-        data = response.get_json()
-        assert data['comment']['author'] == sample_comment_data['author']
-        assert data['comment']['body'] == sample_comment_data['body']
-
-    def test_add_comment_no_data(self, client, valid_req_id, repo_with_thread):
-        """
-        REQ-d00093-E: POST .../comments SHALL return 400 if no data provided.
-        """
-        temp_repo, thread = repo_with_thread
-
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/comments',
-            content_type='application/json'
-        )
-
-        assert response.status_code == 400
-
-    def test_add_comment_missing_author(self, client, valid_req_id, repo_with_thread):
-        """
-        REQ-d00093-E: POST .../comments SHALL return 400 if author is missing.
-        """
-        temp_repo, thread = repo_with_thread
-
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/comments',
-            data=json.dumps({"body": "Comment without author"}),
+            '/api/reviews/reqs/d00001/threads/some-thread/comments',
+            json={'body': 'Comment without author'},
             content_type='application/json'
         )
 
         assert response.status_code == 400
         data = response.get_json()
+        assert 'error' in data
         assert 'author' in data['error'].lower()
 
-    def test_add_comment_missing_body(self, client, valid_req_id, repo_with_thread):
-        """
-        REQ-d00093-E: POST .../comments SHALL return 400 if body is missing.
-        """
-        temp_repo, thread = repo_with_thread
-
+    def test_post_add_comment_requires_body(self, client, tmp_path):
+        """REQ-tv-d00014-B: POST .../comments returns 400 without body"""
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/comments',
-            data=json.dumps({"author": "user"}),
+            '/api/reviews/reqs/d00001/threads/some-thread/comments',
+            json={'author': 'alice'},
             content_type='application/json'
         )
 
         assert response.status_code == 400
         data = response.get_json()
+        assert 'error' in data
         assert 'body' in data['error'].lower()
 
-    def test_add_comment_thread_not_found(self, client, valid_req_id, sample_comment_data):
-        """
-        REQ-d00093-E: POST .../comments SHALL return 400 if thread not found.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/nonexistent-thread-id/comments',
-            data=json.dumps(sample_comment_data),
-            content_type='application/json'
-        )
+    def test_post_resolve_thread(self, client, tmp_path):
+        """REQ-tv-d00014-B: POST .../threads/<thread_id>/resolve resolves thread"""
+        m = import_models()
+        s = import_storage()
 
-        assert response.status_code == 400
-
-    def test_resolve_thread_success(self, client, valid_req_id, repo_with_thread):
-        """
-        REQ-d00093-F: POST .../threads/<thread_id>/resolve SHALL resolve thread
-        and return 200.
-        """
-        temp_repo, thread = repo_with_thread
+        # Create a thread
+        pos = m['CommentPosition'].create_general('12345678')
+        thread = m['Thread'].create('d00001', 'alice', pos)
+        s['add_thread'](tmp_path, 'd00001', thread)
 
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/resolve',
-            data=json.dumps({"user": "resolver_user"}),
+            f'/api/reviews/reqs/d00001/threads/{thread.threadId}/resolve',
+            json={'user': 'bob'},
             content_type='application/json'
         )
 
@@ -476,44 +298,26 @@ class TestThreadAPI:
         data = response.get_json()
         assert data['success'] is True
 
-    def test_resolve_thread_uses_anonymous_if_no_user(self, client, valid_req_id,
-                                                       repo_with_thread, temp_repo):
-        """
-        REQ-d00093-F: POST .../resolve SHALL use 'anonymous' if no user provided.
-        """
-        temp_repo_fixture, thread = repo_with_thread
+        # Verify thread is resolved
+        loaded = s['load_threads'](tmp_path, 'd00001')
+        assert loaded.threads[0].resolved is True
+        assert loaded.threads[0].resolvedBy == 'bob'
+
+    def test_post_unresolve_thread(self, client, tmp_path):
+        """REQ-tv-d00014-B: POST .../threads/<thread_id>/unresolve unresolves thread"""
+        m = import_models()
+        s = import_storage()
+
+        # Create and resolve a thread
+        pos = m['CommentPosition'].create_general('12345678')
+        thread = m['Thread'].create('d00001', 'alice', pos)
+        thread.resolve('bob')
+        threads_file = m['ThreadsFile'](reqId='d00001', threads=[thread])
+        s['save_threads'](tmp_path, 'd00001', threads_file)
 
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/resolve',
-            content_type='application/json'
-        )
-
-        assert response.status_code == 200
-
-        # Verify the thread is resolved
-        from trace_view.review.storage import load_threads
-        threads = load_threads(temp_repo_fixture, valid_req_id)
-        resolved_thread = threads.threads[0]
-        assert resolved_thread.resolved is True
-        assert resolved_thread.resolvedBy == "anonymous"
-
-    def test_unresolve_thread_success(self, client, valid_req_id, repo_with_thread):
-        """
-        REQ-d00093-G: POST .../threads/<thread_id>/unresolve SHALL unresolve thread
-        and return 200.
-        """
-        temp_repo, thread = repo_with_thread
-
-        # First resolve
-        client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/resolve',
-            data=json.dumps({"user": "resolver"}),
-            content_type='application/json'
-        )
-
-        # Then unresolve
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/{thread.threadId}/unresolve',
+            f'/api/reviews/reqs/d00001/threads/{thread.threadId}/unresolve',
+            json={'user': 'alice'},
             content_type='application/json'
         )
 
@@ -521,169 +325,54 @@ class TestThreadAPI:
         data = response.get_json()
         assert data['success'] is True
 
-
-# =============================================================================
-# Flag API Tests
-# =============================================================================
-
-class TestFlagAPI:
-    """Tests for review flag management endpoints."""
-
-    def test_get_flag_not_exists(self, client, valid_req_id):
-        """
-        REQ-d00093-H: GET /api/reviews/reqs/<req_id>/flag SHALL return
-        unflagged state if no flag exists.
-        """
-        response = client.get(f'/api/reviews/reqs/{valid_req_id}/flag')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['flaggedForReview'] is False
-
-    def test_get_flag_exists(self, client, temp_repo, valid_req_id, sample_author):
-        """
-        REQ-d00093-H: GET /api/reviews/reqs/<req_id>/flag SHALL return
-        flag data if flag exists.
-        """
-        from trace_view.review.storage import save_review_flag
-        from trace_view.review.models import ReviewFlag
-
-        flag = ReviewFlag.create(sample_author, "Needs review", ["reviewer"])
-        save_review_flag(temp_repo, valid_req_id, flag)
-
-        response = client.get(f'/api/reviews/reqs/{valid_req_id}/flag')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['flaggedForReview'] is True
-        assert data['reason'] == "Needs review"
-
-    def test_set_flag_success(self, client, valid_req_id, sample_flag_data):
-        """
-        REQ-d00093-I: POST /api/reviews/reqs/<req_id>/flag SHALL set flag
-        and return 200.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/flag',
-            data=json.dumps(sample_flag_data),
-            content_type='application/json'
-        )
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert 'flag' in data
-
-    def test_set_flag_returns_flag_data(self, client, valid_req_id, sample_flag_data):
-        """
-        REQ-d00093-I: POST .../flag SHALL return the saved flag data.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/flag',
-            data=json.dumps(sample_flag_data),
-            content_type='application/json'
-        )
-
-        data = response.get_json()
-        assert data['flag']['flaggedForReview'] is True
-        assert data['flag']['reason'] == sample_flag_data['reason']
-
-    def test_set_flag_no_data(self, client, valid_req_id):
-        """
-        REQ-d00093-I: POST .../flag SHALL return 400 if no data provided.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/flag',
-            content_type='application/json'
-        )
-
-        assert response.status_code == 400
-
-    def test_clear_flag_success(self, client, temp_repo, valid_req_id, sample_author):
-        """
-        REQ-d00093-J: DELETE /api/reviews/reqs/<req_id>/flag SHALL clear flag
-        and return 200.
-        """
-        from trace_view.review.storage import save_review_flag
-        from trace_view.review.models import ReviewFlag
-
-        # First set a flag
-        flag = ReviewFlag.create(sample_author, "Needs review", ["reviewer"])
-        save_review_flag(temp_repo, valid_req_id, flag)
-
-        # Then clear it
-        response = client.delete(
-            f'/api/reviews/reqs/{valid_req_id}/flag',
-            data=json.dumps({"user": sample_author}),
-            content_type='application/json'
-        )
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-
-    def test_clear_flag_persists(self, client, temp_repo, valid_req_id, sample_author):
-        """
-        REQ-d00093-J: DELETE .../flag SHALL persist the cleared state.
-        """
-        from trace_view.review.storage import save_review_flag, load_review_flag
-        from trace_view.review.models import ReviewFlag
-
-        flag = ReviewFlag.create(sample_author, "Needs review", ["reviewer"])
-        save_review_flag(temp_repo, valid_req_id, flag)
-
-        client.delete(
-            f'/api/reviews/reqs/{valid_req_id}/flag',
-            content_type='application/json'
-        )
-
-        # Verify flag is cleared
-        loaded_flag = load_review_flag(temp_repo, valid_req_id)
-        assert loaded_flag.flaggedForReview is False
+        # Verify thread is unresolved
+        loaded = s['load_threads'](tmp_path, 'd00001')
+        assert loaded.threads[0].resolved is False
 
 
 # =============================================================================
-# Status Request API Tests
+# Assertion C: Status Endpoints
 # =============================================================================
 
-class TestStatusRequestAPI:
-    """Tests for status request management endpoints."""
+class TestStatusEndpoints:
+    """REQ-tv-d00014-C: Status endpoints SHALL support: GET status,
+    POST change status, GET/POST requests, POST approvals."""
 
-    def test_get_status_requests_empty(self, client, valid_req_id):
-        """
-        REQ-d00093-K: GET /api/reviews/reqs/<req_id>/requests SHALL return
-        empty list if no requests exist.
-        """
-        response = client.get(f'/api/reviews/reqs/{valid_req_id}/requests')
+    def test_get_status_not_found(self, client):
+        """REQ-tv-d00014-C: GET /api/reviews/reqs/<req_id>/status returns 404 if not found"""
+        response = client.get('/api/reviews/reqs/nonexistent/status')
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'error' in data
+
+    def test_get_status_requests(self, client, tmp_path):
+        """REQ-tv-d00014-C: GET /api/reviews/reqs/<req_id>/requests returns requests"""
+        response = client.get('/api/reviews/reqs/d00001/requests')
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data == []
+        assert isinstance(data, list)
 
-    def test_get_status_requests_exists(self, client, valid_req_id,
-                                         repo_with_status_request):
-        """
-        REQ-d00093-K: GET /api/reviews/reqs/<req_id>/requests SHALL return
-        all status requests.
-        """
-        temp_repo, request = repo_with_status_request
+    def test_post_status_request(self, client, tmp_path):
+        """REQ-tv-d00014-C: POST /api/reviews/reqs/<req_id>/requests creates request"""
+        request_data = {
+            'requestId': 'test-request-id',
+            'reqId': 'd00001',
+            'type': 'status_change',
+            'fromStatus': 'Draft',
+            'toStatus': 'Active',
+            'requestedBy': 'alice',
+            'requestedAt': '2024-01-15T10:00:00+00:00',
+            'justification': 'Ready for activation',
+            'approvals': [],
+            'requiredApprovers': ['product_owner'],
+            'state': 'pending'
+        }
 
-        response = client.get(f'/api/reviews/reqs/{valid_req_id}/requests')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert len(data) == 1
-        assert data[0]['requestId'] == request.requestId
-
-    def test_create_status_request_success(self, client, valid_req_id,
-                                            sample_status_request_data):
-        """
-        REQ-d00093-L: POST /api/reviews/reqs/<req_id>/requests SHALL create
-        status request and return 201.
-        """
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests',
-            data=json.dumps(sample_status_request_data),
+            '/api/reviews/reqs/d00001/requests',
+            json=request_data,
             content_type='application/json'
         )
 
@@ -692,43 +381,42 @@ class TestStatusRequestAPI:
         assert data['success'] is True
         assert 'request' in data
 
-    def test_create_status_request_returns_data(self, client, valid_req_id,
-                                                  sample_status_request_data):
-        """
-        REQ-d00093-L: POST .../requests SHALL return the created request data.
-        """
+    def test_post_status_request_returns_400_without_data(self, client):
+        """REQ-tv-d00014-C: POST .../requests returns 400 without data"""
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests',
-            data=json.dumps(sample_status_request_data),
-            content_type='application/json'
-        )
-
-        data = response.get_json()
-        assert data['request']['fromStatus'] == sample_status_request_data['fromStatus']
-        assert data['request']['toStatus'] == sample_status_request_data['toStatus']
-
-    def test_create_status_request_no_data(self, client, valid_req_id):
-        """
-        REQ-d00093-L: POST .../requests SHALL return 400 if no data provided.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests',
+            '/api/reviews/reqs/d00001/requests',
             content_type='application/json'
         )
 
         assert response.status_code == 400
 
-    def test_add_approval_success(self, client, valid_req_id, sample_approval_data,
-                                   repo_with_status_request):
-        """
-        REQ-d00093-M: POST .../requests/<request_id>/approvals SHALL add
-        approval and return 201.
-        """
-        temp_repo, request = repo_with_status_request
+    def test_post_approval(self, client, tmp_path):
+        """REQ-tv-d00014-C: POST .../requests/<request_id>/approvals adds approval"""
+        m = import_models()
+        s = import_storage()
+
+        # Create a status request first
+        request = m['StatusRequest'].create(
+            req_id='d00001',
+            from_status='Draft',
+            to_status='Active',
+            requested_by='alice',
+            justification='Test',
+            required_approvers=['product_owner']
+        )
+        status_file = m['StatusFile'](reqId='d00001', requests=[request])
+        from trace_view.review.storage import save_status_requests
+        save_status_requests(tmp_path, 'd00001', status_file)
+
+        approval_data = {
+            'user': 'product_owner',
+            'decision': 'approve',
+            'at': '2024-01-15T11:00:00+00:00'
+        }
 
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests/{request.requestId}/approvals',
-            data=json.dumps(sample_approval_data),
+            f'/api/reviews/reqs/d00001/requests/{request.requestId}/approvals',
+            json=approval_data,
             content_type='application/json'
         )
 
@@ -737,369 +425,658 @@ class TestStatusRequestAPI:
         assert data['success'] is True
         assert 'approval' in data
 
-    def test_add_approval_returns_data(self, client, valid_req_id, sample_approval_data,
-                                        repo_with_status_request):
-        """
-        REQ-d00093-M: POST .../approvals SHALL return the created approval data.
-        """
-        temp_repo, request = repo_with_status_request
-
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests/{request.requestId}/approvals',
-            data=json.dumps(sample_approval_data),
-            content_type='application/json'
-        )
-
-        data = response.get_json()
-        assert data['approval']['user'] == sample_approval_data['user']
-        assert data['approval']['decision'] == sample_approval_data['decision']
-
-    def test_add_approval_no_data(self, client, valid_req_id, repo_with_status_request):
-        """
-        REQ-d00093-M: POST .../approvals SHALL return 400 if no data provided.
-        """
-        temp_repo, request = repo_with_status_request
-
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests/{request.requestId}/approvals',
-            content_type='application/json'
-        )
-
-        assert response.status_code == 400
-
-    def test_add_approval_request_not_found(self, client, valid_req_id, sample_approval_data):
-        """
-        REQ-d00093-M: POST .../approvals SHALL return 400 if request not found.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/requests/nonexistent-id/approvals',
-            data=json.dumps(sample_approval_data),
-            content_type='application/json'
-        )
-
-        assert response.status_code == 400
-
 
 # =============================================================================
-# Sync API Tests
+# Assertion D: Package Endpoints
 # =============================================================================
 
-class TestSyncAPI:
-    """Tests for git sync status endpoints."""
+class TestPackageEndpoints:
+    """REQ-tv-d00014-D: Package endpoints SHALL support: GET/POST packages,
+    GET/PUT/DELETE package by ID, POST/DELETE membership, GET/PUT active."""
 
-    def test_get_sync_status(self, client):
-        """
-        REQ-d00093-N: GET /api/reviews/sync/status SHALL return sync status.
-        """
-        response = client.get('/api/reviews/sync/status')
+    def test_get_packages(self, client):
+        """REQ-tv-d00014-D: GET /api/reviews/packages returns packages list"""
+        response = client.get('/api/reviews/packages')
 
         assert response.status_code == 200
         data = response.get_json()
-        assert 'has_local_changes' in data
-        assert 'ahead' in data
-        assert 'behind' in data
-        assert 'branch' in data
+        assert 'packages' in data
+        assert isinstance(data['packages'], list)
 
-    def test_get_sync_status_includes_auto_sync(self, client):
-        """
-        REQ-d00093-N: GET /api/reviews/sync/status SHALL include auto_sync_enabled.
-        """
-        response = client.get('/api/reviews/sync/status')
+    def test_post_package(self, client):
+        """REQ-tv-d00014-D: POST /api/reviews/packages creates new package"""
+        package_data = {
+            'name': 'Sprint 23 Review',
+            'description': 'Requirements for sprint 23',
+            'user': 'alice'
+        }
 
-        data = response.get_json()
-        assert 'auto_sync_enabled' in data
-
-    def test_sync_status_auto_sync_disabled_in_tests(self, client):
-        """
-        REQ-d00093-N: Sync status SHALL reflect app config for auto_sync.
-        """
-        response = client.get('/api/reviews/sync/status')
-
-        data = response.get_json()
-        # In tests, auto_sync is disabled
-        assert data['auto_sync_enabled'] is False
-
-
-# =============================================================================
-# Auto-Sync Behavior Tests
-# =============================================================================
-
-class TestAutoSyncBehavior:
-    """Tests for auto-sync behavior when enabled."""
-
-    @pytest.fixture
-    def app_with_sync(self, temp_repo):
-        """Create Flask app with auto_sync enabled."""
-        from trace_view.review.server import create_app
-
-        app = create_app(temp_repo, auto_sync=True)
-        app.config['TESTING'] = True
-        return app
-
-    @pytest.fixture
-    def client_with_sync(self, app_with_sync):
-        """Create test client for app with sync enabled."""
-        return app_with_sync.test_client()
-
-    def test_create_thread_triggers_sync(self, client_with_sync, valid_req_id,
-                                          sample_thread_data):
-        """
-        REQ-d00093-O: POST /api/reviews/.../threads SHALL trigger auto-sync
-        when enabled.
-        """
-        with patch('trace_view.review.server.commit_and_push_reviews') as mock_sync:
-            mock_sync.return_value = {'success': True, 'committed': True, 'pushed': True}
-
-            response = client_with_sync.post(
-                f'/api/reviews/reqs/{valid_req_id}/threads',
-                data=json.dumps(sample_thread_data),
-                content_type='application/json'
-            )
-
-            assert response.status_code == 201
-            data = response.get_json()
-            # Sync result should be in response when auto_sync is enabled
-            assert 'sync' in data or mock_sync.called
-
-    def test_sync_disabled_no_trigger(self, client, valid_req_id, sample_thread_data):
-        """
-        REQ-d00093-O: POST operations SHALL NOT trigger sync when auto_sync disabled.
-        """
-        with patch('trace_view.review.server.commit_and_push_reviews') as mock_sync:
-            response = client.post(
-                f'/api/reviews/reqs/{valid_req_id}/threads',
-                data=json.dumps(sample_thread_data),
-                content_type='application/json'
-            )
-
-            assert response.status_code == 201
-            data = response.get_json()
-            # No sync key when auto_sync is disabled
-            assert 'sync' not in data
-
-
-# =============================================================================
-# Error Handling Tests
-# =============================================================================
-
-class TestErrorHandling:
-    """Tests for error handling in API endpoints."""
-
-    def test_invalid_json_returns_400(self, client, valid_req_id):
-        """
-        REQ-d00093-P: API SHALL return 400 for invalid JSON payload.
-        """
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
-            data='not valid json {',
+            '/api/reviews/packages',
+            json=package_data,
             content_type='application/json'
         )
 
-        # Flask returns 400 for malformed JSON
-        assert response.status_code in [400, 415]
+        assert response.status_code == 201
+        data = response.get_json()
+        assert data['success'] is True
+        assert 'package' in data
+        assert data['package']['name'] == 'Sprint 23 Review'
 
-    def test_exception_handling_returns_error(self, client, valid_req_id):
-        """
-        REQ-d00093-P: API SHALL return error message on exceptions.
-        """
-        # Try to add comment to non-existent thread
+    def test_post_package_requires_name(self, client):
+        """REQ-tv-d00014-D: POST /api/reviews/packages requires name"""
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads/fake-id/comments',
-            data=json.dumps({"author": "user", "body": "comment"}),
+            '/api/reviews/packages',
+            json={'description': 'No name provided'},
             content_type='application/json'
         )
 
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
+        assert 'name' in data['error'].lower()
 
+    def test_get_package_by_id(self, client, tmp_path):
+        """REQ-tv-d00014-D: GET /api/reviews/packages/<id> returns package"""
+        m = import_models()
+        s = import_storage()
 
-# =============================================================================
-# CORS Tests
-# =============================================================================
-
-class TestCORS:
-    """Tests for CORS configuration."""
-
-    def test_cors_headers_present(self, client):
-        """
-        REQ-d00093-Q: API SHALL include CORS headers for browser requests.
-        """
-        response = client.options('/api/health')
-
-        # CORS preflight or actual request should work
-        assert response.status_code in [200, 204]
-
-
-# =============================================================================
-# Create App Factory Tests
-# =============================================================================
-
-class TestCreateAppFactory:
-    """Tests for the create_app factory function."""
-
-    def test_create_app_with_repo_root(self, temp_repo):
-        """
-        REQ-d00093-R: create_app SHALL accept repo_root parameter.
-        """
-        from trace_view.review.server import create_app
-
-        app = create_app(temp_repo)
-
-        assert app.config['REPO_ROOT'] == temp_repo
-
-    def test_create_app_with_auto_sync_false(self, temp_repo):
-        """
-        REQ-d00093-R: create_app SHALL accept auto_sync parameter.
-        """
-        from trace_view.review.server import create_app
-
-        app = create_app(temp_repo, auto_sync=False)
-
-        assert app.config['AUTO_SYNC'] is False
-
-    def test_create_app_with_auto_sync_true(self, temp_repo):
-        """
-        REQ-d00093-R: create_app SHALL default auto_sync to True.
-        """
-        from trace_view.review.server import create_app
-
-        app = create_app(temp_repo)
-
-        assert app.config['AUTO_SYNC'] is True
-
-    def test_create_app_sets_testing_flag(self, temp_repo):
-        """
-        REQ-d00093-R: create_app SHALL allow TESTING config to be set.
-        """
-        from trace_view.review.server import create_app
-
-        app = create_app(temp_repo)
-        app.config['TESTING'] = True
-
-        assert app.config['TESTING'] is True
-
-
-# =============================================================================
-# ID Normalization Tests
-# =============================================================================
-
-class TestIdNormalization:
-    """Tests for requirement ID normalization across endpoints."""
-
-    def test_thread_endpoint_normalizes_id(self, client, temp_repo,
-                                            sample_thread_data, valid_hash, sample_author):
-        """
-        REQ-d00093-S: Thread endpoints SHALL normalize req_id.
-        """
-        from trace_view.review.models import Thread, CommentPosition
-        from trace_view.review.storage import load_threads
-
-        # Create thread data with normalized ID
-        position = CommentPosition.create_line(valid_hash, line_number=10)
-        thread = Thread.create("d00027", sample_author, position, "Test")
-
-        # POST with uppercase prefix
-        response = client.post(
-            '/api/reviews/reqs/REQ-D00027/threads',
-            data=json.dumps(thread.to_dict()),
-            content_type='application/json'
+        # Create a package
+        pkg = m['ReviewPackage'].create(
+            name='Test Package',
+            description='Test',
+            created_by='alice'
         )
+        from trace_view.review.storage import create_package
+        create_package(tmp_path, pkg)
 
-        assert response.status_code == 201
+        response = client.get(f'/api/reviews/packages/{pkg.packageId}')
 
-        # Should be stored with normalized ID
-        loaded = load_threads(temp_repo, "d00027")
-        assert len(loaded.threads) == 1
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['name'] == 'Test Package'
 
-    def test_flag_endpoint_normalizes_id(self, client, temp_repo, sample_flag_data):
-        """
-        REQ-d00093-S: Flag endpoints SHALL normalize req_id.
-        """
-        from trace_view.review.storage import load_review_flag
+    def test_get_package_by_id_not_found(self, client):
+        """REQ-tv-d00014-D: GET /api/reviews/packages/<id> returns 404 if not found"""
+        response = client.get('/api/reviews/packages/nonexistent-id')
 
-        # POST with uppercase prefix
-        response = client.post(
-            '/api/reviews/reqs/REQ-D00027/flag',
-            data=json.dumps(sample_flag_data),
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'error' in data
+
+    def test_put_package(self, client, tmp_path):
+        """REQ-tv-d00014-D: PUT /api/reviews/packages/<id> updates package"""
+        m = import_models()
+        from trace_view.review.storage import create_package
+
+        # Create a package
+        pkg = m['ReviewPackage'].create(
+            name='Original Name',
+            description='Original description',
+            created_by='alice'
+        )
+        create_package(tmp_path, pkg)
+
+        # Update it
+        response = client.put(
+            f'/api/reviews/packages/{pkg.packageId}',
+            json={'name': 'Updated Name', 'description': 'Updated description'},
             content_type='application/json'
         )
 
         assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+        assert data['package']['name'] == 'Updated Name'
 
-        # Should be retrievable with normalized ID
-        flag = load_review_flag(temp_repo, "d00027")
-        assert flag.flaggedForReview is True
+    def test_delete_package(self, client, tmp_path):
+        """REQ-tv-d00014-D: DELETE /api/reviews/packages/<id> deletes package"""
+        m = import_models()
+        from trace_view.review.storage import create_package
 
-    def test_status_request_endpoint_normalizes_id(self, client, temp_repo,
-                                                     sample_status_request_data):
-        """
-        REQ-d00093-S: Status request endpoints SHALL normalize req_id.
-        """
-        from trace_view.review.storage import load_status_requests
+        # Create a package
+        pkg = m['ReviewPackage'].create(
+            name='To Delete',
+            description='Test',
+            created_by='alice'
+        )
+        create_package(tmp_path, pkg)
 
-        # POST with uppercase prefix
-        response = client.post(
-            '/api/reviews/reqs/REQ-D00027/requests',
-            data=json.dumps(sample_status_request_data),
+        response = client.delete(
+            f'/api/reviews/packages/{pkg.packageId}',
             content_type='application/json'
         )
 
-        assert response.status_code == 201
-
-        # Should be retrievable with normalized ID
-        status = load_status_requests(temp_repo, "d00027")
-        assert len(status.requests) == 1
-
-
-# =============================================================================
-# Response Format Tests
-# =============================================================================
-
-class TestResponseFormat:
-    """Tests for API response format consistency."""
-
-    def test_success_response_format(self, client, valid_req_id, sample_thread_data):
-        """
-        REQ-d00093-T: Success responses SHALL include 'success: true'.
-        """
-        response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
-            data=json.dumps(sample_thread_data),
-            content_type='application/json'
-        )
-
+        assert response.status_code == 200
         data = response.get_json()
         assert data['success'] is True
 
-    def test_error_response_format(self, client, valid_req_id):
-        """
-        REQ-d00093-T: Error responses SHALL include 'error' key.
-        """
+    def test_post_req_to_package(self, client, tmp_path):
+        """REQ-tv-d00014-D: POST /api/reviews/packages/<id>/reqs/<req_id> adds req to package"""
+        m = import_models()
+        from trace_view.review.storage import create_package
+
+        # Create a package
+        pkg = m['ReviewPackage'].create(
+            name='Test Package',
+            description='Test',
+            created_by='alice'
+        )
+        create_package(tmp_path, pkg)
+
         response = client.post(
-            f'/api/reviews/reqs/{valid_req_id}/threads',
+            f'/api/reviews/packages/{pkg.packageId}/reqs/d00001',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+
+    def test_delete_req_from_package(self, client, tmp_path):
+        """REQ-tv-d00014-D: DELETE /api/reviews/packages/<id>/reqs/<req_id> removes req"""
+        m = import_models()
+        from trace_view.review.storage import create_package, add_req_to_package
+
+        # Create a package with a req
+        pkg = m['ReviewPackage'].create(
+            name='Test Package',
+            description='Test',
+            created_by='alice'
+        )
+        create_package(tmp_path, pkg)
+        add_req_to_package(tmp_path, pkg.packageId, 'd00001')
+
+        response = client.delete(
+            f'/api/reviews/packages/{pkg.packageId}/reqs/d00001',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+
+    def test_get_active_package(self, client):
+        """REQ-tv-d00014-D: GET /api/reviews/packages/active returns active package"""
+        response = client.get('/api/reviews/packages/active')
+
+        assert response.status_code == 200
+        # Can return null if no active package
+
+    def test_put_active_package(self, client, tmp_path):
+        """REQ-tv-d00014-D: PUT /api/reviews/packages/active sets active package"""
+        m = import_models()
+        from trace_view.review.storage import create_package
+
+        # Create a package
+        pkg = m['ReviewPackage'].create(
+            name='Test Package',
+            description='Test',
+            created_by='alice'
+        )
+        create_package(tmp_path, pkg)
+
+        response = client.put(
+            '/api/reviews/packages/active',
+            json={'packageId': pkg.packageId},
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+        assert data['activePackageId'] == pkg.packageId
+
+
+# =============================================================================
+# Assertion E: Sync Endpoints
+# =============================================================================
+
+class TestSyncEndpoints:
+    """REQ-tv-d00014-E: Sync endpoints SHALL support: GET status,
+    POST push, POST fetch, POST fetch-all-package."""
+
+    def test_get_sync_status(self, client):
+        """REQ-tv-d00014-E: GET /api/reviews/sync/status returns sync status"""
+        response = client.get('/api/reviews/sync/status')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'auto_sync_enabled' in data
+
+    def test_post_sync_push(self, client):
+        """REQ-tv-d00014-E: POST /api/reviews/sync/push triggers push"""
+        response = client.post(
+            '/api/reviews/sync/push',
+            json={'user': 'alice', 'message': 'Manual sync'},
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        # Should return some result (success or failure info)
+        assert isinstance(data, dict)
+
+    def test_post_sync_fetch(self, client):
+        """REQ-tv-d00014-E: POST /api/reviews/sync/fetch triggers fetch"""
+        response = client.post(
+            '/api/reviews/sync/fetch',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, dict)
+
+    def test_post_sync_fetch_all_package(self, client):
+        """REQ-tv-d00014-E: POST /api/reviews/sync/fetch-all-package fetches all package branches"""
+        response = client.post(
+            '/api/reviews/sync/fetch-all-package',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, dict)
+
+
+# =============================================================================
+# Assertion F: CORS Support
+# =============================================================================
+
+class TestCorsSupport:
+    """REQ-tv-d00014-F: The server SHALL enable CORS for cross-origin
+    requests from the HTML viewer."""
+
+    def test_cors_headers_present(self, client):
+        """REQ-tv-d00014-F: Response includes CORS headers"""
+        response = client.options(
+            '/api/health',
+            headers={'Origin': 'http://localhost:3000'}
+        )
+
+        # Check for CORS headers
+        assert response.status_code in [200, 204]
+
+    def test_cors_allows_all_origins(self, client):
+        """REQ-tv-d00014-F: CORS allows requests from any origin"""
+        response = client.get(
+            '/api/health',
+            headers={'Origin': 'http://example.com'}
+        )
+
+        # Should not be blocked by CORS
+        assert response.status_code == 200
+
+
+# =============================================================================
+# Assertion G: Static File Serving
+# =============================================================================
+
+class TestStaticFileServing:
+    """REQ-tv-d00014-G: The server SHALL serve static files from the
+    configured static directory at the root path."""
+
+    def test_serves_static_file_at_root(self, app, tmp_path):
+        """REQ-tv-d00014-G: Static files are served from root path"""
+        # Create a static file
+        static_dir = app.config['STATIC_DIR']
+        test_file = static_dir / "test.html"
+        test_file.write_text("<html>Test</html>")
+
+        client = app.test_client()
+        response = client.get('/test.html')
+
+        assert response.status_code == 200
+        assert b"<html>Test</html>" in response.data
+
+    def test_serves_nested_static_files(self, app, tmp_path):
+        """REQ-tv-d00014-G: Nested static files are served"""
+        static_dir = app.config['STATIC_DIR']
+        nested_dir = static_dir / "assets"
+        nested_dir.mkdir()
+        test_file = nested_dir / "style.css"
+        test_file.write_text("body { color: red; }")
+
+        client = app.test_client()
+        response = client.get('/assets/style.css')
+
+        assert response.status_code == 200
+        assert b"body { color: red; }" in response.data
+
+
+# =============================================================================
+# Assertion H: Auto-Sync Behavior
+# =============================================================================
+
+class TestAutoSyncBehavior:
+    """REQ-tv-d00014-H: All write endpoints SHALL optionally trigger
+    auto-sync based on configuration."""
+
+    def test_write_endpoint_triggers_sync_when_enabled(self, app_with_sync, tmp_path):
+        """REQ-tv-d00014-H: Write endpoints trigger sync when auto_sync=True"""
+        client = app_with_sync.test_client()
+
+        # Mock the commit_and_push function
+        with patch('trace_view.review.server.commit_and_push_reviews') as mock_sync:
+            mock_sync.return_value = (True, 'Synced')
+
+            # Create a thread (write operation)
+            thread_data = {
+                'threadId': 'test-thread',
+                'reqId': 'd00001',
+                'createdBy': 'alice',
+                'createdAt': '2024-01-15T10:00:00+00:00',
+                'position': {
+                    'type': 'general',
+                    'hashWhenCreated': '12345678'
+                },
+                'resolved': False,
+                'comments': []
+            }
+
+            response = client.post(
+                '/api/reviews/reqs/d00001/threads',
+                json=thread_data,
+                content_type='application/json'
+            )
+
+            assert response.status_code == 201
+            # Sync should have been called
+            mock_sync.assert_called_once()
+
+    def test_write_endpoint_skips_sync_when_disabled(self, client, tmp_path):
+        """REQ-tv-d00014-H: Write endpoints skip sync when auto_sync=False"""
+        with patch('trace_view.review.server.commit_and_push_reviews') as mock_sync:
+            thread_data = {
+                'threadId': 'test-thread',
+                'reqId': 'd00001',
+                'createdBy': 'alice',
+                'createdAt': '2024-01-15T10:00:00+00:00',
+                'position': {
+                    'type': 'general',
+                    'hashWhenCreated': '12345678'
+                },
+                'resolved': False,
+                'comments': []
+            }
+
+            response = client.post(
+                '/api/reviews/reqs/d00001/threads',
+                json=thread_data,
+                content_type='application/json'
+            )
+
+            assert response.status_code == 201
+            # Sync should NOT have been called
+            mock_sync.assert_not_called()
+
+    def test_sync_result_included_in_response(self, app_with_sync, tmp_path):
+        """REQ-tv-d00014-H: Sync result is included in response when sync occurs"""
+        client = app_with_sync.test_client()
+
+        with patch('trace_view.review.server.commit_and_push_reviews') as mock_sync:
+            mock_sync.return_value = (True, 'Pushed to origin')
+
+            thread_data = {
+                'threadId': 'test-thread',
+                'reqId': 'd00001',
+                'createdBy': 'alice',
+                'createdAt': '2024-01-15T10:00:00+00:00',
+                'position': {
+                    'type': 'general',
+                    'hashWhenCreated': '12345678'
+                },
+                'resolved': False,
+                'comments': []
+            }
+
+            response = client.post(
+                '/api/reviews/reqs/d00001/threads',
+                json=thread_data,
+                content_type='application/json'
+            )
+
+            data = response.get_json()
+            assert 'sync' in data
+
+
+# =============================================================================
+# Assertion I: Error Responses
+# =============================================================================
+
+class TestErrorResponses:
+    """REQ-tv-d00014-I: Error responses SHALL use appropriate HTTP status
+    codes and include JSON error details."""
+
+    def test_400_for_missing_data(self, client):
+        """REQ-tv-d00014-I: Returns 400 Bad Request for missing data"""
+        response = client.post(
+            '/api/reviews/reqs/d00001/threads',
+            data='',
+            content_type='application/json'
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data is not None
+        assert 'error' in data
+
+    def test_404_for_not_found(self, client):
+        """REQ-tv-d00014-I: Returns 404 Not Found for missing resources"""
+        response = client.get('/api/reviews/packages/nonexistent-id')
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert 'error' in data
+
+    def test_error_response_is_json(self, client):
+        """REQ-tv-d00014-I: Error responses are JSON formatted"""
+        response = client.post(
+            '/api/reviews/reqs/d00001/threads',
+            data='',
+            content_type='application/json'
+        )
+
+        assert response.content_type.startswith('application/json')
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert 'error' in data
+
+    def test_error_includes_descriptive_message(self, client):
+        """REQ-tv-d00014-I: Error includes descriptive message"""
+        response = client.post(
+            '/api/reviews/reqs/d00001/threads',
+            data='',
             content_type='application/json'
         )
 
         data = response.get_json()
+        assert data is not None
         assert 'error' in data
+        assert len(data['error']) > 0  # Message is not empty
 
-    def test_list_response_format(self, client, valid_req_id):
-        """
-        REQ-d00093-T: List responses SHALL return JSON array.
-        """
-        response = client.get(f'/api/reviews/reqs/{valid_req_id}/requests')
 
-        data = response.get_json()
-        assert isinstance(data, list)
+# =============================================================================
+# Assertion J: Health Check Endpoint
+# =============================================================================
 
-    def test_health_response_format(self, client):
-        """
-        REQ-d00093-T: Health response SHALL return proper structure.
-        """
+class TestHealthCheckEndpoint:
+    """REQ-tv-d00014-J: The server SHALL provide a `/api/health` endpoint
+    for health checks."""
+
+    def test_health_endpoint_exists(self, client):
+        """REQ-tv-d00014-J: /api/health endpoint exists"""
+        response = client.get('/api/health')
+
+        assert response.status_code == 200
+
+    def test_health_endpoint_returns_json(self, client):
+        """REQ-tv-d00014-J: /api/health returns JSON"""
+        response = client.get('/api/health')
+
+        assert response.content_type.startswith('application/json')
+
+    def test_health_endpoint_includes_status(self, client):
+        """REQ-tv-d00014-J: /api/health includes status field"""
         response = client.get('/api/health')
 
         data = response.get_json()
         assert 'status' in data
+        assert data['status'] == 'ok'
+
+    def test_health_endpoint_includes_repo_info(self, client, tmp_path):
+        """REQ-tv-d00014-J: /api/health includes repository information"""
+        response = client.get('/api/health')
+
+        data = response.get_json()
         assert 'repo_root' in data
         assert 'reviews_dir' in data
+
+
+# =============================================================================
+# Flag Endpoints (additional functionality from source)
+# =============================================================================
+
+class TestFlagEndpoints:
+    """Additional tests for review flag endpoints."""
+
+    def test_get_flag(self, client):
+        """GET /api/reviews/reqs/<req_id>/flag returns flag status"""
+        response = client.get('/api/reviews/reqs/d00001/flag')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'flaggedForReview' in data
+
+    def test_post_flag(self, client, tmp_path):
+        """POST /api/reviews/reqs/<req_id>/flag sets flag"""
+        flag_data = {
+            'flaggedForReview': True,
+            'flaggedBy': 'alice',
+            'flaggedAt': '2024-01-15T10:00:00+00:00',
+            'reason': 'Needs review',
+            'scope': ['product_owner', 'tech_lead']
+        }
+
+        response = client.post(
+            '/api/reviews/reqs/d00001/flag',
+            json=flag_data,
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+        assert 'flag' in data
+
+    def test_delete_flag(self, client, tmp_path):
+        """DELETE /api/reviews/reqs/<req_id>/flag clears flag"""
+        # First set a flag
+        s = import_storage()
+        m = import_models()
+        flag = m['ReviewFlag'].create(
+            user='alice',
+            reason='Test',
+            scope=['reviewer']
+        )
+        s['save_review_flag'](tmp_path, 'd00001', flag)
+
+        response = client.delete(
+            '/api/reviews/reqs/d00001/flag',
+            json={'user': 'bob'},
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['success'] is True
+
+
+# =============================================================================
+# Integration Tests
+# =============================================================================
+
+class TestServerIntegration:
+    """Integration tests for complete API workflows."""
+
+    def test_complete_review_workflow(self, client, tmp_path):
+        """Test complete review workflow through API"""
+        # 1. Create a package
+        pkg_response = client.post(
+            '/api/reviews/packages',
+            json={'name': 'Test Review', 'description': 'Integration test'},
+            content_type='application/json'
+        )
+        assert pkg_response.status_code == 201
+        pkg_id = pkg_response.get_json()['package']['packageId']
+
+        # 2. Add a req to the package
+        add_response = client.post(
+            f'/api/reviews/packages/{pkg_id}/reqs/d00001',
+            content_type='application/json'
+        )
+        assert add_response.status_code == 200
+
+        # 3. Set flag for review
+        flag_response = client.post(
+            '/api/reviews/reqs/d00001/flag',
+            json={
+                'flaggedForReview': True,
+                'flaggedBy': 'alice',
+                'flaggedAt': '2024-01-15T10:00:00+00:00',
+                'reason': 'Ready for review',
+                'scope': ['reviewer']
+            },
+            content_type='application/json'
+        )
+        assert flag_response.status_code == 200
+
+        # 4. Create a thread
+        thread_response = client.post(
+            '/api/reviews/reqs/d00001/threads',
+            json={
+                'threadId': 'integration-thread',
+                'reqId': 'd00001',
+                'createdBy': 'reviewer',
+                'createdAt': '2024-01-15T11:00:00+00:00',
+                'position': {
+                    'type': 'general',
+                    'hashWhenCreated': '12345678'
+                },
+                'resolved': False,
+                'comments': []
+            },
+            content_type='application/json'
+        )
+        assert thread_response.status_code == 201
+        thread_id = thread_response.get_json()['thread']['threadId']
+
+        # 5. Add a comment
+        comment_response = client.post(
+            f'/api/reviews/reqs/d00001/threads/{thread_id}/comments',
+            json={'author': 'reviewer', 'body': 'Please clarify this requirement'},
+            content_type='application/json'
+        )
+        assert comment_response.status_code == 201
+
+        # 6. Resolve the thread
+        resolve_response = client.post(
+            f'/api/reviews/reqs/d00001/threads/{thread_id}/resolve',
+            json={'user': 'author'},
+            content_type='application/json'
+        )
+        assert resolve_response.status_code == 200
+
+        # 7. Clear the flag
+        clear_response = client.delete(
+            '/api/reviews/reqs/d00001/flag',
+            json={'user': 'author'},
+            content_type='application/json'
+        )
+        assert clear_response.status_code == 200
+
+        # 8. Verify health check
+        health_response = client.get('/api/health')
+        assert health_response.status_code == 200
+        assert health_response.get_json()['status'] == 'ok'

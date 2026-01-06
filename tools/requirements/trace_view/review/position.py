@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Review Position Resolution Module
+Position Resolution Module for trace_view
 
 Resolves comment positions within requirement text, handling content drift
 when REQ hashes don't match. Uses fallback strategies to locate anchors
 with varying confidence levels.
 
 IMPLEMENTS REQUIREMENTS:
-    REQ-d00027: Workflow plugin state management
+    REQ-tv-d00012: Position Resolution
 """
 
 from dataclasses import dataclass
@@ -19,10 +19,16 @@ from .models import CommentPosition, PositionType
 
 # =============================================================================
 # Enums
+# REQ-tv-d00012-B: Confidence levels as string enums
 # =============================================================================
 
-class ConfidenceLevel(str, Enum):
-    """Confidence level for resolved position"""
+class ResolutionConfidence(str, Enum):
+    """
+    Confidence level for resolved position.
+
+    REQ-tv-d00012-B: EXACT (hash matches), APPROXIMATE (fallback matched),
+    or UNANCHORED (no match found).
+    """
     EXACT = "exact"
     APPROXIMATE = "approximate"
     UNANCHORED = "unanchored"
@@ -37,11 +43,14 @@ class ResolvedPosition:
     """
     Result of resolving a CommentPosition against current REQ content.
 
+    REQ-tv-d00012-A: Resolves CommentPosition anchors to current document coordinates.
+    REQ-tv-d00012-I: Includes resolutionPath describing the fallback strategy used.
+
     Contains all information needed to display a comment at its resolved
     location, including confidence level and original position for reference.
     """
     type: str  # Resolved position type (PositionType value)
-    confidence: str  # ConfidenceLevel value
+    confidence: str  # ResolutionConfidence value
     lineNumber: Optional[int]  # Resolved line (1-based), None for general
     lineRange: Optional[Tuple[int, int]]  # Resolved line range (start, end), 1-based
     charRange: Optional[Tuple[int, int]]  # Character offsets in body (start, end), 0-based
@@ -59,10 +68,14 @@ class ResolvedPosition:
         matched_text: Optional[str],
         original: CommentPosition
     ) -> 'ResolvedPosition':
-        """Factory for exact resolution (hash matched)"""
+        """
+        Factory for exact resolution (hash matched).
+
+        REQ-tv-d00012-C: Hash match yields EXACT confidence.
+        """
         return cls(
             type=position_type,
-            confidence=ConfidenceLevel.EXACT.value,
+            confidence=ResolutionConfidence.EXACT.value,
             lineNumber=line_number,
             lineRange=line_range,
             charRange=char_range,
@@ -82,10 +95,14 @@ class ResolvedPosition:
         original: CommentPosition,
         resolution_path: str
     ) -> 'ResolvedPosition':
-        """Factory for approximate resolution (fallback succeeded)"""
+        """
+        Factory for approximate resolution (fallback succeeded).
+
+        REQ-tv-d00012-D: Fallback resolution yields APPROXIMATE confidence.
+        """
         return cls(
             type=position_type,
-            confidence=ConfidenceLevel.APPROXIMATE.value,
+            confidence=ResolutionConfidence.APPROXIMATE.value,
             lineNumber=line_number,
             lineRange=line_range,
             charRange=char_range,
@@ -96,10 +113,15 @@ class ResolvedPosition:
 
     @classmethod
     def create_unanchored(cls, original: CommentPosition) -> 'ResolvedPosition':
-        """Factory for unanchored resolution (all fallbacks failed)"""
+        """
+        Factory for unanchored resolution (all fallbacks failed).
+
+        REQ-tv-d00012-J: When no fallback succeeds, resolve as UNANCHORED
+        with original position preserved.
+        """
         return cls(
             type=PositionType.GENERAL.value,
-            confidence=ConfidenceLevel.UNANCHORED.value,
+            confidence=ResolutionConfidence.UNANCHORED.value,
             lineNumber=None,
             lineRange=None,
             charRange=None,
@@ -115,7 +137,7 @@ class ResolvedPosition:
         if self.type not in [pt.value for pt in PositionType]:
             errors.append(f"Invalid position type: {self.type}")
 
-        if self.confidence not in [cl.value for cl in ConfidenceLevel]:
+        if self.confidence not in [cl.value for cl in ResolutionConfidence]:
             errors.append(f"Invalid confidence level: {self.confidence}")
 
         # Line numbers must be positive if present
@@ -241,6 +263,8 @@ def find_keyword_occurrence(
     """
     Find character range of the Nth occurrence of a keyword.
 
+    REQ-tv-d00012-G: For WORD positions, find the Nth occurrence based on keywordOccurrence.
+
     Args:
         text: The text to search in
         keyword: The word/phrase to find
@@ -344,11 +368,13 @@ def get_total_lines(text: str) -> int:
 
 def resolve_position(
     position: CommentPosition,
-    req_body: str,
+    content: str,
     current_hash: str
 ) -> ResolvedPosition:
     """
     Resolve a comment position against current requirement content.
+
+    REQ-tv-d00012-A: Resolves CommentPosition anchors to current document coordinates.
 
     This is the main entry point for position resolution. It determines
     the current location of a comment anchor, accounting for potential
@@ -356,7 +382,7 @@ def resolve_position(
 
     Args:
         position: The original CommentPosition from the comment/thread
-        req_body: Current requirement body text
+        content: Current requirement body text
         current_hash: Current 8-character hash of the requirement
 
     Returns:
@@ -371,48 +397,68 @@ def resolve_position(
            d. Fall back to general (unanchored)
     """
     # Handle empty text edge case
-    if not req_body:
+    if not content:
         return ResolvedPosition.create_unanchored(position)
 
-    # Check if hash matches (exact resolution) - case insensitive
+    # REQ-tv-d00012-H: GENERAL positions always resolve with EXACT confidence
+    if position.type == PositionType.GENERAL.value:
+        return _resolve_general(position, content)
+
+    # REQ-tv-d00012-C: Check if hash matches (exact resolution) - case insensitive
     hash_matches = position.hashWhenCreated.lower() == current_hash.lower()
 
     if hash_matches:
-        return _resolve_exact(position, req_body)
+        return _resolve_exact(position, content)
     else:
-        return _resolve_with_fallback(position, req_body)
+        # REQ-tv-d00012-D: Hash differs, attempt fallback resolution
+        return _resolve_with_fallback(position, content)
+
+
+def _resolve_general(
+    position: CommentPosition,
+    content: str
+) -> ResolvedPosition:
+    """
+    Resolve GENERAL position type.
+
+    REQ-tv-d00012-H: GENERAL positions always resolve with EXACT confidence
+    since they apply to the entire requirement.
+    """
+    total_lines = get_total_lines(content)
+    return ResolvedPosition.create_exact(
+        position_type=PositionType.GENERAL.value,
+        line_number=None,
+        line_range=(1, total_lines) if total_lines > 0 else None,
+        char_range=(0, len(content)) if content else None,
+        matched_text=None,
+        original=position
+    )
 
 
 def _resolve_exact(
     position: CommentPosition,
-    req_body: str
+    content: str
 ) -> ResolvedPosition:
     """
     Resolve position when hash matches (exact confidence).
+
+    REQ-tv-d00012-C: When the document hash matches, the position resolves
+    with EXACT confidence using stored coordinates.
 
     Trusts the original position data since content hasn't changed.
     """
     pos_type = position.type
 
     if pos_type == PositionType.GENERAL.value:
-        # General applies to whole REQ
-        total_lines = get_total_lines(req_body)
-        return ResolvedPosition.create_exact(
-            position_type=pos_type,
-            line_number=None,
-            line_range=(1, total_lines) if total_lines > 0 else None,
-            char_range=(0, len(req_body)) if req_body else None,
-            matched_text=None,
-            original=position
-        )
+        return _resolve_general(position, content)
 
     elif pos_type == PositionType.LINE.value:
         line_num = position.lineNumber
-        char_range = find_line_in_text(req_body, line_num)
+        char_range = find_line_in_text(content, line_num)
         matched_text = None
 
         if char_range:
-            matched_text = req_body[char_range[0]:char_range[1]]
+            matched_text = content[char_range[0]:char_range[1]]
 
         return ResolvedPosition.create_exact(
             position_type=pos_type,
@@ -426,14 +472,14 @@ def _resolve_exact(
     elif pos_type == PositionType.BLOCK.value:
         line_range = position.lineRange
         if line_range:
-            start_range = find_line_in_text(req_body, line_range[0])
-            end_range = find_line_in_text(req_body, line_range[1])
+            start_range = find_line_in_text(content, line_range[0])
+            end_range = find_line_in_text(content, line_range[1])
 
             char_range = None
             matched_text = None
             if start_range and end_range:
                 char_range = (start_range[0], end_range[1])
-                matched_text = req_body[char_range[0]:char_range[1]]
+                matched_text = content[char_range[0]:char_range[1]]
 
             return ResolvedPosition.create_exact(
                 position_type=pos_type,
@@ -451,16 +497,16 @@ def _resolve_exact(
         occurrence = position.keywordOccurrence or 1
 
         if keyword:
-            char_range = find_keyword_occurrence(req_body, keyword, occurrence)
+            char_range = find_keyword_occurrence(content, keyword, occurrence)
 
             line_number = None
             line_range_result = None
             matched_text = keyword if char_range else None
 
             if char_range:
-                line_number = get_line_number_from_char_offset(req_body, char_range[0])
+                line_number = get_line_number_from_char_offset(content, char_range[0])
                 line_range_result = get_line_range_from_char_range(
-                    req_body, char_range[0], char_range[1]
+                    content, char_range[0], char_range[1]
                 )
 
             return ResolvedPosition.create_exact(
@@ -474,16 +520,21 @@ def _resolve_exact(
         else:
             return ResolvedPosition.create_unanchored(position)
 
-    # Unknown type - fall back to general
+    # Unknown type - fall back to unanchored
     return ResolvedPosition.create_unanchored(position)
 
 
 def _resolve_with_fallback(
     position: CommentPosition,
-    req_body: str
+    content: str
 ) -> ResolvedPosition:
     """
     Resolve position when hash differs (approximate confidence).
+
+    REQ-tv-d00012-D: When document hash differs, attempt fallback resolution.
+    REQ-tv-d00012-E: For LINE positions, search for context string.
+    REQ-tv-d00012-F: For BLOCK positions, search for context and expand.
+    REQ-tv-d00012-G: For WORD positions, search for keyword at Nth occurrence.
 
     Tries fallback strategies in order:
     1. lineNumber (if within valid range)
@@ -491,7 +542,7 @@ def _resolve_with_fallback(
     3. keyword at keywordOccurrence
     4. Unanchored (general)
     """
-    total_lines = get_total_lines(req_body)
+    total_lines = get_total_lines(content)
 
     # Strategy 1: Try lineNumber if available and in range
     # For block positions, also try the first line of lineRange
@@ -501,9 +552,9 @@ def _resolve_with_fallback(
 
     if line_to_try is not None:
         if 1 <= line_to_try <= total_lines:
-            char_range = find_line_in_text(req_body, line_to_try)
+            char_range = find_line_in_text(content, line_to_try)
             if char_range:
-                matched_text = req_body[char_range[0]:char_range[1]]
+                matched_text = content[char_range[0]:char_range[1]]
                 return ResolvedPosition.create_approximate(
                     position_type=PositionType.LINE.value,
                     line_number=line_to_try,
@@ -515,12 +566,13 @@ def _resolve_with_fallback(
                 )
 
     # Strategy 2: Try fallbackContext
+    # REQ-tv-d00012-E: For LINE positions, search for context string
     if position.fallbackContext:
-        char_range = find_context_in_text(req_body, position.fallbackContext)
+        char_range = find_context_in_text(content, position.fallbackContext)
         if char_range:
-            line_number = get_line_number_from_char_offset(req_body, char_range[0])
+            line_number = get_line_number_from_char_offset(content, char_range[0])
             line_range = get_line_range_from_char_range(
-                req_body, char_range[0], char_range[1]
+                content, char_range[0], char_range[1]
             )
             return ResolvedPosition.create_approximate(
                 position_type=PositionType.LINE.value,  # Resolved to line
@@ -533,13 +585,14 @@ def _resolve_with_fallback(
             )
 
     # Strategy 3: Try keyword occurrence
+    # REQ-tv-d00012-G: For WORD positions, search for keyword
     if position.keyword:
         occurrence = position.keywordOccurrence or 1
-        char_range = find_keyword_occurrence(req_body, position.keyword, occurrence)
+        char_range = find_keyword_occurrence(content, position.keyword, occurrence)
         if char_range:
-            line_number = get_line_number_from_char_offset(req_body, char_range[0])
+            line_number = get_line_number_from_char_offset(content, char_range[0])
             line_range = get_line_range_from_char_range(
-                req_body, char_range[0], char_range[1]
+                content, char_range[0], char_range[1]
             )
             return ResolvedPosition.create_approximate(
                 position_type=PositionType.WORD.value,
@@ -552,4 +605,5 @@ def _resolve_with_fallback(
             )
 
     # Strategy 4: Fall back to general (unanchored)
+    # REQ-tv-d00012-J: When no fallback succeeds, resolve as UNANCHORED
     return ResolvedPosition.create_unanchored(position)

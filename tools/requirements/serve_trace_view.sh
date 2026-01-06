@@ -1,44 +1,33 @@
 #!/bin/bash
 # Generates traceability report with embedded content and serves it locally
-# Usage: ./serve_trace_view.sh [options] [port]
-#
-# Options:
-#   --review    Enable review mode with Flask API server for full review functionality
-#               (comment threads, status requests, git sync)
-#   --edit      Enable edit mode only (default, uses simple HTTP server)
+# Usage: ./serve_trace_view.sh [port] [--review]
 #
 # Uses trace_view (trace-view) to generate interactive HTML reports.
 # When served locally, edit mode is enabled for batch moving requirements.
-# Review mode provides collaborative review features with the Flask API server.
-# The portable version (in git) does not include edit/review mode.
+# The portable version (in git) does not include edit mode.
+#
+# Options:
+#   port      Port number (default: 8080)
+#   --review  Enable review mode for collaborative spec reviews
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PORT="8080"
+REVIEW_MODE=""
 
 # Parse arguments
-REVIEW_MODE=false
-PORT=""
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+for arg in "$@"; do
+    case $arg in
         --review)
-            REVIEW_MODE=true
-            shift
+            REVIEW_MODE="--review-mode"
             ;;
-        --edit)
-            REVIEW_MODE=false
-            shift
-            ;;
-        *)
-            PORT="$1"
-            shift
+        [0-9]*)
+            PORT="$arg"
             ;;
     esac
 done
-
-PORT="${PORT:-8080}"
 
 # Get output directory from elspais config (uses traceability.output_dir)
 OUTPUT_DIR_REL=$(elspais config show --json 2>/dev/null | python3 -c "
@@ -54,13 +43,12 @@ OUTPUT_FILE="$OUTPUT_DIR/REQ-report.html"
 
 mkdir -p "$OUTPUT_DIR"
 
-if [ "$REVIEW_MODE" = true ]; then
-    echo "Generating traceability matrix with embedded content and REVIEW mode..."
-    python3 "$SCRIPT_DIR/trace_view.py" --format html --embed-content --review-mode --output "$OUTPUT_FILE"
+if [ -n "$REVIEW_MODE" ]; then
+    echo "Generating traceability matrix with embedded content, edit mode, and review mode..."
 else
-    echo "Generating traceability matrix with embedded content and EDIT mode..."
-    python3 "$SCRIPT_DIR/trace_view.py" --format html --embed-content --edit-mode --output "$OUTPUT_FILE"
+    echo "Generating traceability matrix with embedded content and edit mode..."
 fi
+python3 "$SCRIPT_DIR/trace_view.py" --format html --embed-content --edit-mode $REVIEW_MODE --output "$OUTPUT_FILE"
 
 if [ ! -f "$OUTPUT_FILE" ]; then
     echo "Error: Output file not generated at $OUTPUT_FILE"
@@ -68,15 +56,18 @@ if [ ! -f "$OUTPUT_FILE" ]; then
 fi
 
 echo ""
+echo "Starting server at http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html"
+echo "Press Ctrl+C to stop"
+echo ""
 
 # Cache-busting timestamp
 CACHE_BUST="?t=$(date +%s)"
+URL="http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html${CACHE_BUST}"
 
-if [ "$REVIEW_MODE" = true ]; then
+if [ -n "$REVIEW_MODE" ]; then
     # Review mode: Use Flask API server for full functionality
     echo "Starting Review API server at http://localhost:$PORT"
     echo "Review features: comment threads, status requests, git sync"
-    echo "Press Ctrl+C to stop"
     echo ""
 
     URL="http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html${CACHE_BUST}"
@@ -114,12 +105,6 @@ if __name__ == '__main__':
 " 2>&1
 else
     # Edit mode: Use simple HTTP server
-    echo "Starting server at http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html"
-    echo "Press Ctrl+C to stop"
-    echo ""
-
-    URL="http://localhost:$PORT/$OUTPUT_DIR_REL/REQ-report.html${CACHE_BUST}"
-
     # Open browser (works on Linux/macOS)
     if command -v xdg-open &> /dev/null; then
         xdg-open "$URL" &

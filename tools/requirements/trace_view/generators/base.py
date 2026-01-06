@@ -127,7 +127,7 @@ class TraceViewGenerator:
 
         # Generate content
         if format == 'html':
-            from ..html_gen.generator import HTMLGenerator
+            from ..html import HTMLGenerator
             html_gen = HTMLGenerator(
                 requirements=self.requirements,
                 base_path=self._base_path,
@@ -136,11 +136,7 @@ class TraceViewGenerator:
                 version=self.VERSION,
                 repo_root=self.repo_root
             )
-            content = html_gen.generate(
-                embed_content=embed_content,
-                edit_mode=edit_mode,
-                review_mode=review_mode
-            )
+            content = html_gen.generate(embed_content=embed_content, edit_mode=edit_mode, review_mode=review_mode)
         elif format == 'csv':
             content = generate_csv(self.requirements)
         else:

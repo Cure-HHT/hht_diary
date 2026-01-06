@@ -1,10 +1,12 @@
 # trace_view Specifications
 
-This directory contains formal requirements for the trace_view HTML generator refactoring.
+This directory contains formal requirements for the trace_view HTML generator refactoring and collaborative review system.
 
 ## Scope
 
-These specifications define the requirements for refactoring `trace_view/html/generator.py` from a 3,420-line monolithic class to a maintainable Jinja2-based template architecture.
+These specifications define the requirements for:
+1. Refactoring `trace_view/html/generator.py` from a 3,420-line monolithic class to a maintainable Jinja2-based template architecture
+2. Adding a collaborative requirement review system with threaded comments, status workflows, and multi-user git-based synchronization
 
 ## ID Convention
 
@@ -23,6 +25,8 @@ Requirements in this directory use a **local scope prefix** to distinguish them 
 
 ## Specification Files
 
+### HTML Generator (tv-p00001)
+
 | File | Type | Description |
 | ---- | ---- | ----------- |
 | `tv-p00001-html-generator.md` | PRD | High-level HTML generation requirements |
@@ -31,6 +35,19 @@ Requirements in this directory use a **local scope prefix** to distinguish them 
 | `tv-d00003-js-extraction.md` | Dev | JavaScript extraction and embedding |
 | `tv-d00004-build-embedding.md` | Dev | Build-time asset embedding |
 | `tv-d00005-test-format.md` | Dev | Test output format for elspais |
+
+### Review System (tv-p00002)
+
+| File | Type | Description |
+| ---- | ---- | ----------- |
+| `tv-p00002-review-system.md` | PRD | Collaborative requirement review system |
+| `tv-d00010-review-data-models.md` | Dev | Thread, Comment, Position data models |
+| `tv-d00011-review-storage.md` | Dev | Atomic JSON CRUD operations |
+| `tv-d00012-position-resolution.md` | Dev | Position anchoring with drift handling |
+| `tv-d00013-git-branches.md` | Dev | reviews/{package}/{user} branch management |
+| `tv-d00014-review-api-server.md` | Dev | Flask API endpoints |
+| `tv-d00015-status-modifier.md` | Dev | REQ status changes in spec files |
+| `tv-d00016-js-integration.md` | Dev | JavaScript modules integration |
 
 ## Traceability
 
@@ -41,6 +58,15 @@ REQ-tv-p00001 (PRD: HTML Generator)
 ├── REQ-tv-d00003 (JS Extraction)
 ├── REQ-tv-d00004 (Build Embedding)
 └── REQ-tv-d00005 (Test Format)
+
+REQ-tv-p00002 (PRD: Review System)
+├── REQ-tv-d00010 (Data Models)
+├── REQ-tv-d00011 (Storage Operations)
+├── REQ-tv-d00012 (Position Resolution)
+├── REQ-tv-d00013 (Git Branches)
+├── REQ-tv-d00014 (API Server)
+├── REQ-tv-d00015 (Status Modifier)
+└── REQ-tv-d00016 (JS Integration)
 ```
 
 ## Standard Compliance
