@@ -43,7 +43,7 @@ This file provides a complete index of all requirements.
 | REQ-p00040 | Event Sourcing State Protection | prd-security-RLS.md | 7ebf6011 |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard | prd-epistaxis-terminology.md | fdac3843 |
 | REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | caa9ec6d |
-| REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | 83459af7 |
+| REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | a72852cf |
 | REQ-p00045 | Sponsor Portal Application | prd-portal.md | 0df6d1e4 |
 | REQ-p00046 | Clinical Data Storage System | prd-database.md | 19625356 |
 | REQ-p00047 | Data Backup and Archival | prd-backup.md | 88006e73 |

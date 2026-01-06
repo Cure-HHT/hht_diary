@@ -38,7 +38,7 @@ C. The system SHALL enable patient data entry via mobile applications.
 D. The system SHALL enable sponsor and investigator access to trial data via web-based interfaces.
 E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
 
-*End* *Clinical Trial Diary Platform* | **Hash**: 83459af7
+*End* *Clinical Trial Diary Platform* | **Hash**: a72852cf
 
 ---
 
