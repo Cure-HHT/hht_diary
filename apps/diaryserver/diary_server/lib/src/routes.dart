@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-o00056: Container infrastructure for Cloud Run
 //   REQ-d00005: Sponsor Configuration Detection Implementation
+//   REQ-p00008: User Account Management
 //
 // Route definitions for diary server
 
@@ -15,11 +16,18 @@ Router createRouter() {
   // Health check endpoint (required for Cloud Run)
   router.get('/health', healthHandler);
 
-  // API v1 routes - will be populated as functions are converted
-  // router.post('/api/v1/auth/register', authHandlers.register);
-  // router.post('/api/v1/auth/login', authHandlers.login);
-  // router.post('/api/v1/user/enroll', userHandlers.enroll);
-  // router.get('/api/v1/sponsor/config', sponsorHandlers.config);
+  // Auth routes
+  router.post('/api/v1/auth/register', registerHandler);
+  router.post('/api/v1/auth/login', loginHandler);
+  router.post('/api/v1/auth/change-password', changePasswordHandler);
+
+  // User routes
+  router.post('/api/v1/user/enroll', enrollHandler);
+  router.post('/api/v1/user/sync', syncHandler);
+  router.post('/api/v1/user/records', getRecordsHandler);
+
+  // Sponsor routes
+  router.get('/api/v1/sponsor/config', sponsorConfigHandler);
 
   return router;
 }

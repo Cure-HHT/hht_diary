@@ -1,0 +1,264 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00005: Sponsor Configuration Detection Implementation
+#   REQ-p00008: User Account Management
+#
+# CI workflow for diary_server and diary_functions
+# Runs unit tests, integration tests (with PostgreSQL), and static analysis
+
+name: Diary Server CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/diaryserver/**'
+      - 'database/**'
+      - '.github/workflows/diary-server-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/diaryserver/**'
+      - 'database/**'
+      - '.github/workflows/diary-server-ci.yml'
+
+jobs:
+  analyze:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies (diary_functions)
+        working-directory: apps/diaryserver/diary_functions
+        run: dart pub get
+
+      - name: Install dependencies (diary_server)
+        working-directory: apps/diaryserver/diary_server
+        run: dart pub get
+
+      - name: Analyze diary_functions
+        working-directory: apps/diaryserver/diary_functions
+        run: dart analyze --fatal-infos
+
+      - name: Analyze diary_server
+        working-directory: apps/diaryserver/diary_server
+        run: dart analyze --fatal-infos
+
+      - name: Check formatting
+        run: |
+          dart format --set-exit-if-changed apps/diaryserver/diary_functions
+          dart format --set-exit-if-changed apps/diaryserver/diary_server
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies (diary_functions)
+        working-directory: apps/diaryserver/diary_functions
+        run: dart pub get
+
+      - name: Install dependencies (diary_server)
+        working-directory: apps/diaryserver/diary_server
+        run: dart pub get
+
+      - name: Run diary_functions unit tests
+        working-directory: apps/diaryserver/diary_functions
+        run: dart test test/
+
+      - name: Run diary_server unit tests
+        working-directory: apps/diaryserver/diary_server
+        run: dart test test/
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sponsor_portal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Apply database schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
+
+      - name: Install dependencies (diary_functions)
+        working-directory: apps/diaryserver/diary_functions
+        run: dart pub get
+
+      - name: Install dependencies (diary_server)
+        working-directory: apps/diaryserver/diary_server
+        run: dart pub get
+
+      - name: Run diary_functions integration tests
+        working-directory: apps/diaryserver/diary_functions
+        env:
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: sponsor_portal
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL: 'false'
+          JWT_SECRET: test-jwt-secret-for-ci
+        run: dart test integration_test/
+
+      - name: Run diary_server integration tests
+        working-directory: apps/diaryserver/diary_server
+        env:
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: sponsor_portal
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL: 'false'
+          JWT_SECRET: test-jwt-secret-for-ci
+        run: dart test integration_test/
+
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sponsor_portal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Apply database schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d sponsor_portal -f database/init.sql
+
+      - name: Install dependencies
+        run: |
+          dart pub get --directory=apps/diaryserver/diary_functions
+          dart pub get --directory=apps/diaryserver/diary_server
+          dart pub global activate coverage
+
+      - name: Run diary_functions tests with coverage
+        working-directory: apps/diaryserver/diary_functions
+        env:
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: sponsor_portal
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL: 'false'
+          JWT_SECRET: test-jwt-secret-for-ci
+        run: |
+          dart test --coverage=coverage test/ integration_test/
+
+      - name: Generate diary_functions coverage report
+        working-directory: apps/diaryserver/diary_functions
+        run: |
+          dart pub global run coverage:format_coverage \
+            --lcov \
+            --in=coverage \
+            --out=coverage/lcov.info \
+            --report-on=lib \
+            --packages=.dart_tool/package_config.json || true
+
+      - name: Run diary_server tests with coverage
+        working-directory: apps/diaryserver/diary_server
+        env:
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: sponsor_portal
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SSL: 'false'
+          JWT_SECRET: test-jwt-secret-for-ci
+        run: |
+          dart test --coverage=coverage test/ integration_test/
+
+      - name: Generate diary_server coverage report
+        working-directory: apps/diaryserver/diary_server
+        run: |
+          dart pub global run coverage:format_coverage \
+            --lcov \
+            --in=coverage \
+            --out=coverage/lcov.info \
+            --report-on=lib \
+            --packages=.dart_tool/package_config.json || true
+
+      - name: Upload diary_functions coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: apps/diaryserver/diary_functions/coverage/lcov.info
+          flags: diary-functions
+          fail_ci_if_error: false
+
+      - name: Upload diary_server coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: apps/diaryserver/diary_server/coverage/lcov.info
+          flags: diary-server
+          fail_ci_if_error: false
+
+      - name: Upload coverage reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            apps/diaryserver/diary_functions/coverage/lcov.info
+            apps/diaryserver/diary_server/coverage/lcov.info
+          retention-days: 30

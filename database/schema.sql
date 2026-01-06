@@ -123,8 +123,13 @@
 -- =====================================================
 
 -- Enable required extensions
+-- Set timeouts for safety during extension creation
+SET statement_timeout = '30s';
+SET lock_timeout = '10s';
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+RESET statement_timeout;
+RESET lock_timeout;
 
 -- =====================================================
 -- CORE TABLES
@@ -449,6 +454,67 @@ CREATE TABLE system_config (
 
 COMMENT ON TABLE system_config IS 'System-wide configuration settings for RLS policies and access control';
 COMMENT ON COLUMN system_config.config_key IS 'Configuration parameter name (e.g., break_glass_max_ttl, export_retention_days)';
+
+-- =====================================================
+-- MOBILE APP USER TABLES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00008: User Account Management
+--
+-- Mobile app user accounts - any user can use the app to track nosebleeds
+-- Study enrollment is separate (see study_enrollments)
+
+CREATE TABLE app_users (
+    user_id TEXT PRIMARY KEY,
+    username TEXT UNIQUE,
+    password_hash TEXT,
+    auth_code TEXT NOT NULL UNIQUE,
+    app_uuid TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    last_active_at TIMESTAMPTZ DEFAULT now(),
+    is_active BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+COMMENT ON TABLE app_users IS 'Mobile app user accounts - any user can use the app to track nosebleeds';
+COMMENT ON COLUMN app_users.auth_code IS 'Random code used in JWT for user lookup';
+COMMENT ON COLUMN app_users.app_uuid IS 'Device/app instance identifier';
+COMMENT ON COLUMN app_users.username IS 'Optional username for registered users';
+
+-- Indexes
+CREATE INDEX idx_app_users_username ON app_users(username);
+CREATE INDEX idx_app_users_auth_code ON app_users(auth_code);
+
+-- =====================================================
+-- STUDY ENROLLMENTS TABLE
+-- =====================================================
+-- Links app users to clinical studies via enrollment code
+-- User can enroll in multiple studies (different sponsors)
+
+CREATE TABLE study_enrollments (
+    enrollment_id BIGSERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES app_users(user_id) ON DELETE CASCADE,
+    enrollment_code TEXT NOT NULL UNIQUE,
+    site_id TEXT REFERENCES sites(site_id),
+    patient_id TEXT,  -- From sponsor's EDC, may be assigned later
+    sponsor_id TEXT,  -- Identifies which sponsor/study
+    enrolled_at TIMESTAMPTZ DEFAULT now(),
+    status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('PENDING', 'ACTIVE', 'COMPLETED', 'WITHDRAWN')),
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+COMMENT ON TABLE study_enrollments IS 'Links app users to clinical studies via enrollment code';
+COMMENT ON COLUMN study_enrollments.enrollment_code IS 'One-time code from study coordinator (e.g., CUREHHT1)';
+COMMENT ON COLUMN study_enrollments.patient_id IS 'De-identified patient ID from sponsor EDC (assigned after enrollment)';
+COMMENT ON COLUMN study_enrollments.site_id IS 'Clinical trial site where patient is enrolled';
+COMMENT ON COLUMN study_enrollments.sponsor_id IS 'Sponsor/study identifier';
+
+-- Indexes
+CREATE INDEX idx_study_enrollments_user_id ON study_enrollments(user_id);
+CREATE INDEX idx_study_enrollments_enrollment_code ON study_enrollments(enrollment_code);
+CREATE INDEX idx_study_enrollments_patient_id ON study_enrollments(patient_id);
+CREATE INDEX idx_study_enrollments_site_id ON study_enrollments(site_id);
 
 -- =====================================================
 -- HELPER FUNCTIONS
@@ -926,4 +992,7 @@ CREATE TRIGGER update_record_state_updated_at BEFORE UPDATE ON record_state
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_investigator_annotations_updated_at BEFORE UPDATE ON investigator_annotations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -8,7 +8,7 @@ set -e
 # Use environment variables with defaults
 DB_USER="${APP_USER:-app_user}"
 DB_PASS="${APP_PASSWORD:-dev_password}"
-DB_NAME="${POSTGRES_DB:-clinical_diary}"
+DB_NAME="${POSTGRES_DB:-sponsor_portal}"
 
 echo "Creating database user: $DB_USER"
 
