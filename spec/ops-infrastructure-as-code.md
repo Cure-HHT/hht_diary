@@ -37,7 +37,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 - OQ: Verify `pulumi preview` and `pulumi up` work correctly
 - PQ: Verify infrastructure provisions in < 1 hour
 
-*End* *Infrastructure as Code for Cloud Resources* | **Hash**: e42cc806
+*End* *Infrastructure as Code for Cloud Resources* | **Hash**: 16c349a8
 ---
 
 # REQ-o00042: Infrastructure Change Control
@@ -60,7 +60,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 - OQ: Verify PR workflow prevents direct commits
 - PQ: Verify 100% of infrastructure changes go through PR
 
-*End* *Infrastructure Change Control* | **Hash**: 8b9ee3b1
+*End* *Infrastructure Change Control* | **Hash**: b9ea80eb
 ---
 
 ## Architecture

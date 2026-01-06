@@ -82,7 +82,7 @@ Authentication SHALL ensure:
 - No email addresses stored or processed
 - Authentication works across all supported browsers
 
-*End* *Web Diary Authentication via Linking Code* | **Hash**: 31d36807
+*End* *Web Diary Authentication via Linking Code* | **Hash**: ab630213
 
 ---
 

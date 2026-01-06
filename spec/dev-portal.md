@@ -163,7 +163,7 @@ flutter build web --release --web-renderer html
 - [ ] URL strategy removes `#` from routes
 - [ ] Works on Chrome, Firefox, Safari, Edge (latest versions)
 
-*End* *Portal Frontend Framework* | **Hash**: 27f467d3
+*End* *Portal Frontend Framework* | **Hash**: 4f227779
 
 ---
 
@@ -543,7 +543,7 @@ class AuthProvider extends ChangeNotifier {
 - [ ] Session persists across browser refresh
 - [ ] Logout clears all auth state
 
-*End* *Identity Platform Integration* | **Hash**: 85ebe53e
+*End* *Identity Platform Integration* | **Hash**: f3ffa3b5
 ---
 
 # REQ-d00032: Role-Based Access Control Implementation
@@ -636,7 +636,7 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 - [ ] RLS policy prevents cross-site data access
 - [ ] Admin can see all sites (bypass RLS)
 
-*End* *Site-Based Data Isolation* | **Hash**: 012bc8b5
+*End* *Site-Based Data Isolation* | **Hash**: 3c8584ea
 ---
 
 ## Frontend Components Requirements
@@ -2513,7 +2513,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 - [ ] Admins can query all users
 - [ ] Investigators can only query themselves
 
-*End* *Portal Users Table Schema* | **Hash**: 7f3f554a
+*End* *Portal Users Table Schema* | **Hash**: 58a96521
 ---
 
 # REQ-d00040: User Site Access Table Schema

@@ -575,7 +575,7 @@ Each sponsor environment SHALL maintain:
 - Secrets accessed via Secret Manager in Cloud Run
 - No credentials found in git history
 
-*End* *Environment-Specific Configuration Management* | **Hash**: c6ed3379
+*End* *Environment-Specific Configuration Management* | **Hash**: 28d1bbd4
 ---
 
 ### Environment Types

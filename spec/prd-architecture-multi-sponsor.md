@@ -200,7 +200,7 @@ Changes to the patient user experience, either in terms of application logic or 
 - Change impact assessment documented before implementation
 - Audit trail captures all approved UX changes during trials
 
-*End* *UX Changes During Trials* | **Hash**: 054abe40
+*End* *UX Changes During Trials* | **Hash**: 350e44c0
 ---
 
 ## Customization

@@ -71,7 +71,7 @@ Implementation SHALL include:
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
 
-*End* *Sponsor Configuration Detection Implementation* | **Hash**: 37465932
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: d84ba1c3
 ---
 
 ### Single App, Multiple Sponsors
@@ -140,7 +140,7 @@ Implementation SHALL include:
 - No data loss during offline periods
 - Background sync respects battery and data usage constraints
 
-*End* *Local-First Data Entry Implementation* | **Hash**: 843d0664
+*End* *Local-First Data Entry Implementation* | **Hash**: c045e88a
 ---
 
 ### Core Principle
@@ -321,7 +321,7 @@ Implementation SHALL include:
 - Export/import works in airplane mode
 - Large datasets (1000+ entries) export/import within 30 seconds
 
-*End* *Local Database Export and Import* | **Hash**: d922d9e8
+*End* *Local Database Export and Import* | **Hash**: 971345e0
 ---
 
 ## Deployment & Distribution

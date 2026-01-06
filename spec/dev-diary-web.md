@@ -69,7 +69,7 @@ void main() {
 - Responsive layout adapts to viewport width
 - Shared components render consistently with mobile app
 
-*End* *Web Diary Frontend Framework* | **Hash**: c59bc3ef
+*End* *Web Diary Frontend Framework* | **Hash**: 4a806386
 
 ---
 
@@ -135,7 +135,7 @@ class WebSessionManager {
 - Tab switching to other apps does not trigger logout (only close)
 - Back button after logout shows login page, not cached data
 
-*End* *Web Session Management Implementation* | **Hash**: 44ade86c
+*End* *Web Session Management Implementation* | **Hash**: c917a5ad
 
 ---
 

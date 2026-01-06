@@ -210,7 +210,7 @@ Device fingerprinting SHALL:
 - No raw device identifiers are stored or transmitted
 - Auditors can verify fingerprint consistency across a patient's submissions
 
-*End* *Device Fingerprinting* | **Hash**: 57a2d038
+*End* *Device Fingerprinting* | **Hash**: 74cd1c65
 ---
 
 ---

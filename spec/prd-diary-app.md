@@ -42,7 +42,7 @@ Mobile application SHALL provide:
 - Sponsor branding applied per enrollment
 - Complete audit trail of all patient actions
 
-*End* *Clinical Diary Mobile Application* | **Hash**: 5062a707
+*End* *Clinical Diary Mobile Application* | **Hash**: 2a543266
 
 ---
 
@@ -83,7 +83,7 @@ Automatic configuration SHALL ensure:
 - Patient cannot switch to different sponsor after enrollment - TODO - unless they already sync to CureHHT
 - Invalid or expired enrollment links rejected with clear error message
 
-*End* *Automatic Sponsor Configuration* | **Hash**: b90eb7ab
+*End* *Automatic Sponsor Configuration* | **Hash**: 02bcaf1a
 ---
 
 #TODO - this needs another spec #
@@ -243,7 +243,7 @@ Temporal validation SHALL ensure:
 - System displays error message identifying conflicting entry: "This time overlaps with an existing nosebleed record from [start] to [end]"
 - User can navigate to view conflicting record
 
-*End* *Temporal Entry Validation* | **Hash**: 9f0a0d36
+*End* *Temporal Entry Validation* | **Hash**: 897ddcf3
 
 ---
 
@@ -290,7 +290,7 @@ Diary start day SHALL ensure:
 - Start day restored correctly after app reinstallation (from cloud backup)
 - Start day consistent across multiple devices for same user
 
-*End* *Diary Start Day Definition* | **Hash**: ef7a7921
+*End* *Diary Start Day Definition* | **Hash**: 04c5ae15
 
 ---
 
@@ -337,7 +337,7 @@ Calendar visual indicators SHALL display:
 - Screen reader announces entry status when navigating calendar
 - Accessible fonts definable by sponsor feature set and available in user preferences. 
 
-*End* *Calendar Visual Indicators for Entry Status* | **Hash**: 75dc8f26
+*End* *Calendar Visual Indicators for Entry Status* | **Hash**: 565effd6
 
 ---
 

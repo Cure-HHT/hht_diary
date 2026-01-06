@@ -126,7 +126,7 @@ Patient enrollment SHALL ensure:
 
 TODO - need how a linking code maps to a sponsor so the diary app knows which site to auth with.
 
-*End* *Patient Enrollment Workflow* | **Hash**: 46eedac4
+*End* *Patient Enrollment Workflow* | **Hash**: 69eb21e9
 ---
 
 # REQ-p00026: Patient Monitoring Dashboard
@@ -211,7 +211,7 @@ Questionnaire management SHALL provide:
 
 TODO Not described - who and how the questionaires are created and added to the system.  Also versioning.
 
-*End* *Questionnaire Management* | **Hash**: 72da93bc
+*End* *Questionnaire Management* | **Hash**: 9253c04f
 ---
 
 # REQ-p00028: Token Revocation and Access Control
@@ -253,7 +253,7 @@ Token revocation SHALL ensure:
 
 TODO - Audit use of token after revocation?
 
-*End* *Token Revocation and Access Control* | **Hash**: 2edf0218
+*End* *Token Revocation and Access Control* | **Hash**: 8cab5f14
 ---
 
 # REQ-p00029: Auditor Dashboard and Data Export

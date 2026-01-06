@@ -155,7 +155,7 @@ Automated access review SHALL include:
 
 TODO - this needs details on how alerts are managed.  They often pile up.
 
-*End* *Automated Access Review* | **Hash**: a48497b6
+*End* *Automated Access Review* | **Hash**: f2b6b596
 
 ---
 
@@ -222,7 +222,7 @@ TODO - this would violate GDPR for EU residents in the US
 - Attempted violations generate immediate alerts
 - Annual residency verification report generated
 
-*End* *Data Residency Enforcement* | **Hash**: 8db4eca1
+*End* *Data Residency Enforcement* | **Hash**: 4969d3b2
 
 ---
 
@@ -258,7 +258,7 @@ Automated detection SHALL cover:
 
 TODO - similar to the above, then what? Incidents need human management.
 
-*End* *Automated Incident Detection* | **Hash**: e946a022
+*End* *Automated Incident Detection* | **Hash**: 1b62574e
 
 ---
 
@@ -403,7 +403,7 @@ Third-party assessment SHALL cover:
 - Third-party incident notification tested annually
 - Vendor security status visible in compliance dashboard
 
-*End* *Third-Party Security Assessment* | **Hash**: 4d0d53e7
+*End* *Third-Party Security Assessment* | **Hash**: 17585690
 
 ---
 

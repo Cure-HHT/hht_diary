@@ -37,7 +37,7 @@ TODO - what does geo redundancy do to our scheme for all-EU for GDPR?
 - Backup integrity verified with checksums
 - Each sponsor's backups isolated from others
 
-*End* *Data Backup and Archival* | **Hash**: 4e13d1c2
+*End* *Data Backup and Archival* | **Hash**: 5fd3918a
 
 ---
 

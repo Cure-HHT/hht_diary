@@ -190,7 +190,7 @@ The following fields are calculated, not entered:
 - Data model enforces mutual exclusivity of daily status states
 - When stored data is loaded, user sees the actual timezone entered, not just the timezone offset
 
-*End* *HHT Epistaxis Data Capture Standard* | **Hash**: e2501d13
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: 7a3d2052
 
 ---
 
