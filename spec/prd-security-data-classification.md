@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-01-24
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: dev-security.md for implementation details
@@ -257,7 +257,7 @@ For EU participants:
 - Right to erasure (with clinical trial exceptions)
 - Data portability (standard export formats)
 
-**Our Approach**: Separation of identity and clinical data supports GDPR principles.
+**Our Approach**: Separation of identity and clinical data, all data is stored in the EU and services run in EU regions, support GDPR principles.
 
 ---
 

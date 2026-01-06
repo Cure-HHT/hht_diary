@@ -20,7 +20,7 @@
 
 This document specifies how to **implement security** in the Clinical Trial Diary Platform using Google Cloud Platform services. The system implements defense-in-depth with multiple authorization layers across a multi-sponsor architecture.
 
-**Authentication**: Google Identity Platform (Firebase Auth)
+**Authentication**: Google Identity Platform (Identity Platform)
 **Authorization Layers**:
 1. Role-Based Access Control (RBAC)
 2. Row-Level Security (RLS) at database
@@ -54,7 +54,7 @@ Sponsor A Environment           Sponsor B Environment
 - No shared database instances
 - No shared authentication systems
 - Users authenticated in Sponsor A cannot access Sponsor B data
-- Firebase tokens from Sponsor A invalid for Sponsor B
+- Identity Platform tokens from Sponsor A invalid for Sponsor B
 - Complete authentication/authorization independence
 
 ### Code Repository Access Control
@@ -84,7 +84,7 @@ Sponsor A Environment           Sponsor B Environment
 The application SHALL integrate with Google Identity Platform for user authentication, with each sponsor using their dedicated Identity Platform instance in their GCP project configured for their specific requirements.
 
 Authentication integration SHALL include:
-- Initialize Firebase Auth client with sponsor-specific project configuration
+- Initialize Identity Platform client with sponsor-specific project configuration
 - Configure JWT verification using Google's public keys
 - Implement MFA enrollment and verification flows
 - Handle authentication state changes (login, logout, session refresh)
@@ -93,21 +93,21 @@ Authentication integration SHALL include:
 **Rationale**: Implements MFA requirement (p00002) and project isolation (o00003) at the application code level. Each sponsor's GCP project has independent Identity Platform configuration, ensuring complete user isolation between sponsors.
 
 **Acceptance Criteria**:
-- App initializes Firebase Auth from sponsor-specific config file
+- App initializes Identity Platform from sponsor-specific config file
 - MFA can be enabled/required based on user role
 - Authentication tokens scoped to single sponsor project
 - Session refresh handled automatically
 - Logout clears all authentication state
 - Auth errors handled gracefully with user feedback
 
-*End* *Identity Platform Configuration Per Sponsor* | **Hash**: 27095b5c
+*End* *Identity Platform Configuration Per Sponsor* | **Hash**: b9283580
 ---
 
 ### Identity Platform (Per Sponsor)
 
 **Each sponsor** has dedicated Identity Platform instance providing:
 - User registration and login
-- Firebase ID token generation
+- Identity Platform ID token generation
 - Session management
 - Password policies
 - Multi-factor authentication (2FA)
@@ -118,7 +118,7 @@ Authentication integration SHALL include:
 - OAuth providers (Google, Apple, Microsoft)
 - SAML/SSO (enterprise sponsors)
 
-### Flutter Firebase Integration
+### Flutter Identity Platform Integration
 
 **pubspec.yaml dependencies**:
 ```yaml
@@ -173,7 +173,7 @@ class FirebaseConfig {
 
 ### JWT Token Structure
 
-**Claims in Firebase ID Token** (custom claims set via Cloud Functions):
+**Claims in Identity Platform ID Token** (custom claims set via Cloud Functions):
 
 ```json
 {
@@ -215,7 +215,7 @@ class FirebaseTokenVerifier {
 
   FirebaseTokenVerifier({required this.projectId});
 
-  /// Verify Firebase ID token
+  /// Verify Identity Platform ID token
   Future<Map<String, dynamic>> verifyIdToken(String idToken) async {
     // Decode token without verification first
     final parts = idToken.split('.');
@@ -333,7 +333,7 @@ import 'package:shelf/shelf.dart';
 import 'token_verifier.dart';
 import '../database/rls_context.dart';
 
-/// Middleware that verifies Firebase ID tokens and sets RLS context
+/// Middleware that verifies Identity Platform ID tokens and sets RLS context
 Middleware firebaseAuthMiddleware(FirebaseTokenVerifier verifier) {
   return (Handler innerHandler) {
     return (Request request) async {
@@ -537,14 +537,14 @@ class TotpEnrollment {
 ### Session Management
 
 **Session Properties**:
-- Firebase ID token based (stateless)
+- Identity Platform ID token based (stateless)
 - Token expiry: 1 hour (auto-refreshed)
-- Refresh token: Long-lived (managed by Firebase SDK)
+- Refresh token: Long-lived (managed by Identity Platform SDK)
 - Explicit logout clears all tokens
 
 **Session Security**:
 - Secure storage on mobile (flutter_secure_storage)
-- Token refresh handled by Firebase SDK
+- Token refresh handled by Identity Platform SDK
 - Session invalidation on password change
 - Concurrent session limits via Cloud Functions
 
@@ -561,7 +561,7 @@ class SecureSessionManager {
   static Future<void> storeTokens(User user) async {
     final idToken = await user.getIdToken();
     await _storage.write(key: _tokenKey, value: idToken);
-    // Note: refresh token is managed by Firebase SDK internally
+    // Note: refresh token is managed by Identity Platform SDK internally
   }
 
   /// Clear all stored tokens
@@ -590,7 +590,7 @@ class SecureSessionManager {
 
 **Level**: Dev | **Implements**: o00007 | **Status**: Draft
 
-The application SHALL implement role-based permission enforcement by reading user roles from Firebase ID token claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
+The application SHALL implement role-based permission enforcement by reading user roles from Identity Platform ID token claims and restricting UI features and API calls based on role permissions, ensuring consistent access control across mobile and web applications.
 
 Implementation SHALL include:
 - Role extraction from JWT claims after authentication
@@ -612,7 +612,7 @@ Implementation SHALL include:
 - Role changes reflected immediately in UI
 - Unauthorized navigation routes redirect to role-appropriate screen
 
-*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 32cf086a
+*End* *Role-Based Permission Enforcement Implementation* | **Hash**: 3dafc77d
 ---
 
 ### Role Hierarchy
@@ -775,7 +775,7 @@ class DiaryScreen extends StatelessWidget {
 
 ### Setting RLS Context from JWT Claims
 
-The Dart server extracts claims from the verified Firebase token and sets PostgreSQL session variables:
+The Dart server extracts claims from the verified Identity Platform token and sets PostgreSQL session variables:
 
 ```dart
 class RlsContext {
@@ -809,7 +809,7 @@ class RlsContext {
     );
   }
 
-  /// Create from verified Firebase token claims
+  /// Create from verified Identity Platform token claims
   factory RlsContext.fromClaims(Map<String, dynamic> claims) {
     return RlsContext(
       userId: claims['sub'] as String,
@@ -1077,7 +1077,7 @@ class EncryptedDatabase {
 import 'package:test/test.dart';
 
 void main() {
-  group('Firebase Token Verification', () {
+  group('Identity Platform Token Verification', () {
     late FirebaseTokenVerifier verifier;
 
     setUp(() {
@@ -1185,9 +1185,9 @@ END $$;
 ### Secure Implementation Checklist
 
 **Required**:
-- ✅ Always use Firebase Auth / Identity Platform for authentication
+- ✅ Always use Identity Platform / Identity Platform for authentication
 - ✅ Never bypass RLS policies
-- ✅ Validate Firebase ID token on every API request
+- ✅ Validate Identity Platform ID token on every API request
 - ✅ Use parameterized queries (no SQL injection)
 - ✅ Never log authentication tokens
 - ✅ Use TLS for all connections
@@ -1211,7 +1211,7 @@ END $$;
 - **Security Operations**: ops-security.md
 - **Authentication Setup**: ops-security-authentication.md
 - **Identity Platform Docs**: https://cloud.google.com/identity-platform/docs
-- **Firebase Auth Flutter**: https://firebase.google.com/docs/auth/flutter/start
+- **Identity Platform Flutter**: https://firebase.google.com/docs/auth/flutter/start
 
 ---
 

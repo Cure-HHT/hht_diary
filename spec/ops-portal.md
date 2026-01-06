@@ -132,7 +132,7 @@ pulumi up
 1. **Cloud Run Service** (containerized Flutter web app)
 2. **Artifact Registry Repository** (Docker images)
 3. **Cloud SQL Instance** (PostgreSQL with RLS)
-4. **Identity Platform Configuration** (Firebase Auth)
+4. **Identity Platform Configuration** (Identity Platform)
 5. **Custom Domain Mapping** (SSL certificates)
 6. **IAM Service Accounts** (least-privilege permissions)
 7. **Monitoring & Alerting** (uptime checks, error alerts)

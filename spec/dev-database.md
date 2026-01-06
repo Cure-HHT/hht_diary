@@ -2,7 +2,8 @@
 
 **Version**: 2.0
 **Audience**: Software Developers
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-12-23
+
 **Status**: Draft
 
 > **Scope**: Cloud SQL implementation, Dart server database access, development workflow
@@ -28,25 +29,47 @@ This guide covers **how to implement and deploy** the database using Google Clou
 
 ## Development Environment Setup
 
-### Install Required Tools
+### Using Dev Containers (Recommended)
+
+The recommended approach is to use the pre-configured dev containers, which include all required tools:
 
 ```bash
-# Install Google Cloud SDK (macOS)
+# Prerequisites: Docker running, VS Code with Dev Containers extension
+
+# 1. First-time setup (builds base images)
+cd tools/dev-env
+./setup.sh
+
+# 2. Open in VS Code and select "Reopen in Container"
+#    Or use Cmd/Ctrl+Shift+P → "Dev Containers: Reopen in Container"
+```
+
+**Tools included in dev containers:**
+- `gcloud` - Google Cloud CLI for GCP authentication and management
+- `cloud-sql-proxy` - Secure proxy for Cloud SQL connections
+- `psql` - PostgreSQL client for database access
+- `pulumi` - Infrastructure as Code for GCP resource management
+
+See `.devcontainer/README.md` for complete setup instructions.
+
+### Manual Installation (Alternative)
+
+If you cannot use dev containers, install tools manually:
+
+```bash
+# macOS with Homebrew
 brew install --cask google-cloud-sdk
+brew install postgresql@16
+brew install pulumi
 
-# Initialize gcloud
-gcloud init
-
-# Install components
+# Install Cloud SQL Proxy
 gcloud components install cloud-sql-proxy
-
-# Install PostgreSQL client
-brew install postgresql
 
 # Verify installation
 gcloud --version
 psql --version
 cloud-sql-proxy --version
+pulumi version
 ```
 
 ### Authenticate with GCP
@@ -83,14 +106,18 @@ export DATABASE_URL="postgresql://app_user:password@127.0.0.1:5432/clinical_diar
 ## Repository Structure
 
 ```
-clinical-diary/                      # Public core repository
-  packages/
-     database/
-          schema.sql              # Core tables
-          triggers.sql            # Event Sourcing triggers
-          functions.sql           # Helper functions
-          rls_policies.sql        # Row-level security
-          indexes.sql             # Performance indexes
+hht-diary/                          # Public core repository
+ database/
+        auth_audit.sql              # Authentication Audit Log
+        compliance_verification.sql  Compliance Verification Functions
+        indexes.sql                 # Performance indexes
+        init.sql                    # Database Schema Deployment
+        rls_policies.sql            # Row-level security
+        roles.sql                   # Database Roles and Permissions
+        schema.sql                  # Core tables
+        seed_data.sql               # Seed data for Development and testing environments only
+        tamper_detection.sql        # Cryptographic Tamper Detection
+        triggers.sql                # Event Sourcing triggers
 
 clinical-diary-{sponsor}/            # Private sponsor repository
   database/
@@ -443,7 +470,7 @@ class RlsContext {
     );
   }
 
-  /// Create from verified Firebase token claims
+  /// Create from verified Identity Platform token claims
   factory RlsContext.fromClaims(Map<String, dynamic> claims) {
     return RlsContext(
       userId: claims['sub'] as String,
@@ -490,6 +517,15 @@ class RecordRepository {
   }) async {
     await _context.apply(_connection);
 
+    
+  TODO - _audit is commonly used when audit tables are added to a db
+    users
+    users_audit
+    portfolio_transactions
+    portfolio_transactions_audit
+
+    We should consider using event_records instead of record_audit, though record_audit is used extensively in the doc
+    
     await _connection.execute(
       Sql.named('''
         INSERT INTO record_audit (
@@ -843,12 +879,14 @@ COMMIT;
 **Tables**:
 - `record_audit` - Immutable event log
 - `record_state` - Current state (auto-updated by triggers)
+TODO - record_materialized_view might be a more apt name
 - `sites` - Clinical trial sites
 - `user_profiles` - User metadata
 - `investigator_site_assignments` - Site access control
 - `sync_conflicts` - Offline sync conflict tracking
 
 **See**: prd-database.md for complete schema documentation
+TODO - PRDs should not reference table names, etc.
 
 ### Sponsor Extensions
 
@@ -923,13 +961,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:jose/jose.dart';
 
-class FirebaseAuthVerifier {
+class AuthVerifier {
   final String projectId;
   JsonWebKeyStore? _keyStore;
 
-  FirebaseAuthVerifier({required this.projectId});
+  AuthVerifier({required this.projectId});
 
-  /// Verify Firebase ID token and extract claims
+  /// Verify Identity Platform ID token and extract claims
   Future<Map<String, dynamic>> verifyToken(String idToken) async {
     // Fetch Google public keys (cached)
     _keyStore ??= await _fetchPublicKeys();
@@ -989,7 +1027,7 @@ import 'package:shelf/shelf.dart';
 import '../database/rls_context.dart';
 import 'firebase_auth.dart';
 
-Middleware authMiddleware(FirebaseAuthVerifier verifier) {
+Middleware authMiddleware(AuthVerifier verifier) {
   return (Handler innerHandler) {
     return (Request request) async {
       final authHeader = request.headers['authorization'];
@@ -1266,46 +1304,6 @@ pg_dump $DATABASE_URL --schema-only > schema_export.sql
 # Dump specific table data (BE CAREFUL - may contain PHI)
 pg_dump $DATABASE_URL --table=record_audit --data-only > audit_data.sql
 ```
-
-### Generate Dart Types
-
-Use build_runner with json_serializable for type-safe database models:
-
-```dart
-// lib/models/record_state.dart
-import 'package:json_annotation/json_annotation.dart';
-
-part 'record_state.g.dart';
-
-@JsonSerializable()
-class RecordState {
-  final String eventUuid;
-  final String patientId;
-  final String siteId;
-  final Map<String, dynamic> currentData;
-  final int version;
-  final int lastAuditId;
-  final DateTime updatedAt;
-  final bool isDeleted;
-
-  RecordState({
-    required this.eventUuid,
-    required this.patientId,
-    required this.siteId,
-    required this.currentData,
-    required this.version,
-    required this.lastAuditId,
-    required this.updatedAt,
-    required this.isDeleted,
-  });
-
-  factory RecordState.fromJson(Map<String, dynamic> json) =>
-      _$RecordStateFromJson(json);
-
-  Map<String, dynamic> toJson() => _$RecordStateToJson(this);
-}
-```
-
 ---
 
 ## Troubleshooting
@@ -1415,8 +1413,12 @@ SET app.site_id = 'site_001';
 - **Multi-Sponsor Architecture**: prd-architecture-multi-sponsor.md
 - **Production Setup**: ops-database-setup.md
 - **Migration Strategy**: ops-database-migration.md
+- **Dev Container Setup**: .devcontainer/README.md
+- **Pulumi Infrastructure**: infrastructure/sponsor-portal/
 - **Cloud SQL Documentation**: https://cloud.google.com/sql/docs/postgres
 - **PostgreSQL Documentation**: https://www.postgresql.org/docs/
+- **Pulumi GCP Provider**: https://www.pulumi.com/registry/packages/gcp/
+- **Pulumi PostgreSQL Provider**: https://www.pulumi.com/registry/packages/postgresql/
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Version**: 2.0
 **Audience**: Operations (Security Engineers, DevOps)
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-12-28
 **Status**: Draft
 
 > **See**: prd-security.md for security requirements
@@ -14,14 +14,14 @@
 
 ## Executive Summary
 
-Authentication configuration and operations guide for the Clinical Trial Diary Platform using Google Identity Platform (Firebase Auth). Each sponsor has an isolated Identity Platform tenant within their GCP project.
+Authentication configuration and operations guide for the Clinical Trial Diary Platform using Google Identity Platform (Identity Platform). Each sponsor has an isolated Identity Platform tenant within their GCP project.
 
 **Technology Stack**:
-- **Provider**: Google Identity Platform (Firebase Auth)
+- **Provider**: Google Identity Platform (Identity Platform)
 - **Authentication Methods**: Email/password, Google OAuth, Apple Sign In, Magic Link
-- **Token Format**: Firebase ID tokens (JWT)
+- **Token Format**: Identity Platform ID tokens (JWT)
 - **MFA**: TOTP and SMS via Identity Platform
-- **Custom Claims**: Set via Cloud Functions
+- **Custom Claims**: Set via Dart server (Cloud Run)
 
 ---
 
@@ -122,42 +122,41 @@ gcloud services enable identitytoolkit.googleapis.com
    - Register app in Azure AD
    - Configure redirect URIs
 
-### Via Terraform
+### Via Pulumi
 
-```hcl
-resource "google_identity_platform_config" "auth" {
-  project = var.project_id
+```typescript
+import * as gcp from "@pulumi/gcp";
 
-  sign_in {
-    allow_duplicate_emails = false
+const authConfig = new gcp.identityplatform.Config("auth", {
+  project: projectId,
+  signIn: {
+    allowDuplicateEmails: false,
+    email: {
+      enabled: true,
+      passwordRequired: true,
+    },
+  },
+  mfa: {
+    enabledProviders: ["PHONE_SMS"],
+    state: "ENABLED",
+  },
+});
 
-    email {
-      enabled           = true
-      password_required = true
-    }
-  }
+const googleIdp = new gcp.identityplatform.DefaultSupportedIdpConfig("google", {
+  project: projectId,
+  idpId: "google.com",
+  enabled: true,
+  clientId: googleOAuthClientId,
+  clientSecret: googleOAuthClientSecret,
+});
 
-  mfa {
-    enabled_providers = ["PHONE_SMS"]
-    state            = "ENABLED"
-  }
-}
-
-resource "google_identity_platform_default_supported_idp_config" "google" {
-  project      = var.project_id
-  idp_id       = "google.com"
-  enabled      = true
-  client_id    = var.google_oauth_client_id
-  client_secret = var.google_oauth_client_secret
-}
-
-resource "google_identity_platform_default_supported_idp_config" "apple" {
-  project      = var.project_id
-  idp_id       = "apple.com"
-  enabled      = true
-  client_id    = var.apple_services_id
-  client_secret = var.apple_key_id
-}
+const appleIdp = new gcp.identityplatform.DefaultSupportedIdpConfig("apple", {
+  project: projectId,
+  idpId: "apple.com",
+  enabled: true,
+  clientId: appleServicesId,
+  clientSecret: appleKeyId,
+});
 ```
 
 ---
@@ -179,11 +178,11 @@ resource "google_identity_platform_default_supported_idp_config" "apple" {
 
 ### Programmatic Configuration
 
-```bash
-# Use Firebase Admin SDK in Cloud Function
-admin.auth().updateUserByEmail(email, {
+```dart
+// Via Firebase Admin SDK in Dart server (Cloud Run)
+await firebaseApp.auth().updateUser(uid, UserUpdateRequest(
   password: newPassword,
-});
+));
 ```
 
 ---
@@ -209,35 +208,48 @@ admin.auth().updateUserByEmail(email, {
 
 ### Staff Account MFA Enforcement
 
-**Enforce via Cloud Function**:
+**Enforce via Dart Server Middleware (Cloud Run)**:
 
-```javascript
-// functions/enforceMfa/index.js
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+```dart
+// lib/middleware/mfa_enforcement_middleware.dart
+import 'package:firebase_admin/firebase_admin.dart';
+import 'package:shelf/shelf.dart';
 
-admin.initializeApp();
+class MfaEnforcementMiddleware {
+  final FirebaseApp _firebaseApp;
+  static const _staffRoles = ['INVESTIGATOR', 'ANALYST', 'ADMIN'];
 
-// Block sign-in if MFA not enrolled for staff roles
-exports.enforceMfa = functions.auth.user().beforeSignIn(async (user) => {
-  const claims = user.customClaims || {};
-  const staffRoles = ['INVESTIGATOR', 'ANALYST', 'ADMIN'];
+  MfaEnforcementMiddleware(this._firebaseApp);
 
-  if (staffRoles.includes(claims.role)) {
-    // Check if MFA is enrolled
-    const userRecord = await admin.auth().getUser(user.uid);
-    const mfaInfo = userRecord.multiFactor?.enrolledFactors || [];
+  /// Middleware to enforce MFA for staff roles
+  Middleware enforceMfa() {
+    return (Handler innerHandler) {
+      return (Request request) async {
+        final userId = request.context['userId'] as String?;
+        final role = request.context['role'] as String?;
 
-    if (mfaInfo.length === 0) {
-      throw new functions.auth.HttpsError(
-        'failed-precondition',
-        'MFA enrollment required for staff accounts. Please complete MFA setup.'
-      );
-    }
+        if (userId != null && _staffRoles.contains(role)) {
+          // Check if MFA is enrolled
+          final userRecord = await _firebaseApp.auth().getUser(userId);
+          final mfaFactors = userRecord.multiFactor?.enrolledFactors ?? [];
+
+          if (mfaFactors.isEmpty) {
+            return Response.forbidden(
+              jsonEncode({
+                'error': 'failed-precondition',
+                'message': 'MFA enrollment required for staff accounts. '
+                    'Please complete MFA setup.',
+              }),
+              headers: {'Content-Type': 'application/json'},
+            );
+          }
+        }
+
+        return innerHandler(request);
+      };
+    };
   }
-
-  return {};
-});
+}
 ```
 
 ### MFA Reset Procedures
@@ -247,15 +259,11 @@ exports.enforceMfa = functions.auth.user().beforeSignIn(async (user) => {
 1. User contacts administrator
 2. Administrator verifies identity (out-of-band: phone call, video)
 3. Administrator removes MFA enrollment:
-   ```bash
-   # Via Firebase Admin SDK
-   admin.auth().getUser(uid).then((user) => {
-     return admin.auth().updateUser(uid, {
-       multiFactor: {
-         enrolledFactors: []
-       }
-     });
-   });
+   ```dart
+   // Via Firebase Admin SDK in Dart server
+   await firebaseApp.auth().updateUser(uid, UserUpdateRequest(
+     multiFactor: MultiFactorUpdateSettings(enrolledFactors: []),
+   ));
    ```
 4. User re-enrolls MFA on next login
 5. Action logged in admin audit trail
@@ -264,114 +272,170 @@ exports.enforceMfa = functions.auth.user().beforeSignIn(async (user) => {
 
 ## Custom Claims (RBAC)
 
-### Set Custom Claims via Cloud Function
+### Set Custom Claims via Dart Server (Cloud Run)
 
-```javascript
-// functions/customClaims/index.js
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+```dart
+// lib/services/custom_claims_service.dart
+import 'package:firebase_admin/firebase_admin.dart';
+import 'package:shelf/shelf.dart';
 
-admin.initializeApp();
+class CustomClaimsService {
+  final FirebaseApp _firebaseApp;
+  final String _sponsorId;
 
-// Add custom claims when user is created
-exports.addCustomClaims = functions.auth.user().onCreate(async (user) => {
-  try {
-    // Default role for new users
+  CustomClaimsService(this._firebaseApp, this._sponsorId);
+
+  /// Set initial claims for a new user
+  Future<void> initializeUserClaims(String uid) async {
     const defaultRole = 'USER';
-    const sponsorId = process.env.SPONSOR_ID;
 
-    await admin.auth().setCustomUserClaims(user.uid, {
-      role: defaultRole,
-      sponsorId: sponsorId,
+    await _firebaseApp.auth().setCustomUserClaims(uid, {
+      'role': defaultRole,
+      'sponsorId': _sponsorId,
     });
 
-    // Also create user profile in database
-    // (via API call or direct database insert)
-
-    console.log(`Custom claims set for user ${user.uid}: role=${defaultRole}`);
-  } catch (error) {
-    console.error('Error setting custom claims:', error);
-    throw error;
-  }
-});
-
-// Update role (admin only)
-exports.updateUserRole = functions.https.onCall(async (data, context) => {
-  // Verify caller is admin
-  if (!context.auth?.token?.role || context.auth.token.role !== 'ADMIN') {
-    throw new functions.https.HttpsError(
-      'permission-denied',
-      'Only admins can update user roles'
-    );
+    print('Custom claims set for user $uid: role=$defaultRole');
   }
 
-  const { userId, newRole } = data;
-  const validRoles = ['USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN'];
+  /// Update user role (admin only)
+  Future<Map<String, dynamic>> updateUserRole({
+    required String adminUid,
+    required String adminRole,
+    required String userId,
+    required String newRole,
+  }) async {
+    // Verify caller is admin
+    if (adminRole != 'ADMIN') {
+      throw UnauthorizedException('Only admins can update user roles');
+    }
 
-  if (!validRoles.includes(newRole)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid role');
+    const validRoles = ['USER', 'INVESTIGATOR', 'ANALYST', 'ADMIN'];
+    if (!validRoles.contains(newRole)) {
+      throw BadRequestException('Invalid role: $newRole');
+    }
+
+    // Get current claims
+    final userRecord = await _firebaseApp.auth().getUser(userId);
+    final currentClaims = userRecord.customClaims ?? {};
+
+    // Update role
+    await _firebaseApp.auth().setCustomUserClaims(userId, {
+      ...currentClaims,
+      'role': newRole,
+    });
+
+    print('Role updated: $userId -> $newRole by $adminUid');
+    return {'success': true, 'newRole': newRole};
   }
 
-  // Get current claims
-  const userRecord = await admin.auth().getUser(userId);
-  const currentClaims = userRecord.customClaims || {};
+  /// Assign sites to investigator/analyst (admin only)
+  Future<Map<String, dynamic>> assignUserToSite({
+    required String adminUid,
+    required String adminRole,
+    required String userId,
+    required List<String> siteIds,
+  }) async {
+    // Verify caller is admin
+    if (adminRole != 'ADMIN') {
+      throw UnauthorizedException('Only admins can assign sites');
+    }
 
-  // Update role
-  await admin.auth().setCustomUserClaims(userId, {
-    ...currentClaims,
-    role: newRole,
-  });
+    // Get current claims
+    final userRecord = await _firebaseApp.auth().getUser(userId);
+    final currentClaims = userRecord.customClaims ?? {};
+    final currentRole = currentClaims['role'] as String?;
 
-  // Log role change (call API or database)
-  console.log(`Role updated: ${userId} -> ${newRole} by ${context.auth.uid}`);
+    if (!['INVESTIGATOR', 'ANALYST'].contains(currentRole)) {
+      throw BadRequestException(
+        'Only investigators and analysts can be assigned to sites',
+      );
+    }
 
-  return { success: true, newRole };
-});
+    // Update site assignments in claims
+    await _firebaseApp.auth().setCustomUserClaims(userId, {
+      ...currentClaims,
+      'siteAssignments': siteIds,
+    });
 
-// Assign site to investigator/analyst
-exports.assignUserToSite = functions.https.onCall(async (data, context) => {
-  // Verify caller is admin
-  if (!context.auth?.token?.role || context.auth.token.role !== 'ADMIN') {
-    throw new functions.https.HttpsError(
-      'permission-denied',
-      'Only admins can assign sites'
-    );
+    return {'success': true, 'siteIds': siteIds};
   }
+}
 
-  const { userId, siteIds } = data;
+class UnauthorizedException implements Exception {
+  final String message;
+  UnauthorizedException(this.message);
+}
 
-  // Get current claims
-  const userRecord = await admin.auth().getUser(userId);
-  const currentClaims = userRecord.customClaims || {};
-
-  if (!['INVESTIGATOR', 'ANALYST'].includes(currentClaims.role)) {
-    throw new functions.https.HttpsError(
-      'failed-precondition',
-      'Only investigators and analysts can be assigned to sites'
-    );
-  }
-
-  // Update site assignments in claims
-  await admin.auth().setCustomUserClaims(userId, {
-    ...currentClaims,
-    siteAssignments: siteIds,
-  });
-
-  return { success: true, siteIds };
-});
+class BadRequestException implements Exception {
+  final String message;
+  BadRequestException(this.message);
+}
 ```
 
-### Deploy Cloud Functions
+### API Endpoints for Custom Claims
+
+```dart
+// lib/routes/admin_routes.dart
+import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+
+Router adminRouter(CustomClaimsService claimsService) {
+  final router = Router();
+
+  // POST /admin/users/:userId/role
+  router.post('/users/<userId>/role', (Request request, String userId) async {
+    final adminUid = request.context['userId'] as String;
+    final adminRole = request.context['role'] as String;
+    final body = await request.readAsString();
+    final data = jsonDecode(body) as Map<String, dynamic>;
+
+    final result = await claimsService.updateUserRole(
+      adminUid: adminUid,
+      adminRole: adminRole,
+      userId: userId,
+      newRole: data['role'] as String,
+    );
+
+    return Response.ok(jsonEncode(result));
+  });
+
+  // POST /admin/users/:userId/sites
+  router.post('/users/<userId>/sites', (Request request, String userId) async {
+    final adminUid = request.context['userId'] as String;
+    final adminRole = request.context['role'] as String;
+    final body = await request.readAsString();
+    final data = jsonDecode(body) as Map<String, dynamic>;
+
+    final result = await claimsService.assignUserToSite(
+      adminUid: adminUid,
+      adminRole: adminRole,
+      userId: userId,
+      siteIds: List<String>.from(data['siteIds']),
+    );
+
+    return Response.ok(jsonEncode(result));
+  });
+
+  return router;
+}
+```
+
+### Deploy to Cloud Run
 
 ```bash
-cd functions
-npm install
+# Build the Docker image
+docker build -t gcr.io/${PROJECT_ID}/api-server:latest .
 
-# Deploy all functions
-firebase deploy --only functions
+# Push to Container Registry
+docker push gcr.io/${PROJECT_ID}/api-server:latest
 
-# Or deploy specific function
-firebase deploy --only functions:addCustomClaims
+# Deploy to Cloud Run
+gcloud run deploy api-server \
+  --image gcr.io/${PROJECT_ID}/api-server:latest \
+  --platform managed \
+  --region ${REGION} \
+  --allow-unauthenticated \
+  --set-env-vars "SPONSOR_ID=${SPONSOR_ID}"
 ```
 
 ### JWT Token Structure
@@ -408,7 +472,7 @@ firebase deploy --only functions:addCustomClaims
 ### Session Configuration
 
 **Token Expiration**:
-- ID tokens expire after 1 hour (Firebase default)
+- ID tokens expire after 1 hour (Identity Platform default)
 - Refresh tokens remain valid until revoked
 - Custom session cookies: configurable duration (5 minutes to 2 weeks)
 
@@ -539,71 +603,102 @@ Future<void> logAuthEvent({
 - Lockout duration: 30 minutes (automatic unlock)
 - Admin can manually unlock
 
-### Implementation via Cloud Function
+### Implementation via Dart Server (Cloud Run)
 
-```javascript
-// functions/accountLockout/index.js
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+```dart
+// lib/services/account_lockout_service.dart
+import 'package:postgres/postgres.dart';
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_WINDOW_MINUTES = 15;
-const LOCKOUT_DURATION_MINUTES = 30;
+class AccountLockoutService {
+  final Connection _db;
 
-exports.checkAccountLockout = functions.auth.user().beforeSignIn(async (user) => {
-  const db = admin.firestore();
-  const lockoutDoc = await db.collection('account_lockouts').doc(user.email).get();
+  static const maxFailedAttempts = 5;
+  static const lockoutWindowMinutes = 15;
+  static const lockoutDurationMinutes = 30;
 
-  if (lockoutDoc.exists) {
-    const data = lockoutDoc.data();
-    const lockedUntil = data.lockedUntil?.toDate();
+  AccountLockoutService(this._db);
 
-    if (lockedUntil && lockedUntil > new Date()) {
-      const minutesRemaining = Math.ceil((lockedUntil - new Date()) / 60000);
-      throw new functions.auth.HttpsError(
-        'resource-exhausted',
-        `Account locked. Try again in ${minutesRemaining} minutes.`
+  /// Check if account is locked before allowing sign-in
+  Future<void> checkAccountLockout(String email) async {
+    final result = await _db.execute('''
+      SELECT locked_until FROM account_lockouts
+      WHERE email = @email AND locked_until > now()
+    ''', parameters: {'email': email});
+
+    if (result.isNotEmpty) {
+      final lockedUntil = result.first[0] as DateTime;
+      final minutesRemaining = lockedUntil.difference(DateTime.now()).inMinutes + 1;
+      throw AccountLockedException(
+        'Account locked. Try again in $minutesRemaining minutes.',
       );
     }
   }
 
-  return {};
-});
+  /// Track failed login attempt
+  Future<void> trackFailedLogin(String email) async {
+    final now = DateTime.now();
+    final windowStart = now.subtract(Duration(minutes: lockoutWindowMinutes));
 
-// Track failed attempts (call this from your authentication handler)
-exports.trackFailedLogin = functions.https.onCall(async (data, context) => {
-  const { email } = data;
-  const db = admin.firestore();
-  const docRef = db.collection('account_lockouts').doc(email);
+    await _db.runTx((session) async {
+      // Get recent failed attempts
+      final result = await session.execute('''
+        SELECT failed_attempts FROM account_lockouts
+        WHERE email = @email
+      ''', parameters: {'email': email});
 
-  await db.runTransaction(async (transaction) => {
-    const doc = await transaction.get(docRef);
-    const now = new Date();
-    const windowStart = new Date(now - LOCKOUT_WINDOW_MINUTES * 60000);
+      List<DateTime> failedAttempts = [];
+      if (result.isNotEmpty && result.first[0] != null) {
+        final attempts = result.first[0] as List<dynamic>;
+        failedAttempts = attempts
+            .map((ts) => DateTime.parse(ts as String))
+            .where((ts) => ts.isAfter(windowStart))
+            .toList();
+      }
 
-    let failedAttempts = [];
-    if (doc.exists) {
-      failedAttempts = doc.data().failedAttempts || [];
-      // Filter to only recent attempts
-      failedAttempts = failedAttempts.filter(ts =>
-        new Date(ts) > windowStart
-      );
-    }
+      failedAttempts.add(now);
 
-    failedAttempts.push(now.toISOString());
+      DateTime? lockedUntil;
+      if (failedAttempts.length >= maxFailedAttempts) {
+        lockedUntil = now.add(Duration(minutes: lockoutDurationMinutes));
+        print('Account locked: $email');
+      }
 
-    const updates = { failedAttempts };
+      await session.execute('''
+        INSERT INTO account_lockouts (email, failed_attempts, locked_until)
+        VALUES (@email, @attempts, @lockedUntil)
+        ON CONFLICT (email) DO UPDATE SET
+          failed_attempts = @attempts,
+          locked_until = @lockedUntil
+      ''', parameters: {
+        'email': email,
+        'attempts': failedAttempts.map((d) => d.toIso8601String()).toList(),
+        'lockedUntil': lockedUntil,
+      });
+    });
+  }
 
-    if (failedAttempts.length >= MAX_FAILED_ATTEMPTS) {
-      updates.lockedUntil = new Date(now.getTime() + LOCKOUT_DURATION_MINUTES * 60000);
-      console.log(`Account locked: ${email}`);
-    }
+  /// Clear lockout after successful login
+  Future<void> clearLockout(String email) async {
+    await _db.execute('''
+      DELETE FROM account_lockouts WHERE email = @email
+    ''', parameters: {'email': email});
+  }
+}
 
-    transaction.set(docRef, updates, { merge: true });
-  });
+class AccountLockedException implements Exception {
+  final String message;
+  AccountLockedException(this.message);
+}
+```
 
-  return { success: true };
-});
+```sql
+-- Required table for account lockouts
+CREATE TABLE account_lockouts (
+  email TEXT PRIMARY KEY,
+  failed_attempts JSONB DEFAULT '[]',
+  locked_until TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 ```
 
 ---
@@ -813,7 +908,7 @@ ORDER BY up.mfa_enrolled, up.role;
 **Symptoms**: `Token verification failed: invalid signature`
 
 **Solutions**:
-1. Verify Firebase project ID matches
+1. Verify GCP project ID matches
 2. Check token hasn't expired (1 hour default)
 3. Ensure server time is synchronized
 4. Verify correct public keys are being fetched
@@ -825,7 +920,7 @@ ORDER BY up.mfa_enrolled, up.role;
 **Solutions**:
 1. Verify MFA is enabled in Identity Platform settings
 2. Check user has enrolled at least one MFA factor
-3. Verify Firebase SDK version supports MFA
+3. Verify Identity Platform SDK version supports MFA
 
 ### Custom Claims Not Propagating
 
@@ -834,15 +929,15 @@ ORDER BY up.mfa_enrolled, up.role;
 **Solutions**:
 1. User must sign out and sign in again
 2. Or call `getIdToken(true)` to force token refresh
-3. Check Cloud Function logs for errors
-4. Verify Cloud Function has correct IAM permissions
+3. Check Cloud Run logs for errors (`gcloud logs read --service=api-server`)
+4. Verify Cloud Run service account has correct IAM permissions
 
 ---
 
 ## References
 
 - [Identity Platform Documentation](https://cloud.google.com/identity-platform/docs)
-- [Firebase Auth Documentation](https://firebase.google.com/docs/auth)
+- [Identity Platform Documentation](https://firebase.google.com/docs/auth)
 - [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
 - [Custom Claims](https://firebase.google.com/docs/auth/admin/custom-claims)
 - [MFA with Identity Platform](https://cloud.google.com/identity-platform/docs/web/mfa)

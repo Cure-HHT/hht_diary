@@ -38,12 +38,12 @@ The system SHALL capture epistaxis (nosebleed) events using the HHT-specific ter
 #### 1. Nosebleed Date
 
 **Field**: `bleed_date`
-**Format**: `YYYY-MM-DD` (ISO 8601)
+**Format**: `YYYY-MM-DD` (ISO 8601 with timezone offset)
 **Description**: The calendar date on which the nosebleed started, as experienced by the patient in their local timezone.
 
 **Validation Rules**:
 - Must not be a future date
-- Must match the date component of `start_time` when timezone is applied
+- Must match the date component of `start_time` after the timezone is applied
 
 #### 2. Bleed Today Indicator
 
@@ -78,20 +78,24 @@ The `had_nosebleed` status MAY be inferred rather than explicitly selected when 
 #### 3. Start Time
 
 **Field**: `start_time`
-**Format**: ISO 8601 with timezone: `YYYY-MM-DDTHH:MM:SS±HH:MM`
-**Display Format**: `HH:MM AM/PM` with timezone indicator
+**Format**: ISO 8601 with timezone: `YYYY-MM-DDTHH:MM:SS±HH:MM`, e.g, 2025-12-18T17:43:32+01:00
+**Display Format**: Localized for the user as `HH:MM AM/PM` or 24HR time, with timezone indicator when different from the user's local time or the end time.
 **Description**: The time when the nosebleed began, as experienced by the patient.
 
 **Requirements**:
 - Time displayed to user in 12-hour format with AM/PM
 - Stored internally in ISO 8601 with explicit timezone offset
 - Timezone reflects the patient's location at event start
+TODO - only general longitude and not latitude at all
 
-#### 4. End Time
+#### 4. Start Time Zone
+The time zone the user entered as the timezone the nosebleed started in.
+
+#### 5. End Time
 
 **Field**: `end_time`
-**Format**: ISO 8601 with timezone: `YYYY-MM-DDTHH:MM:SS±HH:MM`
-**Display Format**: `HH:MM AM/PM` with timezone indicator
+**Format**: ISO 8601 with timezone: `YYYY-MM-DDTHH:MM:SS±HH:MM`, e.g, 2025-12-18T17:43:32-07:00
+**Display Format**: Localized for the user as `HH:MM AM/PM` or 24HR time, with timezone indicator when different from the user's local time or the start time.
 **Description**: The time when the nosebleed stopped, as experienced by the patient.
 
 **Requirements**:
@@ -100,7 +104,10 @@ The `had_nosebleed` status MAY be inferred rather than explicitly selected when 
 - Timezone reflects the patient's location at event end
 - Must be after `start_time` (accounting for timezone differences)
 
-#### 5. Intensity (Speed of Flow)
+#### 6. End Time Zone
+The time zone the user entered as the timezone the nosebleed ended in.
+
+#### 7. Intensity (Speed of Flow)
 
 **Field**: `intensity`
 **Format**: Enumerated string value
@@ -108,21 +115,21 @@ The `had_nosebleed` status MAY be inferred rather than explicitly selected when 
 
 **Standard Values** (in order of increasing severity):
 
-| Value | Display Text | Clinical Description |
-| ----- | ------------ | -------------------- |
-| `spotting` | Spotting | Minimal blood, occasional drops |
-| `dripping_slowly` | Dripping slowly | Slow, intermittent drips |
-| `dripping_quickly` | Dripping quickly | Frequent, rapid drips |
-| `steady_stream` | Steady stream | Continuous flow without gushing |
-| `pouring` | Pouring | Heavy continuous flow |
-| `gushing` | Gushing | Severe, uncontrolled flow |
+| Value              | Display Text     | Clinical Description            |
+|--------------------|------------------|---------------------------------|
+| `spotting`         | Spotting         | Minimal blood, occasional drops |
+| `dripping_slowly`  | Dripping slowly  | Slow, intermittent drips        |
+| `dripping_quickly` | Dripping quickly | Frequent, rapid drips           |
+| `steady_stream`    | Steady stream    | Continuous flow without gushing |
+| `pouring`          | Pouring          | Heavy continuous flow           |
+| `gushing`          | Gushing          | Severe, uncontrolled flow       |
 
 **UI Presentation**:
 - Display with accompanying graphic/visual aid
 - Graphics help patients accurately self-assess intensity
 - Order from least to most severe (top to bottom or left to right)
 
-#### 6. Notes
+#### 8. Notes
 
 **Field**: `notes`
 **Format**: Text (selected from predefined list)
@@ -144,7 +151,7 @@ The `had_nosebleed` status MAY be inferred rather than explicitly selected when 
 **Scenario**: Patient starts nosebleed in one timezone and ends in another (e.g., during travel).
 
 **Solution**:
-1. Start time and end time each store their own timezone offset
+1. Start time and end time each store their own timezone offset and actual time zone used.
 2. Duration is calculated as a derived value: `end_time - start_time`
 3. User can verify correct timezone by checking calculated duration
 4. If duration appears incorrect (off by whole hours), user can adjust:
@@ -154,8 +161,8 @@ The `had_nosebleed` status MAY be inferred rather than explicitly selected when 
 
 **Example**:
 ```
-Start: 2025-03-15T14:30:00-05:00 (EST)
-End:   2025-03-15T16:45:00-04:00 (EDT, after DST change)
+Start: 2025-03-15T14:30:00-05:00, Start timezone: EST
+End:   2025-03-15T16:45:00-04:00, End timezone: EDT, after DST change
 Duration: 1 hour 15 minutes (correctly calculated across TZ change)
 ```
 
@@ -163,26 +170,27 @@ Duration: 1 hour 15 minutes (correctly calculated across TZ change)
 
 The following fields are calculated, not entered:
 
-| Field | Calculation | Purpose |
-| ----- | ----------- | ------- |
+| Field              | Calculation             | Purpose                                 |
+|--------------------|-------------------------|-----------------------------------------|
 | `duration_minutes` | `end_time - start_time` | Clinical analysis, patient verification |
-| `date_recorded` | System timestamp (UTC) | Audit trail |
-| `device_timezone` | Device setting at entry | Context for time interpretation |
+| `date_recorded`    | System timestamp (UTC)  | Audit trail                             |
+| `device_timezone`  | Device setting at entry | Context for time interpretation         |
 
 **Rationale**: This terminology standard was developed specifically for HHT clinical studies. The six-level intensity scale ("Spotting" to "Gushing") uses patient-friendly language that accurately maps to clinical severity while being intuitive for self-reporting. The descriptive terms reduce inter-patient variability compared to numeric scales. Timezone-aware timestamps ensure accurate duration calculation for patients who travel or experience DST changes during events.
 
 **Acceptance Criteria**:
 - All six intensity levels available in data capture UI
 - Intensity selection includes visual/graphic aids
-- Times stored with explicit timezone offsets
+- Times stored with explicit timezone offsets and user's time zone
 - Duration calculated correctly across timezone boundaries
 - Notes field respects sponsor free-text configuration
 - Bleed date matches start time date in local timezone
 - All three daily status options available: nosebleed, no nosebleed, don't remember
 - "No nosebleed" and "Don't remember" entries do not require time/intensity fields
 - Data model enforces mutual exclusivity of daily status states
+- When stored data is loaded, user sees the actual timezone entered, not just the timezone offset
 
-*End* *HHT Epistaxis Data Capture Standard* | **Hash**: e2501d13
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: 7a3d2052
 
 ---
 

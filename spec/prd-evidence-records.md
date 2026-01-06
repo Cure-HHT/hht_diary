@@ -2,7 +2,7 @@
 
 **Version**: 1.1
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-03
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 ---
@@ -194,6 +194,8 @@ Proof archival SHALL ensure:
 
 The system SHALL record a device fingerprint with each data submission to establish the collection method and enable traceability to the originating device.
 
+TODO - doesn't this conflict with GDPR?
+
 Device fingerprinting SHALL:
 - Capture a unique, non-reversible identifier derived from device hardware attributes
 - Include the fingerprint in the timestamped evidence record
@@ -208,7 +210,7 @@ Device fingerprinting SHALL:
 - No raw device identifiers are stored or transmitted
 - Auditors can verify fingerprint consistency across a patient's submissions
 
-*End* *Device Fingerprinting* | **Hash**: 57a2d038
+*End* *Device Fingerprinting* | **Hash**: 74cd1c65
 ---
 
 ---

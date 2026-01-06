@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-02
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: prd-system.md for platform overview
@@ -21,6 +21,7 @@ A backup and archival system ensuring clinical trial data is protected against l
 Backup and archival SHALL provide:
 - Automated database backups with defined frequency
 - Geographic redundancy for disaster recovery
+TODO - what does geo redundancy do to our scheme for all-EU for GDPR? 
 - Point-in-time recovery capability
 - Long-term archival for regulatory retention (7+ years)
 - Backup integrity verification
@@ -36,7 +37,7 @@ Backup and archival SHALL provide:
 - Backup integrity verified with checksums
 - Each sponsor's backups isolated from others
 
-*End* *Data Backup and Archival* | **Hash**: 4e13d1c2
+*End* *Data Backup and Archival* | **Hash**: 5fd3918a
 
 ---
 

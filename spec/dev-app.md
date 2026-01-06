@@ -18,18 +18,18 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 **Key Features**:
 - Single app supports multiple clinical trial sponsors
 - Offline-first with automatic background sync
-- Event Sourcing for complete audit trail
+- Event Sourcing for complete audit trail`
 - Sponsor-specific branding and configuration
-- Secure connection to sponsor's Firebase backend
+- Secure connection to sponsor's GCP backend
 - FDA 21 CFR Part 11 compliant data capture
 
 **Technology Stack**:
-- **Framework**: Flutter (single codebase � iOS + Android)
+- **Framework**: Flutter (single codebase � iOS, Android, Web)
 - **Language**: Dart
-- **Backend**: Firebase Firestore and Cloud Functions GCP (also, indirectly, Cloud SQL + Identity Platform)
-- **Local Storage**: Use Firestore local sync 
-- **State Management**: Signals
-- **Networking**: Firebase Firestore and Cloud Functions
+- **Backend**: Cloud Run with Dart Container GCP (also, indirectly, Cloud SQL + Identity Platform)
+- **Local Storage**: FLutter Secure Storage 
+- **State Management**: No third-party library needed.
+- **Networking**: Firebase Hosting -> Cloud Run
 
 ---
 
@@ -42,24 +42,36 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 The mobile application SHALL implement automatic sponsor detection and configuration loading based on enrollment tokens, enabling a single app binary to support multiple sponsors without requiring separate app builds per sponsor.
 
 Implementation SHALL include:
-- Enrollment token parser extracting sponsor identifier
-- Configuration loader fetching sponsor-specific settings (GCP/Firebase project ID, Firebase config, API URL, branding assets)
+- Enrollment token parser extracting sponsor identifier, mapping to sponsor's url
+- Configuration loader fetching sponsor-specific settings (API URL)
 - Runtime sponsor context switching based on active user session
-- Bundled sponsor configurations in app assets
+- Sponsor configurations and app assets loaded from the sponsor's 
 - Validation of sponsor configuration completeness before connection
 - Secure storage of sponsor-specific authentication tokens
+
+#### TODO 
+- How the enrollment token computes the sponsor
+- Only masked sponsor urls are bundles with the app
+- How the app knows which backends to sync to
+- Whether sync occurs on CureHHT backend is the default sponsor
+- Whether sync occurs on CureHHT and other sponsor's backed concurrently
+  - How conflicts are handled
+- How patient authenticates
+  - Is username/password good enough (A: no)
+  - When taking email - how is the PII separated from the PHI (is IAM far enough away?) 
 
 **Rationale**: Implements automatic sponsor configuration (p00007) and single app architecture (p00008) at the development level. Token-based sponsor detection enables streamlined user enrollment while maintaining complete data isolation between sponsors.
 
 **Acceptance Criteria**:
-- Enrollment token correctly identifies sponsor
-- Sponsor configuration loaded from bundled assets
-- App connects to correct sponsor GCP backend
+- Enrollment token correctly identifies sponsor TODO - and site?
+- App connects to correct sponsor GCP backend, matching the enrollment code
+- Sponsor configuration and assets loaded from the sponsor's backend
+- Sponsor and site are not revealed by the backend url
 - Sponsor branding applied after configuration load
 - Invalid tokens rejected with clear error messages
 - No cross-sponsor data leakage in configuration or authentication
 
-*End* *Sponsor Configuration Detection Implementation* | **Hash**: 37465932
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: d84ba1c3
 ---
 
 ### Single App, Multiple Sponsors
@@ -67,10 +79,8 @@ Implementation SHALL include:
 **Deployment Model**:
 - **One app** on App Store / Google Play Store
 - App name: "Clinical Diary" (generic, not sponsor-specific)
-- Contains **ALL** sponsor configurations bundled in app
 - Sponsor detected via enrollment token
 - Connects to sponsor's dedicated GCP backend
-
 
 ### Why Single App?
 
@@ -82,7 +92,7 @@ Implementation SHALL include:
 - Reduced maintenance overhead
 
 **Sponsor Isolation**:
-- Each sponsor: separate GCP project (Cloud SQL + Identity Platform)
+- Each sponsor: separate GCP project (Identity Platform + Cloud SQL + Cloud Run)
 - No data sharing between sponsors
 - Sponsor branding applied post-enrollment
 - Authentication tokens scoped to single sponsor
@@ -101,6 +111,7 @@ Implementation SHALL include:
 - App logo --> Sponsor logo
 - Study welcome screen content
 
+TODO - we don't have a welcome screen.  Is this shown once with a "don't show again"?
 ---
 
 ## Offline-First Architecture
@@ -109,27 +120,27 @@ Implementation SHALL include:
 
 **Level**: Dev | **Implements**: p00006 | **Status**: Draft
 
-The mobile application SHALL implement offline-first data entry using SQLite for local storage, ensuring all user diary entries are captured locally before network synchronization, enabling full functionality without network connectivity.
+The mobile application SHALL implement offline-first data entry using sembast with Flutter secure local storage, ensuring all user diary entries are captured locally before network synchronization, enabling full functionality without network connectivity.
 
 Implementation SHALL include:
-- SQLite database mirroring server Event Sourcing schema
+- Sembast database mirroring server Event Sourcing schema
 - All diary entry operations (create, update, delete) saved locally first
 - Background sync process triggered by connectivity changes
-- Conflict detection and resolution for multi-device scenarios
-- Automatic retry logic for failed synchronization attempts
+- Conflict detection and resolution for multi-device scenarios - TODO details
+- Automatic retry logic for failed synchronization attempts - TODO do we have to record failures?
 - Local data persistence across app restarts
 
 **Rationale**: Implements offline-first architecture (p00006) at the development level. Flutter's sqflite package provides SQLite access for local-first data storage, enabling clinical trial participants to record diary entries regardless of network availability.
 
 **Acceptance Criteria**:
-- SQLite database created on first app launch
+- Sembast database created on first app launch
 - All diary operations work without network connection
 - Local changes sync automatically when online
 - Conflict resolution handles multi-device scenarios
 - No data loss during offline periods
 - Background sync respects battery and data usage constraints
 
-*End* *Local-First Data Entry Implementation* | **Hash**: 843d0664
+*End* *Local-First Data Entry Implementation* | **Hash**: c045e88a
 ---
 
 ### Core Principle
@@ -149,7 +160,7 @@ Implementation SHALL include:
 ---
 
 ### Local Data Storage
-**Technology**: SQLite (via `sqflite` package)
+**Technology**: sembast (via `sembast` package) and flutter_secure_storage
 **Schema** (mirrors server Event Sourcing pattern):
 
 ### Background Sync
@@ -157,7 +168,7 @@ Implementation SHALL include:
 **Sync Trigger Conditions**:
 - App regains network connectivity
 - User manually triggers sync
-- Every 15 minutes if online
+- Every 15 minutes if online TODO - we sync immediately after each change, this is probably not necessary.
 - On app resume from background
 
 ---
@@ -199,6 +210,8 @@ scenario: user uses more than one device to make entries
 trigger: Server `record_state.version` > local version
 resolution: fast-forward local-db: replay server events locally
 
+TODO - there is no conflict described. 
+
 CONFLICT-2: 
 scenario: user uses more than one device to make entries, modifies same entry on both before they are detected via CONFLICT-1
 trigger: non-fast-forward conflict
@@ -210,7 +223,7 @@ trigger: `event_uudi` modified by non-patient, fast-forward-able
 resolution: push event(s) to App, replay event(s), notify patient, patient dismisses notification
 
 CONFLICT-4: 
-scenario: different data values without appropriate event(s)
+scenario: different data values without appropriate event(s) TODO - this is not clear
 trigger:  when record is `locked` (made soft-read-only), compare its record_status with remote record_status and there is a meaningful mismatch (aside from metadata)
 resolution: Log error. Report to investigator.
 
@@ -223,17 +236,19 @@ resolution: Log error. Report to investigator.
 **1. Enrollment Screen**:
 - Scan QR code or paste enrollment link
 - Token validation
-- Account creation (email + password)
 - Terms of service / consent
 
-**2. Home / Dashboard**:
+**2. Login Screen**:
+  Account creation (email + password)
+
+**3. Home / Dashboard**:
 - Today's diary entries summary
 - Quick add button
 - Sync status indicator
 
-**3. Create/Edit Diary Entry**:
+**4. Create/Edit Diary Entry**:
 - Date and time picker
-- Event type selection (sponsor-configured)
+- Event type selection (sponsor-configured) - TODO - what's this?
 - Custom fields based on study protocol
 - Save button (saves locally, syncs in background)
 - Validation with clear error messages
@@ -246,11 +261,14 @@ resolution: Log error. Report to investigator.
 - View annotation / change
 - Mark as resolved
 
+TODO - this needs clarity
+
 **6. Profile / Settings**:
-- User information (local only - never sync'd)
+- User information (local only - never sync'd)  TODO???
 - Study information 
 - Sync status and manual sync button
 - Notification settings
+- Preferences & Accessibility
 - Logout
 
 ---
@@ -273,10 +291,10 @@ resolution: Log error. Report to investigator.
 The mobile application SHALL implement local database export and import functionality, enabling patients to extract their diary data to a portable file and restore it on the same or different device.
 
 Implementation SHALL include:
-- Export function serializing SQLite diary tables to JSON file
+- Export function serializing sembast diary tables to JSON file
 - JSON schema including: diary entries, timestamps, event types, user-entered values
 - File saved to device storage with user-selectable location (Downloads, share sheet)
-- Import function parsing JSON and inserting records into local SQLite database
+- Import function parsing JSON and inserting records into local sembast database
 - Validation of imported data structure and integrity before insertion
 - Conflict handling when importing data that overlaps with existing records
 - Progress indication for large exports/imports
@@ -303,7 +321,7 @@ Implementation SHALL include:
 - Export/import works in airplane mode
 - Large datasets (1000+ entries) export/import within 30 seconds
 
-*End* *Local Database Export and Import* | **Hash**: d922d9e8
+*End* *Local Database Export and Import* | **Hash**: 971345e0
 ---
 
 ## Deployment & Distribution
@@ -359,7 +377,7 @@ Build process SHALL include:
 - **Security Architecture**: prd-security.md
 - **FDA Compliance**: prd-clinical-trials.md
 - **Flutter Documentation**: https://flutter.dev/docs
-- **Firebase Auth Flutter**: https://firebase.google.com/docs/auth/flutter/start
+- **Identity Platform Flutter**: https://firebase.google.com/docs/auth/flutter/start
 - **Cloud SQL Documentation**: https://cloud.google.com/sql/docs
 
 ---

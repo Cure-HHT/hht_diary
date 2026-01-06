@@ -1,14 +1,15 @@
 # Deployment Operations Guide
 
-**Version**: 2.0
+**Version**: 3.0
 **Audience**: Operations (DevOps, Release Managers, Platform Engineers)
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-12-28
 **Status**: Draft
 
-> **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture overview
-> **See**: dev-database.md for database implementation details
-> **See**: ops-operations.md for daily monitoring and incident response
-> **See**: dev-core-practices.md for development standards
+- **See**: prd-architecture-multi-sponsor.md for multi-sponsor architecture overview
+- **See**: dev-database.md for database implementation details
+- **See**: ops-operations.md for daily monitoring and incident response
+- **See**: dev-core-practices.md for development standards
+- **See**: ops-infrastructure-as-code.md for Pulumi infrastructure components
 
 ---
 
@@ -16,14 +17,15 @@
 
 Comprehensive guide for building, deploying, and releasing the multi-sponsor clinical diary system on Google Cloud Platform. Covers build system usage, CI/CD pipelines, environment configuration, and FDA 21 CFR Part 11 compliant release procedures.
 
-**Architecture**: Single public core repository + private sponsor repositories
-**Build System**: Dart-based composition of core + sponsor code
-**CI/CD**: GitHub Actions with Cloud Build integration
-**Deployments**:
-- Mobile: Single app containing all sponsors (App Store + Google Play)
-- Portal: Separate deployment per sponsor (Cloud Run static site or Firebase Hosting)
-- Backend: Per-sponsor Cloud Run Dart server
-- Database: Per-sponsor Cloud SQL instance
+- **Architecture**: Single public core repository + private sponsor repositories
+- **Build System**: Composition of core + sponsor code
+- **Infrastructure as Code**: Pulumi (TypeScript) for all GCP resources
+- **CI/CD**: GitHub Actions with Pulumi automation
+- **Deployments**:
+  - Mobile: Single app containing all sponsors (App Store + Google Play)
+  - Portal: Separate deployment per sponsor (Cloud Run static site or Firebase Hosting)
+  - Backend: Per-sponsor Cloud Run Dart server
+  - Database: Per-sponsor Cloud SQL instance
 
 ---
 
@@ -55,6 +57,37 @@ Comprehensive guide for building, deploying, and releasing the multi-sponsor cli
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### Infrastructure Provisioning via Pulumi
+
+All GCP infrastructure is provisioned using Pulumi TypeScript. See `ops-infrastructure-as-code.md` for detailed component definitions.
+
+**Initial Sponsor Setup** (one-time per sponsor):
+
+```bash
+# Create new sponsor infrastructure stack
+cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+npm install
+pulumi stack init ${SPONSOR}-${ENV}
+
+# Configure sponsor-specific values
+pulumi config set sponsor ${SPONSOR}
+pulumi config set environment ${ENV}
+pulumi config set --secret databasePassword "$(openssl rand -base64 32)"
+
+# Provision all infrastructure
+doppler run -- pulumi up
+```
+
+**Infrastructure Components Deployed**:
+- GCP Project with required APIs enabled
+- VPC networking with private service access
+- Cloud SQL PostgreSQL instance
+- Identity Platform configuration
+- Cloud Run services (API + Portal)
+- Artifact Registry for container images
+- Monitoring alerts and notification channels
+- Backup storage buckets
+
 ---
 
 ## Build System Architecture
@@ -63,52 +96,123 @@ Comprehensive guide for building, deploying, and releasing the multi-sponsor cli
 
 The build system combines public core code with private sponsor code to produce deployable artifacts.
 
-**Build Process Flow**:
+**Build Process Flows**:
+
+***Daily Diary***
+One app for all sponsors.  The only config is built into the app - which
+urls are used for which sponsor portals.  CureHHT Sponsor is the default sponsor 
+when patients are not enrolled in a study.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ Step 1: VALIDATE sponsor repository                             │
+│ Step 1: BUILD clinical diary  Dev/QA/UAT/Prod Flavors           │
+│   - Bump version                                                │
+│   - IPA (iOS)                                                   │
+│   - APK/AAB (Android)                                           │
+│   - FLutter Web                                                 │
+└─────────┬────────────────────────┬──────────────────────┬───────┘
+          │                        │                      │
+          ▼                        ▼                      ▼
+  ┌────────────────┐     ┌────────────────────┐    ┌────────────────┐
+  │    Deploy      │     │      Deploy        │    │    Deploy      │
+  │    Dev IPA     │     |      Dev APK       │    │Dev HTML/JS/CSS │
+  │    to Dev      │     |      to Dev        │    │    to Dev      │
+  │  Test Flight   │     │ Play Store Testing │    │ to Web Host    │
+  └────────────────┘     └────────────────────┘    └────────────────┘ 
+         │                       │                        │
+         │     Dev Testing       │                        │
+         ▼                       ▼                        ▼
+  ┌────────────────┐     ┌────────────────────┐    ┌────────────────┐
+  │    Deploy      │     │      Deploy        │    │    Deploy      │
+  │    QA IPA      │     |      QA APK        │    │ QA HTML/JS/CSS │
+  │    to QA       │     |      to QA         │    │    to QA       │
+  │  Test Flight   │     │ Play Store Testing │    │ to Web Host    │
+  └────────────────┘     └────────────────────┘    └────────────────┘ 
+         │                       │                        │
+         │      QA Testing       │                        │
+         ▼                       ▼                        ▼
+  ┌────────────────┐     ┌────────────────────┐    ┌────────────────┐
+  │    Deploy      │     │     Deploy         │    │    Deploy      │
+  │    UAT IPA     │     |     UAT APK        │    │UAT HTML/JS/CSS │
+  │    to UAT      │     |     to UAT         │    │   to  UAT      │
+  │   Test Flight  │     │ Play Store Testing │    │   Web Host     │
+  └────────────────┘     └────────────────────┘    └────────────────┘ 
+         │                       │                        │
+         │      UAT Testing      │                        │
+         ▼                       ▼                        ▼
+  ┌──────────────┐       ┌───────────────┐        ┌──────────────┐
+  │   Deploy     │       │   Deploy      │        │   Deploy     │
+  │  IPA (iOS)   │       │ APK (Android) │        │  HTML/JS/CSS │
+  │ to App Store │       │ to Play Store │        │  to Web Host │
+  └──────────────┘       └───────────────┘        └──────────────┘ 
+
+```
+***Portal Server***
+A different app for each sponsor.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ VALIDATE sponsor repository                                     │
 │   - Repository structure                                        │
 │   - Required implementations (SponsorConfig, EdcSync, etc.)     │
+│   - Required assets (images, fonts, copy text, etc.)            │
 │   - Contract test compliance                                    │
 └─────────────────┬───────────────────────────────────────────────┘
                   │
                   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Step 2: COPY sponsor code into build workspace                  │
-│   - lib/ (Dart implementation)                                  │
-│   - assets/ (branding, fonts, images)                           │
-│   - config/ (build configuration)                               │
+│ BUILD artifacts  - DEV/QA/UAT/PROD Flavors                      │
+│   - Version Bump                                                │
+│   - Portals: Flutter Web (HTML/JS/CSS)                          │
+│   - Backend: Docker container (Dart portal + sponsor code)      │
 └─────────────────┬───────────────────────────────────────────────┘
                   │
                   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Step 3: COMPOSE core + sponsor into unified codebase            │
-│   - Merge dependency trees                                      │
-│   - Apply sponsor theme overrides                               │
-│   - Generate integration glue code                              │
-└─────────────────┬───────────────────────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 4: BUILD artifacts                                         │
-│   - Mobile: IPA (iOS) or APK/AAB (Android)                      │
-│   - Portal: Static web assets (HTML/JS/CSS)                     │
-│   - Backend: Docker container (Dart server)                     │
-└─────────────────┬───────────────────────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 5: PACKAGE for deployment                                  │
-│   - Sign mobile binaries                                        │
+│ PACKAGE for deployment                                          │
 │   - Push container to Artifact Registry                         │
 │   - Generate deployment manifests                               │
 └─────────────────────────────────────────────────────────────────┘
+                  │                           │ 
+                  ▼                           ▼
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ Deploy to Dev CureHHT      │  │ Deploy to Dev <Sponsor>    │
+│   - Apply DB migrations    │  │   - Apply DB migrations    │
+│   - Pull container From AR │  │   - Pull container From AR │
+│   - Deploy to Cloud Run    │  │   - Deploy to Cloud Run    │
+└────────────────────────────┘  └────────────────────────────┘
+                  │   Dev Testing             │ 
+                  ▼                           ▼
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ Deploy to QA CureHHT       │  │ Deploy to QA <Sponsor>     │
+│   - Apply DB migrations    │  │   - Apply DB migrations    s│
+│   - Pull container From AR │  │   - Pull container From AR │
+│   - Deploy to Cloud Run    │  │   - Deploy to Cloud Run    │
+└────────────────────────────┘  └────────────────────────────┘
+                  │  QA Testing               │ 
+                  ▼                           ▼
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ Deploy to UAT CureHHT      │  │ Deploy to UAT <Sponsor>    │
+│   - Apply DB migrations    │  │   - Apply DB migrations    │
+│   - Pull container From AR │  │   - Pull container From AR │
+│   - Deploy to Cloud Run    │  │   - Deploy to Cloud Run    │
+└────────────────────────────┘  └────────────────────────────┘
+                  │  CureHHT Testing          │  <Sponsor> UAT Testing 
+                  ▼                           ▼
+┌────────────────────────────┐  ┌────────────────────────────┐
+│ Deploy to Prod CureHHT     │  │ Deploy to Prod <Sponsor>   │
+│   - Apply DB migrations    │  │   - Apply DB migrations    │
+│   - Pull container From AR │  │   - Pull container From AR │
+│   - Deploy to Cloud Run    │  │   - Deploy to Cloud Run    │
+└────────────────────────────┘  └────────────────────────────┘
+
 ```
 
 ### Build Scripts
 
-**Location**: `clinical-diary/tools/build_system/`
+TODO - build scripts need organizing and streamlining.  
+TODO - Dart is great for many tasks but this is best done with shell scripts
+
+**Location**: `.github/workflows/`
 
 **Core Scripts**:
 
@@ -126,6 +230,9 @@ The build system combines public core code with private sponsor code to produce 
 
 **Command Structure**:
 
+TODO - dart run <dartfile may not be the best tool for this, every build will need an sdk download ⏱️
+We will need a `doppler run -- dart build --flavor <flavor>`.
+
 ```bash
 dart run tools/build_system/build_server.dart \
   --sponsor-repo <path-to-sponsor-repo> \
@@ -133,6 +240,50 @@ dart run tools/build_system/build_server.dart \
 ```
 
 **Docker Build**:
+
+A custom base dockerfile will give consistency and faster docker builds.
+TODO - this is taken from Dartatic.io, we may not need flutter nor all these tools.
+
+```dockerfile
+FROM debian:stable-slim
+LABEL authors="curehht"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    curl \
+    wget \
+    xz-utils \
+    libglu1-mesa \
+    zip \
+    ca-certificates \
+    clang \
+    cmake \
+    ninja-build \
+    pkg-config \
+    libgtk-3-dev
+
+# Install Flutter
+ENV FLUTTER_HOME=/usr/local/flutter
+ENV FLUTTER_VERSION=3.35.6
+
+# Download specific Flutter version
+RUN git clone -b stable https://github.com/flutter/flutter.git ${FLUTTER_HOME} && \
+    cd ${FLUTTER_HOME} && \
+    git checkout ${FLUTTER_VERSION}
+
+ENV PATH=${FLUTTER_HOME}/bin:${FLUTTER_HOME}/bin/cache/dart-sdk/bin:${PATH}
+
+# Verify we're using the correct Dart version
+RUN flutter --version
+RUN dart --version
+
+RUN flutter config --no-analytics
+
+```
+
+TODO - a portal docker file 
 
 ```bash
 # Build Dart server container
@@ -147,7 +298,7 @@ docker tag clinical-diary-api:latest \
 docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${VERSION}
 ```
 
-**Dockerfile Example** (`apps/server/Dockerfile`):
+**Base Dockerfile Example** (`/portal-server/docker/dart-base/Dockerfile`):
 
 ```dockerfile
 # Build stage
@@ -178,53 +329,35 @@ CMD ["/app/bin/server"]
 
 **Command Structure**:
 
-```bash
-dart run tools/build_system/build_mobile.dart \
-  --sponsor-repo <path-to-sponsor-repo> \
-  --platform <ios|android> \
-  --environment <staging|production>
-```
-
-**Examples**:
+See .github/workflows/clinical_diary-ci.yml
 
 ```bash
-# Build Orion iOS app for production
-dart run tools/build_system/build_mobile.dart \
-  --sponsor-repo ../clinical-diary-orion \
-  --platform ios \
-  --environment production
-
-# Build Andromeda Android app for staging
-dart run tools/build_system/build_mobile.dart \
-  --sponsor-repo ../clinical-diary-andromeda \
-  --platform android \
-  --environment staging
+  VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+  echo "Extracted version: $VERSION"
+  flutter build web|ipa|apk --release \
+    --dart-define=APP_FLAVOR=$APP_FLAVOR \
+    --dart-define=APP_VERSION=$VERSION}
 ```
 
 **Output**:
 - iOS: `build/ios/ipa/ClinicalDiary.ipa`
 - Android: `build/android/app/release/app-release.aab` (or `.apk`)
+- Web `build/web/` (static site ready for Firebase hosting TOOD - or CureHHT Docker container?)
 
 ### Portal Build
 
 **Command Structure**:
 
 ```bash
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo <path-to-sponsor-repo> \
-  --environment <staging|production>
+  VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+  echo "Extracted version: $VERSION"
+  flutter build web --release \
+    --dart-define=APP_FLAVOR=$APP_FLAVOR \
+    --dart-define=SPONSOR=$APP_SPONSOR \
+    --dart-define=APP_VERSION=$VERSION}
 ```
 
-**Example**:
-
-```bash
-# Build Orion portal for production
-dart run tools/build_system/build_portal.dart \
-  --sponsor-repo ../clinical-diary-orion \
-  --environment production
-```
-
-**Output**: `build/web/` (static site ready for Cloud Run or Firebase Hosting)
+**Output**: `build/web/` (static site ready for Cloud Run container)
 
 ---
 
@@ -310,22 +443,22 @@ jobs:
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/clinical-diary/api:${{ github.sha }}
 
-      # 9. Deploy to Cloud Run
-      - name: Deploy API to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: clinical-diary-api
-          region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/clinical-diary/api:${{ github.sha }}
-          flags: |
-            --service-account=${{ vars.CLOUD_RUN_SA }}
-            --vpc-connector=${{ vars.VPC_CONNECTOR }}
-            --vpc-egress=private-ranges-only
-            --add-cloudsql-instances=${{ vars.CLOUD_SQL_INSTANCE }}
-            --set-env-vars=ENVIRONMENT=production,SPONSOR_ID=${{ vars.SPONSOR }},GCP_PROJECT_ID=${{ env.PROJECT_ID }}
-            --set-secrets=DATABASE_URL=database-url:latest
+      # 9. Setup Pulumi
+      - name: Setup Pulumi
+        uses: pulumi/actions@v5
 
-      # 10. Build portal
+      # 10. Deploy via Pulumi
+      - name: Deploy Infrastructure and Application
+        run: |
+          cd infrastructure/pulumi/sponsors/${{ vars.SPONSOR }}/prod
+          npm ci
+          pulumi stack select ${{ vars.SPONSOR }}-prod
+          pulumi config set imageTag ${{ github.sha }}
+          doppler run -- pulumi up --yes
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+      # 11. Build portal
       - name: Build Portal
         run: |
           cd core
@@ -333,7 +466,7 @@ jobs:
             --sponsor-repo ../sponsor \
             --environment production
 
-      # 11. Deploy portal to Cloud Run (static site)
+      # 12. Deploy portal (handled by Pulumi above, or separately)
       - name: Deploy Portal
         run: |
           cd core/build/web
@@ -342,7 +475,7 @@ jobs:
             --region ${{ env.REGION }} \
             --allow-unauthenticated
 
-      # 12. Run database migrations
+      # 14. Run database migrations
       - name: Run Database Migrations
         run: |
           # Start Cloud SQL Proxy
@@ -355,7 +488,7 @@ jobs:
           cd core/packages/database
           doppler run --config production -- dbmate up
 
-      # 13. Build mobile apps
+      # 16. Build mobile apps
       - name: Build iOS
         run: |
           cd core
@@ -372,7 +505,7 @@ jobs:
             --platform android \
             --environment production
 
-      # 14. Upload mobile artifacts
+      # 17. Upload mobile artifacts
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -385,7 +518,7 @@ jobs:
           name: android-production
           path: core/build/android/app/release/app-release.aab
 
-      # 15. Verify deployment
+      # 18. Verify deployment
       - name: Verify Deployment
         run: |
           API_URL=$(gcloud run services describe clinical-diary-api --region=${{ env.REGION }} --format='value(status.url)')
@@ -430,8 +563,8 @@ Configuration containing environment-specific credentials SHALL be stored secure
 
 Each sponsor environment SHALL maintain:
 - Doppler project/config for secrets management
-- GCP Secret Manager for Cloud Run secrets
-- GitHub Secrets for CI/CD pipelines
+- GCP Secret Manager for Cloud Run secrets (sync'ed via Doppler)
+- GitHub Secrets for CI/CD pipelines (sync'ed via Doppler? TODO)
 - No hardcoded credentials in source code
 
 **Rationale**: Prevents accidental credential sharing between sponsors and ensures proper secret management per security best practices.
@@ -442,7 +575,7 @@ Each sponsor environment SHALL maintain:
 - Secrets accessed via Secret Manager in Cloud Run
 - No credentials found in git history
 
-*End* *Environment-Specific Configuration Management* | **Hash**: c6ed3379
+*End* *Environment-Specific Configuration Management* | **Hash**: 28d1bbd4
 ---
 
 ### Environment Types
@@ -517,45 +650,57 @@ clinical-diary-{sponsor}/
 
 **Required Variables**:
 
-| Variable | Description | Example |
-| --- | --- | --- |
-| `DATABASE_URL` | Cloud SQL connection string | `postgresql://...` |
-| `DATABASE_INSTANCE` | Cloud SQL instance name | `project:region:instance` |
-| `GCP_PROJECT_ID` | GCP project ID | `clinical-diary-orion-prod` |
-| `SPONSOR_ID` | Sponsor identifier | `orion` |
-| `FIREBASE_PROJECT_ID` | Identity Platform project | `clinical-diary-orion-prod` |
-| `FIREBASE_API_KEY` | Firebase API key | `AIza...` |
+| Variable            | Description                 | Example                     |
+|---------------------|-----------------------------|-----------------------------|
+| `DATABASE_URL`      | Cloud SQL connection string | `postgresql://...`          |
+| `DATABASE_INSTANCE` | Cloud SQL instance name     | `project:region:instance`   |
+| `GCP_PROJECT_ID`    | GCP project ID              | `clinical-diary-orion-prod` |
+| `SPONSOR_ID`        | Sponsor identifier          | `orion`                     |
+| `GCP_PROJECT_ID`    | Identity Platform project   | `clinical-diary-orion-prod` |
+| `GCP_API_KEY`       | GCP Project API key         | `AIza...`                   |
 
 ### GitHub Variables and Secrets
 
 **Variables** (per sponsor repository):
 
-| Variable | Description |
-| --- | --- |
-| `SPONSOR` | Sponsor identifier |
-| `WIF_PROVIDER` | Workload Identity Federation provider |
-| `DEPLOY_SA` | Deployment service account email |
-| `CLOUD_RUN_SA` | Cloud Run service account email |
-| `VPC_CONNECTOR` | VPC connector name |
-| `CLOUD_SQL_INSTANCE` | Cloud SQL instance connection name |
+| Variable             | Description                           |
+|----------------------|---------------------------------------|
+| `SPONSOR`            | Sponsor identifier                    |
+| `WIF_PROVIDER`       | Workload Identity Federation provider |
+| `DEPLOY_SA`          | Deployment service account email      |
+| `CLOUD_RUN_SA`       | Cloud Run service account email       |
+| `VPC_CONNECTOR`      | VPC connector name                    |
+| `CLOUD_SQL_INSTANCE` | Cloud SQL instance connection name    |
 
 **Secrets**:
 
-| Secret | Description |
-| --- | --- |
-| `DOPPLER_TOKEN_PROD` | Doppler service token (production) |
-| `DOPPLER_TOKEN_STAGING` | Doppler service token (staging) |
-| `APPLE_CERTIFICATE` | iOS code signing certificate |
-| `ANDROID_KEYSTORE` | Android keystore file |
+| Secret                  | Description                        |
+|-------------------------|------------------------------------|
+| `PULUMI_ACCESS_TOKEN`   | Pulumi Cloud access token          |
+| `DOPPLER_TOKEN_PROD`    | Doppler service token (production) |
+| `DOPPLER_TOKEN_STAGING` | Doppler service token (staging)    |
+| `APPLE_CERTIFICATE`     | iOS code signing certificate       |
+| `ANDROID_KEYSTORE`      | Android keystore file              |
 
 ---
 
 ## Cloud Run Deployment
 
-### Deploy API Server
+### Deploy API Server via Pulumi (Recommended)
+
+Cloud Run services are defined as Pulumi components. See `ops-infrastructure-as-code.md` for the `CloudRunService` component.
 
 ```bash
-# Deploy to Cloud Run
+# Deploy all infrastructure including Cloud Run
+cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+pulumi config set imageTag ${VERSION}
+doppler run -- pulumi up
+```
+
+### Deploy API Server via gcloud (Manual/Emergency)
+
+```bash
+# Deploy to Cloud Run (direct gcloud command)
 gcloud run deploy clinical-diary-api \
   --image=${REGION}-docker.pkg.dev/${PROJECT_ID}/clinical-diary/api:${VERSION} \
   --region=${REGION} \
@@ -572,6 +717,9 @@ gcloud run deploy clinical-diary-api \
   --cpu=1 \
   --timeout=60s \
   --allow-unauthenticated
+
+# Note: Manual deploys should be reconciled with Pulumi state
+# Run `pulumi refresh` after manual changes
 ```
 
 ### Deploy Portal (Static Site)
@@ -961,6 +1109,23 @@ gcloud run domain-mappings describe \
 
 ## Rollback Procedures
 
+### Infrastructure Rollback via Pulumi
+
+```bash
+# View Pulumi stack history
+cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+pulumi stack history
+
+# Rollback infrastructure to previous version using Git
+git revert <commit-hash>
+doppler run -- pulumi preview  # Review changes
+doppler run -- pulumi up       # Apply rollback
+
+# Or export/import previous state (last resort)
+pulumi stack export --version <version-number> > previous-state.json
+pulumi stack import < previous-state.json
+```
+
 ### Cloud Run Rollback
 
 ```bash
@@ -971,6 +1136,10 @@ gcloud run revisions list --service=clinical-diary-api --region=${REGION}
 gcloud run services update-traffic clinical-diary-api \
   --region=${REGION} \
   --to-revisions=clinical-diary-api-00005-xxx=100
+
+# Sync Pulumi state after manual rollback
+cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+pulumi refresh
 ```
 
 ### Database Rollback
@@ -1087,3 +1256,4 @@ dbmate drop && dbmate up
  | --- | --- | --- | --- |
  | 1.0 | 2025-01-24 | Initial guide (Supabase) | Development Team |
  | 2.0 | 2025-11-24 | Migration to GCP (Cloud Run, Cloud SQL, Artifact Registry) | Claude |
+ | 3.0 | 2025-12-28 | Migration to Pulumi for infrastructure provisioning | Claude |

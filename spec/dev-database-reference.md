@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Developers
-**Last Updated**: 2025-11-05
+**Last Updated**: 2025-12-27
 
 > **See**: prd-database.md for architecture overview
 > **See**: ops-database-setup.md for deployment procedures
@@ -118,195 +118,11 @@ FROM record_audit
 WHERE event_uuid = 'your-uuid'
 ORDER BY audit_id ASC;
 ```
-
----
-
-## Dart Client Examples (Flutter App)
-
-### Initialize HTTP Client with Firebase Auth
-
-```dart
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
-
-class ApiClient {
-  final String baseUrl;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  ApiClient({required this.baseUrl});
-
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _auth.currentUser?.getIdToken();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
-  Future<http.Response> get(String endpoint) async {
-    return http.get(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: await _getHeaders(),
-    );
-  }
-
-  Future<http.Response> post(String endpoint, Map<String, dynamic> body) async {
-    return http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: await _getHeaders(),
-      body: jsonEncode(body),
-    );
-  }
-}
-```
-
-### Authentication (Firebase Auth)
-
-```dart
-import 'package:firebase_auth/firebase_auth.dart';
-
-final auth = FirebaseAuth.instance;
-
-// Sign up
-await auth.createUserWithEmailAndPassword(
-  email: 'user@example.com',
-  password: 'secure-password',
-);
-
-// Sign in
-await auth.signInWithEmailAndPassword(
-  email: 'user@example.com',
-  password: 'secure-password',
-);
-
-// Sign out
-await auth.signOut();
-
-// Get current user
-final user = auth.currentUser;
-final token = await user?.getIdToken();
-```
-
-### Create Entry (via API)
-
-```dart
-final response = await apiClient.post('/api/diary-entries', {
-  'event_uuid': Uuid().v4(),
-  'patient_id': user.uid,
-  'site_id': 'site_001',
-  'operation': 'USER_CREATE',
-  'data': {
-    'event_type': 'epistaxis',
-    'date': '2025-02-15',
-    'time': '14:30',
-    'duration_minutes': 15,
-  },
-  'created_by': user.uid,
-  'role': 'USER',
-  'client_timestamp': DateTime.now().toUtc().toIso8601String(),
-  'change_reason': 'Initial entry',
-});
-
-if (response.statusCode == 201) {
-  final entry = jsonDecode(response.body);
-  print('Created entry: ${entry['event_uuid']}');
-}
-```
-
-### Query Entries (via API)
-
-```dart
-// Get user's entries
-final response = await apiClient.get(
-  '/api/diary-entries?patient_id=${user.uid}&is_deleted=false'
-);
-final entries = jsonDecode(response.body) as List;
-
-// Get with annotations
-final response = await apiClient.get(
-  '/api/diary-entries/${eventUuid}?include=annotations'
-);
-final entryWithAnnotations = jsonDecode(response.body);
-```
-
-### Local SQLite for Offline (Flutter App)
-
-```dart
-import 'package:sqflite/sqflite.dart';
-
-class LocalDatabase {
-  late Database _db;
-
-  Future<void> createEntry(Map<String, dynamic> entry) async {
-    // Save locally first (offline-first)
-    await _db.insert('local_audit', {
-      ...entry,
-      'sync_status': 'pending',
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> getPendingSync() async {
-    return _db.query('local_audit',
-      where: 'sync_status = ?',
-      whereArgs: ['pending'],
-    );
-  }
-}
-```
-
 ---
 
 ## Role-Based Access
 
 > **See**: prd-security-RBAC.md for role definitions and requirements
-
-### USER (Patient)
-```dart
-// Can create entries via API
-await apiClient.post('/api/diary-entries', entry);
-
-// Can view own entries
-final response = await apiClient.get('/api/diary-entries?patient_id=$userId');
-
-// CANNOT view others' entries (RLS on server blocks)
-// Server returns 403 Forbidden or empty list
-```
-
-### INVESTIGATOR
-```dart
-// Can view all entries at assigned sites
-final response = await apiClient.get('/api/sites/site_001/entries');
-
-// Can add annotations
-await apiClient.post('/api/annotations', annotation);
-
-// CANNOT modify patient data directly
-// Server returns 403 Forbidden
-```
-
-### ANALYST
-```dart
-// Can view data at assigned sites (read-only)
-final response = await apiClient.get('/api/sites/site_001/entries');
-
-// Can access audit trail for analysis
-final response = await apiClient.get('/api/sites/site_001/audit-trail');
-```
-
-### ADMIN
-```dart
-// Can view all data
-final response = await apiClient.get('/api/admin/entries');
-
-// Can manage sites
-await apiClient.post('/api/admin/sites', newSite);
-
-// Can assign users to sites
-await apiClient.post('/api/admin/site-assignments', assignment);
-
-// All actions logged via Cloud Audit Logs
-```
-
 ---
 
 ## Useful Queries
@@ -496,9 +312,9 @@ DB_USER=app_user
 # Cloud SQL (for local development - via Cloud SQL Proxy)
 DATABASE_URL=postgresql://app_user:[PASSWORD]@localhost:5432/clinical_diary
 
-# Firebase Auth (for Flutter app)
-FIREBASE_PROJECT_ID=sponsor-project-id
-FIREBASE_API_KEY=AIza...
+# Identity Platform (for Flutter app)
+GOOGLE_PROJECT_ID=sponsor-project-id
+PORTAL_API_KEY=AIza...
 
 # API (Cloud Run URL)
 API_BASE_URL=https://api-xxxxx-uc.a.run.app
@@ -525,7 +341,7 @@ ENVIRONMENT=production
 
 ### Invalid JWT
 **Error:** "Invalid JWT token" or "Token expired"
-**Fix:** Re-authenticate via Firebase Auth or refresh token with `getIdToken(true)`
+**Fix:** Re-authenticate via Identity Platform or refresh token with `getIdToken(true)`
 
 ---
 
@@ -536,7 +352,7 @@ ENVIRONMENT=production
 - **JSONB Schemas**: dev-data-models-jsonb.md
 - **Compliance**: dev-compliance-practices.md
 - **Cloud SQL Docs**: https://cloud.google.com/sql/docs
-- **Firebase Auth Docs**: https://firebase.google.com/docs/auth
+- **Identity Platform Docs**: https://firebase.google.com/docs/auth
 - **PostgreSQL Docs**: https://www.postgresql.org/docs/
 
 ---

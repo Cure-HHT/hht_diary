@@ -2,8 +2,8 @@
 
 **Audience**: Operations
 **Status**: Draft
-**Version**: 2.0.0
-**Last Updated**: 2025-11-24
+**Version**: 3.0.0
+**Last Updated**: 2025-12-28
 
 ---
 
@@ -19,25 +19,25 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 **Level**: Ops | **Implements**: p00010 | **Status**: Draft
 
-**SHALL** use Terraform for all GCP infrastructure and cloud resources.
+**SHALL** use Pulumi for all GCP infrastructure and cloud resources.
 
 **Rationale**: Infrastructure as code provides reproducibility, validation capability, and audit trail required for FDA compliance.
 
 **Acceptance Criteria**:
-- All GCP projects defined in Terraform
-- All Cloud SQL instances defined in Terraform
-- All Cloud Run services defined in Terraform
-- Terraform state stored in version-controlled backend (GCS)
-- Infrastructure changes validated with `terraform plan` before apply
-- Separate configurations maintained for dev/staging/production environments
+- All GCP projects defined in Pulumi
+- All Cloud SQL instances defined in Pulumi
+- All Cloud Run services defined in Pulumi
+- Pulumi state stored in version-controlled backend (GCS or Pulumi Cloud)
+- Infrastructure changes validated with `pulumi preview` before update
+- Separate stacks maintained for dev/staging/production environments
 - Per-sponsor infrastructure isolated in separate GCP projects
 
 **Validation**:
-- IQ: Verify Terraform installs correctly and modules are accessible
-- OQ: Verify `terraform plan` and `terraform apply` work correctly
+- IQ: Verify Pulumi installs correctly and components are accessible
+- OQ: Verify `pulumi preview` and `pulumi up` work correctly
 - PQ: Verify infrastructure provisions in < 1 hour
 
-*End* *Infrastructure as Code for Cloud Resources* | **Hash**: e42cc806
+*End* *Infrastructure as Code for Cloud Resources* | **Hash**: 16c349a8
 ---
 
 # REQ-o00042: Infrastructure Change Control
@@ -49,10 +49,10 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 **Rationale**: Change control is required for FDA compliance and prevents unauthorized infrastructure modifications.
 
 **Acceptance Criteria**:
-- All Terraform changes submitted via pull request
+- All Pulumi changes submitted via pull request
 - Pull requests require 1 reviewer approval (2 for production)
 - All infrastructure changes reference ticket/requirement
-- Automated `terraform plan` runs on pull requests
+- Automated `pulumi preview` runs on pull requests
 - Drift detection runs daily
 
 **Validation**:
@@ -60,7 +60,7 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 - OQ: Verify PR workflow prevents direct commits
 - PQ: Verify 100% of infrastructure changes go through PR
 
-*End* *Infrastructure Change Control* | **Hash**: 8b9ee3b1
+*End* *Infrastructure Change Control* | **Hash**: b9ea80eb
 ---
 
 ## Architecture
@@ -69,102 +69,107 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 ```
 infrastructure/
-├── terraform/
-│   ├── modules/
+├── pulumi/
+│   ├── components/
 │   │   ├── gcp-project/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
+│   │   │   ├── index.ts
 │   │   │   └── README.md
 │   │   ├── cloud-sql/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
+│   │   │   ├── index.ts
 │   │   │   └── README.md
 │   │   ├── cloud-run/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
+│   │   │   ├── index.ts
 │   │   │   └── README.md
 │   │   ├── identity-platform/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
+│   │   │   ├── index.ts
 │   │   │   └── README.md
 │   │   ├── vpc-networking/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
+│   │   │   ├── index.ts
 │   │   │   └── README.md
 │   │   ├── artifact-registry/
-│   │   │   ├── main.tf
-│   │   │   ├── variables.tf
-│   │   │   ├── outputs.tf
+│   │   │   ├── index.ts
 │   │   │   └── README.md
 │   │   └── monitoring/
-│   │       ├── main.tf
-│   │       ├── variables.tf
-│   │       ├── outputs.tf
+│   │       ├── index.ts
 │   │       └── README.md
-│   ├── environments/
+│   ├── stacks/
 │   │   ├── dev/
-│   │   │   ├── main.tf
-│   │   │   ├── terraform.tfvars
+│   │   │   ├── index.ts
+│   │   │   ├── Pulumi.dev.yaml
 │   │   │   └── README.md
 │   │   ├── staging/
-│   │   │   ├── main.tf
-│   │   │   ├── terraform.tfvars
+│   │   │   ├── index.ts
+│   │   │   ├── Pulumi.staging.yaml
 │   │   │   └── README.md
 │   │   └── production/
-│   │       ├── main.tf
-│   │       ├── terraform.tfvars
+│   │       ├── index.ts
+│   │       ├── Pulumi.production.yaml
 │   │       └── README.md
 │   ├── sponsors/
 │   │   ├── orion/
 │   │   │   ├── staging/
-│   │   │   │   └── main.tf
+│   │   │   │   ├── index.ts
+│   │   │   │   └── Pulumi.yaml
 │   │   │   └── production/
-│   │   │       └── main.tf
+│   │   │       ├── index.ts
+│   │   │       └── Pulumi.yaml
 │   │   └── andromeda/
 │   │       ├── staging/
-│   │       │   └── main.tf
+│   │       │   ├── index.ts
+│   │       │   └── Pulumi.yaml
 │   │       └── production/
-│   │           └── main.tf
-│   └── shared/
-│       ├── backend.tf
-│       └── variables.tf
+│   │           ├── index.ts
+│   │           └── Pulumi.yaml
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── Pulumi.yaml
 ├── docs/
-│   ├── terraform-setup.md
+│   ├── pulumi-setup.md
 │   ├── drift-detection.md
 │   └── validation/
-│       ├── IQ-terraform.md
-│       ├── OQ-terraform.md
-│       └── PQ-terraform.md
+│       ├── IQ-pulumi.md
+│       ├── OQ-pulumi.md
+│       └── PQ-pulumi.md
 └── README.md
 ```
 
 ### Technology Stack
 
 **Core Tools**:
-- **Terraform** v1.6+: Infrastructure as code
-- **Google Cloud Storage**: State backend
-- **Google Cloud Provider**: Manage GCP resources
+- **Pulumi** v3.x: Infrastructure as code (TypeScript)
+- **Google Cloud Storage** or **Pulumi Cloud**: State backend
+- **@pulumi/gcp**: Manage GCP resources
 
-**Providers**:
-```hcl
-terraform {
-  required_version = ">= 1.6"
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.0"
-    }
-    google-beta = {
-      source  = "hashicorp/google-beta"
-      version = "~> 5.0"
-    }
+**Dependencies** (package.json):
+```json
+{
+  "name": "clinical-diary-infrastructure",
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^20"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.0.0",
+    "@pulumi/gcp": "^7.0.0",
+    "@pulumi/docker": "^4.0.0"
   }
+}
+```
+
+**TypeScript Configuration** (tsconfig.json):
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "outDir": "bin",
+    "target": "es2020",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "declaration": true
+  },
+  "include": ["./**/*.ts"]
 }
 ```
 
@@ -176,310 +181,520 @@ terraform {
 
 Each sponsor gets a dedicated GCP project:
 
-```hcl
-module "sponsor_project" {
-  source = "../../modules/gcp-project"
+```typescript
+// components/gcp-project/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id      = "clinical-diary-${var.sponsor}-${var.environment}"
-  project_name    = "Clinical Diary ${title(var.sponsor)} ${title(var.environment)}"
-  billing_account = var.billing_account_id
-  org_id          = var.org_id  # Optional, for org-managed projects
+export interface GcpProjectArgs {
+  sponsor: string;
+  environment: string;
+  billingAccountId: string;
+  orgId?: string;
+}
 
-  # Enable required APIs
-  activate_apis = [
-    "sqladmin.googleapis.com",
-    "run.googleapis.com",
-    "secretmanager.googleapis.com",
-    "identitytoolkit.googleapis.com",
-    "compute.googleapis.com",
-    "vpcaccess.googleapis.com",
-    "artifactregistry.googleapis.com",
-    "cloudscheduler.googleapis.com",
-    "logging.googleapis.com",
-    "monitoring.googleapis.com",
-    "cloudtrace.googleapis.com",
-  ]
+export class GcpProject extends pulumi.ComponentResource {
+  public readonly projectId: pulumi.Output<string>;
+  public readonly project: gcp.organizations.Project;
 
-  labels = {
-    sponsor     = var.sponsor
-    environment = var.environment
-    managed_by  = "terraform"
-    compliance  = "hipaa-fda"
+  constructor(name: string, args: GcpProjectArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:gcp-project", name, {}, opts);
+
+    const projectId = `clinical-diary-${args.sponsor}-${args.environment}`;
+
+    this.project = new gcp.organizations.Project(`${name}-project`, {
+      projectId: projectId,
+      name: `Clinical Diary ${args.sponsor} ${args.environment}`,
+      billingAccount: args.billingAccountId,
+      orgId: args.orgId,
+      labels: {
+        sponsor: args.sponsor,
+        environment: args.environment,
+        managed_by: "pulumi",
+        compliance: "hipaa-fda",
+      },
+    }, { parent: this });
+
+    // Enable required APIs
+    const apis = [
+      "sqladmin.googleapis.com",
+      "run.googleapis.com",
+      "secretmanager.googleapis.com",
+      "identitytoolkit.googleapis.com",
+      "compute.googleapis.com",
+      "vpcaccess.googleapis.com",
+      "artifactregistry.googleapis.com",
+      "cloudscheduler.googleapis.com",
+      "logging.googleapis.com",
+      "monitoring.googleapis.com",
+      "cloudtrace.googleapis.com",
+    ];
+
+    apis.forEach((api, index) => {
+      new gcp.projects.Service(`${name}-api-${index}`, {
+        project: this.project.projectId,
+        service: api,
+        disableOnDestroy: false,
+      }, { parent: this, dependsOn: [this.project] });
+    });
+
+    this.projectId = this.project.projectId;
+    this.registerOutputs({ projectId: this.projectId });
   }
 }
 ```
 
 ### 2. Cloud SQL Instance
 
-```hcl
-module "cloud_sql" {
-  source = "../../modules/cloud-sql"
+```typescript
+// components/cloud-sql/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id = module.sponsor_project.project_id
-  region     = var.region
-
-  instance_name = "${var.sponsor}-db"
-  database_name = "clinical_diary"
-
-  # Instance sizing based on environment
-  tier = var.environment == "production" ? "db-custom-2-8192" : "db-custom-1-3840"
-
-  # High availability for production
-  availability_type = var.environment == "production" ? "REGIONAL" : "ZONAL"
-
-  # Backup configuration
-  backup_enabled                = true
-  backup_start_time             = "02:00"
-  point_in_time_recovery_enabled = true
-  backup_retained_backups       = var.environment == "production" ? 30 : 7
-
-  # Networking
-  private_network = module.vpc.network_self_link
-  require_ssl     = true
-
-  # Database flags for audit
-  database_flags = [
-    {
-      name  = "cloudsql.enable_pgaudit"
-      value = "on"
-    },
-    {
-      name  = "log_checkpoints"
-      value = "on"
-    },
-    {
-      name  = "log_connections"
-      value = "on"
-    },
-    {
-      name  = "log_disconnections"
-      value = "on"
-    }
-  ]
-
-  # Maintenance window
-  maintenance_window_day  = 7  # Sunday
-  maintenance_window_hour = 3  # 3 AM
-
-  labels = {
-    sponsor     = var.sponsor
-    environment = var.environment
-    managed_by  = "terraform"
-  }
+export interface CloudSqlArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  sponsor: string;
+  environment: string;
+  privateNetwork: pulumi.Input<string>;
+  databasePassword: pulumi.Input<string>;
 }
 
-# Database user (password from Doppler/Secret Manager)
-resource "google_sql_user" "app_user" {
-  project  = module.sponsor_project.project_id
-  name     = "app_user"
-  instance = module.cloud_sql.instance_name
-  password = var.database_password  # From Doppler
+export class CloudSql extends pulumi.ComponentResource {
+  public readonly instance: gcp.sql.DatabaseInstance;
+  public readonly database: gcp.sql.Database;
+  public readonly connectionName: pulumi.Output<string>;
+
+  constructor(name: string, args: CloudSqlArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:cloud-sql", name, {}, opts);
+
+    const isProduction = args.environment === "production";
+
+    this.instance = new gcp.sql.DatabaseInstance(`${name}-instance`, {
+      project: args.projectId,
+      region: args.region,
+      name: `${args.sponsor}-db`,
+      databaseVersion: "POSTGRES_15",
+      deletionProtection: isProduction,
+      settings: {
+        tier: isProduction ? "db-custom-2-8192" : "db-custom-1-3840",
+        availabilityType: isProduction ? "REGIONAL" : "ZONAL",
+        backupConfiguration: {
+          enabled: true,
+          startTime: "02:00",
+          pointInTimeRecoveryEnabled: true,
+          backupRetentionSettings: {
+            retainedBackups: isProduction ? 30 : 7,
+            retentionUnit: "COUNT",
+          },
+        },
+        ipConfiguration: {
+          ipv4Enabled: false,
+          privateNetwork: args.privateNetwork,
+          requireSsl: true,
+        },
+        databaseFlags: [
+          { name: "cloudsql.enable_pgaudit", value: "on" },
+          { name: "log_checkpoints", value: "on" },
+          { name: "log_connections", value: "on" },
+          { name: "log_disconnections", value: "on" },
+        ],
+        maintenanceWindow: {
+          day: 7,  // Sunday
+          hour: 3, // 3 AM
+        },
+        userLabels: {
+          sponsor: args.sponsor,
+          environment: args.environment,
+          managed_by: "pulumi",
+        },
+      },
+    }, { parent: this });
+
+    this.database = new gcp.sql.Database(`${name}-database`, {
+      project: args.projectId,
+      instance: this.instance.name,
+      name: "clinical_diary",
+    }, { parent: this });
+
+    // Database user (password from Doppler)
+    new gcp.sql.User(`${name}-user`, {
+      project: args.projectId,
+      instance: this.instance.name,
+      name: "app_user",
+      password: args.databasePassword,
+    }, { parent: this });
+
+    this.connectionName = this.instance.connectionName;
+    this.registerOutputs({ connectionName: this.connectionName });
+  }
 }
 ```
 
 ### 3. Cloud Run Service
 
-```hcl
-module "cloud_run" {
-  source = "../../modules/cloud-run"
+```typescript
+// components/cloud-run/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id = module.sponsor_project.project_id
-  region     = var.region
+export interface CloudRunArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  sponsor: string;
+  environment: string;
+  imageTag: string;
+  serviceAccountEmail: pulumi.Input<string>;
+  vpcConnectorId: pulumi.Input<string>;
+  cloudSqlConnectionName: pulumi.Input<string>;
+  databaseUrlSecretId: pulumi.Input<string>;
+}
 
-  service_name = "clinical-diary-api"
-  image        = "${var.region}-docker.pkg.dev/${module.sponsor_project.project_id}/clinical-diary/api:${var.image_tag}"
+export class CloudRunService extends pulumi.ComponentResource {
+  public readonly service: gcp.cloudrunv2.Service;
+  public readonly serviceUrl: pulumi.Output<string>;
 
-  # Service account
-  service_account_email = google_service_account.cloud_run.email
+  constructor(name: string, args: CloudRunArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:cloud-run", name, {}, opts);
 
-  # VPC connector for Cloud SQL access
-  vpc_connector = module.vpc.serverless_connector_id
-  vpc_egress    = "private-ranges-only"
+    const isProduction = args.environment === "production";
 
-  # Cloud SQL connection
-  cloudsql_instances = [module.cloud_sql.connection_name]
+    this.service = new gcp.cloudrunv2.Service(`${name}-service`, {
+      project: args.projectId,
+      location: args.region,
+      name: "clinical-diary-api",
+      template: {
+        serviceAccount: args.serviceAccountEmail,
+        vpcAccess: {
+          connector: args.vpcConnectorId,
+          egress: "PRIVATE_RANGES_ONLY",
+        },
+        scaling: {
+          minInstanceCount: isProduction ? 1 : 0,
+          maxInstanceCount: isProduction ? 10 : 3,
+        },
+        containers: [{
+          image: pulumi.interpolate`${args.region}-docker.pkg.dev/${args.projectId}/clinical-diary/api:${args.imageTag}`,
+          resources: {
+            limits: {
+              cpu: "1000m",
+              memory: "512Mi",
+            },
+          },
+          envs: [
+            { name: "ENVIRONMENT", value: args.environment },
+            { name: "SPONSOR_ID", value: args.sponsor },
+            { name: "GCP_PROJECT_ID", valueSource: { secretKeyRef: undefined } },
+          ],
+          volumeMounts: [{
+            name: "cloudsql",
+            mountPath: "/cloudsql",
+          }],
+        }],
+        volumes: [{
+          name: "cloudsql",
+          cloudSqlInstance: { instances: [args.cloudSqlConnectionName] },
+        }],
+      },
+      labels: {
+        sponsor: args.sponsor,
+        environment: args.environment,
+        managed_by: "pulumi",
+      },
+    }, { parent: this });
 
-  # Environment variables
-  env_vars = {
-    ENVIRONMENT      = var.environment
-    SPONSOR_ID       = var.sponsor
-    GCP_PROJECT_ID   = module.sponsor_project.project_id
-    DATABASE_INSTANCE = module.cloud_sql.connection_name
-  }
+    // Allow unauthenticated access (API handles auth via Identity Platform)
+    new gcp.cloudrunv2.ServiceIamMember(`${name}-invoker`, {
+      project: args.projectId,
+      location: args.region,
+      name: this.service.name,
+      role: "roles/run.invoker",
+      member: "allUsers",
+    }, { parent: this });
 
-  # Secrets from Secret Manager
-  secrets = {
-    DATABASE_URL = {
-      secret_id = google_secret_manager_secret.database_url.secret_id
-      version   = "latest"
-    }
-  }
-
-  # Scaling
-  min_instances = var.environment == "production" ? 1 : 0
-  max_instances = var.environment == "production" ? 10 : 3
-
-  # Resources
-  cpu    = "1000m"
-  memory = "512Mi"
-
-  # Allow unauthenticated (API handles auth via Identity Platform)
-  allow_unauthenticated = true
-
-  labels = {
-    sponsor     = var.sponsor
-    environment = var.environment
-    managed_by  = "terraform"
+    this.serviceUrl = this.service.uri;
+    this.registerOutputs({ serviceUrl: this.serviceUrl });
   }
 }
 ```
 
 ### 4. VPC and Networking
 
-```hcl
-module "vpc" {
-  source = "../../modules/vpc-networking"
+```typescript
+// components/vpc-networking/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id = module.sponsor_project.project_id
-  region     = var.region
+export interface VpcNetworkingArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  environment: string;
+}
 
-  network_name = "clinical-diary-vpc"
+export class VpcNetworking extends pulumi.ComponentResource {
+  public readonly network: gcp.compute.Network;
+  public readonly serverlessConnector: gcp.vpcaccess.Connector;
+  public readonly networkSelfLink: pulumi.Output<string>;
 
-  # Private Service Access for Cloud SQL
-  enable_private_service_access = true
+  constructor(name: string, args: VpcNetworkingArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:vpc-networking", name, {}, opts);
 
-  # Serverless VPC Connector for Cloud Run
-  connector_name      = "cloud-run-connector"
-  connector_subnet    = "10.8.0.0/28"
-  connector_min_instances = 2
-  connector_max_instances = var.environment == "production" ? 10 : 3
+    const isProduction = args.environment === "production";
+
+    this.network = new gcp.compute.Network(`${name}-network`, {
+      project: args.projectId,
+      name: "clinical-diary-vpc",
+      autoCreateSubnetworks: false,
+    }, { parent: this });
+
+    // Private Service Access for Cloud SQL
+    const privateIpRange = new gcp.compute.GlobalAddress(`${name}-private-ip`, {
+      project: args.projectId,
+      name: "private-ip-range",
+      purpose: "VPC_PEERING",
+      addressType: "INTERNAL",
+      prefixLength: 16,
+      network: this.network.id,
+    }, { parent: this });
+
+    new gcp.servicenetworking.Connection(`${name}-private-connection`, {
+      network: this.network.id,
+      service: "servicenetworking.googleapis.com",
+      reservedPeeringRanges: [privateIpRange.name],
+    }, { parent: this });
+
+    // Serverless VPC Connector for Cloud Run
+    this.serverlessConnector = new gcp.vpcaccess.Connector(`${name}-connector`, {
+      project: args.projectId,
+      region: args.region,
+      name: "cloud-run-connector",
+      ipCidrRange: "10.8.0.0/28",
+      network: this.network.name,
+      minInstances: 2,
+      maxInstances: isProduction ? 10 : 3,
+    }, { parent: this });
+
+    this.networkSelfLink = this.network.selfLink;
+    this.registerOutputs({
+      networkSelfLink: this.networkSelfLink,
+      connectorId: this.serverlessConnector.id,
+    });
+  }
 }
 ```
 
 ### 5. Identity Platform
 
-```hcl
-module "identity_platform" {
-  source = "../../modules/identity-platform"
+```typescript
+// components/identity-platform/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id = module.sponsor_project.project_id
+export interface IdentityPlatformArgs {
+  projectId: pulumi.Input<string>;
+  sponsor: string;
+  environment: string;
+  enableAppleAuth?: boolean;
+  customDomain?: string;
+  googleOAuthClientId?: pulumi.Input<string>;
+  googleOAuthClientSecret?: pulumi.Input<string>;
+}
 
-  # Sign-in providers
-  enable_email_password = true
-  enable_google_oauth   = true
-  enable_apple_oauth    = var.enable_apple_auth
-  enable_microsoft_oauth = true
+export class IdentityPlatform extends pulumi.ComponentResource {
+  public readonly config: gcp.identityplatform.Config;
 
-  # Password policy
-  password_policy = {
-    min_length            = 12
-    require_uppercase     = true
-    require_lowercase     = true
-    require_numeric       = true
-    require_special_char  = true
+  constructor(name: string, args: IdentityPlatformArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:identity-platform", name, {}, opts);
+
+    const isProduction = args.environment === "production";
+
+    this.config = new gcp.identityplatform.Config(`${name}-config`, {
+      project: args.projectId,
+      signIn: {
+        allowDuplicateEmails: false,
+        email: {
+          enabled: true,
+          passwordRequired: true,
+        },
+      },
+      mfa: isProduction ? {
+        enabledProviders: ["PHONE_SMS"],
+        state: "ENABLED",
+      } : undefined,
+      authorizedDomains: [
+        `clinical-diary-${args.sponsor}-${args.environment}.web.app`,
+        ...(args.customDomain ? [args.customDomain] : []),
+      ],
+    }, { parent: this });
+
+    // Google OAuth provider
+    if (args.googleOAuthClientId && args.googleOAuthClientSecret) {
+      new gcp.identityplatform.DefaultSupportedIdpConfig(`${name}-google`, {
+        project: args.projectId,
+        idpId: "google.com",
+        enabled: true,
+        clientId: args.googleOAuthClientId,
+        clientSecret: args.googleOAuthClientSecret,
+      }, { parent: this });
+    }
+
+    this.registerOutputs({});
   }
-
-  # MFA configuration
-  mfa_enabled = var.environment == "production"
-
-  # Authorized domains
-  authorized_domains = [
-    "clinical-diary-${var.sponsor}-${var.environment}.web.app",
-    var.custom_domain
-  ]
 }
 ```
 
 ### 6. Artifact Registry
 
-```hcl
-module "artifact_registry" {
-  source = "../../modules/artifact-registry"
+```typescript
+// components/artifact-registry/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id = module.sponsor_project.project_id
-  region     = var.region
+export interface ArtifactRegistryArgs {
+  projectId: pulumi.Input<string>;
+  region: string;
+  sponsor: string;
+  environment: string;
+}
 
-  repository_id = "clinical-diary"
-  description   = "Container images for Clinical Diary ${var.sponsor}"
-  format        = "DOCKER"
+export class ArtifactRegistry extends pulumi.ComponentResource {
+  public readonly repository: gcp.artifactregistry.Repository;
 
-  # Cleanup policy
-  cleanup_policies = [
-    {
-      id     = "keep-minimum-versions"
-      action = "KEEP"
-      most_recent_versions = {
-        keep_count = 10
-      }
-    },
-    {
-      id     = "delete-old-images"
-      action = "DELETE"
-      condition = {
-        older_than = "2592000s"  # 30 days
-      }
-    }
-  ]
+  constructor(name: string, args: ArtifactRegistryArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:artifact-registry", name, {}, opts);
 
-  # Vulnerability scanning
-  enable_vulnerability_scanning = true
+    this.repository = new gcp.artifactregistry.Repository(`${name}-repo`, {
+      project: args.projectId,
+      location: args.region,
+      repositoryId: "clinical-diary",
+      description: `Container images for Clinical Diary ${args.sponsor}`,
+      format: "DOCKER",
+      cleanupPolicies: [
+        {
+          id: "keep-minimum-versions",
+          action: "KEEP",
+          mostRecentVersions: { keepCount: 10 },
+        },
+        {
+          id: "delete-old-images",
+          action: "DELETE",
+          condition: { olderThan: "2592000s" }, // 30 days
+        },
+      ],
+      labels: {
+        sponsor: args.sponsor,
+        environment: args.environment,
+        managed_by: "pulumi",
+      },
+    }, { parent: this });
 
-  labels = {
-    sponsor     = var.sponsor
-    environment = var.environment
-    managed_by  = "terraform"
+    this.registerOutputs({});
   }
 }
 ```
 
 ### 7. Monitoring
 
-```hcl
-module "monitoring" {
-  source = "../../modules/monitoring"
+```typescript
+// components/monitoring/index.ts
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-  project_id = module.sponsor_project.project_id
+export interface MonitoringArgs {
+  projectId: pulumi.Input<string>;
+  serviceUrl: pulumi.Input<string>;
+  notificationChannels: pulumi.Input<string>[];
+}
 
-  # Uptime checks
-  uptime_checks = [
-    {
-      display_name = "API Health"
-      host         = module.cloud_run.service_url
-      path         = "/health"
-      period       = "60s"
-      timeout      = "10s"
-      regions      = ["usa-oregon", "usa-virginia", "europe-belgium"]
-    }
-  ]
+export class Monitoring extends pulumi.ComponentResource {
+  constructor(name: string, args: MonitoringArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("clinical-diary:monitoring", name, {}, opts);
 
-  # Alert policies
-  alert_policies = [
-    {
-      display_name = "High Error Rate"
-      condition_type = "threshold"
-      filter        = "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/log_entry_count\" AND metric.labels.severity=\"ERROR\""
-      threshold     = 10
-      duration      = "300s"
-    },
-    {
-      display_name = "High API Latency"
-      condition_type = "threshold"
-      filter        = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_latencies\""
-      threshold     = 2000
-      duration      = "300s"
-      aggregation   = "ALIGN_PERCENTILE_95"
-    },
-    {
-      display_name = "Database High CPU"
-      condition_type = "threshold"
-      filter        = "resource.type=\"cloudsql_database\" AND metric.type=\"cloudsql.googleapis.com/database/cpu/utilization\""
-      threshold     = 0.8
-      duration      = "300s"
-    }
-  ]
+    // Uptime check
+    new gcp.monitoring.UptimeCheckConfig(`${name}-api-health`, {
+      project: args.projectId,
+      displayName: "API Health",
+      timeout: "10s",
+      period: "60s",
+      httpCheck: {
+        path: "/health",
+        useSsl: true,
+      },
+      monitoredResource: {
+        type: "uptime_url",
+        labels: {
+          project_id: args.projectId as string,
+          host: args.serviceUrl as string,
+        },
+      },
+      selectedRegions: ["USA_OREGON", "USA_VIRGINIA", "EUROPE"],
+    }, { parent: this });
 
-  # Notification channels
-  notification_channels = var.notification_channels
+    // High Error Rate Alert
+    new gcp.monitoring.AlertPolicy(`${name}-error-rate`, {
+      project: args.projectId,
+      displayName: "High Error Rate",
+      combiner: "OR",
+      conditions: [{
+        displayName: "Error rate condition",
+        conditionThreshold: {
+          filter: 'resource.type="cloud_run_revision" AND metric.type="logging.googleapis.com/log_entry_count" AND metric.labels.severity="ERROR"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 10,
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_RATE",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+    }, { parent: this });
+
+    // High API Latency Alert
+    new gcp.monitoring.AlertPolicy(`${name}-latency`, {
+      project: args.projectId,
+      displayName: "High API Latency",
+      combiner: "OR",
+      conditions: [{
+        displayName: "Latency condition",
+        conditionThreshold: {
+          filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_latencies"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 2000,
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_PERCENTILE_95",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+    }, { parent: this });
+
+    // Database High CPU Alert
+    new gcp.monitoring.AlertPolicy(`${name}-db-cpu`, {
+      project: args.projectId,
+      displayName: "Database High CPU",
+      combiner: "OR",
+      conditions: [{
+        displayName: "CPU utilization condition",
+        conditionThreshold: {
+          filter: 'resource.type="cloudsql_database" AND metric.type="cloudsql.googleapis.com/database/cpu/utilization"',
+          comparison: "COMPARISON_GT",
+          thresholdValue: 0.8,
+          duration: "300s",
+          aggregations: [{
+            alignmentPeriod: "60s",
+            perSeriesAligner: "ALIGN_MEAN",
+          }],
+        },
+      }],
+      notificationChannels: args.notificationChannels,
+    }, { parent: this });
+
+    this.registerOutputs({});
+  }
 }
 ```
 
@@ -489,24 +704,32 @@ module "monitoring" {
 
 ### Backend Configuration
 
-**GCS Backend** (Recommended for GCP):
-```hcl
-terraform {
-  backend "gcs" {
-    bucket = "clinical-diary-terraform-state"
-    prefix = "sponsors/${var.sponsor}/${var.environment}"
-  }
-}
+**Option 1: Pulumi Cloud** (Recommended):
+```yaml
+# Pulumi.yaml
+name: clinical-diary-infrastructure
+runtime: nodejs
+backend:
+  url: https://api.pulumi.com
 ```
 
-### State Bucket Setup
+**Option 2: GCS Backend** (Self-managed):
+```yaml
+# Pulumi.yaml
+name: clinical-diary-infrastructure
+runtime: nodejs
+backend:
+  url: gs://clinical-diary-pulumi-state
+```
+
+### State Bucket Setup (for GCS backend)
 
 ```bash
 # Create state bucket (one-time setup)
-gsutil mb -l us-central1 -b on gs://clinical-diary-terraform-state
+gsutil mb -l us-central1 -b on gs://clinical-diary-pulumi-state
 
 # Enable versioning for state recovery
-gsutil versioning set on gs://clinical-diary-terraform-state
+gsutil versioning set on gs://clinical-diary-pulumi-state
 
 # Set lifecycle for old versions
 cat > lifecycle.json << EOF
@@ -521,17 +744,20 @@ cat > lifecycle.json << EOF
   }
 }
 EOF
-gsutil lifecycle set lifecycle.json gs://clinical-diary-terraform-state
+gsutil lifecycle set lifecycle.json gs://clinical-diary-pulumi-state
+
+# Login to backend
+pulumi login gs://clinical-diary-pulumi-state
 ```
 
 ### State Security
 
 **MUST**:
-- Encrypt state at rest (GCS default)
-- Use object versioning for recovery
-- Restrict access via IAM (bucket-level permissions)
+- Encrypt state at rest (GCS default / Pulumi Cloud encrypts by default)
+- Use stack-level encryption with secrets provider
+- Restrict access via IAM (bucket-level permissions) or Pulumi Cloud RBAC
 - Never commit state files to Git
-- Use state locking (GCS provides automatic locking)
+- Use Pulumi's built-in state locking
 
 ---
 
@@ -541,13 +767,13 @@ gsutil lifecycle set lifecycle.json gs://clinical-diary-terraform-state
 
 1. **Make Infrastructure Changes**:
    ```bash
-   cd infrastructure/terraform/sponsors/${SPONSOR}/${ENV}
-   # Edit main.tf or terraform.tfvars
+   cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+   # Edit index.ts or Pulumi.yaml configuration
    ```
 
-2. **Plan Changes**:
+2. **Preview Changes**:
    ```bash
-   doppler run -- terraform plan -out=tfplan
+   doppler run -- pulumi preview
    # Review output carefully
    ```
 
@@ -563,21 +789,20 @@ gsutil lifecycle set lifecycle.json gs://clinical-diary-terraform-state
    ```
 
 4. **Automated CI Checks**:
-   - `terraform fmt -check` (formatting)
-   - `terraform validate` (syntax)
-   - `terraform plan` (preview changes)
-   - `tflint` (linting)
+   - `npm run lint` (ESLint/TypeScript checks)
+   - `tsc --noEmit` (type checking)
+   - `pulumi preview` (preview changes)
    - Security scanning
 
 5. **Review & Approval**:
-   - Reviewer examines `terraform plan` output
+   - Reviewer examines `pulumi preview` output
    - Reviewer verifies ticket reference
    - Reviewer approves PR
 
 6. **Apply Changes**:
    ```bash
    # After merge to main
-   doppler run -- terraform apply tfplan
+   doppler run -- pulumi up --yes
    ```
 
 ### Production Deployment
@@ -597,8 +822,8 @@ gsutil lifecycle set lifecycle.json gs://clinical-diary-terraform-state
 
 **GitHub Actions Workflow**:
 ```yaml
-# .github/workflows/terraform-drift-detection.yml
-name: Terraform Drift Detection
+# .github/workflows/pulumi-drift-detection.yml
+name: Pulumi Drift Detection
 
 on:
   schedule:
@@ -616,35 +841,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          terraform_version: 1.6.0
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: infrastructure/pulumi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.TERRAFORM_SA }}
+          service_account: ${{ vars.PULUMI_SA }}
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: infrastructure/terraform/sponsors/${{ matrix.sponsor }}/${{ matrix.environment }}
+      - name: Setup Pulumi
+        uses: pulumi/actions@v5
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -detailed-exitcode -no-color
-        working-directory: infrastructure/terraform/sponsors/${{ matrix.sponsor }}/${{ matrix.environment }}
+      - name: Pulumi Preview (Drift Check)
+        id: preview
+        run: |
+          pulumi stack select ${{ matrix.sponsor }}-${{ matrix.environment }}
+          pulumi preview --expect-no-changes --json > preview.json 2>&1 || echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+        working-directory: infrastructure/pulumi/sponsors/${{ matrix.sponsor }}/${{ matrix.environment }}
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
         continue-on-error: true
 
       - name: Alert on Drift
-        if: steps.plan.outputs.exitcode == 2
+        if: env.DRIFT_DETECTED == 'true'
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ vars.SLACK_CHANNEL }}
           payload: |
             {
-              "text": "Terraform drift detected in ${{ matrix.sponsor }}-${{ matrix.environment }}!"
+              "text": "Pulumi drift detected in ${{ matrix.sponsor }}-${{ matrix.environment }}!"
             }
 ```
 
@@ -652,13 +884,12 @@ jobs:
 
 ```bash
 # Check for drift
-cd infrastructure/terraform/sponsors/${SPONSOR}/${ENV}
-doppler run -- terraform plan -detailed-exitcode
+cd infrastructure/pulumi/sponsors/${SPONSOR}/${ENV}
+doppler run -- pulumi preview --expect-no-changes
 
-# Exit codes:
-# 0 = no changes
-# 1 = error
-# 2 = changes detected (drift)
+# --expect-no-changes flag:
+# - Exits with 0 if no changes detected
+# - Exits with non-zero if drift detected
 ```
 
 ---
@@ -668,24 +899,26 @@ doppler run -- terraform plan -detailed-exitcode
 ### Installation Qualification (IQ)
 
 **Verify**:
-- [ ] Terraform v1.6+ installed
-- [ ] Google Cloud provider available
-- [ ] GCS backend configured correctly
-- [ ] Modules are accessible
+- [ ] Pulumi v3.x installed
+- [ ] Node.js v20+ installed
+- [ ] @pulumi/gcp provider available
+- [ ] Backend configured correctly (Pulumi Cloud or GCS)
+- [ ] Components are accessible
 - [ ] Documentation complete
 
 **Test**:
 ```bash
-terraform version
-terraform init
-terraform validate
+pulumi version
+node --version
+npm install
+pulumi preview
 ```
 
 ### Operational Qualification (OQ)
 
 **Verify**:
-- [ ] `terraform plan` works for all environments
-- [ ] `terraform apply` provisions resources correctly
+- [ ] `pulumi preview` works for all stacks
+- [ ] `pulumi up` provisions resources correctly
 - [ ] State locking prevents concurrent modifications
 - [ ] Drift detection identifies manual changes
 - [ ] Rollback procedures work
@@ -693,24 +926,24 @@ terraform validate
 **Test**:
 ```bash
 # Create test resource
-terraform apply
+pulumi up
 
 # Manually modify resource in GCP Console
 # (e.g., change Cloud Run environment variable)
 
 # Detect drift
-terraform plan
+pulumi preview --expect-no-changes
 # Should show difference
 
 # Revert to desired state
-terraform apply
+pulumi up
 ```
 
 ### Performance Qualification (PQ)
 
 **Metrics**:
 - [ ] Infrastructure provisioning time < 1 hour
-- [ ] `terraform plan` completes in < 5 minutes
+- [ ] `pulumi preview` completes in < 5 minutes
 - [ ] Drift detection runs daily without failures
 - [ ] No unauthorized infrastructure changes in 30 days
 
@@ -720,93 +953,93 @@ terraform apply
 
 ### Secrets Management
 
-**NEVER** store in Terraform:
+**NEVER** store in Pulumi code:
 - Database passwords
 - API keys
 - Service tokens
 
-**USE** Doppler or GCP Secret Manager:
-```hcl
-variable "database_password" {
-  description = "Database password from Doppler"
-  type        = string
-  sensitive   = true
-}
+**USE** Pulumi secrets + Doppler or GCP Secret Manager:
+```typescript
+import * as pulumi from "@pulumi/pulumi";
+import * as gcp from "@pulumi/gcp";
 
-# Reference Secret Manager secrets in Cloud Run
-resource "google_secret_manager_secret" "db_password" {
-  project   = var.project_id
-  secret_id = "database-password"
+// Get secret from Pulumi config (encrypted)
+const config = new pulumi.Config();
+const databasePassword = config.requireSecret("databasePassword");
 
-  replication {
-    auto {}
-  }
-}
+// Reference Secret Manager secrets in Cloud Run
+const dbPasswordSecret = new gcp.secretmanager.Secret("db-password", {
+  project: projectId,
+  secretId: "database-password",
+  replication: {
+    auto: {},
+  },
+});
 
-resource "google_secret_manager_secret_version" "db_password" {
-  secret      = google_secret_manager_secret.db_password.id
-  secret_data = var.database_password
-}
+new gcp.secretmanager.SecretVersion("db-password-version", {
+  secret: dbPasswordSecret.id,
+  secretData: databasePassword,
+});
 ```
 
-**Retrieve from Doppler**:
+**Set secrets via Pulumi CLI**:
 ```bash
-doppler run -- terraform apply
+# Set secret (encrypted in state)
+pulumi config set --secret databasePassword "my-secret-password"
+
+# Or use Doppler
+doppler run -- pulumi up
 ```
 
 ### Access Control
 
-**IAM Roles for Terraform**:
-```hcl
-# Service account for Terraform
-resource "google_service_account" "terraform" {
-  account_id   = "terraform"
-  display_name = "Terraform Service Account"
-}
+**IAM Roles for Pulumi**:
+```typescript
+// Service account for Pulumi
+const pulumiServiceAccount = new gcp.serviceaccount.Account("pulumi-sa", {
+  accountId: "pulumi",
+  displayName: "Pulumi Service Account",
+});
 
-# Required roles
-locals {
-  terraform_roles = [
-    "roles/cloudsql.admin",
-    "roles/run.admin",
-    "roles/iam.serviceAccountAdmin",
-    "roles/secretmanager.admin",
-    "roles/compute.networkAdmin",
-    "roles/artifactregistry.admin",
-    "roles/monitoring.admin",
-  ]
-}
+// Required roles
+const pulumiRoles = [
+  "roles/cloudsql.admin",
+  "roles/run.admin",
+  "roles/iam.serviceAccountAdmin",
+  "roles/secretmanager.admin",
+  "roles/compute.networkAdmin",
+  "roles/artifactregistry.admin",
+  "roles/monitoring.admin",
+];
 
-resource "google_project_iam_member" "terraform_roles" {
-  for_each = toset(local.terraform_roles)
-
-  project = var.project_id
-  role    = each.value
-  member  = "serviceAccount:${google_service_account.terraform.email}"
-}
+pulumiRoles.forEach((role, index) => {
+  new gcp.projects.IAMMember(`pulumi-role-${index}`, {
+    project: projectId,
+    role: role,
+    member: pulumi.interpolate`serviceAccount:${pulumiServiceAccount.email}`,
+  });
+});
 ```
 
 **Workload Identity Federation** (for GitHub Actions):
-```hcl
-resource "google_iam_workload_identity_pool" "github" {
-  workload_identity_pool_id = "github-pool"
-  display_name              = "GitHub Actions Pool"
-}
+```typescript
+const githubPool = new gcp.iam.WorkloadIdentityPool("github-pool", {
+  workloadIdentityPoolId: "github-pool",
+  displayName: "GitHub Actions Pool",
+});
 
-resource "google_iam_workload_identity_pool_provider" "github" {
-  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
-  workload_identity_pool_provider_id = "github-provider"
-
-  attribute_mapping = {
-    "google.subject"       = "assertion.sub"
-    "attribute.actor"      = "assertion.actor"
-    "attribute.repository" = "assertion.repository"
-  }
-
-  oidc {
-    issuer_uri = "https://token.actions.githubusercontent.com"
-  }
-}
+const githubProvider = new gcp.iam.WorkloadIdentityPoolProvider("github-provider", {
+  workloadIdentityPoolId: githubPool.workloadIdentityPoolId,
+  workloadIdentityPoolProviderId: "github-provider",
+  attributeMapping: {
+    "google.subject": "assertion.sub",
+    "attribute.actor": "assertion.actor",
+    "attribute.repository": "assertion.repository",
+  },
+  oidc: {
+    issuerUri: "https://token.actions.githubusercontent.com",
+  },
+});
 ```
 
 ---
@@ -821,20 +1054,23 @@ resource "google_iam_workload_identity_pool_provider" "github" {
 git revert <commit-hash>
 
 # Apply reverted configuration
-doppler run -- terraform plan
-doppler run -- terraform apply
+doppler run -- pulumi preview
+doppler run -- pulumi up
 ```
 
-**Using Terraform State**:
+**Using Pulumi Stack History**:
 ```bash
-# List state versions in GCS
-gsutil ls -la gs://clinical-diary-terraform-state/sponsors/${SPONSOR}/${ENV}/
+# List stack history
+pulumi stack history
 
-# Download previous state
-gsutil cp gs://clinical-diary-terraform-state/sponsors/${SPONSOR}/${ENV}/default.tfstate#<version> ./previous-state.tfstate
+# Export a previous state version
+pulumi stack export --version <version-number> > previous-state.json
+
+# Review what would change to get back to that state
+pulumi preview
 
 # Import previous state (DANGEROUS - last resort)
-terraform state push previous-state.tfstate
+pulumi stack import < previous-state.json
 ```
 
 **Best Practice**: Use Git to revert infrastructure code, not state manipulation.
@@ -850,10 +1086,11 @@ terraform state push previous-state.tfstate
 - Commit messages reference tickets
 - Timestamps and authors tracked
 
-**Terraform Logs**:
-- `terraform plan` output saved in CI/CD
-- `terraform apply` output saved
-- State changes logged via GCS versioning
+**Pulumi Logs**:
+- `pulumi preview` output saved in CI/CD
+- `pulumi up` output saved
+- Stack history tracks all state changes
+- Pulumi Cloud provides audit logs (if using managed backend)
 
 **Change Control**:
 - Pull requests document changes
@@ -865,10 +1102,10 @@ terraform state push previous-state.tfstate
 **For FDA Audit**:
 1. Git history of infrastructure code
 2. Pull request history (approvals)
-3. Terraform plan/apply logs
+3. Pulumi preview/up logs
 4. Drift detection reports
 5. Validation documentation (IQ/OQ/PQ)
-6. GCS state version history
+6. Stack history and state version history
 
 ---
 
@@ -878,31 +1115,33 @@ terraform state push previous-state.tfstate
 
 1. **Create Sponsor Directory**:
    ```bash
-   mkdir -p infrastructure/terraform/sponsors/${NEW_SPONSOR}/{staging,production}
+   mkdir -p infrastructure/pulumi/sponsors/${NEW_SPONSOR}/{staging,production}
    ```
 
 2. **Create Configuration**:
-   ```hcl
-   # infrastructure/terraform/sponsors/${NEW_SPONSOR}/staging/main.tf
-   module "clinical_diary" {
-     source = "../../../modules/clinical-diary-stack"
+   ```typescript
+   // infrastructure/pulumi/sponsors/${NEW_SPONSOR}/staging/index.ts
+   import { ClinicalDiaryStack } from "../../../components/clinical-diary-stack";
 
-     sponsor      = "new-sponsor"
-     environment  = "staging"
-     region       = "us-central1"
+   const stack = new ClinicalDiaryStack("clinical-diary", {
+     sponsor: "new-sponsor",
+     environment: "staging",
+     region: "us-central1",
+     billingAccountId: config.require("billingAccountId"),
+     customDomain: "new-sponsor-staging.clinical-diary.com",
+   });
 
-     # Sponsor-specific configuration
-     billing_account_id = var.billing_account_id
-     custom_domain      = "new-sponsor-staging.clinical-diary.com"
-   }
+   export const projectId = stack.projectId;
+   export const apiUrl = stack.apiUrl;
    ```
 
 3. **Initialize and Apply**:
    ```bash
-   cd infrastructure/terraform/sponsors/${NEW_SPONSOR}/staging
-   doppler run --config staging -- terraform init
-   doppler run --config staging -- terraform plan
-   doppler run --config staging -- terraform apply
+   cd infrastructure/pulumi/sponsors/${NEW_SPONSOR}/staging
+   npm install
+   pulumi stack init new-sponsor-staging
+   doppler run --config staging -- pulumi preview
+   doppler run --config staging -- pulumi up
    ```
 
 ### Sponsor Isolation
@@ -912,7 +1151,7 @@ Each sponsor's infrastructure is completely isolated:
 - Separate Cloud SQL instance
 - Separate Identity Platform tenant
 - Separate VPC
-- Separate Terraform state
+- Separate Pulumi stack
 
 ---
 
@@ -921,14 +1160,19 @@ Each sponsor's infrastructure is completely isolated:
 ### State Lock Issues
 
 ```bash
-# View lock info
-gsutil stat gs://clinical-diary-terraform-state/sponsors/${SPONSOR}/${ENV}/default.tflock
+# Pulumi uses automatic locking. If you encounter lock issues:
 
-# Force unlock (DANGEROUS - use with caution)
-terraform force-unlock <lock-id>
+# For Pulumi Cloud backend - locks are automatic and released on completion
+# Check for stale locks in Pulumi Cloud console
+
+# For GCS backend - check lock file
+gsutil stat gs://clinical-diary-pulumi-state/.pulumi/locks/${STACK_NAME}
+
+# Cancel a stuck update (releases lock)
+pulumi cancel
 
 # Better: Wait for lock to release or investigate
-terraform show
+pulumi stack --show-ids
 ```
 
 ### Provider Authentication Failures
@@ -950,14 +1194,14 @@ gcloud iam workload-identity-pools providers describe github-provider \
 
 ```bash
 # Review drift
-terraform plan
+pulumi preview --expect-no-changes
 
 # Options:
 # 1. Accept drift (update code to match reality)
-terraform refresh
+pulumi refresh
 
 # 2. Revert drift (apply desired state)
-terraform apply
+pulumi up
 ```
 
 ---
@@ -972,12 +1216,12 @@ terraform apply
 
 **Weekly**:
 - Review GCP billing
-- Review state file size
+- Review stack state size
 
 **Monthly**:
-- Update Terraform version
-- Update provider versions
-- Review and archive old workspaces
+- Update Pulumi version (`npm update @pulumi/pulumi`)
+- Update provider versions (`npm update @pulumi/gcp`)
+- Review and archive old stacks
 
 **Quarterly**:
 - Review access permissions
@@ -990,13 +1234,13 @@ terraform apply
 
 **Internal**:
 - `infrastructure/README.md` - Getting started
-- `docs/terraform-setup.md` - Detailed setup guide
+- `docs/pulumi-setup.md` - Detailed setup guide
 
 **External**:
-- [Terraform Documentation](https://www.terraform.io/docs)
-- [Google Cloud Provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
-- [GCP Cloud SQL Terraform](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_database_instance)
-- [GCP Cloud Run Terraform](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service)
+- [Pulumi Documentation](https://www.pulumi.com/docs/)
+- [Pulumi GCP Provider](https://www.pulumi.com/registry/packages/gcp/)
+- [GCP Cloud SQL Pulumi](https://www.pulumi.com/registry/packages/gcp/api-docs/sql/databaseinstance/)
+- [GCP Cloud Run Pulumi](https://www.pulumi.com/registry/packages/gcp/api-docs/cloudrunv2/service/)
 
 ---
 
@@ -1006,6 +1250,7 @@ terraform apply
 | --- | --- | --- | --- |
 | 2025-10-27 | 1.0.0 | Dev Team | Initial specification (Supabase) |
 | 2025-11-24 | 2.0.0 | Claude | Migration to GCP (Cloud SQL, Cloud Run, IAM) |
+| 2025-12-28 | 3.0.0 | Claude | Migration from Terraform to Pulumi |
 
 ---
 

@@ -1,7 +1,9 @@
 # Deployment Automation Specification
 
+**Version**: 2.0
 **Audience**: Operations team
 **Purpose**: Define automated deployment procedures for all environments
+**Last Updated**: 2025-12-28
 **Status**: Ready to activate (workflows created but not triggered)
 
 ---
@@ -250,11 +252,13 @@ The system SHALL automate database migrations with the following capabilities:
 | Component | Technology | Purpose |
 | --- | --- | --- |
 | **CI/CD Platform** | GitHub Actions | Workflow orchestration |
-| **Migration Tool** | pgmigrate + Cloud SQL Proxy | Database migrations |
+| **Migration Tool** | dbmate + Cloud SQL Proxy | Database migrations |
 | **Secrets Management** | Doppler + GCP Secret Manager | Secure credential injection |
-| **State Management** | Terraform (GCP Provider) | Infrastructure provisioning |
+| **Infrastructure as Code** | Pulumi (TypeScript) | Infrastructure provisioning |
 | **Container Registry** | GCP Artifact Registry | Docker image storage |
 | **Approval System** | GitHub Environments | Manual approval gates |
+
+> **See**: ops-infrastructure-as-code.md for detailed Pulumi component definitions
 
 ---
 
@@ -269,18 +273,18 @@ The system SHALL automate database migrations with the following capabilities:
 
 **Steps**:
 1. Checkout code
-2. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy)
+2. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy, Pulumi)
 3. Authenticate to GCP via Workload Identity Federation
 4. Inject secrets from Doppler
 5. Run linting and type checking
 6. Run unit tests
 7. Execute database migrations via Cloud SQL Proxy (with rollback on failure)
 8. Build and push container to Artifact Registry
-9. Deploy to Cloud Run
+9. Deploy via Pulumi (`pulumi up` for Cloud Run + infrastructure)
 10. Run smoke tests
 11. Notify team (Slack/email)
 
-**Rollback**: Automatic on any step failure
+**Rollback**: Automatic on any step failure (Pulumi rollback via `pulumi refresh`)
 
 **SLA**: Complete within 10 minutes
 
@@ -296,18 +300,19 @@ The system SHALL automate database migrations with the following capabilities:
 **Steps**:
 1. Await manual approval
 2. Checkout code
-3. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy)
+3. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy, Pulumi)
 4. Authenticate to GCP via Workload Identity Federation
 5. Inject secrets from Doppler
 6. Run full test suite
 7. Execute database migrations via Cloud SQL Proxy (with backup and rollback)
 8. Build and push container to Artifact Registry
-9. Deploy to Cloud Run
-10. Run smoke tests
-11. Run integration tests
-12. Notify QA team
+9. Preview infrastructure changes (`pulumi preview`)
+10. Deploy via Pulumi (`pulumi up`)
+11. Run smoke tests
+12. Run integration tests
+13. Notify QA team
 
-**Rollback**: Automatic on any step failure
+**Rollback**: Automatic on any step failure (Pulumi rollback via `pulumi refresh`)
 
 **SLA**: Complete within 15 minutes
 
@@ -330,19 +335,20 @@ The system SHALL automate database migrations with the following capabilities:
 1. Await manual approval (2 reviewers required)
 2. Verify pre-deployment checks
 3. Checkout code
-4. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy)
+4. Set up environment (Dart, gcloud CLI, Cloud SQL Proxy, Pulumi)
 5. Authenticate to GCP via Workload Identity Federation
 6. Inject secrets from Doppler
 7. Create database backup via Cloud SQL (7-year retention)
 8. Execute database migrations via Cloud SQL Proxy (with rollback plan)
 9. Build and push container to Artifact Registry
-10. Deploy to Cloud Run with traffic management
-11. Run smoke tests
-12. Run health checks
-13. Monitor for 15 minutes post-deployment
-14. Notify team
+10. Preview infrastructure changes (`pulumi preview --expect-no-changes` or with changes)
+11. Deploy via Pulumi (`pulumi up`) with traffic management
+12. Run smoke tests
+13. Run health checks
+14. Monitor for 15 minutes post-deployment
+15. Notify team
 
-**Rollback**: Automatic on any step failure, triggers incident response
+**Rollback**: Automatic on any step failure (Pulumi rollback + incident response)
 
 **SLA**: Complete within 20 minutes
 
@@ -387,12 +393,16 @@ All deployments SHALL execute the following smoke tests:
 Triggered automatically on:
 - Smoke test failure
 - Migration failure
+- Pulumi deployment failure
 - Health check failure within 15 minutes post-deployment
 
 **Procedure**:
-1. Identify last known good state (previous deployment)
+1. Identify last known good state (previous Pulumi stack version)
 2. Execute database rollback script
-3. Revert application code to previous version
+3. Revert infrastructure via Pulumi:
+   - `pulumi stack history` to find previous version
+   - `git revert <commit>` to revert infrastructure code
+   - `pulumi up` to apply rollback
 4. Verify rollback with smoke tests
 5. Notify team via Slack/email
 6. Create incident ticket for investigation
@@ -491,9 +501,10 @@ To activate deployment automation:
 2. **Set up Secrets and Workload Identity**:
    ```bash
    # Configure Workload Identity Federation for GitHub Actions
-   # (see ops-infrastructure-as-code.md for Terraform setup)
+   # (see ops-infrastructure-as-code.md for Pulumi setup)
 
    # Add to GitHub repository secrets:
+   gh secret set PULUMI_ACCESS_TOKEN --body "<pulumi-cloud-token>"
    gh secret set DOPPLER_TOKEN_DEV --body "<dev-token>"
    gh secret set DOPPLER_TOKEN_STAGING --body "<staging-token>"
    gh secret set DOPPLER_TOKEN_PROD --body "<prod-token>"
@@ -626,7 +637,8 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 ## References
 
 - INFRASTRUCTURE_GAP_ANALYSIS.md - Phase 1 implementation plan
-- spec/ops-infrastructure-as-code.md - IaC specification
+- spec/ops-infrastructure-as-code.md - Pulumi IaC specification
+- spec/ops-deployment.md - Deployment operations guide
 - .github/workflows/ - Actual workflow definitions
 - tools/testing/smoke-tests/ - Smoke test implementations
 - docs/ops/incident-response-runbook.md - Incident response procedures
@@ -638,3 +650,4 @@ See `docs/ops-infrastructure-activation.md` for complete activation procedures.
 | Date | Version | Author | Changes |
 | --- | --- | --- | --- |
 | 2025-01-27 | 1.0 | Claude | Initial specification (ready to activate) |
+| 2025-12-28 | 2.0 | Claude | Migration from Terraform to Pulumi for infrastructure provisioning |

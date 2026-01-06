@@ -29,7 +29,7 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 - **Portal**: Flutter Web (hosted on Cloud Run)
 - **Backend**: Dart server on Cloud Run
 - **Database**: Cloud SQL PostgreSQL with Event Sourcing pattern
-- **Auth**: Identity Platform (Firebase Auth)
+- **Auth**: IAM / Google Workforce Identity Platform 
 - **Language**: Dart for all application code
 - **Distribution**: GitHub Package Registry + GCP Artifact Registry
 - **Build System**: Dart-based tooling with CI/CD automation
@@ -43,10 +43,10 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                   SPONSOR DEPLOYMENT                            │
-│                  (e.g., Orion Production)                      │
+│                  (e.g., Callisto Production)                      │
 │                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │ GCP Project: clinical-diary-orion                         │ │
+│  │ GCP Project: clinical-diary-callisto                         │ │
 │  │                                                            │ │
 │  │  ├─ Cloud SQL PostgreSQL (Event Sourcing schema + RLS)    │ │
 │  │  ├─ Identity Platform (OAuth/SAML with sponsor SSO)       │ │
@@ -55,8 +55,8 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                 │
 │  Accessed by:                                                   │
-│  ├─ Mobile App (iOS/Android) → Orion configuration selected    │
-│  ├─ Portal (Flutter Web) → https://orion-portal.example.com    │
+│  ├─ Mobile App (iOS/Android) → Callisto configuration selected    │
+│  ├─ Portal (Flutter Web) → https://callisto-portal.example.com    │
 │  └─ EDC System (Medidata Rave) ← Cloud Run pushes events       │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -77,48 +77,57 @@ A scalable architecture for deploying a diary system across multiple sponsors us
 The repository uses a **monorepo** structure with a `sponsor/` directory that mirrors the root directory structure but contains only sponsor-specific code.
 
 ```
-clinical-diary/                  (Root - Core platform)
-├── packages/
-│   ├── core/                    (Abstract interfaces + core logic)
-│   └── server_shared/           (Shared utilities for Dart server)
+├── .devcontainer/               (Docker containers for dev, qa & devops)
+│
+├── .githooks/                   (self-desceibed)
+│
+├── .github/
+│   ├── config/                  (ci/cd for each env & sponsor)
+│   ├── scripts/                 (TODO - undate-index.js does what?)
+│   ├── workflows/               (github cicd workflow pipelines)
 │
 ├── apps/
-│   ├── mobile/                  (Flutter app template)
-│   └── portal/                  (Flutter Web template)
+│   ├── clinical-diary/          (Flutter patient app)
+│   └── common-dart/                (shared Dart code between clients or between client and server)
+│   │   ├── append-only-datastore/  (core auditable datastore API and SDK)
+|   │   └── trial_data_types/    (Raw data classes - Nosebleed Record, etc.)
+│   └── portal/                  (Flutter sponsor app)
+│
+├── build-reports/               (TODO - doc)
 │
 ├── database/                    (Shared SQL schema for ALL sponsors)
 │   ├── schema.sql               (Event Sourcing pattern + RLS)
 │   ├── migrations/              (Schema changes over time)
 │   ├── rls_policies.sql         (Row-Level Security)
-│   └── functions.sql            (PostgreSQL functions)
+│   └── functions.sql            (PostgreSQL functions) TODO - necessary?
 │
-├── server/                      (Dart server for Cloud Run)
+├── docs/                        (Documentationn beyond requirements)
+│   └── adr/                     (Architecture Decision Records)
+│
+├── infrastucture/               (IaC for creating and managing infrastructure)
+│   ├── boostrap/                (Creates GCP projects, setup IAM roles, for all envs & sponsors)
+│   ├── sponsor-portal/          (Sets up GCP products - Cloud Run, CloudSQL (not schema), VPC, etc.)
+│
+├── sponsor-server/              (Dart server for Cloud Run)
 │   ├── bin/server.dart          (Entry point)
+│   ├── config                   (NGINX config)
 │   ├── lib/
 │   │   ├── database/            (Cloud SQL connection)
 │   │   ├── middleware/          (Auth middleware)
 │   │   └── services/            (Business logic)
 │   └── Dockerfile
 │
-├── tools/
-│   ├── build_system/            (Build scripts)
-│   ├── requirements/            (Requirement validation)
-│   └── linear-cli/              (Linear ticket tools)
-│
 ├── spec/                        (Core specifications)
 │   ├── prd-*.md                 (Product requirements)
 │   ├── ops-*.md                 (Operations requirements)
 │   └── dev-*.md                 (Development requirements)
 │
-├── docs/                        (Architecture Decision Records)
-│   └── adr/                     (ADRs)
-│
 └── sponsor/                     ⭐ Sponsor-specific code
     ├── lib/                     (Sponsor implementations)
-    │   ├── orion/
-    │   │   ├── orion_config.dart      (extends SponsorConfig)
-    │   │   ├── orion_edc_sync.dart    (extends EdcSync)
-    │   │   ├── orion_theme.dart       (branding)
+    │   ├── callisto/
+    │   │   ├── callisto_config.dart      (extends SponsorConfig)
+    │   │   ├── callisto_edc_sync.dart    (extends EdcSync)
+    │   │   ├── callisto_theme.dart       (branding)
     │   │   └── widgets/               (custom UI components)
     │   └── andromeda/
     │       ├── andromeda_config.dart
@@ -126,13 +135,13 @@ clinical-diary/                  (Root - Core platform)
     │       └── andromeda_theme.dart
     │
     ├── server/                  (Sponsor server extensions)
-    │   ├── orion/
-    │   │   └── edc_sync_service.dart  (EDC integration for Orion)
+    │   ├── callisto/
+    │   │   └── edc_sync_service.dart  (EDC integration for Callisto)
     │   └── andromeda/
     │       └── edc_sync_service.dart  (EDC integration for Andromeda)
     │
     ├── config/                  (Sponsor configurations)
-    │   ├── orion/
+    │   ├── callisto/
     │   │   ├── mobile.yaml
     │   │   ├── portal.yaml
     │   │   └── gcp.env          (credentials - gitignored)
@@ -142,7 +151,7 @@ clinical-diary/                  (Root - Core platform)
     │       └── gcp.env
     │
     ├── assets/                  (Sponsor branding)
-    │   ├── orion/
+    │   ├── callisto/
     │   │   ├── logo.png
     │   │   ├── icon.png
     │   │   └── fonts/
@@ -151,18 +160,24 @@ clinical-diary/                  (Root - Core platform)
     │       └── icon.png
     │
     └── spec/                    (Sponsor requirements - from Google Docs)
-        ├── orion/
+        ├── callisto/
         │   └── (sponsor-specific REQs - imported later)
         └── andromeda/
             └── (sponsor-specific REQs - imported later)
+├── tools/
+│   ├── anspar-cc-plugins/       (Plugins for Claude Code)
+│   ├── build/                   (Speculative Sponsor Integration - TODO fix)
+│   └── dev-env/                 (Development Environment Containers)
+│   └── requirements/            (Tools for managing requirements and validation)
+│   └── vs-code-linear-req-inserter/  (Linear integration for VSCode)
 ```
 
 **What's in root (core platform)**:
 - Database schema (shared by ALL sponsors)
 - Abstract base classes defining extension points
-- Mobile app UI framework
-- Portal UI framework
-- Dart server framework
+- Mobile app UI 
+- Portal UI
+- Portal Server
 - Build tooling
 - Core specifications (prd/ops/dev)
 
@@ -184,7 +199,7 @@ clinical-diary/                  (Root - Core platform)
 ## Abstract Base Class Architecture
 
 ### Extension Points
-
+TODO - needs adjustment, also should be in ./apps/common-dart or move this to ./dart-common
 The public core defines abstract interfaces that sponsors extend:
 
 **Core Interfaces** (in `packages/core/lib/interfaces/`):
@@ -234,42 +249,42 @@ The build system composes core platform code with sponsor-specific code from the
 **Build Scripts** (in `tools/build_system/`):
 - `build_mobile.dart` - Builds mobile app with sponsor configuration
   ```bash
-  dart tools/build_system/build_mobile.dart --sponsor orion --platform ios
+  dart tools/build_system/build_mobile.dart --sponsor callisto --platform ios
   ```
 - `build_portal.dart` - Builds portal with sponsor customization
   ```bash
-  dart tools/build_system/build_portal.dart --sponsor orion --environment production
+  dart tools/build_system/build_portal.dart --sponsor callisto --environment production
   ```
 - `build_server.dart` - Builds Dart server container
   ```bash
-  dart tools/build_system/build_server.dart --sponsor orion --environment production
+  dart tools/build_system/build_server.dart --sponsor callisto --environment production
   ```
 - `validate_sponsor.dart` - Validates sponsor implementation
   ```bash
-  dart tools/build_system/validate_sponsor.dart --sponsor orion
+  dart tools/build_system/validate_sponsor.dart --sponsor callisto
   ```
 - `deploy.dart` - Orchestrates deployment to GCP
   ```bash
-  dart tools/build_system/deploy.dart --sponsor orion --environment production
+  dart tools/build_system/deploy.dart --sponsor callisto --environment production
   ```
 
 **Usage**:
 
 ```bash
-# Validate Orion sponsor implementation
-dart tools/build_system/validate_sponsor.dart --sponsor orion
+# Validate Callisto sponsor implementation
+dart tools/build_system/validate_sponsor.dart --sponsor callisto
 
-# Build Orion mobile app for iOS
-dart tools/build_system/build_mobile.dart --sponsor orion --platform ios
+# Build Callisto mobile app for iOS
+dart tools/build_system/build_mobile.dart --sponsor callisto --platform ios
 
-# Build Orion portal
-dart tools/build_system/build_portal.dart --sponsor orion --environment production
+# Build Callisto portal
+dart tools/build_system/build_portal.dart --sponsor callisto --environment production
 
-# Build Orion server
-dart tools/build_system/build_server.dart --sponsor orion --environment production
+# Build Callisto server
+dart tools/build_system/build_server.dart --sponsor callisto --environment production
 
-# Deploy Orion to production
-dart tools/build_system/deploy.dart --sponsor orion --environment production
+# Deploy Callisto to production
+dart tools/build_system/deploy.dart --sponsor callisto --environment production
 ```
 
 ### CI/CD Integration
@@ -296,7 +311,7 @@ on:
   workflow_dispatch:
     inputs:
       sponsor:
-        description: 'Sponsor to deploy (orion, andromeda, etc.)'
+        description: 'Sponsor to deploy (callisto, andromeda, etc.)'
         required: true
 
 jobs:
@@ -361,7 +376,7 @@ jobs:
 ### Separate Deployment per Sponsor
 
 Each sponsor gets independent portal deployment:
-- Unique domain: `orion-portal.clinicaldiary.com`
+- Unique domain: `callisto-portal.clinicaldiary.com`
 - Sponsor-specific theme and branding
 - Custom pages and reports
 - Connects to sponsor's GCP backend (Cloud Run + Cloud SQL)
@@ -435,7 +450,7 @@ For sponsors in **proxy mode**, Cloud Run services sync diary events to their ED
 **Execution**: Cloud Run container with VPC connector to Cloud SQL
 
 **Example EDC systems**:
-- Medidata Rave (Orion example)
+- Medidata Rave (Callisto example)
 - Oracle InForm
 - Veeva Vault CDMS
 - Custom RDBMS
@@ -466,7 +481,7 @@ Test core functionality: Event Sourcing, RLS policies, database functions, base 
 **3. Sponsor Implementation Tests** (in sponsor repos)
 Test sponsor-specific implementations custom behavior.
 
-**Location**: `clinical-diary-orion/test/`
+**Location**: `clinical-diary-callisto/test/`
 
 ### Integration Testing
 

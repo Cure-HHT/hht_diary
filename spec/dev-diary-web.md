@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Development
-**Last Updated**: 2025-12-05
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: prd-diary-web.md for product requirements
@@ -13,7 +13,7 @@
 
 ## Executive Summary
 
-This specification defines the implementation details for the Web Diary application, a browser-based companion to the mobile Clinical Diary app. The Web Diary uses Flutter Web for the frontend, a custom HHT Diary Auth service for authentication (avoiding Firebase Auth for GDPR compliance), and Firestore for data storage.
+This specification defines the implementation details for the Web Diary application, a browser-based companion to the mobile Clinical Diary app. The Web Diary uses Flutter Web for the frontend, a custom HHT Diary Auth service for authentication (avoiding Identity Platform for GDPR compliance), and Firestore for data storage.
 
 **Technology Stack**:
 - **Frontend**: Flutter Web (Dart)
@@ -22,16 +22,23 @@ This specification defines the implementation details for the Web Diary applicat
 - **Hosting**: Firebase Hosting or Cloud Run
 - **Password Hashing**: Argon2id (client-side before transmission)
 
+## Status
+
+Web security does not have the hardware-level safety that mobile apps allow.  The web app needs to have a review of
+it's security posture.
+
+The lack of a local database conflicts with REQ-p01001: Offline Event Queue with Automatic Synchronization
+
 ---
 
 # REQ-d00077: Web Diary Frontend Framework
 
 **Level**: Dev | **Implements**: p01042 | **Status**: Draft
 
-The Web Diary SHALL be implemented using Flutter Web with the HTML renderer, sharing UI components with the mobile application where appropriate.
+The Web Diary SHALL be implemented using Flutter Web, reusing the same codebase as mobile with limited additions.
 
 Implementation SHALL include:
-- Flutter Web application using HTML renderer for broad browser compatibility
+- Flutter Web application
 - Shared widget library with mobile app for consistent UI patterns
 - Material Design 3 theming with sponsor-specific customization
 - Responsive layout supporting desktop and tablet viewports
@@ -49,11 +56,11 @@ void main() {
     });
   }
 
-  runApp(const WebDiaryApp());
+  runApp(const ClinicalDiaryApp());
 }
 ```
 
-**Rationale**: Flutter Web enables code sharing with the mobile app while the HTML renderer ensures compatibility across browsers. Disabling service workers prevents cached data from persisting beyond the session.
+**Rationale**: Flutter Web enables code sharing with the mobile app. Disabling service workers prevents cached data from persisting beyond the session.
 
 **Acceptance Criteria**:
 - Application loads in Chrome, Firefox, Safari, Edge (latest 2 versions)
@@ -62,7 +69,7 @@ void main() {
 - Responsive layout adapts to viewport width
 - Shared components render consistently with mobile app
 
-*End* *Web Diary Frontend Framework* | **Hash**: c59bc3ef
+*End* *Web Diary Frontend Framework* | **Hash**: 4a806386
 
 ---
 
@@ -70,7 +77,7 @@ void main() {
 
 **Level**: Dev | **Implements**: p01043 | **Status**: Draft
 
-A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Firebase Authentication or Google Identity Platform.
+A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Identity Platform or Google Identity Platform.
 
 Implementation SHALL include:
 - Cloud Run service written in Dart (shelf or dart_frog framework)
@@ -102,7 +109,7 @@ class AuthToken {
 }
 ```
 
-**Rationale**: A custom auth service avoids GDPR concerns with Firebase Auth while providing full control over the authentication flow. Cloud Run provides auto-scaling and managed infrastructure.
+**Rationale**: A custom auth service avoids GDPR concerns with Identity Platform while providing full control over the authentication flow. Cloud Run provides auto-scaling and managed infrastructure.
 
 **Acceptance Criteria**:
 - Service deployed to Cloud Run with HTTPS endpoint
@@ -111,7 +118,7 @@ class AuthToken {
 - All auth events logged to Cloud Logging
 - Service responds within 500ms for auth operations
 
-*End* *HHT Diary Auth Service* | **Hash**: 774a18da
+*End* *HHT Diary Auth Service* | **Hash**: 8923000e
 
 ---
 
@@ -170,6 +177,8 @@ String? findSponsorByLinkingCode(String linkingCode) {
 
 **Level**: Dev | **Implements**: p01044 | **Status**: Draft
 
+TODO - is this true for mobile too?  if so, we should just remove or move this.
+
 The Web Diary SHALL implement client-side session management with inactivity timeout, browser close detection, and complete session termination.
 
 Implementation SHALL include:
@@ -226,7 +235,7 @@ class WebSessionManager {
 - Tab switching to other apps does not trigger logout (only close)
 - Back button after logout shows login page, not cached data
 
-*End* *Web Session Management Implementation* | **Hash**: 44ade86c
+*End* *Web Session Management Implementation* | **Hash**: c917a5ad
 
 ---
 
@@ -276,6 +285,8 @@ class WebUser {
 *End* *User Document Schema* | **Hash**: cde85fd6
 
 ---
+
+TODO - move to dev-app.md
 
 # REQ-d00082: Password Hashing Implementation
 
@@ -424,7 +435,7 @@ class StorageClearer {
 *End* *Browser Storage Clearing* | **Hash**: d5857410
 
 ---
-
+TODO - remove or move to dev-app.md
 # REQ-d00084: Sponsor Configuration Loading
 
 **Level**: Dev | **Implements**: p01042, p01043 | **Status**: Draft

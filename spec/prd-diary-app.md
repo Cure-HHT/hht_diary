@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-02
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: prd-system.md for platform overview
@@ -16,14 +16,22 @@
 
 **Level**: PRD | **Implements**: p00044 | **Status**: Draft
 
-A smartphone application for iOS and Android enabling clinical trial patients to record daily health observations with offline capability and automatic synchronization.
+A smartphone application for iOS, Android and the web (TODO - need to validate web security) enabling clinical trial patients to record daily health observations with offline capability and automatic synchronization.
 
 Mobile application SHALL provide:
 - Offline-first data entry for all diary operations
-- Automatic data synchronization when network available
+- Automatic data synchronization when network available 
+  - TODO - to where?  CureHHT is the default sponsor until enrollment?  Do old records sync?  Do new records sync to both?
+  - Sponsors may want "Record" button disabled until enrollment, what about a user that already is using the app with CureHHT?
 - Multi-sponsor support with automatic configuration
 - Sponsor-specific branding and customization
 - FDA 21 CFR Part 11 compliant audit trails
+- TODO 
+- User's Guide?  
+- Chat Support? 
+- Contact with study personnel
+- Upgrades - automatic? On choice/forced?
+- Observability - can the app report errors, metrics, logs to a server?
 
 **Rationale**: Provides the patient-facing interface for clinical trial data capture, designed for ease of use regardless of connectivity. Single app serving all sponsors simplifies distribution and maintenance while maintaining complete data isolation.
 
@@ -34,7 +42,7 @@ Mobile application SHALL provide:
 - Sponsor branding applied per enrollment
 - Complete audit trail of all patient actions
 
-*End* *Clinical Diary Mobile Application* | **Hash**: 5062a707
+*End* *Clinical Diary Mobile Application* | **Hash**: 2a543266
 
 ---
 
@@ -60,7 +68,7 @@ The Clinical Diary mobile application is a smartphone app for iOS and Android th
 The app SHALL automatically configure itself for the correct sponsor and study based on the enrollment link provided to the patient, eliminating manual sponsor/study selection.
 
 Automatic configuration SHALL ensure:
-- Enrollment link contains sponsor and study identification
+- Enrollment link contains sponsor and study identification TODO - is "study" == site? Is site set in the portal?
 - App reads enrollment information and connects to correct sponsor system
 - Sponsor branding and configuration loaded automatically
 - Patient never manually selects sponsor from list
@@ -70,26 +78,32 @@ Automatic configuration SHALL ensure:
 
 **Acceptance Criteria**:
 - Single enrollment link/QR code provided per patient
-- App determines sponsor and study from link alone
-- Correct sponsor branding displayed immediately after enrollment
-- Patient cannot switch to different sponsor after enrollment
+- App determines sponsor and study from link alone  TODO - "study" == site?  Does the app need to know the site?
+- Correct sponsor branding displayed immediately after enrollment TODO - can a site have it's own brand?
+- Patient cannot switch to different sponsor after enrollment - TODO - unless they already sync to CureHHT
 - Invalid or expired enrollment links rejected with clear error message
 
-*End* *Automatic Sponsor Configuration* | **Hash**: b90eb7ab
+*End* *Automatic Sponsor Configuration* | **Hash**: 02bcaf1a
 ---
+
+TODO - this needs another spec #
 
 ### Daily Use
 
 **Recording Entries**:
 - Patients open the app and tap to create a new entry
+  - TODO - Is this spec testable?
 - App presents questions or forms based on the study protocol
+  - TODO - needs details
 - Entries are saved immediately on the phone
 - Internet connection not required
 
 **Viewing History**:
 - Patients can see all their previous entries
+  - Can they also see their previous forms?
 - Calendar view shows which days have entries
 - Search and filter to find specific entries
+  - TODO - on what criteria?
 
 **Syncing Data**:
 - App automatically uploads entries when online
@@ -128,12 +142,12 @@ Offline capability SHALL ensure:
 
 ### One App, All Sponsors
 
-A single "Clinical Diary" app on app stores serves all pharmaceutical sponsors:
+A single "Clinical Diary" app on app stores or one web url serves all pharmaceutical sponsors:
 
 **Benefits for Patients**:
-- Simple enrollment - just one app to find and download
+- Simple enrollment - just one app to find and download, only one web url
 - Consistent user experience across studies
-- Automatic updates and improvements
+- Automatic updates and improvements 
 
 **Benefits for Sponsors**:
 - Custom branding automatically applied
@@ -157,7 +171,7 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 **Patient Data Protection**:
 - Data encrypted on phone and during transmission
-- Secure authentication required
+- Secure authentication required - TODO How secure? 2FA required? Biometrics?
 - Each sponsor's data completely isolated
 - No sharing of information between studies
 
@@ -179,7 +193,7 @@ Patients see only their sponsor's information - the app adapts automatically.
 
 **Privacy**: Only patient can see their own data
 
-**Support**: Clear help text and guidance throughout
+**Support**: Clear help text and guidance throughout #TODO - needs details.
 
 ---
 
@@ -196,8 +210,9 @@ Temporal validation SHALL ensure:
 - Date picker restricts selection to current date and earlier
 - End time does not exceed current real time
 - Users cannot create entries before diary start day (see REQ-p01039)
-- Entries more than 24 hours old require justification with reason selection
-- No time overlap exists with other entries
+- Entries more than 24 hours old require justification with reason selection - TODO - always or on sponsor config?
+- Entries less than 2 minutes old require confirmation - TODO - always or on sponsor config?
+- No time overlap exists with other entries TODO - warning when overlaps exist
 
 **Rationale**: Temporal validation ensures data reflects actual events, prevents logical impossibilities (future events, overlapping nosebleeds, entries before app usage), and maintains clinical trial data quality. Capturing reasons for delayed entries helps researchers understand data quality and patient adherence patterns.
 
@@ -210,15 +225,16 @@ Temporal validation SHALL ensure:
 - End time picker maximum value is current real time
 - Future times visually disabled/grayed out in time picker
 - End time validation ensures: end time ≥ start time AND end time ≤ current time
-- Current time updates dynamically if user keeps picker open
+- Current time updates dynamically if user keeps picker open #TODO What does "current time" mean???
 
 *Historical Boundaries:*
 - System enforces diary start day boundaries per REQ-p01039
 - Dates before diary start day visually distinct per REQ-p01040
 
 *24-Hour Justification:*
-- When entry date/time is more than 24 hours in past, system displays reason selection prompt
+- When entry date/time is more than 24 hours in the past, system displays reason selection prompt
 - User must select from predefined reasons: "I forgot to record it at the time", "I didn't have access to the app", "I was in a medical facility", "Technical issues with the app", "Other (specify)"
+  - TODO - Other (specify) may not be allowed, should only allow a fixed set 
 - User cannot proceed with entry creation without selecting reason
 - System stores selected reason with entry metadata
 
@@ -227,7 +243,7 @@ Temporal validation SHALL ensure:
 - System displays error message identifying conflicting entry: "This time overlaps with an existing nosebleed record from [start] to [end]"
 - User can navigate to view conflicting record
 
-*End* *Temporal Entry Validation* | **Hash**: 9f0a0d36
+*End* *Temporal Entry Validation* | **Hash**: 897ddcf3
 
 ---
 
@@ -242,8 +258,10 @@ The system SHALL establish and maintain a "diary start day" representing the ear
 Diary start day SHALL ensure:
 - Default value is set to the day before the first diary entry is created
 - User can override the start day by selecting an earlier date and creating an entry
+  - TODO - then what's the use a start day?
 - Start day cannot be set to a future date
-- Start day cannot be set earlier than 365 days before app installation
+- Start day cannot be set earlier than 365 days before app installation 
+  - TODO - any any device for the logged in user or the device for a non-logged in user
 - Start day persists across app sessions and device changes via cloud sync
 
 **Rationale**: Clinical trial participants may need to record nosebleeds that occurred before their first app usage. By defaulting the start day to the day before the first entry, users immediately see that they can record past events. This feature demonstrates to users that they can backfill historical data while maintaining reasonable temporal boundaries for data quality. The one-year limit prevents unreliable retrospective data entry while still accommodating patients who want to capture recent history.
@@ -257,7 +275,7 @@ Diary start day SHALL ensure:
 - Users are not explicitly prompted to set start day during onboarding
 
 *User Override:*
-- User can implicitly set an earlier start day by selecting a date before current start day and creating an entry
+- User can implicitly set an earlier start day by selecting a date before current start day and creating an entry, up to one year before the installation day
 - When user selects a date before current start day in calendar, entry creation automatically updates start day
 - Start day moves backward (earlier) but never forward (later) once set
 - System displays confirmation when start day is being extended: "This will extend your diary history to include [date]. Continue?"
@@ -272,7 +290,7 @@ Diary start day SHALL ensure:
 - Start day restored correctly after app reinstallation (from cloud backup)
 - Start day consistent across multiple devices for same user
 
-*End* *Diary Start Day Definition* | **Hash**: ef7a7921
+*End* *Diary Start Day Definition* | **Hash**: 04c5ae15
 
 ---
 
@@ -288,7 +306,7 @@ Calendar visual indicators SHALL display:
 - Dates with diary entries: highlighted with sponsor theme color (filled dot or colored background)
 - Dates with no entries within diary period (from start day to today): marked in black/dark color indicating "no nosebleed recorded"
 - Dates before diary start day: grayed out and visually muted to indicate they are outside the diary period
-- Future dates: grayed out and disabled (not selectable)
+- Future dates: grayed out and disabled (not selectable) - TODO - that's three grays.
 - Current date: outlined or otherwise distinguished from other dates
 
 **Rationale**: Users need clear visual feedback to understand their diary history at a glance. Showing dates within the diary period that have no entries as "black" (or distinctively marked) communicates that those days were part of the diary period but had no nosebleeds recorded—valuable clinical information. This visual distinction helps patients identify gaps in their records and provides researchers with insight into both recorded events and recorded absence of events.
@@ -314,11 +332,12 @@ Calendar visual indicators SHALL display:
 
 *Accessibility:*
 - Color indicators supplemented with icons or patterns for colorblind users
+  - Patterns would be good for all users.  Before start date and after today would look good with a /// pattern
 - Sufficient contrast ratios for all visual states
 - Screen reader announces entry status when navigating calendar
 - Accessible fonts definable by sponsor feature set and available in user preferences. 
 
-*End* *Calendar Visual Indicators for Entry Status* | **Hash**: 75dc8f26
+*End* *Calendar Visual Indicators for Entry Status* | **Hash**: 565effd6
 
 ---
 

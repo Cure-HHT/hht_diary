@@ -38,8 +38,10 @@ RUN mkdir -p /etc/dpkg/dpkg.cfg.d && \
 # ============================================================
 # Suppress update-alternatives warnings for missing man pages (excluded via dpkg config)
 # Safe: Warnings are cosmetic - all tools install and function correctly, only symlink creation skipped
+# Note: pipefail ensures apt-get failures are detected even when piped through grep
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update -y && \
-    (apt-get install -y \
+    apt-get install -y \
     # Core utilities
     curl \
     wget \
@@ -61,8 +63,9 @@ RUN apt-get update -y && \
     procps \
     # For adding repositories
     gpg \
-    2>&1 | grep -v "update-alternatives: warning" || true) && \
+    2>&1 | { grep -v "update-alternatives: warning" || true; } && \
     rm -rf /var/lib/apt/lists/*
+SHELL ["/bin/sh", "-c"]
 
 # ============================================================
 # Git Configuration (latest stable)
@@ -150,6 +153,50 @@ RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_V
 # ============================================================
 RUN pip3 install --no-cache-dir --break-system-packages --root-user-action=ignore anthropic && \
     npm install -g @anthropic-ai/claude-code
+
+# ============================================================
+# Google Cloud SDK (gcloud CLI)
+# Required for GCP authentication, Cloud SQL access, and deployment
+# ============================================================
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
+    tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+    gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
+    apt-get update -y && \
+    apt-get install -y google-cloud-cli && \
+    gcloud --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Cloud SQL Auth Proxy v2.14.3 (secure Cloud SQL connectivity)
+# Version pinned: 2025-12-27
+# ============================================================
+ENV CLOUD_SQL_PROXY_VERSION=v2.14.3
+RUN curl -o /usr/local/bin/cloud-sql-proxy \
+    https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/${CLOUD_SQL_PROXY_VERSION}/cloud-sql-proxy.linux.amd64 && \
+    chmod +x /usr/local/bin/cloud-sql-proxy && \
+    cloud-sql-proxy --version
+
+# ============================================================
+# PostgreSQL Client 16 (psql for database access)
+# ============================================================
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+    gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | \
+    tee /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update -y && \
+    apt-get install -y postgresql-client-16 && \
+    psql --version && \
+    rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# Pulumi CLI (Infrastructure as Code)
+# Required for managing GCP infrastructure (Cloud SQL, Cloud Run, etc.)
+# ============================================================
+RUN curl -fsSL https://get.pulumi.com | sh && \
+    mv /root/.pulumi/bin/pulumi /usr/local/bin/ && \
+    rm -rf /root/.pulumi && \
+    pulumi version
 
 # ============================================================
 # Create non-root user: ubuntu

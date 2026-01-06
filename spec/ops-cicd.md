@@ -1,12 +1,17 @@
 # Operations Specification: CI/CD Pipeline for Requirement Traceability
 
+**Version**: 2.0
 **Audience**: DevOps, Operations, Release Management
 **Status**: Draft
-**Last Updated**: 2025-10-28
+**Last Updated**: 2025-12-28
 
 ## Overview
 
 This document specifies the continuous integration and continuous delivery (CI/CD) pipeline for validating requirement traceability, ensuring FDA 21 CFR Part 11 compliance, and maintaining audit trail integrity throughout the software development lifecycle.
+
+> **See**: ops-deployment.md for deployment operations
+> **See**: ops-deployment-automation.md for automated deployment procedures
+> **See**: ops-infrastructure-as-code.md for Pulumi infrastructure definitions
 
 ## Table of Contents
 
@@ -145,7 +150,15 @@ This document specifies the continuous integration and continuous delivery (CI/C
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Stage 6: Validation Summary                                      │
+│ Stage 6: Infrastructure Validation (if infra changes)            │
+│ - Run `pulumi preview` on changed stacks                         │
+│ - Verify no unexpected resource deletions                        │
+│ - Validate Pulumi code compiles (tsc --noEmit)                   │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Stage 7: Validation Summary                                      │
 │ - Aggregate results from all stages                              │
 │ - Post summary to GitHub PR                                      │
 │ - Generate GitHub Step Summary                                   │
@@ -166,13 +179,15 @@ This document specifies the continuous integration and continuous delivery (CI/C
 ### Pipeline Characteristics
 
 - **Total Runtime**: < 10 minutes typical, 10 minute timeout
-- **Parallelization**: 5 validation jobs run in parallel, 1 summary job waits for all
+- **Parallelization**: 6 validation jobs run in parallel, 1 summary job waits for all
 - **Early-Pass Optimization**: Migration validation exits early (1-2s) when no migrations modified
-- **Fail-Fast**: Critical failures (requirements, security, FDA compliance) block merge
+- **Early-Pass Optimization**: Infrastructure validation exits early when no Pulumi changes
+- **Fail-Fast**: Critical failures (requirements, security, FDA compliance, infrastructure) block merge
 - **Warnings**: Code header validation issues are warnings, not blocking
 - **Artifacts**: Generated on every run, regardless of pass/fail status
 - **Notifications**: Failed runs trigger GitHub notifications to PR author
 - **Clean Results**: All jobs show ✅ PASSED or ❌ FAILED (never ⏭️ SKIPPED)
+- **Infrastructure Preview**: Pulumi preview runs on infra changes to validate before merge
 
 ---
 
@@ -217,7 +232,16 @@ This document specifies the continuous integration and continuous delivery (CI/C
 - Validates event sourcing implementation
 - **Blocking**: YES
 
-**6. summary**
+**6. validate-infrastructure**
+- Checks if Pulumi code was modified in the PR
+- Validates TypeScript compilation (`tsc --noEmit`)
+- Runs `pulumi preview` to verify infrastructure changes
+- **Blocking**: YES (if infrastructure changes detected)
+- **Conditional Validation**: Checks if `infrastructure/pulumi/` was modified; if not, passes immediately
+- **Always Shows**: ✅ PASSED (either "preview successful" or "no infra changes")
+- **Audit Note**: Job always runs but exits early with success when no infrastructure modified
+
+**7. summary**
 - Aggregates results from all jobs
 - Posts to GitHub Step Summary
 - Determines overall pass/fail
@@ -265,6 +289,7 @@ None required. All validation uses tools checked into the repository.
      - `Validate Database Migration Headers`
      - `Security - Check for Secrets`
      - `FDA Compliance - Audit Trail Verification`
+     - `Validate Infrastructure (Pulumi)`
      - `Validation Summary`
 
    ✅ **Require conversation resolution before merging**
@@ -493,6 +518,49 @@ EOF
 
 ---
 
+### Test 5: Validate Infrastructure Check
+
+**Purpose**: Verify Pulumi infrastructure validation works
+
+**Steps**:
+
+1. Create feature branch:
+   ```bash
+   git checkout -b test/validate-infra-fail
+   ```
+
+2. Add invalid Pulumi code:
+   ```bash
+   cat > infrastructure/pulumi/components/test-invalid/index.ts <<'EOF'
+   // This file has TypeScript errors
+   import * as pulumi from "@pulumi/pulumi";
+
+   const badVariable: string = 123; // Type error
+   EOF
+   git add infrastructure/pulumi/components/test-invalid/index.ts
+   git commit -m "Test: Add invalid Pulumi code"
+   ```
+
+3. Push and create PR:
+   ```bash
+   git push -u origin test/validate-infra-fail
+   gh pr create --title "Test: Infrastructure Validation Fail" --body "Testing Pulumi validation"
+   ```
+
+4. Observe GitHub Actions tab:
+   - `validate-infrastructure` job should fail
+   - Error message should indicate TypeScript compilation error
+   - PR should be blocked from merging
+
+5. Clean up:
+   ```bash
+   gh pr close --delete-branch
+   ```
+
+**Expected Result**: Infrastructure validation fails, PR blocked
+
+---
+
 ## Troubleshooting
 
 ### Issue: Workflow Not Triggering
@@ -692,6 +760,48 @@ Both outcomes are compliant and indicate no issues detected.
 
 ---
 
+### Note: Infrastructure Validation Always Passes
+
+**Behavior**: The "Validate Infrastructure (Pulumi)" job always shows ✅ PASSED
+
+**This is Expected!** ✅
+
+**How It Works**:
+
+The infrastructure validation job uses an **early-pass pattern**:
+
+1. **Job always runs** (never skipped)
+2. **First step**: Check if PR modified any files in `infrastructure/pulumi/`
+3. **If no infrastructure changed**: Exit immediately with success and notice: "No infrastructure files were modified"
+4. **If infrastructure changed**: Proceed with full validation:
+   - TypeScript compilation (`tsc --noEmit`)
+   - Pulumi preview for affected stacks
+
+**Benefits**:
+
+1. **Clean UI**: All jobs show ✅ PASSED (no ⏭️ SKIPPED to explain)
+2. **Auditor Friendly**: Everything passes - clear audit trail
+3. **Efficient**: Saves time by exiting early when nothing to validate
+4. **Self-Documenting**: Job logs clearly state "no infrastructure to validate" when applicable
+
+**Job Output Examples**:
+
+When no infrastructure changed:
+```
+ℹ️  No infrastructure files were modified in this PR
+✅ Infrastructure validation: PASSED (no changes to validate)
+```
+
+When infrastructure was changed:
+```
+✓ Infrastructure files were modified in this PR
+✓ TypeScript compilation: PASSED
+✓ Pulumi preview: PASSED (3 resources unchanged)
+✅ All infrastructure validation checks passed
+```
+
+---
+
 ## Monitoring and Alerts
 
 ### GitHub Actions Dashboard
@@ -788,6 +898,7 @@ This CI/CD system has been validated per:
 | Date | Version | Changes | Author |
 | --- | --- | --- | --- |
 | 2025-10-28 | 1.0 | Initial CI/CD specification | DevOps Team |
+| 2025-12-28 | 2.0 | Added Pulumi infrastructure validation stage, cross-references to IaC docs | Claude |
 
 ---
 
