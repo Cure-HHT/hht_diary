@@ -605,9 +605,9 @@ Batch operations SHALL ensure:
 
 ---
 
-# REQ-p01013: GraphQL or gRPC Transport Option
-
 TODO - This adds unnecessary complexity
+
+# REQ-p01013: GraphQL or gRPC Transport Option
 
 **Level**: PRD | **Implements**: p00046 | **Status**: Draft
 

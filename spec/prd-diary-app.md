@@ -86,7 +86,7 @@ Automatic configuration SHALL ensure:
 *End* *Automatic Sponsor Configuration* | **Hash**: 02bcaf1a
 ---
 
-#TODO - this needs another spec #
+TODO - this needs another spec #
 
 ### Daily Use
 
