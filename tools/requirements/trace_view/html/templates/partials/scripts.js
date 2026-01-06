@@ -672,12 +672,39 @@ const TraceView = (function() {
                         const indicator = document.createElement('span');
                         indicator.className = 'moved-indicator';
                         indicator.textContent = ' 📦';
-                        indicator.title = `Moved from: ${info.from}`;
-                        const label = node.querySelector('.req-label') || node;
-                        label.appendChild(indicator);
+                        indicator.title = `Moved from: ${info.from} → ${info.to}`;
+                        // Insert inline with REQ ID in hierarchy view
+                        const reqIdEl = node.querySelector('.req-id');
+                        if (reqIdEl) {
+                            reqIdEl.appendChild(indicator);
+                        } else {
+                            // Fallback for other node types
+                            node.appendChild(indicator);
+                        }
                     }
                 });
+
+                // Also update the Requirements panel if this REQ is open
+                const card = document.getElementById(`req-card-${reqId}`);
+                if (card) {
+                    this._updateCardFileInfo(card, reqId, info);
+                }
             });
+        },
+
+        /**
+         * Update file info in a requirement card after move
+         * @private
+         */
+        _updateCardFileInfo: function(card, reqId, moveInfo) {
+            // Find the file link in the card header
+            const fileLink = card.querySelector('.req-card-file');
+            if (fileLink) {
+                // Update the file path display
+                const oldText = fileLink.textContent;
+                fileLink.innerHTML = `📦 ${moveInfo.to} <span class="moved-from">(was: ${moveInfo.from})</span>`;
+                fileLink.classList.add('file-moved');
+            }
         },
 
         /**

@@ -1699,3 +1699,14 @@ body.edit-mode-active .edit-mode-column {
     color: #6c757d;
     font-style: italic;
 }
+
+/* Moved file info in Requirements panel */
+.req-card-file.file-moved {
+    color: #28a745;
+}
+
+.moved-from {
+    font-size: 11px;
+    color: #6c757d;
+    font-style: italic;
+}
