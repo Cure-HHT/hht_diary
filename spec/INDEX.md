@@ -75,7 +75,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-d00068 | dev-ai-claude.md | Enhanced Workflow New Work Detection | f5f3570e |
 | REQ-d00069 | dev-marketplace-devcontainer-detection.md | Dev Container Detection and Warnings | 18471ae1 |
 | REQ-d00077 | dev-diary-web.md | Web Diary Frontend Framework | 4a806386 |
-| REQ-d00078 | dev-diary-web.md | HHT Diary Auth Service | 774a18da |
+| REQ-d00078 | dev-diary-web.md | HHT Diary Auth Service | 8923000e |
 | REQ-d00079 | dev-diary-web.md | Linking Code Pattern Matching | da7b9bb0 |
 | REQ-d00080 | dev-diary-web.md | Web Session Management Implementation | c917a5ad |
 | REQ-d00081 | dev-diary-web.md | User Document Schema | cde85fd6 |
@@ -145,7 +145,7 @@ This file provides a complete index of all formal requirements across the spec/ 
 | REQ-p00001 | prd-security.md | Complete Multi-Sponsor Data Separation | e82cbd48 |
 | REQ-p00002 | prd-security.md | Multi-Factor Authentication for Staff | 4e8e0638 |
 | REQ-p00003 | prd-database.md | Separate Database Per Sponsor | 6a207b1a |
-| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | fa70764d |
+| REQ-p00004 | prd-database.md | Immutable Audit Trail via Event Sourcing | fe9b40ea |
 | REQ-p00005 | prd-security-RBAC.md | Role-Based Access Control | 692bc7bd |
 | REQ-p00006 | prd-diary-app.md | Offline-First Data Entry | c5ff6bf6 |
 | REQ-p00007 | prd-diary-app.md | Automatic Sponsor Configuration | 02bcaf1a |
