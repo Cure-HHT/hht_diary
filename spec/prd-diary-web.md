@@ -65,11 +65,11 @@ Authentication SHALL ensure:
 - Mapping table updated when sponsors deploy or decommission portals
 - Username and password created during initial setup (not linked to email)
 - No personally identifiable information (PII) collected during authentication
-- No third-party authentication providers used (no Firebase Auth, Google Sign-In, etc.)
+- No third-party authentication providers used (no Identity Platform, Google Sign-In, etc.)
 - Password hashed before network transmission
 - Authentication service validates credentials and returns session JWT
 
-**Rationale**: GDPR restrictions prevent use of Firebase Authentication and similar services that process personal data. A custom authentication system using linking codes maintains sponsor isolation (p00001) while avoiding PII collection. Linking codes establish the trust relationship between the patient and their clinical trial without requiring email verification. Pattern-based sponsor identification enables a single auth service to route users to the correct sponsor without requiring users to know which sponsor they belong to.
+**Rationale**: GDPR restrictions prevent use of Identity Platform and similar services that process personal data. A custom authentication system using linking codes maintains sponsor isolation (p00001) while avoiding PII collection. Linking codes establish the trust relationship between the patient and their clinical trial without requiring email verification. Pattern-based sponsor identification enables a single auth service to route users to the correct sponsor without requiring users to know which sponsor they belong to.
 
 **Acceptance Criteria**:
 - Patient receives linking code through Sponsor Portal enrollment process
@@ -82,7 +82,7 @@ Authentication SHALL ensure:
 - No email addresses stored or processed
 - Authentication works across all supported browsers
 
-*End* *Web Diary Authentication via Linking Code* | **Hash**: 31d36807
+*End* *Web Diary Authentication via Linking Code* | **Hash**: ab630213
 
 ---
 
@@ -276,7 +276,7 @@ Lost credential recovery SHALL ensure:
 This section documents constraints that affect product decisions (not implementation details).
 
 **Authentication Provider Restriction**:
-- Firebase Authentication MUST NOT be used (GDPR data processing concerns)
+- Identity Platform MUST NOT be used (GDPR data processing concerns)
 - Google Identity Platform MUST NOT be used (same GDPR concerns)
 - Custom authentication service required using GCP infrastructure
 

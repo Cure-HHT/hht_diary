@@ -124,7 +124,9 @@ Patient enrollment SHALL ensure:
 - Patient can link mobile app using generated code
 - Linking code association permanent (cannot be changed after linking)
 
-*End* *Patient Enrollment Workflow* | **Hash**: 46eedac4
+TODO - need how a linking code maps to a sponsor so the diary app knows which site to auth with.
+
+*End* *Patient Enrollment Workflow* | **Hash**: 69eb21e9
 ---
 
 # REQ-p00026: Patient Monitoring Dashboard
@@ -207,7 +209,9 @@ Questionnaire management SHALL provide:
 - Investigators can only send to patients at assigned sites
 - Auditors can view questionnaire status but cannot send or acknowledge
 
-*End* *Questionnaire Management* | **Hash**: 72da93bc
+TODO Not described - who and how the questionaires are created and added to the system.  Also versioning.
+
+*End* *Questionnaire Management* | **Hash**: 9253c04f
 ---
 
 # REQ-p00028: Token Revocation and Access Control
@@ -247,7 +251,9 @@ Token revocation SHALL ensure:
 - Investigator cannot revoke patients at non-assigned sites
 - Auditor cannot revoke any tokens (read-only role)
 
-*End* *Token Revocation and Access Control* | **Hash**: 2edf0218
+TODO - Audit use of token after revocation?
+
+*End* *Token Revocation and Access Control* | **Hash**: 8cab5f14
 ---
 
 # REQ-p00029: Auditor Dashboard and Data Export

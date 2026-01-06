@@ -190,17 +190,17 @@ Release coordination SHALL ensure:
 
 **Level**: PRD | **Implements**: p00010 | **Status**: Active
 
-Changes to the user experience, either in terms of application logic or graphical presentation, SHALL NOT be made during the active trial period for any users enrolled in that trial without explicit justification by the Operator and Sponsor approval.
+Changes to the patient user experience, either in terms of application logic or graphical presentation, SHALL NOT be made during the active trial period for any users enrolled in that trial without explicit justification by the Operator and Sponsor approval.
 
 **Rationale**: Changes to the UX may affect the data collected, potentially compromising data integrity and regulatory compliance. Trial protocol consistency is essential for FDA 21 CFR Part 11 compliance.
 
 **Acceptance Criteria**:
 - UX change requests during active trials require documented justification
-- Sponsor approval required for any UX modifications during trial period
+- Sponsor approval required for any patient UX modifications during trial period
 - Change impact assessment documented before implementation
 - Audit trail captures all approved UX changes during trials
 
-*End* *UX Changes During Trials* | **Hash**: 054abe40
+*End* *UX Changes During Trials* | **Hash**: 350e44c0
 ---
 
 ## Customization

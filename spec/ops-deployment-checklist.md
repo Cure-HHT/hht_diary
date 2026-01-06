@@ -1,28 +1,77 @@
 # Deployment Checklist
 
-# TODO: Check all other .md files for information that should be in this file. Move that information here.
+**Version**: 2.0
+**Audience**: Operations (DevOps, Database Administrators)
+**Last Updated**: 2025-12-28
+**Status**: Draft
 
-Use this checklist to ensure proper deployment and configuration of the Clinical Trial Diary Database.
+> **See**: ops-deployment.md for deployment procedures
+> **See**: ops-infrastructure-as-code.md for Pulumi infrastructure components
+> **See**: ops-database-setup.md for database provisioning
+
+Use this checklist to ensure proper deployment and configuration of the Clinical Trial Diary system.
 
 ---
 
 ## Pre-Deployment
 
 ### Review & Planning
-- [ ] Review `db-spec.md` for architecture understanding
-- [ ] Review `README.md` for deployment instructions
+- [ ] Review `ops-infrastructure-as-code.md` for architecture understanding
+- [ ] Review `ops-deployment.md` for deployment instructions
 - [ ] Identify target environment (development/staging/production)
-- [ ] Verify GCP project created
-- [ ] Note project URL and credentials
+- [ ] Identify target sponsor
+- [ ] Verify Pulumi stack exists or create new one
 - [ ] Determine required compute resources
 - [ ] Plan backup and recovery strategy
 - [ ] Identify compliance requirements
 
 ### Access & Permissions
-- [ ] GCP project admin access confirmed
-- [ ] Database credentials secured
+- [ ] GCP project admin access confirmed (or Pulumi will create project)
+- [ ] Pulumi Cloud access token configured
+- [ ] Doppler access for secrets management
 - [ ] Team access roles defined
-- [ ] Service account created (if needed)
+- [ ] Service account credentials ready (for Pulumi deployment)
+
+---
+
+## Infrastructure Deployment (via Pulumi)
+
+### Step 1: Initialize Pulumi Stack
+- [ ] Navigate to sponsor infrastructure directory
+- [ ] Run `pulumi stack init ${SPONSOR}-${ENV}` (if new)
+- [ ] Configure sponsor-specific values:
+  ```bash
+  pulumi config set sponsor ${SPONSOR}
+  pulumi config set environment ${ENV}
+  pulumi config set gcp:region us-central1
+  ```
+
+### Step 2: Configure Secrets
+- [ ] Set database password: `pulumi config set --secret databasePassword "..."`
+- [ ] Verify Doppler secrets available
+- [ ] Configure OAuth credentials (if applicable)
+
+### Step 3: Preview Infrastructure
+- [ ] Run `doppler run -- pulumi preview`
+- [ ] Review all resources to be created
+- [ ] Verify no unexpected changes
+- [ ] Confirm resource naming follows convention
+
+### Step 4: Deploy Infrastructure
+- [ ] Run `doppler run -- pulumi up`
+- [ ] Verify GCP project created with required APIs
+- [ ] Verify VPC networking provisioned
+- [ ] Verify Cloud SQL instance created
+- [ ] Verify Cloud Run services deployed
+- [ ] Verify Identity Platform configured
+- [ ] Verify Artifact Registry created
+- [ ] Verify monitoring alerts configured
+
+### Step 5: Verify Pulumi Outputs
+- [ ] Record Cloud SQL connection name
+- [ ] Record Cloud Run service URLs
+- [ ] Record VPC connector ID
+- [ ] Store outputs in documentation
 
 ---
 
@@ -61,32 +110,32 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 
 ---
 
-## GCP Configuration
+## GCP Configuration (via Pulumi)
 
 ### Identity Platform Setup
-- [ ] Enable Identity Platform in GCP project
-- [ ] Configure email/password authentication
-- [ ] Configure email templates (via Firebase Console)
-- [ ] Set up SMTP for production emails
-- [ ] Deploy custom claims Cloud Function
-- [ ] Test Firebase ID token contains custom claims
+- [ ] Verify Identity Platform enabled via Pulumi
+- [ ] Configure email/password authentication (Pulumi config)
+- [ ] Configure email templates (via Firebase Console - manual)
+- [ ] Set up SMTP for production emails (manual)
+- [ ] Verify custom claims endpoint deployed (Dart server on Cloud Run)
+- [ ] Test Identity Platform ID token contains custom claims
 - [ ] Configure session timeout
-- [ ] Enable MFA for admin roles
+- [ ] Enable MFA for admin roles (production)
 
 ### Cloud Run API Configuration
-- [ ] Deploy Cloud Run service
-- [ ] Note service URL
-- [ ] Configure service account permissions
+- [ ] Verify Cloud Run service deployed via Pulumi
+- [ ] Record service URL from Pulumi outputs
+- [ ] Verify service account permissions (configured in Pulumi)
 - [ ] Configure CORS in Dart server
-- [ ] Set up rate limiting (Cloud Armor if needed)
+- [ ] Set up rate limiting (Cloud Armor if needed - manual)
 - [ ] Test API connection from client
 
 ### Security Settings
-- [ ] Cloud SQL uses Private IP (VPC)
-- [ ] Configure VPC connector for Cloud Run
-- [ ] Set up Secret Manager for credentials
+- [ ] Verify Cloud SQL uses Private IP (VPC) via Pulumi
+- [ ] Verify VPC connector configured for Cloud Run
+- [ ] Verify Secret Manager integration (Pulumi + Doppler)
 - [ ] Enable Cloud Audit Logs
-- [ ] Configure Cloud Armor (DDoS protection)
+- [ ] Configure Cloud Armor (DDoS protection - if needed)
 
 ---
 
@@ -197,13 +246,13 @@ Use this checklist to ensure proper deployment and configuration of the Clinical
 
 ## Backup & Recovery
 
-### Backup Configuration
-- [ ] Enable Point-in-Time Recovery (PITR)
-- [ ] Set retention period (7-30 days)
-- [ ] Schedule automated backups
-- [ ] Test backup creation
-- [ ] Document backup locations
-- [ ] Set up cross-region replication (production)
+### Backup Configuration (via Pulumi)
+- [ ] Verify PITR enabled in Pulumi Cloud SQL config
+- [ ] Verify retention period (7-30 days in Pulumi)
+- [ ] Verify automated backups configured (startTime in Pulumi)
+- [ ] Test backup creation via gcloud
+- [ ] Document backup locations (Cloud Storage bucket)
+- [ ] Verify backup storage bucket created via Pulumi
 
 ### Recovery Testing
 - [ ] Test backup restoration
@@ -411,8 +460,8 @@ Compliance Officer: __________________
 
 | Version | Date | Changes | Author |
 | --- | --- | --- | --- |
-| 1.0 | 2025-XX-XX | Initial deployment | _______ |
-| | | | |
+| 1.0 | 2025-01-24 | Initial deployment checklist | Development Team |
+| 2.0 | 2025-12-28 | Added Pulumi infrastructure deployment, updated for GCP | Claude |
 
 ---
 

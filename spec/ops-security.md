@@ -222,7 +222,7 @@ Permission configuration SHALL include:
 
 ### Identity Platform Integration
 
-**Provider**: Google Identity Platform (Firebase Auth)
+**Provider**: Google Identity Platform (Identity Platform)
 
 **Features**:
 - Email/password authentication
@@ -412,7 +412,7 @@ gcloud sql instances patch ${INSTANCE_NAME} \
 ```dart
 // Verify JWT and set session variables
 Future<void> handleRequest(Request request) async {
-  // Verify Firebase ID token
+  // Verify Identity Platform ID token
   final idToken = request.headers['Authorization']?.replaceFirst('Bearer ', '');
   final decodedToken = await FirebaseAuth.instance.verifyIdToken(idToken);
 

@@ -3,7 +3,7 @@
 **Document Type**: Development Specification (Implementation Blueprint)
 **Audience**: Software Engineers, Flutter Developers, DevOps Engineers
 **Status**: Draft
-**Last Updated**: 2025-10-27
+**Last Updated**: 2025-12-27
 
 ---
 
@@ -11,7 +11,7 @@
 
 This document specifies the technical implementation requirements for the Clinical Trial Web Portal, a sponsor-specific web application built with **Flutter Web** that enables Admins and Investigators to manage clinical trial users, enroll patients, monitor patient engagement, and manage questionnaires.
 
-The portal is a **separate application** from the patient diary mobile app, deployed as a web-only Flutter application. It provides role-based dashboards with site-level data isolation, integrates with Firebase Auth for authentication and Cloud Run API for database access, and generates linking codes for patient enrollment.
+The portal is a **separate application** from the patient diary mobile app, deployed as a web-only Flutter application. It provides role-based dashboards with site-level data isolation, integrates with Identity Platform for authentication and Cloud Run API for database access, and generates linking codes for patient enrollment.
 
 **Related Documents**:
 - Product Requirements: `spec/prd-portal.md` (Portal product requirements)
@@ -39,7 +39,7 @@ The portal is a standalone Flutter web application, separate from the patient di
 │           └────────────────┘                                 │
 │                            │                                 │
 │                  ┌─────────▼─────────┐                      │
-│                  │  Firebase Auth    │ (OAuth + Email/Pwd)  │
+│                  │  Identity Platform    │ (OAuth + Email/Pwd)  │
 │                  └─────────┬─────────┘                      │
 │                            │                                 │
 │                  ┌─────────▼─────────┐                      │
@@ -111,7 +111,7 @@ dependencies:
   flutter:
     sdk: flutter
   firebase_core: ^2.24.0       # Firebase initialization
-  firebase_auth: ^4.16.0       # Firebase Auth
+  firebase_auth: ^4.16.0       # Identity Platform
   http: ^1.1.0                 # HTTP client for Cloud Run API
   go_router: ^14.0.0           # Declarative routing
   provider: ^6.1.0             # State management
@@ -163,7 +163,7 @@ flutter build web --release --web-renderer html
 - [ ] URL strategy removes `#` from routes
 - [ ] Works on Chrome, Firefox, Safari, Edge (latest versions)
 
-*End* *Portal Frontend Framework* | **Hash**: 27f467d3
+*End* *Portal Frontend Framework* | **Hash**: 4f227779
 
 ---
 
@@ -361,20 +361,20 @@ final router = GoRouter(
 
 ## Authentication & Authorization Requirements
 
-# REQ-d00031: Firebase Authentication Integration
+# REQ-d00031: Identity Platform Integration
 
 **Level**: Dev | **Implements**: p00009, p00038, p00028 | **Status**: Draft
 
-The portal SHALL use Firebase Authentication (Identity Platform) for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
+The portal SHALL use Identity Platform (Identity Platform) for OAuth (Google, Microsoft) and email/password login, with automatic session management and token refresh.
 
 **Technical Details**:
-- **Auth Provider**: Firebase Auth (Identity Platform)
+- **Auth Provider**: Identity Platform (Identity Platform)
 - **OAuth Providers**:
   - Google Workspace (OAuth 2.0)
   - Microsoft 365 (OAuth 2.0)
-- **Email/Password**: Firebase Auth with email verification
-- **Session Storage**: Firebase Auth handles JWT storage in browser localStorage
-- **Token Refresh**: Automatic via Firebase Auth SDK
+- **Email/Password**: Identity Platform with email verification
+- **Session Storage**: Identity Platform handles JWT storage in browser localStorage
+- **Token Refresh**: Automatic via Identity Platform SDK
 
 **Firebase Configuration** (`lib/firebase_client.dart`):
 ```dart
@@ -539,11 +539,11 @@ class AuthProvider extends ChangeNotifier {
 - [ ] Microsoft OAuth working
 - [ ] Email/password login working
 - [ ] Email verification required for email/password signups
-- [ ] Automatic token refresh via Firebase SDK
+- [ ] Automatic token refresh via Identity Platform SDK
 - [ ] Session persists across browser refresh
 - [ ] Logout clears all auth state
 
-*End* *Firebase Authentication Integration* | **Hash**: 85ebe53e
+*End* *Identity Platform Integration* | **Hash**: f3ffa3b5
 ---
 
 # REQ-d00032: Role-Based Access Control Implementation
@@ -611,7 +611,7 @@ Future<List<Patient>> getInvestigatorPatients() async {
 **RLS Policy** (database implementation - enforced by Cloud Run API):
 ```sql
 -- Investigators can only see patients from their assigned sites
--- Server sets session variables from Firebase token before queries
+-- Server sets session variables from Identity Platform token before queries
 CREATE POLICY "investigators_own_sites_patients" ON patients
   FOR SELECT
   USING (
@@ -636,7 +636,7 @@ CREATE POLICY "investigators_own_sites_patients" ON patients
 - [ ] RLS policy prevents cross-site data access
 - [ ] Admin can see all sites (bypass RLS)
 
-*End* *Site-Based Data Isolation* | **Hash**: 012bc8b5
+*End* *Site-Based Data Isolation* | **Hash**: 3c8584ea
 ---
 
 ## Frontend Components Requirements
@@ -2442,7 +2442,7 @@ CREATE TYPE user_role AS ENUM ('Admin', 'Investigator', 'Auditor');
 
 CREATE TABLE portal_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  firebase_uid TEXT UNIQUE, -- Firebase Auth UID (nullable until user enrolls)
+  firebase_uid TEXT UNIQUE, -- Identity Platform UID (nullable until user enrolls)
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role user_role NOT NULL,
@@ -2452,7 +2452,7 @@ CREATE TABLE portal_users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Index for fast role lookup by Firebase UID
+-- Index for fast role lookup by Identity Platform UID
 CREATE INDEX idx_portal_users_firebase_uid ON portal_users(firebase_uid);
 
 -- Index for email lookups
@@ -2493,7 +2493,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 
 **Columns**:
 - `id`: Primary key (UUID)
-- `firebase_uid`: Firebase Auth UID (nullable until investigator enrolls device)
+- `firebase_uid`: Identity Platform UID (nullable until investigator enrolls device)
 - `email`: Unique email address for login
 - `name`: Display name (e.g., "Dr. Sarah Johnson")
 - `role`: Enum (Admin, Investigator)
@@ -2513,7 +2513,7 @@ CREATE POLICY "admins_update_users" ON portal_users
 - [ ] Admins can query all users
 - [ ] Investigators can only query themselves
 
-*End* *Portal Users Table Schema* | **Hash**: 7f3f554a
+*End* *Portal Users Table Schema* | **Hash**: 58a96521
 ---
 
 # REQ-d00040: User Site Access Table Schema
@@ -2908,7 +2908,7 @@ This development specification defines the technical implementation requirements
 **Key Technologies**:
 - Flutter 3.24+ for web
 - Dart 3.10+
-- Firebase Auth / Identity Platform (OAuth + email/password)
+- Identity Platform / Identity Platform (OAuth + email/password)
 - Cloud SQL PostgreSQL with RLS policies
 - Cloud Run API (Dart server with HTTP client)
 - Cloud Run deployment (nginx container)

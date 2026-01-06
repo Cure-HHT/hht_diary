@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Operations (DevOps, Compliance Officers, System Administrators)
-**Last Updated**: 2025-12-12
+**Last Updated**: 2025-12-28
 **Status**: Draft
 
 > **See**: prd-system.md for platform requirements
@@ -153,7 +153,9 @@ Automated access review SHALL include:
 - Access review evidence exportable for auditors
 - False positive rate < 5%
 
-*End* *Automated Access Review* | **Hash**: a48497b6
+TODO - this needs details on how alerts are managed.  They often pile up.
+
+*End* *Automated Access Review* | **Hash**: f2b6b596
 
 ---
 
@@ -207,6 +209,7 @@ Data residency enforcement SHALL include:
 
 **Supported Residency Configurations**:
 - US-only: Data restricted to US regions
+TODO - this would violate GDPR for EU residents in the US
 - EU-only: Data restricted to EU regions (GDPR)
 - Global: Data replicated across approved regions
 
@@ -219,7 +222,7 @@ Data residency enforcement SHALL include:
 - Attempted violations generate immediate alerts
 - Annual residency verification report generated
 
-*End* *Data Residency Enforcement* | **Hash**: 8db4eca1
+*End* *Data Residency Enforcement* | **Hash**: 4969d3b2
 
 ---
 
@@ -253,7 +256,9 @@ Automated detection SHALL cover:
 - Automated initial containment for defined scenarios
 - Incident evidence preserved automatically
 
-*End* *Automated Incident Detection* | **Hash**: e946a022
+TODO - similar to the above, then what? Incidents need human management.
+
+*End* *Automated Incident Detection* | **Hash**: 1b62574e
 
 ---
 
@@ -386,7 +391,7 @@ Third-party assessment SHALL cover:
 | ------- | ---- | ------------------- | ---------------------- |
 | GCP | Infrastructure | Annual | SOC 2, ISO 27001, HIPAA BAA |
 | Doppler | Secrets management | Annual | SOC 2 |
-| Firebase | Authentication | Annual | SOC 2, ISO 27001 |
+| Identity Platform | Authentication | Annual | SOC 2, ISO 27001 |
 | Linear | Issue tracking | Annual | SOC 2 |
 
 **Rationale**: Third-party security is platform security. Automated tracking ensures vendor assessments remain current without manual calendar management.
@@ -398,7 +403,7 @@ Third-party assessment SHALL cover:
 - Third-party incident notification tested annually
 - Vendor security status visible in compliance dashboard
 
-*End* *Third-Party Security Assessment* | **Hash**: 4d0d53e7
+*End* *Third-Party Security Assessment* | **Hash**: 17585690
 
 ---
 

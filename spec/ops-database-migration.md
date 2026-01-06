@@ -2,7 +2,7 @@
 
 **Version**: 2.0
 **Audience**: Operations (Database Administrators, DevOps Engineers)
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-12-29
 **Status**: Draft
 
 > **See**: prd-architecture-multi-sponsor.md for multi-sponsor deployment architecture
@@ -127,7 +127,7 @@ dependencies:
 ### Core Repository Structure
 
 ```
-clinical-diary/packages/database/migrations/
+clinical-diary/database/migrations/
 ├── README.md                    # Core migration execution instructions
 ├── 001_initial_schema.sql       # Core schema tables
 ├── 002_add_audit_metadata.sql   # ALCOA+ audit fields

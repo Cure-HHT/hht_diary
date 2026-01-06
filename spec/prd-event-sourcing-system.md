@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Audience**: Product Requirements
-**Last Updated**: 2025-11-04
+**Last Updated**: 2025-12-27
 **Status**: Draft
 
 > **See**: dev-event-sourcing-postgres.md for implementation details (to be created)
@@ -161,13 +161,13 @@ Offline queue SHALL ensure:
 
 **Acceptance Criteria**:
 - Events saved locally immediately upon creation
-- Automatic sync when network becomes available
+- Automatic sync when network becomes available and application is active on the device.
 - Manual sync trigger for user control
 - Sync status indicator (pending/syncing/complete)
 - Failed events logged with detailed error messages
 - No data loss even if app force-closed
 
-*End* *Offline Event Queue with Automatic Synchronization* | **Hash**: 9a8601c2
+*End* *Offline Event Queue with Automatic Synchronization* | **Hash**: 409ae35f
 ---
 
 ---
@@ -181,7 +181,7 @@ The module SHALL implement optimistic concurrency control to handle conflicting 
 Conflict resolution SHALL support:
 - Version vectors or sequence numbers for event ordering
 - Automatic detection of conflicting events
-- Pluggable conflict resolution strategies (last-write-wins, merge, custom)
+- Pluggable conflict resolution strategies (last-write-wins, merge, custom) TODO - waves hands
 - User notification when manual conflict resolution required
 - Preservation of all conflicting events in audit trail
 
@@ -195,7 +195,7 @@ Conflict resolution SHALL support:
 - All conflicting events preserved in event log
 - Audit trail shows conflict resolution actions
 
-*End* *Optimistic Concurrency Control* | **Hash**: 21a2772e
+*End* *Optimistic Concurrency Control* | **Hash**: 212f5cb5
 ---
 
 ---
@@ -234,8 +234,10 @@ Event storage SHALL ensure:
 The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
 
 Schema management SHALL provide:
-- Client awareness of current database schema version
-- Compatibility checks before event creation
+- Server app awareness of current database schema version
+- Client app awareness of server app version.
+- Compatibility checks on server start (portal, auth).
+- Compatibility checks on client application (diary, portal) start.
 - Automatic data migration for compatible schema changes
 - Clear error messages for incompatible schema versions
 - Rollback capability for failed migrations
@@ -249,7 +251,7 @@ Schema management SHALL provide:
 - Migration scripts applied automatically when compatible
 - Incompatible versions display clear upgrade instructions
 
-*End* *Schema Version Management* | **Hash**: 569e1667
+*End* *Schema Version Management* | **Hash**: d9680875
 ---
 
 ---
@@ -602,6 +604,8 @@ Batch operations SHALL ensure:
 ---
 
 ---
+
+TODO - This adds unnecessary complexity
 
 # REQ-p01013: GraphQL or gRPC Transport Option
 
