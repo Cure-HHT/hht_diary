@@ -214,7 +214,7 @@ Phase 6: Reference & Domain Docs (Optional/As-Needed)
 Summary: Reading Order Rationale
 
 | Phase | Focus     | Rationale                                              |
-  |-------|-----------|--------------------------------------------------------|
+|-------|-----------|--------------------------------------------------------|
 | 1     | PRD       | Understand WHAT we're building (business requirements) |
 | 2     | OPS       | Understand HOW it's deployed and operated              |
 | 3     | DEV       | Understand HOW it's implemented in code                |
