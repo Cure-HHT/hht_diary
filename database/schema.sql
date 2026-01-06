@@ -123,8 +123,13 @@
 -- =====================================================
 
 -- Enable required extensions
+-- Set timeouts for safety during extension creation
+SET statement_timeout = '30s';
+SET lock_timeout = '10s';
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+RESET statement_timeout;
+RESET lock_timeout;
 
 -- =====================================================
 -- CORE TABLES
