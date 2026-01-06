@@ -34,6 +34,16 @@ RUN mkdir -p /etc/dpkg/dpkg.cfg.d && \
     echo "path-exclude=/usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc
 
 # ============================================================
+# APT Configuration for CI resilience
+# ============================================================
+# - Acquire::Retries: Retry failed downloads (handles transient mirror issues)
+# - Disable AppStream metadata: dep11 files not needed for CLI containers
+#   (These frequently fail on Ubuntu mirrors and aren't required for apt install)
+RUN mkdir -p /etc/apt/apt.conf.d && \
+    echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
+    rm -f /etc/apt/apt.conf.d/50appstream
+
+# ============================================================
 # System Packages & Dependencies
 # ============================================================
 # Suppress update-alternatives warnings for missing man pages (excluded via dpkg config)
