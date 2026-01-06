@@ -38,8 +38,10 @@ RUN mkdir -p /etc/dpkg/dpkg.cfg.d && \
 # ============================================================
 # Suppress update-alternatives warnings for missing man pages (excluded via dpkg config)
 # Safe: Warnings are cosmetic - all tools install and function correctly, only symlink creation skipped
+# Note: pipefail ensures apt-get failures are detected even when piped through grep
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update -y && \
-    (apt-get install -y \
+    apt-get install -y \
     # Core utilities
     curl \
     wget \
@@ -61,8 +63,9 @@ RUN apt-get update -y && \
     procps \
     # For adding repositories
     gpg \
-    2>&1 | grep -v "update-alternatives: warning" || true) && \
+    2>&1 | { grep -v "update-alternatives: warning" || true; } && \
     rm -rf /var/lib/apt/lists/*
+SHELL ["/bin/sh", "-c"]
 
 # ============================================================
 # Git Configuration (latest stable)
