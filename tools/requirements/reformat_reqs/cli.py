@@ -42,6 +42,11 @@ from .transformer import (
     validate_reformatted_content
 )
 from .file_editor import replace_requirement_in_file, update_hash
+from .line_breaks import (
+    normalize_line_breaks,
+    fix_requirement_line_breaks,
+    detect_line_break_issues
+)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -62,6 +67,12 @@ Examples:
 
   # Force reformat already-formatted REQs
   python -m tools.requirements.reformat_reqs --force-reformat
+
+  # Fix line breaks only (no AI reformatting)
+  python -m tools.requirements.reformat_reqs --line-breaks-only --dry-run
+
+  # Fix line breaks without paragraph reflowing
+  python -m tools.requirements.reformat_reqs --line-breaks-only --no-reflow
 '''
     )
 
@@ -111,6 +122,21 @@ Examples:
         default='sonnet',
         choices=['sonnet', 'opus', 'haiku'],
         help='Claude model to use for reformatting (default: sonnet)'
+    )
+    parser.add_argument(
+        '--fix-line-breaks',
+        action='store_true',
+        help='Normalize line breaks (remove extra blank lines, reflow paragraphs)'
+    )
+    parser.add_argument(
+        '--no-reflow',
+        action='store_true',
+        help='With --fix-line-breaks: collapse blank lines but do not reflow paragraphs'
+    )
+    parser.add_argument(
+        '--line-breaks-only',
+        action='store_true',
+        help='Only fix line breaks, skip AI-based reformatting'
     )
 
     return parser
@@ -187,9 +213,14 @@ def process_requirement(
         })
         return
 
-    # Validate
+    # Extract and clean up AI output
     rationale = parsed['rationale']
     assertions = parsed['assertions']
+
+    # Normalize line breaks in AI output (always enabled to prevent introducing issues)
+    # This reflows paragraphs and removes unnecessary blank lines
+    rationale = normalize_line_breaks(rationale, reflow=True).strip()
+    assertions = [normalize_line_breaks(a, reflow=True).strip() for a in assertions]
 
     is_valid, warnings = validate_reformatted_content(node, rationale, assertions)
 
@@ -250,6 +281,107 @@ def process_requirement(
         })
 
 
+def process_line_breaks_only(
+    node: RequirementNode,
+    depth: int,
+    args: argparse.Namespace,
+    results: Dict[str, List]
+) -> None:
+    """
+    Process a single requirement for line break normalization only.
+
+    This skips AI-based reformatting and only fixes line break issues.
+
+    Args:
+        node: RequirementNode to process
+        depth: Current traversal depth
+        args: Parsed command line arguments
+        results: Results dict to update
+    """
+    indent = "  " * depth
+
+    # Check for line break issues
+    full_content = f"{node.body}\n{node.rationale}"
+    issues = detect_line_break_issues(full_content)
+
+    if not issues and not args.force_reformat:
+        if args.verbose:
+            print(
+                f"{indent}[SKIP] {node.req_id}: No line break issues detected",
+                file=sys.stderr
+            )
+        results['already_formatted'].append(node.req_id)
+        return
+
+    # Log what we're doing
+    action_desc = "Would fix" if args.dry_run else "Fixing"
+    print(
+        f"{indent}[PROCESS] {node.req_id}: {node.title} ({len(issues)} issues)",
+        file=sys.stderr
+    )
+
+    if args.verbose and issues:
+        for issue in issues[:5]:  # Show first 5 issues
+            print(f"{indent}  - {issue}", file=sys.stderr)
+        if len(issues) > 5:
+            print(f"{indent}  ... and {len(issues) - 5} more", file=sys.stderr)
+
+    if args.dry_run:
+        results['processed'].append({
+            'req_id': node.req_id,
+            'file': node.file_path,
+            'action': 'would_fix_line_breaks',
+            'issues': len(issues)
+        })
+        return
+
+    # Fix line breaks
+    reflow = not args.no_reflow
+    fixed_body, fixed_rationale = fix_requirement_line_breaks(
+        node.body,
+        node.rationale,
+        reflow=reflow
+    )
+
+    # Read the current file content to reconstruct the full requirement
+    try:
+        from .file_editor import find_requirement_in_file
+        _, _, current_content = find_requirement_in_file(node.file_path, node.req_id)
+
+        # Apply fixes to the full content
+        fixed_content = normalize_line_breaks(current_content, reflow=reflow)
+
+        # Replace in file
+        replace_requirement_in_file(
+            node.file_path,
+            node.req_id,
+            fixed_content,
+            create_backup=args.backup
+        )
+        print(f"{indent}  [OK] Updated {Path(node.file_path).name}", file=sys.stderr)
+
+        # Update hash
+        if not args.skip_hash_update:
+            if update_hash(node.req_id, verbose=args.verbose):
+                print(f"{indent}  [OK] Hash updated", file=sys.stderr)
+            else:
+                print(f"{indent}  [WARN] Hash update failed", file=sys.stderr)
+
+        results['processed'].append({
+            'req_id': node.req_id,
+            'file': node.file_path,
+            'action': 'fixed_line_breaks',
+            'issues': len(issues)
+        })
+
+    except Exception as e:
+        print(f"{indent}  [ERROR] {e}", file=sys.stderr)
+        results['errors'].append({
+            'req_id': node.req_id,
+            'error': str(e)
+        })
+
+
 def main() -> int:
     """Main entry point."""
     parser = create_parser()
@@ -264,6 +396,7 @@ def main() -> int:
         'depth': args.depth,
         'dry_run': args.dry_run,
         'model': args.model,
+        'mode': 'line_breaks_only' if args.line_breaks_only else 'full_reformat',
         'processed': [],
         'skipped': [],
         'errors': [],
@@ -303,11 +436,23 @@ def main() -> int:
     if args.depth is not None:
         print(f"Depth limit: {args.depth}", file=sys.stderr)
 
+    # Display mode
+    if args.line_breaks_only:
+        print("Mode: Line breaks only (no AI reformatting)", file=sys.stderr)
+    elif args.fix_line_breaks:
+        print("Mode: Full reformat + line break fixing", file=sys.stderr)
+    else:
+        print("Mode: Full AI-based reformatting", file=sys.stderr)
+
     print("", file=sys.stderr)
 
-    # Traverse and process
-    def process_callback(node: RequirementNode, depth: int) -> None:
-        process_requirement(node, depth, args, results)
+    # Traverse and process - use appropriate callback based on mode
+    if args.line_breaks_only:
+        def process_callback(node: RequirementNode, depth: int) -> None:
+            process_line_breaks_only(node, depth, args, results)
+    else:
+        def process_callback(node: RequirementNode, depth: int) -> None:
+            process_requirement(node, depth, args, results)
 
     visited = traverse_top_down(
         requirements,

@@ -28,8 +28,7 @@ data integrity, security, auditability, and regulatory acceptance.
 
 ## Rationale
 
-This requirement defines the existence, scope, and regulatory nature of the platform
-without constraining internal design or implementation mechanisms.
+This requirement defines the existence, scope, and regulatory nature of the platform without constraining internal design or implementation mechanisms.
 
 ## Assertions
 
