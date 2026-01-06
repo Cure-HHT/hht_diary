@@ -70,7 +70,8 @@ from .status import get_req_status, change_req_status
 def create_app(
     repo_root: Path,
     static_dir: Optional[Path] = None,
-    auto_sync: bool = True
+    auto_sync: bool = True,
+    register_static_routes: bool = True
 ) -> Flask:
     """
     Create Flask app with review API endpoints.
@@ -82,6 +83,8 @@ def create_app(
         repo_root: Repository root path for .reviews/ storage
         static_dir: Optional directory to serve static files from
         auto_sync: Whether to auto-commit and push after write operations
+        register_static_routes: Whether to register default static file routes
+            (set to False if caller will define custom static routes)
 
     Returns:
         Flask application
@@ -121,18 +124,19 @@ def create_app(
     # REQ-tv-d00014-G: Serve static files from the configured static directory
     # ==========================================================================
 
-    @app.route('/')
-    def index():
-        """Serve index from static directory"""
-        return send_from_directory(
-            app.config['STATIC_DIR'],
-            'index.html'
-        )
+    if register_static_routes:
+        @app.route('/')
+        def index():
+            """Serve index from static directory"""
+            return send_from_directory(
+                app.config['STATIC_DIR'],
+                'index.html'
+            )
 
-    @app.route('/<path:path>')
-    def serve_static(path):
-        """Serve static files from configured static directory"""
-        return send_from_directory(app.config['STATIC_DIR'], path)
+        @app.route('/<path:path>')
+        def serve_static(path):
+            """Serve static files from configured static directory"""
+            return send_from_directory(app.config['STATIC_DIR'], path)
 
     # ==========================================================================
     # Health Check

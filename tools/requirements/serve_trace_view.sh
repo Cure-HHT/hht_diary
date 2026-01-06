@@ -88,7 +88,8 @@ from tools.requirements.trace_view.review.server import create_app
 
 app = create_app(
     repo_root=Path('$REPO_ROOT'),
-    auto_sync=True
+    auto_sync=True,
+    register_static_routes=False
 )
 
 # Serve static files from repo root
@@ -99,6 +100,11 @@ def index():
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory('$REPO_ROOT', path)
+
+@app.route('/help/<path:filename>')
+def serve_help(filename):
+    help_dir = Path('$SCRIPT_DIR/trace_view/html/templates/partials/review/help')
+    return send_from_directory(str(help_dir), filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=$PORT, debug=False)
