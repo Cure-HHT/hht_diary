@@ -344,7 +344,10 @@ const TraceView = (function() {
 
                 // For markdown files, render as formatted markdown
                 if (ext === 'md' && window.marked) {
-                    const renderedHtml = marked.parse(text);
+                    // Pre-process: convert lettered lists (A. B. C.) to proper markdown lists
+                    // Standard markdown only recognizes numbered (1. 2.) and bullet (- *) lists
+                    const processedText = this._preprocessMarkdown(text);
+                    const renderedHtml = marked.parse(processedText);
                     content.innerHTML = `<div class="markdown-viewer markdown-body">${renderedHtml}</div>`;
                     content.classList.add('markdown-mode');
                     this._scrollToMarkdownLine(content, text, lineNum);
@@ -436,6 +439,30 @@ const TraceView = (function() {
                     setTimeout(() => targetElement.classList.remove('highlight-target'), 2000);
                 }
             }, 100);
+        },
+
+        /**
+         * Pre-process markdown to handle non-standard list formats
+         * Converts lettered lists (A. B. C.) to standard bullet lists
+         * @private
+         */
+        _preprocessMarkdown: function(text) {
+            const lines = text.split('\n');
+            const result = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                // Match lines starting with a single uppercase letter followed by period and space
+                // e.g., "A. The system SHALL..." -> "- **A.** The system SHALL..."
+                const letteredMatch = line.match(/^([A-Z])\.\s+(.+)$/);
+                if (letteredMatch) {
+                    // Convert to bullet list with bold letter prefix
+                    line = `- **${letteredMatch[1]}.** ${letteredMatch[2]}`;
+                }
+                result.push(line);
+            }
+
+            return result.join('\n');
         },
 
         /**
