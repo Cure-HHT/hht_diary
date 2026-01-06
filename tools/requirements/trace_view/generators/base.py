@@ -40,7 +40,7 @@ class TraceViewGenerator:
     """
 
     # Version number - increment with each change
-    VERSION = 9
+    VERSION = 16
 
     # Map parsed levels to uppercase for consistency
     LEVEL_MAP = {
