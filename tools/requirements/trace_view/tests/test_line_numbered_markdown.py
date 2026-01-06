@@ -25,7 +25,7 @@ def review_line_numbers_js():
     """Load the review-line-numbers.js source code."""
     js_path = (
         Path(__file__).parent.parent /
-        "html_gen" / "templates" / "partials" / "review" / "review-line-numbers.js"
+        "html" / "templates" / "partials" / "review" / "review-line-numbers.js"
     )
     if not js_path.exists():
         pytest.skip("review-line-numbers.js not found")
@@ -37,7 +37,7 @@ def review_init_js():
     """Load the review-init.js source code."""
     js_path = (
         Path(__file__).parent.parent /
-        "html_gen" / "templates" / "partials" / "review" / "review-init.js"
+        "html" / "templates" / "partials" / "review" / "review-init.js"
     )
     if not js_path.exists():
         pytest.skip("review-init.js not found")
@@ -49,7 +49,7 @@ def review_css():
     """Load the review-styles.css source code."""
     css_path = (
         Path(__file__).parent.parent /
-        "html_gen" / "templates" / "partials" / "review-styles.css"
+        "html" / "templates" / "partials" / "review-styles.css"
     )
     if not css_path.exists():
         pytest.skip("review-styles.css not found")
@@ -61,7 +61,7 @@ def generator_py():
     """Load the generator.py source code."""
     py_path = (
         Path(__file__).parent.parent /
-        "html_gen" / "generator.py"
+        "html" / "generator.py"
     )
     if not py_path.exists():
         pytest.skip("generator.py not found")

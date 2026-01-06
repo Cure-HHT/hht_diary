@@ -113,12 +113,12 @@ class TestCSSValidity:
 class TestCSSLoading:
     """Tests for CSS loading at render time."""
 
-    def test_css_loaded_at_render_time(self, html_generator):
+    def test_css_loaded_at_render_time(self, htmlerator):
         """
         REQ-tv-d00002-E: CSS content SHALL be loaded from the file at
         template render time.
         """
-        html = html_generator.generate()
+        html = htmlerator.generate()
 
         # CSS should be present in the generated HTML
         assert "<style>" in html.lower() or "<style " in html.lower(), \
@@ -139,14 +139,14 @@ class TestCSSLoading:
 class TestCSSEquivalence:
     """Tests for visual equivalence with original."""
 
-    def test_css_produces_identical_output(self, html_generator):
+    def test_css_produces_identical_output(self, htmlerator):
         """
         REQ-tv-d00002-F: The extracted CSS SHALL produce visually identical
         output to the current inline CSS generation.
         """
         # This is a regression test - output should match baseline
         # For now, verify that the key layout classes are present
-        html = html_generator.generate(embed_content=True)
+        html = htmlerator.generate(embed_content=True)
 
         # Key layout elements that must be styled correctly
         key_classes = [
@@ -170,12 +170,12 @@ class TestCSSEquivalence:
 class TestNoDuplication:
     """Tests for no CSS duplication."""
 
-    def test_no_duplicate_css_between_file_and_inline(self, html_generator):
+    def test_no_duplicate_css_between_file_and_inline(self, htmlerator):
         """
         REQ-tv-d00002-G: CSS selectors and rules SHALL NOT be duplicated
         between the extracted file and any remaining inline styles.
         """
-        html = html_generator.generate()
+        html = htmlerator.generate()
 
         # Count style tag occurrences
         import re

@@ -24,7 +24,7 @@ class TestHelpMenuHTML:
     @pytest.fixture
     def base_html_content(self):
         """Load base.html template content."""
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
         return template_path.read_text()
@@ -115,7 +115,7 @@ class TestHelpPanelHTML:
     @pytest.fixture
     def base_html_content(self):
         """Load base.html template content."""
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
         return template_path.read_text()
@@ -199,7 +199,7 @@ class TestHelpMenuCSS:
     @pytest.fixture
     def styles_content(self):
         """Load review-styles.css content."""
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
         return styles_path.read_text()
@@ -253,7 +253,7 @@ class TestHelpPanelCSS:
     @pytest.fixture
     def styles_content(self):
         """Load review-styles.css content."""
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
         return styles_path.read_text()
@@ -307,7 +307,7 @@ class TestHelpSystemJavaScript:
     @pytest.fixture
     def js_content(self):
         """Load review-help.js content."""
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         js_path = html_path / "templates" / "partials" / "review" / "review-help.js"
         return js_path.read_text()
@@ -377,7 +377,7 @@ class TestHelpSystemIntegration:
     @pytest.fixture
     def js_content(self):
         """Load review-help.js content."""
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         js_path = html_path / "templates" / "partials" / "review" / "review-help.js"
         return js_path.read_text()
@@ -440,7 +440,7 @@ class TestHelpJSONFiles:
         """
         REQ-d00092: help-panel.json SHALL exist in the help directory.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         json_path = html_path / "templates" / "partials" / "review" / "help" / "help-panel.json"
         assert json_path.exists(), \
@@ -450,7 +450,7 @@ class TestHelpJSONFiles:
         """
         REQ-d00092: tooltips.json SHALL exist in the help directory.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         json_path = html_path / "templates" / "partials" / "review" / "help" / "tooltips.json"
         assert json_path.exists(), \
@@ -460,7 +460,7 @@ class TestHelpJSONFiles:
         """
         REQ-d00092: onboarding.json SHALL exist in the help directory.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         json_path = html_path / "templates" / "partials" / "review" / "help" / "onboarding.json"
         assert json_path.exists(), \
@@ -471,7 +471,7 @@ class TestHelpJSONFiles:
         REQ-d00092: help-panel.json SHALL be valid JSON with required structure.
         """
         import json
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         json_path = html_path / "templates" / "partials" / "review" / "help" / "help-panel.json"
 

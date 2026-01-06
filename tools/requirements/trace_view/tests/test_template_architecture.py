@@ -16,7 +16,7 @@ import pytest
 class TestJinja2Environment:
     """Tests for Jinja2 Environment configuration."""
 
-    def test_generator_uses_jinja2_environment(self, html_generator_class, sample_requirements):
+    def test_generator_uses_jinja2_environment(self, htmlerator_class, sample_requirements):
         """
         REQ-tv-d00001-A: The HTMLGenerator class SHALL use a Jinja2 Environment
         for template rendering.
@@ -26,11 +26,11 @@ class TestJinja2Environment:
         except ImportError:
             pytest.skip("jinja2 not installed")
 
-        generator = html_generator_class(requirements=sample_requirements)
+        generator = htmlerator_class(requirements=sample_requirements)
         assert hasattr(generator, 'env'), "Generator must have 'env' attribute"
         assert isinstance(generator.env, Environment), "env must be Jinja2 Environment"
 
-    def test_templates_loaded_from_subdirectory(self, html_generator_class):
+    def test_templates_loaded_from_subdirectory(self, htmlerator_class):
         """
         REQ-tv-d00001-B: Templates SHALL be loaded from a `templates/`
         subdirectory relative to the `html/` module.
@@ -43,7 +43,7 @@ class TestJinja2Environment:
         assert templates_path.exists(), f"Templates directory must exist at {templates_path}"
         assert templates_path.is_dir(), "templates/ must be a directory"
 
-    def test_uses_filesystem_loader(self, html_generator_class, sample_requirements):
+    def test_uses_filesystem_loader(self, htmlerator_class, sample_requirements):
         """
         REQ-tv-d00001-C: The template loader SHALL use FileSystemLoader with
         the templates directory path.
@@ -53,7 +53,7 @@ class TestJinja2Environment:
         except ImportError:
             pytest.skip("jinja2 not installed")
 
-        generator = html_generator_class(requirements=sample_requirements)
+        generator = htmlerator_class(requirements=sample_requirements)
         assert hasattr(generator.env, 'loader'), "Environment must have loader"
         assert isinstance(generator.env.loader, FileSystemLoader), \
             "Loader must be FileSystemLoader"
@@ -62,7 +62,7 @@ class TestJinja2Environment:
 class TestContextRendering:
     """Tests for template context and rendering."""
 
-    def test_context_contains_required_data(self, html_generator):
+    def test_context_contains_required_data(self, htmlerator):
         """
         REQ-tv-d00001-D: The generator SHALL pass a context dictionary to
         template rendering containing: requirements data, coverage data,
@@ -71,13 +71,13 @@ class TestContextRendering:
         # We need to inspect what context is passed to the template
         # This requires the implementation to expose or allow inspection
         # For now, verify the generate method works and produces output
-        html = html_generator.generate(embed_content=True)
+        html = htmlerator.generate(embed_content=True)
 
         # Context must have been passed if HTML was generated
         assert html is not None
         assert len(html) > 0
 
-    def test_base_template_defines_document_structure(self, html_generator_class):
+    def test_base_template_defines_document_structure(self, htmlerator_class):
         """
         REQ-tv-d00001-E: The base template SHALL define the complete HTML
         document structure including DOCTYPE, html, head, and body elements.
@@ -98,27 +98,27 @@ class TestContextRendering:
 class TestRenderingFlags:
     """Tests for embed_content and edit_mode flags."""
 
-    def test_supports_embed_content_flag(self, html_generator):
+    def test_supports_embed_content_flag(self, htmlerator):
         """
         REQ-tv-d00001-F: Template rendering SHALL support the `embed_content`
         flag to control data embedding mode.
         """
         # Both modes should work
-        html_embedded = html_generator.generate(embed_content=True)
-        html_links = html_generator.generate(embed_content=False)
+        html_embedded = htmlerator.generate(embed_content=True)
+        html_links = htmlerator.generate(embed_content=False)
 
         assert html_embedded is not None
         assert html_links is not None
         # Embedded mode should have more content (JSON data)
         assert len(html_embedded) > len(html_links)
 
-    def test_supports_edit_mode_flag(self, html_generator):
+    def test_supports_edit_mode_flag(self, htmlerator):
         """
         REQ-tv-d00001-G: Template rendering SHALL support the `edit_mode`
         flag to control edit UI visibility.
         """
-        html_edit = html_generator.generate(embed_content=True, edit_mode=True)
-        html_view = html_generator.generate(embed_content=True, edit_mode=False)
+        html_edit = htmlerator.generate(embed_content=True, edit_mode=True)
+        html_view = htmlerator.generate(embed_content=True, edit_mode=False)
 
         assert html_edit is not None
         assert html_view is not None
@@ -129,7 +129,7 @@ class TestRenderingFlags:
 class TestMethodSignature:
     """Tests for backward-compatible method signature."""
 
-    def test_generate_method_signature(self, html_generator):
+    def test_generate_method_signature(self, htmlerator):
         """
         REQ-tv-d00001-H: The generator class SHALL expose a `generate()` method
         with the same signature as the current implementation:
@@ -138,11 +138,11 @@ class TestMethodSignature:
         import inspect
 
         # Check method exists
-        assert hasattr(html_generator, 'generate'), "Must have generate() method"
-        assert callable(html_generator.generate), "generate must be callable"
+        assert hasattr(htmlerator, 'generate'), "Must have generate() method"
+        assert callable(htmlerator.generate), "generate must be callable"
 
         # Check signature
-        sig = inspect.signature(html_generator.generate)
+        sig = inspect.signature(htmlerator.generate)
         params = sig.parameters
 
         assert 'embed_content' in params, "Must have embed_content parameter"
@@ -160,7 +160,7 @@ class TestMethodSignature:
 class TestErrorHandling:
     """Tests for template error handling."""
 
-    def test_template_errors_include_location(self, html_generator):
+    def test_template_errors_include_location(self, htmlerator):
         """
         REQ-tv-d00001-I: Template errors SHALL be reported with meaningful
         error messages including template name and line number.
@@ -170,7 +170,7 @@ class TestErrorHandling:
 
         # Normal operation should not raise
         try:
-            html = html_generator.generate()
+            html = htmlerator.generate()
             assert html is not None
         except Exception as e:
             # If there's an error, it should include template info

@@ -211,7 +211,7 @@ def sample_repo_root(tmp_path):
 
 
 @pytest.fixture
-def html_generator_class():
+def htmlerator_class():
     """Import and return HTMLGenerator class (for testing new implementation).
 
     This fixture skips if the HTMLGenerator hasn't been refactored to use Jinja2.
@@ -230,13 +230,13 @@ def html_generator_class():
 
 
 @pytest.fixture
-def html_generator(html_generator_class, sample_requirements, sample_repo_root):
+def htmlerator(htmlerator_class, sample_requirements, sample_repo_root):
     """Provide a fully configured HTMLGenerator instance for testing.
 
     This fixture combines the generator class with sample data and repo root
     to avoid the 'repo_root is None' errors in tests.
     """
-    return html_generator_class(
+    return htmlerator_class(
         requirements=sample_requirements,
         repo_root=sample_repo_root
     )

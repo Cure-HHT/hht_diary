@@ -119,7 +119,7 @@ def sample_thread_general(valid_hash):
 @pytest.fixture
 def review_comments_js_content():
     """Load the review-comments.js file content."""
-    js_path = Path(__file__).parent.parent / "html_gen" / "templates" / "partials" / "review" / "review-comments.js"
+    js_path = Path(__file__).parent.parent / "html" / "templates" / "partials" / "review" / "review-comments.js"
     if js_path.exists():
         return js_path.read_text()
     return None
@@ -128,7 +128,7 @@ def review_comments_js_content():
 @pytest.fixture
 def review_styles_css_content():
     """Load the review-styles.css file content."""
-    css_path = Path(__file__).parent.parent / "html_gen" / "templates" / "partials" / "review-styles.css"
+    css_path = Path(__file__).parent.parent / "html" / "templates" / "partials" / "review-styles.css"
     if css_path.exists():
         return css_path.read_text()
     return None

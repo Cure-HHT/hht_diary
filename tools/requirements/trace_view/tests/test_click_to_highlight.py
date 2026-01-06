@@ -25,7 +25,7 @@ import pytest
 @pytest.fixture
 def review_comments_js():
     """Load the review-comments.js module content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     js_path = html_path / "templates" / "partials" / "review" / "review-comments.js"
     return js_path.read_text()
@@ -34,7 +34,7 @@ def review_comments_js():
 @pytest.fixture
 def review_position_js():
     """Load the review-position.js module content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     js_path = html_path / "templates" / "partials" / "review" / "review-position.js"
     return js_path.read_text()
@@ -43,7 +43,7 @@ def review_position_js():
 @pytest.fixture
 def review_styles_css():
     """Load the review-styles.css content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     css_path = html_path / "templates" / "partials" / "review-styles.css"
     return css_path.read_text()

@@ -20,7 +20,7 @@ import pytest
 @pytest.fixture
 def base_html_content():
     """Load the base.html template content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     base_template = html_path / "templates" / "base.html"
     return base_template.read_text()
@@ -29,7 +29,7 @@ def base_html_content():
 @pytest.fixture
 def review_styles_content():
     """Load the review-styles.css content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     styles_path = html_path / "templates" / "partials" / "review-styles.css"
     return styles_path.read_text()

@@ -14,18 +14,18 @@ import pytest
 class TestJinja2Escaping:
     """Test that CSS/JS are not HTML-escaped in generated output."""
 
-    def test_javascript_not_html_escaped(self, html_generator):
+    def test_javascript_not_html_escaped(self, htmlerator):
         """JS should not contain &#39; or &#34; HTML entity escapes."""
-        html = html_generator.generate(embed_content=True)
+        html = htmlerator.generate(embed_content=True)
 
         # Should NOT find HTML-escaped quotes anywhere in the output
         # These would break JavaScript syntax
         assert "&#39;" not in html, "Found HTML-escaped single quotes (&#39;) - JS is broken"
         assert "&#34;" not in html, "Found HTML-escaped double quotes (&#34;) - JS is broken"
 
-    def test_css_font_family_not_escaped(self, html_generator):
+    def test_css_font_family_not_escaped(self, htmlerator):
         """CSS font-family declarations should have proper quotes."""
-        html = html_generator.generate()
+        html = htmlerator.generate()
 
         # Font-family should appear with proper quotes, not escaped
         # The CSS contains: font-family: 'Segoe UI', ...
@@ -33,18 +33,18 @@ class TestJinja2Escaping:
         # Should NOT be escaped to &#39;Segoe UI&#39;
         assert "&#39;Segoe UI&#39;" not in html, "Font-family quotes are HTML-escaped"
 
-    def test_javascript_function_syntax_valid(self, html_generator):
+    def test_javascript_function_syntax_valid(self, htmlerator):
         """Key JS functions should be defined with proper syntax."""
-        html = html_generator.generate(embed_content=True)
+        html = htmlerator.generate(embed_content=True)
 
         # The TraceView module pattern should be present with proper quotes
         # Looking for: 'use strict' (not &#39;use strict&#39;)
         assert "'use strict'" in html or '"use strict"' in html, \
             "JavaScript 'use strict' directive not found or is escaped"
 
-    def test_json_data_not_double_escaped(self, html_generator):
+    def test_json_data_not_double_escaped(self, htmlerator):
         """JSON data block should not have escaped quotes."""
-        html = html_generator.generate(embed_content=True)
+        html = htmlerator.generate(embed_content=True)
 
         # JSON data is in a script tag with type="application/json"
         # It should contain proper JSON, not HTML-escaped JSON

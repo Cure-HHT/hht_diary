@@ -30,9 +30,9 @@ import pytest
 # =============================================================================
 
 @pytest.fixture
-def html_generator_module():
+def htmlerator_module():
     """Load the HTML generator module."""
-    from trace_view.html_gen.generator import HTMLGenerator
+    from trace_view.html.generator import HTMLGenerator
     return HTMLGenerator
 
 
@@ -77,18 +77,18 @@ def sample_repo_root(tmp_path):
 
 
 @pytest.fixture
-def html_generator(html_generator_module, sample_requirements, sample_repo_root):
+def htmlerator(htmlerator_module, sample_requirements, sample_repo_root):
     """Create a configured HTMLGenerator instance."""
-    return html_generator_module(
+    return htmlerator_module(
         requirements=sample_requirements,
         repo_root=sample_repo_root
     )
 
 
 @pytest.fixture
-def generated_html_with_review_mode(html_generator):
+def generated_html_with_review_mode(htmlerator):
     """Generate HTML output with review mode enabled."""
-    return html_generator.generate(
+    return htmlerator.generate(
         embed_content=True,
         edit_mode=True,
         review_mode=True
@@ -96,9 +96,9 @@ def generated_html_with_review_mode(html_generator):
 
 
 @pytest.fixture
-def generated_html_without_review_mode(html_generator):
+def generated_html_without_review_mode(htmlerator):
     """Generate HTML output without review mode."""
-    return html_generator.generate(
+    return htmlerator.generate(
         embed_content=True,
         edit_mode=False,
         review_mode=False
@@ -108,7 +108,7 @@ def generated_html_without_review_mode(html_generator):
 @pytest.fixture
 def base_html_content():
     """Load the base.html template content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     template_path = html_path / "templates" / "base.html"
     return template_path.read_text()
@@ -117,7 +117,7 @@ def base_html_content():
 @pytest.fixture
 def review_styles_content():
     """Load the review-styles.css content."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     styles_path = html_path / "templates" / "partials" / "review-styles.css"
     return styles_path.read_text()
@@ -126,7 +126,7 @@ def review_styles_content():
 @pytest.fixture
 def review_js_files() -> Dict[str, str]:
     """Load all review JavaScript module files."""
-    import trace_view.html_gen as html_module
+    import trace_view.html as html_module
     html_path = Path(html_module.__file__).parent
     review_dir = html_path / "templates" / "partials" / "review"
     js_files = {}
@@ -330,7 +330,7 @@ class TestJavaScriptModuleIntegration:
         """
         REQ-d00092: All required review JavaScript modules SHALL exist.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         review_dir = html_path / "templates" / "partials" / "review"
 
@@ -469,11 +469,11 @@ class TestDataFlowIntegration:
         assert "window.REVIEW_API_URL" in generated_html_with_review_mode, \
             "Review API URL must be set"
 
-    def test_review_data_has_required_structure(self, html_generator):
+    def test_review_data_has_required_structure(self, htmlerator):
         """
         REQ-d00092: Review data context SHALL include required structure keys.
         """
-        context = html_generator._build_render_context(
+        context = htmlerator._build_render_context(
             embed_content=True,
             edit_mode=True,
             review_mode=True
@@ -494,11 +494,11 @@ class TestDataFlowIntegration:
         assert "window.REQ_CONTENT_DATA" in generated_html_with_review_mode, \
             "REQ content data must be loaded when embed_content is True"
 
-    def test_render_context_includes_review_css(self, html_generator):
+    def test_render_context_includes_review_css(self, htmlerator):
         """
         REQ-d00092: Render context SHALL include review_css when review mode enabled.
         """
-        context = html_generator._build_render_context(
+        context = htmlerator._build_render_context(
             embed_content=True,
             edit_mode=True,
             review_mode=True
@@ -509,11 +509,11 @@ class TestDataFlowIntegration:
         assert ".review-column" in context["review_css"], \
             "review_css must contain .review-column class"
 
-    def test_render_context_includes_review_js(self, html_generator):
+    def test_render_context_includes_review_js(self, htmlerator):
         """
         REQ-d00092: Render context SHALL include review_js when review mode enabled.
         """
-        context = html_generator._build_render_context(
+        context = htmlerator._build_render_context(
             embed_content=True,
             edit_mode=True,
             review_mode=True
@@ -802,14 +802,14 @@ class TestModuleLoadingOrder:
         """
         REQ-d00092: JavaScript modules SHALL be loaded in dependency order.
         """
-        from trace_view.html_gen.generator import HTMLGenerator
+        from trace_view.html.generator import HTMLGenerator
 
         # Create a minimal generator to access _load_review_js
         generator = HTMLGenerator.__new__(HTMLGenerator)
         generator.repo_root = None
 
         # Get template directory
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         template_dir = Path(html_module.__file__).parent / "templates"
         from jinja2 import Environment, FileSystemLoader, select_autoescape
         generator.env = Environment(

@@ -23,7 +23,7 @@ class TestModeToggleCSSClasses:
         REQ-d00092: Mode toggle buttons SHALL use the `.mode-toggle-btn` class
         for consistent styling.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -38,7 +38,7 @@ class TestModeToggleCSSClasses:
         REQ-d00092: Mode toggle buttons SHALL have consistent base styling
         with proper padding, border, and background properties.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -64,7 +64,7 @@ class TestModeToggleCSSClasses:
         REQ-d00092: Mode toggle buttons SHALL have an active state with
         distinct styling (blue background, white text).
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -93,7 +93,7 @@ class TestModeToggleCSSClasses:
         REQ-d00092: Mode toggle buttons SHALL have a hover state for
         visual feedback.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -111,7 +111,7 @@ class TestModeToggleGroupCSS:
         REQ-d00092: Mode toggle buttons SHALL be grouped using the
         `.mode-toggle-group` class.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -124,7 +124,7 @@ class TestModeToggleGroupCSS:
         """
         REQ-d00092: Mode toggle group SHALL use flexbox for horizontal layout.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -150,7 +150,7 @@ class TestBaseHTMLModeToggle:
         REQ-d00092: base.html SHALL use a mode-toggle-group div to contain
         the Edit and Review mode buttons.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
 
@@ -163,7 +163,7 @@ class TestBaseHTMLModeToggle:
         """
         REQ-d00092: Edit Mode button SHALL use the mode-toggle-btn class.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
 
@@ -177,7 +177,7 @@ class TestBaseHTMLModeToggle:
         """
         REQ-d00092: Review Mode button SHALL use the mode-toggle-btn class.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
 
@@ -199,7 +199,7 @@ class TestBaseHTMLModeToggle:
         REQ-d00092: Mode toggle buttons SHALL NOT contain emoji icons
         (no pencil or comment emoji).
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
 
@@ -228,7 +228,7 @@ class TestBaseHTMLModeToggle:
         REQ-d00092: Edit and Review mode buttons SHALL be in the same
         button group for visual consistency.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         template_path = html_path / "templates" / "base.html"
 
@@ -257,7 +257,7 @@ class TestModeToggleAccessibility:
         REQ-d00092: Mode toggle buttons SHALL have cursor: pointer for
         accessibility.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
@@ -278,7 +278,7 @@ class TestModeToggleAccessibility:
         REQ-d00092: Mode toggle buttons SHALL have smooth transitions
         for state changes.
         """
-        import trace_view.html_gen as html_module
+        import trace_view.html as html_module
         html_path = Path(html_module.__file__).parent
         styles_path = html_path / "templates" / "partials" / "review-styles.css"
 
