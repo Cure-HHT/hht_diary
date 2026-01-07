@@ -38,7 +38,7 @@ This project follows a **ticket-based development model with strict requirement 
 
 ### Main Branch Protection
 
-The `main` branch is **protected and read-only** for direct commits.
+The `main` branch is **protected from direct commits**. Review and merge code with pull requests.
 
 **Rules**:
 - NEVER commit directly to `main`
@@ -46,37 +46,31 @@ The `main` branch is **protected and read-only** for direct commits.
 - All changes to `main` must come through pull requests
 - PRs require passing CI/CD validation before merge
 
-### Feature Branches
+### Feature & Fix Branches
+Develop your features and fix bugs in feature branches based off your main branch. These branches are also known as topic branches. Feature & fix branches isolate work in progress from the completed work in the main branch. 
 
-Use for new features and enhancements.
+![Feature Branching Diagram](diagram/featurebranching.png)
 
+Use a consistent naming convention for your feature branches to identify the work done in the branch.
 **Pattern**: `feature/{ticket-id}-{short-description}`
-
-**Examples**:
-```bash
-git checkout -b feature/CUR-262-offline-sync
-git checkout -b feature/CUR-265-auth-refactor
-```
-
-**Lifetime**: Deleted after PR merge
-
-### Fix Branches
-
-Use for bug fixes and patches.
-
 **Pattern**: `fix/{ticket-id}-{short-description}`
 
-**Examples**:
+**Examples to make a branch**:
 ```bash
-git checkout -b fix/CUR-270-auth-crash
+git checkout -mb feature/CUR-262-offline-sync
+git branch feature/CUR-265-auth-refactor
+git checkout -mb fix/CUR-270-auth-crash
 git checkout -b fix/CUR-271-database-timeout
 ```
 
 **Lifetime**: Deleted after PR merge
 
 ### Release Branches
+Use release branches to coordinate and stabilize changes in a release of your code. This branch is long-lived and isn't merged back into the main branch in a pull request, unlike the feature branches. Create as many release branches as you need. Keep in mind that each active release branch represents another version of the code you need to support. Lock release branches when you're ready to stop supporting a particular release.
 
-Use for release preparation and version tagging.
+![Release Branching Diagram](diagram/releasebranching_release.png)
+
+Create branches to fix bugs from the release branch and merge them back into the release branch in a pull request.
 
 **Pattern**: `release/v{version}`
 
@@ -87,6 +81,16 @@ git checkout -b release/v2.1.0
 ```
 
 **Lifetime**: Kept long-term for backport fixes
+
+### Propagate changes back to main
+Make sure that fixes land in both your release branch and your main branch. One approach is to make fixes in the release branch, then bring changes into your main branch to prevent regression in your code.  Use cherry-picking instead of merging so that you have exact control over which commits are ported back to the main branch. Merging the release branch into the main branch can bring over release-specific changes you don't want in the main branch.
+
+![Changes from release to main Diagram](diagram/releasebranch2main.png)
+
+**Steps**
+1. Create a new feature branch off the main branch to port the changes.
+2. Cherry-pick the changes from the release branch to your new feature branch.
+3. Merge the feature branch back into the main branch in a second pull request.
 
 ### Branch Naming Conventions
 
