@@ -41,12 +41,13 @@ infrastructure/terraform/
 │   ├── audit-logs/                     # FDA-compliant audit storage
 │   ├── cicd-service-account/           # CI/CD SA + Workload Identity
 │   ├── vpc-network/                    # VPC, subnet, connectors
-│   ├── cloud-sql/                      # PostgreSQL 15 with pgaudit
+│   ├── cloud-sql/                      # PostgreSQL 17 with pgaudit
 │   ├── cloud-run/                      # Cloud Run service
 │   ├── storage-buckets/                # Backup storage
 │   ├── monitoring-alerts/              # Uptime, error, CPU alerts
 │   ├── workforce-identity/             # Optional SSO federation
-│   └── artifact-registry/              # Docker registry
+│   ├── artifact-registry/              # Docker registry
+│   └── cloud-build/                    # Cloud Build triggers for image builds
 │
 ├── bootstrap/                          # Creates 4 projects per sponsor
 │   ├── main.tf
@@ -111,13 +112,25 @@ gs://cure-hht-terraform-state/
 | Module               | Resources Created                                            |
 |----------------------|--------------------------------------------------------------|
 | `vpc-network`        | VPC, subnet, private IP range, service connection, connector |
-| `cloud-sql`          | PostgreSQL 15 instance, database, user (with pgaudit)        |
-| `cloud-run`          | Service, IAM for public access                               |
+| `cloud-sql`          | PostgreSQL 17 instance, database, user (with pgaudit)        |
+| `cloud-run`          | 2 services (diary-server, portal-server), IAM for access     |
 | `storage-buckets`    | Backup bucket with lifecycle                                 |
 | `audit-logs`         | Environment audit bucket, log sinks, BigQuery dataset        |
 | `monitoring-alerts`  | Uptime check, error rate, DB CPU, DB storage alerts          |
 | `artifact-registry`  | Docker repository                                            |
+| `cloud-build`        | Build triggers for diary-server and portal-server images     |
 | `workforce-identity` | (Optional) Workforce pool + OIDC/SAML provider               |
+
+### Cloud Run Services
+
+Two Cloud Run services are deployed per environment:
+
+| Service          | Source                              | Purpose                                    |
+|------------------|-------------------------------------|--------------------------------------------|
+| `diary-server`   | `apps/containers/diary-server`      | Dart backend API server                    |
+| `portal-server`  | `apps/containers/portal-server`     | Flutter web portal (to be created)         |
+
+Both are built via **Cloud Build** and pushed to **Artifact Registry**, then deployed by Terraform.
 
 ---
 
@@ -160,7 +173,7 @@ gs://cure-hht-terraform-state/
 | VPC             | `{sponsor}-{env}-vpc`                 | `orion-prod-vpc`                 |
 | Subnet          | `{sponsor}-{env}-subnet`              | `orion-prod-subnet`              |
 | Cloud SQL       | `{sponsor}-{env}-db`                  | `orion-prod-db`                  |
-| Cloud Run       | `portal`                              | `portal`                         |
+| Cloud Run       | `diary-server`, `portal-server`       | `orion-prod-diary-server`        |
 | Audit Bucket    | `{prefix}-{sponsor}-{env}-audit-logs` | `cure-hht-orion-prod-audit-logs` |
 | Service Account | `{sponsor}-cicd`                      | `orion-cicd`                     |
 
@@ -312,11 +325,13 @@ curl https://{domain}/health
 
 1. **VPC CIDR allocation**: Should we use a sponsor ID mapping (10.{id}.0.0/16) or fixed CIDRs per environment?
 
-2. **Docker image builds**: Should Terraform build images (using `docker_image` resource) or rely on external CI/CD?
+2. **Workload Identity Federation**: Should this be in bootstrap (shared) or sponsor-portal (per-env)?
 
-3. **Workload Identity Federation**: Should this be in bootstrap (shared) or sponsor-portal (per-env)?
+### Resolved Decisions
 
-4. **Existing sponsors**: Are there existing Pulumi-deployed sponsors that need state migration?
+- **Docker image builds**: Use **Cloud Build** (not Terraform). Cloud Build is faster, easier, and more secure than building locally. Terraform will reference images from Artifact Registry but not build them.
+
+- **Existing sponsors**: No existing Pulumi-deployed sponsors. No state migration required - this is a greenfield Terraform implementation.
 
 ---
 
@@ -337,6 +352,7 @@ infrastructure/terraform/
 │   ├── storage-buckets/{main,variables,outputs}.tf
 │   ├── monitoring-alerts/{main,variables,outputs}.tf
 │   ├── artifact-registry/{main,variables,outputs}.tf
+│   ├── cloud-build/{main,variables,outputs}.tf
 │   └── workforce-identity/{main,variables,outputs}.tf
 ├── bootstrap/
 │   ├── main.tf
@@ -359,7 +375,7 @@ infrastructure/terraform/
     └── common.sh
 ```
 
-**Total files**: ~45 Terraform/script files
+**Total files**: ~48 Terraform/script files (12 modules x 3 files + 2 roots x 5 files + 4 scripts)
 
 ---
 
