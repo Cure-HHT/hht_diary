@@ -218,7 +218,46 @@ module "cloud_build" {
 }
 
 # -----------------------------------------------------------------------------
-# Workforce Identity (Optional)
+# Identity Platform (HIPAA/GDPR-compliant authentication)
+# -----------------------------------------------------------------------------
+
+module "identity_platform" {
+  source = "../modules/identity-platform"
+  count  = var.enable_identity_platform ? 1 : 0
+
+  project_id  = var.project_id
+  sponsor     = var.sponsor
+  environment = var.environment
+
+  # Authentication methods
+  enable_email_password = var.identity_platform_email_password
+  enable_email_link     = var.identity_platform_email_link
+  enable_phone_auth     = var.identity_platform_phone_auth
+
+  # Security settings
+  mfa_enforcement           = var.identity_platform_mfa_enforcement
+  password_min_length       = var.identity_platform_password_min_length
+  password_require_uppercase = true
+  password_require_lowercase = true
+  password_require_numeric   = true
+  password_require_symbol    = true
+
+  # Email configuration
+  email_sender_name = var.identity_platform_email_sender_name
+  email_reply_to    = var.identity_platform_email_reply_to
+
+  # Domain configuration
+  authorized_domains = var.identity_platform_authorized_domains
+  portal_url         = module.cloud_run.portal_server_url
+
+  # Session settings
+  session_duration_minutes = var.identity_platform_session_duration
+
+  depends_on = [module.cloud_run]
+}
+
+# -----------------------------------------------------------------------------
+# Workforce Identity (Optional - for external IdP federation)
 # -----------------------------------------------------------------------------
 
 module "workforce_identity" {
