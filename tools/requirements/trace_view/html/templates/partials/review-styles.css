@@ -1,0 +1,1670 @@
+/* IMPLEMENTS REQUIREMENTS:
+ *   REQ-tv-d00016: Review JavaScript Integration
+ *
+ * Spec Review System Styles
+ * Ported from feature-spec-reviews branch
+ */
+
+
+/* ============================================
+   Spec Review System Styles
+   ============================================ */
+
+/* Review mode toggle */
+.review-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 16px;
+}
+
+.review-mode-toggle label {
+    font-weight: 500;
+    color: var(--text-secondary, #666);
+}
+
+.review-mode-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* ============================================
+   3-Column Layout for Review Mode
+   ============================================ */
+
+/* Review mode active: show review panel as third column */
+body.review-mode-active .app-layout {
+    display: flex;
+}
+
+body.review-mode-active .main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Review panel column styling */
+body.review-mode-active .review-panel {
+    width: 380px;
+    min-width: 300px;
+    max-width: 500px;
+    border-left: 1px solid #dee2e6;
+    background: #fff;
+    flex-shrink: 0;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+/* Hidden state for review panel */
+.review-panel.hidden {
+    display: none;
+}
+
+/* Mode toggle button styles */
+.mode-toggle-btn {
+    position: relative;
+}
+
+.mode-toggle-btn.active {
+    background: #0066cc;
+    color: #fff;
+}
+
+.mode-toggle-btn.active:hover {
+    background: #0052a3;
+}
+
+/* ============================================
+   Packages Panel
+   ============================================ */
+
+.rs-packages-panel {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    padding: 12px;
+}
+
+.rs-packages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.rs-packages-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.rs-packages-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.rs-packages-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rs-no-packages {
+    color: #6c757d;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.rs-package-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.rs-package-item.active {
+    border-color: #0066cc;
+    background: #e7f0ff;
+}
+
+.rs-package-item .package-name {
+    font-weight: 500;
+}
+
+.rs-package-item .package-stats {
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+/* Review badge on requirements */
+.rs-has-comments {
+    border-left: 3px solid var(--primary-color, #0066cc);
+}
+
+.rs-req-badges {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.rs-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.rs-badge-flagged {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.rs-badge-comments {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.rs-badge-pending {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.rs-badge-resolved {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Position highlighting */
+.rs-highlight-exact {
+    background-color: rgba(255, 235, 59, 0.3);
+    border-bottom: 2px solid #ffc107;
+}
+
+.rs-highlight-approximate {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-bottom: 2px dashed #ffc107;
+}
+
+.rs-highlight-unanchored {
+    background-color: rgba(158, 158, 158, 0.1);
+}
+
+.rs-highlight-active {
+    background-color: rgba(33, 150, 243, 0.3) !important;
+    border-bottom: 2px solid #2196f3 !important;
+}
+
+/* Thread list */
+.rs-thread-list {
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    margin: 16px 0;
+    background: var(--bg-secondary, #f8f9fa);
+}
+
+.rs-thread-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    background: var(--bg-tertiary, #e9ecef);
+}
+
+.rs-thread-list-header h4 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.rs-thread-list-content {
+    padding: 8px;
+}
+
+.rs-no-threads {
+    color: var(--text-muted, #999);
+    text-align: center;
+    padding: 16px;
+    font-style: italic;
+}
+
+/* Thread */
+.rs-thread {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.rs-thread-resolved {
+    opacity: 0.7;
+}
+
+.rs-thread-resolved .rs-thread-header {
+    background: #d4edda;
+}
+
+.rs-thread-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.rs-thread-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.rs-position-label {
+    font-weight: 600;
+    color: var(--primary-color, #0066cc);
+    cursor: pointer;
+}
+
+.rs-position-label:hover {
+    text-decoration: underline;
+}
+
+.rs-author {
+    font-weight: 600;
+}
+
+.rs-time {
+    color: var(--text-muted, #999);
+}
+
+.rs-position-indicator {
+    font-size: 14px;
+}
+
+.rs-thread-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.rs-thread-body {
+    padding: 12px;
+}
+
+/* Comment */
+.rs-comment {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.rs-comment:last-child {
+    border-bottom: none;
+}
+
+.rs-comment-header {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.rs-comment-body {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.rs-comment-body code {
+    background: var(--bg-code, #f4f4f4);
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+/* Reply form */
+.rs-reply-form {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color, #eee);
+}
+
+.rs-reply-input {
+    width: 100%;
+    min-height: 60px;
+    padding: 8px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.rs-reply-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+/* New comment form */
+.rs-new-comment-form {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--primary-color, #0066cc);
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.rs-new-comment-form h4 {
+    margin: 0 0 12px 0;
+    color: var(--primary-color, #0066cc);
+}
+
+.rs-form-group {
+    margin-bottom: 12px;
+}
+
+.rs-form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.rs-form-group select,
+.rs-form-group input,
+.rs-form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.rs-position-options {
+    background: var(--bg-secondary, #f8f9fa);
+    padding: 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.rs-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Status panel */
+.rs-status-panel {
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    margin: 16px 0;
+}
+
+.rs-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    background: var(--bg-tertiary, #e9ecef);
+}
+
+.rs-status-content {
+    padding: 12px;
+}
+
+.rs-status-actions {
+    padding: 12px;
+    border-top: 1px solid var(--border-color, #ddd);
+}
+
+/* Quick actions for status toggle */
+.rs-quick-actions {
+    padding: 12px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #ddd);
+    display: flex;
+    gap: 8px;
+}
+
+.rs-quick-toggle {
+    flex: 1;
+}
+
+/* Clickable status badges in review mode */
+body.review-mode-active .status-badge.status-draft {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+body.review-mode-active .status-badge.status-draft:hover {
+    opacity: 0.8;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Request card */
+.rs-request-card {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.rs-request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.rs-request-transition {
+    font-weight: 600;
+}
+
+.rs-request-state {
+    text-transform: uppercase;
+    font-size: 10px;
+}
+
+.rs-badge-pending { background: #fff3cd; color: #856404; }
+.rs-badge-approved { background: #d4edda; color: #155724; }
+.rs-badge-rejected { background: #f8d7da; color: #721c24; }
+.rs-badge-applied { background: #cce5ff; color: #004085; }
+
+.rs-request-meta {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+    margin-bottom: 8px;
+}
+
+.rs-request-justification {
+    padding: 8px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.rs-approval-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.rs-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-tertiary, #e9ecef);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.rs-progress-fill {
+    height: 100%;
+    background: var(--success-color, #28a745);
+    transition: width 0.3s;
+}
+
+.rs-progress-label {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+}
+
+.rs-approvers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.rs-approver {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+.rs-approver-pending { background: #f8f9fa; color: #666; }
+.rs-approver-approved { background: #d4edda; color: #155724; }
+.rs-approver-rejected { background: #f8d7da; color: #721c24; }
+
+.rs-approval-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color, #eee);
+}
+
+.rs-approval-comment {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+}
+
+/* Buttons */
+.rs-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--bg-secondary, #f8f9fa);
+    color: var(--text-primary, #333);
+}
+
+.rs-btn:hover {
+    background: var(--bg-tertiary, #e9ecef);
+}
+
+.rs-btn-sm {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.rs-btn-primary {
+    background: #0066cc !important;
+    color: #fff !important;
+    border-color: #0066cc !important;
+}
+
+.rs-btn-primary:hover {
+    background: #0052a3;
+}
+
+.rs-btn-secondary {
+    background: var(--bg-secondary, #6c757d);
+    color: #fff;
+}
+
+.rs-btn-success {
+    background: var(--success-color, #28a745);
+    color: #fff;
+}
+
+.rs-btn-danger {
+    background: var(--danger-color, #dc3545);
+    color: #fff;
+}
+
+.rs-btn-link {
+    background: transparent;
+    color: var(--primary-color, #0066cc);
+}
+
+/* Sync indicator */
+.rs-sync-indicator {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    background: #333;
+    color: #fff;
+    font-size: 12px;
+    z-index: 1000;
+    display: none;
+}
+
+.rs-sync-success { background: #28a745; }
+.rs-sync-error { background: #dc3545; }
+
+/* Conflict dialog */
+.rs-conflict-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.rs-conflict-dialog {
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    max-width: 400px;
+    text-align: center;
+}
+
+.rs-conflict-options {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+/* Review panel - now in dedicated third column */
+.review-panel {
+    padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.review-panel-header {
+    padding: 15px 16px;
+    margin: -16px -16px 16px -16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.review-panel-title {
+    color: #2c3e50;
+}
+
+.review-panel-req-header {
+    background: var(--primary-color, #0066cc);
+    color: #fff;
+    padding: 10px 12px;
+    margin: 0 -16px 16px -16px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.review-panel-req-header .req-id-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.review-panel-req-header .req-title-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+.review-panel-no-selection {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted, #666);
+}
+
+.review-panel-no-selection .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.review-panel-no-selection p {
+    margin: 0 0 8px 0;
+}
+
+/* Status bar - compact inline display */
+.rs-status-bar {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+}
+
+.rs-status-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.rs-status-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rs-status-label {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+}
+
+.rs-status-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rs-status-bar .status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+}
+
+/* Status change dialog */
+.rs-status-dialog {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--primary-color, #0066cc);
+    border-radius: 4px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.rs-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--primary-color, #0066cc);
+    color: #fff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.rs-dialog-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.rs-dialog-close:hover {
+    opacity: 0.8;
+}
+
+.rs-dialog-content {
+    padding: 0;
+}
+
+.rs-dialog-content .rs-status-panel {
+    border: none;
+    margin: 0;
+}
+
+/* Comment highlight in REQ card */
+.rs-comment-highlight {
+    background-color: rgba(255, 235, 59, 0.4) !important;
+    outline: 2px solid #ffc107;
+    outline-offset: -1px;
+}
+
+/* Comments section */
+.rs-comments-section {
+    flex: 1;
+}
+
+.review-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+}
+
+.review-panel-sections {
+    padding: 0 16px 16px 16px;
+}
+
+.rs-status-section {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* User selector */
+.rs-user-selector {
+    margin-bottom: 16px;
+}
+
+.rs-user-selector label {
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.rs-user-selector input {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    width: 150px;
+}
+
+/* Line numbers for requirement body */
+.rs-line-numbers-container {
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 8px 0;
+    background: var(--bg-primary, #fff);
+}
+
+/* Use table layout for perfect line number alignment with wrapped text */
+.rs-lines-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rs-line-row {
+    display: table-row;
+}
+
+.rs-line-row:hover {
+    background: rgba(0, 102, 204, 0.05);
+}
+
+.rs-line-row.selected {
+    background: rgba(255, 235, 59, 0.3);
+}
+
+.rs-line-number {
+    display: table-cell;
+    padding: 2px 8px 2px 6px;
+    text-align: right;
+    color: var(--text-muted, #999);
+    background: var(--bg-tertiary, #e9ecef);
+    border-right: 1px solid var(--border-color, #ddd);
+    user-select: none;
+    vertical-align: top;  /* Align to top of wrapped content */
+    min-width: 28px;
+    width: 28px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.rs-line-number:hover {
+    background: rgba(0, 102, 204, 0.15);
+    color: var(--primary-color, #0066cc);
+}
+
+.rs-line-row.selected .rs-line-number {
+    background: rgba(0, 102, 204, 0.2);
+    color: var(--primary-color, #0066cc);
+    font-weight: 600;
+}
+
+.rs-line-text {
+    display: table-cell;
+    padding: 2px 10px;
+    vertical-align: top;
+    word-break: break-word;
+    white-space: normal;
+}
+
+/* Remove margins from rendered markdown elements inside line text */
+.rs-line-text p,
+.rs-line-text ul,
+.rs-line-text ol,
+.rs-line-text blockquote,
+.rs-line-text pre {
+    margin: 0;
+    padding: 0;
+}
+
+.rs-line-text ul,
+.rs-line-text ol {
+    padding-left: 1.5em;
+}
+
+/* ============================================
+   Markdown-it Line Numbers (via data-source-line)
+   ============================================ */
+
+/* Container for markdown with line numbers */
+.rs-markdown-with-lines {
+    position: relative;
+    padding-left: 45px;  /* Space for line numbers */
+    font-family: inherit;  /* Use same font as rest of page */
+    font-size: inherit;
+    line-height: 1.5;
+}
+
+/* Ensure markdown formatting is visible */
+.rs-markdown-with-lines strong,
+.rs-markdown-with-lines b {
+    font-weight: 700;
+}
+
+.rs-markdown-with-lines em,
+.rs-markdown-with-lines i {
+    font-style: italic;
+}
+
+.rs-markdown-with-lines code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.rs-markdown-with-lines a {
+    color: var(--primary-color, #0066cc);
+    text-decoration: none;
+}
+
+.rs-markdown-with-lines a:hover {
+    text-decoration: underline;
+}
+
+/* Style all block elements with source line numbers */
+.rs-markdown-with-lines [data-source-line] {
+    position: relative;
+    min-height: 1.4em;
+}
+
+/* Display line number via ::before pseudo-element */
+/* Uses data-display-line which is 1-based (converted from 0-based data-source-line via JS) */
+/* Uses --line-indent-offset to counteract nesting indentation and keep line numbers aligned */
+.rs-markdown-with-lines [data-display-line]::before {
+    content: attr(data-display-line);
+    position: absolute;
+    left: calc(-45px - var(--line-indent-offset, 0px));
+    width: 35px;
+    text-align: right;
+    padding-right: 8px;
+    color: var(--text-muted, #999);
+    font-size: 11px;
+    font-family: monospace;
+    user-select: none;
+    border-right: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Hover effect in review mode */
+.review-mode-active .rs-markdown-with-lines [data-source-line]:hover {
+    background: rgba(0, 102, 204, 0.05);
+    cursor: pointer;
+}
+
+/* Selected line highlight */
+.rs-markdown-with-lines .rs-line-selected {
+    background: rgba(255, 235, 59, 0.3) !important;
+    outline: 2px solid #ffc107;
+    outline-offset: -1px;
+}
+
+/* Comment highlight on lines */
+.rs-markdown-with-lines .rs-comment-highlight {
+    background: rgba(255, 235, 59, 0.4) !important;
+    outline: 2px solid #ffc107;
+    outline-offset: -1px;
+}
+
+/* Markdown element spacing */
+.rs-markdown-with-lines p,
+.rs-markdown-with-lines blockquote {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+/* List styling - ensure bullets are visible */
+.rs-markdown-with-lines ul {
+    list-style-type: disc;
+    list-style-position: inside;
+    margin: 0.25em 0;
+    padding-left: 0;
+}
+
+.rs-markdown-with-lines ol {
+    list-style-type: decimal;
+    list-style-position: inside;
+    margin: 0.25em 0;
+    padding-left: 0;
+}
+
+.rs-markdown-with-lines li {
+    display: list-item;
+    margin: 0.1em 0;
+    padding-left: 0.5em;
+}
+
+/* Legacy line-row styles (for fallback) */
+.rs-line-row {
+    cursor: text;
+}
+
+.review-mode-active .rs-line-row {
+    cursor: crosshair;
+}
+
+.review-mode-active .rs-line-row:active {
+    cursor: grabbing;
+}
+
+/* Selected position indicator */
+.rs-selected-position {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rs-selected-position .label {
+    color: var(--text-muted, #666);
+}
+
+.rs-selected-position .value {
+    font-weight: 600;
+    color: var(--primary-color, #0066cc);
+}
+
+.rs-selected-position .clear-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted, #999);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.rs-selected-position .clear-btn:hover {
+    color: var(--danger-color, #dc3545);
+}
+
+/* Line numbers in REQ card body (integrated view - always active) */
+.req-card-content.rs-with-line-numbers {
+    padding: 0;
+}
+
+.req-card-content.rs-with-line-numbers .rs-lines-table {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    max-height: none;
+}
+
+/* Hint bar only shown in review mode (for line selection) */
+.rs-line-numbers-hint {
+    display: none;  /* Hidden by default */
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    padding: 4px 8px;
+    background: var(--bg-tertiary, #e9ecef);
+    border-bottom: 1px solid var(--border-color, #ddd);
+    justify-content: space-between;
+    align-items: center;
+}
+
+.review-mode-active .rs-line-numbers-hint {
+    display: flex;  /* Show in review mode */
+}
+
+.rs-line-numbers-hint .hint-text {
+    font-style: italic;
+}
+
+.rs-line-numbers-hint .selected-lines {
+    font-weight: 600;
+    color: var(--primary-color, #0066cc);
+}
+
+/* ============================================
+   Review Packages Panel
+   ============================================ */
+
+.review-packages-panel {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: none;  /* Hidden until review mode is active */
+}
+
+body.review-mode-active .review-packages-panel {
+    display: block;
+}
+
+.review-packages-panel.collapsed .packages-content {
+    display: none;
+}
+
+.packages-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary, #e9ecef);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.review-packages-panel.collapsed .packages-header {
+    border-radius: 8px;
+}
+
+.packages-header .collapse-icon {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+    transition: transform 0.2s;
+}
+
+.packages-header h3 {
+    margin: 0;
+    font-size: 14px;
+    flex: 1;
+}
+
+.packages-header .create-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: #fff;
+    color: #0066cc;
+    border: 1px solid #0066cc;
+}
+
+.packages-header .create-btn:hover {
+    background: #f0f7ff;
+}
+
+/* Filter toggle button in packages header */
+.rs-filter-toggle {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: var(--bg-secondary, #f0f0f0);
+    border: 1px solid var(--border-color, #ddd);
+    color: var(--text-secondary, #666);
+    transition: all 0.2s;
+}
+
+.rs-filter-toggle:hover {
+    background: var(--bg-tertiary, #e9ecef);
+    border-color: var(--primary, #0066cc);
+}
+
+.rs-filter-toggle.active {
+    background: var(--primary, #0066cc);
+    color: white;
+    border-color: var(--primary, #0066cc);
+}
+
+.packages-content {
+    padding: 12px;
+}
+
+.package-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.package-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--bg-secondary, #f8f9fa);
+    transition: background 0.2s;
+}
+
+.package-item:hover {
+    background: var(--bg-tertiary, #e9ecef);
+}
+
+.package-item.active {
+    background: rgba(0, 102, 204, 0.1);
+    border: 1px solid var(--primary-color, #0066cc);
+}
+
+.package-item.default {
+    font-style: italic;
+}
+
+.package-item input[type="radio"] {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.package-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.package-name {
+    font-weight: 500;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.package-desc {
+    font-size: 11px;
+    color: var(--text-muted, #666);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.package-count {
+    background: var(--bg-tertiary, #e9ecef);
+    color: var(--text-secondary, #666);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.package-count::after {
+    content: " REQs";
+}
+
+.package-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.package-item:hover .package-actions {
+    opacity: 1;
+}
+
+#packageFilterIndicator {
+    display: none;
+    margin-left: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 102, 204, 0.1);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--primary-color, #0066cc);
+}
+
+/* Package context styling (context selector, not filter) */
+body.review-mode-active [data-req-id].in-active-package {
+    background: rgba(0, 102, 204, 0.08);
+    border-left: 3px solid var(--primary-color, #0066cc);
+}
+
+/* Toast notification - positioned near packages panel */
+.rs-toast {
+    position: absolute;
+    padding: 10px 16px;
+    background: #1a73e8;
+    color: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.15s, transform 0.15s;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.rs-toast.visible {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.rs-toast-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: rs-spin 0.8s linear infinite;
+}
+
+@keyframes rs-spin {
+    to { transform: rotate(360deg); }
+}
+
+body.review-mode-active [data-req-id].in-other-package {
+    opacity: 0.7;
+    border-left: 3px solid #999;
+}
+
+body.review-mode-active [data-req-id].in-other-package::after {
+    content: "(other pkg)";
+    font-size: 10px;
+    color: #999;
+    margin-left: 8px;
+}
+
+/* Hide REQs not in active package when filtering */
+body.review-mode-active [data-req-id].package-filtered {
+    display: none !important;
+}
+
+body.review-mode-active [data-req-id].not-in-package {
+    /* No special styling - normal appearance */
+}
+
+/* Help System */
+.rs-help-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: bold;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+}
+
+.rs-help-btn:hover {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.rs-help-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    font-size: 10px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #616161;
+    cursor: help;
+}
+
+/* Help Menu Dropdown */
+.rs-help-menu-container {
+    position: relative;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.rs-help-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.rs-help-menu-btn:hover {
+    background: #0052a3;
+}
+
+.rs-help-menu-btn .rs-menu-arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.rs-help-menu-btn.open .rs-menu-arrow {
+    transform: rotate(180deg);
+}
+
+.rs-help-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    min-width: 220px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1001;
+    display: none;
+    overflow: hidden;
+}
+
+.rs-help-menu-dropdown.open {
+    display: block;
+}
+
+.rs-help-menu-section {
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.rs-help-menu-section:last-child {
+    border-bottom: none;
+}
+
+.rs-help-menu-section-label {
+    padding: 6px 16px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rs-help-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: none;
+    background: none;
+    width: 100%;
+    font-size: 14px;
+    text-align: left;
+}
+
+.rs-help-menu-item:hover {
+    background: #f5f5f5;
+    color: #0066cc;
+}
+
+.rs-help-menu-item .rs-menu-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.rs-help-menu-item .rs-menu-label {
+    flex: 1;
+}
+
+.rs-help-menu-item .rs-menu-shortcut {
+    font-size: 11px;
+    color: #999;
+}
+
+/* Help Panel */
+.rs-help-panel {
+    position: fixed;
+    right: 16px;
+    top: 64px;
+    width: 360px;
+    max-height: calc(100vh - 80px);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.rs-help-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.rs-help-panel-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+}
+
+.rs-help-search {
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+}
+
+.rs-help-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.rs-help-sections {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.rs-help-section {
+    border-bottom: 1px solid #eee;
+}
+
+.rs-help-section:last-child {
+    border-bottom: none;
+}
+
+.rs-help-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    margin: 0;
+    font-size: 0.95em;
+    font-weight: 600;
+    background: #fafafa;
+}
+
+.rs-help-section-header:hover {
+    background: #f0f0f0;
+}
+
+.rs-help-section-content {
+    padding: 0 16px 12px;
+}
+
+.rs-help-item {
+    margin-top: 12px;
+}
+
+.rs-help-question {
+    font-weight: 500;
+    color: #1976d2;
+    margin-bottom: 4px;
+}
+
+.rs-help-answer {
+    font-size: 0.9em;
+    color: #555;
+    line-height: 1.5;
+}
+
+.rs-help-answer code {
+    background: #f5f5f5;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 0.9em;
+}
+
+.rs-help-footer {
+    padding: 12px 16px;
+    background: #f5f5f5;
+    border-top: 1px solid #ddd;
+    font-size: 0.85em;
+    color: #666;
+}
+
+.rs-help-links {
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+}
+
+.rs-help-link {
+    color: #1976d2;
+    text-decoration: none;
+}
+
+.rs-help-link:hover {
+    text-decoration: underline;
+}
+
+/* Onboarding Wizard */
+.rs-onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rs-onboarding-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.rs-onboarding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.rs-onboarding-step-indicator {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.rs-onboarding-title {
+    margin: 0 0 12px;
+    font-size: 1.3em;
+    color: #333;
+}
+
+.rs-onboarding-content {
+    font-size: 0.95em;
+    line-height: 1.6;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.rs-onboarding-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.rs-onboarding-highlight {
+    outline: 3px solid #1976d2 !important;
+    outline-offset: 2px;
+    position: relative;
+    z-index: 1999;
+}
+

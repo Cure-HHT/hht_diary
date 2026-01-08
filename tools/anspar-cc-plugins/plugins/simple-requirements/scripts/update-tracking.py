@@ -26,21 +26,18 @@ import json
 import argparse
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Any
 
 # Import shared utilities
 from common import (
     normalize_req_id,
+    format_req_id,
     load_tracking_file,
     save_tracking_file,
     get_tracking_file_path,
     get_repo_root,
-    setup_python_path,
+    get_requirements_via_cli,
 )
-
-# Setup Python path for importing from tools/requirements
-setup_python_path()
-from validate_requirements import RequirementValidator
 
 
 def add_changed_requirement(
@@ -155,27 +152,28 @@ def update_single_requirement(
     Returns:
         True if added/updated, False otherwise
     """
-    req_id = normalize_req_id(req_id)
-    repo_root = get_repo_root()
+    normalized_id = normalize_req_id(req_id)
+    full_id = format_req_id(normalized_id)
 
-    # Fetch requirement to get file and title
-    spec_dir = repo_root / 'spec'
-    validator = RequirementValidator(spec_dir)
-    validator._parse_requirements()
+    # Fetch requirement to get file and title via elspais CLI
+    all_reqs = get_requirements_via_cli()
 
-    if req_id not in validator.requirements:
-        raise ValueError(f"Requirement '{req_id}' not found")
+    if not all_reqs:
+        raise ValueError("Failed to get requirements from elspais CLI")
 
-    req = validator.requirements[req_id]
+    if full_id not in all_reqs:
+        raise ValueError(f"Requirement '{normalized_id}' not found")
+
+    req = all_reqs[full_id]
     tracking_data = load_tracking_file(create_if_missing=True)
 
     result = add_changed_requirement(
         tracking_data,
-        req_id,
+        normalized_id,
         old_hash,
         new_hash,
-        req.file_path.name,
-        req.title
+        req['file'],
+        req['title']
     )
 
     if result and not dry_run:

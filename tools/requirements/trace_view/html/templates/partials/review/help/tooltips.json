@@ -1,0 +1,195 @@
+{
+  "version": "1.0",
+  "tooltips": {
+    "header": {
+      "review-mode-toggle": {
+        "title": "Review Mode",
+        "text": "Enable to access comment threads, status changes, and collaborative review features."
+      },
+      "username-field": {
+        "title": "Your Username",
+        "text": "Your username identifies your comments and creates your personal review branch: reviews/{package}/{username}"
+      },
+      "package-context-badge": {
+        "title": "Active Package",
+        "text": "Shows which review package you're currently working in. All comments will be associated with this package."
+      },
+      "package-filter-toggle": {
+        "title": "Package Filter",
+        "text": "When enabled, only shows REQs that are in the active package."
+      }
+    },
+    "packages-panel": {
+      "packages-header": {
+        "title": "Review Packages",
+        "text": "Packages group related REQs for review. Create packages for sprints, releases, or feature reviews."
+      },
+      "new-package-button": {
+        "title": "Create Package",
+        "text": "Create a new review package. You'll be prompted for a name and description."
+      },
+      "package-item": {
+        "title": "Package",
+        "text": "Click to activate this package. Your branch will switch to reviews/{package-id}/{username}."
+      },
+      "package-req-count": {
+        "title": "REQ Count",
+        "text": "Number of requirements included in this package."
+      },
+      "default-package": {
+        "title": "Default Package",
+        "text": "The default package automatically receives REQs when you set their status to 'Review'."
+      }
+    },
+    "comment-form": {
+      "position-type-general": {
+        "title": "General Position",
+        "text": "Comment applies to the entire requirement. Use for high-level feedback."
+      },
+      "position-type-line": {
+        "title": "Line Position",
+        "text": "Anchor your comment to a specific line number. Click a line in the content view to pre-fill."
+      },
+      "position-type-block": {
+        "title": "Block Position",
+        "text": "Anchor your comment to a range of lines. Enter start and end line numbers."
+      },
+      "position-type-word": {
+        "title": "Word Position",
+        "text": "Anchor your comment to a specific word or phrase. Enter the exact text to find."
+      },
+      "line-number-input": {
+        "title": "Line Number",
+        "text": "Enter the 1-based line number. You can also click directly on a line in the content view."
+      },
+      "block-start-input": {
+        "title": "Start Line",
+        "text": "First line of the block you're commenting on."
+      },
+      "block-end-input": {
+        "title": "End Line",
+        "text": "Last line of the block you're commenting on."
+      },
+      "keyword-input": {
+        "title": "Keyword/Phrase",
+        "text": "Enter the exact word or phrase to anchor to. Case-sensitive."
+      },
+      "occurrence-input": {
+        "title": "Occurrence",
+        "text": "If the word appears multiple times, which occurrence? (1 = first occurrence)"
+      },
+      "comment-body": {
+        "title": "Comment Text",
+        "text": "Write your comment using Markdown formatting. Preview is shown below."
+      },
+      "submit-button": {
+        "title": "Submit Comment",
+        "text": "Save your comment. It will be committed to git and synced automatically."
+      }
+    },
+    "thread-display": {
+      "position-label": {
+        "title": "Comment Position",
+        "text": "Click to highlight this location in the REQ content."
+      },
+      "position-warning": {
+        "title": "Position May Be Stale",
+        "text": "The file has changed since this comment was made. The line number may have shifted."
+      },
+      "version-badge-modified": {
+        "title": "File Modified",
+        "text": "The file has changed since this comment was made. Click 'Show Original' to see the original context."
+      },
+      "version-badge-unavailable": {
+        "title": "Version Unavailable",
+        "text": "Cannot retrieve the original file version. The git commit may no longer exist."
+      },
+      "show-original-button": {
+        "title": "Show Original",
+        "text": "View the file exactly as it was when this comment was made."
+      },
+      "show-current-button": {
+        "title": "Show Current",
+        "text": "Return to viewing the current version of the file."
+      },
+      "resolve-button": {
+        "title": "Resolve Thread",
+        "text": "Mark this thread as resolved when the issue has been addressed."
+      },
+      "reopen-button": {
+        "title": "Reopen Thread",
+        "text": "Reopen this resolved thread if further discussion is needed."
+      },
+      "reply-button": {
+        "title": "Reply",
+        "text": "Add a response to this thread."
+      }
+    },
+    "status-panel": {
+      "current-status": {
+        "title": "Current Status",
+        "text": "The current status of this REQ as recorded in the spec file."
+      },
+      "set-to-review-button": {
+        "title": "Set to Review",
+        "text": "Change status to 'Review' and add this REQ to your active package."
+      },
+      "request-status-change": {
+        "title": "Request Status Change",
+        "text": "Request a formal status change that requires approval from designated approvers."
+      },
+      "pending-request": {
+        "title": "Pending Request",
+        "text": "A status change has been requested and is awaiting approvals."
+      },
+      "approve-button": {
+        "title": "Approve",
+        "text": "Approve this status change request."
+      },
+      "reject-button": {
+        "title": "Reject",
+        "text": "Reject this status change request."
+      }
+    },
+    "sync-controls": {
+      "sync-status-synced": {
+        "title": "Synced",
+        "text": "All your changes have been committed and pushed to the remote."
+      },
+      "sync-status-pending": {
+        "title": "Changes Pending",
+        "text": "You have local changes that haven't been pushed yet."
+      },
+      "sync-status-behind": {
+        "title": "Behind Remote",
+        "text": "The remote has changes you haven't fetched yet."
+      },
+      "fetch-button": {
+        "title": "Fetch",
+        "text": "Pull the latest changes from the remote for your branch."
+      },
+      "push-button": {
+        "title": "Push",
+        "text": "Push your local changes to the remote."
+      },
+      "fetch-all-button": {
+        "title": "Fetch All",
+        "text": "Fetch and merge comments from all contributors to this package."
+      },
+      "contributors-list": {
+        "title": "Contributors",
+        "text": "Users who have contributed to reviewing this package."
+      }
+    },
+    "original-view": {
+      "original-banner": {
+        "title": "Original View",
+        "text": "You are viewing the file as it was when the comment was made. This is read-only."
+      },
+      "diff-stats": {
+        "title": "Changes Since Comment",
+        "text": "Shows how many lines were added and removed since the comment was made."
+      }
+    }
+  }
+}

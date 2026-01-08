@@ -281,7 +281,7 @@ git commit -m "Update requirements"
 ### With INDEX.md
 - `detect-changes.py` compares against INDEX.md hashes
 - Relies on INDEX.md being up-to-date
-- Run `python3 tools/requirements/update-REQ-hashes.py` to sync hashes
+- Run `elspais hash update` to sync hashes
 
 ### With Linear Integration Plugin
 - Optional ticket creation via `create-verification-ticket.js`
@@ -310,7 +310,7 @@ python3 scripts/mark-verified.py --all --dry-run
 ### 3. Keep INDEX.md Updated
 ```bash
 # After verifying implementations, update hashes:
-python3 tools/requirements/update-REQ-hashes.py
+elspais hash update
 git add spec/INDEX.md
 git commit -m "Update requirement hashes after verification"
 ```
@@ -447,5 +447,5 @@ python3 scripts/detect-changes.py --format json | \
 - **Plugin README**: `README.md`
 - **Requirements Format**: `spec/README.md`
 - **Validation System**: `tools/requirements/validate_requirements.py`
-- **INDEX.md Management**: `tools/requirements/update-REQ-hashes.py`
+- **INDEX.md Management**: `elspais hash update`
 - **Linear Integration**: `tools/anspar-cc-plugins/plugins/linear-api/`

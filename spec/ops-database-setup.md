@@ -78,27 +78,28 @@ Sponsor A                    Sponsor B                    Sponsor C
 
 # REQ-o00003: GCP Project Provisioning Per Sponsor
 
-**Level**: Ops | **Implements**: p00003, o00001 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00003, o00001
 
-Each sponsor SHALL be provisioned with a dedicated GCP project for their environments (staging, production), ensuring complete database infrastructure isolation.
+## Rationale
 
-Provisioning SHALL include:
-- Unique GCP project created per sponsor per environment
-- Project naming follows convention: `clinical-diary-{sponsor}-{env}`
-- Geographic region selected based on sponsor's user base and data residency requirements
-- Appropriate Cloud SQL tier selected based on workload
-- Project credentials stored securely in Doppler
+This requirement ensures complete infrastructure isolation for each clinical trial sponsor by provisioning dedicated Google Cloud Platform projects. This implements the database isolation mandate from REQ-p00003 at the infrastructure layer, preventing any cross-sponsor data access or resource sharing. Each GCP project contains its own Cloud SQL database instance, Identity Platform authentication system, and Cloud Run services, ensuring that sponsor data remains completely segregated throughout the technology stack. This approach satisfies both regulatory requirements for data isolation and operational best practices for multi-tenant SaaS deployments in regulated industries.
 
-**Rationale**: Implements database isolation requirement (p00003) at the infrastructure provisioning level. Each GCP project provides isolated Cloud SQL database, Identity Platform authentication, and Cloud Run services.
+## Assertions
 
-**Acceptance Criteria**:
-- Each sponsor has dedicated GCP project
-- Projects cannot share databases or authentication systems
-- Credentials unique per project and never reused
-- Project provisioning documented in runbook
-- Staging and production use separate projects
+A. The system SHALL provision a dedicated GCP project for each sponsor for each environment (staging, production).
+B. GCP project names SHALL follow the convention: clinical-diary-{sponsor}-{env}.
+C. The geographic region for each project SHALL be selected based on the sponsor's user base and data residency requirements.
+D. The Cloud SQL tier for each project SHALL be selected based on workload requirements.
+E. Project credentials SHALL be stored securely in Doppler.
+F. Each sponsor SHALL have a dedicated GCP project that provides isolated Cloud SQL database, Identity Platform authentication, and Cloud Run services.
+G. GCP projects SHALL NOT share databases across sponsors.
+H. GCP projects SHALL NOT share authentication systems across sponsors.
+I. Project credentials SHALL be unique per project.
+J. Project credentials SHALL NOT be reused across projects.
+K. Staging and production environments SHALL use separate GCP projects.
+L. Project provisioning procedures SHALL be documented in a runbook.
 
-*End* *GCP Project Provisioning Per Sponsor* | **Hash**: 5c8ec50e
+*End* *GCP Project Provisioning Per Sponsor* | **Hash**: 7110fea1
 ---
 
 ### Per-Sponsor GCP Projects
@@ -148,27 +149,28 @@ Provisioning SHALL include:
 
 # REQ-o00011: Multi-Site Data Configuration Per Sponsor
 
-**Level**: Ops | **Implements**: p00009, p00014 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00009, p00014
 
-Each sponsor's database SHALL be configured with site data structures to support multi-site clinical trials, including site records, site-user assignments, and site-based access control configuration.
+## Rationale
 
-Configuration SHALL include:
-- Site records populated with site metadata (site_id, site_name, site_number, location, contact)
-- Investigator-to-site assignments configured per trial setup
-- Analyst-to-site assignments configured per sponsor requirements
-- Patient-to-site enrollment mappings established during enrollment
-- RLS policy configurations verified for site-based data isolation
+This requirement ensures that each sponsor's database is properly configured to support multi-site clinical trials with appropriate data isolation and access controls. Site configuration is a prerequisite operational step that must be completed before trial enrollment begins, establishing the foundation for proper data segregation, role-based access control, and audit trail integrity across geographically distributed trial sites. This implements the multi-sponsor architecture and role-based access control requirements at the operational deployment level.
 
-**Rationale**: Implements multi-sponsor architecture (p00009) and role-based access (p00014) at the operations level. Site configuration must be completed before trial enrollment begins to ensure proper data isolation and access control.
+## Assertions
 
-**Acceptance Criteria**:
-- Site records created for all participating trial sites
-- Site assignments configured for all investigators and analysts
-- RLS policies verified to correctly filter data by site
-- Site context correctly captured in audit trail entries
-- Documentation exists for adding/removing sites post-deployment
+A. The system SHALL configure each sponsor's database with site data structures to support multi-site clinical trials.
+B. The system SHALL populate site records with site metadata including site_id, site_name, site_number, location, and contact information.
+C. The system SHALL configure investigator-to-site assignments per trial setup.
+D. The system SHALL configure analyst-to-site assignments per sponsor requirements.
+E. The system SHALL establish patient-to-site enrollment mappings during enrollment.
+F. The system SHALL verify RLS policy configurations for site-based data isolation.
+G. Site records SHALL be created for all participating trial sites.
+H. Site assignments SHALL be configured for all investigators and analysts.
+I. RLS policies SHALL correctly filter data by site.
+J. The system SHALL correctly capture site context in audit trail entries.
+K. Documentation SHALL exist for adding sites post-deployment.
+L. Documentation SHALL exist for removing sites post-deployment.
 
-*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 2af51c8b
+*End* *Multi-Site Data Configuration Per Sponsor* | **Hash**: 87a63123
 ---
 
 ## Step 1: GCP Project Setup
@@ -254,28 +256,28 @@ doppler run -- pulumi up
 
 # REQ-o00004: Database Schema Deployment
 
-**Level**: Ops | **Implements**: p00003, p00004, p00013 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00003, p00004, p00013
 
-Each sponsor's database SHALL be deployed with the core schema supporting event sourcing, audit trails, and complete change history, ensuring consistent implementation across all sponsors.
+## Rationale
 
-Schema deployment SHALL include:
-- Core schema from central repository (versioned)
-- Event sourcing tables (record_audit, record_state)
-- Row-level security policies
-- Database triggers for audit trail enforcement
-- Indexes for query performance
-- Optional sponsor-specific extensions
+This requirement ensures consistent database infrastructure across all sponsor deployments while maintaining the core event sourcing and audit trail capabilities mandated by FDA 21 CFR Part 11. The centralized core schema approach guarantees that all sponsors benefit from security improvements, bug fixes, and performance optimizations while preserving the ability to extend functionality for sponsor-specific needs. Database isolation (p00003) prevents cross-sponsor data contamination, event sourcing (p00004) enables complete audit trails, and change history (p00013) supports regulatory compliance. Automated deployment with validation and rollback capabilities reduces human error and ensures deployment reliability.
 
-**Rationale**: Implements database isolation (p00003), event sourcing (p00004), and change history (p00013) through consistent schema deployment. Centralized core schema ensures all sponsors benefit from improvements while allowing sponsor-specific customizations.
+## Assertions
 
-**Acceptance Criteria**:
-- Schema deployed via automated migration process
-- Core schema version tracked per deployment
-- Sponsor extensions isolated from core schema
-- Schema validation checks pass before deployment
-- Rollback capability for failed deployments
+A. The system SHALL deploy each sponsor's database with the core schema from the central repository.
+B. The deployed schema SHALL include event sourcing tables (record_audit, record_state).
+C. The deployed schema SHALL include row-level security policies.
+D. The deployed schema SHALL include database triggers for audit trail enforcement.
+E. The deployed schema SHALL include indexes for query performance.
+F. The system SHALL support optional sponsor-specific schema extensions.
+G. Schema deployment SHALL be executed via an automated migration process.
+H. The system SHALL track the core schema version for each deployment.
+I. Sponsor-specific extensions SHALL be isolated from the core schema.
+J. The system SHALL execute schema validation checks before deployment.
+K. Schema validation checks SHALL pass before deployment completes.
+L. The system SHALL provide rollback capability for failed deployments.
 
-*End* *Database Schema Deployment* | **Hash**: b9f6a0b5
+*End* *Database Schema Deployment* | **Hash**: 7ae2ea75
 ---
 
 ### Create Cloud SQL Instance via Pulumi

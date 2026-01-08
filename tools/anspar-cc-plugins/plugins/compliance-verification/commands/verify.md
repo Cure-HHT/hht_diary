@@ -126,7 +126,7 @@ This ticket tracks verification of requirement changes to ensure implementation 
   - [ ] Requirement fully implemented
 
 - [ ] Update Hash
-  - [ ] Run: `python3 tools/requirements/update-REQ-hashes.py`
+  - [ ] Run: `elspais hash update`
   - [ ] Verify hash updated in INDEX.md
   - [ ] Commit hash update
 
@@ -182,7 +182,7 @@ Based on implementation scan, review these files:
 #   2. Claim ticket: /claim CUR-350
 #   3. Update implementations
 #   4. Complete verification checklist
-#   5. Update hash: python3 tools/requirements/update-REQ-hashes.py
+#   5. Update hash: elspais hash update
 ```
 
 ### High-Priority Verification
@@ -354,7 +354,7 @@ Or configure via Doppler:
 
 7. **Update hash**:
    ```bash
-   python3 tools/requirements/update-REQ-hashes.py
+   elspais hash update
    ```
 
 8. **Close ticket**:

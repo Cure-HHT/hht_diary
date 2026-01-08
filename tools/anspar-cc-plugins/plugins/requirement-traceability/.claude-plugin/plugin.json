@@ -1,7 +1,7 @@
 {
   "name": "requirement-traceability",
-  "version": "1.0.0",
-  "description": "Requirement-to-ticket traceability for spec/ requirements in diary project",
+  "version": "2.0.0",
+  "description": "Requirement-to-ticket traceability using elspais CLI for spec/ requirements",
   "author": {
     "name": "Anspar Foundation",
     "url": "https://github.com/anspar"

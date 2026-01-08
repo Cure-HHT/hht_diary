@@ -29,13 +29,12 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 
 # Import shared utilities
-from common import get_repo_root, setup_python_path
+from common import get_repo_root, get_requirements_via_cli
 
-# Add parent paths for imports
-setup_python_path()
+# Setup paths
 repo_root = get_repo_root()
 
-from validate_requirements import RequirementValidator
+# Note: RequirementValidator removed - use elspais CLI via get_requirements_via_cli()
 
 # Check for Anthropic API
 try:
@@ -110,21 +109,21 @@ def get_old_requirement_text(req_id: str, old_hash: str) -> Optional[str]:
 
 
 def get_current_requirement(req_id: str) -> Optional[Dict]:
-    """Get current requirement from spec files"""
+    """Get current requirement from spec files using elspais CLI"""
     normalized_id = normalize_req_id(req_id)
 
-    validator = RequirementValidator(repo_root / 'spec')
-    validator._parse_requirements()
+    # Use elspais CLI via shared utility
+    requirements = get_requirements_via_cli()
 
-    if normalized_id in validator.requirements:
-        req = validator.requirements[normalized_id]
+    if normalized_id in requirements:
+        req = requirements[normalized_id]
         return {
-            'id': req.id,
-            'title': req.title,
-            'body': req.body,
-            'hash': req.hash,
-            'level': req.level,
-            'status': req.status
+            'id': normalized_id,
+            'title': req.get('title', ''),
+            'body': req.get('body', ''),
+            'hash': req.get('hash', ''),
+            'level': req.get('level', ''),
+            'status': req.get('status', '')
         }
 
     return None

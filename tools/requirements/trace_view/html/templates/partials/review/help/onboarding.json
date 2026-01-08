@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "wizard": {
+    "id": "spec-review-onboarding",
+    "title": "Welcome to Spec Review",
+    "steps": [
+      {
+        "id": "welcome",
+        "title": "Welcome to Spec Review!",
+        "content": "This tool helps teams collaborate on requirement documents through comments, status changes, and approval workflows.\n\nAll your work is automatically saved and synced via git.",
+        "highlight": null,
+        "position": "center",
+        "buttons": {
+          "next": "Get Started"
+        }
+      },
+      {
+        "id": "username",
+        "title": "Set Your Username",
+        "content": "Your username identifies your comments and creates your personal review branch.\n\nEnter your name or handle in the username field.\n\nYour branch will be: reviews/{package}/{username}",
+        "highlight": "#username-field",
+        "position": "below",
+        "buttons": {
+          "back": "Back",
+          "next": "Next"
+        }
+      },
+      {
+        "id": "packages",
+        "title": "Review Packages",
+        "content": "Packages group related REQs for review. Common uses:\n\n- Sprint reviews\n- Release preparation\n- Feature-specific reviews\n\nThe \"Default\" package automatically collects REQs you set to \"Review\" status.",
+        "highlight": ".review-packages-panel",
+        "position": "right",
+        "buttons": {
+          "back": "Back",
+          "next": "Next"
+        }
+      },
+      {
+        "id": "comments",
+        "title": "Adding Comments",
+        "content": "Click any REQ, then use the review panel to add comments.\n\nComment types:\n- **General**: Whole REQ\n- **Line**: Specific line\n- **Block**: Line range\n- **Word**: Specific text\n\nComments are git-backed and collaborative!",
+        "highlight": ".rs-panel",
+        "position": "left",
+        "buttons": {
+          "back": "Back",
+          "next": "Next"
+        }
+      },
+      {
+        "id": "collaboration",
+        "title": "Working Together",
+        "content": "Each reviewer has their own branch:\n\n  reviews/my-package/alice\n  reviews/my-package/bob\n\nClick \"Fetch All\" to see everyone's comments merged together.\n\nResolve threads when issues are addressed.",
+        "highlight": ".rs-sync-controls",
+        "position": "below",
+        "buttons": {
+          "back": "Back",
+          "next": "Start Reviewing"
+        }
+      }
+    ],
+    "completion": {
+      "title": "You're Ready!",
+      "content": "You've completed the quick tour. Here are some tips:\n\n- Click the **?** icon anytime for help\n- Hover over controls for tooltips\n- Check the User Guide for detailed info\n\nHappy reviewing!",
+      "buttons": {
+        "close": "Start Reviewing",
+        "docs": "View User Guide"
+      }
+    },
+    "settings": {
+      "showOnFirstVisit": true,
+      "canSkip": true,
+      "canReplay": true,
+      "storageKey": "spec-review-onboarding-complete"
+    }
+  }
+}

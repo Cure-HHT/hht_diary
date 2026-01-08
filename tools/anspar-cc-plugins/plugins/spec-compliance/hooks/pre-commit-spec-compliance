@@ -77,8 +77,8 @@ fi
 # Make sure script is executable
 chmod +x "$VALIDATION_SCRIPT"
 
-# Run validation
-if "$VALIDATION_SCRIPT" "$SPEC_FILES_CHANGED"; then
+# Run validation (don't quote $SPEC_FILES_CHANGED - needs word splitting on newlines)
+if "$VALIDATION_SCRIPT" $SPEC_FILES_CHANGED; then
     echo ""
     echo -e "${GREEN}✅ Spec compliance validation passed!${NC}"
     echo ""

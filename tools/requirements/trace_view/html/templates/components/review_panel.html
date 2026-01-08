@@ -1,0 +1,20 @@
+{# IMPLEMENTS REQUIREMENTS:
+     REQ-tv-d00016: Review JavaScript Integration
+   Review panel component for trace_view
+#}
+
+<div id="review-panel" class="review-panel {% if not review_mode %}hidden{% endif %}">
+    <div class="review-panel-header">
+        <span class="review-panel-title">Review Panel</span>
+    </div>
+
+    <div class="review-panel-no-selection" id="review-no-selection">
+        <div class="icon">💬</div>
+        <p>Select a requirement to start reviewing</p>
+        <p style="font-size: 12px;">Click on any REQ row to open it here</p>
+    </div>
+
+    <div id="review-panel-content" class="review-panel-content" style="display: none;">
+        {# Dynamic content populated by JavaScript #}
+    </div>
+</div>

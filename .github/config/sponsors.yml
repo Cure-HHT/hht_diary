@@ -1,0 +1,62 @@
+# Local Sponsor Configuration
+#
+# This file provides a local fallback for sponsor discovery when SPONSOR_MANIFEST
+# environment variable is not available (e.g., local development without Doppler).
+#
+# Priority order for sponsor resolution:
+#   1. SPONSOR_MANIFEST env var (Doppler - production/CI)
+#   2. This file (local development fallback)
+#   3. sponsor/ directory scan (auto-discovery)
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00069: Doppler manifest system
+#   REQ-d00070: Sponsor integration automation
+#
+# See also: spec/dev-sponsor-repos.md for full specification
+
+sponsors:
+  # Local sponsors - in sponsor/ directory of core repo
+  local:
+    - name: template
+      code: TMP
+      enabled: false          # Not included in builds
+      path: sponsor/template
+      type: example           # Reference implementation only
+      spec_path: spec
+
+    # Note: callisto implementation code is still in sponsor/callisto/
+    # but specs have moved to the separate hht_diary_callisto repo
+    - name: callisto
+      code: CAL
+      enabled: true
+      path: sponsor/callisto
+      type: production
+      spec_path: spec
+
+  # Remote sponsors - in separate GitHub repositories
+  # These are populated from Doppler SPONSOR_MANIFEST in production/CI
+  # For local development, you can add entries here if needed
+  remote: []
+    # Example remote sponsor entry:
+    # - name: callisto
+    #   code: CAL
+    #   enabled: true
+    #   repo: cure-hht/hht_diary_callisto
+    #   tag: main
+    #   type: production
+    #   spec_path: spec
+    #   mobile_module: true
+    #   portal: true
+    #   region: europe-west1
+
+# Settings for sponsor resolution
+settings:
+  # Default mode for tools that support --mode parameter
+  # "core" = only core repo, "combined" = core + all sponsors
+  default_mode: core
+
+  # Require SPONSOR_MANIFEST in CI environments
+  require_sponsor_manifest_in_ci: true
+
+  # Whether to fail on sponsor validation errors in CI
+  fail_on_sponsor_error: true

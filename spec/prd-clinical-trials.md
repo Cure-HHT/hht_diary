@@ -46,137 +46,153 @@ Clinical trial systems must comply with strict regulations to ensure data integr
 
 # REQ-p00010: FDA 21 CFR Part 11 Compliance
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
-The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures used in clinical trials.
+## Rationale
 
-Compliance SHALL include:
-- Validation that system performs as intended
-- Ability to generate accurate and complete copies of records
-- Protection of records to enable accurate and ready retrieval
-- Audit trails for record creation, modification, and deletion
-- Operational checks to enforce permitted sequencing of steps
-- Authority checks to ensure only authorized individuals can use the system
-- Device checks to determine validity of source of data input
-- Determination that persons using electronic signatures are who they claim to be
+FDA 21 CFR Part 11 is the regulatory foundation for electronic clinical trial systems in the United States. Compliance is mandatory for regulatory submission acceptance and protects the integrity of clinical trial data used for drug approval decisions. This requirement establishes the comprehensive set of controls and capabilities needed to ensure the system meets federal standards for electronic records and electronic signatures, enabling regulatory authorities to trust the integrity and authenticity of clinical trial data collected through the platform.
 
-**Rationale**: FDA 21 CFR Part 11 is the regulatory foundation for electronic clinical trial systems in the United States. Compliance is mandatory for regulatory submission acceptance and protects the integrity of clinical trial data used for drug approval decisions.
+## Assertions
 
-**Acceptance Criteria**:
-- System validation documentation package complete
-- Formal requirements with traceability maintained (see REQ-p00036 in prd-requirements-management.md)
-- All record changes captured in tamper-proof audit trail
-- Electronic signatures meet FDA requirements
-- System access controls prevent unauthorized use
-- Records retrievable in human-readable form for FDA inspection
+A. The system SHALL meet all FDA 21 CFR Part 11 requirements for electronic records and electronic signatures used in clinical trials.
+B. The system SHALL provide validation documentation demonstrating that the system performs as intended.
+C. The system SHALL generate accurate and complete copies of records in human-readable form.
+D. The system SHALL protect records to enable accurate and ready retrieval throughout the record retention period.
+E. The system SHALL maintain audit trails for all record creation events.
+F. The system SHALL maintain audit trails for all record modification events.
+G. The system SHALL maintain audit trails for all record deletion events.
+H. Audit trails SHALL be tamper-proof.
+I. The system SHALL enforce operational checks to ensure permitted sequencing of steps and events.
+J. The system SHALL perform authority checks to ensure only authorized individuals can use the system.
+K. The system SHALL perform authority checks to ensure only authorized individuals can electronically sign records.
+L. The system SHALL perform authority checks to ensure only authorized individuals can access system functions.
+M. The system SHALL perform device checks to determine the validity of the source of data input.
+N. The system SHALL determine that persons using electronic signatures are who they claim to be.
+O. Electronic signatures SHALL meet FDA 21 CFR Part 11 requirements.
+P. The system SHALL maintain formal requirements with complete traceability.
+Q. The system SHALL provide access controls that prevent unauthorized use.
+R. Records SHALL be retrievable in human-readable form for FDA inspection.
+S. The system SHALL include a complete validation documentation package.
 
-*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 62500780
+*End* *FDA 21 CFR Part 11 Compliance* | **Hash**: 192ec8c7
 ---
 
 # REQ-p00011: ALCOA+ Data Integrity Principles
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00010
 
-All clinical trial data SHALL adhere to ALCOA+ principles ensuring data quality and integrity throughout the data lifecycle.
+## Rationale
 
-ALCOA+ compliance SHALL ensure data is:
-- **Attributable**: Clearly linked to the person who created it
-- **Legible**: Readable and understandable (permanent, not obscured)
-- **Contemporaneous**: Recorded at time of observation
-- **Original**: First recording or certified true copy
-- **Accurate**: Free from errors, complete and correct
-- **Complete**: All data captured, nothing missing
-- **Consistent**: Performed in same manner over time
-- **Enduring**: Preserved for entire retention period
-- **Available**: Accessible for review and audit when needed
+ALCOA+ principles are internationally recognized data integrity standards required for clinical trial systems. These principles ensure clinical trial data is trustworthy, defensible, and acceptable to regulators worldwide including FDA, EMA, and other health authorities. This requirement establishes the foundational data quality standards that enable the system to meet 21 CFR Part 11 compliance and support regulatory submissions. The principles apply throughout the entire data lifecycle from initial capture through long-term archival and retrieval.
 
-**Rationale**: ALCOA+ principles are internationally recognized data integrity standards. Adhering to these principles ensures clinical trial data is trustworthy, defensible, and acceptable to regulators worldwide.
+## Assertions
 
-**Acceptance Criteria**:
-- Every data entry includes creator identification and timestamp
-- Original values preserved when data modified
-- Data recorded at or near time of observation
-- Data readable without special tools or decoding
-- Complete audit trail available for entire data lifecycle
+A. All clinical trial data SHALL adhere to ALCOA+ principles throughout the data lifecycle.
+B. Data SHALL be attributable by being clearly linked to the person who created it.
+C. Every data entry SHALL include creator identification.
+D. Every data entry SHALL include a timestamp.
+E. Data SHALL be legible by being readable and understandable without obscuration.
+F. Data SHALL be readable without requiring special tools or decoding.
+G. Data SHALL be contemporaneous by being recorded at or near the time of observation.
+H. Data SHALL be original by representing the first recording or a certified true copy.
+I. Original values SHALL be preserved when data is modified.
+J. Data SHALL be accurate by being free from errors, complete, and correct.
+K. Data SHALL be complete with all data captured and nothing missing.
+L. Data SHALL be consistent by being performed in the same manner over time.
+M. Data SHALL be enduring by being preserved for the entire retention period.
+N. Data SHALL be available by being accessible for review and audit when needed.
+O. The system SHALL maintain a complete audit trail for the entire data lifecycle.
 
-*End* *ALCOA+ Data Integrity Principles* | **Hash**: 05c9dc79
+*End* *ALCOA+ Data Integrity Principles* | **Hash**: 75efc558
 ---
 
 # REQ-p00012: Clinical Data Retention Requirements
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00010
 
-Clinical trial data and associated audit trails SHALL be retained for minimum period required by regulations (typically 7+ years after study completion or product approval).
+## Rationale
 
-Data retention SHALL ensure:
-- All clinical trial records preserved for required period
-- Audit trails retained with associated clinical data
-- Data remains readable and accessible throughout retention period
-- Export capability for regulatory submission and archival
-- Retention period tracked and enforced per study
+Regulatory agencies require long-term retention of clinical trial data to support product approvals, post-market surveillance, and potential future investigations. Data must remain accessible and readable despite technology changes over the retention period. FDA 21 CFR Part 11 and ICH GCP guidelines mandate preservation of complete trial records including audit trails for periods typically extending 7+ years after study completion or product approval, depending on jurisdiction.
 
-**Rationale**: Regulatory agencies require long-term retention of clinical trial data to support product approvals, post-market surveillance, and potential future investigations. Data must remain accessible and readable despite technology changes over retention period.
+## Assertions
 
-**Acceptance Criteria**:
-- Retention period configurable per study/jurisdiction
-- Data export includes complete audit trail
-- Exported data readable without proprietary systems
-- Retention period enforcement prevents premature deletion
-- Data integrity maintained throughout retention period
+A. The system SHALL retain clinical trial data for the minimum period required by applicable regulations.
+B. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
+C. The system SHALL preserve all clinical trial records for the required retention period.
+D. The system SHALL retain audit trails with their associated clinical data for the entire retention period.
+E. The system SHALL ensure data remains readable throughout the retention period.
+F. The system SHALL ensure data remains accessible throughout the retention period.
+G. The system SHALL provide export capability for regulatory submission.
+H. The system SHALL provide export capability for archival purposes.
+I. The system SHALL track the retention period per study.
+J. The system SHALL enforce the retention period per study.
+K. The retention period SHALL be configurable per study.
+L. The retention period SHALL be configurable per jurisdiction.
+M. Data export SHALL include the complete audit trail.
+N. Exported data SHALL be readable without proprietary systems.
+O. The system SHALL prevent premature deletion by enforcing retention period requirements.
+P. The system SHALL maintain data integrity throughout the retention period.
 
-*End* *Clinical Data Retention Requirements* | **Hash**: b3332065
+*End* *Clinical Data Retention Requirements* | **Hash**: 1e94b089
 ---
 
 # REQ-p01061: GDPR Compliance
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
-The system SHALL comply with the EU General Data Protection Regulation (GDPR) for processing personal data of EU clinical trial participants.
+## Rationale
 
-GDPR compliance SHALL include:
-- Lawful basis for processing (explicit consent or legitimate interest for clinical trials)
-- Data subject rights (access, rectification, erasure where applicable, portability)
-- Data minimization (collect only data necessary for trial purposes)
-- Privacy by design (protection built into system architecture)
-- Data Processing Agreements with all processors
-- Breach notification within 72 hours to supervisory authority
+Clinical trials conducted in the EU or involving EU residents must comply with the General Data Protection Regulation (GDPR). This regulation mandates specific protections for personal data of trial participants, including establishing lawful bases for processing, honoring data subject rights, implementing privacy-by-design principles, and ensuring timely breach notifications. Non-compliance poses significant risks including regulatory fines up to €20M or 4% of global turnover, potential invalidation of trial data for regulatory submissions, and erosion of participant trust. The requirement ensures the platform embeds GDPR compliance into its core architecture and operational procedures, enabling sponsors to conduct legally compliant clinical trials involving EU residents.
 
-**Rationale**: Clinical trials conducted in the EU or involving EU residents must comply with GDPR. Non-compliance risks fines up to €20M or 4% of global turnover and invalidates trial data for regulatory submissions.
+## Assertions
 
-**Acceptance Criteria**:
-- Privacy policy documents GDPR lawful basis for processing
-- Data subject request workflow implemented and documented
-- Data Processing Agreements in place with all third-party processors
-- Breach notification procedure documented and tested
-- Data Protection Impact Assessment completed for clinical trial processing
+A. The system SHALL comply with the EU General Data Protection Regulation (GDPR) for processing personal data of EU clinical trial participants.
+B. The system SHALL establish and document a lawful basis for processing personal data, either explicit consent or legitimate interest for clinical trials.
+C. The system SHALL implement a workflow to fulfill data subject access requests.
+D. The system SHALL implement a workflow to fulfill data subject rectification requests.
+E. The system SHALL implement a workflow to fulfill data subject erasure requests where applicable under GDPR.
+F. The system SHALL implement a workflow to fulfill data subject portability requests.
+G. The system SHALL collect only personal data that is necessary for trial purposes.
+H. The system SHALL incorporate privacy protections into its architecture by design.
+I. The platform SHALL maintain Data Processing Agreements with all third-party data processors.
+J. The system SHALL support breach notification to the supervisory authority within 72 hours of breach detection.
+K. The privacy policy SHALL document the GDPR lawful basis for processing personal data.
+L. Data subject request workflows SHALL be documented.
+M. Data Processing Agreements SHALL be in place with all third-party processors before processing begins.
+N. The breach notification procedure SHALL be documented.
+O. The breach notification procedure SHALL be tested.
+P. A Data Protection Impact Assessment SHALL be completed for clinical trial data processing activities.
+Q. The system SHALL implement exceptions to these rules as applicable to GCP and FDA data retention requirements.
 
-*End* *GDPR Compliance* | **Hash**: 0f9e0f11
+*End* *GDPR Compliance* | **Hash**: c4ed4d8a
 ---
 
 # REQ-p01062: GDPR Data Portability
 
-**Level**: PRD | **Implements**: p01061 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01061
 
-Patients SHALL be able to export their personal clinical diary data in a portable, machine-readable format to exercise GDPR Article 20 data portability rights.
+## Rationale
 
-Data portability SHALL provide:
-- Patient-initiated export of all their diary entries and health records
-- Export in standard machine-readable format (JSON)
-- Complete data including timestamps, values, and metadata
-- Export available through mobile app without requiring sponsor assistance
-- Import capability to restore data on same or different device
+GDPR Article 20 grants EU data subjects the right to receive their personal data in a structured, commonly used, machine-readable format. This requirement ensures clinical trial participants can exercise their data portability rights by obtaining their own health diary data for personal records or transfer to another system. The export functionality must be self-service to avoid dependency on sponsor resources while maintaining data completeness and usability across devices.
 
-**Rationale**: GDPR Article 20 grants EU data subjects the right to receive their personal data in a structured, commonly used, machine-readable format. Clinical trial participants must be able to obtain their own health diary data for personal records or transfer to another system.
+## Assertions
 
-**Acceptance Criteria**:
-- Patient can export all their diary data from mobile app
-- Export file contains complete diary entries in JSON format
-- Export includes all user-generated content and timestamps
-- Patient can import previously exported data
-- Export/import does not require network connectivity
-- Exported data excludes system internals (sync state, device IDs)
+A. The system SHALL enable patients to export their personal clinical diary data in a machine-readable format.
+B. The system SHALL provide patient-initiated export of all diary entries and health records belonging to that patient.
+C. Exported data SHALL be formatted as JSON.
+D. The export SHALL include complete data comprising timestamps, values, and metadata.
+E. The export functionality SHALL be accessible through the mobile app.
+F. The export functionality SHALL NOT require sponsor assistance.
+G. The system SHALL provide import capability to restore previously exported data.
+H. The import functionality SHALL support restoration on the same device from which data was exported.
+I. The import functionality SHALL support restoration on a different device than the one from which data was exported.
+J. The export SHALL include all user-generated content.
+K. The export SHALL include all timestamps associated with diary entries.
+L. The export and import functionality SHALL operate without requiring network connectivity.
+M. The export SHALL NOT include system internals such as sync state.
+N. The export SHALL NOT include system internals such as device IDs.
 
-*End* *GDPR Data Portability* | **Hash**: 02cd6237
+*End* *GDPR Data Portability* | **Hash**: 4d47581f
 ---
 
 ### System Validation
