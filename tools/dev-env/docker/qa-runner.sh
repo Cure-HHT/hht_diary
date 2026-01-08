@@ -32,7 +32,9 @@ NC='\033[0m' # No Color
 TEST_SUITE="${TEST_SUITE:-${1:-all}}"
 REPORT_DIR="${REPORT_DIR:-/workspace/reports}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-REPO_DIR="/workspace/repos/clinical-diary"
+if [ -z "$REPO_DIR" ]; then
+  REPO_DIR="/workspace/repos/clinical_diary"
+fi
 
 # Counters
 TESTS_RUN=0
@@ -93,8 +95,10 @@ EOF
 run_flutter_unit_tests() {
   info "Running Flutter unit tests..."
 
+  find $REO_DIR -print
+
   if [ ! -f "$REPO_DIR/pubspec.yaml" ]; then
-    warning "No Flutter project found, skipping Flutter tests"
+    warning "No Flutter pubspec.yaml found in $REPO_DIR, skipping Flutter tests"
     echo "- **Flutter Unit Tests**: Skipped (no Flutter project)" >> "$REPORT_DIR/test-summary.md"
     return 0
   fi
