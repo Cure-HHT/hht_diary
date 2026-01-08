@@ -68,7 +68,7 @@ variable "project_prefix" {
 variable "default_region" {
   description = "Default GCP region"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west9"
 }
 
 variable "folder_id" {

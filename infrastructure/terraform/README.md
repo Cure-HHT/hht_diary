@@ -219,7 +219,7 @@ billing_account_dev  = "YYYYYY-YYYYYY-YYYYYY"
 
 # Optional
 project_prefix       = "cure-hht"
-region              = "us-central1"
+region              = "europe-west9"
 ```
 
 **Important:** `sponsor_id` must be unique across all sponsors. It's used for VPC CIDR allocation.

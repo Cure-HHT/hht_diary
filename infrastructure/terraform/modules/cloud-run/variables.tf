@@ -23,7 +23,7 @@ variable "environment" {
 variable "region" {
   description = "GCP region"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west9"
 }
 
 variable "vpc_connector_id" {

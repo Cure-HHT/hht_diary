@@ -38,7 +38,7 @@ The Terraform bootstrap creates the infrastructure (Pub/Sub topic, subscription,
 SPONSOR="callisto"
 ENV="dev"
 PROJECT_ID="cure-hht-${SPONSOR}-${ENV}"
-REGION="us-central1"
+REGION="europe-west9"
 SERVICE_ACCOUNT="${SPONSOR}-${ENV}-cost-ctrl@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # Deploy the function
@@ -75,7 +75,7 @@ After services are stopped, to restore them:
 gcloud run services update diary-server \
   --min-instances=1 \
   --max-instances=5 \
-  --region=us-central1 \
+  --region=europe-west9 \
   --project=cure-hht-${SPONSOR}-${ENV}
 ```
 

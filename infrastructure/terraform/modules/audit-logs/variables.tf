@@ -29,7 +29,7 @@ variable "environment" {
 variable "region" {
   description = "GCP region for the bucket"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west9"
 }
 
 variable "retention_years" {

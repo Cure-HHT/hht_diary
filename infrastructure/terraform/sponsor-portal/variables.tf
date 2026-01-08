@@ -58,7 +58,7 @@ variable "db_password" {
 variable "region" {
   description = "GCP region"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west9"
 }
 
 variable "project_prefix" {

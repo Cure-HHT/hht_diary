@@ -27,7 +27,7 @@ billing_account_dev  = "01A48D-1B402E-18CB1A" # Cure HHT - Dev
 # -----------------------------------------------------------------------------
 
 project_prefix = "cure-hht"
-default_region = "us-central1"
+default_region = "europe-west9"
 
 # -----------------------------------------------------------------------------
 # GitHub Integration
