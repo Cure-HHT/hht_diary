@@ -130,15 +130,17 @@ resource "google_cloud_run_v2_service" "diary_server" {
         container_port = 8080
       }
 
+      # Startup probe - Dart needs 30-60s for JIT compilation on cold start
+      # Total tolerance: 30 + (6 * 15) = 120 seconds before restart
       startup_probe {
         http_get {
           path = "/health"
           port = 8080
         }
-        initial_delay_seconds = 5
-        timeout_seconds       = 3
-        period_seconds        = 10
-        failure_threshold     = 3
+        initial_delay_seconds = 30  # Dart JIT compilation time
+        timeout_seconds       = 10  # Generous timeout for slow starts
+        period_seconds        = 15
+        failure_threshold     = 6   # 6 failures = 90s additional tolerance
       }
 
       liveness_probe {
@@ -146,8 +148,8 @@ resource "google_cloud_run_v2_service" "diary_server" {
           path = "/health"
           port = 8080
         }
-        timeout_seconds   = 3
-        period_seconds    = 30
+        timeout_seconds   = 5
+        period_seconds    = 60    # Less frequent checks reduce overhead
         failure_threshold = 3
       }
     }

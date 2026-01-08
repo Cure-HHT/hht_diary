@@ -73,11 +73,13 @@ module "budgets" {
   source   = "../modules/billing-budget"
   for_each = toset(local.environments)
 
-  billing_account_id = local.billing_accounts[each.key]
-  project_number     = module.projects[each.key].project_number
-  sponsor            = var.sponsor
-  environment        = each.key
-  budget_amount      = var.budget_amounts[each.key]
+  billing_account_id   = local.billing_accounts[each.key]
+  project_id           = module.projects[each.key].project_id
+  project_number       = module.projects[each.key].project_number
+  sponsor              = var.sponsor
+  environment          = each.key
+  budget_amount        = var.budget_amounts[each.key]
+  enable_cost_controls = var.enable_cost_controls
 
   depends_on = [module.projects]
 }

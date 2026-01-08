@@ -116,6 +116,12 @@ variable "budget_amounts" {
   }
 }
 
+variable "enable_cost_controls" {
+  description = "Enable automated cost controls (Pub/Sub + Cloud Function to stop services when budget exceeded). Only affects non-prod environments - prod will alert but not auto-stop."
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # Audit Log Configuration
 # -----------------------------------------------------------------------------

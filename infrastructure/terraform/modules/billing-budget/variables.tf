@@ -62,3 +62,20 @@ variable "disable_default_notifications" {
   type        = bool
   default     = false
 }
+
+variable "project_id" {
+  description = "GCP Project ID (for Pub/Sub topic)"
+  type        = string
+}
+
+variable "enable_cost_controls" {
+  description = "Enable Pub/Sub topic for automated cost control actions"
+  type        = bool
+  default     = true
+}
+
+variable "cost_control_threshold" {
+  description = "Threshold (0.0-2.0) at which to trigger cost control actions (e.g., 1.0 = 100%)"
+  type        = number
+  default     = 1.0
+}

@@ -117,6 +117,22 @@ output "budget_ids" {
   }
 }
 
+output "cost_controls_enabled" {
+  description = "Map of environment to cost control status (non-prod only)"
+  value = {
+    for env in local.environments :
+    env => module.budgets[env].cost_controls_enabled
+  }
+}
+
+output "budget_alert_topics" {
+  description = "Pub/Sub topics for budget alerts (for custom automation)"
+  value = {
+    for env in local.environments :
+    env => module.budgets[env].budget_alert_topic
+  }
+}
+
 # -----------------------------------------------------------------------------
 # VPC CIDR Information
 # -----------------------------------------------------------------------------
@@ -160,6 +176,8 @@ output "next_steps" {
 
     Audit Log Retention: ${var.audit_retention_years} years
     Prod Audit Locked: ${local.audit_lock["prod"]}
+
+    Cost Controls: ${var.enable_cost_controls ? "Enabled (non-prod will auto-stop on budget exceed)" : "Disabled (alerts only)"}
 
     Next Steps:
     1. Create sponsor-portal tfvars for each environment:
