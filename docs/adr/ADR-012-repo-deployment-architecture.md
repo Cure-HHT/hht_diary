@@ -1,4 +1,4 @@
-# ADR-010: Repository and Deployment Architecture
+# ADR-012: Repository and Deployment Architecture
 
 **Date**: 2026-01-08
 **Deciders**: Development Team, DevOps Team
@@ -141,6 +141,7 @@ main                          # Single source of truth
 - Developers manage config via PRs
 
 **Option B: Portal-Based Config** (alternative for self-service):
+- Same codebase used for all sponsor portals
 - Config stored in portal database
 - Sponsors can update branding/settings via UI
 - Requires additional application development
@@ -148,27 +149,21 @@ main                          # Single source of truth
 
 ---
 
-## Consequences
+## Consequences to using Option B: Portal-Based Config
 
 ### Positive
 
 1. **Simpler Maintenance**: One codebase, one tag per release, no N-way branch maintenance
-2. **Clear Audit Trail**: Tags are immutable; deployment config shows exactly what ran where
-3. **Proper Git Usage**: Follows industry best practices (trunk-based, merge-based, converging branches)
-4. **Scalability**: Adding sponsors doesn't increase branch maintenance
-5. **FDA Compliance**: Unified versioning means all sponsors are on validated, documented versions
-6. **Hotfix Efficiency**: Fix once, deploy everywhere (no cherry-picking to N branches)
+2. **Scalability**: Adding sponsors doesn't increase branch maintenance
+3. **FDA Compliance**: Unified versioning means all sponsors are on validated, documented versions
+4. **Hotfix Efficiency**: Fix once, deploy everywhere (no cherry-picking to N branches)
 
 ### Negative
 
 1. **Less Per-Sponsor Flexibility**: Cannot run different code versions per sponsor
-   - *Mitigation*: This is actually correct for FDA compliance (all sponsors should run validated code)
 
 2. **Coordinated Releases**: All sponsors update together
    - *Mitigation*: `locked` flag gates updates for active studies
-
-3. **Migration Required**: Current mono-repo sponsors will need config migration when moving to private repos
-   - *Mitigation*: Migration is straightforward; config files stay similar
 
 ### Neutral
 
@@ -256,13 +251,13 @@ hht_diary (PUBLIC)                sponsor-{name} (PRIVATE)
 
 ---
 
-## Validation
+## Assertions
 
-- [ ] All releases use tags (not long-lived branches)
-- [ ] Release branches deleted after final tag
-- [ ] Deployment config specifies tags, not branches
-- [ ] No cherry-pick in standard workflow
-- [ ] Sponsor config changes trackable via git or portal audit log
+All releases use tags (not long-lived branches)
+Release branches deleted after final tag
+Deployment config specifies tags, not branches
+No cherry-pick in standard workflow
+Sponsor config changes trackable via git
 
 ---
 
