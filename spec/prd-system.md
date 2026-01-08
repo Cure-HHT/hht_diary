@@ -1,137 +1,60 @@
-# Clinical Trial Diary Platform
+# Veritite (tm) - the Open eSource
 
-**Version**: 1.0
+**Version**: 1.1
 **Audience**: Product Requirements
-**Last Updated**: 2025-12-02
 **Status**: Draft
-
-> **See**: prd-diary-app.md for mobile application requirements
-> **See**: prd-portal.md for sponsor portal requirements
-> **See**: prd-database.md for data storage requirements
-> **See**: prd-backup.md for backup and archival requirements
-> **See**: prd-devops.md for operations and monitoring requirements
-> **See**: prd-services.md for ancillary services requirements
+**Reviewed**: 2026-01-01 Michael Lewis
+---
 
 ---
 
 ## Executive Summary
 
-The Clinical Trial Diary Platform is a multi-sponsor system for FDA 21 CFR Part 11 compliant clinical trial data capture. Patients record health observations via mobile app, sponsors access data through web portals, and compliant cloud infrastructure ensures data integrity, security, and long-term retention.
+Veritite is a collection of applications and services that enables the deployment
+of a user-centric cross-platform health-related data collection application. Initially
+designed to implement a daily nosebleed diary for Cure HHT as a service to its pa
+
+Veritite also supports using this dat in regulated clinical trials and scientific
+studies by implementing best-in-class tamper-proofing for evidence records and
+traceability. Sponsors and investigators access trial data through secure web portals.
+The platform operates on compliant cloud infrastructure designed to ensure
+data integrity, security, auditability, and regulatory acceptance.
 
 ---
 
-# REQ-p00044: Clinical Trial Diary Platform
+# REQ-p00044: Clinical Trial Compliant Diary Platform
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD  **Status**: Draft  **Implements**: -
 
-A multi-sponsor clinical trial data capture platform enabling patients to record health observations via mobile app, with sponsor access through web portals, backed by compliant cloud infrastructure.
+## Rationale
 
-Platform components SHALL include:
-- Patient-facing mobile application (prd-diary-app.md)
-- Sponsor-specific web portals (prd-portal.md)
-- Cloud database with event sourcing (prd-database.md)
-- Long-term backup and archival storage (prd-backup.md)
-- DevOps monitoring and support systems (prd-devops.md)
-- Ancillary services including push notifications (prd-services.md)
+This requirement defines the existence, scope, and regulatory nature of the platform without constraining internal design or implementation mechanisms.
 
-**Rationale**: Defines the complete system scope for FDA 21 CFR Part 11 compliant clinical trial data capture across multiple pharmaceutical sponsors. Component separation enables independent development, testing, and deployment while maintaining system-wide compliance.
+## Assertions
 
-**Acceptance Criteria**:
-- All platform components operational and integrated
-- Complete audit trail maintained across all system boundaries
-- Multi-sponsor isolation enforced throughout all components
-- FDA 21 CFR Part 11 compliance demonstrated for complete platform
+A. The system SHALL provide a platform for collecting patient-reported clinical diary data for regulated clinical trials.
+B. The system SHALL support multiple independent pharmaceutical sponsors within a single platform.
+C. The system SHALL enable patient data entry via mobile applications.
+D. The system SHALL enable sponsor and investigator access to trial data via web-based interfaces.
+E. The system SHALL operate in a manner compliant with FDA regulations governing electronic records.
 
-*End* *Clinical Trial Diary Platform* | **Hash**: 0e8a8d5b
+*End* *Clinical Trial Diary Platform* | **Hash**: a72852cf
 
 ---
 
 # REQ-p01041: Open Source Licensing
 
-**Level**: PRD | **Implements**: - | **Status**: Draft
+**Level**: PRD  **Status**: Draft  **Implements**: -
 
-The Clinical Trial Diary Platform core codebase SHALL be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) to ensure derivative works remain open source and network use triggers source disclosure requirements.
+## Rationale
 
-Licensing SHALL specify:
-- AGPL-3.0 for core platform code (packages/, apps/, database/)
-- Sponsor-specific code in sponsor/ directories remains proprietary to each sponsor
-- Documentation in docs/ licensed under CC-BY-SA 4.0
-- Third-party dependencies must be compatible with AGPL-3.0
+Open-source licensing ensures transparency, encourages collaboration, and prevents
+closed proprietary forks of the core platform while preserving sponsor IP boundaries.
 
-**Rationale**: AGPL-3.0 ensures modifications to the platform are shared back with the community while allowing the core platform to benefit from open source collaboration. The copyleft provisions protect against proprietary forks while the network use clause ensures SaaS deployments also share improvements. Sponsor isolation ensures each sponsor's proprietary customizations remain protected.
+## Assertions
 
-**Acceptance Criteria**:
-- LICENSE file exists at repository root with complete AGPL-3.0 text
-- All source files include appropriate license headers or reference root LICENSE
-- Sponsor directories clearly marked as proprietary in their README files
-- CONTRIBUTING.md references licensing requirements for contributions
-- Third-party dependency audit confirms AGPL-3.0 compatibility
+A. The Veritite core codebase SHALL be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+B. Sponsor-specific extensions and customizations SHALL be permitted to remain proprietary to each sponsor.
+C. Platform documentation SHALL be distributed under an open documentation license compatible with redistribution and modification.
 
-*End* *Open Source Licensing* | **Hash**: 8c10dd61
-
----
-
-## Platform Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    CLINICAL TRIAL DIARY PLATFORM                     │
-│                         (REQ-p00044)                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  Mobile App  │  │   Sponsor    │  │    Ancillary Services    │  │
-│  │  (p00043)    │  │   Portal     │  │        (p00049)          │  │
-│  │              │  │   (p00045)   │  │  - Push Notifications    │  │
-│  │  - iOS      │  │              │  │  - Email Services        │  │
-│  │  - Android   │  │  - Admin     │  │  - Reporting             │  │
-│  │  - Offline   │  │  - Invest.   │  │                          │  │
-│  │              │  │  - Auditor   │  │                          │  │
-│  └──────┬───────┘  └──────┬───────┘  └────────────┬─────────────┘  │
-│         │                 │                        │                │
-│         └─────────────────┴────────────────────────┘                │
-│                           │                                         │
-│              ┌────────────▼────────────┐                           │
-│              │   Cloud Database        │                           │
-│              │      (p00046)           │                           │
-│              │   - Event Sourcing      │                           │
-│              │   - Audit Trail         │                           │
-│              │   - Sponsor Isolation   │                           │
-│              └────────────┬────────────┘                           │
-│                           │                                         │
-│         ┌─────────────────┴─────────────────┐                      │
-│         │                                   │                      │
-│  ┌──────▼──────┐                    ┌───────▼───────┐              │
-│  │   Backup    │                    │    DevOps     │              │
-│  │  (p00047)   │                    │   (p00048)    │              │
-│  │             │                    │               │              │
-│  │ - Archives  │                    │ - Monitoring  │              │
-│  │ - Retention │                    │ - Alerts      │              │
-│  │ - Recovery  │                    │ - Support     │              │
-│  └─────────────┘                    └───────────────┘              │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Compliance Framework
-
-**FDA 21 CFR Part 11**: Electronic records and signatures
-**ALCOA+ Principles**: Attributable, Legible, Contemporaneous, Original, Accurate, Complete, Consistent, Enduring, Available
-
-**See**: prd-clinical-trials.md for detailed compliance requirements
-
----
-
-## References
-
-- **Mobile App**: prd-diary-app.md
-- **Portal**: prd-portal.md
-- **Database**: prd-database.md
-- **Backup**: prd-backup.md
-- **DevOps**: prd-devops.md
-- **Services**: prd-services.md
-- **Security**: prd-security.md
-- **Compliance**: prd-clinical-trials.md
-- **Architecture**: prd-architecture-multi-sponsor.md
+*End* *Open Source Licensing* | **Hash**: 85c600f4

@@ -410,7 +410,13 @@ chmod +x .githooks/post-commit
 
 2. **Run validation manually to see full output**:
    ```bash
-   # Requirement validation
+   # Requirement validation (primary - using elspais)
+   elspais validate spec/dev-api.md
+
+   # Index validation (using elspais)
+   elspais index validate
+
+   # Or using local scripts (fallback if elspais not available)
    python3 tools/requirements/validate_requirements.py spec/dev-api.md
 
    # Spec compliance
@@ -475,14 +481,20 @@ git checkout HEAD -- tools/requirements/
 
 **Solution**:
 ```bash
-# Check Python version
+# Check elspais version (primary validation tool)
+elspais --version
+
+# Check Python version (for fallback scripts)
 python3 --version
 
 # Ensure scripts are committed
 git status tools/requirements/
 git status tools/anspar-cc-plugins/
 
-# Run validation with explicit Python
+# Run validation manually (using elspais)
+elspais validate
+
+# Or using Python scripts (fallback)
 python3 tools/requirements/validate_requirements.py
 
 # Commit any updated scripts

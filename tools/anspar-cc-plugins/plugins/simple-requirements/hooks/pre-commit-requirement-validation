@@ -6,9 +6,9 @@
 # This hook is part of the simple-requirements plugin.
 # It validates all requirements in spec/ before allowing commits.
 #
-# Plugin: simple-requirements v1.0.0
+# Plugin: simple-requirements v2.0.0
 # Location: tools/anspar-cc-plugins/plugins/simple-requirements/
-# Implementation: tools/requirements/validate_requirements.py (shared tool)
+# Implementation: elspais CLI (pip install elspais)
 #
 # To bypass (NOT RECOMMENDED):
 #   git commit --no-verify
@@ -34,19 +34,18 @@ if [ -z "$REPO_ROOT" ]; then
     exit 0
 fi
 
-# Check if validation script exists
-VALIDATION_SCRIPT="$REPO_ROOT/tools/requirements/validate_requirements.py"
-
-if [ ! -f "$VALIDATION_SCRIPT" ]; then
-    echo -e "${RED}❌ ERROR: Validation script not found: $VALIDATION_SCRIPT${NC}"
+# Check if elspais is available
+if ! command -v elspais &> /dev/null; then
+    echo -e "${RED}❌ ERROR: elspais CLI not found${NC}"
     echo ""
-    echo "The requirement-validation plugin requires the validation script."
-    echo "See tools/requirements/README.md for setup."
+    echo "The simple-requirements plugin requires elspais."
+    echo "Install with: pip install elspais"
     exit 1
 fi
 
-# Run validation
-if python3 "$VALIDATION_SCRIPT"; then
+# Run validation from repo root
+cd "$REPO_ROOT"
+if elspais validate; then
     echo ""
     echo -e "${GREEN}✅ Requirement validation passed!${NC}"
 else

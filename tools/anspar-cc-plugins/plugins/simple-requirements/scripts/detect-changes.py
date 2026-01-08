@@ -13,24 +13,23 @@ Usage:
 Output Formats:
     - json: Machine-readable JSON (default)
     - summary: Human-readable summary
+
+Requires:
+    pip install elspais
 """
 
 import sys
 import json
 import argparse
 import re
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
 # Import shared utilities
-from common import get_repo_root, setup_python_path
+from common import get_repo_root, get_requirements_via_cli, normalize_req_id
 
-# Add tools/requirements to Python path
-setup_python_path()
 repo_root = get_repo_root()
-
-from validate_requirements import RequirementValidator, calculate_requirement_hash
-
 
 def parse_index_md(index_path: Path) -> dict:
     """
@@ -79,10 +78,8 @@ def detect_changes(format_type: str = 'json') -> str:
     """
     spec_dir = repo_root / 'spec'
 
-    # Parse current requirements
-    validator = RequirementValidator(spec_dir)
-    validator._parse_requirements()
-    current_reqs = validator.requirements
+    # Parse current requirements via elspais CLI
+    current_reqs = get_requirements_via_cli()
 
     # Parse INDEX.md
     index_path = spec_dir / 'INDEX.md'
@@ -93,33 +90,36 @@ def detect_changes(format_type: str = 'json') -> str:
     new_reqs = []
     missing_from_index = []
 
-    for req_id, req in current_reqs.items():
+    for full_req_id, req in current_reqs.items():
+        # Extract short ID (e.g., 'd00027' from 'REQ-d00027')
+        req_id = normalize_req_id(full_req_id)
+
         if req_id not in index_reqs:
             # New requirement not in INDEX.md
             missing_from_index.append({
                 'req_id': req_id,
-                'file': req.file_path.name,
-                'title': req.title,
-                'hash': req.hash,
+                'file': req['file'],
+                'title': req['title'],
+                'hash': req['hash'],
                 'reason': 'not_in_index'
             })
         elif index_reqs[req_id]['hash'] == 'TBD':
             # Hash marked as TBD in INDEX
             new_reqs.append({
                 'req_id': req_id,
-                'file': req.file_path.name,
-                'title': req.title,
-                'hash': req.hash,
+                'file': req['file'],
+                'title': req['title'],
+                'hash': req['hash'],
                 'reason': 'hash_tbd'
             })
-        elif req.hash != index_reqs[req_id]['hash']:
+        elif req['hash'] != index_reqs[req_id]['hash']:
             # Hash mismatch - requirement changed
             changed.append({
                 'req_id': req_id,
                 'old_hash': index_reqs[req_id]['hash'],
-                'new_hash': req.hash,
-                'file': req.file_path.name,
-                'title': req.title
+                'new_hash': req['hash'],
+                'file': req['file'],
+                'title': req['title']
             })
 
     # Format output
@@ -181,7 +181,7 @@ def detect_changes(format_type: str = 'json') -> str:
         lines.append("1. Review changed requirements above")
         lines.append("2. Verify implementations still satisfy requirements")
         lines.append("3. Update INDEX.md hashes when verified:")
-        lines.append("   python3 tools/requirements/update-REQ-hashes.py")
+        lines.append("   elspais hash update")
         lines.append("")
 
         return '\n'.join(lines)

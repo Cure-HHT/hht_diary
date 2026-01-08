@@ -1,0 +1,229 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00069: Doppler manifest system
+#   REQ-d00070: Sponsor integration automation
+#   REQ-o00077: Sponsor CI/CD Integration
+
+name: Sponsor Repository Validation
+
+on:
+  # Weekly validation of all remote sponsors
+  schedule:
+    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+
+  # Manual trigger for specific sponsor or all sponsors
+  workflow_dispatch:
+    inputs:
+      sponsor:
+        description: 'Sponsor name to validate (leave empty for all)'
+        required: false
+        type: string
+      validate_structure:
+        description: 'Validate sponsor directory structure'
+        required: false
+        type: boolean
+        default: true
+      validate_requirements:
+        description: 'Validate sponsor requirements'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ELSPAIS_VERSION: "0.3.0"  # Pin to specific version
+
+jobs:
+  # Resolve which sponsors to validate
+  resolve-sponsors:
+    name: Resolve Sponsors
+    runs-on: ubuntu-latest
+    outputs:
+      sponsors: ${{ steps.resolve.outputs.sponsors }}
+      sponsor_count: ${{ steps.resolve.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+
+      - name: Resolve sponsors to validate
+        id: resolve
+        env:
+          SPONSOR_MANIFEST: ${{ secrets.SPONSOR_MANIFEST }}
+          INPUT_SPONSOR: ${{ inputs.sponsor }}
+        run: |
+          echo "::group::Resolving sponsors"
+
+          # If specific sponsor requested, filter to just that one
+          if [ -n "$INPUT_SPONSOR" ]; then
+            echo "Filtering to sponsor: $INPUT_SPONSOR"
+            SPONSORS=$(tools/build/resolve-sponsors.sh --sponsor "$INPUT_SPONSOR" --enabled-only --quiet)
+          else
+            # Get all enabled sponsors
+            SPONSORS=$(tools/build/resolve-sponsors.sh --enabled-only --quiet)
+          fi
+
+          # Count sponsors
+          COUNT=$(echo "$SPONSORS" | jq 'length')
+          echo "Found $COUNT sponsor(s) to validate"
+
+          # Output for matrix strategy
+          echo "sponsors=$SPONSORS" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+          echo "::endgroup::"
+
+  # Validate each sponsor in parallel
+  validate-sponsor:
+    name: Validate ${{ matrix.sponsor.name }}
+    needs: resolve-sponsors
+    if: needs.resolve-sponsors.outputs.sponsor_count != '0'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sponsor: ${{ fromJson(needs.resolve-sponsors.outputs.sponsors) }}
+
+    steps:
+      - name: Checkout core repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install elspais
+        run: |
+          pip install elspais==${{ env.ELSPAIS_VERSION }}
+          elspais --version
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+          cd tools/requirements
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Clone sponsor repo (if remote)
+        if: matrix.sponsor.repo != 'local'
+        env:
+          SPONSOR_REPO_TOKEN: ${{ secrets.SPONSOR_REPO_TOKEN }}
+        run: |
+          echo "::group::Cloning ${{ matrix.sponsor.name }} from ${{ matrix.sponsor.repo }}"
+
+          SPONSOR_DIR="build/sponsors/${{ matrix.sponsor.name }}"
+          mkdir -p "$(dirname "$SPONSOR_DIR")"
+
+          # Clone sponsor repo at specific tag
+          TAG="${{ matrix.sponsor.tag }}"
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            TAG="main"
+          fi
+
+          git clone \
+            --depth 1 \
+            --branch "$TAG" \
+            "https://${SPONSOR_REPO_TOKEN}@github.com/${{ matrix.sponsor.repo }}.git" \
+            "$SPONSOR_DIR"
+
+          echo "Cloned ${{ matrix.sponsor.repo }} @ $TAG"
+          echo "::endgroup::"
+
+      - name: Validate sponsor structure
+        if: inputs.validate_structure != false
+        run: |
+          echo "::group::Validating structure for ${{ matrix.sponsor.name }}"
+
+          SPONSOR_DIR=""
+          if [ "${{ matrix.sponsor.repo }}" = "local" ]; then
+            SPONSOR_DIR="sponsor/${{ matrix.sponsor.name }}"
+          else
+            SPONSOR_DIR="build/sponsors/${{ matrix.sponsor.name }}"
+          fi
+
+          # Run structure validation
+          if [ -f "tools/build/verify-sponsor-structure.sh" ]; then
+            ./tools/build/verify-sponsor-structure.sh "${{ matrix.sponsor.name }}"
+          else
+            echo "Structure validation script not found, skipping"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Validate sponsor requirements with elspais
+        if: inputs.validate_requirements != false
+        run: |
+          echo "::group::Validating requirements for ${{ matrix.sponsor.name }}"
+
+          SPONSOR_DIR=""
+          if [ "${{ matrix.sponsor.repo }}" = "local" ]; then
+            SPONSOR_DIR="sponsor/${{ matrix.sponsor.name }}"
+          else
+            SPONSOR_DIR="build/sponsors/${{ matrix.sponsor.name }}"
+          fi
+
+          # Check if sponsor has spec/ directory with elspais config
+          if [ -d "$SPONSOR_DIR/spec" ]; then
+            echo "Validating sponsor requirements with elspais..."
+            if [ -f "$SPONSOR_DIR/.elspais.toml" ]; then
+              (cd "$SPONSOR_DIR" && elspais validate) || echo "⚠️ Requirement validation failed"
+            else
+              echo "No .elspais.toml found in sponsor repo, skipping elspais validation"
+            fi
+          else
+            echo "No spec/ directory found in sponsor repo, skipping requirement validation"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Generate repo traceability
+        run: |
+          echo "::group::Generating traceability for ${{ matrix.sponsor.name }}"
+
+          python3 tools/requirements/trace_view.py \
+            --only-repo "${{ matrix.sponsor.name }}" \
+            --resolve-repos \
+            --format markdown \
+            --output-dir "build-reports/${{ matrix.sponsor.name }}/traceability" || echo "⚠️ Traceability generation failed"
+
+          echo "::endgroup::"
+
+      - name: Upload sponsor validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sponsor-validation-${{ matrix.sponsor.name }}-${{ github.run_id }}
+          path: build-reports/${{ matrix.sponsor.name }}/
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # Summary job
+  summary:
+    name: Validation Summary
+    needs: [resolve-sponsors, validate-sponsor]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Sponsor Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Sponsors validated:** ${{ needs.resolve-sponsors.outputs.sponsor_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.validate-sponsor.result }}" = "success" ]; then
+            echo "✅ All sponsor validations passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-sponsor.result }}" = "failure" ]; then
+            echo "❌ Some sponsor validations failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Validation status: ${{ needs.validate-sponsor.result }}" >> $GITHUB_STEP_SUMMARY
+          fi

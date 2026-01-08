@@ -33,58 +33,62 @@ Without formal requirements and traceability, a clinical trial system cannot be 
 
 # REQ-p00020: System Validation and Traceability
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00010
 
-The system development process SHALL maintain formal requirements with complete traceability from product requirements through operational procedures to implementation code, ensuring all system capabilities are documented, justified, and verifiable.
+## Rationale
 
-Formal requirements SHALL ensure:
-- Every system capability defined in written requirement
-- Every requirement traceable to business need or regulatory mandate
-- Every implementation file linked to requirements it implements
-- Complete audit trail of requirement changes via version control
-- Traceability matrices demonstrating requirement relationships
-- Requirements follow top-down cascade (PRD → OPS → DEV)
+FDA 21 CFR Part 11 requires validated systems for electronic records in clinical trials. System validation requires formal requirements with complete traceability demonstrating the system was built to specification. Without traceable requirements, the system cannot be validated, and cannot be used for regulatory submissions. Formal requirements also enable change impact analysis, support quality audits, and ensure institutional knowledge is documented rather than tribal knowledge.
 
-**Rationale**: FDA 21 CFR Part 11 requires validated systems for electronic records in clinical trials. System validation requires formal requirements with complete traceability demonstrating the system was built to specification. Without traceable requirements, the system cannot be validated, and cannot be used for regulatory submissions. Formal requirements also enable change impact analysis, support quality audits, and ensure institutional knowledge is documented rather than tribal.
+## Assertions
 
-**Acceptance Criteria**:
-- All requirements follow standardized format with unique IDs
-- All implementation files include header comments referencing requirements
-- Traceability matrices demonstrate complete requirement relationships
-- All requirement changes captured in version control history
-- Requirements validate successfully before commits accepted
-- Validation tooling prevents commits with invalid/orphaned requirements
-- Top-down cascade enforced (PRD requirements drive OPS/DEV, not vice versa)
+A. The system development process SHALL maintain formal requirements with complete traceability from product requirements through operational procedures to implementation code.
+B. Every system capability SHALL be defined in a written requirement.
+C. Every requirement SHALL be traceable to a business need or regulatory mandate.
+D. Every implementation file SHALL be linked to the requirements it implements.
+E. The system SHALL maintain a complete audit trail of requirement changes via version control.
+F. The system SHALL provide traceability matrices demonstrating requirement relationships.
+G. Requirements SHALL follow top-down cascade from PRD to OPS to DEV.
+H. All requirements SHALL follow a standardized format with unique IDs.
+I. All implementation files SHALL include header comments referencing requirements.
+J. Traceability matrices SHALL demonstrate complete requirement relationships.
+K. All requirement changes SHALL be captured in version control history.
+L. Requirements SHALL validate successfully before commits are accepted.
+M. Validation tooling SHALL prevent commits with invalid requirements.
+N. Validation tooling SHALL prevent commits with orphaned requirements.
+O. Top-down cascade SHALL be enforced such that PRD requirements drive OPS and DEV requirements.
+P. DEV requirements SHALL NOT drive PRD requirements.
+Q. OPS requirements SHALL NOT drive PRD requirements.
 
-*End* *System Validation and Traceability* | **Hash**: 1d358edd
+*End* *System Validation and Traceability* | **Hash**: 59dad31e
 ---
 
 # REQ-p00021: Architecture Decision Documentation
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
-Significant architectural and design decisions SHALL be formally documented with context, alternatives considered, and consequences, ensuring decisions are reviewable, reversible, and understood by future maintainers and auditors.
+## Rationale
 
-Decision documentation SHALL ensure:
-- Decisions with long-term impact are recorded
-- Context and driving factors are explained
-- Alternatives considered are documented
-- Trade-offs and consequences are explicit
-- Decision rationale is available for audits
-- Decisions can be revisited when context changes
+Clinical trial systems have long operational lifetimes (25+ years per FDA retention requirements). Architectural decisions made today will be maintained by different teams over decades. Formal decision documentation ensures future maintainers understand why the system was built the way it was, enables informed evolution of the system, supports regulatory audits by explaining technical choices, and prevents repeating past mistakes by documenting alternatives that were rejected and why.
 
-**Rationale**: Clinical trial systems have long operational lifetimes (25+ years per FDA retention requirements). Architectural decisions made today will be maintained by different teams over decades. Formal decision documentation ensures future maintainers understand why the system was built the way it was, enables informed evolution of the system, supports regulatory audits by explaining technical choices, and prevents repeating past mistakes by documenting alternatives that were rejected and why.
+## Assertions
 
-**Acceptance Criteria**:
-- Significant architectural decisions documented in Architecture Decision Records (ADRs)
-- ADRs capture context, decision, consequences, and alternatives
-- ADRs linked to implementing requirements when applicable
-- ADRs follow defined lifecycle (Proposed → Accepted → Deprecated/Superseded)
-- ADRs maintained in version control with system evolution
-- Decision rationale available for audit and review
-- ADR index maintained showing all decisions and their status
+A. The system SHALL formally document significant architectural and design decisions.
+B. Decision documentation SHALL include context and driving factors for each decision.
+C. Decision documentation SHALL include alternatives that were considered.
+D. Decision documentation SHALL include explicit trade-offs and consequences.
+E. Decision documentation SHALL include the rationale for the decision.
+F. Decision documentation SHALL be reviewable by future maintainers and auditors.
+G. Decision documentation SHALL support decisions being revisible when context changes.
+H. The system SHALL document decisions with long-term impact.
+I. The system SHALL make decision rationale available for audits.
+J. Architectural decisions SHALL be documented in Architecture Decision Records (ADRs).
+K. ADRs SHALL capture context, decision, consequences, and alternatives.
+L. ADRs SHALL be linked to implementing requirements when applicable.
+M. ADRs SHALL follow a defined lifecycle of Proposed, Accepted, Deprecated, or Superseded.
+N. ADRs SHALL be maintained in version control with system evolution.
+O. The system SHALL maintain an ADR index showing all decisions and their status.
 
-*End* *Architecture Decision Documentation* | **Hash**: 4cc93241
+*End* *Architecture Decision Documentation* | **Hash**: a6a58cac
 ---
 
 ## References

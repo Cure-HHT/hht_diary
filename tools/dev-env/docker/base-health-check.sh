@@ -6,4 +6,5 @@ gh --version >/dev/null
 node --version >/dev/null
 python3 --version >/dev/null
 doppler --version >/dev/null
+elspais --version >/dev/null
 echo "Health check passed"

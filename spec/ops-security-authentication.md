@@ -63,28 +63,30 @@ Authentication configuration and operations guide for the Clinical Trial Diary P
 
 # REQ-o00006: MFA Configuration for Staff Accounts
 
-**Level**: Ops | **Implements**: p00002 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00002
 
-Multi-factor authentication SHALL be configured and enforced for all clinical staff, administrator, and sponsor personnel accounts, ensuring password-based authentication is augmented with additional verification.
+## Rationale
 
-MFA configuration SHALL include:
-- MFA enrollment required before first system access
-- TOTP (Time-based One-Time Password) support for authenticator apps
-- SMS backup codes as fallback option
-- MFA enforcement at authentication system level (Identity Platform)
-- Grace period for MFA enrollment (max 7 days)
-- MFA reset procedures for lost devices
+This requirement ensures that all privileged accounts (clinical staff, administrators, and sponsor personnel) are protected by multi-factor authentication to prevent unauthorized access to the clinical trial platform. FDA 21 CFR Part 11 requires that systems use secure, computer-generated, time-stamped audit trails and that access to the system is limited to authorized individuals. MFA provides defense-in-depth by requiring both something the user knows (password) and something the user has (TOTP device or SMS-capable phone). The Identity Platform provides MFA capabilities that must be properly configured and enforced at the infrastructure level for each sponsor's deployment. This operational requirement translates the product-level MFA mandate (p00002) into specific configuration and enforcement obligations.
 
-**Rationale**: Implements MFA requirement (p00002) at the operational configuration level. Identity Platform provides MFA capabilities that must be enabled and enforced per sponsor project.
+## Assertions
 
-**Acceptance Criteria**:
-- MFA enabled in Identity Platform settings per sponsor
-- Staff accounts cannot access system without completing MFA enrollment
-- MFA verification required at each login
-- MFA bypass not possible through configuration
-- MFA events logged in audit trail
+A. The system SHALL enforce multi-factor authentication for all clinical staff accounts.
+B. The system SHALL enforce multi-factor authentication for all administrator accounts.
+C. The system SHALL enforce multi-factor authentication for all sponsor personnel accounts.
+D. The system SHALL require MFA enrollment before allowing first system access.
+E. The system SHALL support TOTP (Time-based One-Time Password) for authenticator apps.
+F. The system SHALL provide SMS backup codes as a fallback MFA option.
+G. MFA enforcement SHALL be configured at the Identity Platform level.
+H. The system SHALL allow a grace period for MFA enrollment of maximum 7 days.
+I. The system SHALL provide MFA reset procedures for lost devices.
+J. MFA SHALL be enabled in Identity Platform settings for each sponsor.
+K. Staff accounts SHALL NOT access the system without completing MFA enrollment.
+L. The system SHALL require MFA verification at each login.
+M. The system SHALL NOT allow MFA bypass through configuration settings.
+N. The system SHALL log all MFA events in the audit trail.
 
-*End* *MFA Configuration for Staff Accounts* | **Hash**: b8739ec1
+*End* *MFA Configuration for Staff Accounts* | **Hash**: 807dc978
 ---
 
 ## Identity Platform Setup

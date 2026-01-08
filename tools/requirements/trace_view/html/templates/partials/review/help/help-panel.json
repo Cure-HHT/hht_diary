@@ -1,0 +1,214 @@
+{
+  "version": "1.0",
+  "helpPanel": {
+    "id": "spec-review-help",
+    "title": "Spec Review Help",
+    "sections": [
+      {
+        "id": "how-to",
+        "title": "How Do I...",
+        "icon": "question-circle",
+        "items": [
+          {
+            "id": "start-review",
+            "question": "How do I start reviewing?",
+            "answer": "1. Set your username in the header field\n2. Enable **Review Mode** using the toggle\n3. Select or create a review package\n4. Click on a REQ to start adding comments"
+          },
+          {
+            "id": "add-comment",
+            "question": "How do I add a comment?",
+            "answer": "1. Select a REQ in the tree\n2. Click **Add Comment** in the review panel\n3. Choose a position type (General, Line, Block, or Word)\n4. Write your comment using Markdown\n5. Click **Submit**"
+          },
+          {
+            "id": "comment-on-line",
+            "question": "How do I comment on a specific line?",
+            "answer": "1. Click on the line number in the content view, or\n2. Select **Line** position type and enter the line number\n\nThe comment will be anchored to that line."
+          },
+          {
+            "id": "see-others-comments",
+            "question": "How do I see other reviewers' comments?",
+            "answer": "Click **Fetch All** in the sync controls. This consolidates comments from all reviewers working on the same package."
+          },
+          {
+            "id": "resolve-thread",
+            "question": "How do I resolve a comment thread?",
+            "answer": "Find the thread in the review panel and click **Resolve**. The thread will be marked as resolved but remains visible (faded)."
+          },
+          {
+            "id": "create-package",
+            "question": "How do I create a review package?",
+            "answer": "1. Open the **Review Packages** panel\n2. Click **+ New Package**\n3. Enter a name and description\n4. Click **Create**\n\nYour review branch will be created automatically."
+          },
+          {
+            "id": "add-req-to-package",
+            "question": "How do I add a REQ to my package?",
+            "answer": "**Method 1**: Click \"Set to Review\" on any REQ to add it to your active package.\n\n**Method 2**: Use the package controls to manually add/remove REQs."
+          },
+          {
+            "id": "request-status-change",
+            "question": "How do I change a REQ's status?",
+            "answer": "For **Draft → Review**: Click \"Set to Review\" directly.\n\nFor other transitions: Click \"Request Status Change\", select the target status, provide justification, and wait for required approvals."
+          },
+          {
+            "id": "see-original-file",
+            "question": "How do I see a file as it was when a comment was made?",
+            "answer": "When a file has been modified since a comment was made, you'll see a **Modified** badge. Click **Show Original** to view the file at the exact commit when the comment was created."
+          }
+        ]
+      },
+      {
+        "id": "indicators",
+        "title": "What Does It Mean When...",
+        "icon": "info-circle",
+        "items": [
+          {
+            "id": "modified-badge",
+            "question": "A thread shows 'Modified' (orange badge)?",
+            "answer": "The file has been changed since the comment was made. Line numbers may have shifted.\n\n**Tip**: Click **Show Original** to see the file exactly as it was when the comment was created."
+          },
+          {
+            "id": "position-shifted",
+            "question": "A position shows 'may have shifted'?",
+            "answer": "The file was edited after the comment was made, and line insertions or deletions may have changed the actual line number.\n\nThe system tries to estimate the new position, but click **Show Original** for certainty."
+          },
+          {
+            "id": "version-lost",
+            "question": "A thread shows 'Version Lost' (gray badge)?",
+            "answer": "The original git commit cannot be found. This usually means the commit was part of a branch that was deleted or force-pushed.\n\nThe comment content is preserved, but the original file version cannot be retrieved."
+          },
+          {
+            "id": "sync-pending",
+            "question": "The sync indicator shows 'Pending' (yellow)?",
+            "answer": "You have local changes that haven't been pushed to the remote yet. Click **Push** to sync your changes."
+          },
+          {
+            "id": "sync-behind",
+            "question": "The sync indicator shows 'Behind' (blue arrow)?",
+            "answer": "The remote has changes you haven't fetched yet. Click **Fetch** to pull the latest changes."
+          },
+          {
+            "id": "unanchored-position",
+            "question": "A comment position shows as 'General' unexpectedly?",
+            "answer": "The original anchor (line, block, or word) could not be found due to significant file changes. The comment was \"unanchored\" and now applies to the whole REQ.\n\nClick **Show Original** to see where the comment was originally placed."
+          },
+          {
+            "id": "thread-resolved",
+            "question": "A thread appears faded?",
+            "answer": "The thread has been resolved. It's still visible for reference but the issue has been addressed.\n\nClick **Reopen** if further discussion is needed."
+          },
+          {
+            "id": "approval-pending",
+            "question": "A status request shows 'Pending'?",
+            "answer": "The status change is awaiting approvals from required approvers. Check the request details to see who needs to approve."
+          }
+        ]
+      },
+      {
+        "id": "troubleshooting",
+        "title": "Troubleshooting",
+        "icon": "exclamation-triangle",
+        "items": [
+          {
+            "id": "cant-see-comments",
+            "question": "I can't see other users' comments",
+            "answer": "1. Click **Fetch All** to consolidate from all branches\n2. Ensure other reviewers have pushed their changes\n3. Verify you're on the correct package\n4. Check the **Contributors** list to see who has reviewed"
+          },
+          {
+            "id": "sync-failing",
+            "question": "Git sync is failing",
+            "answer": "1. Check your network connection\n2. Verify git credentials are configured\n3. Try manual sync: `git push origin HEAD`\n4. Check for merge conflicts in `.reviews/` directory\n5. Contact your team lead if issues persist"
+          },
+          {
+            "id": "wrong-position",
+            "question": "My comment is showing at the wrong position",
+            "answer": "The file was likely modified after your comment was made.\n\n1. Click **Show Original** to see the exact original position\n2. Check the **diff** info to understand what changed\n3. Create a new comment at the correct position if needed"
+          },
+          {
+            "id": "status-wont-change",
+            "question": "I can't change a REQ's status",
+            "answer": "1. Some transitions require approvals - check if you need to request rather than directly change\n2. Verify you have permission for this transition\n3. Check if there's already a pending request for this REQ\n4. Review the **Status Transitions** table for allowed transitions"
+          },
+          {
+            "id": "package-not-visible",
+            "question": "I can't find my package",
+            "answer": "1. Check the **Review Packages** panel (left sidebar)\n2. Ensure Review Mode is enabled\n3. Try clicking **Fetch** to pull remote branches\n4. The package may have been deleted by another user"
+          },
+          {
+            "id": "comment-disappeared",
+            "question": "My comment seems to have disappeared",
+            "answer": "1. Check if you're on the correct package/branch\n2. Click **Fetch** to sync with remote\n3. Verify the comment was successfully submitted (check for error messages)\n4. The thread may have been resolved - check the resolved threads section"
+          },
+          {
+            "id": "branch-conflict",
+            "question": "I'm getting git conflicts",
+            "answer": "Each reviewer should work on their own branch: `reviews/{package}/{username}`\n\nIf you see conflicts:\n1. Check if someone else used your username\n2. Pull and resolve conflicts manually\n3. Contact your team to coordinate"
+          }
+        ]
+      },
+      {
+        "id": "concepts",
+        "title": "Key Concepts",
+        "icon": "book",
+        "items": [
+          {
+            "id": "what-is-package",
+            "question": "What is a review package?",
+            "answer": "A **package** groups related REQs for a review session. Examples:\n\n- Sprint reviews\n- Release preparation\n- Feature-specific reviews\n\nEach package has its own set of branches, one per reviewer."
+          },
+          {
+            "id": "what-is-thread",
+            "question": "What is a comment thread?",
+            "answer": "A **thread** is a conversation about a specific part of a REQ. It includes:\n\n- **Position**: Where in the REQ (line, block, word, or general)\n- **Comments**: One or more replies\n- **Resolved Status**: Whether the issue is addressed\n- **Version Info**: Git commit when created"
+          },
+          {
+            "id": "position-types",
+            "question": "What are the position types?",
+            "answer": "- **General**: Comment on the whole REQ\n- **Line**: Comment on a specific line number\n- **Block**: Comment on a range of lines (start to end)\n- **Word**: Comment on a specific word or phrase"
+          },
+          {
+            "id": "branch-model",
+            "question": "How does the branch model work?",
+            "answer": "Each reviewer works on their own branch:\n\n```\nreviews/{package-id}/alice\nreviews/{package-id}/bob\nreviews/{package-id}/charlie\n```\n\nThis prevents merge conflicts during active review. Use **Fetch All** to see consolidated comments."
+          },
+          {
+            "id": "version-tracking",
+            "question": "How does version tracking work?",
+            "answer": "When you create a comment, the system records the git commit and file hash.\n\nIf the file changes later:\n- A **Modified** badge appears\n- Line positions may shift\n- You can click **Show Original** to see the file at the comment's commit\n- Diff info shows lines added/removed"
+          },
+          {
+            "id": "status-workflow",
+            "question": "What is the status workflow?",
+            "answer": "REQs progress through statuses:\n\n**Draft** → **Review** → **Active** → **Deprecated**\n\n- Draft → Review: Direct (adds to package)\n- Review → Active: Requires approvals\n- Active → Deprecated: Requires approval"
+          },
+          {
+            "id": "approvals",
+            "question": "How do approvals work?",
+            "answer": "Some status transitions require approvals from designated approvers:\n\n- **product_owner**: Business decisions\n- **tech_lead**: Technical validation\n\nWhen you request a status change, required approvers are notified and must approve before the change is applied."
+          }
+        ]
+      }
+    ],
+    "footer": {
+      "text": "Need more help? See the full documentation.",
+      "links": [
+        {
+          "label": "User Guide",
+          "url": "docs/spec-review-user-guide.md"
+        },
+        {
+          "label": "Quick Start",
+          "url": "docs/spec-review-quick-start.md"
+        },
+        {
+          "label": "Reference",
+          "url": "docs/spec-review-reference.md"
+        }
+      ]
+    },
+    "settings": {
+      "searchable": true,
+      "collapsible": true,
+      "defaultExpanded": ["how-to"]
+    }
+  }
+}

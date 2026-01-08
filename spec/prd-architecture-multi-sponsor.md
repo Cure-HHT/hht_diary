@@ -5,7 +5,7 @@
 **Last Updated**: 2025-01-24
 **Status**: Draft
 
-> **See**: dev-architecture-multi-sponsor.md for implementation details
+> **See**: dev-sponsor-repos.md for implementation details
 > **See**: prd-database.md for database architecture
 > **See**: prd-clinical-trials.md for FDA compliance requirements
 
@@ -278,7 +278,7 @@ Operator and Sponsor contract SHALL state that REQ-p01055 (Sponsor Confidentiali
 
 ## References
 
-- **Implementation Details**: dev-architecture-multi-sponsor.md
+- **Implementation Details**: dev-sponsor-repos.md
 - **Database Architecture**: prd-database.md
 - **Security Architecture**: prd-security.md
 - **FDA Compliance**: prd-clinical-trials.md

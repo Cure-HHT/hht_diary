@@ -17,66 +17,39 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+          # Note: No pip cache - only elspais installed, no requirements.txt
 
-      - name: Install dependencies
+      - name: Load version configuration
+        id: versions
         run: |
-          cd tools/requirements
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            echo "Error: requirements.txt not found"
-            exit 1
-          fi
+          source .github/versions.env
+          echo "elspais_version=${ELSPAIS_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Test requirement validation
+      - name: Install elspais
         run: |
-          echo "🔍 Testing requirement validation..."
-          python3 tools/requirements/validate_requirements.py
-          echo "✅ Requirement validation passed"
+          python3 -m pip install --upgrade pip
+          ELSPAIS_VERSION="${{ steps.versions.outputs.elspais_version }}"
+          echo "Installing elspais v${ELSPAIS_VERSION}..."
+          pip install elspais==${ELSPAIS_VERSION}
+          elspais --version
 
-      # Phase 4: Multi-sponsor traceability matrix generation
-      # Generates combined (all sponsors) + per-sponsor reports
-      # Output structure: build-reports/{combined|sponsor-name}/traceability/
-
-      - name: Generate combined traceability matrix (Markdown)
+      - name: Validate requirement format and IDs
         run: |
-          echo "🔍 Testing combined traceability matrix generation (Markdown)..."
-          python3 tools/requirements/generate_traceability.py \
-            --mode combined \
-            --format markdown \
-            --output-dir build-reports/combined/traceability
-          echo "✅ Combined traceability matrix (Markdown) generated"
+          echo "Testing requirement validation..."
+          elspais validate
+          echo "Requirement validation passed"
 
-      - name: Generate combined traceability matrix (HTML)
-        run: |
-          echo "🔍 Testing combined traceability matrix generation (HTML)..."
-          python3 tools/requirements/generate_traceability.py \
-            --mode combined \
-            --format html \
-            --output-dir build-reports/combined/traceability
-          echo "✅ Combined traceability matrix (HTML) generated"
+      # Phase 4: Traceability matrix generation
+      # Output: build-reports/combined/traceability/
+      # Note: Sponsor-specific traceability now handled in separate sponsor repos
 
-      - name: Generate per-sponsor traceability matrices
+      - name: Generate traceability matrix
         run: |
-          echo "🔍 Testing sponsor-specific traceability matrix generation..."
-          # Get sponsor list from Doppler/environment
-          # TODO: Pull from Doppler when available, hardcoded for now
-          SPONSORS="callisto titan"
-          for sponsor in $SPONSORS; do
-            echo "Generating traceability for sponsor: $sponsor"
-            python3 tools/requirements/generate_traceability.py \
-              --mode sponsor \
-              --sponsor $sponsor \
-              --format markdown \
-              --output-dir build-reports/$sponsor/traceability
-            python3 tools/requirements/generate_traceability.py \
-              --mode sponsor \
-              --sponsor $sponsor \
-              --format html \
-              --output-dir build-reports/$sponsor/traceability
-          done
-          echo "✅ Sponsor-specific traceability matrices generated"
+          echo "Testing traceability matrix generation..."
+          mkdir -p build-reports/combined/traceability
+          elspais trace --format both --output build-reports/combined/traceability/traceability_matrix
+          echo "Traceability matrix generated"
 
       - name: Upload build reports as artifacts
         if: always()

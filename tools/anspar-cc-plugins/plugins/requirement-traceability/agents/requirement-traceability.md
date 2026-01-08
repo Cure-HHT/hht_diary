@@ -178,7 +178,7 @@ chmod 644 /.requirement-cache.json  # If exists
 **Solution**:
 1. Check `spec/INDEX.md` for correct requirement ID
 2. Verify requirement exists in appropriate spec file
-3. Run `python3 tools/requirements/validate_requirements.py` to validate format
+3. Run `elspais validate` to validate format
 
 ## Workflow Integration
 

@@ -362,7 +362,36 @@ $DIR"
 fi
 
 # =====================================================
-# 5. Markdown Linting (Built-in)
+# 5. Requirement Hash Update (elspais)
+# =====================================================
+# Auto-update stale requirement hashes before commit
+# This ensures hashes are always current
+
+SPEC_FILES_CHANGED=$(git diff --cached --name-only --diff-filter=ACM | grep '^spec/.*\.md$' || true)
+
+if [ -n "$SPEC_FILES_CHANGED" ]; then
+    echo "📋 Updating requirement hashes..."
+    echo ""
+
+    if command -v elspais &> /dev/null; then
+        # Run hash update (modifies files in place)
+        if elspais hash update 2>&1; then
+            # Re-stage any files that were modified
+            echo "$SPEC_FILES_CHANGED" | xargs git add 2>/dev/null || true
+            echo "✅ Requirement hashes updated!"
+        else
+            echo "⚠️  Hash update had issues (continuing anyway)"
+        fi
+        echo ""
+    else
+        echo "⚠️  WARNING: elspais not installed - skipping hash update"
+        echo "   Install: pip install elspais"
+        echo ""
+    fi
+fi
+
+# =====================================================
+# 6. Markdown Linting (Built-in)
 # =====================================================
 
 # Load central version pinning

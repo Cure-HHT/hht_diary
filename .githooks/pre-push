@@ -11,8 +11,8 @@
 #   - Creating/updating PR: Handled by gh pr create hooks
 #
 # Validation Scripts:
-#   - validate_requirements.py: REQ format and links
-#   - validate_index.py: INDEX.md accuracy
+#   - elspais validate: REQ format and links
+#   - elspais index validate: INDEX.md accuracy
 #   - markdownlint: Markdown formatting
 #   - gitleaks: Secret detection
 #   - ./tool/test.sh: Dart and TypeScript tests (per app)
@@ -112,12 +112,12 @@ VALIDATION_OUTPUT=""
 # Get repo root
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
-# Run validate_requirements.py
+# Run elspais validate (REQ format and links)
 echo -e "${BLUE}Running requirement validation...${NC}"
 echo ""
 
-if [ -f "$REPO_ROOT/tools/requirements/validate_requirements.py" ]; then
-    if ! OUTPUT=$(python3 "$REPO_ROOT/tools/requirements/validate_requirements.py" 2>&1); then
+if command -v elspais &> /dev/null; then
+    if ! OUTPUT=$(elspais validate 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"
@@ -125,17 +125,18 @@ if [ -f "$REPO_ROOT/tools/requirements/validate_requirements.py" ]; then
         echo "$OUTPUT"
     fi
 else
-    echo -e "${YELLOW}WARNING: validate_requirements.py not found${NC}"
+    echo -e "${RED}ERROR: elspais not installed - requirement validation is required${NC}"
+    VALIDATION_FAILED=true
 fi
 
 echo ""
 
-# Run validate_index.py
+# Run elspais index validate (INDEX.md accuracy)
 echo -e "${BLUE}Running INDEX.md validation...${NC}"
 echo ""
 
-if [ -f "$REPO_ROOT/tools/requirements/validate_index.py" ]; then
-    if ! OUTPUT=$(python3 "$REPO_ROOT/tools/requirements/validate_index.py" 2>&1); then
+if command -v elspais &> /dev/null; then
+    if ! OUTPUT=$(elspais index validate 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"
@@ -143,7 +144,8 @@ if [ -f "$REPO_ROOT/tools/requirements/validate_index.py" ]; then
         echo "$OUTPUT"
     fi
 else
-    echo -e "${YELLOW}WARNING: validate_index.py not found${NC}"
+    echo -e "${RED}ERROR: elspais not installed - INDEX.md validation is required${NC}"
+    VALIDATION_FAILED=true
 fi
 
 echo ""

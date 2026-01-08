@@ -12,172 +12,113 @@
 
 # REQ-o00049: Artifact Retention and Archival
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00010
 
-**Specification**:
+## Rationale
 
-The system SHALL implement artifact retention and archival that:
+This requirement establishes the operational framework for artifact retention and archival to ensure FDA 21 CFR Part 11 compliance. The FDA mandates a minimum 7-year retention period for production artifacts to support regulatory audits and inspection readiness. The requirement defines a tiered storage strategy optimizing cost versus access requirements, with hot storage for recent artifacts requiring frequent access and cold storage for long-term retention. Different retention periods for production, staging, and development environments reflect the regulatory significance of each environment. Lifecycle management policies automate the transition between storage tiers and enforce deletion schedules, reducing operational overhead while maintaining compliance. Integrity verification and immutability protections ensure that archived artifacts remain tamper-evident throughout their retention period.
 
-1. **Retention Period**:
-   - **Production artifacts**: 7 years minimum (FDA requirement)
-   - **Staging artifacts**: 30 days (pre-production testing)
-   - **Development artifacts**: 7 days (workflow testing)
-   - **Audit trail records**: 7 years
-   - **Deployment logs**: 7 years
-   - **Incident records**: 7 years
+## Assertions
 
-2. **Artifact Types**:
-   - **Source Code**: Git repository with all commits
-   - **Build Artifacts**: Compiled binaries, container images
-   - **Deployment Records**: Deployment logs, approvals, timestamps
-   - **Test Results**: Validation reports (IQ/OQ/PQ), test logs
-   - **Audit Trail**: Database audit records, access logs
-   - **Incident Records**: Incident tickets, post-mortems, resolutions
-   - **Database Backups**: Full backups, migration scripts
+A. The system SHALL retain production artifacts for a minimum of 7 years.
+B. The system SHALL retain staging artifacts for a minimum of 30 days.
+C. The system SHALL retain development artifacts for a minimum of 7 days.
+D. The system SHALL retain audit trail records for a minimum of 7 years.
+E. The system SHALL retain deployment logs for a minimum of 7 years.
+F. The system SHALL retain incident records for a minimum of 7 years.
+G. The system SHALL archive source code artifacts including all Git repository commits.
+H. The system SHALL archive build artifacts including compiled binaries and container images.
+I. The system SHALL archive deployment records including deployment logs, approvals, and timestamps.
+J. The system SHALL archive test results including validation reports (IQ/OQ/PQ) and test logs.
+K. The system SHALL archive audit trail artifacts including database audit records and access logs.
+L. The system SHALL archive incident records including incident tickets, post-mortems, and resolutions.
+M. The system SHALL archive database backups including full backups and migration scripts.
+N. The system SHALL store production artifacts from the last 90 days in hot storage with immediate retrieval capability.
+O. The system SHALL store production artifacts from 91 days to 7 years in cold storage.
+P. The system SHALL transition production artifacts from hot storage to cold storage automatically after 90 days.
+Q. The system SHALL delete production artifacts automatically after 7 years unless subject to manual retention extension.
+R. The system SHALL enable object retention policy (immutable) for production artifacts.
+S. The system SHALL transition staging artifacts to Nearline storage after 7 days.
+T. The system SHALL delete staging artifacts automatically after 30 days.
+U. The system SHALL delete development artifacts automatically after 7 days.
+V. The system SHALL verify archival integrity through monthly checksum validation for all storage tiers.
+W. The system SHALL support manual retention extension for production artifacts subject to regulatory holds.
+X. Cloud Storage buckets SHALL be created with encryption enabled.
+Y. Lifecycle policies SHALL be configured for all storage buckets.
+Z. Retrieval procedures SHALL be documented for all storage classes.
 
-3. **Storage Tiers**:
-   - **Production Storage** (7-year retention):
-     - **Hot Storage** (frequent access): Last 90 days
-       - Cloud Storage Standard
-       - Immediate retrieval
-       - Higher cost (~$0.020/GB/month)
-     - **Cold Storage** (infrequent access): 91 days to 7 years
-       - Cloud Storage Coldline/Archive
-       - Retrieval time: seconds to hours
-       - Lower cost (~$0.004/GB/month for Coldline)
-   - **Staging Storage** (30-day retention):
-     - Cloud Storage Nearline (after 7 days)
-     - Automatic deletion after 30 days
-     - For pre-production validation
-   - **Development Storage** (7-day retention):
-     - Cloud Storage Standard
-     - Automatic deletion after 7 days
-     - For workflow testing only
-
-4. **Lifecycle Management**:
-   - **Production**:
-     - Automatic transition from hot to cold storage after 90 days
-     - Automatic deletion after 7 years
-     - Manual retention extension for regulatory holds
-     - Object retention policy enabled (immutable)
-   - **Staging**:
-     - Transition to Nearline after 7 days
-     - Automatic deletion after 30 days
-     - No retention lock (testing only)
-   - **Development**:
-     - Automatic deletion after 7 days
-     - No lifecycle transitions
-     - No retention lock (testing only)
-   - **All tiers**: Verification of archival integrity (monthly checksums)
-
-5. **Retrieval Procedures**:
-   - Standard retrieval: Immediate to minutes (Coldline)
-   - Archive retrieval: Minutes to hours (Archive class)
-   - Bulk retrieval: For regulatory audits (all artifacts)
-
-**Validation**:
-- **IQ**: Verify Cloud Storage buckets configured with lifecycle policies
-- **OQ**: Verify artifacts transition to cold storage after 90 days
-- **PQ**: Verify retrieval within SLA for each storage class
-
-**Acceptance Criteria**:
-- ✅ Cloud Storage buckets created with encryption
-- ✅ Lifecycle policies configured
-- ✅ Automated archival workflows deployed
-- ✅ Retrieval procedures documented
-- ✅ Monthly integrity verification automated
-
-*End* *Artifact Retention and Archival* | **Hash**: 2ad38e10
+*End* *Artifact Retention and Archival* | **Hash**: 657b1be8
 ---
 
 # REQ-o00050: Environment Parity and Separation
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00008
 
-**Specification**:
+## Rationale
 
-The system SHALL maintain environment separation with:
+This requirement ensures proper isolation and separation between development, staging, and production environments to prevent unauthorized access, data leakage, and unintended impacts from deployments. Environment parity requirements support FDA 21 CFR Part 11 compliance by maintaining controlled conditions that mirror production while protecting sensitive clinical trial data. The separation of infrastructure, configuration, and deployment workflows reduces risk of production incidents and enables safe testing and validation activities. This implements the broader system architecture requirement for environment management defined in REQ-p00008.
 
-1. **Isolated Environments**:
-   - Development: Separate GCP project, separate Cloud SQL instance
-   - Staging: Separate GCP project, production-like configuration
-   - Production: Isolated GCP project, no cross-environment access
+## Assertions
 
-2. **Configuration Management**:
-   - Environment-specific secrets (stored in Doppler)
-   - Environment-specific infrastructure (Terraform workspaces)
-   - Environment-specific feature flags
-   - No hardcoded environment values
+A. The system SHALL maintain three isolated environments: development, staging, and production.
+B. The development environment SHALL use a separate GCP project from staging and production.
+C. The development environment SHALL use a separate Cloud SQL instance from staging and production.
+D. The staging environment SHALL use a separate GCP project from development and production.
+E. The staging environment SHALL use production-like configuration.
+F. The production environment SHALL use a GCP project isolated from development and staging.
+G. The production environment SHALL NOT allow cross-environment access from development or staging.
+H. The system SHALL store environment-specific secrets in Doppler.
+I. The system SHALL use environment-specific infrastructure managed through Terraform workspaces.
+J. The system SHALL support environment-specific feature flags.
+K. The system SHALL NOT use hardcoded environment values in configuration.
+L. Development environments SHALL NOT contain production data.
+M. Staging environments SHALL NOT contain production data.
+N. Development environments SHALL use synthetic test data.
+O. Staging environments SHALL use synthetic test data.
+P. The system SHALL restrict production data access with audit logging.
+Q. Deployments to one environment SHALL NOT affect other environments.
+R. The system SHALL provide separate CI/CD workflows per environment.
+S. The system SHALL support independent rollback capabilities for each environment.
+T. The system SHALL provision three separate GCP projects per sponsor.
+U. The system SHALL provide environment-specific Doppler configurations for each environment.
+V. The system SHALL create Terraform workspaces for each environment.
 
-3. **Data Segregation**:
-   - No production data in development/staging
-   - Synthetic test data for development/staging
-   - Production data access restricted (audit logged)
-
-4. **Deployment Independence**:
-   - Deployments to one environment do not affect others
-   - Separate CI/CD workflows per environment
-   - Independent rollback capabilities
-
-**Validation**:
-- **IQ**: Verify separate GCP projects for each environment
-- **OQ**: Verify no data leakage between environments
-- **PQ**: Verify deployments are independent
-
-**Acceptance Criteria**:
-- ✅ Three separate GCP projects provisioned (per sponsor)
-- ✅ Environment-specific Doppler configurations
-- ✅ Terraform workspaces for each environment
-- ✅ No production data in non-production environments
-
-*End* *Environment Parity and Separation* | **Hash**: 7ccde026
+*End* *Environment Parity and Separation* | **Hash**: 6e251c7f
 ---
 
 # REQ-o00051: Change Control and Audit Trail
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00010
 
-**Specification**:
+## Rationale
 
-The system SHALL maintain change control audit trail with:
+This requirement ensures comprehensive change control and audit trails across all layers of the clinical trial system to meet FDA 21 CFR Part 11 compliance. The requirement addresses infrastructure changes, code modifications, configuration updates, and deployment activities. The 7-year retention period aligns with FDA regulatory requirements for clinical trial record retention. Audit trails enable investigation of system changes, support regulatory inspections, and provide tamper-evident evidence of who made what changes and when. The requirement implements parent requirement p00010 which establishes overall audit trail and data integrity obligations.
 
-1. **Infrastructure Changes**:
-   - All Terraform changes logged with author, timestamp, reason
-   - Terraform state versions retained for 7 years (GCS backend)
-   - Infrastructure drift detection and alerts
-   - Approval required for production changes
+## Assertions
 
-2. **Code Changes**:
-   - All commits linked to requirements via pre-commit hook
-   - All commits signed with GPG keys
-   - Pull request approvals required (2 reviewers for production)
-   - Merge commits retained indefinitely (Git history)
+A. The system SHALL maintain a change control audit trail for all infrastructure, code, configuration, and deployment changes.
+B. The system SHALL log all Terraform changes with author identity, timestamp, and reason for change.
+C. The system SHALL retain Terraform state versions for a minimum of 7 years using GCS backend storage.
+D. The system SHALL implement infrastructure drift detection and generate alerts when drift is detected.
+E. The system SHALL require approval before applying Terraform changes to production environments.
+F. The system SHALL link all code commits to requirements via pre-commit hook enforcement.
+G. The system SHALL require all code commits to be signed with GPG keys.
+H. The system SHALL require pull request approvals from 2 reviewers before merging to production branches.
+I. The system SHALL retain merge commit history indefinitely in Git repositories.
+J. The system SHALL log all Doppler secrets changes with audit trail information.
+K. The system SHALL log all feature flag changes.
+L. The system SHALL require approval for environment configuration changes.
+M. The system SHALL log every deployment with deployer identity, timestamp in UTC, version deployed, approval records, and deployment outcome.
+N. Deployment outcome records SHALL indicate success, failure, or rollback status.
+O. The system SHALL archive deployment logs for a minimum of 7 years.
+P. Audit logging SHALL be configured and verified during Installation Qualification (IQ).
+Q. Audit record capture SHALL be verified during Operational Qualification (OQ).
+R. Seven-year retention of audit records SHALL be verified during Performance Qualification (PQ).
+S. Terraform state versioning SHALL be enabled on GCS backend.
+T. Git commit signing SHALL be enforced for all commits.
+U. Doppler audit trail SHALL be enabled for all secret management operations.
 
-3. **Configuration Changes**:
-   - Doppler secrets changes logged with audit trail
-   - Feature flag changes logged
-   - Environment configuration changes require approval
-
-4. **Deployment Audit**:
-   - Every deployment logged with:
-     - Deployer identity
-     - Timestamp (UTC)
-     - Version deployed
-     - Approval records
-     - Deployment outcome (success/failure/rollback)
-
-**Validation**:
-- **IQ**: Verify audit logging configured for all systems
-- **OQ**: Verify audit records captured correctly
-- **PQ**: Verify 7-year retention for audit records
-
-**Acceptance Criteria**:
-- ✅ Terraform state versioning enabled (GCS)
-- ✅ Git commit signing enforced
-- ✅ Doppler audit trail enabled
-- ✅ Deployment logs archived for 7 years
-
-*End* *Change Control and Audit Trail* | **Hash**: f9d8ca86
+*End* *Change Control and Audit Trail* | **Hash**: 245582fc
 ---
 
 ## Architecture

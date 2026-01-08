@@ -26,9 +26,9 @@ This is a multi-sponsor Clinical Trial Diary Platform with strict FDA 21 CFR Par
   ```
 
 ### 2. Workflow Enforcement
-- You MUST claim a ticket using the workflow sub-agent
-- You MAY use the linear-api sub-agent to find an appropriate ticket number
-- When doing a PR you MAY use the workflow subg-agent to release a ticket
+- You MUST claim a ticket using the `workflow:workflow` sub-agent
+- You MAY use the `linear-api:linear-api` sub-agent to find an appropriate ticket number
+- When doing a PR you MAY use the `workflow:workflow` sub-agent to release a ticket
 
 ### 3. Documentation Hierarchy
 - **spec/**: Formal requirements defining WHAT to build, organized by audience
@@ -94,7 +94,7 @@ You may use multiple instances of a sub-agent in parallel when appropriate.
 
 The following **priortiy plugins** are located in `tools/anspar-cc-plugins/plugins/workflow/`
 
-## use workflow sub-agent for
+## use `workflow:workflow` sub-agent for
 - changes in top-level tasks, as indicated by the current ticket or REQuirement
 - changes in tasks phase: new/resume, validation, debug, completion, sharing (e.g. git push)
 - work on sponsor-specific tasks is in the appropriate directory
@@ -103,21 +103,21 @@ The following **priortiy plugins** are located in `tools/anspar-cc-plugins/plugi
 - **ALWAYS** `git pull` before creating PRs to ensure branch is up-to-date with main
 - This prevents merge conflicts and ensures CI runs against latest code
 
-## use linear-api sub-agent for
+## use `linear-api:linear-api` sub-agent for
 - anything related to using the Linear API
 - Fetch/create/update Linear tickets (issues)
 
-## use requirement-traceability for 
+## use `requirement-traceability:requirement-traceability` sub-agent for
 - Requirement-to-ticket traceability
 
-## use simple-requirements sub-agent for
+## use `simple-requirements:simple-requirements` sub-agent for
 - REQ format, parse, general rules
 
-## use spec-compliance sub-agent to
+## use `spec-compliance:spec-compliance` sub-agent to
 - Enforce spec/ directory guidelines
 - Validate content and format of files in spec/
 
-## **ALWAYS** use plugin-wizard to 
+## **ALWAYS** use `plugin-wizard:plugin-wizard` sub-agent to
 - make any changes to sub-agents or plugins
 - research plugins
 - validate plugins

@@ -26,8 +26,16 @@ from io import StringIO
 # Add tools/requirements to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import hashlib
+
 from generate_traceability import TraceabilityGenerator, Requirement
-from requirement_hash import calculate_requirement_hash
+
+
+def calculate_test_hash(body: str) -> str:
+    """Calculate requirement hash for test purposes (same algorithm as elspais)."""
+    normalized = body.strip()
+    hash_obj = hashlib.sha256(normalized.encode('utf-8'))
+    return hash_obj.hexdigest()[:8]
 
 
 def make_requirement(req_id: str, title: str, level: str, implements: str, status: str, body: str) -> str:
@@ -35,7 +43,7 @@ def make_requirement(req_id: str, title: str, level: str, implements: str, statu
     # Body should NOT include leading/trailing newlines for hash calculation
     # but when written to file, it will have surrounding newlines
     parsed_body = f"\n{body}"  # Leading newline as parser extracts it
-    req_hash = calculate_requirement_hash(parsed_body)
+    req_hash = calculate_test_hash(parsed_body)
     return f"""# REQ-{req_id}: {title}
 
 **Level**: {level} | **Implements**: {implements} | **Status**: {status}
@@ -404,70 +412,8 @@ def make_requirement_with_rationale(req_id: str, title: str, level: str, impleme
 """
 
 
-class TestRationaleExtraction(unittest.TestCase):
-    """Test Phase 2: Rationale extraction from requirements"""
-
-    def setUp(self):
-        """Create temporary directory with test requirements"""
-        self.test_dir = tempfile.mkdtemp()
-        self.spec_dir = Path(self.test_dir) / "spec"
-        self.spec_dir.mkdir()
-
-    def tearDown(self):
-        """Clean up temporary directory"""
-        shutil.rmtree(self.test_dir)
-
-    def test_parser_extracts_rationale(self):
-        """Parser should extract rationale section separately"""
-        from requirement_parser import RequirementParser
-
-        test_req = self.spec_dir / "prd-test.md"
-        test_req.write_text(make_requirement_with_rationale(
-            'p00001', 'Test Requirement', 'PRD', '-', 'Active',
-            'The system SHALL do something.',
-            'This is needed because of business reasons.'
-        ))
-
-        parser = RequirementParser(self.spec_dir)
-        result = parser.parse_all()
-
-        req = result.requirements['p00001']
-        self.assertIn('business reasons', req.rationale)
-
-    def test_parser_body_excludes_rationale(self):
-        """Body should not include rationale section"""
-        from requirement_parser import RequirementParser
-
-        test_req = self.spec_dir / "prd-test.md"
-        test_req.write_text(make_requirement_with_rationale(
-            'p00001', 'Test Requirement', 'PRD', '-', 'Active',
-            'The system SHALL do something.',
-            'This is the rationale text.'
-        ))
-
-        parser = RequirementParser(self.spec_dir)
-        result = parser.parse_all()
-
-        req = result.requirements['p00001']
-        # Body should contain the requirement statement
-        self.assertIn('SHALL do something', req.body)
-        # Body should NOT contain rationale marker or text
-        self.assertNotIn('**Rationale**', req.body)
-        self.assertNotIn('rationale text', req.body)
-
-    def test_requirement_without_rationale(self):
-        """Requirements without rationale should have empty rationale field"""
-        from requirement_parser import RequirementParser
-
-        test_req = self.spec_dir / "prd-test.md"
-        test_req.write_text(make_requirement('p00001', 'Test Requirement', 'PRD', '-', 'Active',
-                                             'The system SHALL do something.'))
-
-        parser = RequirementParser(self.spec_dir)
-        result = parser.parse_all()
-
-        req = result.requirements['p00001']
-        self.assertEqual(req.rationale, '')
+# Note: TestRationaleExtraction was removed because it tested RequirementParser
+# which is now replaced by elspais. Parsing tests are handled by elspais itself.
 
 
 class TestPlanningExports(unittest.TestCase):

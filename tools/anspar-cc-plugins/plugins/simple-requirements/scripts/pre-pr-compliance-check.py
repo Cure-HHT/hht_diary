@@ -29,10 +29,9 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 # Import shared utilities
-from common import get_repo_root, setup_python_path, load_tracking_file
+from common import get_repo_root, load_tracking_file
 
 # Setup paths
-setup_python_path()
 repo_root = get_repo_root()
 
 
@@ -263,7 +262,7 @@ def generate_report(
         if changed_count > 0:
             lines.append("1. Review changed requirements above")
             lines.append("2. Update implementations if needed")
-            lines.append("3. Run `python3 tools/requirements/update-REQ-hashes.py` to update INDEX.md")
+            lines.append("3. Run `elspais hash update` to update INDEX.md")
         if outdated_count > 0:
             lines.append("4. Verify implementations satisfy requirements")
             lines.append("5. Run `python3 .../mark-verified.py REQ-xxx` to clear outdated status")

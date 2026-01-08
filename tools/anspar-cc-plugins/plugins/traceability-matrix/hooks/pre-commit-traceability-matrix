@@ -8,7 +8,7 @@
 #
 # Plugin: traceability-matrix v1.0.0
 # Location: tools/anspar-cc-plugins/plugins/traceability-matrix/
-# Implementation: tools/requirements/generate_traceability.py (shared tool)
+# Implementation: elspais CLI (pip install elspais)
 #
 # To disable (NOT RECOMMENDED):
 #   git commit --no-verify
@@ -35,20 +35,18 @@ fi
 echo -e "${BLUE}📊 Regenerating traceability matrices (spec files changed)...${NC}"
 echo ""
 
-# Check if generation script exists
-GENERATION_SCRIPT="tools/requirements/generate_traceability.py"
-
-if [ ! -f "$GENERATION_SCRIPT" ]; then
-    echo -e "${RED}❌ ERROR: Generation script not found: $GENERATION_SCRIPT${NC}"
+# Check if elspais is available
+if ! command -v elspais &> /dev/null; then
+    echo -e "${RED}❌ ERROR: elspais CLI not found${NC}"
     echo ""
-    echo "The traceability-matrix plugin requires the generation script."
-    echo "See tools/requirements/README.md for setup."
+    echo "The traceability-matrix plugin requires elspais."
+    echo "Install with: pip install elspais"
     exit 1
 fi
 
 # Regenerate both markdown and HTML matrices
-python3 "$GENERATION_SCRIPT" --format markdown
-python3 "$GENERATION_SCRIPT" --format html
+elspais trace --format markdown
+elspais trace --format html
 
 # Stage the updated matrices (ignore errors if they're gitignored)
 git add traceability_matrix.md traceability_matrix.html 2>/dev/null || true
