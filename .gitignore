@@ -189,3 +189,6 @@ sponsor/*/.flutter-plugins-dependencies
 untracked-notes/
 /apps/clinical_diary/.firebase/
 /infrastructure/sponsor-portal/package-lock.json
+
+# Generated test results
+tools/requirements/trace_view/tests/results/*.json
