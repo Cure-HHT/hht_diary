@@ -44,6 +44,11 @@ What other options did we consider and why were they rejected?
 | [003](./ADR-003-row-level-security.md) | Row-Level Security for Multi-Tenancy | Accepted | 2025-10-14 |
 | [004](./ADR-004-investigator-annotations.md) | Separation of Investigator Annotations | Accepted | 2025-10-14 |
 | [005](./ADR-005-database-migration-strategy.md) | Database Migration Strategy | Accepted | 2025-10-14 |
+| [006](./ADR-006-docker-dev-environments.md) | Docker Dev Environments | Accepted | 2025-10-20 |
+| [007](./ADR-007-multi-sponsor-build-reports.md) | Multi-Sponsor Build Reports | Accepted | 2025-11-12 |
+| [008](./ADR-008-timestamp-attestation.md) | Timestamp Attestation | Accepted | 2025-11-15 |
+| [009](./ADR-009-pulumi-infrastructure-as-code.md) | Pulumi Infrastructure as Code | Draft | 2025-12-14 |
+| [010](./ADR-010-repo-deployment-architecture.md) | Repository and Deployment Architecture | Proposed | 2026-01-08 |
 
 ## When to Create an ADR
 
