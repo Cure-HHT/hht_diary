@@ -1,6 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
-
+///////////////////
+// DELETE ME: A SOURCE CODE CHANGE TO TRIGGER QA TESTs.
+///////////////////
 /// Represents a user's enrollment with an enrollment code
 class UserEnrollment {
   UserEnrollment({

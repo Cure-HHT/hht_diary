@@ -32,7 +32,7 @@ NC='\033[0m' # No Color
 TEST_SUITE="${TEST_SUITE:-${1:-all}}"
 REPORT_DIR="${REPORT_DIR:-/workspace/reports}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-REPO_DIR="/workspace/repos/clinical-diary"
+REPO_DIR="/workspace/repos/clinical_diary"
 
 # Counters
 TESTS_RUN=0
