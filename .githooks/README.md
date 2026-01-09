@@ -31,8 +31,9 @@ This tells Git to use hooks from `.githooks/` instead of the default `.git/hooks
 
 1. **PR Detection**: Uses `gh` CLI to check if the current branch has an open PR
 2. **Requirement Validation**:
-   - Runs `validate_requirements.py` (requirement format, links, hashes)
-   - Runs `validate_index.py` (INDEX.md accuracy and completeness)
+   - Runs `elspais validate` (requirement format, links, hashes)
+   - Runs `elspais index validate` (INDEX.md accuracy and completeness)
+   - Falls back to `validate_requirements.py` and `validate_index.py` if elspais not available
 3. **Markdown Linting**: Runs `markdownlint` on changed `.md` files
 4. **Secret Detection**: Runs `gitleaks` to detect accidentally committed secrets
 5. **Plugin Hooks**: Auto-discovers and runs pre-push hooks from installed plugins
@@ -58,9 +59,10 @@ git push --no-verify
 
 **Requirements**:
 
+- `elspais` CLI for requirement validation (primary): `pip install git+https://github.com/Anspar-Org/elspais.git@v0.9.3`
 - `gh` CLI for PR detection: <https://cli.github.com/>
 - `jq` for JSON parsing (used with gh CLI)
-- Python 3.8+ for validation scripts
+- Python 3.8+ for validation scripts (fallback if elspais not available)
 - `markdownlint` for markdown linting: `npm install -g markdownlint-cli`
 - `gitleaks` for secret detection (REQUIRED): <https://github.com/gitleaks/gitleaks#installing>
 
@@ -147,12 +149,17 @@ chmod +x tools/claude-marketplace/*/hooks/*
 
 ### Validation errors
 
-Plugins call validation scripts from `tools/requirements/`. If validation fails:
+Plugins call validation scripts via elspais (or fallback to `tools/requirements/`). If validation fails:
 
 1. Read the error message carefully
 2. See `spec/requirements-format.md` for format rules
 3. Run validation manually to see full output:
    ```bash
+   # Using elspais (primary)
+   elspais validate
+   elspais index validate
+
+   # Or using local scripts (fallback)
    python3 tools/requirements/validate_requirements.py
    ```
 

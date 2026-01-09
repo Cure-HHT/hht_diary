@@ -35,52 +35,53 @@ Defines user roles, permissions, and access-scoping rules for the clinical trial
 
 # REQ-p00005: Role-Based Access Control
 
-**Level**: PRD | **Implements**: p00011 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00011
 
-The system SHALL enforce role-based access control (RBAC) ensuring users can only access data and perform actions appropriate to their assigned role.
+## Rationale
 
-RBAC implementation SHALL ensure:
-- Users assigned one or more roles (Patient, Investigator, Sponsor, Auditor, Analyst, Administrator)
-- Each role has specific, limited permissions
-- Access decisions based on user's active role
-- Role changes logged in audit trail
-- Least privilege principle enforced
+Clinical trial data access must be tightly controlled to protect patient privacy, ensure data integrity, and comply with HIPAA and FDA regulations. Role-Based Access Control (RBAC) provides systematic, auditable access control by assigning specific permissions to defined roles (Patient, Investigator, Sponsor, Auditor, Analyst, Administrator) and enforcing the principle of least privilege. This ensures that users can only access data and perform actions appropriate to their assigned role, with all role-related activities captured in the audit trail for regulatory compliance and security analysis.
 
-**Rationale**: Clinical trial data access must be tightly controlled to protect patient privacy, ensure data integrity, and comply with HIPAA and FDA regulations. RBAC provides systematic, auditable access control.
+## Assertions
 
-**Acceptance Criteria**:
-- Users cannot access data outside their role permissions
-- Role assignment changes require privileged account
-- All data access includes role context in audit log
-- System denies unauthorized access attempts
-- Role permissions cannot be bypassed
+A. The system SHALL enforce role-based access control (RBAC) ensuring users can only access data and perform actions appropriate to their assigned role.
+B. The system SHALL support assignment of one or more roles to each user from the following set: Patient, Investigator, Sponsor, Auditor, Analyst, Administrator.
+C. Each role SHALL have specific, limited permissions.
+D. The system SHALL base access decisions on the user's active role.
+E. The system SHALL log all role changes in the audit trail.
+F. The system SHALL enforce the principle of least privilege.
+G. The system SHALL NOT allow users to access data outside their role permissions.
+H. The system SHALL require a privileged account to make role assignment changes.
+I. The system SHALL include role context in the audit log for all data access events.
+J. The system SHALL deny unauthorized access attempts.
+K. The system SHALL NOT allow role permissions to be bypassed.
 
-*End* *Role-Based Access Control* | **Hash**: 692bc7bd
+*End* *Role-Based Access Control* | **Hash**: 83122106
 ---
 
 # REQ-p00014: Least Privilege Access
 
-**Level**: PRD | **Implements**: p00005, p00010 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00010
 
-Users SHALL be granted the minimum permissions necessary to perform their assigned job functions, with no user having access beyond their role requirements.
+## Rationale
 
-Least privilege SHALL ensure:
-- Permissions granted based on specific job function
-- Users cannot access data outside their assigned scope
-- Administrative functions restricted to administrator roles
-- Patient data access limited to assigned clinical sites (for staff roles)
-- Elevated permissions require explicit justification and approval
+Least privilege access is a fundamental security principle that minimizes the risk of accidental or intentional data misuse in clinical trial systems. This requirement supports the role-based access control framework and FDA 21 CFR Part 11 compliance by ensuring users can only access data necessary for their specific clinical trial role. By limiting permissions to the minimum required for each job function, the system reduces the potential impact of compromised accounts, prevents unauthorized access to sensitive patient data, and maintains clear accountability for all data access activities. This approach is particularly critical in multi-site clinical trials where staff should only access data from their assigned clinical sites.
 
-**Rationale**: Minimizes risk of accidental or intentional data misuse. Supports RBAC (p00005) and FDA compliance (p00010) by ensuring users can only access data necessary for their clinical trial role. Reduces impact of compromised accounts.
+## Assertions
 
-**Acceptance Criteria**:
-- Role permissions defined by job function, not user preference
-- Users cannot elevate their own permissions
-- Access requests outside normal permissions require approval workflow
-- Unnecessary permissions removed promptly when job function changes
-- Audit log captures all permission grant/revoke events
+A. The system SHALL grant users the minimum permissions necessary to perform their assigned job functions.
+B. The system SHALL NOT grant users access beyond their role requirements.
+C. The system SHALL assign permissions based on specific job function rather than user preference.
+D. The system SHALL prevent users from accessing data outside their assigned scope.
+E. The system SHALL restrict administrative functions to administrator roles.
+F. The system SHALL limit patient data access to assigned clinical sites for staff roles.
+G. The system SHALL require explicit justification and approval for elevated permissions.
+H. The system SHALL prevent users from elevating their own permissions.
+I. The system SHALL require approval workflow for access requests outside normal permissions.
+J. The system SHALL remove unnecessary permissions promptly when job function changes.
+K. The system SHALL capture all permission grant events in the audit log.
+L. The system SHALL capture all permission revoke events in the audit log.
 
-*End* *Least Privilege Access* | **Hash**: 874e9922
+*End* *Least Privilege Access* | **Hash**: 84b123a2
 ---
 
 ### RBAC Principles

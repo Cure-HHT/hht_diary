@@ -138,56 +138,59 @@ clinical-diary-{sponsor}/            # Private sponsor repository
 
 # REQ-d00007: Database Schema Implementation and Deployment
 
-**Level**: Dev | **Implements**: o00004 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00004
 
-Database schema files SHALL be implemented as versioned SQL scripts organized by functional area (schema, triggers, functions, RLS policies, indexes), enabling repeatable deployment to sponsor-specific Cloud SQL instances while maintaining schema consistency across all sponsors.
+## Rationale
 
-Implementation SHALL include:
-- SQL files organized by functional area (schema.sql, triggers.sql, functions.sql, rls_policies.sql, indexes.sql)
-- Schema versioning following semantic versioning conventions
-- Deployment scripts validating schema integrity after execution
-- gcloud CLI integration for automated deployment
-- Migration scripts for schema evolution with rollback capability
-- Documentation of schema dependencies and deployment order
+This requirement defines the technical implementation approach for deploying database schemas across multiple sponsor-specific Cloud SQL instances while maintaining consistency and version control. It supports the operational database deployment requirement (o00004) by establishing concrete development practices for schema organization, versioning, deployment automation, and migration management. The approach uses functional area separation to improve maintainability, semantic versioning to track changes, and automated deployment scripts to ensure repeatability. Migration capabilities with rollback support enable safe schema evolution in production environments. Integration with gcloud CLI provides standardized tooling for Cloud SQL database operations across all sponsor deployments.
 
-**Rationale**: Implements database schema deployment (o00004) at the development level. gcloud CLI and Cloud SQL provide tooling for SQL execution and schema management, enabling consistent schema deployment across multiple sponsor databases.
+## Assertions
 
-**Acceptance Criteria**:
-- All schema files execute without errors on PostgreSQL 15+
-- Deployment scripts validate table creation and trigger installation
-- Schema deployed successfully to Cloud SQL test instance
-- Migration scripts include both forward and rollback operations
-- Deployment process documented with step-by-step instructions
-- Schema version tracked in database metadata table
+A. The system SHALL implement database schema as versioned SQL scripts organized by functional area.
+B. Schema files SHALL be separated into distinct files for schema definitions, triggers, functions, RLS policies, and indexes.
+C. Schema versions SHALL follow semantic versioning conventions.
+D. Deployment scripts SHALL validate schema integrity after execution.
+E. The system SHALL integrate gcloud CLI for automated deployment to Cloud SQL instances.
+F. The system SHALL provide migration scripts for schema evolution.
+G. Migration scripts SHALL include rollback capability.
+H. The system SHALL document schema dependencies and deployment order.
+I. All schema files SHALL execute without errors on PostgreSQL version 15 or higher.
+J. Deployment scripts SHALL validate successful table creation.
+K. Deployment scripts SHALL validate successful trigger installation.
+L. The deployment process SHALL successfully deploy schema to Cloud SQL test instances.
+M. Migration scripts SHALL include forward migration operations.
+N. Migration scripts SHALL include rollback operations for each forward migration.
+O. The system SHALL provide step-by-step deployment process documentation.
+P. Schema version information SHALL be tracked in a database metadata table.
+Q. The system SHALL maintain schema consistency across all sponsor-specific database instances.
 
-*End* *Database Schema Implementation and Deployment* | **Hash**: 18df4bc0
+*End* *Database Schema Implementation and Deployment* | **Hash**: cb61d31e
 ---
 
 # REQ-d00011: Multi-Site Schema Implementation
 
-**Level**: Dev | **Implements**: o00011 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00011
 
-The database schema SHALL implement multi-site support through sites table, site assignment tables, and row-level security policies that enforce site-based data access control within each sponsor's database.
+## Rationale
 
-Implementation SHALL include:
-- sites table with site metadata (site_id, site_name, site_number, location, contact)
-- investigator_site_assignments table mapping investigators to sites
-- analyst_site_assignments table mapping analysts to sites
-- user_site_assignments table mapping patients to enrollment sites
-- RLS policies filtering queries by user's assigned sites
-- Site context captured in all audit trail records
+This requirement implements the database-level infrastructure for multi-site clinical trial support, fulfilling REQ-o00011. Multi-site trials require fine-grained access control where investigators, analysts, and patients can only access data for their assigned sites within a sponsor's database. The sites table provides the master list of trial sites with their metadata, while assignment tables create the necessary many-to-many relationships between users and sites. Row-level security (RLS) policies enforce these assignments automatically at the database layer, preventing unauthorized cross-site data access. Site context is captured in audit trails to ensure regulatory compliance with FDA 21 CFR Part 11 requirements for traceability. This architecture enables flexible site management while maintaining strict data isolation and performance through proper indexing.
 
-**Rationale**: Implements multi-site configuration (o00011) at the database code level. Sites table and assignment tables enable flexible multi-site trial management, while RLS policies enforce site-level access control automatically at the database layer.
+## Assertions
 
-**Acceptance Criteria**:
-- sites table supports unlimited sites per sponsor
-- Assignment tables support many-to-many site relationships
-- RLS policies correctly filter data by assigned sites
-- Site context preserved in record_audit for compliance
-- Site-based queries perform efficiently with proper indexes
-- Site assignments modifiable by administrators only
+A. The system SHALL implement a sites table containing site_id, site_name, site_number, location, and contact fields.
+B. The system SHALL implement an investigator_site_assignments table mapping investigators to sites.
+C. The system SHALL implement an analyst_site_assignments table mapping analysts to sites.
+D. The system SHALL implement a user_site_assignments table mapping patients to enrollment sites.
+E. The system SHALL implement RLS policies that filter queries by the user's assigned sites.
+F. The system SHALL capture site context in all audit trail records.
+G. The sites table SHALL support unlimited sites per sponsor.
+H. The assignment tables SHALL support many-to-many site relationships.
+I. RLS policies SHALL correctly filter data by assigned sites for all user types.
+J. The system SHALL preserve site context in record_audit entries for compliance purposes.
+K. Site-based queries SHALL perform efficiently through proper indexes.
+L. Site assignments SHALL be modifiable by administrators only.
 
-*End* *Multi-Site Schema Implementation* | **Hash**: bf785d33
+*End* *Multi-Site Schema Implementation* | **Hash**: 09fe472c
 ---
 
 ### Option 1: Direct SQL Execution (Recommended)

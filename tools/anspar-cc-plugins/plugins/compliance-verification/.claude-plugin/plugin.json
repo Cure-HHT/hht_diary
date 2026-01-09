@@ -1,7 +1,7 @@
 {
   "name": "compliance-verification",
-  "version": "1.0.0",
-  "description": "FDA 21 CFR Part 11 compliance verification workflows for diary project",
+  "version": "2.0.0",
+  "description": "FDA 21 CFR Part 11 compliance verification workflows using elspais CLI",
   "author": {
     "name": "Anspar Foundation",
     "url": "https://github.com/anspar"

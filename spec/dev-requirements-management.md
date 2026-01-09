@@ -28,253 +28,240 @@ This document defines the implementation requirements for requirements managemen
 
 # REQ-d00014: Requirement Validation Tooling
 
-**Level**: Dev | **Implements**: o00013 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00013
 
-The system SHALL implement automated requirement validation via `tools/requirements/validate_requirements.py`, checking format compliance, ID uniqueness, valid parent links, and level consistency, with integration into pre-commit hooks to prevent invalid requirements from entering the codebase.
+## Rationale
 
-Implementation SHALL include:
-- Python script scanning `spec/` directory for requirement blocks
-- Validation of ID format: `REQ-[pod]NNNNN` pattern
-- Uniqueness check: no duplicate IDs across all spec/ files
-- Parent validation: all "Implements" references point to existing requirements
-- Level consistency: ID prefix matches stated level (p=PRD, o=Ops, d=Dev)
-- Status validation: only allowed values (Active, Draft, Deprecated)
-- Error reporting with file path and line number
-- Exit code 0 on success, 1 on validation errors
-- Warning reporting for unusual patterns (e.g., PRD implements PRD)
+The elspais CLI provides standardized requirement validation across projects with consistent configuration via .elspais.toml. Local Python scripts remain available for programmatic access by plugins and internal tooling. Automated validation catches errors before code review, reducing rework and ensuring consistency. Integration with git hooks prevents invalid requirements from entering git history, maintaining requirement quality over time. This requirement supports REQ-o00013 by providing the technical implementation of requirement validation tooling.
 
-**Rationale**: Automated validation catches errors before code review, reducing rework and ensuring consistency. Machine validation is faster and more reliable than human review for format compliance. Integration with pre-commit hooks prevents invalid requirements from entering git history, maintaining requirement quality over time. Clear error messages enable developers to fix issues quickly.
+## Assertions
 
-**Acceptance Criteria**:
-- validate_requirements.py implemented in Python 3.8+ with no external dependencies
-- Script scans all .md files in spec/ directory recursively
-- Validates requirement format matches spec/requirements-format.md specification
-- Detects and reports duplicate IDs with file locations
-- Validates all "Implements" references exist and are reachable
-- Checks ID prefix matches level field (p→PRD, o→Ops, d→Dev)
-- Warns about unusual hierarchies (PRD implementing PRD, etc.)
-- Outputs summary statistics: total requirements, by level, by status
-- Returns exit code 0 only when all requirements valid
-- Error messages include file path, line number, and specific issue
-- Runnable manually: `python3 tools/requirements/validate_requirements.py`
+A. The system SHALL implement automated requirement validation via the elspais CLI tool as the primary validation mechanism.
+B. The system SHALL provide tools/requirements/validate_requirements.py as a fallback validation tool for programmatic and plugin access.
+C. The elspais CLI SHALL be configured via .elspais.toml in the repository root.
+D. The system SHALL validate requirement ID format matches the REQ-[pod]NNNNN pattern.
+E. The system SHALL check for duplicate requirement IDs across all spec/ files.
+F. The system SHALL validate that all 'Implements' references point to existing requirements.
+G. The system SHALL verify level consistency between ID prefix and stated level (p=PRD, o=Ops, d=Dev).
+H. The system SHALL validate that status values are limited to allowed values (Active, Draft, Deprecated).
+I. The system SHALL report errors with file path and line number.
+J. The system SHALL exit with code 0 on successful validation and code 1 on validation errors.
+K. The system SHALL report warnings for unusual patterns such as PRD implementing PRD.
+L. The elspais CLI SHALL be installed and available in PATH.
+M. The elspais validate command SHALL scan all .md files in the spec/ directory recursively.
+N. The system SHALL validate requirement format matches the spec/requirements-format.md specification.
+O. The system SHALL output summary statistics including total requirements, counts by level, and counts by status.
+P. Error messages SHALL include file path, line number, and specific issue description.
+Q. The elspais validate command SHALL be executable manually via the command line.
+R. The fallback Python script SHALL be executable via python3 tools/requirements/validate_requirements.py.
+S. The system SHALL integrate requirement validation into git hooks to prevent invalid requirements from entering the codebase.
 
-*End* *Requirement Validation Tooling* | **Hash**: 2263dc21
+*End* *Requirement Validation Tooling* | **Hash**: 5ef43845
 ---
 
 # REQ-d00015: Traceability Matrix Auto-Generation
 
-**Level**: Dev | **Implements**: o00013 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00013
 
-The system SHALL implement automated traceability matrix generation via `tools/requirements/generate_traceability.py`, producing markdown and HTML formats showing requirement hierarchies, with pre-commit hook integration to auto-regenerate matrices whenever spec/ files change.
+## Rationale
 
-Implementation SHALL include:
-- Python script parsing requirements from spec/ directory
-- Hierarchical tree structure showing parent-child relationships
-- Output formats: markdown (.md), HTML (.html), CSV (.csv)
-- HTML format with interactive collapsible tree using JavaScript
-- Color-coding by level: PRD (blue), OPS (orange), DEV (green)
-- Status badges showing Active/Draft/Deprecated
-- Summary statistics: total requirements, counts by level and status
-- Orphaned requirement detection (no children implementing them)
-- Pre-commit hook auto-regeneration when spec/*.md files change
-- Auto-staging of generated matrices for commit
+The elspais CLI provides standardized traceability matrix generation with output to build-reports/ for CI/CD integration. Local Python scripts remain available for programmatic access by plugins and internal tooling. Traceability matrices provide visual representation of requirement relationships essential for regulatory audits and impact analysis under FDA 21 CFR Part 11. Auto-generation ensures matrices never become outdated or inconsistent with requirements, supporting ALCOA+ principles of complete and consistent documentation.
 
-**Rationale**: Traceability matrices provide visual representation of requirement relationships essential for regulatory audits and impact analysis. Auto-generation ensures matrices never become outdated or inconsistent with requirements. HTML format with interactive features enables easy browsing of complex requirement hierarchies. Pre-commit hook integration eliminates manual regeneration step, preventing outdated matrices from being committed.
+## Assertions
 
-**Acceptance Criteria**:
-- generate_traceability.py implemented in Python 3.8+
-- Supports --format argument: markdown, html, csv, both (md+html)
-- Markdown output shows hierarchical tree with indentation
-- HTML output includes collapsible tree with expand/collapse functionality
-- HTML uses color coding: PRD blue, OPS orange, DEV green
-- HTML includes "Expand All" and "Collapse All" buttons
-- CSV output suitable for import into spreadsheets
-- Script detects orphaned requirements (no implementing children)
-- Pre-commit hook detects spec/*.md file changes
-- Hook runs both markdown and HTML generation automatically
-- Hook stages generated traceability_matrix.md and traceability_matrix.html
-- Generated files include timestamp and requirement count
-- Output filename: traceability_matrix.{md,html,csv}
-- Runnable manually: `python3 tools/requirements/generate_traceability.py --format both`
+A. The system SHALL implement automated traceability matrix generation via the elspais trace CLI command as the primary tool.
+B. The system SHALL provide tools/requirements/generate_traceability.py as a fallback for programmatic access.
+C. The system SHALL configure the elspais trace command via .elspais.toml.
+D. The system SHALL produce traceability matrices in markdown format.
+E. The system SHALL produce traceability matrices in HTML format.
+F. The system SHALL produce traceability matrices in CSV format.
+G. The system SHALL output generated files to the build-reports/combined/traceability/ directory as configurable in .elspais.toml.
+H. The system SHALL display requirement hierarchies using a hierarchical tree structure showing parent-child relationships.
+I. Markdown output SHALL show hierarchical tree structure with indentation.
+J. HTML output SHALL include interactive collapsible tree using JavaScript.
+K. HTML output SHALL include Expand All and Collapse All buttons.
+L. HTML output SHALL use color-coding by requirement level: PRD as blue, OPS as orange, and DEV as green.
+M. The system SHALL display status badges showing Active, Draft, or Deprecated states.
+N. The system SHALL include summary statistics showing total requirements count.
+O. The system SHALL include summary statistics showing counts by level.
+P. The system SHALL include summary statistics showing counts by status.
+Q. The system SHALL detect orphaned requirements that have no children implementing them.
+R. CSV output SHALL be suitable for import into spreadsheets.
+S. Generated files SHALL include a timestamp.
+T. Generated files SHALL include requirement count.
+U. The elspais CLI tool SHALL be installed and available in PATH.
+V. The system SHALL support manual execution via the elspais trace command.
+W. The system SHALL support fallback execution via python3 tools/requirements/generate_traceability.py --format both.
 
-*End* *Traceability Matrix Auto-Generation* | **Hash**: 240a754c
+*End* *Traceability Matrix Auto-Generation* | **Hash**: 761084dc
 ---
 
 # REQ-d00016: Code-to-Requirement Linking
 
-**Level**: Dev | **Implements**: o00014 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00014
 
-Implementation files SHALL include standardized header comments linking code to requirements using format `IMPLEMENTS REQUIREMENTS: REQ-xxx, REQ-yyy`, enabling traceability from implementation back to requirements for audit and impact analysis.
+## Rationale
 
-Implementation SHALL include:
-- Header comment format defined in spec/requirements-format.md
-- Language-specific comment syntax (SQL: --, Dart/TS/JS: //, Python: #)
-- Multi-line format for readability when multiple requirements
-- Requirement IDs listed in ascending order
-- Header comments placed before first functional code (after imports/declarations)
-- Documentation of format in requirements-format.md with examples
-- Examples for SQL, Dart, TypeScript, Python
+Code-to-requirement links enable reverse traceability from implementation to requirements, essential for impact analysis when requirements change. Header comments are visible during code review and development. Standardized format enables potential future tooling to verify all code is linked to requirements. Explicit requirement references make compliance audits easier by showing which code implements which regulatory requirements.
 
-**Rationale**: Code-to-requirement links enable reverse traceability from implementation to requirements, essential for impact analysis when requirements change. Header comments are visible during code review and development. Standardized format enables potential future tooling to verify all code is linked to requirements. Explicit requirement references make compliance audits easier by showing which code implements which regulatory requirements.
+## Assertions
 
-**Acceptance Criteria**:
-- Header comment format documented in spec/requirements-format.md
-- Examples provided for each language: SQL, Dart, TypeScript, Python
-- Format: `IMPLEMENTS REQUIREMENTS: REQ-p00xxx, REQ-o00yyy, REQ-d00zzz`
-- Multi-line format shown for files implementing many requirements
-- Comments use language-appropriate syntax (-- for SQL, // for Dart/TS, # for Python)
-- Placed after file-level comments/imports, before functional code
-- Requirement IDs in ascending order (p00001, p00002, o00001, d00001)
-- Format is machine-readable for future tooling
-- Examples include database/*.sql, mobile app code, test files
-- CLAUDE.md documents requirement for header comments
+A. Implementation files SHALL include standardized header comments linking code to requirements.
+B. Header comments SHALL use the format 'IMPLEMENTS REQUIREMENTS: REQ-xxx, REQ-yyy'.
+C. The system SHALL use language-specific comment syntax for header comments (SQL: --, Dart/TS/JS: //, Python: #).
+D. Header comments SHALL use multi-line format for readability when multiple requirements are referenced.
+E. Requirement IDs in header comments SHALL be listed in ascending order.
+F. Header comments SHALL be placed before the first functional code (after imports/declarations).
+G. The header comment format SHALL be documented in spec/requirements-format.md.
+H. The documentation in spec/requirements-format.md SHALL include examples for SQL, Dart, TypeScript, and Python.
+I. The documentation SHALL provide examples showing the format 'IMPLEMENTS REQUIREMENTS: REQ-p00xxx, REQ-o00yyy, REQ-d00zzz'.
+J. The documentation SHALL include multi-line format examples for files implementing many requirements.
+K. The documentation SHALL show examples with language-appropriate syntax (-- for SQL, // for Dart/TS, # for Python).
+L. Examples SHALL demonstrate header comment placement after file-level comments/imports and before functional code.
+M. Examples SHALL demonstrate requirement IDs in ascending order (p00001, p00002, o00001, d00001).
+N. The header comment format SHALL be machine-readable for future tooling.
+O. The documentation SHALL include examples from database/*.sql files.
+P. The documentation SHALL include examples from mobile app code.
+Q. The documentation SHALL include examples from test files.
+R. CLAUDE.md SHALL document the requirement for header comments in implementation files.
 
-*End* *Code-to-Requirement Linking* | **Hash**: c857235a
+*End* *Code-to-Requirement Linking* | **Hash**: 8bf2c189
 ---
 
 # REQ-d00017: ADR Template and Lifecycle Tooling
 
-**Level**: Dev | **Implements**: o00016 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00016
 
-The system SHALL provide ADR template, lifecycle documentation, and index maintenance in `docs/adr/README.md`, enabling consistent ADR creation and tracking of architectural decisions throughout their lifecycle from Proposed to Accepted to Deprecated/Superseded.
+## Rationale
 
-Implementation SHALL include:
-- ADR template in docs/adr/README.md with sections: Status, Context, Decision, Consequences, Alternatives
-- ADR lifecycle documentation: Proposed → Accepted → Deprecated/Superseded
-- ADR index table in docs/adr/README.md: number, title, status, date
-- Instructions for creating ADRs linked to tickets
-- Guidance on when ADRs are needed vs. not needed
-- Examples of ADR-to-requirement linking
-- Naming convention: ADR-{number}-{descriptive-title}.md
-- Sequential numbering starting from 001
+This requirement establishes the foundational structure for Architecture Decision Records (ADRs) to ensure consistent documentation of architectural choices throughout the project lifecycle. ADRs provide a historical record of why specific technical decisions were made, which is critical for FDA-regulated systems where design rationale must be traceable and auditable. The standardized template, lifecycle stages, and centralized index reduce documentation friction while preventing both over-documentation and under-documentation. By linking ADRs to requirements and tickets, the system maintains bidirectional traceability between architectural decisions and functional requirements, supporting regulatory compliance and long-term maintainability.
 
-**Rationale**: Standardized ADR template ensures consistent decision documentation. Lifecycle documentation guides teams through proposal, acceptance, and deprecation processes. Centralized index in README.md provides single source of truth for all decisions. Examples and guidance reduce friction in ADR creation. Explicit criteria for when ADRs are needed prevents both over-documentation and under-documentation.
+## Assertions
 
-**Acceptance Criteria**:
-- docs/adr/README.md contains ADR template with required sections
-- Template includes: Status, Context, Decision, Consequences, Alternatives
-- Lifecycle stages documented: Proposed, Accepted, Deprecated, Superseded
-- ADR index table maintained showing: number, title, status, date, link
-- Guidance provided: when to create ADR, when not to create ADR
-- Examples show ADR linking to requirements and tickets
-- File naming convention documented: ADR-NNN-descriptive-title.md
-- Workflow documented: ticket → ADR draft → review → accepted → implement
-- Instructions for updating index when adding new ADRs
-- Examples of supersession: how to link old ADR to replacement
+A. The system SHALL provide an ADR template in docs/adr/README.md.
+B. The ADR template SHALL include the following sections: Status, Context, Decision, Consequences, and Alternatives.
+C. The system SHALL document ADR lifecycle stages: Proposed, Accepted, Deprecated, and Superseded.
+D. The system SHALL maintain an ADR index table in docs/adr/README.md.
+E. The ADR index table SHALL display the following fields for each ADR: number, title, status, date, and link.
+F. The system SHALL provide instructions for creating ADRs linked to tickets.
+G. The system SHALL provide guidance on when ADRs are needed.
+H. The system SHALL provide guidance on when ADRs are not needed.
+I. The system SHALL provide examples of ADR-to-requirement linking.
+J. The system SHALL document the ADR file naming convention as ADR-{number}-{descriptive-title}.md.
+K. The system SHALL use sequential numbering for ADRs starting from 001.
+L. The system SHALL document the ADR workflow: ticket → ADR draft → review → accepted → implement.
+M. The system SHALL provide instructions for updating the index when adding new ADRs.
+N. The system SHALL provide examples of ADR supersession showing how to link old ADRs to replacement ADRs.
 
-*End* *ADR Template and Lifecycle Tooling* | **Hash**: 36997d8f
+*End* *ADR Template and Lifecycle Tooling* | **Hash**: fc6fd26f
 ---
 
 # REQ-d00018: Git Hook Implementation
 
-**Level**: Dev | **Implements**: o00017 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00017
 
-The system SHALL implement pre-commit hook in `.githooks/pre-commit` that enforces requirement validation, auto-regenerates traceability matrices when spec/ files change, and blocks commits with validation errors, with configuration instructions in `.githooks/README.md`.
+## Rationale
 
-Implementation SHALL include:
-- Bash script in .githooks/pre-commit executable by git
-- Detection of spec/*.md files in staged changes
-- Auto-regeneration of traceability matrices when spec/ files changed
-- Execution of validate_requirements.py before commit
-- Exit code 1 (block commit) on validation failure
-- Clear error messages directing developer to fix issues
-- Auto-staging of regenerated traceability matrices
-- Configuration command: `git config core.hooksPath .githooks`
-- Documentation in .githooks/README.md with troubleshooting
-- Bypass mechanism documented: `git commit --no-verify` (discouraged)
+Pre-push hooks enforce quality gates before code enters the remote repository, preventing invalid requirements from being shared with the team. Using the elspais CLI provides standardized validation consistent with CI/CD pipelines. Clear error messages help developers fix issues locally before pushing. Hook configuration per repository enables consistent enforcement across the team while maintaining cross-platform compatibility.
 
-**Rationale**: Pre-commit hooks enforce quality gates before code enters git history, preventing invalid requirements from being committed and requiring rework later. Auto-regeneration of traceability matrices ensures they're always current with requirements. Automatic staging of matrices simplifies developer workflow. Hook configuration per repository enables consistent enforcement across team. Clear error messages help developers fix issues quickly.
+## Assertions
 
-**Acceptance Criteria**:
-- .githooks/pre-commit executable bash script (chmod +x)
-- Hook detects spec/*.md in staged changes using `git diff --cached`
-- When spec/ files changed, runs generate_traceability.py --format both
-- Stages traceability_matrix.md and traceability_matrix.html automatically
-- Runs validate_requirements.py before accepting commit
-- Returns exit code 1 to block commit if validation fails
-- Outputs clear error messages with file/line references
-- Documents configuration in .githooks/README.md
-- Includes troubleshooting section for common issues
-- Documents bypass method: --no-verify (with warnings)
-- Configuration required once per developer: git config core.hooksPath .githooks
-- Hook works correctly on Linux, macOS, Windows Git Bash
-- CLAUDE.md documents hook setup requirement
+A. The system SHALL implement a pre-push hook in .githooks/pre-push that enforces requirement validation.
+B. The pre-push hook SHALL be implemented as a Bash script executable by git.
+C. The pre-push hook SHALL execute 'elspais validate' for requirement format validation.
+D. The pre-push hook SHALL execute 'elspais index validate' for INDEX.md consistency validation.
+E. The pre-push hook SHALL return exit code 1 to block the push when validation fails.
+F. The pre-push hook SHALL output clear error messages with file and line references when validation fails.
+G. The pre-push hook SHALL fail gracefully with a clear message if the elspais CLI is not installed.
+H. The .githooks/pre-push file SHALL be executable (chmod +x permissions).
+I. The system SHALL provide configuration instructions in .githooks/README.md.
+J. The .githooks/README.md file SHALL document the configuration command: 'git config core.hooksPath .githooks'.
+K. The .githooks/README.md file SHALL include a troubleshooting section for common issues.
+L. The .githooks/README.md file SHALL document the bypass mechanism using 'git push --no-verify' with warnings discouraging its use.
+M. The pre-push hook SHALL work correctly on Linux, macOS, and Windows Git Bash environments.
+N. The CLAUDE.md file SHALL document the hook setup requirement.
+O. Local Python scripts SHALL remain available for plugin and programmatic use.
 
-*End* *Git Hook Implementation* | **Hash**: 85098bca
+*End* *Git Hook Implementation* | **Hash**: 70fae011
 ---
 
 # REQ-d00053: Development Environment and Tooling Setup
 
-**Level**: Dev | **Implements**: o00017 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00017
 
-Development environment SHALL provide standardized, repeatable tooling configuration including IDE integrations, code analysis tools, and workflow automation to ensure consistent developer experience and productivity.
+## Rationale
 
-Development environment setup SHALL include:
-- IDE/editor configuration and extensions (e.g., Claude Code with MCP servers)
-- Code quality and analysis tools (e.g., linters, formatters)
-- Project management integrations (e.g., Linear integration with IDE)
-- Documentation and reference tools
-- Setup scripts or documentation for reproducible environment
-- Tool configuration tracked in version control where appropriate
+Standardized development environments ensure all developers have consistent tooling, reducing "works on my machine" issues and environment drift. IDE integrations and automation tools improve developer productivity by providing seamless access to code analysis, project management, and documentation resources. Reproducible setup processes enable quick onboarding of new developers and ensure team-wide consistency. Tracking tool configurations in version control maintains environmental parity across the team. Project management integrations (Linear, Claude Code tools) streamline workflow and maintain the requirement traceability necessary for FDA 21 CFR Part 11 compliance.
 
-**Rationale**: Standardized development environment ensures all developers have consistent tooling, reducing "works on my machine" issues. IDE integrations and automation tools improve developer productivity. Reproducible setup enables quick onboarding of new developers. Tracking tool configurations in version control ensures team-wide consistency. Project management integrations (Linear, Claude Code tools) streamline workflow and maintain traceability.
+## Assertions
 
-**Acceptance Criteria**:
-- Development environment setup documented (e.g., in CLAUDE.md or setup scripts)
-- IDE extensions and configurations specified
-- Integration tools (Linear, code analysis) installed and configured
-- Setup process can be completed by new developer following documentation
-- Tool configurations maintain compatibility across team
-- Setup documentation kept up-to-date with tool changes
-- Integration tools facilitate requirement traceability workflow
+A. The development environment SHALL provide standardized, repeatable tooling configuration.
+B. The development environment SHALL include IDE/editor configuration and extensions.
+C. The development environment SHALL include code quality and analysis tools.
+D. The development environment SHALL include project management integrations.
+E. The development environment SHALL include documentation and reference tools.
+F. The development environment SHALL include setup scripts or documentation for reproducible environment configuration.
+G. Tool configurations SHALL be tracked in version control where appropriate.
+H. Development environment setup SHALL be documented in accessible locations such as CLAUDE.md or setup scripts.
+I. IDE extensions and configurations SHALL be specified in the documentation.
+J. Integration tools for project management and code analysis SHALL be installed and configured.
+K. The setup process SHALL be completable by a new developer following the provided documentation.
+L. Tool configurations SHALL maintain compatibility across the development team.
+M. Setup documentation SHALL be kept up-to-date with tool changes.
+N. Integration tools SHALL facilitate the requirement traceability workflow.
 
-*End* *Development Environment and Tooling Setup* | **Hash**: 404b139b
+*End* *Development Environment and Tooling Setup* | **Hash**: a00606aa
 ---
 
 ## Tool Usage Examples
 
-### Manual Requirement Validation
+### Manual Requirement Validation (elspais CLI - Primary)
 
 ```bash
-# Validate all requirements in spec/ directory
-python3 tools/requirements/validate_requirements.py
+# Validate all requirements using elspais CLI
+elspais validate
+
+# Validate INDEX.md consistency
+elspais index validate
 
 # Example output on success:
-# 🔍 Scanning /path/to/spec for requirements...
-# 📋 Found 42 requirements
-# ✅ ALL REQUIREMENTS VALID
-# 📊 SUMMARY:
-#   Total requirements: 42
-#   By level: PRD=20, Ops=12, Dev=10
-#   By status: Active=42, Draft=0, Deprecated=0
+# Validating requirements in spec/...
+# Found 42 requirements
+# All requirements valid
+# Summary: PRD=20, Ops=12, Dev=10
 
 # Example output on error:
-# ❌ ERROR: Duplicate requirement ID
+# ERROR: Duplicate requirement ID
 #   REQ-p00036 found in:
 #     - spec/prd-requirements.md:45
 #     - spec/prd-diary-app.md:123
 ```
 
+### Manual Requirement Validation (Local Scripts - Fallback/Plugins)
+
+```bash
+# Local Python scripts remain available for programmatic/plugin use
+python3 tools/requirements/validate_requirements.py
+
+# These scripts are used by:
+# - Claude Code plugins (pending elspais --json support)
+# - Internal tooling requiring programmatic access
+```
+
 ### Manual Traceability Matrix Generation
 
 ```bash
-# Generate markdown format (for documentation)
-python3 tools/requirements/generate_traceability.py --format markdown
+# Generate traceability matrix using elspais CLI (primary)
+elspais trace
 
-# Generate HTML format (for interactive browsing)
-python3 tools/requirements/generate_traceability.py --format html
+# Output goes to build-reports/combined/traceability/ (per .elspais.toml)
 
-# Generate both markdown and HTML (recommended)
+# Fallback: Local Python scripts for programmatic use
 python3 tools/requirements/generate_traceability.py --format both
-
-# Generate CSV (for spreadsheet import)
 python3 tools/requirements/generate_traceability.py --format csv
-
-# Output to custom location
-python3 tools/requirements/generate_traceability.py --format html --output docs/trace.html
 ```
 
-### Pre-commit Hook Setup
+### Git Hook Setup
 
 ```bash
 # One-time setup per developer
@@ -284,17 +271,18 @@ git config core.hooksPath .githooks
 git config --get core.hooksPath
 # Should output: .githooks
 
-# Test hook manually
-.githooks/pre-commit
+# Ensure elspais is installed (required for hooks)
+which elspais || echo "Install elspais: pip install elspais"
 
-# Hook runs automatically on git commit
-git commit -m "Add new requirement"
-# Pre-commit hook will:
-# 1. Detect spec/*.md files changed
-# 2. Regenerate traceability matrices
-# 3. Validate all requirements
-# 4. Stage updated matrices
-# 5. Allow commit if valid, block if invalid
+# Test hook manually
+.githooks/pre-push
+
+# Hook runs automatically on git push
+git push origin feature-branch
+# Pre-push hook will:
+# 1. Run elspais validate
+# 2. Run elspais index validate
+# 3. Allow push if valid, block if invalid
 ```
 
 ### Code Header Comment Examples

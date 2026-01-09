@@ -52,23 +52,22 @@ Before deploying a portal instance to an environment, ensure you have:
 
 # REQ-o00055: Role-Based Visual Indicator Verification
 
-**Level**: Ops | **Implements**: p00030 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00030
 
-**Description**: Portal deployments SHALL include verification that role-based color banners display correctly for all user roles.
+## Rationale
 
-**Acceptance Criteria**:
+This requirement ensures that role-based visual indicators (color banners) are properly deployed and functioning across all portal deployments. These visual indicators are critical for user awareness and security, helping users immediately identify which role context they are operating in. This operational verification requirement defines the post-deployment testing process that must occur to confirm correct implementation of the role-based visual system defined in the product requirements (p00030). The verification scope encompasses visual presentation, data accuracy (role name display), color specification compliance, platform-wide deployment consistency, and the validation methodology to be used.
 
-1. ✅ Visual smoke test confirms banner appears on portal homepage
-2. ✅ Banner displays correct role name after authentication
-3. ✅ Banner colors match specification for each role type
-4. ✅ Feature included in all sponsor portal deployments (core platform feature)
+## Assertions
 
-**Validation Method**: After deployment, log in as each role type and verify banner color and text
+A. Portal deployments SHALL include verification that role-based color banners display correctly for all user roles.
+B. The visual smoke test SHALL confirm that the banner appears on the portal homepage.
+C. The banner SHALL display the correct role name after authentication.
+D. The banner colors SHALL match the specification for each role type.
+E. The role-based banner feature SHALL be included in all sponsor portal deployments.
+F. The validation method SHALL require logging in as each role type to verify banner color and text.
 
-**Implementation Files**:
-- Portal UI components (see dev-portal.md)
-
-*End* *Role-Based Visual Indicator Verification* | **Hash**: b02eb8c1
+*End* *Role-Based Visual Indicator Verification* | **Hash**: 00e842fa
 ---
 
 ## Infrastructure as Code with Pulumi

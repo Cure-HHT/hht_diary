@@ -96,27 +96,28 @@ WHERE server_timestamp > NOW() - INTERVAL '24 hours';
 
 # REQ-o00005: Audit Trail Monitoring
 
-**Level**: Ops | **Implements**: p00004, p00010, p00011 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00004, p00010, p00011
 
-Operations SHALL continuously monitor audit trail integrity, ensuring all clinical data changes are properly recorded and tamper-proof chain remains intact.
+## Rationale
 
-Monitoring SHALL include:
-- Automated checks for audit trail completeness
-- Verification of event chain integrity (no orphaned events)
-- Detection of missing or corrupted audit records
-- Alerts for audit trail anomalies
-- Regular audit log review and analysis
+This requirement establishes operational monitoring practices to ensure the integrity and completeness of audit trails for clinical data. Event sourcing architecture (p00004) requires continuous validation of the event chain to maintain a tamper-proof record. FDA 21 CFR Part 11 compliance (p00010, p00011) mandates that audit trails remain trustworthy and complete for regulatory inspection and submission. Proactive monitoring detects anomalies, data integrity issues, and potential compliance violations before they impact regulatory readiness.
 
-**Rationale**: Implements event sourcing (p00004) and compliance requirements (p00010, p00011) through operational monitoring. Continuous validation ensures audit trails remain trustworthy for regulatory submission.
+## Assertions
 
-**Acceptance Criteria**:
-- Daily automated audit trail integrity checks
-- Alerts triggered for any integrity violations
-- All data changes have corresponding audit events
-- Event chain links validated (parent_audit_id relationships)
-- Monitoring dashboards show audit trail health status
+A. The operations team SHALL continuously monitor audit trail integrity.
+B. The system SHALL perform automated checks for audit trail completeness.
+C. The system SHALL verify event chain integrity to detect orphaned events.
+D. The system SHALL detect missing audit records.
+E. The system SHALL detect corrupted audit records.
+F. The system SHALL generate alerts for audit trail anomalies.
+G. The operations team SHALL perform regular audit log review and analysis.
+H. The system SHALL execute automated audit trail integrity checks at least daily.
+I. The system SHALL trigger alerts for any integrity violations.
+J. The system SHALL ensure all data changes have corresponding audit events.
+K. The system SHALL validate event chain links through parent_audit_id relationships.
+L. The system SHALL provide monitoring dashboards that display audit trail health status.
 
-*End* *Audit Trail Monitoring* | **Hash**: f48b8b6b
+*End* *Audit Trail Monitoring* | **Hash**: a01cc9d7
 ---
 
 #### 4. Audit Trail Integrity
@@ -899,27 +900,26 @@ The issue has been resolved. All services are operating normally.
 
 # REQ-o00008: Backup and Retention Policy
 
-**Level**: Ops | **Implements**: p00012 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00012
 
-Clinical trial data and audit trails SHALL be backed up regularly with retention policies meeting regulatory requirements (minimum 7 years), ensuring data recoverability and compliance.
+## Rationale
 
-Backup and retention SHALL include:
-- Automated database backups (Cloud SQL automated backups)
-- Point-in-time recovery capability for 30 days (Cloud SQL PITR)
-- Long-term archive retention per study requirements
-- Regular backup restore testing (weekly)
-- Disaster recovery procedures tested quarterly
+This requirement establishes operational backup and retention policies to support regulatory compliance for clinical trial systems. FDA 21 CFR Part 11 and ICH GCP guidelines mandate long-term retention of clinical trial data and audit trails, typically for a minimum of 7 years after study completion. Beyond creating backups, this requirement emphasizes the criticality of verifying that backups are actually restorable through regular testing. Untested backups represent a false sense of security in disaster recovery scenarios. The requirement supports the parent product requirement (p00012) for data retention by defining the specific operational procedures, automation, and testing cadences needed to ensure data recoverability and regulatory compliance throughout the required retention period.
 
-**Rationale**: Implements data retention requirements (p00012) through operational backup policies. Regular testing ensures backups are actually restorable, not just created.
+## Assertions
 
-**Acceptance Criteria**:
-- Automated backups run without failure
-- Backup retention meets or exceeds study-specific requirements
-- Weekly backup restore tests to staging environment
-- Quarterly disaster recovery drills documented
-- Backup integrity verification automated
+A. The system SHALL perform automated database backups using Cloud SQL automated backup functionality.
+B. The system SHALL maintain point-in-time recovery capability for a minimum of 30 days using Cloud SQL PITR.
+C. Clinical trial data and audit trails SHALL be retained for a minimum of 7 years to meet regulatory requirements.
+D. The system SHALL implement long-term archive retention that meets or exceeds study-specific requirements.
+E. Automated backups SHALL run without failure.
+F. Backup retention periods SHALL meet or exceed study-specific requirements.
+G. The system SHALL perform weekly backup restore tests to a staging environment.
+H. The system SHALL conduct quarterly disaster recovery drills.
+I. Disaster recovery drill results SHALL be documented.
+J. The system SHALL perform automated backup integrity verification.
 
-*End* *Backup and Retention Policy* | **Hash**: 48f424bd
+*End* *Backup and Retention Policy* | **Hash**: 201d286b
 ---
 
 ### Automated Backups

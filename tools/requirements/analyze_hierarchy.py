@@ -3,22 +3,22 @@
 Analyze PRD requirements hierarchy and propose restructuring.
 
 This script:
-1. Parses all PRD requirements from spec/
+1. Parses all requirements via elspais CLI (elspais validate --json)
 2. Identifies orphaned requirements (missing or incorrect implements field)
 3. Proposes parent assignment based on content analysis
-4. Generates a report of proposed changes
+4. Generates proposals compatible with elspais edit --from-json
 
 IMPLEMENTS REQUIREMENTS:
     REQ-p00020: System Validation and Traceability
 """
 
-import re
-import csv
 import json
-from pathlib import Path
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
+import subprocess
+import sys
 from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
 
 # The hierarchy structure we want to enforce
 HIERARCHY_STRUCTURE = {
@@ -97,128 +97,69 @@ DOMAIN_CATEGORIES = {
 }
 
 
-@dataclass
-class Requirement:
-    id: str
-    title: str
-    implements: List[str]
-    file_path: str
-    line_number: int
-    body: str
+def get_requirements_via_cli() -> Dict[str, Dict]:
+    """
+    Get all requirements by running elspais validate --json.
 
-    @property
-    def number(self) -> str:
-        return self.id.replace("p", "")
+    Returns:
+        Dict mapping requirement ID (e.g., 'REQ-d00027') to requirement data
+    """
+    try:
+        result = subprocess.run(
+            ['elspais', 'validate', '--json'],
+            capture_output=True,
+            text=True
+        )
 
-    @property
-    def is_orphaned(self) -> bool:
-        """Requirement is orphaned if it has no implements or implements -"""
-        return not self.implements or self.implements == ["-"]
+        output = result.stdout
+        json_start = output.find('{')
+        if json_start == -1:
+            return {}
 
-
-def parse_requirements(spec_dir: Path) -> Dict[str, Requirement]:
-    """Parse all PRD requirements from spec directory."""
-    requirements = {}
-
-    for md_file in spec_dir.glob("*.md"):
-        if not md_file.name.startswith("prd-"):
-            continue
-
-        content = md_file.read_text()
-
-        # Find all requirements in the file
-        # Pattern: # REQ-p{id}: {title}
-        pattern = r'^# REQ-(p\d{5}):\s*(.+?)$'
-
-        for match in re.finditer(pattern, content, re.MULTILINE):
-            req_id = match.group(1)
-            title = match.group(2).strip()
-            line_number = content[:match.start()].count('\n') + 1
-
-            # Find the implements field
-            impl_pattern = r'\*\*Implements\*\*:\s*([^\n|]+)'
-            pos = match.end()
-            next_req = content.find("# REQ-", pos)
-            if next_req == -1:
-                next_req = len(content)
-
-            body_section = content[pos:next_req]
-            impl_match = re.search(impl_pattern, body_section)
-
-            implements = []
-            if impl_match:
-                impl_text = impl_match.group(1).strip()
-                if impl_text and impl_text != "-":
-                    # Parse comma-separated or space-separated IDs
-                    impl_ids = re.findall(r'p\d{5}', impl_text)
-                    implements = impl_ids
-
-            requirements[req_id] = Requirement(
-                id=req_id,
-                title=title,
-                implements=implements,
-                file_path=str(md_file.name),
-                line_number=line_number,
-                body=body_section[:500]  # First 500 chars for analysis
-            )
-
-    # Also check roadmap directory
-    roadmap_dir = spec_dir / "roadmap"
-    if roadmap_dir.exists():
-        for md_file in roadmap_dir.glob("*.md"):
-            content = md_file.read_text()
-            pattern = r'^# REQ-(p\d{5}):\s*(.+?)$'
-
-            for match in re.finditer(pattern, content, re.MULTILINE):
-                req_id = match.group(1)
-                if req_id not in requirements:
-                    title = match.group(2).strip()
-                    line_number = content[:match.start()].count('\n') + 1
-
-                    # Find implements
-                    impl_pattern = r'\*\*Implements\*\*:\s*([^\n|]+)'
-                    pos = match.end()
-                    next_req = content.find("# REQ-", pos)
-                    if next_req == -1:
-                        next_req = len(content)
-
-                    body_section = content[pos:next_req]
-                    impl_match = re.search(impl_pattern, body_section)
-
-                    implements = []
-                    if impl_match:
-                        impl_text = impl_match.group(1).strip()
-                        if impl_text and impl_text != "-":
-                            impl_ids = re.findall(r'p\d{5}', impl_text)
-                            implements = impl_ids
-
-                    requirements[req_id] = Requirement(
-                        id=req_id,
-                        title=title,
-                        implements=implements,
-                        file_path=f"roadmap/{md_file.name}",
-                        line_number=line_number,
-                        body=body_section[:500]
-                    )
-
-    return requirements
+        json_str = output[json_start:]
+        return json.loads(json_str)
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"Error: Failed to get requirements via elspais: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
-def classify_requirement(req: Requirement) -> Tuple[str, str, float]:
+def normalize_req_id(req_id: str) -> str:
+    """Normalize requirement ID (remove REQ- prefix if present)."""
+    if req_id.upper().startswith('REQ-'):
+        return req_id[4:].lower()
+    return req_id.lower()
+
+
+def is_orphaned(req: Dict) -> bool:
+    """Check if a requirement is orphaned (no implements or implements nothing)."""
+    implements = req.get('implements', [])
+    if not implements:
+        return True
+    # Check for placeholder values
+    if len(implements) == 1 and implements[0] in ('-', 'null', 'none', 'N/A'):
+        return True
+    return False
+
+
+def classify_requirement(req_id: str, req: Dict) -> Tuple[str, str, float]:
     """Classify a requirement into a domain category.
 
     Returns: (category_name, suggested_parent, confidence)
     """
     scores = defaultdict(float)
 
+    file_path = req.get('file', '').lower()
+    title = req.get('title', '')
+    body = req.get('body', '')[:500]  # First 500 chars for analysis
+
     # Check file patterns first (high confidence)
     for cat, info in DOMAIN_CATEGORIES.items():
         for pattern in info["file_patterns"]:
-            if pattern in req.file_path.lower():
+            if pattern in file_path:
                 scores[cat] += 5.0
 
     # Check keywords in title and body
-    text = (req.title + " " + req.body).lower()
+    text = (title + " " + body).lower()
     for cat, info in DOMAIN_CATEGORIES.items():
         for keyword in info["keywords"]:
             if keyword.lower() in text:
@@ -231,50 +172,57 @@ def classify_requirement(req: Requirement) -> Tuple[str, str, float]:
     return (best_cat, DOMAIN_CATEGORIES[best_cat]["parent"], scores[best_cat])
 
 
-def analyze_hierarchy(requirements: Dict[str, Requirement]) -> List[Dict]:
+def analyze_hierarchy(requirements: Dict[str, Dict]) -> List[Dict]:
     """Analyze requirements and propose hierarchy changes."""
     proposals = []
 
-    for req_id, req in sorted(requirements.items()):
-        # Skip non-orphaned requirements for now (unless they have wrong parent)
+    for full_req_id, req in sorted(requirements.items()):
+        # Only analyze PRD requirements
+        req_id = normalize_req_id(full_req_id)
+        if not req_id.startswith('p'):
+            continue
+
+        current_implements = req.get('implements', [])
+
+        # Check against known hierarchy structure
         if req_id in HIERARCHY_STRUCTURE:
             expected = HIERARCHY_STRUCTURE[req_id]
-            if expected["implements"] is None and req.implements:
+            if expected["implements"] is None and current_implements:
                 proposals.append({
-                    "req_id": req_id,
-                    "title": req.title,
-                    "file": req.file_path,
-                    "line": req.line_number,
-                    "current_implements": req.implements,
-                    "proposed_implements": None,
+                    "req_id": full_req_id,
+                    "title": req.get('title', ''),
+                    "file": req.get('file', ''),
+                    "line": req.get('line', 0),
+                    "current_implements": current_implements,
+                    "proposed_implements": "",  # Empty string clears implements
                     "reason": "Should be top-level (Level 1)",
                     "confidence": "HIGH",
                     "action": "REMOVE_IMPLEMENTS"
                 })
-            elif expected["implements"] and req.implements != expected["implements"]:
+            elif expected["implements"] and current_implements != expected["implements"]:
                 proposals.append({
-                    "req_id": req_id,
-                    "title": req.title,
-                    "file": req.file_path,
-                    "line": req.line_number,
-                    "current_implements": req.implements,
-                    "proposed_implements": expected["implements"],
+                    "req_id": full_req_id,
+                    "title": req.get('title', ''),
+                    "file": req.get('file', ''),
+                    "line": req.get('line', 0),
+                    "current_implements": current_implements,
+                    "proposed_implements": ",".join(expected["implements"]),
                     "reason": f"Level 2 component should implement {expected['implements']}",
                     "confidence": "HIGH",
                     "action": "UPDATE_IMPLEMENTS"
                 })
-        elif req.is_orphaned:
+        elif is_orphaned(req):
             # Classify and propose parent
-            category, parent, confidence = classify_requirement(req)
+            category, parent, confidence = classify_requirement(req_id, req)
             conf_level = "HIGH" if confidence > 3 else "MEDIUM" if confidence > 1 else "LOW"
 
             proposals.append({
-                "req_id": req_id,
-                "title": req.title,
-                "file": req.file_path,
-                "line": req.line_number,
-                "current_implements": req.implements if req.implements else None,
-                "proposed_implements": [parent],
+                "req_id": full_req_id,
+                "title": req.get('title', ''),
+                "file": req.get('file', ''),
+                "line": req.get('line', 0),
+                "current_implements": current_implements if current_implements else None,
+                "proposed_implements": parent,
                 "reason": f"Classified as {category} domain",
                 "confidence": conf_level,
                 "action": "ADD_IMPLEMENTS"
@@ -283,12 +231,15 @@ def analyze_hierarchy(requirements: Dict[str, Requirement]) -> List[Dict]:
     return proposals
 
 
-def generate_report(requirements: Dict[str, Requirement], proposals: List[Dict]) -> str:
+def generate_report(requirements: Dict[str, Dict], proposals: List[Dict]) -> str:
     """Generate a markdown report of the analysis."""
+    # Count PRD requirements
+    prd_count = sum(1 for rid in requirements if normalize_req_id(rid).startswith('p'))
+
     lines = [
         "# PRD Requirements Hierarchy Analysis Report",
         "",
-        f"**Total PRD Requirements**: {len(requirements)}",
+        f"**Total PRD Requirements**: {prd_count}",
         f"**Proposed Changes**: {len(proposals)}",
         "",
         "## Summary by Action",
@@ -312,8 +263,9 @@ def generate_report(requirements: Dict[str, Requirement], proposals: List[Dict])
 
     for p in proposals:
         current = ", ".join(p["current_implements"]) if p["current_implements"] else "-"
-        proposed = ", ".join(p["proposed_implements"]) if p["proposed_implements"] else "-"
-        lines.append(f"| {p['req_id']} | {p['title'][:40]}... | {current} | {proposed} | {p['confidence']} | {p['reason']} |")
+        proposed = p["proposed_implements"] if p["proposed_implements"] else "-"
+        title = p["title"][:40] + "..." if len(p["title"]) > 40 else p["title"]
+        lines.append(f"| {p['req_id']} | {title} | {current} | {proposed} | {p['confidence']} | {p['reason']} |")
 
     lines.extend([
         "",
@@ -337,82 +289,93 @@ def generate_report(requirements: Dict[str, Requirement], proposals: List[Dict])
     return "\n".join(lines)
 
 
-def generate_edit_commands(proposals: List[Dict], spec_dir: Path) -> List[Dict]:
-    """Generate edit commands for updating requirements."""
+def generate_elspais_edits(proposals: List[Dict]) -> List[Dict]:
+    """Generate edit commands compatible with elspais edit --from-json."""
     edits = []
 
     for p in proposals:
-        file_path = spec_dir / p["file"]
-
-        # Read the file to find the exact line to edit
-        if not file_path.exists():
-            continue
-
-        content = file_path.read_text()
-        lines = content.split("\n")
-
-        # Find the implements line near the requirement
-        req_line = p["line"] - 1  # 0-indexed
-
-        # Search within next 5 lines for **Implements**
-        for i in range(req_line, min(req_line + 6, len(lines))):
-            if "**Implements**" in lines[i]:
-                old_line = lines[i]
-
-                if p["proposed_implements"] is None:
-                    new_impl = "-"
-                else:
-                    new_impl = ", ".join(p["proposed_implements"])
-
-                # Replace the implements value
-                new_line = re.sub(
-                    r'(\*\*Implements\*\*:\s*)[^\n|]+',
-                    f'\\1{new_impl}',
-                    old_line
-                )
-
-                edits.append({
-                    "file": str(file_path),
-                    "line": i + 1,
-                    "old": old_line,
-                    "new": new_line,
-                    "req_id": p["req_id"]
-                })
-                break
+        edit = {
+            "req_id": p["req_id"],
+            "implements": p["proposed_implements"]
+        }
+        edits.append(edit)
 
     return edits
 
 
 def main():
-    import sys
+    print("Fetching requirements via elspais...", file=sys.stderr)
+    requirements = get_requirements_via_cli()
+    prd_count = sum(1 for rid in requirements if normalize_req_id(rid).startswith('p'))
+    print(f"Found {prd_count} PRD requirements", file=sys.stderr)
 
-    spec_dir = Path(__file__).parent.parent.parent / "spec"
-
-    print(f"Parsing requirements from {spec_dir}...")
-    requirements = parse_requirements(spec_dir)
-    print(f"Found {len(requirements)} PRD requirements")
-
-    print("\nAnalyzing hierarchy...")
+    print("\nAnalyzing hierarchy...", file=sys.stderr)
     proposals = analyze_hierarchy(requirements)
-    print(f"Generated {len(proposals)} proposed changes")
+    print(f"Generated {len(proposals)} proposed changes", file=sys.stderr)
 
-    # Generate report
-    report = generate_report(requirements, proposals)
-
-    # Output to stdout or file
+    # Output based on arguments
     if len(sys.argv) > 1:
         if sys.argv[1] == "--report":
-            print(report)
+            print(generate_report(requirements, proposals))
         elif sys.argv[1] == "--json":
             print(json.dumps(proposals, indent=2))
-        elif sys.argv[1] == "--edits":
-            edits = generate_edit_commands(proposals, spec_dir)
+        elif sys.argv[1] == "--elspais":
+            # Output format for: elspais edit --from-json
+            edits = generate_elspais_edits(proposals)
             print(json.dumps(edits, indent=2))
+        elif sys.argv[1] == "--apply":
+            # Apply changes via elspais edit
+            edits = generate_elspais_edits(proposals)
+            if not edits:
+                print("No changes to apply")
+                return
+
+            # Write to temp file and apply
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(edits, f)
+                temp_path = f.name
+
+            print(f"Applying {len(edits)} changes via elspais edit...")
+            result = subprocess.run(
+                ['elspais', 'edit', '--from-json', temp_path],
+                capture_output=False
+            )
+            Path(temp_path).unlink()
+            sys.exit(result.returncode)
+        elif sys.argv[1] == "--dry-run":
+            # Dry run via elspais edit
+            edits = generate_elspais_edits(proposals)
+            if not edits:
+                print("No changes to apply")
+                return
+
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(edits, f)
+                temp_path = f.name
+
+            print(f"Dry run: {len(edits)} changes")
+            result = subprocess.run(
+                ['elspais', 'edit', '--from-json', temp_path, '--dry-run'],
+                capture_output=False
+            )
+            Path(temp_path).unlink()
+            sys.exit(result.returncode)
+        else:
+            print(f"Unknown option: {sys.argv[1]}", file=sys.stderr)
+            print_usage()
     else:
-        print("\nUsage:")
-        print("  --report   Generate markdown report")
-        print("  --json     Output proposals as JSON")
-        print("  --edits    Generate edit commands as JSON")
+        print_usage()
+
+
+def print_usage():
+    print("\nUsage:")
+    print("  --report    Generate markdown report")
+    print("  --json      Output proposals as JSON (internal format)")
+    print("  --elspais   Output proposals for elspais edit --from-json")
+    print("  --apply     Apply changes via elspais edit")
+    print("  --dry-run   Preview changes without applying")
 
 
 if __name__ == "__main__":

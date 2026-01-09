@@ -1,0 +1,1712 @@
+/**
+ * TraceView Interactive Traceability Matrix Styles
+ *
+ * This stylesheet contains all CSS for the trace-view HTML report.
+ * Organized by component for maintainability.
+ *
+ * IMPLEMENTS REQUIREMENTS:
+ *   REQ-tv-d00002: CSS Extraction
+ */
+
+/* ==========================================================================
+   Base Layout
+   ========================================================================== */
+
+body {
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+    background: #f8f9fa;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    min-width: 0;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 8px;
+    margin: 0 0 15px 0;
+}
+
+h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #34495e;
+    margin: 20px 0 10px 0;
+}
+
+/* ==========================================================================
+   Title Bar
+   ========================================================================== */
+
+.title-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 0;
+    border-bottom: 2px solid #0066cc;
+    margin-bottom: 10px;
+}
+
+.title-bar h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.version-badge {
+    font-size: 10px;
+    color: #6c757d;
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+.stats-badges {
+    display: flex;
+    gap: 10px;
+    margin-right: auto;
+}
+
+.stat-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+}
+
+.stat-badge.prd { background: #0066cc; }
+.stat-badge.ops { background: #fd7e14; }
+.stat-badge.dev { background: #28a745; }
+
+/* Clickable stat badges */
+.stat-badge {
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s;
+}
+
+.stat-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.stat-badge.active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: scale(0.98);
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 3px;
+    background: #0066cc;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.btn:hover {
+    background: #0052a3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-secondary.active {
+    background: #0066cc;
+}
+
+.btn-secondary.active:hover {
+    background: #0052a3;
+}
+
+.btn-legend {
+    background: #6c757d;
+    font-size: 12px;
+}
+
+.btn-legend:hover {
+    background: #5a6268;
+}
+
+/* Toggle buttons */
+.toggle-btn {
+    background: white;
+    color: #495057;
+    border: 1px solid #28a745;
+}
+
+.toggle-btn:hover {
+    background: #e8f5e9;
+}
+
+.toggle-btn.active {
+    background: #28a745;
+    color: white;
+    border: 1px solid #28a745;
+}
+
+/* Edit Mode button - blue theme */
+#btnEditMode {
+    border: 1px solid #007bff;
+}
+
+#btnEditMode:hover {
+    background: #e3f2fd;
+}
+
+#btnEditMode.active {
+    background: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+}
+
+/* ==========================================================================
+   Controls & Filters
+   ========================================================================== */
+
+.controls {
+    margin: 15px 0;
+    padding: 10px;
+    background: #e9ecef;
+    border-radius: 4px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.filter-controls {
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-stats {
+    margin-left: auto;
+    font-size: 11px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #495057;
+    cursor: pointer;
+    padding: 6px 10px;
+    background: #e9ecef;
+    border-radius: 3px;
+}
+
+.checkbox-label:hover {
+    background: #dee2e6;
+}
+
+.checkbox-label input {
+    cursor: pointer;
+}
+
+/* View Toggle */
+.view-toggle {
+    display: flex;
+    gap: 0;
+    margin-right: 15px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.view-btn {
+    border-radius: 0;
+    border: 1px solid #0066cc;
+    background: white;
+    color: #0066cc;
+}
+
+.view-btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.view-btn:last-child {
+    border-radius: 0 4px 4px 0;
+    border-left: none;
+}
+
+.view-btn.active {
+    background: #0066cc;
+    color: white;
+}
+
+.view-btn:hover:not(.active) {
+    background: #e6f0ff;
+}
+
+/* Filter Header */
+.filter-header {
+    display: grid;
+    grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 180px 110px;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px 8px 42px;
+    background: #e9ecef;
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-width: 700px;
+}
+
+.filter-column {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-column-multi .filter-row {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-column-multi .filter-row select {
+    flex: 1;
+    min-width: 0;
+}
+
+.filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-column input, .filter-column select {
+    padding: 3px 6px;
+    border: 1px solid #ced4da;
+    border-radius: 2px;
+    font-size: 11px;
+    background: white;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.filter-column input::placeholder {
+    color: #adb5bd;
+    font-size: 10px;
+}
+
+/* ==========================================================================
+   Requirement Tree
+   ========================================================================== */
+
+.req-tree {
+    margin: 15px 0;
+    overflow-x: auto;
+}
+
+.req-item {
+    margin: 2px 0;
+    background: #ffffff;
+    border-left: 3px solid #28a745;
+    overflow: hidden;
+}
+
+.req-item.prd { border-left-color: #0066cc; }
+.req-item.ops { border-left-color: #fd7e14; }
+.req-item.dev { border-left-color: #28a745; }
+.req-item.deprecated { opacity: 0.6; }
+
+.req-header-container {
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.req-header-container:hover {
+    background: #f8f9fa;
+}
+
+/* Indentation based on hierarchy level */
+.req-item[data-indent="0"] .req-header-container { padding-left: 10px; }
+.req-item[data-indent="1"] .req-header-container { padding-left: 30px; }
+.req-item[data-indent="2"] .req-header-container { padding-left: 50px; }
+.req-item[data-indent="3"] .req-header-container { padding-left: 70px; }
+.req-item[data-indent="4"] .req-header-container { padding-left: 90px; }
+.req-item[data-indent="5"] .req-header-container { padding-left: 110px; }
+.req-item[data-indent="6"] .req-header-container,
+.req-item[data-indent="7"] .req-header-container,
+.req-item[data-indent="8"] .req-header-container,
+.req-item[data-indent="9"] .req-header-container { padding-left: 110px; }
+
+.collapse-icon {
+    font-size: 10px;
+    color: #6c757d;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    width: 12px;
+    text-align: center;
+}
+
+.collapse-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.req-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 110px minmax(100px, 1fr) 45px 90px 35px 50px 180px 110px;
+    align-items: center;
+    gap: 6px;
+    min-width: 700px;
+}
+
+.req-id {
+    font-weight: 600;
+    color: #0066cc;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.req-header {
+    font-weight: 500;
+    color: #2c3e50;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.req-level {
+    font-size: 11px;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.req-badges {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.req-status {
+    font-size: 11px;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.req-location {
+    font-size: 11px;
+    color: #7f8c8d;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.req-coverage {
+    min-width: 30px;
+    max-width: 40px;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Implementation files */
+.req-item.impl-file {
+    border-left: 3px solid #6c757d;
+    background: #f8f9fa;
+}
+
+.req-item.impl-file .req-header-container {
+    cursor: default;
+}
+
+.req-item.impl-file .req-header-container:hover {
+    background: #f0f0f0;
+}
+
+/* Collapsed items */
+.req-item.collapsed-by-parent {
+    display: none;
+}
+
+/* View modes */
+.req-tree.flat-view .req-item .req-header-container {
+    padding-left: 10px !important;
+}
+
+.req-tree.hierarchy-view .req-item:not([data-is-root="true"]) {
+    display: none;
+}
+
+.req-tree.hierarchy-view .req-item[data-is-root="true"] {
+    display: block;
+}
+
+.req-tree.hierarchy-view .req-item.hierarchy-visible {
+    display: block;
+}
+
+.req-tree.hierarchy-view .req-item.hierarchy-visible.collapsed-by-parent {
+    display: none;
+}
+
+.req-item.filtered-out {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Status Badges
+   ========================================================================== */
+
+.status-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.status-active { background: #d4edda; color: #155724; }
+.status-draft { background: #fff3cd; color: #856404; }
+.status-deprecated { background: #f8d7da; color: #721c24; }
+
+.status-suffix {
+    font-weight: bold;
+    font-size: 12px;
+    margin-left: 1px;
+    cursor: help;
+}
+
+.status-new { color: #28a745; }
+.status-modified { color: #fd7e14; }
+.status-moved { color: #6f42c1; }
+.status-moved-modified { color: #6f42c1; }
+.status-pending-move { color: #007bff; }
+
+/* Test badges */
+.test-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.test-passed { background: #d4edda; color: #155724; }
+.test-failed { background: #f8d7da; color: #721c24; }
+.test-not-tested { background: #fff3cd; color: #856404; }
+.test-error { background: #f5c2c7; color: #842029; }
+.test-skipped { background: #e2e3e5; color: #41464b; }
+
+.coverage-badge {
+    display: inline-block;
+    font-size: 14px;
+    cursor: help;
+}
+
+/* ==========================================================================
+   Issue Indicators
+   ========================================================================== */
+
+.roadmap-icon {
+    margin-left: 4px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.conflict-icon {
+    margin-right: 4px;
+    font-size: 14px;
+    color: #dc3545;
+}
+
+.conflict-item {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-left: 3px solid #dc3545 !important;
+}
+
+.conflict-item:hover {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+}
+
+.cycle-icon {
+    margin-right: 4px;
+    font-size: 14px;
+    color: #fd7e14;
+}
+
+.cycle-item {
+    background-color: rgba(253, 126, 20, 0.1) !important;
+    border-left: 3px solid #fd7e14 !important;
+}
+
+.cycle-item:hover {
+    background-color: rgba(253, 126, 20, 0.15) !important;
+}
+
+/* ==========================================================================
+   Edit Mode
+   ========================================================================== */
+
+.edit-mode-panel {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.edit-mode-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.edit-mode-title {
+    font-size: 14px;
+}
+
+.edit-mode-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.pending-moves-list {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.pending-move-item {
+    padding: 5px 10px;
+    background: white;
+    border-radius: 3px;
+    margin: 3px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.edit-actions {
+    display: none;
+}
+
+body.edit-mode-active .edit-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.edit-btn {
+    padding: 2px 6px;
+    font-size: 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: white;
+    white-space: nowrap;
+}
+
+.edit-btn:hover {
+    background: #e9ecef;
+}
+
+.edit-btn.to-roadmap {
+    border-color: #fd7e14;
+    color: #fd7e14;
+}
+
+.edit-btn.from-roadmap {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.edit-btn.move-file {
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.edit-mode-column {
+    display: none;
+}
+
+body.edit-mode-active .edit-mode-column {
+    display: block;
+}
+
+.req-destination {
+    min-width: 100px;
+    max-width: 150px;
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+.req-destination:not(:empty) {
+    background: #e8f4fd;
+    border-radius: 4px;
+    color: #0366d6;
+    font-weight: 500;
+}
+
+.req-destination.to-roadmap {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.req-destination.from-roadmap {
+    background: #d4edda;
+    color: #155724;
+}
+
+.dest-text {
+    font-size: 11px;
+    color: #666;
+    white-space: nowrap;
+}
+
+/* Panel/card edit buttons */
+.req-card-actions {
+    display: flex !important;
+    flex-direction: row;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.panel-edit-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+/* ==========================================================================
+   VS Code Link
+   ========================================================================== */
+
+.vscode-link {
+    font-size: 16px;
+    color: #007acc;
+    text-decoration: none;
+    margin-left: 6px;
+}
+
+.vscode-link:hover {
+    color: #005a9e;
+}
+
+/* ==========================================================================
+   Legend
+   ========================================================================== */
+
+.level-legend {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+}
+
+.legend-color.prd { background: #0066cc; }
+.legend-color.ops { background: #fd7e14; }
+.legend-color.dev { background: #28a745; }
+
+/* ==========================================================================
+   Side Panel (REQ-tv-d00002-B: _generate_side_panel_css)
+   ========================================================================== */
+
+.side-panel {
+    width: 400px;
+    min-width: 250px;
+    max-width: 70vw;
+    height: 100vh;
+    background: white;
+    border-left: 2px solid #dee2e6;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.side-panel.hidden {
+    display: none;
+}
+
+.resize-handle {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 10;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+    background: rgba(0, 102, 204, 0.3);
+}
+
+.panel-header {
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.panel-header button {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: none;
+    background: #dc3545;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.panel-header button:hover {
+    background: #c82333;
+}
+
+#req-card-stack {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.req-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.req-card-header {
+    background: #e9ecef;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.req-card-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: #2c3e50;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    line-height: 20px;
+}
+
+.close-btn:hover {
+    color: #dc3545;
+}
+
+.req-card-body {
+    padding: 12px;
+}
+
+.req-card-meta {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.req-card-meta .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #0066cc;
+    color: white;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.req-card-meta .file-ref {
+    font-size: 10px;
+    color: #6c757d;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.file-ref-link {
+    font-size: 10px;
+    color: #0066cc;
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-decoration: none;
+}
+
+.file-ref-link:hover {
+    text-decoration: underline;
+}
+
+.req-card-implements {
+    font-size: 11px;
+    color: #6c757d;
+    margin-bottom: 10px;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border-radius: 3px;
+}
+
+.req-card-implements .implements-link {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.req-card-implements .implements-link:hover {
+    text-decoration: underline;
+}
+
+.req-card-content {
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.req-body {
+    margin-bottom: 10px;
+}
+
+.req-rationale {
+    padding: 8px;
+    background: #fff3cd;
+    border-left: 3px solid #ffc107;
+    font-size: 12px;
+}
+
+/* ==========================================================================
+   Line-numbered content (REQ panel)
+   ========================================================================== */
+
+.rs-lined-content {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.rs-section-label {
+    margin: 0 0 8px 0;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.req-body-section {
+    margin-bottom: 16px;
+}
+
+.req-rationale-section {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+}
+
+/* Table-based layout for line numbers */
+.rs-lines-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #fafafa;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.rs-line-row {
+    display: table-row;
+}
+
+.rs-line-row:hover {
+    background: rgba(0, 102, 204, 0.05);
+}
+
+.rs-line-number {
+    display: table-cell;
+    padding: 2px 8px 2px 6px;
+    text-align: right;
+    color: #999;
+    background: #e9ecef;
+    border-right: 1px solid #ddd;
+    user-select: none;
+    vertical-align: top;
+    min-width: 32px;
+    width: 32px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+}
+
+.rs-line-text {
+    display: table-cell;
+    padding: 2px 10px;
+    vertical-align: top;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+/* Markdown formatting within line text */
+.rs-line-text strong {
+    font-weight: 700;
+}
+
+.rs-line-text em {
+    font-style: italic;
+}
+
+.rs-line-text code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+}
+
+.rs-line-text .md-heading {
+    font-weight: 700;
+    color: #333;
+}
+
+.rs-line-text .md-h1 { font-size: 1.3em; }
+.rs-line-text .md-h2 { font-size: 1.2em; }
+.rs-line-text .md-h3 { font-size: 1.1em; }
+.rs-line-text .md-h4,
+.rs-line-text .md-h5,
+.rs-line-text .md-h6 { font-size: 1em; }
+
+.rs-line-text .md-list-item {
+    display: inline-block;
+    width: 100%;
+    padding-left: 2em;
+    text-indent: -2em;
+    box-sizing: border-box;
+    vertical-align: top;
+    white-space: normal;
+}
+
+/* Markdown content styling */
+.markdown-body p {
+    margin: 0 0 10px 0;
+}
+
+.markdown-body ul, .markdown-body ol {
+    margin: 0 0 10px 0;
+    padding-left: 20px;
+}
+
+.markdown-body li {
+    margin: 4px 0;
+}
+
+.markdown-body code {
+    background: #f4f4f4;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+}
+
+.markdown-body pre {
+    background: #2d2d2d;
+    color: #ccc;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+
+.markdown-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.markdown-body strong {
+    font-weight: 600;
+}
+
+.markdown-body em {
+    font-style: italic;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+    margin: 15px 0 10px 0;
+    font-weight: 600;
+}
+
+.markdown-body h1 { font-size: 18px; }
+.markdown-body h2 { font-size: 16px; }
+.markdown-body h3 { font-size: 14px; }
+
+.markdown-body blockquote {
+    margin: 10px 0;
+    padding: 8px 12px;
+    border-left: 3px solid #dee2e6;
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.markdown-body a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+
+.markdown-body table {
+    border-collapse: collapse;
+    margin: 10px 0;
+    width: 100%;
+}
+
+.markdown-body th, .markdown-body td {
+    border: 1px solid #dee2e6;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+.markdown-body th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Code Viewer Modal (REQ-tv-d00002-B: _generate_code_viewer_css)
+   ========================================================================== */
+
+.code-viewer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.code-viewer-modal.hidden {
+    display: none;
+}
+
+.code-viewer-container {
+    width: 85%;
+    height: 85%;
+    background: #1e1e1e;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.code-viewer-header {
+    background: #333;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.code-viewer-title {
+    color: #e0e0e0;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+}
+
+.code-viewer-line {
+    color: #888;
+    font-size: 12px;
+    margin-left: 15px;
+}
+
+.code-viewer-close {
+    background: #dc3545;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.code-viewer-close:hover {
+    background: #c82333;
+}
+
+.code-viewer-body {
+    flex: 1;
+    overflow: auto;
+    background: #1e1e1e;
+}
+
+.code-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.code-table tr {
+    background: #1e1e1e;
+}
+
+.code-table tr.highlighted-line {
+    background: #3a3a00 !important;
+}
+
+.code-table tr.highlighted-line .line-num {
+    background: #5a5a00;
+    color: #fff;
+}
+
+.line-num {
+    text-align: right;
+    padding: 0 12px;
+    color: #606060;
+    background: #252526;
+    user-select: none;
+    min-width: 50px;
+    border-right: 1px solid #333;
+    vertical-align: top;
+}
+
+.line-code {
+    padding: 0 16px;
+    white-space: pre;
+    color: #d4d4d4;
+}
+
+.line-code pre {
+    margin: 0;
+    padding: 0;
+}
+
+.line-code code {
+    font-family: inherit;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.code-viewer-body .loading {
+    color: #888;
+    padding: 20px;
+    text-align: center;
+}
+
+.code-viewer-body .error {
+    color: #ff6b6b;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Markdown rendering in code viewer */
+.code-viewer-body.markdown-mode {
+    background: #ffffff;
+}
+
+.markdown-viewer {
+    padding: 20px 30px;
+    color: #333;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.markdown-viewer h1 {
+    font-size: 24px;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 8px;
+    margin-top: 30px;
+}
+
+.markdown-viewer h2 {
+    font-size: 20px;
+    margin-top: 25px;
+    color: #2c3e50;
+}
+
+.markdown-viewer h3 {
+    font-size: 16px;
+    margin-top: 20px;
+    color: #34495e;
+}
+
+.markdown-viewer p {
+    margin: 12px 0;
+    line-height: 1.7;
+}
+
+.markdown-viewer ul, .markdown-viewer ol {
+    margin: 12px 0;
+    padding-left: 25px;
+}
+
+.markdown-viewer li {
+    margin: 6px 0;
+    line-height: 1.6;
+}
+
+.markdown-viewer code {
+    background: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+}
+
+.markdown-viewer pre {
+    background: #2d2d2d;
+    color: #ccc;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 15px 0;
+}
+
+.markdown-viewer pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.markdown-viewer blockquote {
+    margin: 15px 0;
+    padding: 10px 15px;
+    border-left: 4px solid #0066cc;
+    background: #f8f9fa;
+    color: #555;
+}
+
+.markdown-viewer table {
+    border-collapse: collapse;
+    margin: 15px 0;
+    width: 100%;
+}
+
+.markdown-viewer th, .markdown-viewer td {
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.markdown-viewer th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.markdown-viewer strong {
+    font-weight: 600;
+}
+
+.markdown-viewer a {
+    color: #0066cc;
+}
+
+.markdown-viewer hr {
+    border: none;
+    border-top: 1px solid #dee2e6;
+    margin: 20px 0;
+}
+
+.markdown-viewer .highlight-target {
+    background: #fff3cd;
+    animation: highlight-fade 2s ease-out;
+}
+
+@keyframes highlight-fade {
+    0% { background: #fff3cd; }
+    100% { background: transparent; }
+}
+
+/* ==========================================================================
+   Legend Modal (REQ-tv-d00002-B: _generate_legend_modal_css)
+   ========================================================================== */
+
+.legend-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.legend-modal.hidden {
+    display: none;
+}
+
+.legend-modal-container {
+    background: white;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.legend-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.legend-modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.legend-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0 5px;
+}
+
+.legend-modal-close:hover {
+    color: #000;
+}
+
+.legend-modal-body {
+    padding: 20px;
+}
+
+.legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.legend-section h3 {
+    font-size: 13px;
+    margin: 0 0 10px 0;
+    color: #495057;
+}
+
+.legend-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+}
+
+.legend-section li {
+    margin: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ==========================================================================
+   File Picker Modal (REQ-tv-d00002-B: _generate_file_picker_modal_css)
+   ========================================================================== */
+
+.file-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-picker-modal.hidden {
+    display: none;
+}
+
+.file-picker-container {
+    background: white;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.file-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.file-picker-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.file-picker-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0 5px;
+}
+
+.file-picker-close:hover {
+    color: #333;
+}
+
+.file-picker-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.file-picker-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.file-picker-input-row input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.file-picker-input-row input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.file-picker-error {
+    color: #dc3545;
+    font-size: 12px;
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    background: #fff5f5;
+    border-radius: 3px;
+}
+
+.file-picker-hint {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.file-picker-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.file-picker-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+}
+
+.file-picker-item:last-child {
+    border-bottom: none;
+}
+
+.file-picker-item:hover {
+    background: #e3f2fd;
+}
+
+.file-picker-empty {
+    padding: 15px;
+    color: #666;
+    text-align: center;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    max-width: 350px;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.toast-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.toast-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.toast-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* ==========================================================================
+   Moved Indicator
+   ========================================================================== */
+
+.moved-indicator {
+    display: inline-block;
+    margin-left: 4px;
+    cursor: help;
+    font-size: 12px;
+}
+
+/* Style requirement nodes that have been moved */
+.req-node.moved .req-label {
+    font-style: italic;
+}
+
+.req-node.moved::after {
+    content: ' (moved)';
+    font-size: 10px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Moved file info in Requirements panel */
+.req-card-file.file-moved {
+    color: #28a745;
+}
+
+.moved-from {
+    font-size: 11px;
+    color: #6c757d;
+    font-style: italic;
+}

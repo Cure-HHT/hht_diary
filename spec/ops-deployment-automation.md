@@ -12,99 +12,70 @@
 
 # REQ-o00043: Automated Deployment Pipeline
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00005
 
-**Specification**:
+## Rationale
 
-The system SHALL provide automated deployment pipelines that:
+This requirement establishes the automated deployment pipeline infrastructure for the clinical trial platform, ensuring controlled, traceable, and safe delivery of software changes across development, staging, and production environments. Automated deployment pipelines reduce human error, enforce consistency, and maintain comprehensive audit trails required for FDA 21 CFR Part 11 compliance. The requirement balances automation for efficiency with manual controls for safety-critical production deployments. Different environments have different approval requirements reflecting their risk profiles: development deployments can be fully automated, while production deployments require human oversight and validation. Safety controls such as deployment windows, rate limiting, and automatic rollback mechanisms protect against deployment-related incidents in production. The audit trail requirements ensure regulatory compliance by maintaining tamper-evident records of all deployment activities, approvals, and outcomes for the required retention period.
 
-1. **Trigger Conditions**:
-   - Development: Automatic on merge to `main` branch
-   - Staging: Manual approval required
-   - Production: Manual approval + smoke tests passed
+## Assertions
 
-2. **Deployment Steps**:
-   - Build validation (lint, type check, tests)
-   - Database migration execution with rollback plan
-   - Application deployment to Cloud Run
-   - Smoke test execution
-   - Automated rollback on failure
+A. The system SHALL automatically trigger deployment to the development environment on merge to the main branch.
+B. The system SHALL require manual approval before deploying to the staging environment.
+C. The system SHALL require manual approval before deploying to the production environment.
+D. The system SHALL require smoke tests to pass before deploying to the production environment.
+E. The system SHALL execute build validation including lint, type check, and tests before deployment.
+F. The system SHALL execute database migrations with a rollback plan during deployment.
+G. The system SHALL deploy the application to Cloud Run as part of the deployment process.
+H. The system SHALL execute smoke tests after deployment.
+I. The system SHALL perform automated rollback on deployment failure.
+J. The system SHALL restrict production deployments to business hours only.
+K. The system SHALL enforce a rate limit of maximum 1 production deployment per 4 hours.
+L. The system SHALL execute automated health checks post-deployment.
+M. The system SHALL log all deployments with timestamp, deployer identity, and commit SHA.
+N. The system SHALL record all approvals with approver identity.
+O. The system SHALL record deployment duration and outcome for each deployment.
+P. The system SHALL maintain deployment audit trails in compliance with FDA 21 CFR Part 11.
+Q. The system SHALL maintain deployment audit trails for a minimum of 7 years.
+R. The system SHALL complete development environment deployments within 10 minutes.
+S. The system SHALL complete staging environment deployments within 15 minutes.
+T. The system SHALL complete production environment deployments within 20 minutes.
 
-3. **Safety Controls**:
-   - Deployment windows (production: business hours only)
-   - Rate limiting (max 1 production deployment per 4 hours)
-   - Manual approval gates for production
-   - Automated health checks post-deployment
-   - Automatic rollback on failure
-
-4. **Audit Trail**:
-   - All deployments logged with timestamp, deployer, commit SHA
-   - Approval records with approver identity
-   - Deployment duration and outcome
-   - FDA 21 CFR Part 11 compliant audit trail
-
-**Validation**:
-- **IQ**: Verify workflow files exist and are syntactically correct
-- **OQ**: Verify deployments execute correctly in each environment
-- **PQ**: Verify deployment completes within SLA (dev: 10 min, staging: 15 min, production: 20 min)
-
-**Acceptance Criteria**:
-- ✅ Deployment pipeline defined in GitHub Actions
-- ✅ Manual approval gates configured for production
-- ✅ Automated rollback on failure
-- ✅ Deployment audit trail maintained for 7 years
-- ✅ Smoke tests execute post-deployment
-- ✅ Deployment windows enforced for production
-
-*End* *Automated Deployment Pipeline* | **Hash**: 96f57f47
+*End* *Automated Deployment Pipeline* | **Hash**: 0dacb8c9
 ---
 
 # REQ-o00044: Database Migration Automation
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00005
 
-**Specification**:
+## Rationale
 
-The system SHALL automate database migrations with the following capabilities:
+This requirement establishes automated database migration processes to ensure safe, traceable, and reversible schema changes in a production clinical trial environment. Automated migrations reduce human error during deployments while maintaining strict audit trails required for FDA 21 CFR Part 11 compliance. The requirement emphasizes safety through transactional execution, mandatory rollback scripts, pre-migration backups, and comprehensive logging. Performance monitoring ensures migrations complete within acceptable timeframes to minimize system downtime. Validation through IQ/OQ/PQ protocols ensures the migration framework meets operational and regulatory standards.
 
-1. **Migration Execution**:
-   - Migrations applied in order (numbered sequentially)
-   - Transactional execution (all-or-nothing)
-   - Automatic verification after execution
-   - Schema validation post-migration
+## Assertions
 
-2. **Rollback Capability**:
-   - Every migration SHALL have corresponding rollback script
-   - Rollback scripts tested before production
-   - Automatic rollback on migration failure
-   - Manual rollback command available
+A. The system SHALL apply migrations in sequential numbered order.
+B. The system SHALL execute migrations transactionally as all-or-nothing operations.
+C. The system SHALL automatically verify migration execution after completion.
+D. The system SHALL validate database schema after migration execution.
+E. Every migration SHALL have a corresponding rollback script.
+F. The system SHALL test rollback scripts before production deployment.
+G. The system SHALL automatically execute rollback on migration failure.
+H. The system SHALL provide a manual rollback command.
+I. The system SHALL provide dry-run mode for migration validation.
+J. The system SHALL create database backup before production migrations.
+K. The system SHALL implement lock timeout to prevent hanging migrations.
+L. The system SHALL alert when migration duration exceeds 5 minutes.
+M. The system SHALL log migration execution with timestamp, user, and duration.
+N. The system SHALL capture pre-migration schema snapshots.
+O. The system SHALL capture post-migration schema snapshots.
+P. The system SHALL log rollback events.
+Q. Migration audit records SHALL comply with FDA 21 CFR Part 11.
+R. The migration framework SHALL integrate Cloud SQL migrations via pgmigrate.
+S. The system SHALL require rollback scripts for all migrations.
+T. Typical migrations SHALL complete within 5 minutes.
 
-3. **Safety Checks**:
-   - Dry-run mode for validation
-   - Database backup before production migrations
-   - Lock timeout to prevent hanging migrations
-   - Migration duration alerts (>5 minutes)
-
-4. **Audit Trail**:
-   - Migration execution logged with timestamp, user, duration
-   - Pre/post-migration schema snapshots
-   - Rollback events logged
-   - FDA 21 CFR Part 11 compliant records
-
-**Validation**:
-- **IQ**: Verify migration scripts exist with corresponding rollbacks
-- **OQ**: Verify migrations execute correctly and rollback cleanly
-- **PQ**: Verify migration performance (< 5 minutes for typical migration)
-
-**Acceptance Criteria**:
-- ✅ Migration framework integrated (Cloud SQL migrations via pgmigrate)
-- ✅ Rollback scripts required for all migrations
-- ✅ Automated backup before production migrations
-- ✅ Migration audit trail maintained
-- ✅ Dry-run capability implemented
-- ✅ Alert on migration duration >5 minutes
-
-*End* *Database Migration Automation* | **Hash**: ba7cbea5
+*End* *Database Migration Automation* | **Hash**: 78684c79
 ---
 
 ## Architecture

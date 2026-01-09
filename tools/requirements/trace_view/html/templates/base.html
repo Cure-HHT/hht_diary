@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>{% block title %}Requirements Traceability Matrix{% endblock %}</title>
+
+    {# Embedded CSS from external stylesheet #}
+    <style>
+        {{ css|safe }}
+    </style>
+
+    {# Review mode CSS (if enabled) #}
+    {% if review_mode %}
+    <style>
+        {{ review_css|safe }}
+    </style>
+    {% endif %}
+
+    {# External libraries for embedded mode (code viewer, markdown) #}
+    {% if embed_content %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+    {% endif %}
+</head>
+<body class="{% if edit_mode %}edit-mode-available{% endif %}{% if review_mode %} review-mode-available{% endif %}">
+<div class="app-layout">
+    <div class="main-content">
+        <div class="container">
+            {# Title bar with stats and controls #}
+            {% block title_bar %}
+            <div class="title-bar">
+                <h1>Requirements Traceability</h1>
+                <div class="stats-badges">
+                    <span class="stat-badge prd" id="badgePRD"
+                          data-active="{{ stats.prd.active }}"
+                          data-all="{{ stats.prd.all }}"
+                          onclick="filterByLevel('PRD')"
+                          title="Click to filter by PRD">PRD: {{ stats.prd.active }}</span>
+                    <span class="stat-badge ops" id="badgeOPS"
+                          data-active="{{ stats.ops.active }}"
+                          data-all="{{ stats.ops.all }}"
+                          onclick="filterByLevel('OPS')"
+                          title="Click to filter by OPS">OPS: {{ stats.ops.active }}</span>
+                    <span class="stat-badge dev" id="badgeDEV"
+                          data-active="{{ stats.dev.active }}"
+                          data-all="{{ stats.dev.all }}"
+                          onclick="filterByLevel('DEV')"
+                          title="Click to filter by DEV">DEV: {{ stats.dev.active }}</span>
+                </div>
+                <span class="version-badge">v{{ version }}</span>
+                <button class="btn btn-legend" onclick="openLegendModal()"
+                        title="Generated: {{ timestamp }}">ℹ️ Legend</button>
+                {% if review_mode %}
+                <button class="btn mode-toggle-btn" id="btnReviewMode" onclick="toggleReviewMode()">💬 Review Mode</button>
+                {% endif %}
+            </div>
+            {% endblock %}
+
+            {# Filter and view controls #}
+            {% block filter_controls %}
+            <div class="filter-controls">
+                <div class="view-toggle">
+                    <button class="btn view-btn active" id="btnFlatView" onclick="switchView('flat')">Flat View</button>
+                    <button class="btn view-btn" id="btnHierarchyView" onclick="switchView('hierarchy')">Hierarchical View</button>
+                    <button class="btn view-btn" id="btnUncommittedView" onclick="switchView('uncommitted')">Uncommitted</button>
+                    <button class="btn view-btn" id="btnBranchView" onclick="switchView('branch')">Changed vs Main</button>
+                </div>
+                <button class="btn toggle-btn" id="btnLeafOnly" onclick="toggleLeafOnly()">🍃 Leaf Only</button>
+                <label class="checkbox-label" title="Include deprecated requirements in counts and views">
+                    <input type="checkbox" id="chkIncludeDeprecated" onchange="toggleIncludeDeprecated()">
+                    Include deprecated
+                </label>
+                <label class="checkbox-label" title="Include requirements from spec/roadmap/ directory">
+                    <input type="checkbox" id="chkIncludeRoadmap" onchange="toggleIncludeRoadmap()">
+                    Include roadmap
+                </label>
+                <button class="btn btn-secondary" id="btnExpandAll" onclick="expandAll()">▼ Expand All</button>
+                <button class="btn btn-secondary" id="btnCollapseAll" onclick="collapseAll()">▶ Collapse All</button>
+                <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+                <span class="filter-stats" id="filterStats"></span>
+                {% if edit_mode %}
+                <span style="margin-left: 20px; border-left: 1px solid #ccc; padding-left: 20px;">
+                    <button class="btn toggle-btn" id="btnEditMode" onclick="toggleEditMode()">✏️ Edit Mode</button>
+                </span>
+                {% endif %}
+            </div>
+            {% endblock %}
+
+            {# Edit mode panel (only shown in edit mode) #}
+            {% if edit_mode %}
+            {% block edit_mode_panel %}
+            <div id="editModePanel" class="edit-mode-panel" style="display: none;">
+                <div class="edit-mode-header">
+                    <div class="edit-mode-title">
+                        <strong>📝 Edit Mode</strong> - Select requirements to move
+                        <span id="pendingChangesCount" class="badge" style="margin-left: 10px;">0 pending</span>
+                    </div>
+                    <div class="edit-mode-actions">
+                        <button class="btn btn-secondary" onclick="clearPendingMoves()">Clear Selection</button>
+                        <button class="btn btn-primary" id="btnApplyMoves" onclick="applyMoves()" disabled>Apply Moves</button>
+                    </div>
+                </div>
+                <div class="pending-moves-section">
+                    <div class="pending-moves-header" onclick="togglePendingMoves()"
+                         style="cursor: pointer; user-select: none; display: flex; align-items: center; margin-bottom: 8px;">
+                        <span id="pendingMovesToggle" style="margin-right: 6px; font-size: 12px;">▼</span>
+                        <strong style="font-size: 12px;">Pending Moves</strong>
+                    </div>
+                    <div id="pendingMovesList" class="pending-moves-list"></div>
+                </div>
+            </div>
+            {% endblock %}
+            {% endif %}
+
+            {# Packages panel (only in review mode) #}
+            {% if review_mode %}
+            {% block packages_panel %}
+            <div id="rs-packages-panel" class="rs-packages-panel" style="display: none;">
+                <div class="rs-packages-header">
+                    <span class="rs-packages-title">📦 Review Packages</span>
+                    <div class="rs-packages-actions">
+                        <button class="btn btn-small" onclick="TraceView.review.packages.create()" title="Create new package">+ New</button>
+                        <button class="btn btn-small btn-secondary" onclick="TraceView.review.packages.load()" title="Load package">📂 Load</button>
+                    </div>
+                </div>
+                <div id="rs-packages-list" class="rs-packages-list">
+                    <div class="rs-no-packages">No packages loaded. Create a new package to start reviewing.</div>
+                </div>
+            </div>
+            {% endblock %}
+            {% endif %}
+
+            {# Tree title #}
+            <h2 id="treeTitle">Traceability Tree - Flat View</h2>
+
+            {# Filter header with inputs #}
+            {% block filter_header %}
+            <div class="filter-header">
+                <div class="filter-column">
+                    <div class="filter-label">REQ ID</div>
+                    <input type="text" id="filterReqId" placeholder="Filter..." oninput="applyFilters()">
+                </div>
+                <div class="filter-column">
+                    <div class="filter-label">Title</div>
+                    <input type="text" id="filterTitle" placeholder="Search title..." oninput="applyFilters()">
+                </div>
+                <div class="filter-column">
+                    <div class="filter-label">Level</div>
+                    <select id="filterLevel" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="PRD">PRD</option>
+                        <option value="OPS">OPS</option>
+                        <option value="DEV">DEV</option>
+                    </select>
+                </div>
+                <div class="filter-column">
+                    <div class="filter-label">Status</div>
+                    <select id="filterStatus" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Deprecated">Deprecated</option>
+                    </select>
+                </div>
+                <div class="filter-column">
+                    <div class="filter-label">Cov</div>
+                    <select id="filterCoverage" onchange="applyFilters()">
+                        <option value="">All</option>
+                        <option value="full">●</option>
+                        <option value="partial">◐</option>
+                        <option value="none">○</option>
+                    </select>
+                </div>
+                <div class="filter-column">
+                    <div class="filter-label">Topic</div>
+                    <select id="filterTopic" onchange="applyFilters()">
+                        <option value="">All</option>
+                        {% for topic in topics %}
+                        <option value="{{ topic }}">{{ topic }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% endblock %}
+
+            {# Main requirements tree content #}
+            {% block requirements_tree %}
+            <div class="req-tree" id="reqTree">
+                {# Requirements will be inserted here dynamically or server-side #}
+                {% block requirements_list %}
+                {{ requirements_html|safe }}
+                {% endblock %}
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    {# Side panel for requirement details (only in embedded mode) #}
+    {% if embed_content %}
+    {% block side_panel %}
+    <div id="req-panel" class="side-panel hidden" style="position: relative;">
+        <div class="resize-handle" id="resizeHandle"></div>
+        <div class="panel-header">
+            <span>Requirements</span>
+            <button onclick="closeAllCards()">Close All</button>
+        </div>
+        <div id="req-card-stack"></div>
+    </div>
+    {% endblock %}
+    {% endif %}
+
+    {# Review panel (only in review mode) #}
+    {% if review_mode %}
+    {% block review_panel %}
+    {% include 'components/review_panel.html' %}
+    {% endblock %}
+    {% endif %}
+</div>
+
+{# JSON data for embedded mode (requirement content) #}
+{% if embed_content %}
+{% block json_data %}
+<script id="req-content-data" type="application/json">
+{{ req_json_data|safe }}
+</script>
+<script>
+    // Load REQ content data into global scope
+    window.REQ_CONTENT_DATA = JSON.parse(document.getElementById('req-content-data').textContent);
+    // Repository root for VS Code links (absolute path required for vscode:// protocol)
+    // Note: VS Code links only work on the machine where this file was generated
+    window.REPO_ROOT = '{{ repo_root }}';
+</script>
+{% endblock %}
+{% endif %}
+
+{# Main JavaScript functionality #}
+{% block scripts %}
+<script>
+    {{ js|safe }}
+</script>
+{% endblock %}
+
+{# Review mode JavaScript (if enabled) #}
+{% if review_mode %}
+{% block review_scripts %}
+<script>
+    {{ review_js|safe }}
+</script>
+{% endblock %}
+{% endif %}
+
+{# Modals (file picker always included, others only in embedded mode) #}
+{% block modals %}
+{% include 'components/file_picker_modal.html' %}
+{% if embed_content %}
+{% include 'components/code_viewer_modal.html' %}
+{% include 'components/legend_modal.html' %}
+{% endif %}
+{% endblock %}
+
+</body>
+</html>

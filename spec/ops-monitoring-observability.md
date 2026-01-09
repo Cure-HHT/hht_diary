@@ -29,202 +29,146 @@ This document specifies the monitoring and observability stack for the Clinical 
 
 # REQ-o00045: Error Tracking and Monitoring
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00005
 
-**Specification**:
+## Rationale
 
-The system SHALL provide comprehensive error tracking and monitoring that:
+This requirement ensures comprehensive error tracking and monitoring for a clinical trial system operating under FDA 21 CFR Part 11 compliance. Effective error tracking is critical for maintaining system reliability, supporting regulatory audits, and protecting patient data privacy. The system must capture sufficient context to diagnose and resolve issues while simultaneously protecting personally identifiable information (PII) and patient health information (PHI) in accordance with HIPAA regulations. Error data retention periods align with FDA requirements for electronic records, balancing operational needs (hot storage) with long-term regulatory compliance (cold storage for critical errors). Real-time alerting capabilities enable rapid response to system failures that could impact clinical trial data integrity or patient safety.
 
-1. **Error Capture**:
-   - Capture all unhandled exceptions in frontend and backend
-   - Capture API errors with full request context
-   - Capture database errors with query context
-   - Group similar errors automatically
-   - Capture user actions leading to errors (breadcrumbs)
+## Assertions
 
-2. **Error Metadata**:
-   - Timestamp (UTC)
-   - User ID (if authenticated, anonymized)
-   - Session ID
-   - Device information (OS, browser, version)
-   - Application version
-   - Environment (dev/staging/production)
-   - Stack trace with source mapping
+A. The system SHALL capture all unhandled exceptions in frontend and backend components.
+B. The system SHALL capture API errors with full request context.
+C. The system SHALL capture database errors with query context.
+D. The system SHALL automatically group similar errors.
+E. The system SHALL capture user actions leading to errors as breadcrumbs.
+F. Error records SHALL include timestamp in UTC format.
+G. Error records SHALL include anonymized user ID when the user is authenticated.
+H. Error records SHALL include session ID.
+I. Error records SHALL include device information including OS, browser, and version.
+J. Error records SHALL include application version.
+K. Error records SHALL include environment identifier (dev/staging/production).
+L. Error records SHALL include stack trace with source mapping.
+M. The system SHALL provide real-time alerts for critical errors.
+N. The system SHALL escalate alerts after repeated failures.
+O. The system SHALL group alerts to prevent notification fatigue.
+P. The system SHALL support configurable alert channels including email, Slack, and PagerDuty.
+Q. The system SHALL scrub PII from error messages.
+R. The system SHALL redact sensitive data including passwords and tokens from error context.
+S. The system SHALL NOT include patient data in error context.
+T. The system SHALL handle error data in compliance with HIPAA requirements.
+U. The system SHALL retain error data in hot storage for 90 days.
+V. The system SHALL archive critical errors in cold storage for 7 years.
+W. Error data retention SHALL comply with FDA audit trail requirements.
+X. Cloud Error Reporting SHALL be enabled for all services.
+Y. Error tracking SHALL be configured for all environments including dev, staging, and production.
+Z. Error capture latency SHALL be less than 5 seconds.
 
-3. **Alerting**:
-   - Real-time alerts for critical errors
-   - Alert escalation after repeated failures
-   - Alert grouping to prevent notification fatigue
-   - Configurable alert channels (email, Slack, PagerDuty)
-
-4. **Privacy Compliance**:
-   - PII scrubbing from error messages
-   - Sensitive data redaction (passwords, tokens)
-   - Patient data exclusion from error context
-   - HIPAA-compliant data handling
-
-5. **Retention**:
-   - Error data retained for 90 days (hot storage)
-   - Critical errors archived for 7 years (cold storage)
-   - FDA audit trail compliance
-
-**Validation**:
-- **IQ**: Verify Cloud Error Reporting configured correctly
-- **OQ**: Verify errors captured and grouped correctly
-- **PQ**: Verify error capture latency <5 seconds
-
-**Acceptance Criteria**:
-- ✅ Cloud Error Reporting enabled for all services
-- ✅ All environments configured (dev/staging/production)
-- ✅ PII scrubbing enabled
-- ✅ Alerts configured for critical errors
-- ✅ Error retention meets FDA requirements
-
-*End* *Error Tracking and Monitoring* | **Hash**: 2f30130f
+*End* *Error Tracking and Monitoring* | **Hash**: 0b3b3002
 ---
 
 # REQ-o00046: Uptime Monitoring
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00005
 
-**Specification**:
+## Rationale
 
-The system SHALL provide uptime monitoring that:
+This requirement ensures continuous availability monitoring of the clinical trial platform to meet FDA 21 CFR Part 11 compliance and regulatory expectations for system reliability. Uptime monitoring is critical for detecting service degradation, coordinating incident response, and maintaining the 99.9% uptime SLA defined in REQ-p00005. Multi-region monitoring provides geographic redundancy verification, while automated incident management ensures rapid response to service disruptions that could impact clinical data collection and trial operations.
 
-1. **Health Checks**:
-   - API endpoint availability (every 60 seconds)
-   - Database connectivity (every 60 seconds)
-   - Authentication service availability (every 60 seconds)
-   - Response time monitoring (<2 seconds)
+## Assertions
 
-2. **Geographic Monitoring**:
-   - Monitor from multiple GCP regions
-   - Detect regional outages
-   - Measure latency by region
+A. The system SHALL monitor API endpoint availability every 60 seconds.
+B. The system SHALL monitor database connectivity every 60 seconds.
+C. The system SHALL monitor authentication service availability every 60 seconds.
+D. The system SHALL monitor API response times and detect when response times exceed 2 seconds.
+E. The system SHALL perform uptime monitoring from multiple GCP regions.
+F. The system SHALL detect regional outages through multi-region monitoring.
+G. The system SHALL measure latency by region.
+H. The system SHALL automatically create an incident when downtime is detected.
+I. The system SHALL escalate incidents after 5 minutes of continued downtime.
+J. The system SHALL automatically resolve incidents when service recovery is detected.
+K. The system SHALL provide root cause analysis via Cloud Trace integration.
+L. The system SHALL send immediate alerts when downtime is detected.
+M. The system SHALL deliver alerts via SMS, email, and Slack notifications.
+N. The system SHALL support on-call rotation through PagerDuty integration.
+O. The system SHALL track alert acknowledgment status.
+P. The system SHALL detect downtime within 1 minute of occurrence.
+Q. The system SHALL deliver alerts within 30 seconds of downtime detection.
+R. The system SHALL monitor uptime against a 99.9% SLA target.
+S. Uptime checks SHALL be configured for all critical endpoints.
+T. Multi-region monitoring SHALL be enabled.
+U. Alerting SHALL be configured with on-call rotation support.
 
-3. **Incident Detection**:
-   - Automatic incident creation on downtime
-   - Incident escalation after 5 minutes
-   - Automatic incident resolution on recovery
-   - Root cause analysis via Cloud Trace
-
-4. **Status Page** (Optional):
-   - Public status page via Cloud Monitoring
-   - Real-time status updates
-   - Incident history
-   - Scheduled maintenance announcements
-
-5. **Alerting**:
-   - Immediate alert on downtime
-   - SMS/email/Slack notifications
-   - On-call rotation support via PagerDuty integration
-   - Alert acknowledgment tracking
-
-**Validation**:
-- **IQ**: Verify uptime checks configured
-- **OQ**: Verify downtime detected within 1 minute
-- **PQ**: Verify alert delivery within 30 seconds
-
-**Acceptance Criteria**:
-- ✅ Uptime checks configured for all critical endpoints
-- ✅ Multi-region monitoring enabled
-- ✅ Alerting configured with on-call rotation
-- ✅ 99.9% uptime SLA monitored
-
-*End* *Uptime Monitoring* | **Hash**: 8b18418e
+*End* *Uptime Monitoring* | **Hash**: 89ca2abc
 ---
 
 # REQ-o00047: Performance Monitoring
 
-**Level**: Ops | **Implements**: p00005 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00005
 
-**Specification**:
+## Rationale
 
-The system SHALL monitor application performance with:
+This requirement establishes comprehensive performance monitoring for the clinical trial platform to ensure system reliability and regulatory compliance. Performance monitoring is critical for FDA 21 CFR Part 11 systems to demonstrate consistent operation and identify issues before they impact data integrity. The requirement implements product requirement p00005 by defining operational metrics collection, distributed tracing, alerting thresholds, and visualization dashboards. This monitoring infrastructure enables proactive identification of performance degradation, supports SLA compliance validation, and provides evidence of system performance for regulatory audits.
 
-1. **Metrics Collection**:
-   - API response times (p50, p95, p99)
-   - Database query performance
-   - Frontend page load times
-   - Mobile app performance metrics
-   - Resource utilization (CPU, memory, database connections)
+## Assertions
 
-2. **Transaction Tracing** (OpenTelemetry):
-   - End-to-end request tracing
-   - Database query analysis
-   - External API call tracking
-   - Bottleneck identification
+A. The system SHALL collect API response times at p50, p95, and p99 percentiles.
+B. The system SHALL collect database query performance metrics.
+C. The system SHALL collect frontend page load times.
+D. The system SHALL collect mobile app performance metrics.
+E. The system SHALL collect resource utilization metrics including CPU, memory, and database connections.
+F. The system SHALL implement end-to-end request tracing using OpenTelemetry.
+G. The system SHALL trace database query execution.
+H. The system SHALL trace external API calls.
+I. The system SHALL identify performance bottlenecks through transaction tracing.
+J. The system SHALL generate an alert when p95 response time exceeds 2 seconds.
+K. The system SHALL generate an alert when database connection pool reaches saturation.
+L. The system SHALL generate an alert when error rates are elevated.
+M. The system SHALL generate an alert when resource usage is abnormal.
+N. The system SHALL provide a real-time performance dashboard.
+O. The system SHALL provide historical performance trend analysis.
+P. The system SHALL enable performance comparison across environments.
+Q. The system SHALL provide custom metric visualization capabilities.
+R. The system SHALL use Cloud Trace with OpenTelemetry integration.
+S. The system SHALL use Cloud Monitoring dashboards.
+T. The system SHALL update performance dashboards within 1 minute of metric collection.
+U. The system SHALL track SLA compliance with a target of 95% of requests completing in less than 2 seconds.
 
-3. **Performance Alerts**:
-   - Alert on p95 response time >2 seconds
-   - Alert on database connection pool saturation
-   - Alert on elevated error rates
-   - Alert on abnormal resource usage
-
-4. **Dashboards**:
-   - Real-time performance dashboard
-   - Historical trend analysis
-   - Comparison across environments
-   - Custom metric visualization
-
-**Validation**:
-- **IQ**: Verify Cloud Trace configured
-- **OQ**: Verify traces captured correctly
-- **PQ**: Verify dashboard updates within 1 minute
-
-**Acceptance Criteria**:
-- ✅ Cloud Trace enabled with OpenTelemetry
-- ✅ Cloud Monitoring dashboards configured
-- ✅ Performance alerts configured
-- ✅ SLA compliance tracked (95% of requests <2 seconds)
-
-*End* *Performance Monitoring* | **Hash**: aace8eb6
+*End* *Performance Monitoring* | **Hash**: cc6097be
 ---
 
 # REQ-o00048: Audit Log Monitoring
 
-**Level**: Ops | **Implements**: p00004 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00004
 
-**Specification**:
+## Rationale
 
-The system SHALL monitor audit trail integrity with:
+This requirement ensures continuous monitoring and verification of audit trail integrity to maintain FDA 21 CFR Part 11 compliance. The monitoring system must detect tampering attempts, verify completeness of audit records, generate regulatory reports, and enforce long-term retention policies. These capabilities are essential for demonstrating the trustworthiness of electronic records during regulatory inspections and ensuring that any integrity violations are detected and addressed promptly. The requirement supports the parent product requirement (p00004) by implementing operational monitoring controls that protect the audit trail from modification, deletion, or loss over its required retention period.
 
-1. **Tamper Detection**:
-   - Continuous verification of audit trail cryptographic hashes
-   - Alert on hash mismatch (potential tampering)
-   - Automatic incident creation on tampering detection
-   - Forensic logging for investigation
+## Assertions
 
-2. **Completeness Monitoring**:
-   - Verify all user actions generate audit records
-   - Detect gaps in audit sequence numbers
-   - Alert on missing audit records
-   - Audit trail backup verification
+A. The system SHALL continuously verify audit trail cryptographic hashes to detect tampering.
+B. The system SHALL generate an alert when an audit trail hash mismatch is detected.
+C. The system SHALL automatically create an incident record when audit trail tampering is detected.
+D. The system SHALL create forensic logs for tampering investigations.
+E. The system SHALL verify that all user actions generate corresponding audit records.
+F. The system SHALL detect gaps in audit sequence numbers.
+G. The system SHALL generate an alert when missing audit records are detected.
+H. The system SHALL verify successful backup of audit trail records.
+I. The system SHALL generate daily audit summary reports.
+J. The system SHALL generate weekly compliance dashboard reports.
+K. The system SHALL generate monthly FDA-ready audit reports.
+L. The system SHALL provide an audit trail query interface for regulatory access.
+M. The system SHALL verify compliance with the 7-year audit retention policy.
+N. The system SHALL monitor archival of audit records to Cloud Storage Coldline.
+O. The system SHALL generate an alert when retention policy violations are detected.
+P. The system SHALL verify automatic lifecycle management of archived audit records.
+Q. The system SHALL detect tampering attempts within 1 minute of occurrence.
+R. The system SHALL ensure 100% of user actions generate audit records.
+S. Tamper detection monitoring SHALL be active at all times.
+T. The system SHALL verify retention policy compliance on a monthly basis.
 
-3. **Compliance Reporting**:
-   - Daily audit summary reports
-   - Weekly compliance dashboard
-   - Monthly FDA-ready audit reports
-   - Audit trail query interface for regulators
-
-4. **Retention Verification**:
-   - Verify 7-year retention policy compliance
-   - Monitor archival to Cloud Storage Coldline
-   - Alert on retention policy violations
-   - Automatic lifecycle management verification
-
-**Validation**:
-- **IQ**: Verify audit monitoring configured
-- **OQ**: Verify tampering detected within 1 minute
-- **PQ**: Verify 100% of user actions generate audit records
-
-**Acceptance Criteria**:
-- ✅ Tamper detection monitoring active
-- ✅ Alerts configured for audit anomalies
-- ✅ Compliance reports generated automatically
-- ✅ 7-year retention verified monthly
-
-*End* *Audit Log Monitoring* | **Hash**: 354985e7
+*End* *Audit Log Monitoring* | **Hash**: ddecc3fd
 ---
 
 ## Architecture

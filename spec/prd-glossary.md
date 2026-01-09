@@ -11,49 +11,42 @@
 
 # REQ-p01020: Privacy Policy and Regulatory Compliance Documentation
 
-**Level**: PRD | **Implements**: p00010 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00010
 
-The Diary Platform SHALL provide comprehensive privacy policy documentation that complies with all applicable privacy and data protection regulations, including GDPR, HIPAA, FDA 21 CFR Part 11, and EU data protection regulations.
+## Rationale
 
-Privacy documentation SHALL include:
-- General privacy policy covering all users (personal health tracking)
-- Diary-specific privacy addendum covering application-specific data collection and usage
-- Clinical trial informed consent templates for research participants
-- Sponsor-specific addenda addressing organization-specific requirements
-- Clear explanations of user rights under GDPR, HIPAA, and other applicable regulations
-- Data retention policies compliant with regulatory requirements
-- Contact information for privacy inquiries and data subject rights requests
+Privacy regulations such as GDPR and HIPAA mandate transparent disclosure of data collection practices and user rights, while clinical trial regulations including FDA 21 CFR Part 11, ICH-GCP E6(R2), and EU Clinical Trial Regulation 536/2014 impose additional protections for research participant data. Comprehensive privacy documentation serves multiple purposes: ensuring legal compliance across jurisdictions, building user trust through transparency, protecting patient rights with clear explanations of legal protections, and supporting regulatory submissions for clinical trials. The multi-layered documentation approach (general policies, diary-specific addenda, clinical trial templates, sponsor-specific supplements) accommodates different user types and regulatory contexts while maintaining a consistent baseline of privacy protection. Version control and annual reviews ensure documentation remains current with evolving regulations and platform capabilities.
 
-Documentation SHALL address:
-- **GDPR Compliance** (EU residents): Right to access, rectification, erasure, portability, restriction, and objection
-- **HIPAA Compliance** (U.S. health data): Protected Health Information (PHI) safeguards, Business Associate Agreements, breach notification
-- **FDA 21 CFR Part 11** (clinical trials): Electronic records, electronic signatures, audit trails, data integrity
-- **EU Clinical Trial Regulation 536/2014**: Clinical trial data protection and retention
-- **EU GMP Annex 11**: Computerized systems for clinical trials (25-year retention)
-- **ICH-GCP E6(R2)**: Good Clinical Practice standards for participant protection and data integrity
+## Assertions
 
-Privacy policies SHALL be:
-- Written in clear, accessible language appropriate for patients/users
-- Available in the Diary application and on sponsor websites
-- Updated at least annually and when material changes occur
-- Versioned with effective dates clearly marked
-- Provided to users before data collection begins
-- Consented to electronically with audit trail maintained
+A. The platform SHALL provide comprehensive privacy policy documentation that complies with GDPR, HIPAA, FDA 21 CFR Part 11, and EU data protection regulations.
+B. The platform SHALL provide a general privacy policy covering all users engaged in personal health tracking.
+C. The platform SHALL provide a diary-specific privacy addendum covering application-specific data collection and usage.
+D. The platform SHALL provide clinical trial informed consent templates for research participants.
+E. The platform SHALL provide sponsor-specific privacy addenda addressing organization-specific requirements.
+F. Privacy documentation SHALL include clear explanations of user rights under GDPR, HIPAA, and other applicable regulations.
+G. Privacy documentation SHALL include data retention policies compliant with regulatory requirements.
+H. Privacy documentation SHALL include contact information for privacy inquiries and data subject rights requests.
+I. Privacy documentation SHALL address GDPR compliance for EU residents, including rights to access, rectification, erasure, portability, restriction, and objection.
+J. Privacy documentation SHALL address HIPAA compliance for U.S. health data, including PHI safeguards, Business Associate Agreements, and breach notification.
+K. Privacy documentation SHALL address FDA 21 CFR Part 11 requirements for clinical trials, including electronic records, electronic signatures, audit trails, and data integrity.
+L. Privacy documentation SHALL address EU Clinical Trial Regulation 536/2014 requirements for clinical trial data protection and retention.
+M. Privacy documentation SHALL address EU GMP Annex 11 requirements for computerized systems in clinical trials, including 25-year retention.
+N. Privacy documentation SHALL address ICH-GCP E6(R2) standards for participant protection and data integrity.
+O. Privacy policies SHALL be written in clear, accessible language appropriate for patients and users.
+P. Privacy policies SHALL be available in the Diary application.
+Q. Privacy policies SHALL be available on sponsor websites.
+R. Privacy policies SHALL be updated at least annually.
+S. Privacy policies SHALL be updated when material changes occur.
+T. Privacy policies SHALL be versioned with effective dates clearly marked.
+U. Privacy policies SHALL be provided to users before data collection begins.
+V. Privacy policies SHALL require electronic consent from users.
+W. The system SHALL maintain an audit trail of all privacy policy consent events including timestamps.
+X. The platform SHALL maintain privacy policy version history.
+Y. Privacy policy documents SHALL exist for all user types, including personal health tracking users, research participants, and clinical trial participants.
+Z. The platform SHALL provide a documented annual review process for privacy policies.
 
-**Rationale**: Privacy regulations (GDPR, HIPAA, etc.) require clear disclosure of data practices and user rights. Clinical trial regulations (21 CFR Part 11, ICH-GCP) require additional protections for trial participant data. Comprehensive privacy documentation ensures legal compliance, builds user trust, protects patient rights, and supports regulatory submissions for clinical trials.
-
-**Acceptance Criteria**:
-- Privacy policy documents exist for all user types (personal health tracking, research participants, clinical trial participants)
-- All applicable regulations addressed (GDPR, HIPAA, 21 CFR Part 11, EU regulations)
-- User rights clearly explained in plain language
-- Data collection, use, sharing, and retention policies documented
-- Contact information provided for privacy inquiries
-- Privacy policies accessible within Diary application
-- Electronic consent workflow captures user acceptance with timestamp
-- Privacy policy version history maintained
-- Annual review process documented
-
-*End* *Privacy Policy and Regulatory Compliance Documentation* | **Hash**: 1ff593de
+*End* *Privacy Policy and Regulatory Compliance Documentation* | **Hash**: c67b91d2
 
 ---
 

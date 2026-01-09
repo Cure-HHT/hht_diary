@@ -29,7 +29,7 @@ The Clinical Diary development environment provides role-based containerized wor
 
 # REQ-d00027: Containerized Development Environments
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00050| **Status**: Draft
 
 Development environments SHALL be containerized using Docker to ensure reproducible, platform-independent workspaces that maintain parity between local development, continuous integration, and production build environments.
 
@@ -56,37 +56,41 @@ Containerization SHALL provide:
 
 # REQ-d00055: Role-Based Environment Separation
 
-**Level**: Dev | **Implements**: p00005, p00014 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00005, p00014
 
-Development infrastructure SHALL provide separate containerized environments for each role (Developer, QA, DevOps, Management) to enforce principle of least privilege and enable developers to practice proper separation of concerns.
+## Rationale
 
-Role-based environments SHALL include:
-- **Developer**: Full development tools (Flutter, Android SDK, hot reload, debugging)
-- **QA**: Testing frameworks (Playwright, Flutter integration tests, report generation)
-- **DevOps**: Infrastructure tools (Terraform, gcloud CLI, Cloud SQL Proxy, deployment automation)
-- **Management**: Read-only tools (repository viewer, report access, audit log queries)
-- Distinct Git identities per role (name, email, GPG signing)
-- Role-specific GitHub Personal Access Tokens with minimal scopes
-- Separate SSH keys per role for repository access
-- Isolated file systems preventing cross-role data leakage
+Role-based separation enforces security boundaries and trains developers to think about access control. By "wearing different hats," developers internalize the principle that QA should not have deployment permissions, and management should have read-only access. This practice is essential for FDA compliance where audit trails must prove separation of duties. The containerized approach provides isolated environments that prevent cross-role data leakage while enabling developers to practice proper separation of concerns throughout the development lifecycle.
 
-**Rationale**: Role-based separation enforces security boundaries and trains developers to think about access control. By "wearing different hats," developers internalize the principle that QA should not have deployment permissions, and management should have read-only access. This practice is essential for FDA compliance where audit trails must prove separation of duties.
+## Assertions
 
-**Acceptance Criteria**:
-- Four distinct Docker services (dev, qa, ops, mgmt)
-- Each role has unique Git config (user.name, user.email)
-- GitHub CLI authenticated with role-appropriate PAT scopes
-- SSH keys mounted per role from host filesystem
-- No shared credentials between roles
-- File permissions enforce role boundaries
-- Documentation explains what each role can and cannot do
+A. The development infrastructure SHALL provide separate containerized environments for each role: Developer, QA, DevOps, and Management.
+B. The development infrastructure SHALL enforce the principle of least privilege through role-based environment separation.
+C. The Developer environment SHALL include full development tools including Flutter, Android SDK, hot reload, and debugging capabilities.
+D. The QA environment SHALL include testing frameworks including Playwright, Flutter integration tests, and report generation tools.
+E. The DevOps environment SHALL include infrastructure tools including Terraform, gcloud CLI, Cloud SQL Proxy, and deployment automation.
+F. The Management environment SHALL include read-only tools including repository viewer, report access, and audit log queries.
+G. Each role environment SHALL have distinct Git identities including unique name and email configurations.
+H. Each role environment SHALL use role-specific GPG signing for Git commits.
+I. Each role environment SHALL use role-specific GitHub Personal Access Tokens with minimal required scopes.
+J. Each role environment SHALL use separate SSH keys for repository access.
+K. Role environments SHALL have isolated file systems that prevent cross-role data leakage.
+L. The system SHALL provide four distinct Docker services: dev, qa, ops, and mgmt.
+M. Each role environment SHALL have a unique Git user.name configuration.
+N. Each role environment SHALL have a unique Git user.email configuration.
+O. The GitHub CLI SHALL be authenticated with role-appropriate Personal Access Token scopes for each role.
+P. SSH keys SHALL be mounted per role from the host filesystem.
+Q. Credentials SHALL NOT be shared between different role environments.
+R. File permissions SHALL enforce role boundaries between environments.
+S. Documentation SHALL explain what each role can do within its environment.
+T. Documentation SHALL explain what each role cannot do outside its designated permissions.
 
-*End* *Role-Based Environment Separation* | **Hash**: a8ce8ecf
+*End* *Role-Based Environment Separation* | **Hash**: 03138c47
 ---
 
 # REQ-d00056: Cross-Platform Development Support
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00050| **Status**: Draft
 
 Development environments SHALL function identically on Windows, Linux, and macOS without platform-specific code paths or manual configuration, enabling team members to use their preferred operating systems while maintaining environment parity.
 
@@ -113,7 +117,7 @@ Cross-platform support SHALL ensure:
 
 # REQ-d00057: CI/CD Environment Parity
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00052| **Status**: Draft
 
 Local development environments SHALL use identical Docker images as CI/CD pipelines to eliminate environment drift and ensure that code tested locally behaves identically in automated builds.
 
@@ -140,35 +144,41 @@ CI/CD parity SHALL be achieved through:
 
 # REQ-d00058: Secrets Management via Doppler
 
-**Level**: Dev | **Implements**: p00005 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00005
 
-Development environments SHALL integrate Doppler secrets management to eliminate hardcoded credentials, provide audit trails of secret access, and enable secret rotation without code changes.
+## Rationale
 
-Doppler integration SHALL provide:
-- Environment-specific secret projects (dev, staging, prod)
-- Role-specific service tokens for automated access
-- Personal tokens for individual developer access
-- Audit logs showing who accessed secrets and when
-- Secret rotation without redeploying containers
-- Zero-knowledge architecture (secrets never stored in Git or environment variables)
+Hardcoded secrets in scripts or environment variables violate security best practices and FDA audit requirements. Doppler provides centralized secret management with comprehensive audit trails, enabling compliance with access control and traceability requirements for FDA 21 CFR Part 11. Secrets are injected at runtime and never persisted to disk, Git repositories, or container images, ensuring that credential exposure is minimized and all access is traceable. This approach supports secret rotation without code changes or redeployment, reducing downtime and security risk during credential updates.
 
-**Rationale**: Hardcoded secrets in scripts or environment variables violate security best practices and FDA audit requirements. Doppler provides centralized secret management with comprehensive audit trails, enabling compliance with access control and traceability requirements. Secrets are injected at runtime, never persisted to disk.
+## Assertions
 
-**Acceptance Criteria**:
-- Doppler CLI installed in all role containers
-- GitHub tokens accessed via `doppler run -- gh auth login`
-- GCP credentials accessed via `doppler run -- gcloud auth login`
-- No secrets in Git history, Dockerfiles, or compose files
-- Doppler audit log captures all secret access
-- Documentation covers Doppler setup per role
-- Secret rotation procedures documented
+A. Development environments SHALL integrate Doppler secrets management for all credential access.
+B. The system SHALL eliminate hardcoded credentials from all code and configuration files.
+C. Doppler integration SHALL provide audit trails of all secret access events.
+D. The system SHALL enable secret rotation without requiring code changes.
+E. Doppler integration SHALL provide environment-specific secret projects for dev, staging, and prod environments.
+F. Doppler integration SHALL provide role-specific service tokens for automated access.
+G. Doppler integration SHALL provide personal tokens for individual developer access.
+H. Doppler SHALL maintain audit logs showing who accessed secrets and when.
+I. The system SHALL support secret rotation without redeploying containers.
+J. The system SHALL implement zero-knowledge architecture where secrets are never stored in Git.
+K. The system SHALL implement zero-knowledge architecture where secrets are never stored in environment variables.
+L. The Doppler CLI SHALL be installed in all role containers.
+M. GitHub tokens SHALL be accessed via doppler run -- gh auth login command.
+N. GCP credentials SHALL be accessed via doppler run -- gcloud auth login command.
+O. Git history SHALL NOT contain any secrets.
+P. Dockerfiles SHALL NOT contain any secrets.
+Q. Compose files SHALL NOT contain any secrets.
+R. Doppler audit log SHALL capture all secret access events.
+S. Documentation SHALL cover Doppler setup procedures for each role.
+T. Documentation SHALL include secret rotation procedures.
 
-*End* *Secrets Management via Doppler* | **Hash**: 313110c3
+*End* *Secrets Management via Doppler* | **Hash**: cd79209a
 ---
 
 # REQ-d00059: Development Tool Specifications
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00041| **Status**: Draft
 
 Development environments SHALL include specific tool versions selected for stability, long-term support, and compatibility with FDA validation requirements, with each tool version justified and documented.
 
@@ -224,7 +234,7 @@ Tool specifications SHALL include:
 
 # REQ-d00060: VS Code Dev Containers Integration
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: d00027| **Status**: Draft
 
 Development environments SHALL provide VS Code Dev Containers configuration enabling developers to open projects directly in containerized environments with one click, with role-specific extensions and settings pre-configured.
 
@@ -254,7 +264,7 @@ Dev Containers SHALL provide:
 
 # REQ-d00061: Automated QA Workflow
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: o00052| **Status**: Draft
 
 Development environments SHALL include automated quality assurance workflows that execute Flutter and Playwright tests on pull requests, generate PDF reports, integrate with GitHub Checks, and maintain artifact retention policies.
 
@@ -286,59 +296,117 @@ QA automation SHALL provide:
 
 # REQ-d00062: Environment Validation & Change Control
 
-**Level**: Dev | **Implements**: p00010 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00010
 
-Development environments SHALL undergo formal validation using IQ/OQ/PQ protocols to ensure FDA compliance, with changes managed through documented change control procedures.
+## Rationale
 
-Validation SHALL include:
+FDA 21 CFR Part 11 requires validated computer systems. Development environments that produce regulatory submissions must be validated to ensure reproducible, auditable results. IQ/OQ/PQ protocols demonstrate that the environment is installed correctly, operates as intended, and performs consistently. This compositional requirement encompasses installation qualification, operational qualification, performance qualification, and change control procedures for the development environment.
 
-**Installation Qualification (IQ)**:
-- Docker installation verified on target platforms
-- Container images build successfully
-- Health checks pass for all services
-- Required volumes and networks created
-- Tool versions match specifications
+## Assertions
 
-**Operational Qualification (OQ)**:
-- Each tool executes basic operations correctly
-- Git can clone repositories
-- Flutter can create and build projects
-- Playwright can run sample tests
-- Terraform can validate configurations
-- Doppler can retrieve secrets
-- gcloud CLI can authenticate with GCP
+A. Development environments SHALL undergo formal validation using IQ/OQ/PQ protocols to ensure FDA compliance.
+B. Changes to development environments SHALL be managed through documented change control procedures.
+C. This requirement SHALL be implemented through REQ-d00090, REQ-d00091, REQ-d00092, and REQ-d00093.
 
-**Performance Qualification (PQ)**:
-- Build times within acceptable ranges
-- Test execution times baseline established
-- Container resource usage monitored
-- Identical outputs produced across platforms
+*End* *Environment Validation & Change Control* | **Hash**: 9a5588aa
 
-**Change Control**:
-- Dockerfile changes require pull request review
-- Tool version changes documented in ADR
-- Validation re-execution required for major changes
-- Docker images tagged with semantic versions
-- Deprecation policy for old environment versions
+---
 
-**Rationale**: FDA 21 CFR Part 11 requires validated computer systems. Development environments that produce regulatory submissions must be validated to ensure reproducible, auditable results. IQ/OQ/PQ protocols demonstrate that the environment is installed correctly, operates as intended, and performs consistently.
+# REQ-d00090: Development Environment Installation Qualification
 
-**Acceptance Criteria**:
-- IQ protocol documented in `docs/validation/dev-environment/IQ.md`
-- OQ protocol documented in `docs/validation/dev-environment/OQ.md`
-- PQ protocol documented in `docs/validation/dev-environment/PQ.md`
-- Test results templates provided for each protocol
-- Dockerfile changes trigger validation review checklist
-- Container images signed with Cosign for integrity verification
-- SBOM generated and stored with each image version
-- Deprecation notices provided 90 days before environment version retirement
+**Level**: Dev | **Status**: Draft | **Implements**: d00062
 
-*End* *Environment Validation & Change Control* | **Hash**: 5c269c11
+## Rationale
+
+Installation Qualification (IQ) verifies that development environment components are installed correctly according to specifications. This includes verifying Docker installation, container image builds, service health checks, required infrastructure, and tool version compliance. IQ provides documented evidence that the environment was installed as designed, forming the foundation for FDA 21 CFR Part 11 compliance.
+
+## Assertions
+
+A. Docker installation SHALL be verified on all target platforms.
+B. Container images SHALL build successfully on all target platforms.
+C. Health checks SHALL pass for all services in the development environment.
+D. Required Docker volumes SHALL be created as specified.
+E. Required Docker networks SHALL be created as specified.
+F. Tool versions SHALL match specifications defined in environment documentation.
+G. IQ protocol SHALL be documented in `docs/validation/dev-environment/IQ.md`.
+H. Test results templates SHALL be provided for IQ protocol execution.
+
+*End* *Development Environment Installation Qualification* | **Hash**: 554f4e07
+
+---
+
+# REQ-d00091: Development Environment Operational Qualification
+
+**Level**: Dev | **Status**: Draft | **Implements**: d00062
+
+## Rationale
+
+Operational Qualification (OQ) demonstrates that development environment tools function correctly under normal operating conditions. This includes verifying that core development tools execute their intended operations successfully. OQ provides documented evidence that the environment operates as intended, supporting FDA 21 CFR Part 11 compliance for validated computer systems.
+
+## Assertions
+
+A. Each development tool SHALL execute basic operations correctly.
+B. Git SHALL be able to clone repositories from remote sources.
+C. Flutter SHALL be able to create new projects.
+D. Flutter SHALL be able to build projects for target platforms.
+E. Playwright SHALL be able to run sample browser automation tests.
+F. Terraform SHALL be able to validate infrastructure configurations.
+G. Doppler SHALL be able to retrieve secrets from the secrets manager.
+H. The gcloud CLI SHALL be able to authenticate with Google Cloud Platform.
+I. OQ protocol SHALL be documented in `docs/validation/dev-environment/OQ.md`.
+J. Test results templates SHALL be provided for OQ protocol execution.
+
+*End* *Development Environment Operational Qualification* | **Hash**: fe899a74
+
+---
+
+# REQ-d00092: Development Environment Performance Qualification
+
+**Level**: Dev | **Status**: Draft | **Implements**: d00062
+
+## Rationale
+
+Performance Qualification (PQ) establishes baseline performance metrics and verifies that the development environment produces consistent results across platforms. This includes monitoring build times, test execution times, resource usage, and output reproducibility. PQ provides documented evidence that the environment performs consistently, supporting FDA 21 CFR Part 11 requirements for reproducible results.
+
+## Assertions
+
+A. Build times SHALL be measured and verified to be within acceptable ranges.
+B. Test execution times SHALL be baselined and monitored.
+C. Container resource usage SHALL be monitored during development operations.
+D. The development environment SHALL produce identical outputs across supported platforms.
+E. PQ protocol SHALL be documented in `docs/validation/dev-environment/PQ.md`.
+F. Test results templates SHALL be provided for PQ protocol execution.
+
+*End* *Development Environment Performance Qualification* | **Hash**: 5185eb02
+
+---
+
+# REQ-d00093: Development Environment Change Control
+
+**Level**: Dev | **Status**: Draft | **Implements**: d00062
+
+## Rationale
+
+Change control procedures ensure that modifications to the development environment are reviewed, documented, and validated before deployment. This protects the validated state of the environment and maintains FDA 21 CFR Part 11 compliance. Proper change control includes review processes, version documentation, re-validation requirements, image integrity verification, and deprecation policies.
+
+## Assertions
+
+A. Dockerfile changes SHALL require pull request review before merge.
+B. Tool version changes SHALL be documented in an Architecture Decision Record (ADR).
+C. Major environment changes SHALL require re-execution of applicable IQ/OQ/PQ protocols.
+D. Docker images SHALL be tagged with semantic versions.
+E. Old environment versions SHALL be subject to a documented deprecation policy.
+F. Dockerfile changes SHALL trigger a validation review checklist.
+G. Container images SHALL be signed with Cosign for integrity verification.
+H. A Software Bill of Materials (SBOM) SHALL be generated and stored with each image version.
+I. Deprecation notices SHALL be provided at least 90 days before environment version retirement.
+
+*End* *Development Environment Change Control* | **Hash**: 25b6fc05
 ---
 
 # REQ-d00063: Shared Workspace and File Exchange
 
-**Level**: Dev | **Implements**: - | **Status**: Draft
+**Level**: Dev | **Implements**: d00027| **Status**: Draft
 
 Development environments SHALL provide shared Docker volumes for code repositories and a designated exchange volume for transferring files between roles, without exposing host file system internals or creating platform-specific path issues.
 
