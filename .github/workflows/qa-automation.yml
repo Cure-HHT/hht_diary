@@ -98,8 +98,7 @@ jobs:
           )
 
           # Check if any changed file matches QA patterns
-          QA_NEEDED=true
-          # QA_NEEDED=false
+          QA_NEEDED=false
           for pattern in "${QA_PATTERNS[@]}"; do
             if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
               QA_NEEDED=true
@@ -175,8 +174,6 @@ jobs:
               echo "⏭️  No Docker changes in this push - will pull pre-built images from GHCR"
             fi
           fi
-          changed=true  # Default to true for testing.
-
 
       - name: Free up disk space
         if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'true'
@@ -224,7 +221,7 @@ jobs:
           echo "Images pulled and tagged successfully"
 
       - name: Free up disk space for build (if pulling failed)
-        # if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'true' && steps.pull-images.outcome == 'failure'
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && steps.docker-changes.outputs.changed == 'false' && steps.pull-images.outcome == 'failure'
         run: |
           echo "Pull failed, need to build images. Freeing up disk space..."
           docker image prune -af
@@ -235,11 +232,11 @@ jobs:
           sudo rm -rf /usr/local/share/boost
 
       - name: Set up Docker Buildx
-        # if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker images to GHCR
-        # if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
+        if: steps.check-qa-needed.outputs.qa_needed == 'true' && (steps.docker-changes.outputs.changed == 'true' || steps.pull-images.outcome == 'failure')
         working-directory: tools/dev-env
         run: |
           echo "Docker files changed - building from source with registry caching"
