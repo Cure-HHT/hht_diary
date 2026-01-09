@@ -27,7 +27,8 @@ A common cause of unexpected cloud bills:
 3. **Restart loops** - Container crashes, restarts, crashes again
 4. **No max instance limits** - Autoscaling without bounds
 
-The $300/day incident that prompted this was caused by a Dart container with an aggressive health check timing. The container couldn't JIT compile fast enough, failed the probe, restarted, repeat forever.
+The $300/day incident that prompted this was caused by a Dart container with an aggressive health check timing. 
+The container couldn't JIT compile fast enough, failed the probe, restarted, repeat forever.
 
 ## Deployment
 

@@ -594,16 +594,16 @@ DEFAULT_REGION="europe-west9"            # Paris (GDPR compliance)
 
 **Functions:**
 
-| Function | Description |
-|----------|-------------|
-| `log_info`, `log_warn`, `log_error` | Colored logging output |
-| `log_step` | Log a major step with highlighting |
-| `confirm_action` | Prompt for y/n confirmation |
-| `require_command` | Check if a command exists, exit if not |
-| `get_env_config` | Get environment-specific configuration (budget, DB tier, etc.) |
-| `terraform_init` | Initialize Terraform with GCS backend |
-| `terraform_plan` | Run `terraform plan` with tfvars file |
-| `terraform_apply` | Run `terraform apply` with tfvars file |
+| Function                            | Description                                                    |
+|-------------------------------------|----------------------------------------------------------------|
+| `log_info`, `log_warn`, `log_error` | Colored logging output                                         |
+| `log_step`                          | Log a major step with highlighting                             |
+| `confirm_action`                    | Prompt for y/n confirmation                                    |
+| `require_command`                   | Check if a command exists, exit if not                         |
+| `get_env_config`                    | Get environment-specific configuration (budget, DB tier, etc.) |
+| `terraform_init`                    | Initialize Terraform with GCS backend                          |
+| `terraform_plan`                    | Run `terraform plan` with tfvars file                          |
+| `terraform_apply`                   | Run `terraform apply` with tfvars file                         |
 
 **Environment Configurations:**
 ```bash
@@ -628,11 +628,12 @@ doppler run -- ./bootstrap-sponsor.sh <sponsor> [--apply] [--destroy]
 ```
 
 **Arguments:**
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `sponsor` | Yes | Sponsor name (must match tfvars filename) |
-| `--apply` | No | Apply changes (default: plan only) |
-| `--destroy` | No | Destroy all sponsor infrastructure (DANGEROUS) |
+
+| Argument    | Required | Description                                    |
+|-------------|----------|------------------------------------------------|
+| `sponsor`   | Yes      | Sponsor name (must match tfvars filename)      |
+| `--apply`   | No       | Apply changes (default: plan only)             |
+| `--destroy` | No       | Destroy all sponsor infrastructure (DANGEROUS) |
 
 **Prerequisites:**
 - Config file: `bootstrap/sponsor-configs/{sponsor}.tfvars`
@@ -681,12 +682,13 @@ doppler run -- ./deploy-environment.sh <sponsor> <env> [--apply] [--destroy]
 ```
 
 **Arguments:**
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `sponsor` | Yes | Sponsor name |
-| `env` | Yes | Environment: `dev`, `qa`, `uat`, or `prod` |
-| `--apply` | No | Apply changes (default: plan only) |
-| `--destroy` | No | Destroy environment (blocked for prod) |
+
+| Argument    | Required | Description                                |
+|-------------|----------|--------------------------------------------|
+| `sponsor`   | Yes      | Sponsor name                               |
+| `env`       | Yes      | Environment: `dev`, `qa`, `uat`, or `prod` |
+| `--apply`   | No       | Apply changes (default: plan only)         |
+| `--destroy` | No       | Destroy environment (blocked for prod)     |
 
 **Prerequisites:**
 - Bootstrap must be completed for this sponsor
@@ -759,19 +761,20 @@ Verifies FDA 21 CFR Part 11 compliance for all sponsor environments.
 ```
 
 **Arguments:**
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `sponsor` | Yes | Sponsor name to verify |
+
+| Argument  | Required | Description            |
+|-----------|----------|------------------------|
+| `sponsor` | Yes      | Sponsor name to verify |
 
 **Checks Performed:**
 
-| Check | Requirement | Pass Criteria |
-|-------|-------------|---------------|
-| Bucket exists | All envs | All 4 audit buckets exist |
-| Retention policy | All envs | 25-year (788,400,000 seconds) |
-| Retention locked | Prod only | `isLocked: true` |
-| Log sinks active | All envs | Sinks are not disabled |
-| BigQuery dataset | All envs | Audit dataset exists |
+| Check            | Requirement | Pass Criteria                 |
+|------------------|-------------|-------------------------------|
+| Bucket exists    | All envs    | All 4 audit buckets exist     |
+| Retention policy | All envs    | 25-year (788,400,000 seconds) |
+| Retention locked | Prod only   | `isLocked: true`              |
+| Log sinks active | All envs    | Sinks are not disabled        |
+| BigQuery dataset | All envs    | Audit dataset exists          |
 
 **Example Output:**
 ```
@@ -804,10 +807,11 @@ Checking prod environment...
 ```
 
 **Exit Codes:**
-| Code | Meaning |
-|------|---------|
-| 0 | All checks passed |
-| 1 | One or more checks failed |
+
+| Code | Meaning                   |
+|------|---------------------------|
+| 0    | All checks passed         |
+| 1    | One or more checks failed |
 
 ---
 
@@ -854,19 +858,19 @@ Creates FDA-compliant audit log storage.
 
 Creates HIPAA/GDPR-compliant authentication using Google Cloud Identity Platform (enterprise Firebase Auth with BAA).
 
-| Input                        | Type         | Description                                    |
-|------------------------------|--------------|------------------------------------------------|
-| `project_id`                 | string       | GCP project ID                                 |
-| `sponsor`                    | string       | Sponsor name                                   |
-| `environment`                | string       | dev/qa/uat/prod                                |
-| `enable_email_password`      | bool         | Enable email/password auth (default: true)     |
-| `enable_email_link`          | bool         | Enable passwordless email links (default: false)|
-| `enable_phone_auth`          | bool         | Enable phone number auth (default: false)      |
-| `mfa_enforcement`            | string       | OFF, OPTIONAL, MANDATORY (prod forces MANDATORY)|
-| `password_min_length`        | number       | Minimum password length (default: 12)          |
-| `session_duration_minutes`   | number       | Session timeout (default: 60 for HIPAA)        |
-| `authorized_domains`         | list(string) | Additional OAuth redirect domains              |
-| `portal_url`                 | string       | Portal URL for email links                     |
+| Input                      | Type         | Description                                      |
+|----------------------------|--------------|--------------------------------------------------|
+| `project_id`               | string       | GCP project ID                                   |
+| `sponsor`                  | string       | Sponsor name                                     |
+| `environment`              | string       | dev/qa/uat/prod                                  |
+| `enable_email_password`    | bool         | Enable email/password auth (default: true)       |
+| `enable_email_link`        | bool         | Enable passwordless email links (default: false) |
+| `enable_phone_auth`        | bool         | Enable phone number auth (default: false)        |
+| `mfa_enforcement`          | string       | OFF, OPTIONAL, MANDATORY (prod forces MANDATORY) |
+| `password_min_length`      | number       | Minimum password length (default: 12)            |
+| `session_duration_minutes` | number       | Session timeout (default: 60 for HIPAA)          |
+| `authorized_domains`       | list(string) | Additional OAuth redirect domains                |
+| `portal_url`               | string       | Portal URL for email links                       |
 
 **HIPAA Compliance Features:**
 - MFA mandatory for production environments
@@ -896,17 +900,17 @@ Creates budget alerts with optional auto-stop for non-production.
 
 Creates VPC with private service connection for Cloud SQL.
 
-| Input                       | Type   | Description                     |
-|-----------------------------|--------|---------------------------------|
-| `project_id`                | string | GCP project ID                  |
-| `sponsor`                   | string | Sponsor name                    |
-| `environment`               | string | dev/qa/uat/prod                 |
-| `region`                    | string | GCP region                      |
-| `app_subnet_cidr`           | string | CIDR for application subnet     |
-| `db_subnet_cidr`            | string | CIDR for database subnet        |
-| `connector_cidr`            | string | CIDR for serverless VPC connector|
-| `connector_min_instances`   | number | Min VPC connector instances     |
-| `connector_max_instances`   | number | Max VPC connector instances     |
+| Input                     | Type   | Description                       |
+|---------------------------|--------|-----------------------------------|
+| `project_id`              | string | GCP project ID                    |
+| `sponsor`                 | string | Sponsor name                      |
+| `environment`             | string | dev/qa/uat/prod                   |
+| `region`                  | string | GCP region                        |
+| `app_subnet_cidr`         | string | CIDR for application subnet       |
+| `db_subnet_cidr`          | string | CIDR for database subnet          |
+| `connector_cidr`          | string | CIDR for serverless VPC connector |
+| `connector_min_instances` | number | Min VPC connector instances       |
+| `connector_max_instances` | number | Max VPC connector instances       |
 
 ### cloud-run
 
@@ -926,7 +930,7 @@ Deploys Cloud Run services with Dart-optimized health checks.
 
 **Dart Container Optimization:**
 - Startup probe: 120s total tolerance (30s initial + 6×15s retries)
-- Liveness probe: Conservative 30s intervals
+- Liveness probe: Conservsative 30s intervals
 - Prevents restart loops during JIT compilation
 
 ## Related Documentation
