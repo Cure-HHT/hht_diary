@@ -119,10 +119,24 @@ gcloud billing projects link cure-hht-admin \
 
 ### Step 2: Enable Required APIs
 
+The admin project needs several APIs enabled for Terraform to function:
+
 ```bash
-gcloud services enable storage.googleapis.com \
+# Enable all required APIs on the admin project
+gcloud services enable \
+  storage.googleapis.com \
+  billingbudgets.googleapis.com \
+  cloudresourcemanager.googleapis.com \
+  logging.googleapis.com \
+  bigquery.googleapis.com \
+  serviceusage.googleapis.com \
+  iam.googleapis.com \
+  pubsub.googleapis.com \
+  cloudfunctions.googleapis.com \
   --project=cure-hht-admin
 ```
+
+**Why so many APIs?** The admin project serves as the "quota project" for API calls that operate across projects (like Billing Budgets). All API usage is billed to this project.
 
 ### Step 3: Create State Bucket
 
@@ -209,11 +223,27 @@ The user running Terraform needs these GCP roles at the organization level:
 
 - `roles/resourcemanager.projectCreator` - Create projects
 - `roles/billing.user` - Link billing accounts
+- `roles/billing.admin` - Create billing budgets (on billing account)
 - `roles/iam.workloadIdentityPoolAdmin` - Create WIF pools
 - `roles/logging.admin` - Configure log sinks
 - `roles/storage.admin` - Create audit buckets
 
 For sponsor-portal deployments, you need project-level Owner or equivalent roles.
+
+### Quota Project Configuration
+
+The Billing Budgets API requires an explicit "quota project" to bill API usage to. The scripts automatically set this:
+
+```bash
+# Set automatically by bootstrap-sponsor.sh
+export GOOGLE_CLOUD_QUOTA_PROJECT=cure-hht-admin
+```
+
+You can also set it permanently in your gcloud ADC:
+
+```bash
+gcloud auth application-default set-quota-project cure-hht-admin
+```
 
 ### Billing Accounts
 
@@ -489,6 +519,14 @@ workforce_identity_allowed_domain = "sponsor.com"
 **"Error: Billing account not found"**
 - Ensure you have `roles/billing.user` on the billing account
 - Verify billing account ID format: `XXXXXX-XXXXXX-XXXXXX`
+
+**"Error: billingbudgets.googleapis.com requires a quota project"**
+- Set the quota project environment variable:
+  ```bash
+  export GOOGLE_CLOUD_QUOTA_PROJECT=cure-hht-admin
+  ```
+- Or use `gcloud auth application-default set-quota-project cure-hht-admin`
+- Ensure the admin project has `billingbudgets.googleapis.com` enabled
 
 **"Error: Project already exists"**
 - Project IDs are globally unique

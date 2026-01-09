@@ -15,13 +15,18 @@ readonly TERRAFORM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly STATE_BUCKET="cure-hht-terraform-state"
 readonly DEFAULT_REGION="europe-west9"
 
-# Environment configurations
-declare -A ENV_OFFSETS=(
-    ["dev"]=0
-    ["qa"]=64
-    ["uat"]=128
-    ["prod"]=192
-)
+# Environment offset function (compatible with Bash 3.x on macOS)
+# Returns the VPC CIDR offset for each environment
+get_env_offset() {
+    local env="$1"
+    case "$env" in
+        dev)  echo 0 ;;
+        qa)   echo 64 ;;
+        uat)  echo 128 ;;
+        prod) echo 192 ;;
+        *)    echo 0 ;;
+    esac
+}
 
 # =============================================================================
 # Colors and Logging
@@ -219,7 +224,8 @@ terraform_destroy() {
 get_vpc_cidr() {
     local sponsor_id="$1"
     local env="$2"
-    local offset="${ENV_OFFSETS[$env]}"
+    local offset
+    offset=$(get_env_offset "$env")
 
     echo "10.${sponsor_id}.${offset}.0/18"
 }
@@ -229,7 +235,8 @@ get_vpc_cidr() {
 get_app_subnet_cidr() {
     local sponsor_id="$1"
     local env="$2"
-    local offset="${ENV_OFFSETS[$env]}"
+    local offset
+    offset=$(get_env_offset "$env")
 
     echo "10.${sponsor_id}.${offset}.0/22"
 }
@@ -239,7 +246,8 @@ get_app_subnet_cidr() {
 get_db_subnet_cidr() {
     local sponsor_id="$1"
     local env="$2"
-    local offset="${ENV_OFFSETS[$env]}"
+    local offset
+    offset=$(get_env_offset "$env")
     local db_offset=$((offset + 4))
 
     echo "10.${sponsor_id}.${db_offset}.0/22"
@@ -250,7 +258,8 @@ get_db_subnet_cidr() {
 get_edc_subnet_cidr() {
     local sponsor_id="$1"
     local env="$2"
-    local offset="${ENV_OFFSETS[$env]}"
+    local offset
+    offset=$(get_env_offset "$env")
     local edc_offset=$((offset + 8))
 
     echo "10.${sponsor_id}.${edc_offset}.0/22"
@@ -261,7 +270,8 @@ get_edc_subnet_cidr() {
 get_connector_cidr() {
     local sponsor_id="$1"
     local env="$2"
-    local offset="${ENV_OFFSETS[$env]}"
+    local offset
+    offset=$(get_env_offset "$env")
     local connector_offset=$((offset + 12))
 
     echo "10.${sponsor_id}.${connector_offset}.0/28"

@@ -13,7 +13,7 @@ sponsor_id = 2 # VPC CIDR: 10.2.0.0/16
 # GCP Organization
 # -----------------------------------------------------------------------------
 
-gcp_org_id = "123456789012" # TODO: Replace with actual org ID
+gcp_org_id = "666049061860" # anspar.org
 
 # -----------------------------------------------------------------------------
 # Billing Accounts
@@ -42,3 +42,9 @@ enable_workload_identity = true
 # -----------------------------------------------------------------------------
 
 # anspar_admin_group = "anspar-admins@cure-hht.org"
+
+# -----------------------------------------------------------------------------
+# Budget Configuration (Temporary: disable cost controls for initial setup)
+# -----------------------------------------------------------------------------
+
+enable_cost_controls = false

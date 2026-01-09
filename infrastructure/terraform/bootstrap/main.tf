@@ -23,10 +23,10 @@ locals {
     prod = var.billing_account_prod
   }
 
-  # Project IDs
+  # Project IDs - just sponsor-env (e.g., callisto-dev, cure-hht-prod)
   project_ids = {
     for env in local.environments :
-    env => "${var.project_prefix}-${var.sponsor}-${env}"
+    env => "${var.sponsor}-${env}"
   }
 
   # Project display names

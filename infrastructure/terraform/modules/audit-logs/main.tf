@@ -25,7 +25,7 @@ terraform {
 # -----------------------------------------------------------------------------
 
 locals {
-  bucket_name = "${var.project_prefix}-${var.sponsor}-${var.environment}-audit-logs"
+  bucket_name = "${var.sponsor}-${var.environment}-audit-logs"
 
   # Calculate retention in seconds (25 years)
   retention_seconds = var.retention_years * 365 * 24 * 60 * 60

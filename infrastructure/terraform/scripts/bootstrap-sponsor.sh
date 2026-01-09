@@ -127,6 +127,12 @@ fi
 # Main
 # =============================================================================
 
+# Set quota project for Billing Budgets API
+# The billingbudgets.googleapis.com API requires an explicit quota project
+# which must have the required APIs enabled
+export GOOGLE_CLOUD_QUOTA_PROJECT="${GOOGLE_CLOUD_QUOTA_PROJECT:-cure-hht-admin}"
+log_info "Using quota project: $GOOGLE_CLOUD_QUOTA_PROJECT"
+
 print_header "Bootstrapping Sponsor: $SPONSOR"
 
 log_info "Config file: $TFVARS_FILE"
