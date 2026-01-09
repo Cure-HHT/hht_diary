@@ -13,7 +13,7 @@ set -euo pipefail
 
 readonly TERRAFORM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly STATE_BUCKET="cure-hht-terraform-state"
-readonly DEFAULT_REGION="us-central1"
+readonly DEFAULT_REGION="europe-west9"
 
 # Environment configurations
 declare -A ENV_OFFSETS=(

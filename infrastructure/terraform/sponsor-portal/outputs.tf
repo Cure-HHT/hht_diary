@@ -121,6 +121,25 @@ output "audit_compliance_status" {
 }
 
 # -----------------------------------------------------------------------------
+# Identity Platform (if enabled)
+# -----------------------------------------------------------------------------
+
+output "identity_platform_enabled" {
+  description = "Whether Identity Platform is enabled"
+  value       = var.enable_identity_platform
+}
+
+output "identity_platform_mfa_state" {
+  description = "MFA enforcement state"
+  value       = var.enable_identity_platform ? module.identity_platform[0].mfa_state : "N/A"
+}
+
+output "identity_platform_auth_methods" {
+  description = "Enabled authentication methods"
+  value       = var.enable_identity_platform ? module.identity_platform[0].auth_methods : {}
+}
+
+# -----------------------------------------------------------------------------
 # Workforce Identity (if enabled)
 # -----------------------------------------------------------------------------
 
@@ -169,6 +188,10 @@ output "summary" {
     Container Images:
       Diary:       ${module.artifact_registry.diary_server_image_base}
       Portal:      ${module.artifact_registry.portal_server_image_base}
+
+    Identity Platform:
+      Enabled:     ${var.enable_identity_platform}
+      MFA:         ${var.enable_identity_platform ? module.identity_platform[0].mfa_state : "N/A"}
 
     ${var.workforce_identity_enabled ? "Workforce Identity: ${module.workforce_identity.login_url}" : "Workforce Identity: Disabled"}
 

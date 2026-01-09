@@ -40,8 +40,8 @@ billing_account_dev = "XXXXXX-XXXXXX-XXXXXX"
 # Prefix for project IDs (default: cure-hht)
 project_prefix = "cure-hht"
 
-# Default GCP region (default: us-central1)
-default_region = "us-central1"
+# Default GCP region (default: europe-west9 - Paris)
+default_region = "europe-west9"
 
 # GCP Folder ID to place projects in (optional)
 # folder_id = "folders/123456789"

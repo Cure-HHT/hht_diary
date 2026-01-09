@@ -58,7 +58,7 @@ variable "db_password" {
 variable "region" {
   description = "GCP region"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west9"
 }
 
 variable "project_prefix" {
@@ -141,7 +141,76 @@ variable "enable_cloud_build_triggers" {
 }
 
 # -----------------------------------------------------------------------------
-# Optional: Workforce Identity Configuration
+# Optional: Identity Platform Configuration (HIPAA/GDPR-compliant auth)
+# -----------------------------------------------------------------------------
+
+variable "enable_identity_platform" {
+  description = "Enable Identity Platform for user authentication"
+  type        = bool
+  default     = true
+}
+
+variable "identity_platform_email_password" {
+  description = "Enable email/password authentication"
+  type        = bool
+  default     = true
+}
+
+variable "identity_platform_email_link" {
+  description = "Enable passwordless email link authentication"
+  type        = bool
+  default     = false
+}
+
+variable "identity_platform_phone_auth" {
+  description = "Enable phone number authentication"
+  type        = bool
+  default     = false
+}
+
+variable "identity_platform_mfa_enforcement" {
+  description = "MFA enforcement level: OFF, OPTIONAL, MANDATORY (prod always MANDATORY)"
+  type        = string
+  default     = "MANDATORY"
+
+  validation {
+    condition     = contains(["OFF", "OPTIONAL", "MANDATORY"], var.identity_platform_mfa_enforcement)
+    error_message = "MFA enforcement must be OFF, OPTIONAL, or MANDATORY."
+  }
+}
+
+variable "identity_platform_password_min_length" {
+  description = "Minimum password length (HIPAA recommends 12+)"
+  type        = number
+  default     = 12
+}
+
+variable "identity_platform_email_sender_name" {
+  description = "Name shown in outbound authentication emails"
+  type        = string
+  default     = "Clinical Diary Portal"
+}
+
+variable "identity_platform_email_reply_to" {
+  description = "Reply-to email address for authentication emails"
+  type        = string
+  default     = ""
+}
+
+variable "identity_platform_authorized_domains" {
+  description = "Additional authorized domains for OAuth redirects"
+  type        = list(string)
+  default     = []
+}
+
+variable "identity_platform_session_duration" {
+  description = "Session duration in minutes (HIPAA recommends 60 or less)"
+  type        = number
+  default     = 60
+}
+
+# -----------------------------------------------------------------------------
+# Optional: Workforce Identity Configuration (for external IdP federation)
 # -----------------------------------------------------------------------------
 
 variable "workforce_identity_enabled" {

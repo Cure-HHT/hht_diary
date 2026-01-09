@@ -68,7 +68,7 @@ variable "project_prefix" {
 variable "default_region" {
   description = "Default GCP region"
   type        = string
-  default     = "us-central1"
+  default     = "europe-west9"
 }
 
 variable "folder_id" {
@@ -114,6 +114,12 @@ variable "budget_amounts" {
     uat  = 1000
     prod = 5000
   }
+}
+
+variable "enable_cost_controls" {
+  description = "Enable automated cost controls (Pub/Sub + Cloud Function to stop services when budget exceeded). Only affects non-prod environments - prod will alert but not auto-stop."
+  type        = bool
+  default     = true
 }
 
 # -----------------------------------------------------------------------------

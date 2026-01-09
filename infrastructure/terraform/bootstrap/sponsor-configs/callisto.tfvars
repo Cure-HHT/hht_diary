@@ -27,7 +27,7 @@ billing_account_dev  = "01EA1E-F12D75-125CEF" # Callisto - Dev
 # -----------------------------------------------------------------------------
 
 project_prefix = "cure-hht"
-default_region = "us-central1"
+default_region = "europe-west9"
 
 # -----------------------------------------------------------------------------
 # GitHub Integration

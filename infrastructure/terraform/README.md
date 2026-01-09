@@ -90,6 +90,86 @@ infrastructure/terraform/
     └── verify-audit-compliance.sh # FDA compliance check
 ```
 
+## One-Time Setup (Admin Project & State Bucket)
+
+Before using Terraform, you must create a dedicated admin project and the state bucket. This is a **one-time manual setup** that cannot be managed by Terraform (chicken-and-egg problem).
+
+### Why a Separate Admin Project?
+
+- State bucket cannot be in a project that Terraform creates
+- Isolates sensitive state files from sponsor workloads
+- Single place for shared infrastructure
+- Easier billing/cost tracking for platform overhead
+
+### Step 1: Create Admin Project
+
+```bash
+# Set your organization ID
+ORG_ID="666049061860"  # anspar.org
+
+# Create the admin project
+gcloud projects create cure-hht-admin \
+  --organization=$ORG_ID \
+  --name="Cure HHT Admin"
+
+# Link to billing account
+gcloud billing projects link cure-hht-admin \
+  --billing-account=017213-A61D61-71522F
+```
+
+### Step 2: Enable Required APIs
+
+```bash
+gcloud services enable storage.googleapis.com \
+  --project=cure-hht-admin
+```
+
+### Step 3: Create State Bucket
+
+```bash
+# Create bucket in europe-west9 (Paris) for GDPR compliance
+gcloud storage buckets create gs://cure-hht-terraform-state \
+  --project=cure-hht-admin \
+  --location=europe-west9 \
+  --uniform-bucket-level-access \
+  --public-access-prevention
+
+# Enable versioning for state recovery
+gcloud storage buckets update gs://cure-hht-terraform-state \
+  --versioning
+
+# Verify bucket was created
+gcloud storage buckets describe gs://cure-hht-terraform-state
+```
+
+### Step 4: Grant Access to Terraform Users
+
+Users running Terraform need access to the state bucket:
+
+```bash
+# For a specific user
+gcloud storage buckets add-iam-policy-binding gs://cure-hht-terraform-state \
+  --member="user:YOUR_EMAIL@anspar.org" \
+  --role="roles/storage.objectAdmin"
+
+# Or for the org admins group
+gcloud storage buckets add-iam-policy-binding gs://cure-hht-terraform-state \
+  --member="group:gcp-organization-admins@anspar.org" \
+  --role="roles/storage.objectAdmin"
+```
+
+### Verify Setup
+
+```bash
+# Should show the bucket with versioning enabled
+gcloud storage buckets describe gs://cure-hht-terraform-state --format="table(name,versioning.enabled,location)"
+
+# Should be able to list (will be empty initially)
+gcloud storage ls gs://cure-hht-terraform-state/
+```
+
+---
+
 ## Prerequisites
 
 ### Required Tools
@@ -219,7 +299,7 @@ billing_account_dev  = "YYYYYY-YYYYYY-YYYYYY"
 
 # Optional
 project_prefix       = "cure-hht"
-region              = "us-central1"
+region              = "europe-west9"
 ```
 
 **Important:** `sponsor_id` must be unique across all sponsors. It's used for VPC CIDR allocation.
@@ -462,6 +542,237 @@ To destroy production (DANGEROUS):
 2. Run `terraform destroy` manually
 3. Audit bucket will remain (retention locked)
 
+## Script Reference
+
+### scripts/common.sh
+
+Shared functions and configuration used by all other scripts.
+
+**Configuration:**
+```bash
+STATE_BUCKET="cure-hht-terraform-state"  # GCS bucket for Terraform state
+DEFAULT_REGION="europe-west9"            # Paris (GDPR compliance)
+```
+
+**Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `log_info`, `log_warn`, `log_error` | Colored logging output |
+| `log_step` | Log a major step with highlighting |
+| `confirm_action` | Prompt for y/n confirmation |
+| `require_command` | Check if a command exists, exit if not |
+| `get_env_config` | Get environment-specific configuration (budget, DB tier, etc.) |
+| `terraform_init` | Initialize Terraform with GCS backend |
+| `terraform_plan` | Run `terraform plan` with tfvars file |
+| `terraform_apply` | Run `terraform apply` with tfvars file |
+
+**Environment Configurations:**
+```bash
+# Returned by get_env_config function
+ENV_CONFIGS = {
+  dev:  { budget: 500,  db_tier: "db-f1-micro",      ha: false }
+  qa:   { budget: 500,  db_tier: "db-f1-micro",      ha: false }
+  uat:  { budget: 1000, db_tier: "db-custom-1-3840", ha: false }
+  prod: { budget: 5000, db_tier: "db-custom-2-8192", ha: true  }
+}
+```
+
+---
+
+### scripts/bootstrap-sponsor.sh
+
+Creates all 4 GCP projects (dev, qa, uat, prod) for a new sponsor.
+
+**Usage:**
+```bash
+doppler run -- ./bootstrap-sponsor.sh <sponsor> [--apply] [--destroy]
+```
+
+**Arguments:**
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `sponsor` | Yes | Sponsor name (must match tfvars filename) |
+| `--apply` | No | Apply changes (default: plan only) |
+| `--destroy` | No | Destroy all sponsor infrastructure (DANGEROUS) |
+
+**Prerequisites:**
+- Config file: `bootstrap/sponsor-configs/{sponsor}.tfvars`
+- GCS state bucket: `gs://cure-hht-terraform-state/`
+- Org-level IAM roles (see Prerequisites section)
+
+**What It Creates:**
+```
+cure-hht-{sponsor}-dev    - Development project
+cure-hht-{sponsor}-qa     - QA/testing project
+cure-hht-{sponsor}-uat    - User acceptance testing project
+cure-hht-{sponsor}-prod   - Production project
+
+Per project:
+  - 13 GCP APIs enabled
+  - Budget alerts ($500/$500/$1000/$5000)
+  - Audit log bucket (25-year retention)
+  - Log sink (Cloud Audit Logs → GCS)
+  - CI/CD service account
+  - Workload Identity Federation pool (for GitHub Actions)
+```
+
+**Example:**
+```bash
+# Preview what will be created
+doppler run -- ./bootstrap-sponsor.sh callisto
+
+# Create all 4 projects
+doppler run -- ./bootstrap-sponsor.sh callisto --apply
+
+# Check state
+gcloud storage cat gs://cure-hht-terraform-state/bootstrap/callisto/default.tfstate | jq '.resources | length'
+```
+
+**State Location:** `gs://cure-hht-terraform-state/bootstrap/{sponsor}/`
+
+---
+
+### scripts/deploy-environment.sh
+
+Deploys portal infrastructure (Cloud Run, Cloud SQL, VPC, etc.) to a single environment.
+
+**Usage:**
+```bash
+doppler run -- ./deploy-environment.sh <sponsor> <env> [--apply] [--destroy]
+```
+
+**Arguments:**
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `sponsor` | Yes | Sponsor name |
+| `env` | Yes | Environment: `dev`, `qa`, `uat`, or `prod` |
+| `--apply` | No | Apply changes (default: plan only) |
+| `--destroy` | No | Destroy environment (blocked for prod) |
+
+**Prerequisites:**
+- Bootstrap must be completed for this sponsor
+- Config file: `sponsor-portal/sponsor-configs/{sponsor}-{env}.tfvars`
+- Database password in Doppler: `DB_PASSWORD_{SPONSOR}_{ENV}`
+
+**What It Creates:**
+```
+VPC Network
+  - App subnet (/22)
+  - DB subnet (/22)
+  - Serverless VPC connector
+
+Cloud SQL (PostgreSQL 17)
+  - Private IP (VPC-only access)
+  - pgaudit enabled
+  - Automated backups
+
+Cloud Run Services
+  - diary-server (API)
+  - portal-server (Web UI)
+  - VPC connector attached
+
+Artifact Registry
+  - Docker repository for container images
+
+Monitoring
+  - Uptime checks
+  - Error rate alerts
+  - DB CPU/storage alerts
+
+Audit Logs
+  - GCS bucket (25-year retention)
+  - BigQuery dataset
+  - Log sinks
+
+Identity Platform (if enabled)
+  - Email/password auth
+  - MFA configuration
+  - Session management
+```
+
+**Example:**
+```bash
+# Preview dev deployment
+doppler run -- ./deploy-environment.sh callisto dev
+
+# Deploy dev
+doppler run -- ./deploy-environment.sh callisto dev --apply
+
+# Deploy prod (extra confirmation required)
+doppler run -- ./deploy-environment.sh callisto prod --apply
+
+# Get outputs after deployment
+cd sponsor-portal
+terraform output -json
+```
+
+**State Location:** `gs://cure-hht-terraform-state/sponsor-portal/{sponsor}-{env}/`
+
+---
+
+### scripts/verify-audit-compliance.sh
+
+Verifies FDA 21 CFR Part 11 compliance for all sponsor environments.
+
+**Usage:**
+```bash
+./verify-audit-compliance.sh <sponsor>
+```
+
+**Arguments:**
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `sponsor` | Yes | Sponsor name to verify |
+
+**Checks Performed:**
+
+| Check | Requirement | Pass Criteria |
+|-------|-------------|---------------|
+| Bucket exists | All envs | All 4 audit buckets exist |
+| Retention policy | All envs | 25-year (788,400,000 seconds) |
+| Retention locked | Prod only | `isLocked: true` |
+| Log sinks active | All envs | Sinks are not disabled |
+| BigQuery dataset | All envs | Audit dataset exists |
+
+**Example Output:**
+```
+Verifying FDA 21 CFR Part 11 compliance for: callisto
+============================================================
+
+Checking dev environment...
+  ✅ Audit bucket exists: cure-hht-callisto-dev-audit-logs
+  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ Log sink active
+
+Checking qa environment...
+  ✅ Audit bucket exists: cure-hht-callisto-qa-audit-logs
+  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ Log sink active
+
+Checking uat environment...
+  ✅ Audit bucket exists: cure-hht-callisto-uat-audit-logs
+  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ Log sink active
+
+Checking prod environment...
+  ✅ Audit bucket exists: cure-hht-callisto-prod-audit-logs
+  ✅ Retention policy: 25 years (788400000 seconds)
+  ✅ Retention policy LOCKED (tamper-proof)
+  ✅ Log sink active
+
+============================================================
+✅ All environments are FDA 21 CFR Part 11 compliant!
+```
+
+**Exit Codes:**
+| Code | Meaning |
+|------|---------|
+| 0 | All checks passed |
+| 1 | One or more checks failed |
+
+---
+
 ## Module Reference
 
 ### gcp-project
@@ -500,6 +811,85 @@ Creates FDA-compliant audit log storage.
 | `environment`           | string | dev/qa/uat/prod                |
 | `retention_years`       | number | Retention period (default: 25) |
 | `lock_retention_policy` | bool   | Lock retention (prod only)     |
+
+### identity-platform
+
+Creates HIPAA/GDPR-compliant authentication using Google Cloud Identity Platform (enterprise Firebase Auth with BAA).
+
+| Input                        | Type         | Description                                    |
+|------------------------------|--------------|------------------------------------------------|
+| `project_id`                 | string       | GCP project ID                                 |
+| `sponsor`                    | string       | Sponsor name                                   |
+| `environment`                | string       | dev/qa/uat/prod                                |
+| `enable_email_password`      | bool         | Enable email/password auth (default: true)     |
+| `enable_email_link`          | bool         | Enable passwordless email links (default: false)|
+| `enable_phone_auth`          | bool         | Enable phone number auth (default: false)      |
+| `mfa_enforcement`            | string       | OFF, OPTIONAL, MANDATORY (prod forces MANDATORY)|
+| `password_min_length`        | number       | Minimum password length (default: 12)          |
+| `session_duration_minutes`   | number       | Session timeout (default: 60 for HIPAA)        |
+| `authorized_domains`         | list(string) | Additional OAuth redirect domains              |
+| `portal_url`                 | string       | Portal URL for email links                     |
+
+**HIPAA Compliance Features:**
+- MFA mandatory for production environments
+- 12+ character password requirement
+- 60-minute session timeout (configurable)
+- Automatic audit logging to Cloud Audit Logs
+
+### billing-budget
+
+Creates budget alerts with optional auto-stop for non-production.
+
+| Input                 | Type   | Description                              |
+|-----------------------|--------|------------------------------------------|
+| `project_id`          | string | GCP project ID                           |
+| `sponsor`             | string | Sponsor name                             |
+| `environment`         | string | dev/qa/uat/prod                          |
+| `budget_amount`       | number | Monthly budget in USD                    |
+| `enable_cost_control` | bool   | Enable Pub/Sub for auto-stop (non-prod)  |
+
+**Cost Protection:**
+- Budget alerts at 50%, 80%, 100% thresholds
+- Forecasted overspend alerts
+- Pub/Sub topic for automated response (non-prod only)
+- See `tools/cost-control/` for auto-stop Cloud Function
+
+### vpc-network
+
+Creates VPC with private service connection for Cloud SQL.
+
+| Input                       | Type   | Description                     |
+|-----------------------------|--------|---------------------------------|
+| `project_id`                | string | GCP project ID                  |
+| `sponsor`                   | string | Sponsor name                    |
+| `environment`               | string | dev/qa/uat/prod                 |
+| `region`                    | string | GCP region                      |
+| `app_subnet_cidr`           | string | CIDR for application subnet     |
+| `db_subnet_cidr`            | string | CIDR for database subnet        |
+| `connector_cidr`            | string | CIDR for serverless VPC connector|
+| `connector_min_instances`   | number | Min VPC connector instances     |
+| `connector_max_instances`   | number | Max VPC connector instances     |
+
+### cloud-run
+
+Deploys Cloud Run services with Dart-optimized health checks.
+
+| Input                   | Type   | Description                          |
+|-------------------------|--------|--------------------------------------|
+| `project_id`            | string | GCP project ID                       |
+| `sponsor`               | string | Sponsor name                         |
+| `environment`           | string | dev/qa/uat/prod                      |
+| `region`                | string | GCP region                           |
+| `vpc_connector_id`      | string | VPC connector for private SQL access |
+| `diary_server_image`    | string | Docker image for diary API           |
+| `portal_server_image`   | string | Docker image for portal UI           |
+| `min_instances`         | number | Minimum instances (default: 1)       |
+| `max_instances`         | number | Maximum instances (default: 10)      |
+
+**Dart Container Optimization:**
+- Startup probe: 120s total tolerance (30s initial + 6×15s retries)
+- Liveness probe: Conservative 30s intervals
+- Prevents restart loops during JIT compilation
 
 ## Related Documentation
 

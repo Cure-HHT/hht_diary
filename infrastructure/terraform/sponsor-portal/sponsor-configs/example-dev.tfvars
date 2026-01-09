@@ -30,7 +30,7 @@ gcp_org_id = "123456789012"
 # Optional: Project Configuration
 # -----------------------------------------------------------------------------
 
-region         = "us-central1"
+region         = "europe-west9"
 project_prefix = "cure-hht"
 
 # -----------------------------------------------------------------------------
@@ -56,8 +56,36 @@ github_repo = "hht_diary"
 enable_cloud_build_triggers = true
 
 # -----------------------------------------------------------------------------
-# Optional: Workforce Identity
-# Enables sponsor employees to SSO into the portal
+# Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
+# For portal users (investigators, admins)
+# -----------------------------------------------------------------------------
+
+enable_identity_platform = true
+
+# Authentication methods
+identity_platform_email_password = true   # Email/password login
+identity_platform_email_link     = false  # Passwordless email links
+identity_platform_phone_auth     = false  # Phone number authentication
+
+# Security settings
+# MFA: OFF, OPTIONAL, MANDATORY (prod always forces MANDATORY)
+identity_platform_mfa_enforcement   = "OPTIONAL"  # Non-prod can be relaxed
+identity_platform_password_min_length = 12        # HIPAA recommends 12+
+
+# Email configuration for invitations/password resets
+identity_platform_email_sender_name = "Clinical Diary Portal"
+# identity_platform_email_reply_to  = "support@example.com"
+
+# Session duration (HIPAA recommends 60 minutes or less)
+identity_platform_session_duration = 60
+
+# Additional authorized domains for OAuth (auto-includes project domains)
+# identity_platform_authorized_domains = ["portal.example.com"]
+
+# -----------------------------------------------------------------------------
+# Optional: Workforce Identity Federation
+# For external IdP federation (Azure AD, Okta SSO for sponsor staff)
+# Note: Different from Identity Platform - this is for GCP resource access
 # -----------------------------------------------------------------------------
 
 workforce_identity_enabled = false
