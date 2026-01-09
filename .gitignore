@@ -192,3 +192,35 @@ untracked-notes/
 
 # Generated test results
 tools/requirements/trace_view/tests/results/*.json
+
+# =====================================
+# TERRAFORM
+# =====================================
+# Local .terraform directories (plugins, modules)
+**/.terraform/
+
+# tfstate files - state is stored in GCS, not in repo
+*.tfstate
+*.tfstate.*
+
+# Plan files
+*.tfplan
+tfplan
+tfplan.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Override files (for local testing)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration file
+.terraformrc
+terraform.rc
+
+# NOTE: .terraform.lock.hcl SHOULD be committed for reproducible builds
+# Do NOT ignore it!
