@@ -20,7 +20,7 @@ Create a Flutter app for the "CureHHTApp-v4---GenericCo" Figma design with:
 ### Flutter App Structure
 
 ```
-apps/clinical_diary/
+apps/daily-dairy/clinical_diary/
 ├── lib/
 │   ├── main.dart                    # App entry point
 │   ├── config/
@@ -120,14 +120,14 @@ dependencies:
 ### Deploy Cloud Functions
 
 ```bash
-cd apps/clinical_diary/functions
+cd apps/daily-dairy/clinical_diary/functions
 npm run deploy
 ```
 
 ### Run Flutter App
 
 ```bash
-cd apps/clinical_diary
+cd apps/daily-dairy/clinical_diary
 flutter run -d chrome   # Web
 flutter run -d macos    # macOS
 flutter run -d ios      # iOS

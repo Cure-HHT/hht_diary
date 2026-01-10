@@ -70,6 +70,6 @@ curl http://localhost:8080/health
 
 ## Related Files
 
-- `apps/diaryserver/diary_functions/` - Business logic package
-- `apps/diaryserver/diary_server/` - Shelf server package
+- `apps/daily-diary/diary_functions/` - Business logic package
+- `apps/daily-diary/diary_server/` - Shelf server package
 - `infrastructure/dart-base/` - Base Dart image

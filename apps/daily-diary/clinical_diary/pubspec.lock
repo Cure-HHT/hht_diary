@@ -36,7 +36,7 @@ packages:
   append_only_datastore:
     dependency: "direct main"
     description:
-      path: "../common-dart/append_only_datastore"
+      path: "../../common-dart/append_only_datastore"
       relative: true
     source: path
     version: "0.0.1"
