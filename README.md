@@ -134,7 +134,7 @@ See `database/tests/` for SQL test scripts:
 
 ### Flutter App
 
-See **[apps/clinical_diary/README.md](apps/clinical_diary/README.md)** for complete documentation on:
+See **[apps/daily-diary/clinical_diary/README.md](apps/daily-diary/clinical_diary/README.md)** for complete documentation on:
 - Building and running the Flutter app
 - Environment flavors (dev, qa, uat, prod)
 - IDE configurations (IntelliJ IDEA, VSCode)
@@ -150,7 +150,7 @@ See **[apps/clinical_diary/README.md](apps/clinical_diary/README.md)** for compl
 Firebase (Hosting, Functions, Firestore)
 
 ### Deployment Guide
-See `apps/clinical_diary/README.md` for Firebase deployment details.
+See `apps/daily-diary/clinical_diary/README.md` for Firebase deployment details.
 
 ---
 

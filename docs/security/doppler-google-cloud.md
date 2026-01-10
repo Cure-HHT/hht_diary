@@ -35,7 +35,7 @@ The Doppler project and Firebase integration have been configured. New team memb
 
 ```bash
 # In the functions directory
-cd apps/clinical_diary/functions
+cd apps/daily-diary/clinical_diary/functions
 doppler setup
 ```
 
@@ -64,7 +64,7 @@ For complete Doppler setup instructions, see:
 The `package.json` scripts are configured to inject Doppler secrets automatically:
 
 ```bash
-cd apps/clinical_diary/functions
+cd apps/daily-diary/clinical_diary/functions
 
 # Start emulator with Doppler secrets
 npm run serve
@@ -106,7 +106,7 @@ This works for both v1 and v2 Firebase Functions.
   env:
     DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
   run: |
-    cd apps/clinical_diary/functions
+    cd apps/daily-diary/clinical_diary/functions
     npm run deploy
 ```
 
@@ -116,7 +116,7 @@ environment variables from Doppler before deploying.
 ### Manual Deployment
 
 ```bash
-cd apps/clinical_diary/functions
+cd apps/daily-diary/clinical_diary/functions
 
 # Deploy with Doppler secrets injected
 npm run deploy
@@ -132,7 +132,7 @@ fail-closed behavior for auditors:
 The easiest way to run integration tests is via the test script:
 
 ```bash
-cd apps/clinical_diary
+cd apps/daily-diary/clinical_diary
 
 # Run only TypeScript integration tests (starts emulator automatically)
 ./tool/test.sh -ti
@@ -144,7 +144,7 @@ cd apps/clinical_diary
 For manual testing:
 
 ```bash
-cd apps/clinical_diary/functions
+cd apps/daily-diary/clinical_diary/functions
 
 # Terminal 1: Start emulator WITHOUT Doppler (no secrets)
 npm run serve:no-doppler

@@ -110,16 +110,16 @@ echo "export PATH=\"$FLUTTER_DIR/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"
 "$FLUTTER_DIR/bin/dart" --version
 
 # Install Flutter dependencies for main app
-if [ -f "$CLAUDE_PROJECT_DIR/apps/clinical_diary/pubspec.yaml" ]; then
+if [ -f "$CLAUDE_PROJECT_DIR/apps/daily-diary/clinical_diary/pubspec.yaml" ]; then
   echo "Installing Flutter dependencies for clinical_diary..."
-  cd "$CLAUDE_PROJECT_DIR/apps/clinical_diary"
+  cd "$CLAUDE_PROJECT_DIR/apps/daily-diary/clinical_diary"
   "$FLUTTER_DIR/bin/flutter" pub get
 fi
 
 # Install Node.js dependencies for Firebase Functions
-if [ -f "$CLAUDE_PROJECT_DIR/apps/clinical_diary/functions/package.json" ]; then
+if [ -f "$CLAUDE_PROJECT_DIR/apps/daily-diary/clinical_diary/functions/package.json" ]; then
   echo "Installing Node.js dependencies for Firebase Functions..."
-  cd "$CLAUDE_PROJECT_DIR/apps/clinical_diary/functions"
+  cd "$CLAUDE_PROJECT_DIR/apps/daily-diary/clinical_diary/functions"
   npm install
 fi
 

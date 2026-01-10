@@ -1,1 +1,0 @@
-This folder contains one file for each prompt used to make changes to this project.  File name are in {YYMMDD}{prompt # in the day}-{description}.md

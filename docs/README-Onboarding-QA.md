@@ -56,7 +56,7 @@ An FDA inspector may ask:
 
 ### 1. Flutter/Dart Tests (Mobile App & Core Packages)
 
-**Location**: `apps/clinical_diary/test/`
+**Location**: `apps/daily-diary/clinical_diary/test/`
 
 ```
 test/
@@ -70,13 +70,13 @@ test/
 
 **Run locally**:
 ```bash
-cd apps/clinical_diary
+cd apps/daily-diary/clinical_diary
 flutter test                           # All unit tests
 flutter test test/screens/             # Screen tests only
 flutter test --coverage                # With coverage report
 ```
 
-**Integration tests**: `apps/clinical_diary/integration_test/`
+**Integration tests**: `apps/daily-diary/clinical_diary/integration_test/`
 ```bash
 flutter test integration_test/         # Requires desktop target
 ```
@@ -89,7 +89,7 @@ Key integration tests:
 
 ### 2. TypeScript/Firebase Tests
 
-**Location**: `apps/clinical_diary/functions/src/__tests__/`
+**Location**: `apps/daily-diary/clinical_diary/functions/src/__tests__/`
 
 ```
 __tests__/
@@ -103,7 +103,7 @@ __tests__/
 
 **Run locally**:
 ```bash
-cd apps/clinical_diary/functions
+cd apps/daily-diary/clinical_diary/functions
 npm test                      # Jest unit tests
 npm run test:integration      # Requires Firebase emulator
 ```
@@ -127,7 +127,7 @@ cd database/tests
 
 ### 4. Comprehensive Test Suite
 
-**The main test orchestrator**: `apps/clinical_diary/tool/test.sh`
+**The main test orchestrator**: `apps/daily-diary/clinical_diary/tool/test.sh`
 
 This 380+ line script runs everything:
 - Flutter unit tests (configurable concurrency)
@@ -136,7 +136,7 @@ This 380+ line script runs everything:
 - TypeScript integration tests (Firebase emulator)
 
 ```bash
-cd apps/clinical_diary
+cd apps/daily-diary/clinical_diary
 ./tool/test.sh                  # Full suite
 ```
 
@@ -299,19 +299,19 @@ Remember sponsor isolation:
 
 ```bash
 # Flutter unit tests
-cd apps/clinical_diary && flutter test
+cd apps/daily-diary/clinical_diary && flutter test
 
 # Flutter with coverage
 flutter test --coverage && genhtml coverage/lcov.info -o coverage/html
 
 # TypeScript tests
-cd apps/clinical_diary/functions && npm test
+cd apps/daily-diary/clinical_diary/functions && npm test
 
 # Database tests (requires DB connection)
 cd database/tests && ./run_all_tests.sh
 
 # Full suite
-cd apps/clinical_diary && ./tool/test.sh
+cd apps/daily-diary/clinical_diary && ./tool/test.sh
 ```
 
 ### Running Security Scans Locally

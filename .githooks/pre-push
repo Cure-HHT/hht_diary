@@ -392,7 +392,7 @@ fi
 #
 # Runs ./tool/test.sh in any app directory that has code changes.
 # Each app should have its own tool/test.sh script.
-# Supports nested packages (e.g., apps/diaryserver/diary_functions/).
+# Supports nested packages (e.g., apps/daily-diary/diary_functions/).
 
 echo -e "${BLUE}Running test suites...${NC}"
 echo ""
@@ -464,14 +464,14 @@ fi
 HEAD_CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
 
 # Check if clinical_diary source files changed (excluding pubspec.yaml to avoid circular bumps)
-CLINICAL_DIARY_CHANGED=$(echo "$HEAD_CHANGED_FILES" | grep "^apps/clinical_diary/" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
+CLINICAL_DIARY_CHANGED=$(echo "$HEAD_CHANGED_FILES" | grep "^apps/daily-diary/clinical_diary/" | grep -v "pubspec.yaml" | grep -v "pubspec.lock" || true)
 
 if [ -n "$CLINICAL_DIARY_CHANGED" ]; then
     echo -e "${BLUE}Bumping clinical_diary version...${NC}"
     echo "  Changed files:"
     echo "$CLINICAL_DIARY_CHANGED" | sed 's/^/    /'
 
-    PUBSPEC="$REPO_ROOT/apps/clinical_diary/pubspec.yaml"
+    PUBSPEC="$REPO_ROOT/apps/daily-diary/clinical_diary/pubspec.yaml"
 
     if [ -f "$PUBSPEC" ]; then
         # Get current version
@@ -479,7 +479,7 @@ if [ -n "$CLINICAL_DIARY_CHANGED" ]; then
         echo "  Current version: $CURRENT_VERSION"
 
         # Bump patch version
-        (cd "$REPO_ROOT/apps/clinical_diary" && dart pub bump patch)
+        (cd "$REPO_ROOT/apps/daily-diary/clinical_diary" && dart pub bump patch)
 
         # Get new version
         NEW_VERSION=$(grep '^version:' "$PUBSPEC" | sed 's/version: //')

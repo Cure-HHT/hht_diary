@@ -61,7 +61,7 @@ During a regulatory audit, an FDA inspector may ask questions like:
 
 | Component | Purpose | Where to Learn More |
 | --------- | ------- | ------------------- |
-| Mobile App (Flutter) | Patient diary entry | `apps/clinical_diary/`, `spec/prd-diary-app.md` |
+| Mobile App (Flutter) | Patient diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-diary-app.md` |
 | Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/`, `spec/prd-portal.md` |
 | Database (PostgreSQL) | Event store, audit trails, RLS | `database/`, `spec/dev-database.md` |
 | EDC Integration | Export to sponsor's Electronic Data Capture | `spec/dev-CDISC.md` |

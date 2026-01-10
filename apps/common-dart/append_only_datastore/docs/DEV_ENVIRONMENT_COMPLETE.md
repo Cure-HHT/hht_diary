@@ -83,7 +83,7 @@ All workflows in `.github/workflows/` at repository root:
 
 - ✅ `clinical_diary-ci.yml`
   - Triggers: Push/PR to main or develop
-  - Path filter: `apps/clinical_diary/**`
+  - Path filter: `apps/daily-diary/clinical_diary/**`
   - Runs: Format, analyze, tests (stable + beta)
   
 - ✅ `clinical_diary-coverage.yml`
@@ -215,7 +215,7 @@ cd apps/common-dart/trial_data_types
 open coverage/html/index.html
 
 # Test clinical_diary
-cd apps/clinical_diary
+cd apps/daily-diary/clinical_diary
 ./tool/test.sh
 ./tool/coverage.sh
 open coverage/html/index.html

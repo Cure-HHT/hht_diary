@@ -1,0 +1,29 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-o00056: Container infrastructure for Cloud Run
+#
+# Shelf HTTP server for HHT Portal API
+# Hosts portal_functions as HTTP endpoints
+
+name: portal_server
+description: Shelf HTTP server hosting portal functions for Cloud Run
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # HTTP server
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+
+  # Business logic
+  portal_functions:
+    path: ../portal_functions
+
+  # Environment & logging
+  logging: ^1.3.0
+
+dev_dependencies:
+  test: ^1.25.15
+  http: ^1.3.0

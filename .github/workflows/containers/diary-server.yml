@@ -11,14 +11,14 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/diaryserver/**'
+      - 'apps/daily-diary/**'
       - 'apps/common-dart/trial_data_types/**'
       - 'infrastructure/diary-server/**'
       - '.github/versions.env'
       - '.github/workflows/containers/diary-server.yml'
   pull_request:
     paths:
-      - 'apps/diaryserver/**'
+      - 'apps/daily-diary/**'
       - 'apps/common-dart/trial_data_types/**'
       - 'infrastructure/diary-server/**'
       - '.github/versions.env'

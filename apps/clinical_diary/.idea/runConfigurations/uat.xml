@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="uat" type="FlutterRunConfigurationType" factoryName="Flutter">
-    <option name="additionalArgs" value="--dart-define=APP_FLAVOR=uat" />
-    <option name="buildFlavor" value="uat" />
-    <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />
-    <method v="2" />
-  </configuration>
-</component>
