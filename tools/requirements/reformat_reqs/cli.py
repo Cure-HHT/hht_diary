@@ -25,7 +25,10 @@ IMPLEMENTS REQUIREMENTS:
 import argparse
 import json
 import sys
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from threading import Lock
 from typing import Any, Dict, List
 
 from .hierarchy import (
@@ -137,6 +140,17 @@ Examples:
         '--line-breaks-only',
         action='store_true',
         help='Only fix line breaks, skip AI-based reformatting'
+    )
+    parser.add_argument(
+        '--parallel',
+        action='store_true',
+        help='Process files in parallel (one REQ per file at a time)'
+    )
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=8,
+        help='Number of parallel workers (default: 8)'
     )
 
     return parser
@@ -382,6 +396,197 @@ def process_line_breaks_only(
         })
 
 
+def process_file_sequentially(
+    file_path: str,
+    nodes: List[RequirementNode],
+    args: argparse.Namespace,
+    results: Dict[str, List],
+    results_lock: Lock,
+    print_lock: Lock
+) -> None:
+    """
+    Process all requirements in a single file sequentially.
+
+    This is called by parallel workers - one file per worker at a time.
+    """
+    for node in nodes:
+        # Check format
+        analysis = detect_format(node.body, node.rationale)
+
+        if analysis.is_new_format and not args.force_reformat:
+            with results_lock:
+                results['already_formatted'].append(node.req_id)
+            continue
+
+        # Log what we're doing
+        format_desc = "old format" if not analysis.is_new_format else "forced"
+        with print_lock:
+            print(
+                f"[PROCESS] {node.req_id}: {node.title} ({format_desc})",
+                file=sys.stderr
+            )
+
+        if args.dry_run:
+            with results_lock:
+                results['processed'].append({
+                    'req_id': node.req_id,
+                    'file': node.file_path,
+                    'action': 'would_reformat',
+                    'reason': format_desc
+                })
+            continue
+
+        # Reformat with Claude
+        if args.verbose:
+            with print_lock:
+                print(f"  Calling Claude ({args.model})...", file=sys.stderr)
+
+        parsed, success, error_msg = reformat_requirement(
+            node,
+            model=args.model,
+            verbose=args.verbose
+        )
+
+        if not success:
+            with print_lock:
+                print(f"  [ERROR] {node.req_id}: {error_msg}", file=sys.stderr)
+            with results_lock:
+                results['errors'].append({
+                    'req_id': node.req_id,
+                    'error': error_msg
+                })
+            continue
+
+        # Extract and clean up AI output
+        rationale = parsed['rationale']
+        assertions = parsed['assertions']
+
+        # Normalize line breaks
+        rationale = normalize_line_breaks(rationale, reflow=True).strip()
+        assertions = [normalize_line_breaks(a, reflow=True).strip() for a in assertions]
+
+        is_valid, warnings = validate_reformatted_content(node, rationale, assertions)
+
+        if not is_valid:
+            with print_lock:
+                print(f"  [ERROR] {node.req_id}: Validation failed", file=sys.stderr)
+            with results_lock:
+                results['errors'].append({
+                    'req_id': node.req_id,
+                    'error': 'validation_failed',
+                    'warnings': warnings
+                })
+            continue
+
+        # Assemble new content
+        new_content = assemble_new_format(
+            req_id=node.req_id,
+            title=node.title,
+            level=node.level,
+            status=node.status,
+            implements=node.implements,
+            rationale=rationale,
+            assertions=assertions
+        )
+
+        # Replace in file
+        try:
+            replace_requirement_in_file(
+                node.file_path,
+                node.req_id,
+                new_content,
+                create_backup=args.backup
+            )
+            with print_lock:
+                print(f"  [OK] {node.req_id} -> {Path(node.file_path).name}", file=sys.stderr)
+
+            # Update hash
+            if not args.skip_hash_update:
+                if update_hash(node.req_id, verbose=False):
+                    pass  # Success, no need to print
+                else:
+                    with print_lock:
+                        print(f"  [WARN] {node.req_id}: Hash update failed", file=sys.stderr)
+
+            with results_lock:
+                results['processed'].append({
+                    'req_id': node.req_id,
+                    'file': node.file_path,
+                    'action': 'reformatted',
+                    'assertions': len(assertions),
+                    'warnings': warnings
+                })
+
+        except Exception as e:
+            with print_lock:
+                print(f"  [ERROR] {node.req_id}: {e}", file=sys.stderr)
+            with results_lock:
+                results['errors'].append({
+                    'req_id': node.req_id,
+                    'error': str(e)
+                })
+
+
+def process_parallel(
+    requirements: Dict[str, RequirementNode],
+    start_req: str,
+    args: argparse.Namespace,
+    results: Dict[str, Any],
+    max_depth: int = None
+) -> List[str]:
+    """
+    Process requirements in parallel, one file at a time per worker.
+
+    Groups requirements by file and processes files in parallel,
+    but requirements within each file are processed sequentially
+    to avoid file write conflicts.
+    """
+    # First, collect all requirements that need processing
+    nodes_to_process = []
+
+    def collect_callback(node: RequirementNode, depth: int) -> None:
+        nodes_to_process.append(node)
+
+    visited = traverse_top_down(
+        requirements,
+        start_req,
+        max_depth=max_depth,
+        callback=collect_callback
+    )
+
+    # Group by file
+    by_file: Dict[str, List[RequirementNode]] = defaultdict(list)
+    for node in nodes_to_process:
+        by_file[node.file_path].append(node)
+
+    print(f"Grouped {len(nodes_to_process)} requirements into {len(by_file)} files", file=sys.stderr)
+    print(f"Processing with {args.workers} workers...", file=sys.stderr)
+    print("", file=sys.stderr)
+
+    # Process files in parallel
+    results_lock = Lock()
+    print_lock = Lock()
+
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        futures = {
+            executor.submit(
+                process_file_sequentially,
+                file_path, nodes, args, results, results_lock, print_lock
+            ): file_path
+            for file_path, nodes in by_file.items()
+        }
+
+        for future in as_completed(futures):
+            file_path = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                with print_lock:
+                    print(f"[ERROR] File {file_path}: {e}", file=sys.stderr)
+
+    return visited
+
+
 def main() -> int:
     """Main entry point."""
     parser = create_parser()
@@ -444,22 +649,36 @@ def main() -> int:
     else:
         print("Mode: Full AI-based reformatting", file=sys.stderr)
 
+    if args.parallel:
+        print(f"Parallel: {args.workers} workers", file=sys.stderr)
+
     print("", file=sys.stderr)
 
-    # Traverse and process - use appropriate callback based on mode
-    if args.line_breaks_only:
-        def process_callback(node: RequirementNode, depth: int) -> None:
-            process_line_breaks_only(node, depth, args, results)
+    # Process - use parallel or sequential based on --parallel flag
+    if args.parallel and not args.line_breaks_only:
+        # Parallel mode: process files concurrently, REQs within file sequentially
+        visited = process_parallel(
+            requirements,
+            start_req,
+            args,
+            results,
+            max_depth=args.depth
+        )
     else:
-        def process_callback(node: RequirementNode, depth: int) -> None:
-            process_requirement(node, depth, args, results)
+        # Sequential mode: traverse and process one at a time
+        if args.line_breaks_only:
+            def process_callback(node: RequirementNode, depth: int) -> None:
+                process_line_breaks_only(node, depth, args, results)
+        else:
+            def process_callback(node: RequirementNode, depth: int) -> None:
+                process_requirement(node, depth, args, results)
 
-    visited = traverse_top_down(
-        requirements,
-        start_req,
-        max_depth=args.depth,
-        callback=process_callback
-    )
+        visited = traverse_top_down(
+            requirements,
+            start_req,
+            max_depth=args.depth,
+            callback=process_callback
+        )
 
     # Summary
     print("", file=sys.stderr)

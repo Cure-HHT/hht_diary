@@ -16,29 +16,28 @@
 
 # REQ-p00045: Sponsor Portal Application
 
-**Level**: PRD | **Implements**: p00044 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00044
 
-The Sponsor Portal is an **optional** system component, depending on the Sponsor's data collections system. This portal is **necessary** in configurations where the mobile App does not directly communicate with the Sponsor's chosen EDC. It may be deemed necessary for other reasons, specific to the Sponsor's requirements.  
+## Rationale
 
-Example use cases: A sponsor-specific web application enabling clinical trial staff to manage users, enroll patients, monitor engagement, and access audit trails with complete sponsor data isolation.
+The Sponsor Portal provides an optional sponsor-facing interface for clinical trial management when direct EDC integration is not available or when sponsor-specific requirements dictate its use. This component enables clinical trial staff to manage patients, monitor engagement, and maintain regulatory oversight while ensuring complete data isolation between sponsors. The portal supports various roles (Admins, Investigators, Auditors) and provides comprehensive audit capabilities required for FDA 21 CFR Part 11 compliance.
 
-Sponsor portal MAY provide:
-- Role-based access for Admins, Investigators, and Auditors
-- Patient enrollment and monitoring workflows
-- Questionnaire management and distribution
-- Audit trail access for compliance reviews
-- Sponsor-specific branding and configuration
+## Assertions
 
-**Rationale**: Provides the sponsor-facing interface for clinical trial management, enabling staff to oversee patient participation while maintaining regulatory compliance and data isolation between sponsors.
+A. The platform SHALL support optional deployment of a Sponsor Portal component based on sponsor configuration requirements.
+B. The Sponsor Portal SHALL be deployed as a separate instance per sponsor.
+C. The platform SHALL enforce role-based access control distinguishing between Admin, Investigator, and Auditor roles.
+D. The Sponsor Portal SHALL provide patient enrollment workflows.
+E. The Sponsor Portal SHALL provide patient monitoring workflows.
+F. The Sponsor Portal SHALL provide questionnaire management capabilities.
+G. The Sponsor Portal SHALL provide questionnaire distribution capabilities.
+H. The Sponsor Portal SHALL provide access to audit trail data for compliance reviews.
+I. The Sponsor Portal SHALL record all staff actions in the audit trail.
+J. The Sponsor Portal SHALL provide real-time patient engagement monitoring.
+K. The Sponsor Portal SHALL apply sponsor-specific branding throughout the interface.
+L. The Sponsor Portal SHALL maintain complete data isolation between sponsors.
 
-**Acceptance Criteria**:
-- Separate portal deployment per sponsor
-- Role-based access control enforced
-- Complete audit trail of all staff actions
-- Real-time patient engagement monitoring
-- Sponsor branding applied throughout interface
-
-*End* *Sponsor Portal Application* | **Hash**: 0f70e13b
+*End* *Sponsor Portal Application* | **Hash**: 5944889c
 
 ---
 
@@ -59,261 +58,228 @@ The Clinical Trial Web Portal is a sponsor-specific web application that enables
 
 # REQ-p00024: Portal User Roles and Permissions
 
-**Level**: PRD | **Implements**: p00009 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00009
 
-The portal SHALL support three user roles with distinct permissions: Admin (user management), Investigator (patient operations), and Auditor (compliance oversight).
+## Rationale
 
-Role permissions SHALL ensure:
-- **Admins** create and manage Investigator and Auditor accounts
-- **Admins** revoke access for Investigators and Auditors
-- **Investigators** enroll patients at their assigned clinical sites
-- **Investigators** send questionnaires and monitor patient engagement
-- **Investigators** generate monthly reports for their sites
-- **Auditors** view all data in read-only mode
-- **Auditors** export database for compliance reviews
-- Users can only access data from their assigned sponsor
-- Each user assigned to exactly one role
-- No user has permissions across multiple sponsors
+Clinical trials require clear separation of responsibilities to maintain regulatory compliance and proper oversight. Admins manage system access control, Investigators perform day-to-day patient operations, and Auditors provide independent compliance oversight. This role-based access control model ensures proper controls, prevents conflicts of interest, and maintains complete audit trails as required by FDA 21 CFR Part 11. Sponsor isolation prevents cross-contamination of trial data between different clinical studies.
 
-**Rationale**: Clinical trials require clear separation of responsibilities. Admins manage system access, Investigators perform day-to-day patient operations, and Auditors provide independent oversight. This separation ensures proper controls and audit trails for regulatory compliance (21 CFR Part 11).
+## Assertions
 
-**Acceptance Criteria**:
-- Admin role can create Investigator and Auditor accounts
-- Admin role can revoke tokens for Investigators and Auditors
-- Admin role cannot enroll patients or send questionnaires
-- Investigator role can enroll patients at assigned sites only
-- Investigator role can send questionnaires to patients at assigned sites
-- Investigator role cannot create other users
-- Auditor role can view all portal data in read-only mode
-- Auditor role can export database (compliance function)
-- Auditor role cannot create, update, or delete any records
-- All user actions captured in audit trail
-- Users cannot switch roles without Admin intervention
+A. The portal SHALL support exactly three user roles: Admin, Investigator, and Auditor.
+B. The system SHALL assign each user to exactly one role.
+C. The system SHALL restrict each user to accessing data from only their assigned sponsor.
+D. The system SHALL prevent users from having permissions across multiple sponsors.
+E. Admin users SHALL be able to create Investigator accounts.
+F. Admin users SHALL be able to create Auditor accounts.
+G. Admin users SHALL be able to revoke access tokens for Investigator users.
+H. Admin users SHALL be able to revoke access tokens for Auditor users.
+I. Admin users SHALL NOT be able to enroll patients.
+J. Admin users SHALL NOT be able to send questionnaires.
+K. Investigator users SHALL be able to enroll patients at their assigned clinical sites only.
+L. Investigator users SHALL be able to send questionnaires to patients at their assigned sites.
+M. Investigator users SHALL be able to monitor patient engagement for their assigned sites.
+N. Investigator users SHALL be able to generate monthly reports for their assigned sites.
+O. Investigator users SHALL NOT be able to create other user accounts.
+P. Auditor users SHALL be able to view all portal data in read-only mode for their assigned sponsor.
+Q. Auditor users SHALL be able to export the database for compliance reviews.
+R. Auditor users SHALL NOT be able to create any records.
+S. Auditor users SHALL NOT be able to update any records.
+T. Auditor users SHALL NOT be able to delete any records.
+U. The system SHALL capture all user actions in the audit trail.
+V. The system SHALL prevent users from switching roles without Admin intervention.
 
-*End* *Portal User Roles and Permissions* | **Hash**: cf1917cb
+*End* *Portal User Roles and Permissions* | **Hash**: bfcc5610
 ---
 
 # REQ-p00025: Patient Enrollment Workflow
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00009, p00024
 
-Investigators SHALL be able to enroll new patients using IRT-provided patient IDs and generate unique linking codes for patients to connect their mobile diary applications.
+## Rationale
 
-Patient enrollment SHALL ensure:
-- Investigator enters patient ID from IRT system (format: SSS-PPPPPPP)
-- Investigator selects patient's clinical site from assigned sites
-- System generates unique 10-character linking code (format: XXXXX-XXXXX)
-- Linking code uses non-ambiguous characters only (no 0, O, 1, I, l)
-- Patient uses linking code to connect mobile app to portal
-- Enrolled patients visible in Investigator's patient monitoring dashboard
-- Investigators can only enroll patients at their assigned sites
-- Each patient ID can only be enrolled once
-- Linking codes never reused
+Patient enrollment bridges the Interactive Response Technology (IRT) system, which handles randomization and patient ID assignment, with the clinical trial diary platform. The linking code mechanism provides a secure yet user-friendly method for patients to connect their mobile diary applications to the correct trial and sponsor without exposing technical infrastructure details or requiring complex configuration. This approach balances security requirements with usability for non-technical patient users while maintaining strict data isolation between sponsors and sites. The non-ambiguous character set prevents transcription errors during the manual code entry process.
 
-**Rationale**: Patient enrollment connects the IRT system (which randomizes and assigns patient IDs) with the diary system. Linking codes provide a secure, user-friendly method for patients to connect their mobile apps to the correct sponsor and trial without exposing technical details or requiring complex setup.
+## Assertions
 
-**Acceptance Criteria**:
-- Investigator can enter patient ID from IRT (SSS-PPPPPPP format)
-- System validates patient ID format before enrollment
-- Investigator selects site from dropdown (only assigned sites shown)
-- System auto-generates 10-character linking code on enrollment
-- Linking code displayed to Investigator for patient communication
-- Linking code uses alphanumeric characters excluding 0, O, 1, I, l
-- Duplicate patient ID rejected with clear error message
-- Enrolled patient appears in monitoring dashboard immediately
-- Patient can link mobile app using generated code
-- Linking code association permanent (cannot be changed after linking)
+A. The system SHALL allow Investigators to enroll new patients using IRT-provided patient IDs.
+B. The system SHALL accept patient IDs in the format SSS-PPPPPPP where S represents site digits and P represents patient digits.
+C. The system SHALL validate patient ID format before completing enrollment.
+D. The system SHALL require Investigators to select the patient's clinical site from their assigned sites during enrollment.
+E. The system SHALL display only sites assigned to the Investigator in the site selection dropdown.
+F. The system SHALL generate a unique 10-character linking code in the format XXXXX-XXXXX upon successful patient enrollment.
+G. The system SHALL generate linking codes using only alphanumeric characters excluding the characters 0, O, 1, I, and l.
+H. The system SHALL display the generated linking code to the Investigator for communication to the patient.
+I. The system SHALL allow patients to connect their mobile diary application using the linking code.
+J. The system SHALL map each linking code to the correct sponsor to enable proper authentication routing.
+K. The system SHALL reject attempts to enroll a patient ID that has already been enrolled.
+L. The system SHALL display a clear error message when a duplicate patient ID is submitted for enrollment.
+M. The system SHALL immediately display newly enrolled patients in the Investigator's patient monitoring dashboard.
+N. The system SHALL prevent Investigators from enrolling patients at sites not assigned to them.
+O. The system SHALL NOT allow reuse of linking codes.
+P. The system SHALL make the linking code association permanent once a patient has linked their mobile application.
+Q. The system SHALL NOT allow modification of the linking code association after the patient has linked their mobile application.
 
-TODO - need how a linking code maps to a sponsor so the diary app knows which site to auth with.
-
-*End* *Patient Enrollment Workflow* | **Hash**: 69eb21e9
+*End* *Patient Enrollment Workflow* | **Hash**: 088991b7
 ---
 
 # REQ-p00026: Patient Monitoring Dashboard
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00009, p00024
 
-Investigators SHALL have real-time visibility into patient engagement through a monitoring dashboard showing patient status, days without data entry, last login time, and questionnaire completion status.
+## Rationale
 
-Patient monitoring SHALL provide:
-- **Patient Status Indicators**:
-  - Active (Green): Patient entered data within last 3 days
-  - Attention (Yellow): 4-7 days since last data entry
-  - At Risk (Red): More than 7 days since last data entry
-  - No Data (Gray): Patient has never entered diary data
-- **Engagement Metrics**:
-  - Days without data entry (calculated from last entry timestamp)
-  - Last login time (e.g., "2 hours ago", "3 days ago")
-  - Enrollment date
-  - Assigned clinical site
-- **Data Filtering**:
-  - Investigators see only patients from their assigned sites
-  - Auditors see all patients across all sites (read-only)
-  - Admins see all patients but cannot perform operational tasks
-- **Summary Statistics**:
-  - Total patients enrolled
-  - Patients active today
-  - Patients requiring follow-up (attention or at risk)
+Investigators need real-time awareness of patient engagement to identify patients who may need reminders or support. Status indicators provide quick visual scanning of large patient lists to prioritize intervention. Site-based filtering ensures Investigators focus on their assigned locations while maintaining data isolation required for multi-site clinical trials. This monitoring capability enables proactive patient retention and data quality management, which are critical for trial integrity and regulatory compliance.
 
-**Rationale**: Investigators need real-time awareness of patient engagement to identify patients who may need reminders or support. Status indicators provide quick visual scanning of large patient lists. Site-based filtering ensures Investigators focus on their assigned locations while maintaining data isolation.
+## Assertions
 
-**Acceptance Criteria**:
-- Dashboard shows patient ID, site, status badge, days without data
-- Status color updates automatically based on last data entry
-- "Days Without Data" calculated from last diary entry timestamp
-- Last login shows time since patient's last app login
-- Investigators see patients from assigned sites only
-- Auditors see all patients across all sites
-- Summary cards show total, active today, requires follow-up counts
-- Dashboard refreshes to show newly enrolled patients
-- Visual indicators distinguishable for accessibility (color + text)
+A. The system SHALL provide a patient monitoring dashboard accessible to Investigators, Auditors, and Admins.
+B. The dashboard SHALL display the following fields for each patient: patient ID, assigned clinical site, status indicator, days without data entry, and last login time.
+C. The system SHALL calculate 'days without data entry' from the timestamp of the patient's last diary entry.
+D. The system SHALL display a Green 'Active' status indicator when a patient has entered data within the last 3 days.
+E. The system SHALL display a Yellow 'Attention' status indicator when 4-7 days have elapsed since the patient's last data entry.
+F. The system SHALL display a Red 'At Risk' status indicator when more than 7 days have elapsed since the patient's last data entry.
+G. The system SHALL display a Gray 'No Data' status indicator when a patient has never entered diary data.
+H. The system SHALL update status indicators automatically based on the timestamp of the last data entry.
+I. The system SHALL display last login time in relative format (e.g., '2 hours ago', '3 days ago').
+J. The system SHALL display enrollment date for each patient on the dashboard.
+K. The system SHALL display assigned clinical site for each patient on the dashboard.
+L. The system SHALL filter the patient list for Investigators to show only patients from their assigned sites.
+M. The system SHALL display all patients across all sites to Auditors with read-only access.
+N. The system SHALL display all patients across all sites to Admins.
+O. The system SHALL display a summary statistic showing total patients enrolled.
+P. The system SHALL display a summary statistic showing patients active today.
+Q. The system SHALL display a summary statistic showing patients requiring follow-up (Attention or At Risk status).
+R. The dashboard SHALL refresh to show newly enrolled patients without requiring manual page reload.
+S. The system SHALL make status indicators visually distinguishable through both color and text to meet accessibility requirements.
 
-*End* *Patient Monitoring Dashboard* | **Hash**: 256f8363
+*End* *Patient Monitoring Dashboard* | **Hash**: d361e406
 ---
 
 # REQ-p00027: Questionnaire Management
 
-**Level**: PRD | **Implements**: p00009, p00024 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00009, p00024
 
-Investigators SHALL be able to send push notifications to patients to complete specific questionnaires (NOSE HHT and Quality of Life) and track questionnaire completion status.
+## Rationale
 
-Questionnaire management SHALL provide:
-- **Questionnaire Types**:
-  - NOSE HHT: Nasal Obstruction Symptom Evaluation for Hereditary Hemorrhagic Telangiectasia
-  - QoL: Quality of Life assessment
-- **Status Workflow**:
-  - Not Sent: Ready to send questionnaire
-  - Sent: Questionnaire pushed to patient's mobile app (shows "Pending")
-  - Completed: Patient finished questionnaire (shows completion date)
-  - Acknowledged: Investigator reviewed completion, resets to "Not Sent" for next cycle
-- **Actions Available**:
-  - Send: Push questionnaire notification to patient's mobile app
-  - Resend: Send questionnaire again if needed
-  - Acknowledge: Mark questionnaire as reviewed, reset to "Not Sent"
-- **Tracking Features**:
-  - Last completion date displayed for each questionnaire type
-  - Independent status tracking per questionnaire type per patient
-  - Investigators can only send to patients at assigned sites
+Clinical trial protocols often require periodic questionnaires (such as NOSE HHT and Quality of Life assessments) to be administered separately from daily diary entries. Push notification capabilities ensure patients receive timely reminders to complete required assessments. Independent status tracking per questionnaire type enables Investigators to monitor protocol compliance, identify non-responders, and follow up appropriately. The status workflow (Not Sent → Sent → Completed → Acknowledged → Not Sent) supports cyclical administration of questionnaires throughout the trial. Role-based access controls ensure that only Investigators can initiate questionnaire sends while Auditors maintain read-only visibility for regulatory oversight. Site-based restrictions on send capabilities maintain proper investigator-patient relationships and data integrity.
 
-**Rationale**: Clinical trial protocols often require periodic questionnaires separate from daily diary entries. Push notifications ensure patients receive timely reminders. Status tracking enables Investigators to monitor compliance and follow up with patients who haven't completed required questionnaires.
+## Assertions
 
-**Acceptance Criteria**:
-- Investigator can send NOSE HHT questionnaire to patient
-- Investigator can send QoL questionnaire to patient
-- Each questionnaire type tracked independently
-- Status changes from "Not Sent" to "Sent" when pushed
-- Status changes to "Completed" when patient finishes (with date)
-- Investigator can acknowledge completion (resets to "Not Sent")
-- Last completion date displayed above each questionnaire column
-- Resend option available for sent questionnaires
-- Investigators can only send to patients at assigned sites
-- Auditors can view questionnaire status but cannot send or acknowledge
+A. The system SHALL support two questionnaire types: NOSE HHT (Nasal Obstruction Symptom Evaluation for Hereditary Hemorrhagic Telangiectasia) and QoL (Quality of Life assessment).
+B. The system SHALL implement a questionnaire status workflow with four states: Not Sent, Sent, Completed, and Acknowledged.
+C. The system SHALL enable Investigators to send push notifications to patients to complete specific questionnaires.
+D. The system SHALL enable Investigators to resend questionnaire notifications when needed.
+E. The system SHALL enable Investigators to acknowledge questionnaire completion.
+F. The system SHALL change questionnaire status from Not Sent to Sent when a push notification is delivered to the patient's mobile app.
+G. The system SHALL change questionnaire status to Completed when the patient finishes the questionnaire.
+H. The system SHALL record the completion date when questionnaire status changes to Completed.
+I. The system SHALL change questionnaire status from Acknowledged to Not Sent when an Investigator acknowledges completion.
+J. The system SHALL display the last completion date for each questionnaire type.
+K. The system SHALL track questionnaire status independently for each questionnaire type per patient.
+L. The system SHALL display Sent status questionnaires as Pending in the patient's mobile app.
+M. The system SHALL restrict Investigators to sending questionnaires only to patients assigned to their sites.
+N. The system SHALL enable Auditors to view questionnaire status.
+O. The system SHALL NOT enable Auditors to send questionnaire notifications.
+P. The system SHALL NOT enable Auditors to acknowledge questionnaire completion.
 
-TODO Not described - who and how the questionaires are created and added to the system.  Also versioning.
-
-*End* *Questionnaire Management* | **Hash**: 9253c04f
+*End* *Questionnaire Management* | **Hash**: 6d930ebf
 ---
 
 # REQ-p00028: Token Revocation and Access Control
 
-**Level**: PRD | **Implements**: p00009, p00024, p00014 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00009, p00024, p00014
 
-Admins SHALL be able to revoke access for Investigators and Auditors, and Investigators SHALL be able to revoke patient mobile app access when necessary.
+## Rationale
 
-Token revocation SHALL ensure:
-- **Admin Capabilities**:
-  - Revoke Investigator device access (prevents portal login)
-  - Revoke Auditor access
-  - Revocation immediate (no grace period)
-  - Revoked users cannot re-activate themselves
-- **Investigator Capabilities**:
-  - Revoke patient mobile app access (for lost/stolen devices)
-  - Revoke only for patients at assigned sites
-- **Audit Trail**:
-  - All revocations logged with timestamp and revoking user
-  - Revocation reason captured (optional but recommended)
-  - Revoked tokens never reused
-- **Security**:
-  - Revocation implemented via status field (soft delete)
-  - Active tokens checked on every request
-  - No residual access after revocation
+Clinical trials must be able to immediately terminate access when staff leave, devices are lost, or security incidents occur. This requirement addresses FDA 21 CFR Part 11 requirements for access control and audit trails. The soft delete approach via status field maintains complete audit trail integrity while preventing further access. Immediate revocation ensures no window of unauthorized access between revocation decision and enforcement. This implements parent requirements for authentication (p00009), role-based access control (p00024), and audit trails (p00014).
 
-**Rationale**: Clinical trials must be able to immediately terminate access when staff leave, devices are lost, or security incidents occur. Soft delete via status field maintains audit trail while preventing access. Immediate revocation ensures no window of unauthorized access.
+## Assertions
 
-**Acceptance Criteria**:
-- Admin can click "Revoke Access" for Investigator or Auditor
-- Investigator can click "Revoke Token" for patient at assigned site
-- Revocation takes effect immediately (next request denied)
-- Revoked user/device receives clear error message on next access
-- All revocations logged in audit trail with timestamp and actor
-- Revoked tokens cannot be re-enabled (must generate new linking code)
-- Investigator cannot revoke other Investigators or Auditors
-- Investigator cannot revoke patients at non-assigned sites
-- Auditor cannot revoke any tokens (read-only role)
+A. The system SHALL provide Admins with the capability to revoke Investigator device access.
+B. The system SHALL provide Admins with the capability to revoke Auditor access.
+C. The system SHALL provide Investigators with the capability to revoke patient mobile app access for patients at their assigned sites.
+D. The system SHALL NOT allow Investigators to revoke access for patients at non-assigned sites.
+E. The system SHALL NOT allow Investigators to revoke access for other Investigators or Auditors.
+F. The system SHALL NOT allow Auditors to revoke any tokens.
+G. The system SHALL enforce token revocation immediately with no grace period.
+H. The system SHALL deny the next request from a revoked token.
+I. The system SHALL NOT allow revoked users to re-activate themselves.
+J. The system SHALL implement token revocation via a status field rather than deletion.
+K. The system SHALL check token active status on every authenticated request.
+L. The system SHALL log all revocation events with timestamp and revoking user identity.
+M. The system SHALL capture revocation reason when provided.
+N. The system SHALL NOT reuse revoked tokens.
+O. The system SHALL NOT allow re-enablement of revoked tokens.
+P. The system SHALL require generation of a new linking code for re-enabling access.
+Q. The system SHALL provide a user interface element for Admins to revoke Investigator access.
+R. The system SHALL provide a user interface element for Admins to revoke Auditor access.
+S. The system SHALL provide a user interface element for Investigators to revoke patient tokens.
+T. The system SHALL display a clear error message to revoked users on their next access attempt.
 
-TODO - Audit use of token after revocation?
-
-*End* *Token Revocation and Access Control* | **Hash**: 8cab5f14
+*End* *Token Revocation and Access Control* | **Hash**: fcc67e9c
 ---
 
 # REQ-p00029: Auditor Dashboard and Data Export
 
-**Level**: PRD | **Implements**: p00009, p00024, p00004 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00009, p00024, p00004
 
-Auditors SHALL have read-only access to all portal data across all sites and the ability to export the complete database for compliance reviews.
+## Rationale
 
-Auditor capabilities SHALL ensure:
-- **Read-Only Access**:
-  - View all portal users (Admins, Investigators, Auditors)
-  - View all patients across all sites
-  - View questionnaire statuses
-  - View enrollment dates and engagement metrics
-  - No create, update, or delete permissions
-- **Data Export**:
-  - Export complete database (stub for future implementation)
-  - Export formats: CSV, JSON, or SQL dump (to be determined)
-  - Export includes all audit trail data
-  - Export action logged in audit trail
-- **Visual Indicators**:
-  - Dashboard shows "AUDIT MODE" or similar indicator
-  - Clear indication that view is read-only
-  - No action buttons for create/update/delete operations
+Auditors provide independent oversight for regulatory compliance and must be able to view all trial data without ability to modify it. Database export enables compliance reviews, regulatory submissions, and external audits. Read-only access ensures auditor actions cannot affect trial operations. This requirement implements the audit access controls defined in REQ-p00009, REQ-p00024, and REQ-p00004.
 
-**Rationale**: Auditors provide independent oversight for regulatory compliance and must be able to view all trial data without ability to modify it. Database export enables compliance reviews, regulatory submissions, and external audits. Read-only access ensures auditor actions cannot affect trial operations.
+## Assertions
 
-**Acceptance Criteria**:
-- Auditor can view all users across all sites
-- Auditor can view all patients across all sites
-- Auditor can view all questionnaire statuses
-- Auditor dashboard shows "AUDIT MODE" indicator
-- No "Create", "Edit", "Delete", "Send", or "Revoke" buttons visible
-- "Export Database" button present (stub for future implementation)
-- Export action logged in audit trail when implemented
-- Auditor cannot enroll patients or send questionnaires
-- Auditor cannot create users or revoke tokens
-- All auditor actions logged in audit trail
+A. The system SHALL grant Auditors read-only access to all portal data across all sites.
+B. The system SHALL allow Auditors to view all portal users including Admins, Investigators, and other Auditors.
+C. The system SHALL allow Auditors to view all patients across all sites.
+D. The system SHALL allow Auditors to view all questionnaire statuses.
+E. The system SHALL allow Auditors to view enrollment dates and engagement metrics.
+F. The system SHALL NOT grant Auditors permission to create any data.
+G. The system SHALL NOT grant Auditors permission to update any data.
+H. The system SHALL NOT grant Auditors permission to delete any data.
+I. The system SHALL provide Auditors with the ability to export the complete database.
+J. The system SHALL include all audit trail data in database exports.
+K. The system SHALL log each database export action in the audit trail.
+L. The Auditor dashboard SHALL display an 'AUDIT MODE' or similar visual indicator.
+M. The Auditor interface SHALL provide clear indication that the view is read-only.
+N. The Auditor interface SHALL NOT display action buttons for create operations.
+O. The Auditor interface SHALL NOT display action buttons for update operations.
+P. The Auditor interface SHALL NOT display action buttons for delete operations.
+Q. The Auditor interface SHALL NOT display 'Send' buttons for questionnaire operations.
+R. The Auditor interface SHALL NOT display 'Revoke' buttons for token operations.
+S. The system SHALL prevent Auditors from enrolling patients.
+T. The system SHALL prevent Auditors from sending questionnaires.
+U. The system SHALL prevent Auditors from creating users.
+V. The system SHALL prevent Auditors from revoking tokens.
+W. The system SHALL log all Auditor actions in the audit trail.
 
-*End* *Auditor Dashboard and Data Export* | **Hash**: 5a77e3bb
+*End* *Auditor Dashboard and Data Export* | **Hash**: 67438675
 ---
 
 # REQ-p00030: Role-Based Visual Indicators
 
-**Level**: PRD | **Implements**: p00005, p00024 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00005, p00024
 
-The portal SHALL display a color-coded banner at the top of the interface indicating the user's current role to prevent accidental actions in the wrong role context.
+## Rationale
 
-Role colors SHALL be:
-- Patient: Blue | Investigator: Green | Sponsor: Purple | Auditor: Orange
-- Analyst: Teal | Administrator: Red | Developer Admin: Dark Red
+Visual role indication reduces cognitive load and prevents role confusion for users with multiple roles. This requirement supports FDA 21 CFR Part 11 compliance by providing clear visual feedback about the user's current operational context, helping prevent unauthorized or accidental actions performed under incorrect role privileges. The color-coding system provides immediate, intuitive feedback that complements the technical role-based access controls implemented elsewhere in the system.
 
-**Rationale**: Visual role indication reduces cognitive load and prevents role confusion for users with multiple roles.
+## Assertions
 
-**Acceptance Criteria**:
-- Banner displays current role name with role-specific color
-- Banner visible on all portal pages
-- Colors meet accessibility contrast standards
+A. The system SHALL display a color-coded banner at the top of the interface indicating the user's current role.
+B. The role banner SHALL be visible on all portal pages.
+C. The role banner SHALL display the current role name.
+D. The role banner SHALL use blue color for the Patient role.
+E. The role banner SHALL use green color for the Investigator role.
+F. The role banner SHALL use purple color for the Sponsor role.
+G. The role banner SHALL use orange color for the Auditor role.
+H. The role banner SHALL use teal color for the Analyst role.
+I. The role banner SHALL use red color for the Administrator role.
+J. The role banner SHALL use dark red color for the Developer Admin role.
+K. The role banner colors SHALL meet WCAG accessibility contrast standards.
 
-*End* *Role-Based Visual Indicators* | **Hash**: 59059266
+*End* *Role-Based Visual Indicators* | **Hash**: 761ae5c1
 ---
 
 ## Architecture Overview

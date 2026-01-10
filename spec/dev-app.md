@@ -37,41 +37,30 @@ The Clinical Diary mobile application is a **Flutter-based cross-platform app** 
 
 # REQ-d00005: Sponsor Configuration Detection Implementation
 
-**Level**: Dev | **Implements**: p00007, p00008 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00007, p00008
 
-The mobile application SHALL implement automatic sponsor detection and configuration loading based on enrollment tokens, enabling a single app binary to support multiple sponsors without requiring separate app builds per sponsor.
+## Rationale
 
-Implementation SHALL include:
-- Enrollment token parser extracting sponsor identifier, mapping to sponsor's url
-- Configuration loader fetching sponsor-specific settings (API URL)
-- Runtime sponsor context switching based on active user session
-- Sponsor configurations and app assets loaded from the sponsor's 
-- Validation of sponsor configuration completeness before connection
-- Secure storage of sponsor-specific authentication tokens
+This requirement enables a single mobile application binary to serve multiple clinical trial sponsors through dynamic configuration loading. By extracting sponsor identity from enrollment tokens, the system eliminates the need for separate app builds per sponsor while maintaining strict data isolation. The enrollment token acts as the trust anchor - it encodes the sponsor identifier which maps to the sponsor's backend URL, allowing the app to fetch sponsor-specific settings, branding, and assets at runtime. This architecture reduces operational complexity (one app submission to app stores) while preserving the security boundary between sponsors. Configuration validation ensures the app cannot connect to incomplete or misconfigured backends, and secure token storage prevents unauthorized access to sponsor APIs. The requirement addresses REQ-p00007 (automatic sponsor configuration) and REQ-p00008 (single app architecture) by defining the technical implementation details developers need to build this capability.
 
-#### TODO 
-- How the enrollment token computes the sponsor
-- Only masked sponsor urls are bundles with the app
-- How the app knows which backends to sync to
-- Whether sync occurs on CureHHT backend is the default sponsor
-- Whether sync occurs on CureHHT and other sponsor's backed concurrently
-  - How conflicts are handled
-- How patient authenticates
-  - Is username/password good enough (A: no)
-  - When taking email - how is the PII separated from the PHI (is IAM far enough away?) 
+## Assertions
 
-**Rationale**: Implements automatic sponsor configuration (p00007) and single app architecture (p00008) at the development level. Token-based sponsor detection enables streamlined user enrollment while maintaining complete data isolation between sponsors.
+A. The mobile application SHALL implement automatic sponsor detection from enrollment tokens without requiring separate app builds per sponsor.
+B. The system SHALL parse enrollment tokens to extract sponsor identifiers.
+C. The system SHALL map extracted sponsor identifiers to the sponsor's backend URL.
+D. The system SHALL fetch sponsor-specific configuration settings from the identified sponsor's backend, including API URL.
+E. The system SHALL load sponsor-specific app assets from the sponsor's backend.
+F. The system SHALL support runtime sponsor context switching based on the active user session.
+G. The system SHALL validate sponsor configuration completeness before establishing backend connection.
+H. The system SHALL securely store sponsor-specific authentication tokens.
+I. The system SHALL connect to the correct sponsor GCP backend matching the enrollment code.
+J. The system SHALL apply sponsor branding after configuration load completes.
+K. The system SHALL reject invalid enrollment tokens with clear error messages.
+L. The system SHALL NOT leak data across sponsors in configuration storage or authentication mechanisms.
+M. The app bundle SHALL contain only masked sponsor URLs.
+N. The backend URL SHALL NOT reveal the sponsor or site identity.
 
-**Acceptance Criteria**:
-- Enrollment token correctly identifies sponsor TODO - and site?
-- App connects to correct sponsor GCP backend, matching the enrollment code
-- Sponsor configuration and assets loaded from the sponsor's backend
-- Sponsor and site are not revealed by the backend url
-- Sponsor branding applied after configuration load
-- Invalid tokens rejected with clear error messages
-- No cross-sponsor data leakage in configuration or authentication
-
-*End* *Sponsor Configuration Detection Implementation* | **Hash**: d84ba1c3
+*End* *Sponsor Configuration Detection Implementation* | **Hash**: ef873a14
 ---
 
 ### Single App, Multiple Sponsors
@@ -118,29 +107,35 @@ TODO - we don't have a welcome screen.  Is this shown once with a "don't show ag
 
 # REQ-d00004: Local-First Data Entry Implementation
 
-**Level**: Dev | **Implements**: p00006 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00006
 
-The mobile application SHALL implement offline-first data entry using sembast with Flutter secure local storage, ensuring all user diary entries are captured locally before network synchronization, enabling full functionality without network connectivity.
+## Rationale
 
-Implementation SHALL include:
-- Sembast database mirroring server Event Sourcing schema
-- All diary entry operations (create, update, delete) saved locally first
-- Background sync process triggered by connectivity changes
-- Conflict detection and resolution for multi-device scenarios - TODO details
-- Automatic retry logic for failed synchronization attempts - TODO do we have to record failures?
-- Local data persistence across app restarts
+This requirement implements the offline-first architecture mandated by REQ-p00006 at the development level. Clinical trial participants often operate in environments with unreliable network connectivity, making local-first data entry essential for ensuring no diary entries are lost. The implementation uses sembast with Flutter secure local storage to mirror the server's Event Sourcing schema, providing full application functionality without network dependency. Background synchronization processes handle eventual consistency when connectivity is restored, with conflict detection supporting multi-device usage scenarios common in clinical trials.
 
-**Rationale**: Implements offline-first architecture (p00006) at the development level. Flutter's sqflite package provides SQLite access for local-first data storage, enabling clinical trial participants to record diary entries regardless of network availability.
+## Assertions
 
-**Acceptance Criteria**:
-- Sembast database created on first app launch
-- All diary operations work without network connection
-- Local changes sync automatically when online
-- Conflict resolution handles multi-device scenarios
-- No data loss during offline periods
-- Background sync respects battery and data usage constraints
+A. The mobile application SHALL implement offline-first data entry using sembast with Flutter secure local storage.
+B. The system SHALL capture all user diary entries locally before network synchronization.
+C. The application SHALL provide full diary entry functionality without network connectivity.
+D. The sembast database SHALL mirror the server Event Sourcing schema.
+E. All diary entry create operations SHALL be saved to local storage first.
+F. All diary entry update operations SHALL be saved to local storage first.
+G. All diary entry delete operations SHALL be saved to local storage first.
+H. The system SHALL trigger background sync processes upon connectivity changes.
+I. The system SHALL detect conflicts in multi-device scenarios.
+J. The system SHALL resolve conflicts in multi-device scenarios.
+K. The system SHALL implement automatic retry logic for failed synchronization attempts.
+L. The system SHALL persist local data across app restarts.
+M. The sembast database SHALL be created on first app launch.
+N. All diary operations SHALL function without network connection.
+O. Local changes SHALL sync automatically when network connectivity is available.
+P. The conflict resolution mechanism SHALL handle multi-device scenarios.
+Q. The system SHALL NOT lose data during offline periods.
+R. Background sync processes SHALL respect battery usage constraints.
+S. Background sync processes SHALL respect data usage constraints.
 
-*End* *Local-First Data Entry Implementation* | **Hash**: c045e88a
+*End* *Local-First Data Entry Implementation* | **Hash**: 2f8a00ce
 ---
 
 ### Core Principle
@@ -175,30 +170,29 @@ Implementation SHALL include:
 
 # REQ-d00013: Application Instance UUID Generation
 
-**Level**: Dev | **Implements**: p00006 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p00006
 
-The mobile application SHALL generate and persist a unique instance identifier (UUID v4) on first launch after installation, enabling device-level attribution in audit trails and multi-device conflict resolution.
+## Rationale
 
-Implementation SHALL include:
-- UUID v4 generation on first app launch using cryptographically secure random number generator
-- Persistent storage of UUID in device-local secure storage (iOS Keychain / Android Keystore)
-- UUID included in all event records synchronized to server (`device_uuid` field)
-- UUID retrieval and validation on subsequent app launches
-- New UUID generation only on fresh installation (not on app updates)
-- UUID accessible to sync and conflict resolution logic
+This requirement supports multi-device conflict resolution for offline-first data entry (REQ-p00006). When patients use multiple devices or reinstall the app, unique device identifiers enable the system to attribute changes to specific app instances, detect multi-device usage patterns, and properly resolve synchronization conflicts. The UUID serves as the device fingerprint in the audit trail, supporting FDA 21 CFR Part 11 compliance by enabling complete traceability of which device generated each data modification.
 
-**Rationale**: Implements multi-device conflict resolution aspect of offline-first data entry (p00006). When patients use multiple devices or reinstall the app, unique device identifiers enable the system to attribute changes to specific app instances, detect multi-device usage patterns, and properly resolve synchronization conflicts. The UUID serves as the device fingerprint in the audit trail.
+## Assertions
 
-**Acceptance Criteria**:
-- UUID generated once on first launch using `uuid` Dart package
-- Same UUID retrieved on all subsequent launches
-- UUID persisted in `flutter_secure_storage` (survives app restarts)
-- New installation generates different UUID
-- App update preserves existing UUID
-- UUID included in all `record_audit.device_info` JSONB fields
-- Conflict resolution logic can identify source device for each change
+A. The mobile application SHALL generate a UUID v4 identifier on first launch after installation.
+B. The application SHALL use a cryptographically secure random number generator for UUID generation.
+C. The application SHALL persist the UUID in device-local secure storage (iOS Keychain on iOS, Android Keystore on Android).
+D. The application SHALL retrieve the persisted UUID on all subsequent launches.
+E. The application SHALL validate the retrieved UUID on subsequent launches.
+F. The application SHALL include the UUID in all event records synchronized to the server via the device_uuid field.
+G. The application SHALL generate a new UUID only on fresh installation.
+H. The application SHALL NOT generate a new UUID during application updates.
+I. The application SHALL preserve the existing UUID across application updates.
+J. The application SHALL make the UUID accessible to synchronization logic.
+K. The application SHALL make the UUID accessible to conflict resolution logic.
+L. The application SHALL include the UUID in all record_audit.device_info JSONB fields.
+M. The conflict resolution logic SHALL be able to identify the source device for each change using the UUID.
 
-*End* *Application Instance UUID Generation* | **Hash**: 447e987e
+*End* *Application Instance UUID Generation* | **Hash**: ce4d2a77
 ---
 
 ### Conflict Resolution
@@ -286,72 +280,71 @@ TODO - this needs clarity
 
 # REQ-d00085: Local Database Export and Import
 
-**Level**: Dev | **Implements**: p01062 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01062
 
-The mobile application SHALL implement local database export and import functionality, enabling patients to extract their diary data to a portable file and restore it on the same or different device.
+## Rationale
 
-Implementation SHALL include:
-- Export function serializing sembast diary tables to JSON file
-- JSON schema including: diary entries, timestamps, event types, user-entered values
-- File saved to device storage with user-selectable location (Downloads, share sheet)
-- Import function parsing JSON and inserting records into local sembast database
-- Validation of imported data structure and integrity before insertion
-- Conflict handling when importing data that overlaps with existing records
-- Progress indication for large exports/imports
-- Export/import operates entirely offline (no network required)
+This requirement implements GDPR data portability (Article 20) at the development level, ensuring patients can obtain their clinical diary data in a structured, commonly used, and machine-readable format. Local-only operation ensures data portability works regardless of network connectivity or server availability, addressing scenarios where patients may switch devices, need offline backups, or exercise their right to data portability under GDPR. The requirement supports patient autonomy and regulatory compliance by enabling self-service data extraction and restoration.
 
-**Technical Details**:
-- Export format: Single JSON file with schema version header
-- File extension: `.diary-export.json`
-- Excluded from export: `sync_status`, `device_uuid`, `pending_events` tables
-- Import merge strategy: Skip duplicates (by `event_uuid`), insert new records
-- Use `file_picker` package for cross-platform file selection
-- Use `share_plus` package for share sheet export option
+## Assertions
 
-**Rationale**: Implements GDPR data portability (p01055) at the development level. Patients must be able to obtain their clinical diary data in a portable format. Local-only operation ensures data portability works regardless of network connectivity or server availability.
+A. The system SHALL provide a database export function that serializes sembast diary tables to a JSON file.
+B. The export JSON schema SHALL include diary entries, timestamps, event types, and user-entered values.
+C. The system SHALL save exported files to device storage with user-selectable location via Downloads or share sheet.
+D. The system SHALL provide a database import function that parses JSON files and inserts records into the local sembast database.
+E. The system SHALL validate imported data structure and integrity before insertion.
+F. The system SHALL handle conflicts when importing data that overlaps with existing records by skipping duplicates based on event_uuid.
+G. The system SHALL provide progress indication for large export and import operations.
+H. Export and import operations SHALL operate entirely offline without requiring network connectivity.
+I. Exported files SHALL use the single JSON file format with a schema version header.
+J. Exported files SHALL use the .diary-export.json file extension.
+K. The system SHALL NOT include sync_status, device_uuid, or pending_events tables in exported files.
+L. The import merge strategy SHALL skip duplicate records identified by event_uuid and insert new records only.
+M. The system SHALL use the file_picker package for cross-platform file selection during import.
+N. The system SHALL use the share_plus package for share sheet export functionality.
+O. The export button SHALL be accessible from the Settings screen.
+P. The export function SHALL create valid JSON files containing all diary entries.
+Q. The system SHALL enable sharing of exported files via the system share sheet.
+R. The import button SHALL be accessible from the Settings screen.
+S. The import function SHALL successfully restore diary entries from valid export files.
+T. The system SHALL reject malformed or incompatible import files with a clear error message.
+U. The system SHALL complete export and import operations for datasets containing 1000 or more entries within 30 seconds.
 
-**Acceptance Criteria**:
-- Export button accessible from Settings screen
-- Export creates valid JSON file with all diary entries
-- Exported file can be shared via system share sheet
-- Import button accessible from Settings screen
-- Import successfully restores diary entries from valid export file
-- Import rejects malformed or incompatible files with clear error message
-- Duplicate records (same `event_uuid`) skipped during import
-- Export/import works in airplane mode
-- Large datasets (1000+ entries) export/import within 30 seconds
-
-*End* *Local Database Export and Import* | **Hash**: 971345e0
+*End* *Local Database Export and Import* | **Hash**: 392092af
 ---
 
 ## Deployment & Distribution
 
 # REQ-d00006: Mobile App Build and Release Process
 
-**Level**: Dev | **Implements**: o00010 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00010
 
-The mobile application SHALL be built and released as a single app package containing configurations for all sponsors, ensuring consistent app distribution across iOS App Store and Google Play Store while maintaining sponsor isolation.
+## Rationale
 
-Build process SHALL include:
-- Single Flutter codebase compiled for iOS, Android and web platforms
-- Version number incremented following semantic versioning
-- Code signing with platform-specific certificates (iOS: Apple Developer, Android: Google Play)
-- Automated build pipeline generating release artifacts
-- Pre-release validation ensuring no sponsor-specific information in store listings
-- Runtime app version checking to inform users of updates.  Version checks automatically happen daily, when used. 
-- A minimum version defined to force users to upgrade when their installed version is lower than the minimum.
+This requirement defines the mobile app build and release process that implements the operational release process (o00010) at the development level. Flutter's cross-platform compilation enables a single codebase to be deployed across iOS, Android, and web platforms, while bundled configurations allow sponsor switching at runtime without requiring per-sponsor builds. This approach ensures consistent app distribution across the iOS App Store and Google Play Store while maintaining sponsor isolation through runtime configuration selection rather than separate app builds.
 
-**Rationale**: Implements mobile app release process (o00010) at the development level. Flutter's cross-platform compilation enables single codebase deployment, while bundled configurations allow sponsor switching at runtime without requiring per-sponsor builds.
+## Assertions
 
-**Acceptance Criteria**:
-- Single build produces both iOS and Android artifacts
-- All sponsor configurations included in build artifacts
-- App passes platform-specific review processes
-- Version numbers synchronized across platforms
-- No sponsor-specific branding in store listings
-- Build pipeline validates configuration completeness
+A. The system SHALL build the mobile application as a single app package containing configurations for all sponsors.
+B. The build process SHALL produce artifacts for iOS, Android, and web platforms from a single Flutter codebase.
+C. The system SHALL increment version numbers following semantic versioning for each release.
+D. The build process SHALL sign iOS artifacts with Apple Developer certificates.
+E. The build process SHALL sign Android artifacts with Google Play certificates.
+F. The system SHALL provide an automated build pipeline that generates release artifacts.
+G. The build pipeline SHALL validate that no sponsor-specific information appears in store listings before release.
+H. The mobile application SHALL perform runtime app version checking to inform users of available updates.
+I. The system SHALL automatically perform version checks daily when the application is used.
+J. The system SHALL define a minimum required version for the mobile application.
+K. The system SHALL force users to upgrade when their installed version is lower than the minimum required version.
+L. A single build SHALL produce both iOS and Android artifacts.
+M. The build artifacts SHALL include all sponsor configurations.
+N. The mobile application SHALL pass iOS App Store review processes.
+O. The mobile application SHALL pass Google Play Store review processes.
+P. Version numbers SHALL be synchronized across iOS, Android, and web platforms.
+Q. Store listings SHALL NOT contain sponsor-specific branding.
+R. The build pipeline SHALL validate configuration completeness before producing release artifacts.
 
-*End* *Mobile App Build and Release Process* | **Hash**: 24bbf429
+*End* *Mobile App Build and Release Process* | **Hash**: af8f9240
 ---
 
 ### App Store Listing

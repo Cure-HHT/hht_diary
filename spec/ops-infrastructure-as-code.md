@@ -17,50 +17,49 @@ This document specifies the infrastructure as code (IaC) approach for the Clinic
 
 # REQ-o00041: Infrastructure as Code for Cloud Resources
 
-**Level**: Ops | **Implements**: p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00010
 
-**SHALL** use Pulumi for all GCP infrastructure and cloud resources.
+## Rationale
 
-**Rationale**: Infrastructure as code provides reproducibility, validation capability, and audit trail required for FDA compliance.
+Infrastructure as code provides reproducibility, validation capability, and audit trail required for FDA compliance. By codifying all cloud resources in Pulumi, the platform ensures that infrastructure changes are version-controlled, peer-reviewed, and auditable—meeting the traceability requirements of 21 CFR Part 11. This approach eliminates manual configuration drift and enables deterministic infrastructure provisioning across environments.
 
-**Acceptance Criteria**:
-- All GCP projects defined in Pulumi
-- All Cloud SQL instances defined in Pulumi
-- All Cloud Run services defined in Pulumi
-- Pulumi state stored in version-controlled backend (GCS or Pulumi Cloud)
-- Infrastructure changes validated with `pulumi preview` before update
-- Separate stacks maintained for dev/staging/production environments
-- Per-sponsor infrastructure isolated in separate GCP projects
+## Assertions
 
-**Validation**:
-- IQ: Verify Pulumi installs correctly and components are accessible
-- OQ: Verify `pulumi preview` and `pulumi up` work correctly
-- PQ: Verify infrastructure provisions in < 1 hour
+A. The system SHALL use Pulumi for all GCP infrastructure and cloud resources.
+B. All GCP projects SHALL be defined in Pulumi code.
+C. All Cloud SQL instances SHALL be defined in Pulumi code.
+D. All Cloud Run services SHALL be defined in Pulumi code.
+E. Pulumi state SHALL be stored in a version-controlled backend (GCS or Pulumi Cloud).
+F. Infrastructure changes SHALL be validated with `pulumi preview` before applying updates.
+G. The system SHALL maintain separate Pulumi stacks for dev, staging, and production environments.
+H. Per-sponsor infrastructure SHALL be isolated in separate GCP projects.
+I. Infrastructure provisioning SHALL complete in less than 1 hour during performance qualification testing.
 
-*End* *Infrastructure as Code for Cloud Resources* | **Hash**: 16c349a8
+*End* *Infrastructure as Code for Cloud Resources* | **Hash**: ba0592d5
 ---
 
 # REQ-o00042: Infrastructure Change Control
 
-**Level**: Ops | **Implements**: o00041, p00010 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: o00041, p00010
 
-**SHALL** require pull request review for all infrastructure changes.
+## Rationale
 
-**Rationale**: Change control is required for FDA compliance and prevents unauthorized infrastructure modifications.
+Infrastructure change control ensures FDA 21 CFR Part 11 compliance by establishing a formal review and approval process for all infrastructure modifications. This requirement prevents unauthorized changes, maintains system integrity, and provides audit trails for regulatory inspections. The pull request workflow creates documented evidence of reviews, approvals, and change justifications. Drift detection ensures the deployed infrastructure matches the declared configuration, preventing undocumented manual changes. Multiple levels of approval for production changes reflect the higher risk associated with changes to validated environments.
 
-**Acceptance Criteria**:
-- All Pulumi changes submitted via pull request
-- Pull requests require 1 reviewer approval (2 for production)
-- All infrastructure changes reference ticket/requirement
-- Automated `pulumi preview` runs on pull requests
-- Drift detection runs daily
+## Assertions
 
-**Validation**:
-- IQ: Verify PR process is documented
-- OQ: Verify PR workflow prevents direct commits
-- PQ: Verify 100% of infrastructure changes go through PR
+A. The system SHALL require all Pulumi infrastructure changes to be submitted via pull request.
+B. The system SHALL require at least one reviewer approval for non-production pull requests containing infrastructure changes.
+C. The system SHALL require at least two reviewer approvals for production pull requests containing infrastructure changes.
+D. The system SHALL require all infrastructure changes to reference a ticket or requirement identifier.
+E. The system SHALL prevent direct commits to infrastructure code without pull request review.
+F. The system SHALL automatically run 'pulumi preview' on all pull requests containing infrastructure changes.
+G. The system SHALL execute drift detection against deployed infrastructure daily.
+H. Infrastructure change control processes SHALL be documented in Installation Qualification (IQ) protocols.
+I. The pull request workflow SHALL be verified to prevent direct commits during Operational Qualification (OQ).
+J. Performance Qualification (PQ) SHALL verify that 100% of infrastructure changes were processed through the pull request workflow.
 
-*End* *Infrastructure Change Control* | **Hash**: b9ea80eb
+*End* *Infrastructure Change Control* | **Hash**: 1a9f687d
 ---
 
 ## Architecture
