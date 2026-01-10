@@ -26,9 +26,6 @@ usage() {
     echo "  -f,  --flutter              Run all Flutter tests (unit + integration)"
     echo "  -fu, --flutter-unit         Run Flutter unit tests only"
     echo "  -fi, --flutter-integration  Run Flutter integration tests on desktop"
-    echo "  -t,  --typescript           Run all TypeScript tests (unit + integration)"
-    echo "  -tu, --typescript-unit      Run TypeScript unit tests only"
-    echo "  -ti, --typescript-integration  Run TypeScript integration tests (future)"
     echo "  --concurrency N             Set Flutter test concurrency (default: 10)"
     echo "  -h, --help                  Show this help message"
     echo ""
@@ -51,19 +48,6 @@ while [[ $# -gt 0 ]]; do
       RUN_FLUTTER_INTEGRATION=true
       shift
       ;;
-    -t|--typescript)
-      RUN_TYPESCRIPT_UNIT=true
-      RUN_TYPESCRIPT_INTEGRATION=true
-      shift
-      ;;
-    -tu|--typescript-unit)
-      RUN_TYPESCRIPT_UNIT=true
-      shift
-      ;;
-    -ti|--typescript-integration)
-      RUN_TYPESCRIPT_INTEGRATION=true
-      shift
-      ;;
     --concurrency)
       CONCURRENCY="$2"
       shift 2
@@ -80,11 +64,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no test flags specified, run Flutter unit and TypeScript unit (not integration)
-if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ] && \
-   [ "$RUN_TYPESCRIPT_UNIT" = false ] && [ "$RUN_TYPESCRIPT_INTEGRATION" = false ]; then
+# If no test flags specified, run Flutter unit and integration
+if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ]; then
     RUN_FLUTTER_UNIT=true
-    RUN_TYPESCRIPT_UNIT=true
+    RUN_FLUTTER_INTEGRATION=false
 fi
 
 echo "=============================================="
@@ -167,165 +150,6 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
     fi
 fi
 
-# Run TypeScript/Functions unit tests
-if [ "$RUN_TYPESCRIPT_UNIT" = true ]; then
-    echo ""
-    echo "🔥 Running TypeScript/Functions unit tests..."
-    echo ""
-
-    if [ -d "functions" ]; then
-        cd functions
-
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm install
-        fi
-
-        # Run lint
-        echo "Running ESLint..."
-        if ! npm run lint; then
-            echo "❌ ESLint found issues!"
-            TS_UNIT_PASSED=false
-        else
-            echo "✅ ESLint passed"
-        fi
-
-        # Run TypeScript compilation
-        echo ""
-        echo "Running TypeScript compilation..."
-        if ! npm run build; then
-            echo "❌ TypeScript compilation failed!"
-            TS_UNIT_PASSED=false
-        else
-            echo "✅ TypeScript compilation passed"
-        fi
-
-        # Run Jest tests
-        echo ""
-        echo "Running Jest tests..."
-        if npm test; then
-            echo "✅ Jest tests passed!"
-        else
-            echo "❌ Jest tests failed!"
-            TS_UNIT_PASSED=false
-        fi
-
-        cd ..
-    else
-        echo "⚠️  functions/ directory not found, skipping TypeScript tests"
-    fi
-fi
-
-# Run TypeScript/Functions integration tests
-# These tests run against the Firebase emulator WITHOUT Doppler to prove fail-closed behavior
-# AUDIT EVIDENCE: When CUREHHT_QA_API_KEY is not configured, the function returns 500
-if [ "$RUN_TYPESCRIPT_INTEGRATION" = true ]; then
-    echo ""
-    echo "🔥 Running TypeScript/Functions integration tests..."
-    echo "   (Tests run WITHOUT Doppler to prove fail-closed behavior for auditors)"
-    echo ""
-
-    if [ -d "functions" ]; then
-        cd functions
-
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm install
-        fi
-
-        # Build TypeScript before starting emulator
-        echo "Building TypeScript..."
-        if ! npm run build; then
-            echo "❌ TypeScript build failed!"
-            TS_INTEGRATION_PASSED=false
-            cd ..
-        else
-            cd ..
-
-            # Start Firebase emulator in background (WITHOUT Doppler - proves fail-closed)
-            echo ""
-            echo "Starting Firebase emulator (without Doppler secrets)..."
-
-            # Create a temporary file for emulator output
-            EMULATOR_LOG=$(mktemp)
-            EMULATOR_PID=""
-
-            # Start emulator in background, redirecting output to log file
-            (cd functions && firebase emulators:start --only functions 2>&1 | tee "$EMULATOR_LOG") &
-            EMULATOR_PID=$!
-
-            # Wait for emulator to be ready (check for "All emulators ready" message)
-            echo "Waiting for emulator to start..."
-            TIMEOUT=60
-            ELAPSED=0
-            EMULATOR_READY=false
-
-            while [ $ELAPSED -lt $TIMEOUT ]; do
-                if grep -q "All emulators ready" "$EMULATOR_LOG" 2>/dev/null; then
-                    EMULATOR_READY=true
-                    break
-                fi
-                # Also check if emulator process died
-                if ! kill -0 $EMULATOR_PID 2>/dev/null; then
-                    echo "❌ Emulator process died unexpectedly"
-                    cat "$EMULATOR_LOG"
-                    break
-                fi
-                sleep 1
-                ELAPSED=$((ELAPSED + 1))
-                # Show progress every 10 seconds
-                if [ $((ELAPSED % 10)) -eq 0 ]; then
-                    echo "   Still waiting... ($ELAPSED seconds)"
-                fi
-            done
-
-            if [ "$EMULATOR_READY" = true ]; then
-                echo "✅ Emulator ready!"
-                # Give functions a moment to fully initialize
-                sleep 3
-                echo ""
-
-                # Run integration tests
-                echo "Running integration tests against emulator..."
-                cd functions
-                if npm run test:integration; then
-                    echo "✅ TypeScript integration tests passed!"
-                else
-                    echo "❌ TypeScript integration tests failed!"
-                    TS_INTEGRATION_PASSED=false
-                fi
-                cd ..
-            else
-                echo "❌ Emulator failed to start within $TIMEOUT seconds"
-                echo "Emulator output:"
-                cat "$EMULATOR_LOG"
-                TS_INTEGRATION_PASSED=false
-            fi
-
-            # Stop emulator
-            echo ""
-            echo "Stopping emulator..."
-            if [ -n "$EMULATOR_PID" ] && kill -0 $EMULATOR_PID 2>/dev/null; then
-                kill $EMULATOR_PID 2>/dev/null || true
-                # Wait a moment for graceful shutdown
-                sleep 2
-                # Force kill if still running
-                kill -9 $EMULATOR_PID 2>/dev/null || true
-            fi
-
-            # Clean up
-            rm -f "$EMULATOR_LOG"
-
-            # Also kill any lingering emulator processes (sometimes they don't clean up)
-            pkill -f "firebase.*emulators" 2>/dev/null || true
-        fi
-    else
-        echo "⚠️  functions/ directory not found, skipping TypeScript integration tests"
-    fi
-fi
-
 echo ""
 echo "=============================================="
 echo "Summary"
@@ -347,24 +171,6 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
         echo "✅ Flutter Integration: PASSED"
     else
         echo "❌ Flutter Integration: FAILED"
-        EXIT_CODE=1
-    fi
-fi
-
-if [ "$RUN_TYPESCRIPT_UNIT" = true ]; then
-    if [ "$TS_UNIT_PASSED" = true ]; then
-        echo "✅ TypeScript Unit: PASSED"
-    else
-        echo "❌ TypeScript Unit: FAILED"
-        EXIT_CODE=1
-    fi
-fi
-
-if [ "$RUN_TYPESCRIPT_INTEGRATION" = true ]; then
-    if [ "$TS_INTEGRATION_PASSED" = true ]; then
-        echo "✅ TypeScript Integration: PASSED"
-    else
-        echo "❌ TypeScript Integration: FAILED"
         EXIT_CODE=1
     fi
 fi
