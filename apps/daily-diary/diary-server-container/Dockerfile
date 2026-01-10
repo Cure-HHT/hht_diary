@@ -17,13 +17,13 @@ FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VE
 COPY apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
 
 # Copy diary_functions package
-COPY apps/diaryserver/diary_functions /app/apps/diaryserver/diary_functions
+COPY apps/daily-diary/diary_functions /app/apps/daily-diary/diary_functions
 
 # Copy diary_server package
-COPY apps/diaryserver/diary_server /app/apps/diaryserver/diary_server
+COPY apps/daily-diary/diary_server /app/apps/daily-diary/diary_server
 
 # Get dependencies and compile
-WORKDIR /app/apps/diaryserver/diary_server
+WORKDIR /app/apps/daily-diary/diary_server
 RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
@@ -31,7 +31,7 @@ RUN dart compile exe bin/server.dart -o bin/server
 # Using :nonroot tag for security (DS001, DS002)
 FROM gcr.io/distroless/cc-debian12:nonroot
 
-COPY --from=build /app/apps/diaryserver/diary_server/bin/server /app/server
+COPY --from=build /app/apps/daily-diary/diary_server/bin/server /app/server
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080

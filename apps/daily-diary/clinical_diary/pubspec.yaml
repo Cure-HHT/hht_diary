@@ -15,7 +15,7 @@ dependencies:
 
   # Append-only datastore for FDA 21 CFR Part 11 compliant event sourcing
   append_only_datastore:
-    path: ../common-dart/append_only_datastore
+    path: ../../common-dart/append_only_datastore
 
   collection: ^1.19.1
   crypto: ^3.0.7

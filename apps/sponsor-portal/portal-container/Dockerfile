@@ -3,7 +3,7 @@
 #   REQ-p00013: GDPR compliance - EU-only regions
 #
 # Diary Server Container
-# Hosts diary_functions as HTTP endpoints via shelf
+# Hosts portal_functions as HTTP endpoints via shelf
 #
 # Build args:
 #   DART_VERSION - from .github/versions.env
@@ -16,14 +16,14 @@ FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VE
 # Copy shared dependencies first (for layer caching)
 COPY apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
 
-# Copy diary_functions package
-COPY apps/diaryserver/diary_functions /app/apps/diaryserver/diary_functions
+# Copy portal_functions package
+COPY apps/sponsor-portal/portal_functions /app/apps/sponsor-portal/portal_functions
 
-# Copy diary_server package
-COPY apps/diaryserver/diary_server /app/apps/diaryserver/diary_server
+# Copy portal_server package
+COPY apps/sponsor-portal/portal_server /app/apps/sponsor-portal/portal_server
 
 # Get dependencies and compile
-WORKDIR /app/apps/diaryserver/diary_server
+WORKDIR /app/apps/sponsor-portal/portal_server
 RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
@@ -31,7 +31,7 @@ RUN dart compile exe bin/server.dart -o bin/server
 # Using :nonroot tag for security (DS001, DS002)
 FROM gcr.io/distroless/cc-debian12:nonroot
 
-COPY --from=build /app/apps/diaryserver/diary_server/bin/server /app/server
+COPY --from=build /app/apps/sponsor-portal/portal_server/bin/server /app/server
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080
