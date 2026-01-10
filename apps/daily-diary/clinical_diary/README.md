@@ -34,7 +34,7 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 
 3. **Setup Doppler**:
    ```bash
-   cd apps/daily-dairy/clinical_diary
+   cd apps/daily-diary/clinical_diary
    doppler login
    doppler setup
    ```
@@ -324,7 +324,7 @@ project. This eliminates insecure secret sharing via Slack, email, or .env files
 
 3. **Setup project** (links local directory to Doppler project):
    ```bash
-   cd apps/daily-dairy/clinical_diary
+   cd apps/daily-diary/clinical_diary
    doppler setup
    # Select: hht-diary > dev (or your environment)
    ```
@@ -399,7 +399,7 @@ Manager for most use cases. See [Doppler Firebase Integration](https://docs.dopp
 
 1. **Link Doppler to the functions directory**:
    ```bash
-   cd apps/daily-dairy/clinical_diary/functions
+   cd apps/daily-diary/clinical_diary/functions
    doppler setup
    # Select: hht-diary > dev
    ```

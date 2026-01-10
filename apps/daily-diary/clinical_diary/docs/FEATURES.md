@@ -826,7 +826,7 @@ assets/
 **Triggers**:
 
 - Pull requests to `main` or `develop` branches
-- Only when `apps/daily-dairy/clinical_diary/**` files change
+- Only when `apps/daily-diary/clinical_diary/**` files change
 - Manual dispatch available
 
 **Jobs**:
@@ -869,7 +869,7 @@ assets/
 **Triggers**:
 
 - Push to `main` branch only
-- Only when `apps/daily-dairy/clinical_diary/**` files change
+- Only when `apps/daily-diary/clinical_diary/**` files change
 - Manual dispatch available
 
 **Job**: Coverage Report (`coverage`)
@@ -1012,7 +1012,7 @@ Local enforcement of code quality before commits and pushes reach CI/CD.
    - Only runs if app has changes AND has `tool/test.sh`
 
 7. **Auto Version Bump**
-   - If `apps/daily-dairy/clinical_diary/` changed, bumps patch version
+   - If `apps/daily-diary/clinical_diary/` changed, bumps patch version
    - Runs `dart pub bump patch`
    - Amends commit with version change
 
@@ -1322,7 +1322,7 @@ Day Selection → Recording Screen
 ## Appendix A: File Structure
 
 ```text
-apps/daily-dairy/clinical_diary/
+apps/daily-diary/clinical_diary/
 ├── lib/
 │   ├── main.dart
 │   ├── flavors.dart

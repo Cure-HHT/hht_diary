@@ -91,8 +91,8 @@ The project requires **95% code coverage**. The coverage script will fail if cov
 |---------------------------------|--------------------------------------------------------------|
 | `test/routes_test.dart`         | Tests router configuration and endpoint routing              |
 | `test/server_test.dart`         | Tests HTTP server creation, CORS headers, preflight handling |
-| `test/jwt_test.dart`            | Tests JWT functions (via portal_functions)                    |
-| `test/sponsor_config_test.dart` | Tests sponsor config handler (via portal_functions)           |
+| `test/jwt_test.dart`            | Tests JWT functions (via portal_functions)                   |
+| `test/sponsor_config_test.dart` | Tests sponsor config handler (via portal_functions)          |
 
 ### CI/CD
 

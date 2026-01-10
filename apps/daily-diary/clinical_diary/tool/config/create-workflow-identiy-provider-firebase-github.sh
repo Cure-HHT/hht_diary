@@ -108,5 +108,5 @@ cat << 'EOF'
           firebaseServiceAccount: # Not needed with WIF
           projectId: hht-diary-dev
           channelId: live
-          entryPoint: apps/daily-dairy/clinical_diary
+          entryPoint: apps/daily-diary/clinical_diary
 EOF

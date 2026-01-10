@@ -3,7 +3,7 @@ This is a temporary document and can be removed.
 **Document**: Implementation Gap Analysis
 **Date**: 2025-11-28
 **Source Design**: CureHHTApp-v4---GenericCo---Playground (Figma Make)
-**Target Implementation**: apps/daily-dairy/clinical_diary (Flutter)
+**Target Implementation**: apps/daily-diary/clinical_diary (Flutter)
 
 ---
 
@@ -395,7 +395,7 @@ Per dev-core-practices.md:
 
 ### File Locations
 
-**Flutter App**: `apps/daily-dairy/clinical_diary/lib/`
+**Flutter App**: `apps/daily-diary/clinical_diary/lib/`
 - Screens: `screens/`
 - Widgets: `widgets/`
 - Models: `models/`

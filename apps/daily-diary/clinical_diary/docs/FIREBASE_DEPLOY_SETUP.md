@@ -119,7 +119,7 @@ No secrets are stored - GitHub Actions presents an OIDC token that Google Cloud 
 
 ## Version Bumping
 
-Version is automatically bumped via the pre-push git hook when changes are made to `apps/daily-dairy/clinical_diary/`. The hook:
+Version is automatically bumped via the pre-push git hook when changes are made to `apps/daily-diary/clinical_diary/`. The hook:
 
 1. Runs `dart pub bump patch` to increment the patch version
 2. Stages the updated `pubspec.yaml`

@@ -82,7 +82,7 @@ TODO - role should be fixed and an enum defined
 |---------------|--------------------|-------------------------------|
 | `DB_HOST`     | PostgreSQL host    | `localhost`                   |
 | `DB_PORT`     | PostgreSQL port    | `5432`                        |
-| `DB_NAME`     | Database name      | `hht_portal`                   |
+| `DB_NAME`     | Database name      | `hht_portal`                  |
 | `DB_USER`     | Database user      | `app_user`                    |
 | `DB_PASSWORD` | Database password  | (required)                    |
 | `DB_SSL`      | Enable SSL         | `true`                        |
