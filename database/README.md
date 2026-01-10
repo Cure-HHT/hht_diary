@@ -136,6 +136,78 @@ Provides test data for development and testing environments:
 
 **Warning:** Do not load in production!
 
+## Sponsor-Specific Seed Data
+
+Portal user seed data (first admin, role mappings) is stored in **sponsor-specific repositories**, NOT in this repository. This ensures:
+- Each sponsor has their own first admin configuration
+- Role mappings are customized per sponsor
+- Sensitive data stays in sponsor repos
+
+### Seed Data Locations
+
+| Sponsor   | Repository                              | Seed File                        |
+|-----------|-----------------------------------------|----------------------------------|
+| CureHHT   | `hht_diary_curehht`                     | `database/seed_data.sql`         |
+| Callisto  | `hht_diary_callisto`                    | `database/seed_data.sql`         |
+
+### Environment-Specific Files
+
+Each sponsor repo contains environment-specific seed files:
+
+```
+{sponsor_repo}/database/
+├── seed_data.sql       # Dev environment (contains first admin)
+├── seed_data_qa.sql    # QA environment (empty template)
+├── seed_data_uat.sql   # UAT environment (empty template)
+└── seed_data_prod.sql  # Production (empty template)
+```
+
+### Seed Data Contents
+
+**Dev seed data includes:**
+- `sponsor_role_mapping` - Maps sponsor role names to standard roles
+- `portal_users` - First admin user for bootstrap
+
+**Example (CureHHT):**
+```sql
+-- Role mapping (1:1 for CureHHT)
+INSERT INTO sponsor_role_mapping (sponsor_id, sponsor_role_name, mapped_role) VALUES
+    ('curehht', 'Investigator', 'Investigator'),
+    ('curehht', 'Administrator', 'Administrator');
+
+-- First admin for development
+INSERT INTO portal_users (email, name, role, status) VALUES
+    ('first.admin@sponsor.com', 'First Admin', 'Administrator', 'active');
+```
+
+**Example (Callisto - with role translation):**
+```sql
+-- Callisto uses different role names
+INSERT INTO sponsor_role_mapping (sponsor_id, sponsor_role_name, mapped_role) VALUES
+    ('callisto', 'CRA', 'Auditor'),
+    ('callisto', 'Study Coordinator', 'Investigator'),
+    ('callisto', 'Admin', 'Administrator');
+```
+
+### Applying Seed Data
+
+```bash
+# Apply core schema first (from this repo)
+doppler run -- psql -f database/init.sql
+
+# Apply sponsor seed data (from sponsor repo)
+doppler run -- psql -f /path/to/hht_diary_curehht/database/seed_data.sql
+```
+
+### First Admin Bootstrap Flow
+
+1. Apply schema from `hht_diary_3/database/init.sql`
+2. Apply seed data from sponsor repo
+3. First admin record created with email but no `firebase_uid`
+4. Admin logs in via Firebase Auth
+5. Server links `firebase_uid` to existing `portal_users` record by email
+6. Admin can now create additional users
+
 ## Development Workflow
 
 ### Current Stage: Pre-Deployment Design

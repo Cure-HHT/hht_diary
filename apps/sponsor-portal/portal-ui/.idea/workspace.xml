@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a224824f-aebe-4e37-91a7-8d5337f761c7" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../../../src/auth.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/database.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/health.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/identity_platform.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/index-sort-f.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/index-sort-l.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/jwt.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/portal_auth.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/portal_user.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/sponsor.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/testing_utils.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../src/user.dart.gcov.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../tools/dev-env/docker-compose.firebase.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../tools/dev-env/firebase/.firebaserc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../../tools/dev-env/firebase/firebase.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../database/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../database/rls_policies.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/rls_policies.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../database/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/Pulumi.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/audit-logs.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/billing.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/org-iam.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/projects.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/tool/bootstrap-sponsor-gcp-projects.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/tool/sponsor-config.example.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/tsconfig.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/Pulumi.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/nginx.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/audit-logs.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/cloud-run.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/cloud-sql.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/docker-image.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/domain-mapping.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/iam.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/monitoring.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/storage.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/vpc.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/workforce-identity.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/tsconfig.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi2terraform-prompt.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../spec/prd-security-RBAC.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../spec/prd-security-RBAC.md" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../../.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "michaelbushe"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "git@github.com:Cure-HHT/hht_diary.git",
+    "accountId": "e081f1d5-1ecb-459c-8161-152eba685f21"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="384FylFxiwK1AkDntRM0VxiMqSV" />
+  <component name="ProjectViewState">
+    <option name="autoscrollFromSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "feat/CUR-629-first-admin",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/mbushe/dev/anspar/hht_diary_3/apps/sponsor-portal/portal-ui",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "show.migrate.to.gradle.popup": "false",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">
+      <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-26cb7f24e5b0-intellij.indexing.shared.core-IU-253.29346.138" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.29346.138" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a224824f-aebe-4e37-91a7-8d5337f761c7" name="Changes" comment="" />
+      <created>1768051192202</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1768051192202</updated>
+      <workItem from="1768051193451" duration="2253000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
