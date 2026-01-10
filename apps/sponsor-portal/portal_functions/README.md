@@ -173,14 +173,20 @@ if (!currentUser.role.isAdmin) {
 ```bash
 cd apps/sponsor-portal/portal_functions
 
+# Run unit tests only (default)
+doppler run -- ./tool/test.sh
+
+# Run integration tests (requires database)
+doppler run -- ./tool/test.sh -i
+
 # Run all tests with coverage
-doppler run -- ./tool/coverage.sh
+doppler run -- ./tool/test.sh --coverage
 
-# Run only unit tests
-doppler run -- ./tool/coverage.sh -u
+# Run unit tests with coverage
+doppler run -- ./tool/test.sh -u --coverage
 
-# Run only integration tests (requires database)
-doppler run -- ./tool/coverage.sh -i
+# Run integration tests with coverage (requires database)
+doppler run -- ./tool/test.sh -i --coverage
 ```
 
 ### Coverage Threshold

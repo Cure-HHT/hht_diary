@@ -4,12 +4,12 @@ Clinical Trial Sponsor Web Portal for managing users, sites, and trial data acce
 
 ## Components
 
-| Directory           | Description                   | Coverage |
-|---------------------|-------------------------------|----------|
-| `portal-ui/`        | Flutter web frontend          | 75%+     |
-| `portal_server/`    | Shelf HTTP server (Cloud Run) | 95%+     |
-| `portal_functions/` | Business logic library        | 85%+     |
-| `portal-container/` | Docker container config       | -        |
+| Directory           | Description                            | Coverage |
+|---------------------|----------------------------------------|----------|
+| `portal-ui/`        | Flutter web frontend                   | 75%+     |
+| `portal_server/`    | Shelf HTTP server                      | 95%+     |
+| `portal_functions/` | Business logic library                 | 85%+     |
+| `portal-container/` | Combined container (nginx + Dart + UI) | -        |
 
 ## Quick Start
 
@@ -118,9 +118,9 @@ flutter run -d chrome --dart-define=PORTAL_API_URL=http://localhost:8080
 cd apps/sponsor-portal/portal_server
 doppler run -- ./tool/coverage.sh
 
-# Functions tests (unit + integration)
+# Functions tests (unit + integration with coverage)
 cd apps/sponsor-portal/portal_functions
-doppler run -- ./tool/coverage.sh
+doppler run -- ./tool/test.sh --coverage
 
 # UI tests (unit only, no database needed)
 cd apps/sponsor-portal/portal-ui
@@ -136,7 +136,7 @@ doppler run -- ./tool/coverage.sh -u
 
 # Functions - unit tests only
 cd apps/sponsor-portal/portal_functions
-doppler run -- ./tool/coverage.sh -u
+doppler run -- ./tool/test.sh
 
 # UI
 cd apps/sponsor-portal/portal-ui
@@ -212,17 +212,43 @@ flutter run -d chrome \
 
 ## Architecture
 
+### Development
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   portal-ui     │────▶│  portal_server  │────▶│   PostgreSQL    │
 │  (Flutter Web)  │     │    (Shelf)      │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
         │                       │
-        │                       │
         ▼                       ▼
 ┌─────────────────┐     ┌─────────────────┐
 │  Firebase Auth  │     │portal_functions │
-│(Identity Platform)    │  (Business Logic) │
+│    Emulator     │     │  (Business Logic) │
+└─────────────────┘     └─────────────────┘
+```
+
+### Production (Cloud Run)
+```
+┌─────────────────────────────────────────────────────┐
+│              portal-container (Cloud Run)            │
+│                                                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │           nginx (port 8080)                  │    │
+│  │                                              │    │
+│  │   /           → Flutter web static files     │    │
+│  │   /api/*      → Dart server (port 8081)      │    │
+│  │   /health     → Dart server (port 8081)      │    │
+│  └─────────────────────────────────────────────┘    │
+│                       │                              │
+│                       ▼                              │
+│  ┌─────────────────────────────────────────────┐    │
+│  │        Dart Server (portal_functions)        │    │
+│  └─────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────┘
+        │                       │
+        ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐
+│Identity Platform│     │   Cloud SQL     │
+│  (Firebase Auth)│     │  (PostgreSQL)   │
 └─────────────────┘     └─────────────────┘
 ```
 
