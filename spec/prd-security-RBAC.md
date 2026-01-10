@@ -108,7 +108,7 @@ L. The system SHALL capture all permission revoke events in the audit log.
 - **Permissions**: site-scoped read/write; must select one site at a time; enroll/de-enroll patients
 - **Scope**: Assigned sites (one active at a time)
 - **Access Pattern**: Read-only access to patient data, can add annotations
-
+  
 ### Sponsor
 - **Permissions**: de-identified only; can create/assign Investigators, Analysts and Auditors; read-only across all auth and elevation tickets
 - **Scope**: Global (all sites)

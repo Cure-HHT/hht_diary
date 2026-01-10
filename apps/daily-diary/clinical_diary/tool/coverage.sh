@@ -4,10 +4,9 @@
 #   REQ-d00005: Sponsor Configuration Detection Implementation
 #
 # Coverage script for clinical_diary
-# Runs Flutter (Dart) and Firebase Functions (TypeScript) coverage
+# Runs Flutter (Dart) coverage
 # Generates combined reports per technology stack:
 #   - Flutter: unit + integration tests combined
-#   - TypeScript: unit + integration tests combined (future)
 # Each stack has its own minimum coverage threshold
 # Works both locally and in CI/CD
 
@@ -34,7 +33,6 @@ usage() {
     echo "  -f,  --flutter              Run all Flutter coverage (unit + integration)"
     echo "  -fu, --flutter-unit         Run Flutter unit tests coverage only"
     echo "  -fi, --flutter-integration  Run Flutter integration tests coverage on desktop"
-    echo "  -t,  --typescript           Run TypeScript (Functions) coverage only"
     echo "  --concurrency N             Set Flutter unit test concurrency (default: 10)"
     echo "  --no-threshold              Skip coverage threshold checks"
     echo "  -h,  --help                 Show this help message"
@@ -61,10 +59,6 @@ while [[ $# -gt 0 ]]; do
       RUN_FLUTTER_INTEGRATION=true
       shift
       ;;
-    -t|--typescript)
-      RUN_TYPESCRIPT=true
-      shift
-      ;;
     --concurrency)
       CONCURRENCY="$2"
       shift 2
@@ -86,10 +80,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 # If no flags specified, run ALL tests (Flutter unit + integration + TypeScript)
-if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ] && [ "$RUN_TYPESCRIPT" = false ]; then
+if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ]; then
     RUN_FLUTTER_UNIT=true
     RUN_FLUTTER_INTEGRATION=true
-    RUN_TYPESCRIPT=true
 fi
 
 echo "=============================================="
@@ -102,7 +95,6 @@ mkdir -p coverage
 
 FLUTTER_UNIT_COVERAGE=false
 FLUTTER_INTEGRATION_COVERAGE=false
-TS_COVERAGE=false
 EXIT_CODE=0
 
 # Run Flutter unit test coverage
@@ -229,48 +221,6 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
     fi
 fi
 
-# Run TypeScript/Functions coverage
-if [ "$RUN_TYPESCRIPT" = true ]; then
-    echo ""
-    echo "🔥 Running Firebase Functions tests with coverage..."
-    echo ""
-
-    if [ -d "functions" ]; then
-        cd functions
-
-        # Install dependencies if needed
-        if [ ! -d "node_modules" ]; then
-            echo "Installing dependencies..."
-            npm install
-        fi
-
-        # Run tests with coverage
-        if ! npm run test:coverage; then
-            echo "❌ TypeScript tests or coverage thresholds failed!"
-            EXIT_CODE=1
-        fi
-
-        if [ -f "coverage/lcov.info" ]; then
-            TS_COVERAGE=true
-            echo "✅ TypeScript coverage generated: functions/coverage/lcov.info"
-
-            # Copy to main coverage directory with prefix
-            mkdir -p ../coverage
-            cp coverage/lcov.info ../coverage/lcov-functions.info
-
-            # Copy Jest's HTML report if it exists
-            if [ -d "coverage/lcov-report" ]; then
-                cp -r coverage/lcov-report ../coverage/html-functions
-                echo "✅ TypeScript HTML report: coverage/html-functions/index.html"
-            fi
-        fi
-
-        cd ..
-    else
-        echo "⚠️  functions/ directory not found, skipping TypeScript coverage"
-    fi
-fi
-
 # Combine Flutter coverage reports (unit + integration) into one Flutter report
 FLUTTER_COVERAGE_FILES=""
 if [ "$FLUTTER_UNIT_COVERAGE" = true ]; then
@@ -385,23 +335,11 @@ if [ -f "coverage/lcov-flutter.info" ]; then
     fi
 fi
 
-# Calculate and display TypeScript coverage
-TS_COVERAGE_PCT="0"
-if [ -f "coverage/lcov-functions.info" ]; then
-    TS_COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov-functions.info")
-    echo ""
-    echo "🔥 TypeScript Functions: ${TS_COVERAGE_PCT}%"
-    echo "   Report: coverage/lcov-functions.info"
-fi
-
 # Show HTML reports
 echo ""
 echo "HTML Reports:"
 if [ -f "coverage/html-flutter/index.html" ]; then
     echo "  📊 Flutter:    coverage/html-flutter/index.html"
-fi
-if [ -f "coverage/html-functions/index.html" ]; then
-    echo "  📊 TypeScript: coverage/html-functions/index.html"
 fi
 
 # Check coverage thresholds
@@ -419,18 +357,6 @@ if [ "$CHECK_THRESHOLDS" = true ]; then
             echo "✅ Flutter: ${FLUTTER_COVERAGE_PCT}% >= ${FLUTTER_MIN_COVERAGE}% (PASS)"
         else
             echo "❌ Flutter: ${FLUTTER_COVERAGE_PCT}% < ${FLUTTER_MIN_COVERAGE}% (FAIL)"
-            THRESHOLD_FAILED=true
-            EXIT_CODE=1
-        fi
-    fi
-
-    # Check TypeScript threshold
-    if [ -f "coverage/lcov-functions.info" ]; then
-        TS_PASSES=$(echo "$TS_COVERAGE_PCT $TYPESCRIPT_MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
-        if [ "$TS_PASSES" = "1" ]; then
-            echo "✅ TypeScript: ${TS_COVERAGE_PCT}% >= ${TYPESCRIPT_MIN_COVERAGE}% (PASS)"
-        else
-            echo "❌ TypeScript: ${TS_COVERAGE_PCT}% < ${TYPESCRIPT_MIN_COVERAGE}% (FAIL)"
             THRESHOLD_FAILED=true
             EXIT_CODE=1
         fi

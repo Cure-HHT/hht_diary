@@ -16,12 +16,16 @@ environment:
 dependencies:
   # HTTP
   shelf: ^1.4.2
+  http: ^1.2.0
 
   # Database
   postgres: ^3.5.9
 
   # Utilities
   crypto: ^3.0.7
+
+  # JWT/Identity Platform
+  jose: ^0.3.4
 
 dev_dependencies:
   test: ^1.25.15
