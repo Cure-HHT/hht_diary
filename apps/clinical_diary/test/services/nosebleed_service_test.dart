@@ -114,7 +114,7 @@ void main() {
     });
 
     group('generateRecordId', () {
-      test('generates valid UUID', () {
+      test('generates valid UUID v7', () {
         service = NosebleedService(
           enrollmentService: mockEnrollment,
           httpClient: MockClient((_) async => http.Response('', 200)),
@@ -122,9 +122,10 @@ void main() {
 
         final id = service.generateRecordId();
 
+        // UUID v7 format: xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx
         expect(
           RegExp(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
           ).hasMatch(id),
           true,
         );
@@ -161,6 +162,32 @@ void main() {
         expect(record.startTime, date);
         expect(record.deviceUuid, isNotEmpty);
         expect(record.createdAt, isNotNull);
+      });
+
+      test('creates record with UUID v7 for time-ordered sorting', () async {
+        // UUID v7 provides time-ordered IDs which are better for database
+        // indexing and natural chronological ordering of records
+        service = NosebleedService(
+          enrollmentService: mockEnrollment,
+          httpClient: MockClient(
+            (_) async => http.Response('{"success": true}', 200),
+          ),
+        );
+
+        final record = await service.addRecord(
+          startTime: DateTime(2024, 1, 15),
+        );
+
+        // UUID v7 format: xxxxxxxx-xxxx-7xxx-yxxx-xxxxxxxxxxxx
+        // The version nibble (7) appears at position 14 (0-indexed)
+        expect(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ).hasMatch(record.id),
+          isTrue,
+          reason:
+              'Expected NosebleedRecord.id to be UUID v7 format but got: ${record.id}',
+        );
       });
 
       test('creates record with all optional fields', () async {

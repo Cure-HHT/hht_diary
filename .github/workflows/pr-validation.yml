@@ -101,9 +101,9 @@ jobs:
               HAS_CUR=true
             fi
 
-            # Check for REQ-XXX reference (format: REQ-{p|o|d}NNNNN)
+            # Check for REQ-XXX reference (format: REQ-{p|o|d}NNNNN or EQ-CAL-{p|o|d}NNNNN)
             HAS_REQ=false
-            if echo "$FULL_MSG" | grep -qE 'REQ-[pdo][0-9]{5}'; then
+            if echo "$FULL_MSG" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
               HAS_REQ=true
             fi
 
@@ -149,12 +149,12 @@ jobs:
             echo "Required format:"
             echo "  [CUR-XXX] Subject line describing the change"
             echo ""
-            echo "  Implements: REQ-{type}{number}"
+            echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}"
             echo ""
             echo "Where:"
             echo "  CUR-XXX: Linear ticket number (e.g., CUR-399)"
-            echo "  REQ type: p (PRD), o (Ops), d (Dev)"
-            echo "  REQ number: 5 digits (e.g., REQ-d00018)"
+            echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)"
+            echo "  REQ/EQ-CAL number: 5 digits (e.g., REQ-d00018, EQ-CAL-d00005)"
             echo ""
             echo "To fix: Use 'git rebase -i' to edit commit messages"
             echo ""
