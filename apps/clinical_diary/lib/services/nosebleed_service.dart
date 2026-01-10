@@ -16,6 +16,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+/// Implements EQ-CAL-d00005
+
 /// Status of a day for calendar display
 enum DayStatus { nosebleed, noNosebleed, unknown, incomplete, notRecorded }
 
@@ -60,7 +62,7 @@ class NosebleedService {
   }
 
   /// Generate a new record ID
-  String generateRecordId() => _uuid.v4();
+  String generateRecordId() => _uuid.v7();
 
   /// Get all local records (raw event log - includes all versions)
   Future<List<NosebleedRecord>> getAllLocalRecords() async {
