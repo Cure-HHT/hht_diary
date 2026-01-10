@@ -93,13 +93,13 @@ fi
 # Validate REQ Reference
 # =====================================================
 
-# Pattern: REQ-{type}{number}
+# Pattern: REQ-{type}{number} or EQ-CAL-{type}{number}
 # Type: p (PRD), o (Ops), d (Dev)
 # Number: 5 digits (00001-99999)
-# Examples: REQ-p00042, REQ-o00015, REQ-d00027
+# Examples: REQ-p00042, REQ-o00015, REQ-d00027, EQ-CAL-d00005
 
 HAS_REQ=false
-if echo "$COMMIT_MSG" | grep -qE 'REQ-[pdo][0-9]{5}'; then
+if echo "$COMMIT_MSG" | grep -qE '(REQ|EQ-CAL)-[pdo][0-9]{5}'; then
     HAS_REQ=true
 fi
 
@@ -139,12 +139,12 @@ else
     echo "  " >&2
     echo "  Optional body with more details." >&2
     echo "  " >&2
-    echo "  Implements: REQ-{type}{number}" >&2
+    echo "  Implements: REQ-{type}{number} or EQ-CAL-{type}{number}" >&2
     echo "" >&2
     echo "Where:" >&2
     echo "  CUR-XXX: Linear ticket number (must match claimed ticket: $ACTIVE_TICKET)" >&2
-    echo "  REQ type: p (PRD), o (Ops), d (Dev)" >&2
-    echo "  REQ number: 5 digits (e.g., 00042)" >&2
+    echo "  REQ/EQ-CAL type: p (PRD), o (Ops), d (Dev)" >&2
+    echo "  REQ/EQ-CAL number: 5 digits (e.g., 00042)" >&2
     echo "" >&2
 
     if [ "$TICKET_MISMATCH" = "true" ]; then
