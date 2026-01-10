@@ -1,0 +1,113 @@
+# Sponsor Deployment Configuration
+#
+# ARCHITECTURE: Unified deployment model
+#   - hht_diary (core) is the primary repo containing code + terraform
+#   - Each sponsor has a PRIVATE repo (sponsor-{name}) with:
+#     - Configuration overrides
+#     - Branding assets
+#     - Portal application (EDC bridge)
+#   - Build process clones sponsor repos as overlays
+#   - ALL sponsors are deployed together (one system, one deployment)
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-p00001: Complete Multi-Sponsor Data Separation
+#
+# DEPLOYMENT MODEL:
+#   - Single release tag applies to ALL sponsors
+#   - Sponsor repos specify their OWN compatible version range
+#   - Deployment updates all sponsor GCP projects atomically
+#
+# WHY NOT SEPARATE DEPLOYMENT REPO?
+#   - One system = one deployment = one repo makes sense
+#   - Code and terraform often change together (atomic)
+#   - Tags already give immutable deployment references
+#   - Separate repo adds coordination without functional benefit
+
+# System-wide release (applies to all sponsors)
+system:
+  release_tag: v1.0.1        # Current production release
+  mobile_tag: mobile-v2.1.0  # Current mobile release
+
+sponsors:
+  # ACME Pharma - Phase 2 clinical trial
+  acme-pharma:
+    # Private sponsor repo (cloned during build)
+    sponsor_repo: git@github.com:cure-hht/sponsor-acme.git
+    sponsor_repo_ref: main  # or specific tag for locked studies
+
+    # GCP project for isolated deployment
+    gcp_project: hht-acme-prod
+    region: us-central1
+
+    # Study metadata
+    study_status: active        # preparation | active | completed | archived
+    deployment_date: "2026-03-01"
+    contact: acme-clinical@example.com
+
+    # Study-specific constraints
+    locked: true                # If true, requires explicit approval for updates
+    notes: |
+      Phase 2 study in progress. Only critical hotfixes allowed.
+      Any updates require sponsor approval and FDA notification.
+
+  # BetaCorp - Pilot study
+  betacorp:
+    sponsor_repo: git@github.com:cure-hht/sponsor-betacorp.git
+    sponsor_repo_ref: main
+    gcp_project: hht-betacorp-prod
+    region: europe-west1
+    study_status: preparation
+    deployment_date: "2026-06-01"
+    contact: beta-trial@example.com
+    locked: false
+    notes: |
+      Pilot study preparation. Can accept updates during prep phase.
+
+  # Template for new sponsors
+  _template:
+    sponsor_repo: git@github.com:cure-hht/sponsor-{name}.git
+    sponsor_repo_ref: main
+    gcp_project: hht-{name}-prod
+    region: us-central1
+    study_status: preparation
+    deployment_date: "YYYY-MM-DD"
+    contact: email@example.com
+    locked: false
+    notes: |
+      Description of study and any special considerations.
+
+# Mobile app compatibility
+# Documents which mobile versions support which backend tags
+mobile_compatibility:
+  mobile-v2.0.x:
+    supported_backends:
+      - "v1.0.x"
+    min_ios: "14.0"
+    min_android: "26"
+    status: deprecated
+    deprecation_date: "2026-09-01"
+
+  mobile-v2.1.x:
+    supported_backends:
+      - "v1.0.x"
+      - "v1.1.x"
+    min_ios: "15.0"
+    min_android: "28"
+    status: current
+
+# Deployment settings
+settings:
+  # Tags matching this pattern are considered production releases
+  production_tag_pattern: "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+  # Tags matching this pattern are pre-releases (rc, beta)
+  prerelease_tag_pattern: "^v[0-9]+\\.[0-9]+\\.[0-9]+-(rc|beta)\\.[0-9]+$"
+
+  # Require explicit approval for updates to active studies
+  require_approval_for_active_studies: true
+
+  # Terraform module to use for sponsor infrastructure
+  terraform_module: "modules/sponsor-deployment"
+
+  # Default region for new sponsors
+  default_region: us-central1

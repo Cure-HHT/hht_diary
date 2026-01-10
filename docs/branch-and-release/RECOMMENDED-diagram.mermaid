@@ -1,0 +1,28 @@
+gitGraph
+    commit id: "initial"
+    commit id: "feat: user auth"
+    commit id: "feat: diary entry"
+
+    branch release/v1.0
+    commit id: "stabilize"
+    commit id: "v1.0.0" tag: "v1.0.0"
+
+    checkout main
+    commit id: "feat: reports"
+    commit id: "feat: export"
+
+    checkout release/v1.0
+    commit id: "fix: sync bug" type: HIGHLIGHT
+    commit id: "v1.0.1" tag: "v1.0.1"
+
+    checkout main
+    merge release/v1.0 id: "merge fix"
+    commit id: "feat: notifications"
+
+    branch release/v1.1
+    commit id: "stabilize v1.1"
+    commit id: "v1.1.0" tag: "v1.1.0"
+
+    checkout main
+    merge release/v1.1 id: "merge v1.1"
+    commit id: "feat: analytics"
