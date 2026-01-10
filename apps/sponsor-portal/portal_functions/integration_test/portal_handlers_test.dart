@@ -13,8 +13,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:portal_functions/portal_functions.dart';
-import 'package:portal_functions/src/portal_auth.dart';
-import 'package:portal_functions/src/portal_user.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 

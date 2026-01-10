@@ -54,10 +54,21 @@ class VerificationResult {
 /// Returns [VerificationResult] with uid and email on success,
 /// or error message on failure.
 Future<VerificationResult> verifyIdToken(String idToken) async {
+  final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
+  print('[AUTH] verifyIdToken called');
+  print('[AUTH] FIREBASE_AUTH_EMULATOR_HOST = $emulatorHost');
+  print('[AUTH] _useEmulator = $_useEmulator');
+  print(
+    '[AUTH] Token prefix: ${idToken.substring(0, idToken.length > 50 ? 50 : idToken.length)}...',
+  );
+
   // For Firebase emulator, use simplified verification
   if (_useEmulator) {
+    print('[AUTH] Using emulator verification');
     return _verifyEmulatorToken(idToken);
   }
+
+  print('[AUTH] Using production verification');
 
   try {
     // Parse the JWT header to get the key ID
@@ -154,26 +165,33 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
     // In emulator mode, we trust the token structure but still parse it
     final parts = idToken.split('.');
     if (parts.length != 3) {
+      print('[AUTH] Emulator: Invalid token format (parts: ${parts.length})');
       return VerificationResult(error: 'Invalid token format');
     }
 
     final payloadBase64 = _base64UrlDecode(parts[1]);
     final payload = jsonDecode(payloadBase64) as Map<String, dynamic>;
+    print('[AUTH] Emulator: Parsed payload keys: ${payload.keys.toList()}');
 
     final uid = payload['sub'] as String? ?? payload['user_id'] as String?;
     final email = payload['email'] as String?;
     final emailVerified = payload['email_verified'] as bool? ?? false;
 
+    print('[AUTH] Emulator: uid=$uid, email=$email');
+
     if (uid == null || uid.isEmpty) {
+      print('[AUTH] Emulator: Token missing subject');
       return VerificationResult(error: 'Token missing subject');
     }
 
+    print('[AUTH] Emulator: Verification SUCCESS');
     return VerificationResult(
       uid: uid,
       email: email,
       emailVerified: emailVerified,
     );
   } catch (e) {
+    print('[AUTH] Emulator: Token parsing failed: $e');
     return VerificationResult(error: 'Emulator token parsing failed: $e');
   }
 }

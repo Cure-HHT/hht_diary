@@ -5,59 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a224824f-aebe-4e37-91a7-8d5337f761c7" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../../../src/auth.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/database.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/health.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/identity_platform.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/index-sort-f.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/index-sort-l.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/jwt.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/portal_auth.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/portal_user.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/sponsor.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/testing_utils.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../src/user.dart.gcov.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../tools/dev-env/docker-compose.firebase.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../tools/dev-env/firebase/.firebaserc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../../../tools/dev-env/firebase/firebase.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../database/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../../database/rls_policies.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/rls_policies.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../database/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/schema.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/Pulumi.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/package-lock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/package.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/audit-logs.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/billing.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/config.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/org-iam.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/src/projects.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/tool/bootstrap-sponsor-gcp-projects.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/tool/sponsor-config.example.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/bootstrap/tsconfig.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/Dockerfile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/Pulumi.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/nginx.conf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/package.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/audit-logs.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/cloud-run.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/cloud-sql.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/config.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/docker-image.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/domain-mapping.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/iam.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/monitoring.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/storage.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/vpc.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/src/workforce-identity.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi/sponsor-portal/tsconfig.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../infrastructure/pulumi2terraform-prompt.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../spec/prd-security-RBAC.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../spec/prd-security-RBAC.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,7 +76,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1768051192202</updated>
-      <workItem from="1768051193451" duration="2253000" />
+      <workItem from="1768051193451" duration="3078000" />
     </task>
     <servers />
   </component>

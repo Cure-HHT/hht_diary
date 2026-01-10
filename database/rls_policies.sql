@@ -642,9 +642,13 @@ CREATE POLICY portal_users_admin_update ON portal_users
     USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'))
     WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
 
--- Service role can update portal users (for firebase_uid linking)
-CREATE POLICY portal_users_service_update ON portal_users
-    FOR UPDATE
+-- Service role has full access to portal users (for login/bootstrap operations)
+-- The portal server uses service_role for:
+--   - Looking up users by firebase_uid during authentication
+--   - Looking up users by email during first login linking
+--   - Updating firebase_uid when linking accounts
+CREATE POLICY portal_users_service_all ON portal_users
+    FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
@@ -684,6 +688,13 @@ CREATE POLICY portal_site_access_admin_delete ON portal_user_site_access
     FOR DELETE
     TO authenticated
     USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Service role has full access (for reading site assignments during login)
+CREATE POLICY portal_site_access_service_all ON portal_user_site_access
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
 
 -- =====================================================
 -- SPONSOR_ROLE_MAPPING TABLE POLICIES

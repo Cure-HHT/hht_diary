@@ -2,8 +2,10 @@
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00032: Role-Based Access Control Implementation
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-p00005: Role-Based Access Control
 //
 // Portal authentication - verifies Identity Platform tokens and manages user sessions
+// Uses service context for login/linking operations, authenticated context for data access
 
 import 'dart:convert';
 
@@ -49,40 +51,58 @@ class PortalUser {
 /// On first login, links firebase_uid to portal_users record by email match.
 /// Returns 403 if email is not pre-authorized in portal_users table.
 Future<Response> portalMeHandler(Request request) async {
+  print('[PORTAL_AUTH] portalMeHandler called');
+
   // Extract bearer token
   final token = extractBearerToken(request.headers['authorization']);
   if (token == null) {
+    print('[PORTAL_AUTH] No authorization header found');
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
+
+  print('[PORTAL_AUTH] Got bearer token, verifying...');
 
   // Verify Identity Platform token
   final verification = await verifyIdToken(token);
   if (!verification.isValid) {
+    print('[PORTAL_AUTH] Token verification FAILED: ${verification.error}');
     return _jsonResponse({'error': verification.error ?? 'Invalid token'}, 401);
   }
 
   final firebaseUid = verification.uid!;
   final email = verification.email;
 
+  print('[PORTAL_AUTH] Token verified: uid=$firebaseUid, email=$email');
+
   if (email == null) {
+    print('[PORTAL_AUTH] Token missing email claim');
     return _jsonResponse({'error': 'Token missing email claim'}, 401);
   }
 
   final db = Database.instance;
 
+  // Use service context for login/linking - this is a privileged operation
+  // that needs to read/update portal_users before user context is established
+  const serviceContext = UserContext.service;
+
   // First, try to find user by firebase_uid (subsequent logins)
-  var result = await db.execute(
+  print('[PORTAL_AUTH] Looking up user by firebase_uid: $firebaseUid');
+  var result = await db.executeWithContext(
     '''
     SELECT id, firebase_uid, email, name, role::text, status
     FROM portal_users
     WHERE firebase_uid = @firebaseUid
     ''',
     parameters: {'firebaseUid': firebaseUid},
+    context: serviceContext,
   );
+
+  print('[PORTAL_AUTH] Firebase UID lookup returned ${result.length} rows');
 
   if (result.isEmpty) {
     // First login - try to link by email
-    result = await db.execute(
+    print('[PORTAL_AUTH] No match by UID, trying to link by email: $email');
+    result = await db.executeWithContext(
       '''
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
@@ -90,22 +110,31 @@ Future<Response> portalMeHandler(Request request) async {
       RETURNING id, firebase_uid, email, name, role::text, status
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},
+      context: serviceContext,
     );
+
+    print('[PORTAL_AUTH] Email link update returned ${result.length} rows');
 
     if (result.isEmpty) {
       // Check if email exists but already linked to different uid
-      final existing = await db.execute(
+      print('[PORTAL_AUTH] Checking if email exists with different UID');
+      final existing = await db.executeWithContext(
         'SELECT firebase_uid FROM portal_users WHERE email = @email',
         parameters: {'email': email},
+        context: serviceContext,
       );
 
+      print('[PORTAL_AUTH] Email exists check: ${existing.length} rows');
+
       if (existing.isNotEmpty && existing.first[0] != null) {
+        print('[PORTAL_AUTH] Email already linked to: ${existing.first[0]}');
         return _jsonResponse({
           'error': 'Email already linked to another account',
         }, 403);
       }
 
       // Email not found in portal_users - not pre-authorized
+      print('[PORTAL_AUTH] Email not in portal_users - NOT AUTHORIZED');
       return _jsonResponse({
         'error': 'User not authorized for portal access',
       }, 403);
@@ -124,10 +153,10 @@ Future<Response> portalMeHandler(Request request) async {
     return _jsonResponse({'error': 'Account access has been revoked'}, 403);
   }
 
-  // Fetch site assignments for investigators
+  // Fetch site assignments for investigators (service context for initial login)
   List<Map<String, dynamic>> sites = [];
   if (userRole == 'Investigator') {
-    final siteResult = await db.execute(
+    final siteResult = await db.executeWithContext(
       '''
       SELECT s.site_id, s.site_name, s.site_number
       FROM portal_user_site_access pusa
@@ -136,6 +165,7 @@ Future<Response> portalMeHandler(Request request) async {
       ORDER BY s.site_number
       ''',
       parameters: {'userId': userId},
+      context: serviceContext,
     );
 
     sites = siteResult.map((r) {
@@ -162,8 +192,18 @@ Future<Response> portalMeHandler(Request request) async {
 
 /// Middleware to require portal authentication
 ///
-/// Returns null if authentication succeeds (caller should continue).
-/// Returns Response with error if authentication fails.
+/// Returns PortalUser if authentication succeeds, null if it fails.
+/// Uses service context to look up user - subsequent data operations
+/// should create authenticated UserContext from the returned PortalUser.
+///
+/// Example usage:
+///   final user = await requirePortalAuth(request, ['Administrator']);
+///   if (user == null) return Response.forbidden('...');
+///   final context = UserContext.authenticated(
+///     userId: user.firebaseUid!,
+///     role: user.role,
+///   );
+///   // Use context for subsequent queries
 Future<PortalUser?> requirePortalAuth(
   Request request, [
   List<String>? allowedRoles,
@@ -181,13 +221,18 @@ Future<PortalUser?> requirePortalAuth(
   final firebaseUid = verification.uid!;
 
   final db = Database.instance;
-  final result = await db.execute(
+
+  // Use service context for user lookup - this is identity verification
+  const serviceContext = UserContext.service;
+
+  final result = await db.executeWithContext(
     '''
     SELECT id, firebase_uid, email, name, role::text, status
     FROM portal_users
     WHERE firebase_uid = @firebaseUid
     ''',
     parameters: {'firebaseUid': firebaseUid},
+    context: serviceContext,
   );
 
   if (result.isEmpty) {
@@ -210,7 +255,7 @@ Future<PortalUser?> requirePortalAuth(
   // Fetch sites if investigator
   List<Map<String, dynamic>> sites = [];
   if (userRole == 'Investigator') {
-    final siteResult = await db.execute(
+    final siteResult = await db.executeWithContext(
       '''
       SELECT s.site_id, s.site_name, s.site_number
       FROM portal_user_site_access pusa
@@ -218,6 +263,7 @@ Future<PortalUser?> requirePortalAuth(
       WHERE pusa.user_id = @userId::uuid
       ''',
       parameters: {'userId': row[0]},
+      context: serviceContext,
     );
 
     sites = siteResult
