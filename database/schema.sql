@@ -571,6 +571,18 @@ COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code ex
 COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
 COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
 
+-- =====================================================
+-- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger for updated_at
 CREATE TRIGGER update_portal_users_updated_at BEFORE UPDATE ON portal_users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
