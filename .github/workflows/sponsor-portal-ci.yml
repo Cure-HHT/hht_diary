@@ -39,11 +39,11 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: 3.10.0
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.38.5'
           channel: 'stable'
 
       - name: Install dependencies (portal_functions)
@@ -84,11 +84,11 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: 3.10.0
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.38.5'
           channel: 'stable'
 
       - name: Install dependencies (portal_functions)
@@ -139,7 +139,7 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: 3.10.0
 
       - name: Setup Node.js for Firebase Emulator
         uses: actions/setup-node@v4
@@ -253,11 +253,11 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: 3.10.0
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.38.5'
           channel: 'stable'
 
       - name: Setup Node.js for Firebase Emulator
