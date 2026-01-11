@@ -46,14 +46,14 @@ class PortalUser {
       roles.contains('Administrator') || roles.contains('Developer Admin');
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'email': email,
-        'name': name,
-        'roles': roles,
-        'active_role': activeRole,
-        'status': status,
-        'sites': sites,
-      };
+    'id': id,
+    'email': email,
+    'name': name,
+    'roles': roles,
+    'active_role': activeRole,
+    'status': status,
+    'sites': sites,
+  };
 }
 
 /// Get current portal user from Identity Platform token

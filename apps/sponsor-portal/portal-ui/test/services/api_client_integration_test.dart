@@ -60,10 +60,7 @@ void main() {
           expect(request.headers['Content-Type'], 'application/json');
           expect(request.method, 'GET');
 
-          return http.Response(
-            jsonEncode({'data': 'test-value'}),
-            200,
-          );
+          return http.Response(jsonEncode({'data': 'test-value'}), 200);
         });
 
         final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -77,10 +74,7 @@ void main() {
 
       test('returns error for 404', () async {
         final mockHttpClient = MockClient((request) async {
-          return http.Response(
-            jsonEncode({'error': 'Not found'}),
-            404,
-          );
+          return http.Response(jsonEncode({'error': 'Not found'}), 404);
         });
 
         final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -131,10 +125,7 @@ void main() {
 
       test('returns error for 400 bad request', () async {
         final mockHttpClient = MockClient((request) async {
-          return http.Response(
-            jsonEncode({'error': 'Invalid data'}),
-            400,
-          );
+          return http.Response(jsonEncode({'error': 'Invalid data'}), 400);
         });
 
         final apiClient = ApiClient(authService, httpClient: mockHttpClient);
@@ -165,17 +156,13 @@ void main() {
           expect(request.headers['Authorization'], startsWith('Bearer '));
           expect(request.method, 'PATCH');
 
-          return http.Response(
-            jsonEncode({'success': true}),
-            200,
-          );
+          return http.Response(jsonEncode({'success': true}), 200);
         });
 
         final apiClient = ApiClient(authService, httpClient: mockHttpClient);
-        final response = await apiClient.patch(
-          '/api/users/123',
-          {'status': 'revoked'},
-        );
+        final response = await apiClient.patch('/api/users/123', {
+          'status': 'revoked',
+        });
 
         expect(response.isSuccess, isTrue);
         expect(response.data['success'], isTrue);
@@ -183,10 +170,7 @@ void main() {
 
       test('returns error for 403 forbidden', () async {
         final mockHttpClient = MockClient((request) async {
-          return http.Response(
-            jsonEncode({'error': 'Not authorized'}),
-            403,
-          );
+          return http.Response(jsonEncode({'error': 'Not authorized'}), 403);
         });
 
         final apiClient = ApiClient(authService, httpClient: mockHttpClient);

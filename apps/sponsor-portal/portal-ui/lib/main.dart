@@ -26,8 +26,10 @@ void main() async {
 
   // Initialize flavor from environment
   // Pass --dart-define=APP_FLAVOR=local (or dev, qa, uat, prod)
-  const flavorName =
-      String.fromEnvironment('APP_FLAVOR', defaultValue: 'local');
+  const flavorName = String.fromEnvironment(
+    'APP_FLAVOR',
+    defaultValue: 'local',
+  );
   final flavor = flavorFromString(flavorName) ?? Flavor.local;
   FlavorConfig.initialize(flavor);
 
@@ -37,9 +39,7 @@ void main() async {
   debugPrint('Running with flavor: ${F.name} (${F.title})');
 
   // Initialize Firebase with flavor-specific config
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Connect to Firebase Emulator only for local flavor
   if (F.useEmulator) {
@@ -65,9 +65,7 @@ class CarinaPortalApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthService())],
       child: MaterialApp.router(
         title: F.title,
         theme: portalTheme,

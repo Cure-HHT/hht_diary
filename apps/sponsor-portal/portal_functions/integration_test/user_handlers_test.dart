@@ -27,7 +27,8 @@ void main() {
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
       database: Platform.environment['DB_NAME'] ?? 'sponsor_portal',
       username: Platform.environment['DB_USER'] ?? 'postgres',
-      password: Platform.environment['DB_PASSWORD'] ??
+      password:
+          Platform.environment['DB_PASSWORD'] ??
           Platform.environment['LOCAL_DB_PASSWORD'] ??
           'postgres',
       useSsl: useSsl,

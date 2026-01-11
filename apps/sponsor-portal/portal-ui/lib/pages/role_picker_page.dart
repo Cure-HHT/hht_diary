@@ -80,11 +80,13 @@ class _RolePickerPageState extends State<RolePickerPage> {
                   const SizedBox(height: 32),
 
                   // Role options
-                  ...user.roles.map((role) => _RoleOption(
-                        role: role,
-                        isLoading: _isLoading,
-                        onTap: () => _selectRole(authService, role),
-                      )),
+                  ...user.roles.map(
+                    (role) => _RoleOption(
+                      role: role,
+                      isLoading: _isLoading,
+                      onTap: () => _selectRole(authService, role),
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
 
@@ -199,11 +201,7 @@ class _RoleOption extends StatelessWidget {
                     color: bgColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    _getRoleIcon(role),
-                    color: bgColor,
-                    size: 24,
-                  ),
+                  child: Icon(_getRoleIcon(role), color: bgColor, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

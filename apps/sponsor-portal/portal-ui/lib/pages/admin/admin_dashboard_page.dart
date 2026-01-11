@@ -98,9 +98,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ],
                 ),
                 const VerticalDivider(thickness: 1, width: 1),
-                Expanded(
-                  child: _buildContent(user, theme),
-                ),
+                Expanded(child: _buildContent(user, theme)),
               ],
             ),
           ),
@@ -241,10 +239,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             color: theme.colorScheme.outline,
           ),
           const SizedBox(height: 16),
-          Text(
-            'User Management',
-            style: theme.textTheme.headlineSmall,
-          ),
+          Text('User Management', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
             'User management features coming soon',
@@ -268,10 +263,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             color: theme.colorScheme.outline,
           ),
           const SizedBox(height: 16),
-          Text(
-            'Clinical Sites',
-            style: theme.textTheme.headlineSmall,
-          ),
+          Text('Clinical Sites', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
             'Site management features coming soon',

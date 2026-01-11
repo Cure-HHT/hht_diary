@@ -66,7 +66,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
         });
       } else {
         setState(() {
-          _error = usersResponse.error ??
+          _error =
+              usersResponse.error ??
               sitesResponse.error ??
               'Failed to load data';
           _isLoading = false;
@@ -86,10 +87,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
   Future<void> _createUser() async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => CreateUserDialog(
-        sites: _sites,
-        apiClient: _apiClient,
-      ),
+      builder: (context) =>
+          CreateUserDialog(sites: _sites, apiClient: _apiClient),
     );
 
     if (result == true) {
@@ -132,20 +131,20 @@ class _UserManagementTabState extends State<UserManagementTab> {
         if (!mounted) return;
 
         if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User access revoked')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('User access revoked')));
           _loadData();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${response.error}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: ${response.error}')));
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error revoking user: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error revoking user: $e')));
         }
       }
     }
@@ -183,14 +182,14 @@ class _UserManagementTabState extends State<UserManagementTab> {
         if (!mounted) return;
 
         if (response.isSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User reactivated')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('User reactivated')));
           _loadData();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${response.error}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: ${response.error}')));
         }
       } catch (e) {
         if (mounted) {
@@ -216,16 +215,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: colorScheme.error),
             const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: TextStyle(color: colorScheme.error),
-            ),
+            Text(_error!, style: TextStyle(color: colorScheme.error)),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _loadData,
@@ -245,10 +237,7 @@ class _UserManagementTabState extends State<UserManagementTab> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Portal Users',
-                style: theme.textTheme.headlineMedium,
-              ),
+              Text('Portal Users', style: theme.textTheme.headlineMedium),
               Row(
                 children: [
                   IconButton(
@@ -276,7 +265,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       padding: EdgeInsets.all(32),
                       child: Center(
                         child: Text(
-                            'No users found. Create the first user to get started.'),
+                          'No users found. Create the first user to get started.',
+                        ),
                       ),
                     )
                   : DataTable(
@@ -302,8 +292,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
                         }
 
                         // Check if user has investigator role for sites display
-                        final hasInvestigatorRole =
-                            roles.contains('Investigator');
+                        final hasInvestigatorRole = roles.contains(
+                          'Investigator',
+                        );
 
                         // Get sites
                         final sitesList =
@@ -311,8 +302,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                         final sitesDisplay = sitesList.isEmpty
                             ? 'No sites'
                             : sitesList.length == 1
-                                ? (sitesList.first['site_name'] ?? 'Unknown')
-                                : '${sitesList.length} sites assigned';
+                            ? (sitesList.first['site_name'] ?? 'Unknown')
+                            : '${sitesList.length} sites assigned';
 
                         return DataRow(
                           cells: [
@@ -375,9 +366,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
                                       icon: const Icon(Icons.refresh),
                                       onPressed: () =>
                                           _regenerateActivationCode(
-                                        user['id'],
-                                        user['name'] ?? 'User',
-                                      ),
+                                            user['id'],
+                                            user['name'] ?? 'User',
+                                          ),
                                       tooltip: 'Generate Activation Code',
                                     ),
                                   if (user['linking_code'] != null)
@@ -425,11 +416,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                   Expanded(
                     child: SelectableText(
                       linkingCode,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontFamily: 'monospace',
-                                letterSpacing: 2,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontFamily: 'monospace', letterSpacing: 2),
                     ),
                   ),
                   IconButton(
@@ -438,7 +426,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       Clipboard.setData(ClipboardData(text: linkingCode));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Code copied to clipboard')),
+                          content: Text('Code copied to clipboard'),
+                        ),
                       );
                     },
                     tooltip: 'Copy',
@@ -468,7 +457,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-                'Share this code with the user to activate their account:'),
+              'Share this code with the user to activate their account:',
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
@@ -481,11 +471,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                   Expanded(
                     child: SelectableText(
                       activationCode,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontFamily: 'monospace',
-                                letterSpacing: 2,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontFamily: 'monospace', letterSpacing: 2),
                     ),
                   ),
                   IconButton(
@@ -494,7 +481,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       Clipboard.setData(ClipboardData(text: activationCode));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Code copied to clipboard')),
+                          content: Text('Code copied to clipboard'),
+                        ),
                       );
                     },
                     tooltip: 'Copy',
@@ -543,10 +531,9 @@ class _UserManagementTabState extends State<UserManagementTab> {
 
   Future<void> _regenerateActivationCode(String userId, String userName) async {
     try {
-      final response = await _apiClient.patch(
-        '/api/v1/portal/users/$userId',
-        {'regenerate_activation': true},
-      );
+      final response = await _apiClient.patch('/api/v1/portal/users/$userId', {
+        'regenerate_activation': true,
+      });
 
       if (!mounted) return;
 
@@ -558,15 +545,15 @@ class _UserManagementTabState extends State<UserManagementTab> {
         }
         _loadData();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.error}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${response.error}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error regenerating code: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error regenerating code: $e')));
       }
     }
   }
@@ -629,8 +616,10 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
         body['site_ids'] = _selectedSites.toList();
       }
 
-      final response =
-          await widget.apiClient.post('/api/v1/portal/users', body);
+      final response = await widget.apiClient.post(
+        '/api/v1/portal/users',
+        body,
+      );
 
       if (!mounted) return;
 
@@ -762,8 +751,9 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                         Expanded(
                           child: Text(
                             _error!,
-                            style:
-                                TextStyle(color: colorScheme.onErrorContainer),
+                            style: TextStyle(
+                              color: colorScheme.onErrorContainer,
+                            ),
                           ),
                         ),
                       ],
@@ -835,10 +825,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                 ),
                 if (_selectedRole == UserRole.investigator) ...[
                   const SizedBox(height: 24),
-                  Text(
-                    'Assign Sites',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Assign Sites', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   if (widget.sites.isEmpty)
                     Container(

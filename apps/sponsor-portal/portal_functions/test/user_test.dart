@@ -50,7 +50,7 @@ void main() {
           'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
           'exp':
               DateTime.now().add(Duration(hours: 1)).millisecondsSinceEpoch ~/
-                  1000,
+              1000,
         }),
       ),
     );

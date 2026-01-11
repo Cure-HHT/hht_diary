@@ -99,73 +99,108 @@ class FlavorValues {
 // These must be const because String.fromEnvironment requires compile-time keys
 
 // DEV environment variables
-const _devApiUrl = String.fromEnvironment('PORTAL_DEV_API_URL',
-    defaultValue: 'https://portal-dev.example.com');
-const _devFirebaseApiKey = String.fromEnvironment('PORTAL_DEV_FIREBASE_API_KEY',
-    defaultValue: 'REQUIRED');
-const _devFirebaseAppId = String.fromEnvironment('PORTAL_DEV_FIREBASE_APP_ID',
-    defaultValue: 'REQUIRED');
+const _devApiUrl = String.fromEnvironment(
+  'PORTAL_DEV_API_URL',
+  defaultValue: 'https://portal-dev.example.com',
+);
+const _devFirebaseApiKey = String.fromEnvironment(
+  'PORTAL_DEV_FIREBASE_API_KEY',
+  defaultValue: 'REQUIRED',
+);
+const _devFirebaseAppId = String.fromEnvironment(
+  'PORTAL_DEV_FIREBASE_APP_ID',
+  defaultValue: 'REQUIRED',
+);
 const _devFirebaseProjectId = String.fromEnvironment(
-    'PORTAL_DEV_FIREBASE_PROJECT_ID',
-    defaultValue: 'REQUIRED');
+  'PORTAL_DEV_FIREBASE_PROJECT_ID',
+  defaultValue: 'REQUIRED',
+);
 const _devFirebaseAuthDomain = String.fromEnvironment(
-    'PORTAL_DEV_FIREBASE_AUTH_DOMAIN',
-    defaultValue: 'REQUIRED');
+  'PORTAL_DEV_FIREBASE_AUTH_DOMAIN',
+  defaultValue: 'REQUIRED',
+);
 const _devFirebaseMessagingSenderId = String.fromEnvironment(
-    'PORTAL_DEV_FIREBASE_MESSAGING_SENDER_ID',
-    defaultValue: '');
+  'PORTAL_DEV_FIREBASE_MESSAGING_SENDER_ID',
+  defaultValue: '',
+);
 
 // QA environment variables
-const _qaApiUrl = String.fromEnvironment('PORTAL_QA_API_URL',
-    defaultValue: 'https://portal-qa.example.com');
-const _qaFirebaseApiKey = String.fromEnvironment('PORTAL_QA_FIREBASE_API_KEY',
-    defaultValue: 'REQUIRED');
-const _qaFirebaseAppId = String.fromEnvironment('PORTAL_QA_FIREBASE_APP_ID',
-    defaultValue: 'REQUIRED');
+const _qaApiUrl = String.fromEnvironment(
+  'PORTAL_QA_API_URL',
+  defaultValue: 'https://portal-qa.example.com',
+);
+const _qaFirebaseApiKey = String.fromEnvironment(
+  'PORTAL_QA_FIREBASE_API_KEY',
+  defaultValue: 'REQUIRED',
+);
+const _qaFirebaseAppId = String.fromEnvironment(
+  'PORTAL_QA_FIREBASE_APP_ID',
+  defaultValue: 'REQUIRED',
+);
 const _qaFirebaseProjectId = String.fromEnvironment(
-    'PORTAL_QA_FIREBASE_PROJECT_ID',
-    defaultValue: 'REQUIRED');
+  'PORTAL_QA_FIREBASE_PROJECT_ID',
+  defaultValue: 'REQUIRED',
+);
 const _qaFirebaseAuthDomain = String.fromEnvironment(
-    'PORTAL_QA_FIREBASE_AUTH_DOMAIN',
-    defaultValue: 'REQUIRED');
+  'PORTAL_QA_FIREBASE_AUTH_DOMAIN',
+  defaultValue: 'REQUIRED',
+);
 const _qaFirebaseMessagingSenderId = String.fromEnvironment(
-    'PORTAL_QA_FIREBASE_MESSAGING_SENDER_ID',
-    defaultValue: '');
+  'PORTAL_QA_FIREBASE_MESSAGING_SENDER_ID',
+  defaultValue: '',
+);
 
 // UAT environment variables
-const _uatApiUrl = String.fromEnvironment('PORTAL_UAT_API_URL',
-    defaultValue: 'https://portal-uat.example.com');
-const _uatFirebaseApiKey = String.fromEnvironment('PORTAL_UAT_FIREBASE_API_KEY',
-    defaultValue: 'REQUIRED');
-const _uatFirebaseAppId = String.fromEnvironment('PORTAL_UAT_FIREBASE_APP_ID',
-    defaultValue: 'REQUIRED');
+const _uatApiUrl = String.fromEnvironment(
+  'PORTAL_UAT_API_URL',
+  defaultValue: 'https://portal-uat.example.com',
+);
+const _uatFirebaseApiKey = String.fromEnvironment(
+  'PORTAL_UAT_FIREBASE_API_KEY',
+  defaultValue: 'REQUIRED',
+);
+const _uatFirebaseAppId = String.fromEnvironment(
+  'PORTAL_UAT_FIREBASE_APP_ID',
+  defaultValue: 'REQUIRED',
+);
 const _uatFirebaseProjectId = String.fromEnvironment(
-    'PORTAL_UAT_FIREBASE_PROJECT_ID',
-    defaultValue: 'REQUIRED');
+  'PORTAL_UAT_FIREBASE_PROJECT_ID',
+  defaultValue: 'REQUIRED',
+);
 const _uatFirebaseAuthDomain = String.fromEnvironment(
-    'PORTAL_UAT_FIREBASE_AUTH_DOMAIN',
-    defaultValue: 'REQUIRED');
+  'PORTAL_UAT_FIREBASE_AUTH_DOMAIN',
+  defaultValue: 'REQUIRED',
+);
 const _uatFirebaseMessagingSenderId = String.fromEnvironment(
-    'PORTAL_UAT_FIREBASE_MESSAGING_SENDER_ID',
-    defaultValue: '');
+  'PORTAL_UAT_FIREBASE_MESSAGING_SENDER_ID',
+  defaultValue: '',
+);
 
 // PROD environment variables
-const _prodApiUrl =
-    String.fromEnvironment('PORTAL_PROD_API_URL', defaultValue: '');
+const _prodApiUrl = String.fromEnvironment(
+  'PORTAL_PROD_API_URL',
+  defaultValue: '',
+);
 const _prodFirebaseApiKey = String.fromEnvironment(
-    'PORTAL_PROD_FIREBASE_API_KEY',
-    defaultValue: 'REQUIRED');
-const _prodFirebaseAppId = String.fromEnvironment('PORTAL_PROD_FIREBASE_APP_ID',
-    defaultValue: 'REQUIRED');
+  'PORTAL_PROD_FIREBASE_API_KEY',
+  defaultValue: 'REQUIRED',
+);
+const _prodFirebaseAppId = String.fromEnvironment(
+  'PORTAL_PROD_FIREBASE_APP_ID',
+  defaultValue: 'REQUIRED',
+);
 const _prodFirebaseProjectId = String.fromEnvironment(
-    'PORTAL_PROD_FIREBASE_PROJECT_ID',
-    defaultValue: 'REQUIRED');
+  'PORTAL_PROD_FIREBASE_PROJECT_ID',
+  defaultValue: 'REQUIRED',
+);
 const _prodFirebaseAuthDomain = String.fromEnvironment(
-    'PORTAL_PROD_FIREBASE_AUTH_DOMAIN',
-    defaultValue: 'REQUIRED');
+  'PORTAL_PROD_FIREBASE_AUTH_DOMAIN',
+  defaultValue: 'REQUIRED',
+);
 const _prodFirebaseMessagingSenderId = String.fromEnvironment(
-    'PORTAL_PROD_FIREBASE_MESSAGING_SENDER_ID',
-    defaultValue: '');
+  'PORTAL_PROD_FIREBASE_MESSAGING_SENDER_ID',
+  defaultValue: '',
+);
 
 /// Flavor configuration - holds values for all flavors
 class FlavorConfig {

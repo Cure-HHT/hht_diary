@@ -78,8 +78,9 @@ Future<Response> enrollHandler(Request request) async {
     final userId = userResult.first[0] as String;
 
     // Extract sponsor from enrollment code (e.g., CUREHHT1 -> curehht)
-    final sponsorId =
-        normalizedCode.replaceAll(RegExp(r'[0-9]$'), '').toLowerCase();
+    final sponsorId = normalizedCode
+        .replaceAll(RegExp(r'[0-9]$'), '')
+        .toLowerCase();
 
     // Create study enrollment
     await db.execute(

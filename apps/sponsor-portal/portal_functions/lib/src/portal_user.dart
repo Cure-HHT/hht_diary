@@ -304,7 +304,8 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   }
 
   // Non-developer admins cannot modify admin users
-  final isTargetAdmin = targetRoles.contains('Administrator') ||
+  final isTargetAdmin =
+      targetRoles.contains('Administrator') ||
       targetRoles.contains('Developer Admin');
   if (isTargetAdmin && !user.hasRole('Developer Admin')) {
     return _jsonResponse({

@@ -38,10 +38,7 @@ void main() {
     });
 
     test('stores error correctly', () {
-      final response = ApiResponse(
-        statusCode: 401,
-        error: 'Not authenticated',
-      );
+      final response = ApiResponse(statusCode: 401, error: 'Not authenticated');
 
       expect(response.error, 'Not authenticated');
       expect(response.isSuccess, isFalse);

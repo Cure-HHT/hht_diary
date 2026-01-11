@@ -132,11 +132,11 @@ class _ActivationPageState extends State<ActivationPage> {
       }
 
       // Create Firebase account
-      final credential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: _passwordController.text,
-      );
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: email,
+            password: _passwordController.text,
+          );
 
       if (credential.user == null) {
         setState(() {
@@ -243,8 +243,8 @@ class _ActivationPageState extends State<ActivationPage> {
               Text(
                 'Your email matches: $_maskedEmail',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             const SizedBox(height: 16),
             TextField(
@@ -383,8 +383,9 @@ class _ActivationPageState extends State<ActivationPage> {
                           if (v == null || v.trim().isEmpty) {
                             return 'Activation code is required';
                           }
-                          if (!RegExp(r'^[A-Z0-9]{5}-[A-Z0-9]{5}$')
-                              .hasMatch(v.trim().toUpperCase())) {
+                          if (!RegExp(
+                            r'^[A-Z0-9]{5}-[A-Z0-9]{5}$',
+                          ).hasMatch(v.trim().toUpperCase())) {
                             return 'Invalid format. Use XXXXX-XXXXX';
                           }
                           return null;
@@ -397,8 +398,9 @@ class _ActivationPageState extends State<ActivationPage> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Validate Code'),
                       ),
@@ -442,9 +444,11 @@ class _ActivationPageState extends State<ActivationPage> {
                           prefixIcon: const Icon(Icons.lock_outlined),
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
-                            icon: Icon(_showPassword
-                                ? Icons.visibility_off
-                                : Icons.visibility),
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
                             onPressed: () =>
                                 setState(() => _showPassword = !_showPassword),
                           ),
@@ -482,8 +486,9 @@ class _ActivationPageState extends State<ActivationPage> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Activate Account'),
                       ),

@@ -43,11 +43,7 @@ class StatusBadge extends StatelessWidget {
   final UserStatus status;
   final bool compact;
 
-  const StatusBadge({
-    super.key,
-    required this.status,
-    this.compact = false,
-  });
+  const StatusBadge({super.key, required this.status, this.compact = false});
 
   /// Create from a status string (e.g., from API response)
   factory StatusBadge.fromString(String statusString, {bool compact = false}) {

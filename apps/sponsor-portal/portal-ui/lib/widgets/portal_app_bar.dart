@@ -17,11 +17,7 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final String? subtitle;
 
-  const PortalAppBar({
-    super.key,
-    required this.title,
-    this.subtitle,
-  });
+  const PortalAppBar({super.key, required this.title, this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -64,9 +60,7 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Center(
-                child: RoleBadge(role: user.activeRole),
-              ),
+              child: Center(child: RoleBadge(role: user.activeRole)),
             ),
           // Logout button
           TextButton.icon(
@@ -94,10 +88,7 @@ class _RoleSwitcher extends StatelessWidget {
   final PortalUser user;
   final AuthService authService;
 
-  const _RoleSwitcher({
-    required this.user,
-    required this.authService,
-  });
+  const _RoleSwitcher({required this.user, required this.authService});
 
   @override
   Widget build(BuildContext context) {
@@ -126,11 +117,7 @@ class _RoleSwitcher extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
-              Icons.arrow_drop_down,
-              color: Colors.white,
-              size: 18,
-            ),
+            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
           ],
         ),
       ),
@@ -153,11 +140,7 @@ class _RoleSwitcher extends StatelessWidget {
                 RoleBadge(role: role),
                 const SizedBox(width: 8),
                 if (isActive)
-                  Icon(
-                    Icons.check,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
+                  Icon(Icons.check, size: 16, color: theme.colorScheme.primary),
               ],
             ),
           );

@@ -18,7 +18,7 @@ class ApiClient {
 
   /// Create ApiClient with optional HTTP client for testing
   ApiClient(this._authService, {http.Client? httpClient})
-      : _httpClient = httpClient ?? http.Client();
+    : _httpClient = httpClient ?? http.Client();
 
   /// Base URL for portal API
   String get _apiBaseUrl {
@@ -42,10 +42,7 @@ class ApiClient {
     try {
       final token = await _authService.getIdToken();
       if (token == null) {
-        return ApiResponse(
-          statusCode: 401,
-          error: 'Not authenticated',
-        );
+        return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.get(
@@ -59,10 +56,7 @@ class ApiClient {
       return _parseResponse(response);
     } catch (e) {
       debugPrint('API GET error: $e');
-      return ApiResponse(
-        statusCode: 500,
-        error: 'Network error: $e',
-      );
+      return ApiResponse(statusCode: 500, error: 'Network error: $e');
     }
   }
 
@@ -71,10 +65,7 @@ class ApiClient {
     try {
       final token = await _authService.getIdToken();
       if (token == null) {
-        return ApiResponse(
-          statusCode: 401,
-          error: 'Not authenticated',
-        );
+        return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.post(
@@ -89,10 +80,7 @@ class ApiClient {
       return _parseResponse(response);
     } catch (e) {
       debugPrint('API POST error: $e');
-      return ApiResponse(
-        statusCode: 500,
-        error: 'Network error: $e',
-      );
+      return ApiResponse(statusCode: 500, error: 'Network error: $e');
     }
   }
 
@@ -101,10 +89,7 @@ class ApiClient {
     try {
       final token = await _authService.getIdToken();
       if (token == null) {
-        return ApiResponse(
-          statusCode: 401,
-          error: 'Not authenticated',
-        );
+        return ApiResponse(statusCode: 401, error: 'Not authenticated');
       }
 
       final response = await _httpClient.patch(
@@ -119,10 +104,7 @@ class ApiClient {
       return _parseResponse(response);
     } catch (e) {
       debugPrint('API PATCH error: $e');
-      return ApiResponse(
-        statusCode: 500,
-        error: 'Network error: $e',
-      );
+      return ApiResponse(statusCode: 500, error: 'Network error: $e');
     }
   }
 
@@ -132,10 +114,7 @@ class ApiClient {
       final data = response.body.isNotEmpty ? jsonDecode(response.body) : null;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse(
-          statusCode: response.statusCode,
-          data: data,
-        );
+        return ApiResponse(statusCode: response.statusCode, data: data);
       } else {
         return ApiResponse(
           statusCode: response.statusCode,
@@ -158,11 +137,7 @@ class ApiResponse {
   final dynamic data;
   final String? error;
 
-  ApiResponse({
-    required this.statusCode,
-    this.data,
-    this.error,
-  });
+  ApiResponse({required this.statusCode, this.data, this.error});
 
   bool get isSuccess => statusCode >= 200 && statusCode < 300;
 }

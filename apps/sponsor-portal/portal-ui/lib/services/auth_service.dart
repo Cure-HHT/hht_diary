@@ -121,7 +121,8 @@ class PortalUser {
       roles: roles,
       activeRole: activeRole,
       status: json['status'] as String,
-      sites: (json['sites'] as List<dynamic>?)
+      sites:
+          (json['sites'] as List<dynamic>?)
               ?.map((s) => Map<String, dynamic>.from(s as Map))
               .toList() ??
           [],
@@ -157,11 +158,9 @@ class PortalUser {
 /// Authentication service using Firebase Auth and portal API
 class AuthService extends ChangeNotifier {
   /// Create AuthService with optional dependencies for testing
-  AuthService({
-    FirebaseAuth? firebaseAuth,
-    http.Client? httpClient,
-  })  : _auth = firebaseAuth ?? FirebaseAuth.instance,
-        _httpClient = httpClient ?? http.Client() {
+  AuthService({FirebaseAuth? firebaseAuth, http.Client? httpClient})
+    : _auth = firebaseAuth ?? FirebaseAuth.instance,
+      _httpClient = httpClient ?? http.Client() {
     _init();
   }
 
@@ -215,10 +214,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       // Sign in with Firebase Auth
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
 
       // Fetch portal user info
       final success = await _fetchPortalUser();

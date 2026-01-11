@@ -47,13 +47,13 @@ class JwtPayload {
   }
 
   Map<String, dynamic> toJson() => {
-        'authCode': authCode,
-        'userId': userId,
-        if (username != null) 'username': username,
-        'iat': iat,
-        if (exp != null) 'exp': exp,
-        if (iss != null) 'iss': iss,
-      };
+    'authCode': authCode,
+    'userId': userId,
+    if (username != null) 'username': username,
+    'iat': iat,
+    if (exp != null) 'exp': exp,
+    if (iss != null) 'iss': iss,
+  };
 }
 
 /// Create a JWT token

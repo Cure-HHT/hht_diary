@@ -32,18 +32,11 @@ class RoleBadge extends StatelessWidget {
   final UserRole role;
   final bool compact;
 
-  const RoleBadge({
-    super.key,
-    required this.role,
-    this.compact = false,
-  });
+  const RoleBadge({super.key, required this.role, this.compact = false});
 
   /// Create from a role string (e.g., from API response)
   factory RoleBadge.fromString(String roleString, {bool compact = false}) {
-    return RoleBadge(
-      role: UserRole.fromString(roleString),
-      compact: compact,
-    );
+    return RoleBadge(role: UserRole.fromString(roleString), compact: compact);
   }
 
   @override

@@ -45,14 +45,14 @@ class SponsorFeatureFlags {
   });
 
   Map<String, dynamic> toJson() => {
-        'useReviewScreen': useReviewScreen,
-        'useAnimations': useAnimations,
-        'requireOldEntryJustification': requireOldEntryJustification,
-        'enableShortDurationConfirmation': enableShortDurationConfirmation,
-        'enableLongDurationConfirmation': enableLongDurationConfirmation,
-        'longDurationThresholdMinutes': longDurationThresholdMinutes,
-        'availableFonts': availableFonts,
-      };
+    'useReviewScreen': useReviewScreen,
+    'useAnimations': useAnimations,
+    'requireOldEntryJustification': requireOldEntryJustification,
+    'enableShortDurationConfirmation': enableShortDurationConfirmation,
+    'enableLongDurationConfirmation': enableLongDurationConfirmation,
+    'longDurationThresholdMinutes': longDurationThresholdMinutes,
+    'availableFonts': availableFonts,
+  };
 }
 
 /// Default feature flags
@@ -88,8 +88,9 @@ Response sponsorConfigHandler(Request request) {
     return _jsonResponse({'error': 'Method not allowed'}, 405);
   }
 
-  final sponsorId =
-      request.url.queryParameters['sponsorId']?.toLowerCase().trim();
+  final sponsorId = request.url.queryParameters['sponsorId']
+      ?.toLowerCase()
+      .trim();
 
   if (sponsorId == null || sponsorId.isEmpty) {
     return _jsonResponse({'error': 'sponsorId parameter is required'}, 400);

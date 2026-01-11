@@ -78,9 +78,7 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: _buildContent(theme),
-          ),
+          Expanded(child: _buildContent(theme)),
         ],
       ),
     );
@@ -110,10 +108,7 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
             color: theme.colorScheme.outline,
           ),
           const SizedBox(height: 16),
-          Text(
-            'System Settings',
-            style: theme.textTheme.headlineSmall,
-          ),
+          Text('System Settings', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
             'System configuration coming soon',
@@ -268,9 +263,15 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                   _buildStep(theme, '1', 'Enter the admin\'s email and name'),
                   _buildStep(theme, '2', 'Generate an activation code'),
                   _buildStep(
-                      theme, '3', 'Share the code with the admin via email'),
-                  _buildStep(theme, '4',
-                      'Admin visits /activate to create their password'),
+                    theme,
+                    '3',
+                    'Share the code with the admin via email',
+                  ),
+                  _buildStep(
+                    theme,
+                    '4',
+                    'Admin visits /activate to create their password',
+                  ),
                 ],
               ),
             ),
@@ -315,12 +316,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );
@@ -356,8 +352,9 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                   Expanded(
                     child: Text(
                       _error!,
-                      style:
-                          TextStyle(color: theme.colorScheme.onErrorContainer),
+                      style: TextStyle(
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
                     ),
                   ),
                 ],
@@ -411,8 +408,9 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.vpn_key),
-            label:
-                Text(_isCreating ? 'Creating...' : 'Generate Activation Code'),
+            label: Text(
+              _isCreating ? 'Creating...' : 'Generate Activation Code',
+            ),
           ),
         ],
       ),
@@ -499,9 +497,7 @@ class _PortalAdminSetupTabState extends State<_PortalAdminSetupTab> {
                 child: Text(
                   'Send this code to the admin along with the activation URL:\n'
                   '/activate?code=$_activationCode',
-                  style: TextStyle(
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
+                  style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
                 ),
               ),
             ],
@@ -609,10 +605,7 @@ class _AllUsersTabState extends State<_AllUsersTab> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'All Portal Users',
-                style: theme.textTheme.headlineMedium,
-              ),
+              Text('All Portal Users', style: theme.textTheme.headlineMedium),
               IconButton(
                 onPressed: _loadUsers,
                 icon: const Icon(Icons.refresh),
