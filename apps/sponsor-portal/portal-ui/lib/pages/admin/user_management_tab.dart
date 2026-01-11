@@ -2,12 +2,16 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p00028: Token Revocation and Access Control
 //   REQ-d00035: User Management API
+//   REQ-d00036: Create User Dialog Implementation
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/role_badge.dart';
+import '../../widgets/status_badge.dart';
 
 class UserManagementTab extends StatefulWidget {
   const UserManagementTab({super.key});
@@ -279,66 +283,59 @@ class _UserManagementTabState extends State<UserManagementTab> {
                       columns: const [
                         DataColumn(label: Text('Name')),
                         DataColumn(label: Text('Email')),
-                        DataColumn(label: Text('Role')),
+                        DataColumn(label: Text('Roles')),
                         DataColumn(label: Text('Sites')),
                         DataColumn(label: Text('Status')),
                         DataColumn(label: Text('Actions')),
                       ],
                       rows: _users.map((user) {
-                        final isActive = user['status'] == 'active';
-                        final sites = (user['sites'] as List<dynamic>?)
-                                ?.map((s) => s['site_id'] ?? s.toString())
-                                .join(', ') ??
-                            '';
-                        final role = user['role'] as String? ?? '';
-                        final roleEnum = UserRole.fromString(role);
+                        final status = user['status'] as String? ?? 'pending';
+                        final isPending = status == 'pending';
+                        final isRevoked = status == 'revoked';
+
+                        // Get roles as list
+                        final roles = <String>[];
+                        if (user['roles'] != null) {
+                          roles.addAll((user['roles'] as List).cast<String>());
+                        } else if (user['role'] != null) {
+                          roles.add(user['role'] as String);
+                        }
+
+                        // Check if user has investigator role for sites display
+                        final hasInvestigatorRole =
+                            roles.contains('Investigator');
+
+                        // Get sites
+                        final sitesList =
+                            (user['sites'] as List<dynamic>?) ?? [];
+                        final sitesDisplay = sitesList.isEmpty
+                            ? 'No sites'
+                            : sitesList.length == 1
+                                ? (sitesList.first['site_name'] ?? 'Unknown')
+                                : '${sitesList.length} sites assigned';
 
                         return DataRow(
                           cells: [
                             DataCell(Text(user['name'] ?? 'N/A')),
                             DataCell(Text(user['email'] ?? '')),
                             DataCell(
-                              Chip(
-                                label: Text(roleEnum.displayName),
-                                backgroundColor:
-                                    _getRoleColor(roleEnum, colorScheme),
-                                labelStyle: TextStyle(
-                                  color: _getRoleForegroundColor(
-                                      roleEnum, colorScheme),
-                                  fontSize: 12,
-                                ),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                              ),
+                              RoleBadgeList(roles: roles, compact: true),
                             ),
                             DataCell(
                               Text(
-                                roleEnum == UserRole.investigator
-                                    ? (sites.isNotEmpty ? sites : 'None')
-                                    : 'All',
+                                hasInvestigatorRole
+                                    ? sitesDisplay
+                                    : 'All sites',
                               ),
                             ),
                             DataCell(
-                              Chip(
-                                label: Text(isActive ? 'Active' : 'Revoked'),
-                                backgroundColor: isActive
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.errorContainer,
-                                labelStyle: TextStyle(
-                                  color: isActive
-                                      ? colorScheme.onPrimaryContainer
-                                      : colorScheme.onErrorContainer,
-                                  fontSize: 12,
-                                ),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                              ),
+                              StatusBadge.fromString(status, compact: true),
                             ),
                             DataCell(
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (isActive)
+                                  if (!isRevoked && !isPending)
                                     IconButton(
                                       icon: Icon(
                                         Icons.block,
@@ -349,8 +346,8 @@ class _UserManagementTabState extends State<UserManagementTab> {
                                         user['name'] ?? 'this user',
                                       ),
                                       tooltip: 'Revoke Access',
-                                    )
-                                  else
+                                    ),
+                                  if (isRevoked)
                                     IconButton(
                                       icon: Icon(
                                         Icons.check_circle_outline,
@@ -361,6 +358,27 @@ class _UserManagementTabState extends State<UserManagementTab> {
                                         user['name'] ?? 'this user',
                                       ),
                                       tooltip: 'Reactivate',
+                                    ),
+                                  if (isPending &&
+                                      user['activation_code'] != null)
+                                    IconButton(
+                                      icon: const Icon(Icons.vpn_key),
+                                      onPressed: () => _showActivationCode(
+                                        user['name'] ?? 'User',
+                                        user['activation_code'],
+                                      ),
+                                      tooltip: 'Show Activation Code',
+                                    ),
+                                  if (isPending &&
+                                      user['activation_code'] == null)
+                                    IconButton(
+                                      icon: const Icon(Icons.refresh),
+                                      onPressed: () =>
+                                          _regenerateActivationCode(
+                                        user['id'],
+                                        user['name'] ?? 'User',
+                                      ),
+                                      tooltip: 'Generate Activation Code',
                                     ),
                                   if (user['linking_code'] != null)
                                     IconButton(
@@ -385,38 +403,6 @@ class _UserManagementTabState extends State<UserManagementTab> {
     );
   }
 
-  Color _getRoleColor(UserRole role, ColorScheme colorScheme) {
-    switch (role) {
-      case UserRole.administrator:
-      case UserRole.developerAdmin:
-        return colorScheme.tertiaryContainer;
-      case UserRole.sponsor:
-        return colorScheme.secondaryContainer;
-      case UserRole.auditor:
-        return colorScheme.surfaceContainerHighest;
-      case UserRole.analyst:
-        return colorScheme.surfaceContainerHigh;
-      case UserRole.investigator:
-        return colorScheme.primaryContainer;
-    }
-  }
-
-  Color _getRoleForegroundColor(UserRole role, ColorScheme colorScheme) {
-    switch (role) {
-      case UserRole.administrator:
-      case UserRole.developerAdmin:
-        return colorScheme.onTertiaryContainer;
-      case UserRole.sponsor:
-        return colorScheme.onSecondaryContainer;
-      case UserRole.auditor:
-        return colorScheme.onSurface;
-      case UserRole.analyst:
-        return colorScheme.onSurface;
-      case UserRole.investigator:
-        return colorScheme.onPrimaryContainer;
-    }
-  }
-
   void _showLinkingCode(String userName, String linkingCode) {
     showDialog(
       context: context,
@@ -434,12 +420,30 @@ class _UserManagementTabState extends State<UserManagementTab> {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: SelectableText(
-                linkingCode,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontFamily: 'monospace',
-                      letterSpacing: 2,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SelectableText(
+                      linkingCode,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontFamily: 'monospace',
+                                letterSpacing: 2,
+                              ),
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: linkingCode));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Code copied to clipboard')),
+                      );
+                    },
+                    tooltip: 'Copy',
+                  ),
+                ],
               ),
             ),
           ],
@@ -452,6 +456,119 @@ class _UserManagementTabState extends State<UserManagementTab> {
         ],
       ),
     );
+  }
+
+  void _showActivationCode(String userName, String activationCode) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Activation Code for $userName'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Share this code with the user to activate their account:'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SelectableText(
+                      activationCode,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontFamily: 'monospace',
+                                letterSpacing: 2,
+                              ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: activationCode));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Code copied to clipboard')),
+                      );
+                    },
+                    tooltip: 'Copy',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Activation URL: /activate?code=$activationCode',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _regenerateActivationCode(String userId, String userName) async {
+    try {
+      final response = await _apiClient.patch(
+        '/api/v1/portal/users/$userId',
+        {'regenerate_activation': true},
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess) {
+        final data = response.data as Map<String, dynamic>;
+        final newCode = data['activation_code'] as String?;
+        if (newCode != null) {
+          _showActivationCode(userName, newCode);
+        }
+        _loadData();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${response.error}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error regenerating code: $e')),
+        );
+      }
+    }
   }
 }
 

@@ -1,12 +1,16 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00028: Portal Frontend Framework
+//   REQ-d00035: Admin Dashboard Implementation
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../pages/activation_page.dart';
 import '../pages/admin/admin_dashboard_page.dart';
+import '../pages/dev_admin/dev_admin_dashboard_page.dart';
 import '../pages/login_page.dart';
+import '../pages/role_picker_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -17,9 +21,27 @@ final appRouter = GoRouter(
       builder: (context, state) => const LoginPage(),
     ),
     GoRoute(
+      path: '/select-role',
+      name: 'select-role',
+      builder: (context, state) => const RolePickerPage(),
+    ),
+    GoRoute(
+      path: '/activate',
+      name: 'activate',
+      builder: (context, state) {
+        final code = state.uri.queryParameters['code'];
+        return ActivationPage(code: code);
+      },
+    ),
+    GoRoute(
       path: '/admin',
       name: 'admin',
       builder: (context, state) => const AdminDashboardPage(),
+    ),
+    GoRoute(
+      path: '/dev-admin',
+      name: 'dev-admin',
+      builder: (context, state) => const DevAdminDashboardPage(),
     ),
     // Placeholder routes for other roles - redirect to login for now
     GoRoute(

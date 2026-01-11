@@ -61,11 +61,13 @@ enum UserRole {
 }
 
 /// Portal user information from server
+/// Supports multiple roles per user with an active role selection
 class PortalUser {
   final String id;
   final String email;
   final String name;
-  final UserRole role;
+  final List<UserRole> roles;
+  final UserRole activeRole;
   final String status;
   final List<Map<String, dynamic>> sites;
 
@@ -73,17 +75,51 @@ class PortalUser {
     required this.id,
     required this.email,
     required this.name,
-    required this.role,
+    required this.roles,
+    required this.activeRole,
     required this.status,
     this.sites = const [],
   });
 
+  /// Get the display role (backwards compatibility)
+  UserRole get role => activeRole;
+
+  /// Check if user has a specific role
+  bool hasRole(UserRole role) => roles.contains(role);
+
+  /// Check if user is an admin (Administrator or Developer Admin)
+  bool get isAdmin =>
+      roles.contains(UserRole.administrator) ||
+      roles.contains(UserRole.developerAdmin);
+
+  /// Check if user has multiple roles
+  bool get hasMultipleRoles => roles.length > 1;
+
   factory PortalUser.fromJson(Map<String, dynamic> json) {
+    // Parse roles array, fall back to single role for backwards compatibility
+    List<UserRole> roles;
+    if (json['roles'] != null) {
+      roles = (json['roles'] as List)
+          .map((r) => UserRole.fromString(r as String))
+          .toList();
+    } else if (json['role'] != null) {
+      roles = [UserRole.fromString(json['role'] as String)];
+    } else {
+      roles = [UserRole.investigator]; // Default
+    }
+
+    // Parse active role, default to first role
+    final activeRoleStr = json['active_role'] as String?;
+    final activeRole = activeRoleStr != null
+        ? UserRole.fromString(activeRoleStr)
+        : roles.first;
+
     return PortalUser(
       id: json['id'] as String,
       email: json['email'] as String,
       name: json['name'] as String,
-      role: UserRole.fromString(json['role'] as String),
+      roles: roles,
+      activeRole: activeRole,
       status: json['status'] as String,
       sites: (json['sites'] as List<dynamic>?)
               ?.map((s) => Map<String, dynamic>.from(s as Map))
@@ -94,11 +130,27 @@ class PortalUser {
 
   bool canAccessSite(String siteId) {
     // Admins, Sponsors, Auditors, and Analysts can access all sites
-    if (role != UserRole.investigator) {
+    if (activeRole != UserRole.investigator) {
       return true;
     }
     // Investigators can only access assigned sites
     return sites.any((s) => s['site_id'] == siteId);
+  }
+
+  /// Create a copy with a different active role
+  PortalUser copyWithActiveRole(UserRole newActiveRole) {
+    if (!roles.contains(newActiveRole)) {
+      throw ArgumentError('User does not have role: $newActiveRole');
+    }
+    return PortalUser(
+      id: id,
+      email: email,
+      name: name,
+      roles: roles,
+      activeRole: newActiveRole,
+      status: status,
+      sites: sites,
+    );
   }
 }
 
@@ -132,8 +184,8 @@ class AuthService extends ChangeNotifier {
       return 'http://localhost:8080';
     }
 
-    // Production URL (set via environment)
-    return 'https://portal-api.example.com';
+    // Use the current host origin in production (same-origin API)
+    return Uri.base.origin;
   }
 
   PortalUser? get currentUser => _currentUser;
@@ -200,7 +252,8 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Fetch portal user info from server
-  Future<bool> _fetchPortalUser() async {
+  /// [selectedRole] - Optionally specify which role to activate
+  Future<bool> _fetchPortalUser([String? selectedRole]) async {
     try {
       final user = _auth.currentUser;
       if (user == null) {
@@ -210,9 +263,15 @@ class AuthService extends ChangeNotifier {
       // Get ID token for API authentication
       final idToken = await user.getIdToken();
 
+      // Build URL with optional role parameter
+      var url = '$_apiBaseUrl/api/v1/portal/me';
+      if (selectedRole != null) {
+        url += '?role=${Uri.encodeComponent(selectedRole)}';
+      }
+
       // Call portal API to get user info
       final response = await _httpClient.get(
-        Uri.parse('$_apiBaseUrl/api/v1/portal/me'),
+        Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $idToken',
           'Content-Type': 'application/json',
@@ -228,6 +287,10 @@ class AuthService extends ChangeNotifier {
         // User not authorized for portal access
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         _error = data['error'] as String? ?? 'Not authorized for portal access';
+        // Check for pending activation
+        if (data['status'] == 'pending') {
+          _error = 'pending_activation';
+        }
         return false;
       } else {
         _error = 'Failed to fetch user information';
@@ -240,6 +303,19 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Switch to a different role (for multi-role users)
+  Future<bool> switchRole(UserRole newRole) async {
+    if (_currentUser == null) return false;
+    if (!_currentUser!.roles.contains(newRole)) return false;
+
+    // Update active role by re-fetching with role parameter
+    return await _fetchPortalUser(newRole.displayName);
+  }
+
+  /// Check if user needs to select a role (has multiple roles and none selected)
+  bool get needsRoleSelection =>
+      _currentUser != null && _currentUser!.hasMultipleRoles;
+
   /// Get fresh ID token for API calls
   Future<String?> getIdToken() async {
     try {
@@ -250,9 +326,14 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Check if user has specific role
+  /// Check if user has specific role (in their roles list)
   bool hasRole(UserRole role) {
-    return _currentUser?.role == role;
+    return _currentUser?.hasRole(role) ?? false;
+  }
+
+  /// Check if user's active role matches
+  bool isActiveRole(UserRole role) {
+    return _currentUser?.activeRole == role;
   }
 
   /// Check if user can access a specific site

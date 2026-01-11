@@ -30,5 +30,17 @@ Router createRouter() {
   router.patch('/api/v1/portal/users/<userId>', updatePortalUserHandler);
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
 
+  // Activation endpoints
+  // GET is unauthenticated (validates code before user has account)
+  // POST requires Firebase token to link identity
+  router.get('/api/v1/portal/activate/<code>', validateActivationCodeHandler);
+  router.post('/api/v1/portal/activate', activateUserHandler);
+
+  // Developer Admin only - generate activation codes
+  router.post(
+    '/api/v1/portal/admin/generate-code',
+    generateActivationCodeHandler,
+  );
+
   return router;
 }

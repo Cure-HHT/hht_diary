@@ -16,6 +16,7 @@ export 'src/user.dart';
 
 // Portal authentication (Identity Platform)
 export 'src/identity_platform.dart';
+export 'src/portal_activation.dart';
 export 'src/portal_auth.dart';
 export 'src/portal_user.dart';
 

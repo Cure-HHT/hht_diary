@@ -71,57 +71,177 @@ void main() {
   });
 
   group('PortalUser', () {
-    test('fromJson parses all fields', () {
-      final json = {
-        'id': 'user-123',
-        'email': 'test@example.com',
-        'name': 'Test User',
-        'role': 'Administrator',
-        'status': 'active',
-        'sites': [
-          {'site_id': 'site-1', 'site_name': 'Site One'},
-          {'site_id': 'site-2', 'site_name': 'Site Two'},
-        ],
-      };
+    group('fromJson', () {
+      test('parses all fields with roles array', () {
+        final json = {
+          'id': 'user-123',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'roles': ['Administrator', 'Developer Admin'],
+          'active_role': 'Administrator',
+          'status': 'active',
+          'sites': [
+            {'site_id': 'site-1', 'site_name': 'Site One'},
+            {'site_id': 'site-2', 'site_name': 'Site Two'},
+          ],
+        };
 
-      final user = PortalUser.fromJson(json);
+        final user = PortalUser.fromJson(json);
 
-      expect(user.id, 'user-123');
-      expect(user.email, 'test@example.com');
-      expect(user.name, 'Test User');
-      expect(user.role, UserRole.administrator);
-      expect(user.status, 'active');
-      expect(user.sites.length, 2);
-      expect(user.sites[0]['site_id'], 'site-1');
+        expect(user.id, 'user-123');
+        expect(user.email, 'test@example.com');
+        expect(user.name, 'Test User');
+        expect(user.roles, [UserRole.administrator, UserRole.developerAdmin]);
+        expect(user.activeRole, UserRole.administrator);
+        expect(user.role, UserRole.administrator); // backwards compat getter
+        expect(user.status, 'active');
+        expect(user.sites.length, 2);
+        expect(user.sites[0]['site_id'], 'site-1');
+      });
+
+      test('parses single role for backwards compatibility', () {
+        final json = {
+          'id': 'user-123',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'role': 'Administrator',
+          'status': 'active',
+        };
+
+        final user = PortalUser.fromJson(json);
+
+        expect(user.roles, [UserRole.administrator]);
+        expect(user.activeRole, UserRole.administrator);
+      });
+
+      test('handles null sites', () {
+        final json = {
+          'id': 'user-123',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'roles': ['Investigator'],
+          'status': 'active',
+        };
+
+        final user = PortalUser.fromJson(json);
+
+        expect(user.sites, isEmpty);
+      });
+
+      test('handles empty sites', () {
+        final json = {
+          'id': 'user-123',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'roles': ['Investigator'],
+          'status': 'active',
+          'sites': <dynamic>[],
+        };
+
+        final user = PortalUser.fromJson(json);
+
+        expect(user.sites, isEmpty);
+      });
+
+      test('defaults active_role to first role', () {
+        final json = {
+          'id': 'user-123',
+          'email': 'test@example.com',
+          'name': 'Test User',
+          'roles': ['Administrator', 'Investigator'],
+          'status': 'active',
+        };
+
+        final user = PortalUser.fromJson(json);
+
+        expect(user.activeRole, UserRole.administrator);
+      });
     });
 
-    test('fromJson handles null sites', () {
-      final json = {
-        'id': 'user-123',
-        'email': 'test@example.com',
-        'name': 'Test User',
-        'role': 'Investigator',
-        'status': 'active',
-      };
+    group('hasRole', () {
+      test('returns true for role in list', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
+          roles: [UserRole.administrator, UserRole.developerAdmin],
+          activeRole: UserRole.administrator,
+          status: 'active',
+        );
 
-      final user = PortalUser.fromJson(json);
-
-      expect(user.sites, isEmpty);
+        expect(user.hasRole(UserRole.administrator), isTrue);
+        expect(user.hasRole(UserRole.developerAdmin), isTrue);
+        expect(user.hasRole(UserRole.investigator), isFalse);
+      });
     });
 
-    test('fromJson handles empty sites', () {
-      final json = {
-        'id': 'user-123',
-        'email': 'test@example.com',
-        'name': 'Test User',
-        'role': 'Investigator',
-        'status': 'active',
-        'sites': <dynamic>[],
-      };
+    group('hasMultipleRoles', () {
+      test('returns true when user has multiple roles', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
+          roles: [UserRole.administrator, UserRole.developerAdmin],
+          activeRole: UserRole.administrator,
+          status: 'active',
+        );
 
-      final user = PortalUser.fromJson(json);
+        expect(user.hasMultipleRoles, isTrue);
+      });
 
-      expect(user.sites, isEmpty);
+      test('returns false when user has single role', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
+          roles: [UserRole.administrator],
+          activeRole: UserRole.administrator,
+          status: 'active',
+        );
+
+        expect(user.hasMultipleRoles, isFalse);
+      });
+    });
+
+    group('isAdmin', () {
+      test('returns true when user has Administrator role', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
+          roles: [UserRole.administrator],
+          activeRole: UserRole.administrator,
+          status: 'active',
+        );
+
+        expect(user.isAdmin, isTrue);
+      });
+
+      test('returns true when user has Developer Admin role', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
+          roles: [UserRole.developerAdmin],
+          activeRole: UserRole.developerAdmin,
+          status: 'active',
+        );
+
+        expect(user.isAdmin, isTrue);
+      });
+
+      test('returns false when user has no admin role', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test',
+          roles: [UserRole.investigator],
+          activeRole: UserRole.investigator,
+          status: 'active',
+        );
+
+        expect(user.isAdmin, isFalse);
+      });
     });
 
     group('canAccessSite', () {
@@ -130,7 +250,8 @@ void main() {
           id: 'user-1',
           email: 'admin@example.com',
           name: 'Admin',
-          role: UserRole.administrator,
+          roles: [UserRole.administrator],
+          activeRole: UserRole.administrator,
           status: 'active',
         );
 
@@ -143,7 +264,8 @@ void main() {
           id: 'user-1',
           email: 'sponsor@example.com',
           name: 'Sponsor',
-          role: UserRole.sponsor,
+          roles: [UserRole.sponsor],
+          activeRole: UserRole.sponsor,
           status: 'active',
         );
 
@@ -155,7 +277,8 @@ void main() {
           id: 'user-1',
           email: 'auditor@example.com',
           name: 'Auditor',
-          role: UserRole.auditor,
+          roles: [UserRole.auditor],
+          activeRole: UserRole.auditor,
           status: 'active',
         );
 
@@ -167,7 +290,8 @@ void main() {
           id: 'user-1',
           email: 'analyst@example.com',
           name: 'Analyst',
-          role: UserRole.analyst,
+          roles: [UserRole.analyst],
+          activeRole: UserRole.analyst,
           status: 'active',
         );
 
@@ -179,7 +303,8 @@ void main() {
           id: 'user-1',
           email: 'investigator@example.com',
           name: 'Investigator',
-          role: UserRole.investigator,
+          roles: [UserRole.investigator],
+          activeRole: UserRole.investigator,
           status: 'active',
           sites: [
             {'site_id': 'site-1', 'site_name': 'Site One'},
@@ -198,7 +323,8 @@ void main() {
           id: 'user-1',
           email: 'investigator@example.com',
           name: 'Investigator',
-          role: UserRole.investigator,
+          roles: [UserRole.investigator],
+          activeRole: UserRole.investigator,
           status: 'active',
           sites: [],
         );

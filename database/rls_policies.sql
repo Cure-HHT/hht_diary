@@ -697,6 +697,49 @@ CREATE POLICY portal_site_access_service_all ON portal_user_site_access
     WITH CHECK (true);
 
 -- =====================================================
+-- PORTAL_USER_ROLES TABLE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00024: Portal User Roles and Permissions
+--   REQ-d00032: Role-Based Access Control Implementation
+
+-- Admins and Auditors can view all user roles
+CREATE POLICY portal_user_roles_admin_auditor_select ON portal_user_roles
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Auditor', 'Developer Admin'));
+
+-- Portal users can view their own roles
+CREATE POLICY portal_user_roles_self_select ON portal_user_roles
+    FOR SELECT
+    TO authenticated
+    USING (
+        user_id = (
+            SELECT id FROM portal_users
+            WHERE firebase_uid = current_user_id()
+        )
+    );
+
+-- Only Admins can create user role assignments
+CREATE POLICY portal_user_roles_admin_insert ON portal_user_roles
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Only Admins can delete user role assignments
+CREATE POLICY portal_user_roles_admin_delete ON portal_user_roles
+    FOR DELETE
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Service role has full access (for role lookups during authentication)
+CREATE POLICY portal_user_roles_service_all ON portal_user_roles
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- =====================================================
 -- SPONSOR_ROLE_MAPPING TABLE POLICIES
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:

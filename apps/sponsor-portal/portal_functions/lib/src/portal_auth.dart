@@ -6,6 +6,7 @@
 //
 // Portal authentication - verifies Identity Platform tokens and manages user sessions
 // Uses service context for login/linking operations, authenticated context for data access
+// Supports multi-role users with role selection at login
 
 import 'dart:convert';
 
@@ -15,12 +16,14 @@ import 'database.dart';
 import 'identity_platform.dart';
 
 /// Portal user information from database
+/// Supports multiple roles per user with active role selection
 class PortalUser {
   final String id;
   final String? firebaseUid;
   final String email;
   final String name;
-  final String role;
+  final List<String> roles; // All roles the user has
+  final String activeRole; // Currently selected role
   final String status;
   final List<Map<String, dynamic>> sites;
 
@@ -29,27 +32,40 @@ class PortalUser {
     this.firebaseUid,
     required this.email,
     required this.name,
-    required this.role,
+    required this.roles,
+    required this.activeRole,
     required this.status,
     this.sites = const [],
   });
+
+  /// Check if user has a specific role
+  bool hasRole(String role) => roles.contains(role);
+
+  /// Check if user is an admin (Administrator or Developer Admin)
+  bool get isAdmin =>
+      roles.contains('Administrator') || roles.contains('Developer Admin');
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'email': email,
     'name': name,
-    'role': role,
+    'roles': roles,
+    'active_role': activeRole,
     'status': status,
     'sites': sites,
   };
 }
 
 /// Get current portal user from Identity Platform token
-/// GET /api/portal/me
+/// GET /api/v1/portal/me
 /// Authorization: Bearer <Identity Platform ID token>
+/// Query params:
+///   - role: (optional) Select which role to use for this session
 ///
 /// On first login, links firebase_uid to portal_users record by email match.
 /// Returns 403 if email is not pre-authorized in portal_users table.
+/// If user has multiple roles and no role is specified, returns all roles
+/// for the client to display a role picker.
 Future<Response> portalMeHandler(Request request) async {
   print('[PORTAL_AUTH] portalMeHandler called');
 
@@ -60,7 +76,11 @@ Future<Response> portalMeHandler(Request request) async {
     return _jsonResponse({'error': 'Missing authorization header'}, 401);
   }
 
-  print('[PORTAL_AUTH] Got bearer token, verifying...');
+  // Check for requested role from query param
+  final requestedRole = request.url.queryParameters['role'];
+  print(
+    '[PORTAL_AUTH] Got bearer token, verifying... (requestedRole: $requestedRole)',
+  );
 
   // Verify Identity Platform token
   final verification = await verifyIdToken(token);
@@ -89,7 +109,7 @@ Future<Response> portalMeHandler(Request request) async {
   print('[PORTAL_AUTH] Looking up user by firebase_uid: $firebaseUid');
   var result = await db.executeWithContext(
     '''
-    SELECT id, firebase_uid, email, name, role::text, status
+    SELECT id, firebase_uid, email, name, status
     FROM portal_users
     WHERE firebase_uid = @firebaseUid
     ''',
@@ -107,7 +127,7 @@ Future<Response> portalMeHandler(Request request) async {
       UPDATE portal_users
       SET firebase_uid = @firebaseUid, updated_at = now()
       WHERE email = @email AND firebase_uid IS NULL
-      RETURNING id, firebase_uid, email, name, role::text, status
+      RETURNING id, firebase_uid, email, name, status
       ''',
       parameters: {'firebaseUid': firebaseUid, 'email': email},
       context: serviceContext,
@@ -145,17 +165,67 @@ Future<Response> portalMeHandler(Request request) async {
   final userId = row[0] as String;
   final userEmail = row[2] as String;
   final userName = row[3] as String;
-  final userRole = row[4] as String;
-  final userStatus = row[5] as String;
+  final userStatus = row[4] as String;
 
   // Check if account is revoked
   if (userStatus == 'revoked') {
     return _jsonResponse({'error': 'Account access has been revoked'}, 403);
   }
 
+  // Check if account is pending activation
+  if (userStatus == 'pending') {
+    return _jsonResponse({
+      'error': 'Account pending activation',
+      'status': 'pending',
+    }, 403);
+  }
+
+  // Fetch all roles for this user from portal_user_roles
+  final rolesResult = await db.executeWithContext(
+    '''
+    SELECT role::text
+    FROM portal_user_roles
+    WHERE user_id = @userId::uuid
+    ORDER BY role
+    ''',
+    parameters: {'userId': userId},
+    context: serviceContext,
+  );
+
+  final List<String> roles = rolesResult.map((r) => r[0] as String).toList();
+  print('[PORTAL_AUTH] User has ${roles.length} roles: $roles');
+
+  // If no roles in junction table, fall back to role column (backwards compat)
+  if (roles.isEmpty) {
+    final legacyResult = await db.executeWithContext(
+      'SELECT role::text FROM portal_users WHERE id = @userId::uuid AND role IS NOT NULL',
+      parameters: {'userId': userId},
+      context: serviceContext,
+    );
+    if (legacyResult.isNotEmpty && legacyResult.first[0] != null) {
+      roles.add(legacyResult.first[0] as String);
+      print('[PORTAL_AUTH] Using legacy single role: ${roles.first}');
+    }
+  }
+
+  if (roles.isEmpty) {
+    return _jsonResponse({'error': 'User has no assigned roles'}, 403);
+  }
+
+  // Determine active role
+  String activeRole;
+  if (requestedRole != null && roles.contains(requestedRole)) {
+    activeRole = requestedRole;
+  } else {
+    // Default to first role (alphabetical)
+    activeRole = roles.first;
+  }
+
+  print('[PORTAL_AUTH] Active role: $activeRole');
+
   // Fetch site assignments for investigators (service context for initial login)
   List<Map<String, dynamic>> sites = [];
-  if (userRole == 'Investigator') {
+  if (roles.contains('Investigator')) {
     final siteResult = await db.executeWithContext(
       '''
       SELECT s.site_id, s.site_name, s.site_number
@@ -182,7 +252,8 @@ Future<Response> portalMeHandler(Request request) async {
     firebaseUid: firebaseUid,
     email: userEmail,
     name: userName,
-    role: userRole,
+    roles: roles,
+    activeRole: activeRole,
     status: userStatus,
     sites: sites,
   );
@@ -196,12 +267,17 @@ Future<Response> portalMeHandler(Request request) async {
 /// Uses service context to look up user - subsequent data operations
 /// should create authenticated UserContext from the returned PortalUser.
 ///
+/// The active role is determined by:
+/// 1. X-Active-Role header (if present and user has that role)
+/// 2. First allowed role from allowedRoles (if specified)
+/// 3. First role the user has (alphabetical)
+///
 /// Example usage:
 ///   final user = await requirePortalAuth(request, ['Administrator']);
 ///   if (user == null) return Response.forbidden('...');
 ///   final context = UserContext.authenticated(
 ///     userId: user.firebaseUid!,
-///     role: user.role,
+///     role: user.activeRole,
 ///   );
 ///   // Use context for subsequent queries
 Future<PortalUser?> requirePortalAuth(
@@ -227,7 +303,7 @@ Future<PortalUser?> requirePortalAuth(
 
   final result = await db.executeWithContext(
     '''
-    SELECT id, firebase_uid, email, name, role::text, status
+    SELECT id, firebase_uid, email, name, status
     FROM portal_users
     WHERE firebase_uid = @firebaseUid
     ''',
@@ -240,21 +316,69 @@ Future<PortalUser?> requirePortalAuth(
   }
 
   final row = result.first;
-  final userRole = row[4] as String;
-  final userStatus = row[5] as String;
+  final userId = row[0] as String;
+  final userStatus = row[4] as String;
 
-  if (userStatus == 'revoked') {
+  if (userStatus == 'revoked' || userStatus == 'pending') {
+    return null;
+  }
+
+  // Fetch all roles for this user
+  final rolesResult = await db.executeWithContext(
+    '''
+    SELECT role::text
+    FROM portal_user_roles
+    WHERE user_id = @userId::uuid
+    ORDER BY role
+    ''',
+    parameters: {'userId': userId},
+    context: serviceContext,
+  );
+
+  final List<String> roles = rolesResult.map((r) => r[0] as String).toList();
+
+  // Backwards compat: fall back to role column
+  if (roles.isEmpty) {
+    final legacyResult = await db.executeWithContext(
+      'SELECT role::text FROM portal_users WHERE id = @userId::uuid AND role IS NOT NULL',
+      parameters: {'userId': userId},
+      context: serviceContext,
+    );
+    if (legacyResult.isNotEmpty && legacyResult.first[0] != null) {
+      roles.add(legacyResult.first[0] as String);
+    }
+  }
+
+  if (roles.isEmpty) {
     return null;
   }
 
   // Check role restriction
-  if (allowedRoles != null && !allowedRoles.contains(userRole)) {
-    return null;
+  if (allowedRoles != null) {
+    final hasAllowedRole = roles.any((r) => allowedRoles.contains(r));
+    if (!hasAllowedRole) {
+      return null;
+    }
   }
 
-  // Fetch sites if investigator
+  // Determine active role from X-Active-Role header or allowedRoles
+  String activeRole;
+  final requestedRole = request.headers['x-active-role'];
+  if (requestedRole != null && roles.contains(requestedRole)) {
+    activeRole = requestedRole;
+  } else if (allowedRoles != null) {
+    // Use first matching allowed role
+    activeRole = roles.firstWhere(
+      (r) => allowedRoles.contains(r),
+      orElse: () => roles.first,
+    );
+  } else {
+    activeRole = roles.first;
+  }
+
+  // Fetch sites if user has investigator role
   List<Map<String, dynamic>> sites = [];
-  if (userRole == 'Investigator') {
+  if (roles.contains('Investigator')) {
     final siteResult = await db.executeWithContext(
       '''
       SELECT s.site_id, s.site_name, s.site_number
@@ -282,7 +406,8 @@ Future<PortalUser?> requirePortalAuth(
     firebaseUid: row[1] as String?,
     email: row[2] as String,
     name: row[3] as String,
-    role: userRole,
+    roles: roles,
+    activeRole: activeRole,
     status: userStatus,
     sites: sites,
   );

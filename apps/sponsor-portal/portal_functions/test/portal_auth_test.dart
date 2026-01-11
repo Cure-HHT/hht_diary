@@ -19,7 +19,8 @@ void main() {
         firebaseUid: 'firebase-456',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Administrator',
+        roles: ['Administrator', 'Developer Admin'],
+        activeRole: 'Administrator',
         status: 'active',
         sites: [
           {'site_id': 'site-1', 'site_name': 'Test Site'},
@@ -30,7 +31,8 @@ void main() {
       expect(user.firebaseUid, equals('firebase-456'));
       expect(user.email, equals('test@example.com'));
       expect(user.name, equals('Test User'));
-      expect(user.role, equals('Administrator'));
+      expect(user.roles, equals(['Administrator', 'Developer Admin']));
+      expect(user.activeRole, equals('Administrator'));
       expect(user.status, equals('active'));
       expect(user.sites, hasLength(1));
     });
@@ -40,7 +42,8 @@ void main() {
         id: 'user-min',
         email: 'min@example.com',
         name: 'Minimal',
-        role: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
         status: 'active',
       );
 
@@ -54,7 +57,8 @@ void main() {
         id: 'user-123',
         email: 'test@example.com',
         name: 'Test',
-        role: 'Auditor',
+        roles: ['Auditor'],
+        activeRole: 'Auditor',
         status: 'active',
       );
 
@@ -70,7 +74,8 @@ void main() {
         firebaseUid: 'firebase-456',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Administrator',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
         status: 'active',
         sites: [],
       );
@@ -80,7 +85,8 @@ void main() {
       expect(json['id'], equals('user-123'));
       expect(json['email'], equals('test@example.com'));
       expect(json['name'], equals('Test User'));
-      expect(json['role'], equals('Administrator'));
+      expect(json['roles'], equals(['Administrator']));
+      expect(json['active_role'], equals('Administrator'));
       expect(json['status'], equals('active'));
       expect(json['sites'], isEmpty);
     });
@@ -90,7 +96,8 @@ void main() {
         id: 'user-123',
         email: 'investigator@example.com',
         name: 'Test Investigator',
-        role: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
         status: 'active',
         sites: [
           {'site_id': 'site-1', 'site_name': 'Site One', 'site_number': 'S001'},
@@ -111,7 +118,8 @@ void main() {
         firebaseUid: 'secret-firebase-uid',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Administrator',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
         status: 'active',
       );
 
@@ -128,7 +136,8 @@ void main() {
         firebaseUid: null,
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Administrator',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
         status: 'active',
       );
 
@@ -140,7 +149,8 @@ void main() {
         id: 'user-123',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Administrator',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
         status: 'active',
       );
 
@@ -162,30 +172,82 @@ void main() {
           id: 'user-123',
           email: 'test@example.com',
           name: 'Test User',
-          role: role,
+          roles: [role],
+          activeRole: role,
           status: 'active',
         );
 
-        expect(user.role, equals(role));
-        expect(user.toJson()['role'], equals(role));
+        expect(user.roles, contains(role));
+        expect(user.activeRole, equals(role));
+        expect(user.toJson()['roles'], contains(role));
+        expect(user.toJson()['active_role'], equals(role));
       }
     });
 
     test('status values are supported', () {
-      final statuses = ['active', 'revoked'];
+      final statuses = ['active', 'revoked', 'pending'];
 
       for (final status in statuses) {
         final user = PortalUser(
           id: 'user-123',
           email: 'test@example.com',
           name: 'Test User',
-          role: 'Administrator',
+          roles: ['Administrator'],
+          activeRole: 'Administrator',
           status: status,
         );
 
         expect(user.status, equals(status));
         expect(user.toJson()['status'], equals(status));
       }
+    });
+
+    test('hasRole returns true for role in list', () {
+      final user = PortalUser(
+        id: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        roles: ['Administrator', 'Developer Admin'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      expect(user.hasRole('Administrator'), isTrue);
+      expect(user.hasRole('Developer Admin'), isTrue);
+      expect(user.hasRole('Investigator'), isFalse);
+    });
+
+    test('isAdmin returns true for admin roles', () {
+      final adminUser = PortalUser(
+        id: 'user-123',
+        email: 'admin@example.com',
+        name: 'Admin',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      final devAdminUser = PortalUser(
+        id: 'user-456',
+        email: 'devadmin@example.com',
+        name: 'Dev Admin',
+        roles: ['Developer Admin'],
+        activeRole: 'Developer Admin',
+        status: 'active',
+      );
+
+      final nonAdminUser = PortalUser(
+        id: 'user-789',
+        email: 'investigator@example.com',
+        name: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
+        status: 'active',
+      );
+
+      expect(adminUser.isAdmin, isTrue);
+      expect(devAdminUser.isAdmin, isTrue);
+      expect(nonAdminUser.isAdmin, isFalse);
     });
   });
 
@@ -292,7 +354,8 @@ void main() {
         id: 'user-123',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Investigator',
+        roles: ['Investigator'],
+        activeRole: 'Investigator',
         status: 'active',
         sites: [
           {
@@ -315,7 +378,8 @@ void main() {
         id: '',
         email: '',
         name: '',
-        role: '',
+        roles: [''],
+        activeRole: '',
         status: '',
       );
 
@@ -323,7 +387,8 @@ void main() {
       expect(json['id'], isEmpty);
       expect(json['email'], isEmpty);
       expect(json['name'], isEmpty);
-      expect(json['role'], isEmpty);
+      expect(json['roles'], equals(['']));
+      expect(json['active_role'], isEmpty);
       expect(json['status'], isEmpty);
     });
 
@@ -332,7 +397,8 @@ void main() {
         id: 'user-日本語',
         email: 'tëst@ëxämplé.com',
         name: '测试用户 こんにちは',
-        role: 'Administrator',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
         status: 'active',
       );
 
@@ -346,7 +412,8 @@ void main() {
         id: 'user-123',
         email: 'test@example.com',
         name: 'Test User',
-        role: 'Administrator',
+        roles: ['Administrator'],
+        activeRole: 'Administrator',
         status: 'active',
         sites: [
           {'site_id': 'site-1'},
@@ -360,6 +427,24 @@ void main() {
       // Verify it can be decoded back
       final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
       expect(decoded['email'], equals('test@example.com'));
+    });
+
+    test('toJson with multiple roles', () {
+      final user = PortalUser(
+        id: 'user-123',
+        email: 'admin@example.com',
+        name: 'Multi-Role User',
+        roles: ['Administrator', 'Developer Admin', 'Investigator'],
+        activeRole: 'Administrator',
+        status: 'active',
+      );
+
+      final json = user.toJson();
+      expect(json['roles'], hasLength(3));
+      expect(json['roles'], contains('Administrator'));
+      expect(json['roles'], contains('Developer Admin'));
+      expect(json['roles'], contains('Investigator'));
+      expect(json['active_role'], equals('Administrator'));
     });
   });
 }

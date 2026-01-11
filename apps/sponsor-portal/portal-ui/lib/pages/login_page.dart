@@ -41,21 +41,33 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
 
     if (success && authService.currentUser != null) {
-      // Navigate based on role
-      final role = authService.currentUser!.role;
-      switch (role) {
-        case UserRole.administrator:
-        case UserRole.developerAdmin:
-          context.go('/admin');
-        case UserRole.investigator:
-          context.go('/investigator');
-        case UserRole.auditor:
-          context.go('/auditor');
-        case UserRole.analyst:
-          context.go('/analyst');
-        case UserRole.sponsor:
-          context.go('/sponsor');
+      final user = authService.currentUser!;
+
+      // If user has multiple roles, go to role picker
+      if (user.hasMultipleRoles) {
+        context.go('/select-role');
+        return;
       }
+
+      // Navigate based on active role
+      _navigateToRoleDashboard(user.activeRole);
+    }
+  }
+
+  void _navigateToRoleDashboard(UserRole role) {
+    switch (role) {
+      case UserRole.developerAdmin:
+        context.go('/dev-admin');
+      case UserRole.administrator:
+        context.go('/admin');
+      case UserRole.investigator:
+        context.go('/investigator');
+      case UserRole.auditor:
+        context.go('/auditor');
+      case UserRole.analyst:
+        context.go('/analyst');
+      case UserRole.sponsor:
+        context.go('/sponsor');
     }
   }
 

@@ -2,8 +2,10 @@
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: Create User Dialog Implementation
 //   REQ-p00028: Token Revocation and Access Control
+//   REQ-p00024: Portal User Roles and Permissions
 //
 // Portal user management - create users, assign sites, revoke access
+// Supports multi-role users with activation code flow
 
 import 'dart:convert';
 import 'dart:math';
@@ -20,7 +22,8 @@ const _adminRoles = ['Administrator', 'Developer Admin'];
 const _viewAllRoles = ['Administrator', 'Developer Admin', 'Auditor'];
 
 /// Get all portal users (Admin/Auditor only)
-/// GET /api/portal/users
+/// GET /api/v1/portal/users
+/// Returns users with all their roles from portal_user_roles table
 Future<Response> getPortalUsersHandler(Request request) async {
   final user = await requirePortalAuth(request, _viewAllRoles);
   if (user == null) {
@@ -28,15 +31,21 @@ Future<Response> getPortalUsersHandler(Request request) async {
   }
 
   final db = Database.instance;
+
+  // Get users with roles aggregated from portal_user_roles
   final result = await db.execute('''
     SELECT
       pu.id,
       pu.email,
       pu.name,
-      pu.role::text,
       pu.status,
       pu.linking_code,
+      pu.activation_code,
       pu.created_at,
+      COALESCE(
+        array_agg(DISTINCT pur.role::text) FILTER (WHERE pur.role IS NOT NULL),
+        ARRAY[]::text[]
+      ) as roles,
       COALESCE(
         json_agg(
           json_build_object(
@@ -48,6 +57,7 @@ Future<Response> getPortalUsersHandler(Request request) async {
         '[]'::json
       ) as sites
     FROM portal_users pu
+    LEFT JOIN portal_user_roles pur ON pu.id = pur.user_id
     LEFT JOIN portal_user_site_access pusa ON pu.id = pusa.user_id
     LEFT JOIN sites s ON pusa.site_id = s.site_id
     GROUP BY pu.id
@@ -55,7 +65,17 @@ Future<Response> getPortalUsersHandler(Request request) async {
   ''');
 
   final users = result.map((r) {
-    final sitesJson = r[7];
+    // Parse roles array
+    final rolesData = r[7];
+    List<String> roles = [];
+    if (rolesData != null) {
+      if (rolesData is List) {
+        roles = rolesData.cast<String>();
+      }
+    }
+
+    // Parse sites JSON
+    final sitesJson = r[8];
     List<dynamic> sites = [];
     if (sitesJson != null) {
       if (sitesJson is String) {
@@ -69,10 +89,11 @@ Future<Response> getPortalUsersHandler(Request request) async {
       'id': r[0] as String,
       'email': r[1] as String,
       'name': r[2] as String,
-      'role': r[3] as String,
-      'status': r[4] as String,
-      'linking_code': r[5] as String?,
+      'status': r[3] as String,
+      'linking_code': r[4] as String?,
+      'activation_code': r[5] as String?,
       'created_at': (r[6] as DateTime).toIso8601String(),
+      'roles': roles,
       'sites': sites,
     };
   }).toList();
@@ -81,8 +102,11 @@ Future<Response> getPortalUsersHandler(Request request) async {
 }
 
 /// Create new portal user (Admin only)
-/// POST /api/portal/users
-/// Body: { name, email, role, site_ids: [] }
+/// POST /api/v1/portal/users
+/// Body: { name, email, roles: [], site_ids: [] }
+///
+/// Creates user with status='pending' and generates activation code.
+/// For backwards compatibility, also accepts single 'role' field.
 Future<Response> createPortalUserHandler(Request request) async {
   final user = await requirePortalAuth(request, _adminRoles);
   if (user == null) {
@@ -96,7 +120,15 @@ Future<Response> createPortalUserHandler(Request request) async {
 
   final name = body['name'] as String?;
   final email = body['email'] as String?;
-  final role = body['role'] as String?;
+
+  // Accept either 'roles' array or single 'role' for backwards compat
+  List<String> roles = [];
+  if (body['roles'] != null) {
+    roles = (body['roles'] as List).cast<String>();
+  } else if (body['role'] != null) {
+    roles = [body['role'] as String];
+  }
+
   final siteIds = (body['site_ids'] as List?)?.cast<String>() ?? [];
 
   // Validation
@@ -108,11 +140,11 @@ Future<Response> createPortalUserHandler(Request request) async {
     return _jsonResponse({'error': 'Valid email is required'}, 400);
   }
 
-  if (role == null || role.isEmpty) {
-    return _jsonResponse({'error': 'Role is required'}, 400);
+  if (roles.isEmpty) {
+    return _jsonResponse({'error': 'At least one role is required'}, 400);
   }
 
-  // Validate role is a valid enum value
+  // Validate all roles are valid enum values
   const validRoles = [
     'Investigator',
     'Sponsor',
@@ -121,27 +153,34 @@ Future<Response> createPortalUserHandler(Request request) async {
     'Administrator',
     'Developer Admin',
   ];
-  if (!validRoles.contains(role)) {
-    return _jsonResponse({'error': 'Invalid role: $role'}, 400);
+  for (final role in roles) {
+    if (!validRoles.contains(role)) {
+      return _jsonResponse({'error': 'Invalid role: $role'}, 400);
+    }
   }
 
   // Investigators must have site assignments
-  if (role == 'Investigator' && siteIds.isEmpty) {
+  if (roles.contains('Investigator') && siteIds.isEmpty) {
     return _jsonResponse({
       'error': 'Investigators require at least one site assignment',
     }, 400);
   }
 
-  // Non-admin users cannot create admin users
-  if ((role == 'Administrator' || role == 'Developer Admin') &&
-      user.role != 'Developer Admin') {
+  // Non-developer admin users cannot create admin users
+  final creatingAdminRole =
+      roles.contains('Administrator') || roles.contains('Developer Admin');
+  if (creatingAdminRole && !user.hasRole('Developer Admin')) {
     return _jsonResponse({
       'error': 'Only Developer Admin can create admin users',
     }, 403);
   }
 
   // Generate linking code for Investigators
-  final linkingCode = role == 'Investigator' ? _generateLinkingCode() : null;
+  final linkingCode = roles.contains('Investigator') ? _generateCode() : null;
+
+  // Generate activation code for all new users
+  final activationCode = _generateCode();
+  final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
   final db = Database.instance;
 
@@ -154,25 +193,44 @@ Future<Response> createPortalUserHandler(Request request) async {
     return _jsonResponse({'error': 'Email already exists'}, 409);
   }
 
-  // Create user
+  // Create user with pending status
   final createResult = await db.execute(
     '''
-    INSERT INTO portal_users (email, name, role, linking_code)
-    VALUES (@email, @name, @role::portal_user_role, @linkingCode)
+    INSERT INTO portal_users (
+      email, name, linking_code, activation_code,
+      activation_code_expires_at, status
+    )
+    VALUES (
+      @email, @name, @linkingCode, @activationCode,
+      @activationExpiry, 'pending'
+    )
     RETURNING id
     ''',
     parameters: {
       'email': email,
       'name': name,
-      'role': role,
       'linkingCode': linkingCode,
+      'activationCode': activationCode,
+      'activationExpiry': activationExpiry,
     },
   );
 
   final newUserId = createResult.first[0] as String;
 
+  // Create role assignments in portal_user_roles
+  for (final role in roles) {
+    await db.execute(
+      '''
+      INSERT INTO portal_user_roles (user_id, role, assigned_by)
+      VALUES (@userId::uuid, @role::portal_user_role, @assignedBy::uuid)
+      ON CONFLICT (user_id, role) DO NOTHING
+      ''',
+      parameters: {'userId': newUserId, 'role': role, 'assignedBy': user.id},
+    );
+  }
+
   // Create site assignments for Investigators
-  if (role == 'Investigator' && siteIds.isNotEmpty) {
+  if (roles.contains('Investigator') && siteIds.isNotEmpty) {
     for (final siteId in siteIds) {
       await db.execute(
         '''
@@ -189,15 +247,17 @@ Future<Response> createPortalUserHandler(Request request) async {
     'id': newUserId,
     'email': email,
     'name': name,
-    'role': role,
+    'roles': roles,
+    'status': 'pending',
     'linking_code': linkingCode,
+    'activation_code': activationCode,
     'site_ids': siteIds,
   }, 201);
 }
 
 /// Update portal user (Admin only)
-/// PATCH /api/portal/users/:userId
-/// Body: { status: 'revoked' } or { site_ids: [...] }
+/// PATCH /api/v1/portal/users/:userId
+/// Body: { status: 'revoked'|'active' } or { site_ids: [...] } or { roles: [...] }
 Future<Response> updatePortalUserHandler(Request request, String userId) async {
   final user = await requirePortalAuth(request, _adminRoles);
   if (user == null) {
@@ -216,29 +276,47 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
 
   final db = Database.instance;
 
-  // Check user exists
+  // Check user exists and get their roles
   final existing = await db.execute(
-    'SELECT role::text FROM portal_users WHERE id = @userId::uuid',
+    '''
+    SELECT COALESCE(
+      array_agg(role::text),
+      ARRAY[]::text[]
+    ) as roles
+    FROM portal_user_roles
+    WHERE user_id = @userId::uuid
+    ''',
     parameters: {'userId': userId},
   );
-  if (existing.isEmpty) {
+
+  final userExists = await db.execute(
+    'SELECT id FROM portal_users WHERE id = @userId::uuid',
+    parameters: {'userId': userId},
+  );
+  if (userExists.isEmpty) {
     return _jsonResponse({'error': 'User not found'}, 404);
   }
 
-  final targetRole = existing.first[0] as String;
+  // Get target user's roles
+  List<String> targetRoles = [];
+  if (existing.isNotEmpty && existing.first[0] != null) {
+    targetRoles = (existing.first[0] as List).cast<String>();
+  }
 
   // Non-developer admins cannot modify admin users
-  if ((targetRole == 'Administrator' || targetRole == 'Developer Admin') &&
-      user.role != 'Developer Admin') {
+  final isTargetAdmin =
+      targetRoles.contains('Administrator') ||
+      targetRoles.contains('Developer Admin');
+  if (isTargetAdmin && !user.hasRole('Developer Admin')) {
     return _jsonResponse({
       'error': 'Only Developer Admin can modify admin users',
     }, 403);
   }
 
-  // Handle status update (revocation)
+  // Handle status update (revocation/activation)
   final status = body['status'] as String?;
   if (status != null) {
-    if (status != 'revoked' && status != 'active') {
+    if (status != 'revoked' && status != 'active' && status != 'pending') {
       return _jsonResponse({'error': 'Invalid status'}, 400);
     }
 
@@ -250,6 +328,28 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       ''',
       parameters: {'userId': userId, 'status': status},
     );
+  }
+
+  // Handle roles update
+  final newRoles = body['roles'] as List?;
+  if (newRoles != null) {
+    // Clear existing role assignments
+    await db.execute(
+      'DELETE FROM portal_user_roles WHERE user_id = @userId::uuid',
+      parameters: {'userId': userId},
+    );
+
+    // Add new role assignments
+    for (final role in newRoles.cast<String>()) {
+      await db.execute(
+        '''
+        INSERT INTO portal_user_roles (user_id, role, assigned_by)
+        VALUES (@userId::uuid, @role::portal_user_role, @assignedBy::uuid)
+        ON CONFLICT (user_id, role) DO NOTHING
+        ''',
+        parameters: {'userId': userId, 'role': role, 'assignedBy': user.id},
+      );
+    }
   }
 
   // Handle site assignment update
@@ -274,11 +374,35 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     }
   }
 
+  // Handle regenerating activation code
+  if (body['regenerate_activation'] == true) {
+    final activationCode = _generateCode();
+    final activationExpiry = DateTime.now().add(const Duration(days: 14));
+
+    await db.execute(
+      '''
+      UPDATE portal_users
+      SET activation_code = @code,
+          activation_code_expires_at = @expiry,
+          status = 'pending',
+          updated_at = now()
+      WHERE id = @userId::uuid
+      ''',
+      parameters: {
+        'userId': userId,
+        'code': activationCode,
+        'expiry': activationExpiry,
+      },
+    );
+
+    return _jsonResponse({'success': true, 'activation_code': activationCode});
+  }
+
   return _jsonResponse({'success': true});
 }
 
 /// Get available sites (for user creation dialog)
-/// GET /api/portal/sites
+/// GET /api/v1/portal/sites
 Future<Response> getPortalSitesHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) {
@@ -304,8 +428,9 @@ Future<Response> getPortalSitesHandler(Request request) async {
   return _jsonResponse({'sites': sites});
 }
 
-/// Generate a random linking code in XXXXX-XXXXX format
-String _generateLinkingCode() {
+/// Generate a random code in XXXXX-XXXXX format
+/// Used for both linking codes and activation codes
+String _generateCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   final random = Random.secure();
   String part() =>

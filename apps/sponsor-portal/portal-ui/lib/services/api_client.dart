@@ -33,8 +33,8 @@ class ApiClient {
       return 'http://localhost:8080';
     }
 
-    // Production URL (set via environment)
-    return 'https://portal-api.example.com';
+    // Use the current host origin in production (same-origin API)
+    return Uri.base.origin;
   }
 
   /// Make an authenticated GET request

@@ -542,9 +542,13 @@ CREATE TABLE portal_users (
     firebase_uid TEXT UNIQUE,           -- Identity Platform UID (linked after first login)
     email TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
-    role portal_user_role NOT NULL,
-    linking_code TEXT UNIQUE,           -- Device enrollment code (XXXXX-XXXXX format)
-    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'revoked')),
+    -- Note: role column kept for backwards compatibility; use portal_user_roles for multi-role
+    role portal_user_role,              -- Primary role (optional, roles now in portal_user_roles)
+    linking_code TEXT UNIQUE,           -- Device enrollment code for Investigators (XXXXX-XXXXX format)
+    activation_code TEXT UNIQUE,        -- Account activation code (XXXXX-XXXXX format)
+    activation_code_expires_at TIMESTAMPTZ, -- Activation code expiry (typically 14 days)
+    activated_at TIMESTAMPTZ,           -- When account was activated
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -552,6 +556,7 @@ CREATE TABLE portal_users (
 CREATE INDEX idx_portal_users_firebase_uid ON portal_users(firebase_uid);
 CREATE INDEX idx_portal_users_email ON portal_users(email);
 CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
+CREATE INDEX idx_portal_users_activation_code ON portal_users(activation_code);
 CREATE INDEX idx_portal_users_role ON portal_users(role);
 CREATE INDEX idx_portal_users_status ON portal_users(status);
 
@@ -559,8 +564,12 @@ ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE portal_users IS 'Portal staff accounts (Investigators, Sponsors, Auditors, etc.) - separate from patient app_users';
 COMMENT ON COLUMN portal_users.firebase_uid IS 'Identity Platform UID - linked after first login via email match';
+COMMENT ON COLUMN portal_users.role IS 'Primary role (backwards compat) - use portal_user_roles for multi-role support';
 COMMENT ON COLUMN portal_users.linking_code IS 'Device enrollment code for Investigators (XXXXX-XXXXX format)';
-COMMENT ON COLUMN portal_users.status IS 'Account status - revoked users cannot access the portal';
+COMMENT ON COLUMN portal_users.activation_code IS 'Account activation code sent to new users (XXXXX-XXXXX format)';
+COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code expiry - typically 14 days after generation';
+COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
+COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
 
 -- Trigger for updated_at
 CREATE TRIGGER update_portal_users_updated_at BEFORE UPDATE ON portal_users
@@ -591,6 +600,35 @@ ALTER TABLE portal_user_site_access ENABLE ROW LEVEL SECURITY;
 COMMENT ON TABLE portal_user_site_access IS 'Maps portal users (Investigators) to their assigned clinical sites';
 COMMENT ON COLUMN portal_user_site_access.user_id IS 'Reference to portal_users.id';
 COMMENT ON COLUMN portal_user_site_access.site_id IS 'Reference to sites.site_id';
+
+-- =====================================================
+-- PORTAL USER ROLES (MULTI-ROLE SUPPORT)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00024: Portal User Roles and Permissions
+--   REQ-d00032: Role-Based Access Control Implementation
+--
+-- Junction table allowing users to have multiple roles
+-- Each role is selected as "active" during login/session
+
+CREATE TABLE portal_user_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+    role portal_user_role NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    assigned_by UUID REFERENCES portal_users(id),  -- Who assigned this role
+    UNIQUE(user_id, role)
+);
+
+CREATE INDEX idx_portal_user_roles_user ON portal_user_roles(user_id);
+CREATE INDEX idx_portal_user_roles_role ON portal_user_roles(role);
+
+ALTER TABLE portal_user_roles ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_user_roles IS 'Maps portal users to their roles - supports multiple roles per user';
+COMMENT ON COLUMN portal_user_roles.user_id IS 'Reference to portal_users.id';
+COMMENT ON COLUMN portal_user_roles.role IS 'Role from portal_user_role enum';
+COMMENT ON COLUMN portal_user_roles.assigned_by IS 'Admin who assigned this role (null for seeded data)';
 
 -- =====================================================
 -- SPONSOR ROLE MAPPING
