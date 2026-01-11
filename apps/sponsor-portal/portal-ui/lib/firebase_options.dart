@@ -1,17 +1,20 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00031: Identity Platform Integration
+//   REQ-d00005: Sponsor Configuration Detection Implementation
 //
 // Firebase configuration for sponsor portal
-// For local development, use Firebase Emulator
+// Uses FlavorConfig for environment-specific settings
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+import 'flavors.dart';
+
 /// Firebase configuration options
 ///
-/// For local development with emulator, these values are placeholders.
-/// For production, replace with actual Firebase project config.
+/// Gets configuration values from FlavorConfig which is initialized
+/// based on the current flavor (local, dev, qa, uat, prod).
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -33,14 +36,15 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // Web configuration for demo-sponsor-portal
-  // These are placeholder values for emulator use
-  // Replace with actual values from Firebase Console for production
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'demo-api-key',
-    appId: '1:000000000000:web:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'demo-sponsor-portal',
-    authDomain: 'demo-sponsor-portal.firebaseapp.com',
-  );
+  /// Web configuration - reads from FlavorConfig
+  static FirebaseOptions get web {
+    final values = FlavorConfig.values;
+    return FirebaseOptions(
+      apiKey: values.firebaseApiKey,
+      appId: values.firebaseAppId,
+      messagingSenderId: values.firebaseMessagingSenderId,
+      projectId: values.firebaseProjectId,
+      authDomain: values.firebaseAuthDomain,
+    );
+  }
 }

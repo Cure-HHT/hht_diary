@@ -86,7 +86,21 @@ if [ "$SHOW_HELP" = true ]; then
     echo ""
     echo "Dev credentials:"
     echo "  Email:    mike.bushe@anspar.org (or other seeded dev admins)"
-    echo "  Password: password"
+    echo "  Password: curehht"
+    echo ""
+    echo "Flavors:"
+    echo "  local  - Uses Firebase Emulator (this script)"
+    echo "  dev    - Development environment (requires Firebase credentials)"
+    echo "  qa     - QA/Testing environment (requires Firebase credentials)"
+    echo "  uat    - User Acceptance Testing (requires Firebase credentials)"
+    echo "  prod   - Production (requires Firebase credentials)"
+    echo ""
+    echo "For non-local flavors, pass Firebase credentials via --dart-define:"
+    echo "  flutter run -d chrome --dart-define=APP_FLAVOR=dev \\"
+    echo "    --dart-define=PORTAL_DEV_FIREBASE_API_KEY=your-api-key \\"
+    echo "    --dart-define=PORTAL_DEV_FIREBASE_APP_ID=your-app-id \\"
+    echo "    --dart-define=PORTAL_DEV_FIREBASE_PROJECT_ID=your-project-id \\"
+    echo "    --dart-define=PORTAL_DEV_FIREBASE_AUTH_DOMAIN=your-auth-domain"
     exit 0
 fi
 
@@ -296,12 +310,15 @@ start_server() {
 
 # Start the Flutter web UI
 start_ui() {
-    log_info "Starting Portal UI (Flutter Web)..."
+    log_info "Starting Portal UI (Flutter Web) with local flavor..."
 
     cd "$SPONSOR_PORTAL_DIR/portal-ui"
 
-    # Start Flutter in background
-    flutter run -d chrome --dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_HOST}:${FIREBASE_PORT} &
+    # Start Flutter in background with local flavor
+    # APP_FLAVOR=local enables Firebase emulator connection
+    flutter run -d chrome \
+        --dart-define=APP_FLAVOR=local \
+        --dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_HOST}:${FIREBASE_PORT} &
     UI_PID=$!
 }
 
@@ -374,7 +391,7 @@ main() {
         wait $UI_PID 2>/dev/null || true
     else
         log_info "UI not started (use without --no-ui to start Flutter)"
-        log_info "To start manually: cd portal-ui && flutter run -d chrome"
+        log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=APP_FLAVOR=local"
 
         # Wait for server
         wait $SERVER_PID 2>/dev/null || true
