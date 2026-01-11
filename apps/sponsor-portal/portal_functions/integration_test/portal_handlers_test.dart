@@ -489,7 +489,7 @@ void main() {
         if (response.statusCode == 201) {
           final json = await getResponseJson(response);
           expect(json['name'], equals('Test New User'));
-          expect(json['active_role'], equals('Auditor'));
+          expect(json['roles'], contains('Auditor'));
           expect(json['id'], isNotNull);
         }
       },
@@ -733,7 +733,7 @@ void main() {
 
         if (response.statusCode == 201) {
           final json = await getResponseJson(response);
-          expect(json['active_role'], equals('Investigator'));
+          expect(json['roles'], contains('Investigator'));
           expect(json['linking_code'], isNotNull);
           expect(json['site_ids'], contains(testSiteId));
         }
