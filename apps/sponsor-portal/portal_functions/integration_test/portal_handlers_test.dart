@@ -51,11 +51,25 @@ void main() {
 
     await Database.instance.initialize(config);
 
-    // Clean up any previous test data
+    // Clean up any previous test data (order matters for foreign keys)
     final db = Database.instance;
     await db.execute(
-      'DELETE FROM portal_user_site_access WHERE user_id IN (@adminId::uuid, @invId::uuid)',
-      parameters: {'adminId': testAdminId, 'invId': testInvestigatorId},
+      'DELETE FROM portal_user_site_access WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
+    );
+    // Delete from portal_user_roles before portal_users (assigned_by FK)
+    await db.execute(
+      '''DELETE FROM portal_user_roles WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
+         OR assigned_by IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)''',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
     );
     await db.execute(
       'DELETE FROM portal_users WHERE email LIKE @pattern',
@@ -130,10 +144,20 @@ void main() {
   });
 
   tearDownAll(() async {
-    // Clean up test data
+    // Clean up test data (order matters for foreign keys)
     final db = Database.instance;
     await db.execute(
       'DELETE FROM portal_user_site_access WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)',
+      parameters: {
+        'adminId': testAdminId,
+        'invId': testInvestigatorId,
+        'revokedId': testRevokedUserId,
+      },
+    );
+    // Delete from portal_user_roles before portal_users (assigned_by FK)
+    await db.execute(
+      '''DELETE FROM portal_user_roles WHERE user_id IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)
+         OR assigned_by IN (@adminId::uuid, @invId::uuid, @revokedId::uuid)''',
       parameters: {
         'adminId': testAdminId,
         'invId': testInvestigatorId,

@@ -31,13 +31,13 @@
             <td class="headerValue">lcov-unit.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntryHi">94.2&nbsp;%</td>
-            <td class="headerCovTableEntry">52</td>
+            <td class="headerCovTableEntryHi">92.5&nbsp;%</td>
+            <td class="headerCovTableEntry">53</td>
             <td class="headerCovTableEntry">49</td>
           </tr>
           <tr>
             <td class="headerItem">Test Date:</td>
-            <td class="headerValue">2026-01-10 20:01:44</td>
+            <td class="headerValue">2026-01-11 19:18:19</td>
             <td></td>
             <td class="headerItem">Functions:</td>
             <td class="headerCovTableEntryHi">-</td>
@@ -95,8 +95,8 @@
 <span id="L33"><span class="lineNum">      33</span>              :       return 'http://localhost:8080';</span>
 <span id="L34"><span class="lineNum">      34</span>              :     }</span>
 <span id="L35"><span class="lineNum">      35</span>              : </span>
-<span id="L36"><span class="lineNum">      36</span>              :     // Production URL (set via environment)</span>
-<span id="L37"><span class="lineNum">      37</span>              :     return 'https://portal-api.example.com';</span>
+<span id="L36"><span class="lineNum">      36</span>              :     // Use the current host origin in production (same-origin API)</span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaUNC">           0 :     return Uri.base.origin;</span></span>
 <span id="L38"><span class="lineNum">      38</span>              :   }</span>
 <span id="L39"><span class="lineNum">      39</span>              : </span>
 <span id="L40"><span class="lineNum">      40</span>              :   /// Make an authenticated GET request</span>

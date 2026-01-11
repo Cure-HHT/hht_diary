@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a224824f-aebe-4e37-91a7-8d5337f761c7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../../../database/rls_policies.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/rls_policies.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../database/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../../../database/schema.sql" afterDir="false" />
-    </list>
+    <list default="true" id="a224824f-aebe-4e37-91a7-8d5337f761c7" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -76,7 +73,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1768051192202</updated>
-      <workItem from="1768051193451" duration="4323000" />
+      <workItem from="1768051193451" duration="4663000" />
     </task>
     <servers />
   </component>
