@@ -42,8 +42,7 @@ void main() {
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
       database: Platform.environment['DB_NAME'] ?? 'sponsor_portal',
       username: Platform.environment['DB_USER'] ?? 'postgres',
-      password:
-          Platform.environment['DB_PASSWORD'] ??
+      password: Platform.environment['DB_PASSWORD'] ??
           Platform.environment['LOCAL_DB_PASSWORD'] ??
           'postgres',
       useSsl: useSsl,
@@ -192,7 +191,7 @@ void main() {
           'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
           'exp':
               DateTime.now().add(Duration(hours: 1)).millisecondsSinceEpoch ~/
-              1000,
+                  1000,
         }),
       ),
     );
@@ -336,7 +335,7 @@ void main() {
         if (response.statusCode == 200) {
           final json = await getResponseJson(response);
           expect(json['email'], equals(testAdminEmail));
-          expect(json['role'], equals('Administrator'));
+          expect(json['active_role'], equals('Administrator'));
         }
       },
     );
@@ -420,8 +419,7 @@ void main() {
               'sub': 'some-uid',
               'user_id': 'some-uid',
               'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-              'exp':
-                  DateTime.now()
+              'exp': DateTime.now()
                       .add(Duration(hours: 1))
                       .millisecondsSinceEpoch ~/
                   1000,
@@ -459,7 +457,7 @@ void main() {
         if (response.statusCode == 200) {
           final json = await getResponseJson(response);
           expect(json['email'], equals(testInvestigatorEmail));
-          expect(json['role'], equals('Investigator'));
+          expect(json['active_role'], equals('Investigator'));
           expect(json['sites'], isA<List>());
         }
       },
@@ -489,7 +487,7 @@ void main() {
         if (response.statusCode == 201) {
           final json = await getResponseJson(response);
           expect(json['name'], equals('Test New User'));
-          expect(json['role'], equals('Auditor'));
+          expect(json['active_role'], equals('Auditor'));
           expect(json['id'], isNotNull);
         }
       },
@@ -549,7 +547,7 @@ void main() {
         response = await createPortalUserHandler(request);
         if (response.statusCode == 400) {
           final json = await getResponseJson(response);
-          expect(json['error'], contains('Role'));
+          expect(json['error'], contains('role'));
         }
 
         // Invalid role
@@ -733,7 +731,7 @@ void main() {
 
         if (response.statusCode == 201) {
           final json = await getResponseJson(response);
-          expect(json['role'], equals('Investigator'));
+          expect(json['active_role'], equals('Investigator'));
           expect(json['linking_code'], isNotNull);
           expect(json['site_ids'], contains(testSiteId));
         }

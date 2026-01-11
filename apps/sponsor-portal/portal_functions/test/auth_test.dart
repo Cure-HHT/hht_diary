@@ -450,8 +450,7 @@ String _createTestJwt() {
         'authCode': 'test-auth-code',
         'userId': 'test-user-id',
         'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        'exp':
-            DateTime.now().add(Duration(hours: 1)).millisecondsSinceEpoch ~/
+        'exp': DateTime.now().add(Duration(hours: 1)).millisecondsSinceEpoch ~/
             1000,
       }),
     ),
