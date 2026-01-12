@@ -1,0 +1,1 @@
+genhtml coverage/lcov-unit.info -o coverage/html-flutter-unit

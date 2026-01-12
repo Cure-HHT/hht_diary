@@ -121,6 +121,12 @@ CREATE INDEX IF NOT EXISTS idx_user_roles_role ON user_roles(role);
 -- =====================================================
 -- Functions to access JWT claims set by the application
 
+-- Drop existing functions to ensure clean replacement (signature changes require drop)
+-- Use CASCADE in case other functions depend on these
+DROP FUNCTION IF EXISTS current_user_id() CASCADE;
+DROP FUNCTION IF EXISTS current_user_role() CASCADE;
+DROP FUNCTION IF EXISTS current_user_allowed_roles() CASCADE;
+
 -- Get current user ID from JWT claims
 CREATE OR REPLACE FUNCTION current_user_id()
 RETURNS TEXT AS $$

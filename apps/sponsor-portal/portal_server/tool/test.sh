@@ -28,7 +28,7 @@ usage() {
     echo "  --stop-db            Stop local PostgreSQL container after tests"
     echo "  -h, --help           Show this help message"
     echo ""
-    echo "If no flags are specified, unit tests are run."
+    echo "If no test flags (-u/-i) are specified, both unit and integration tests are run."
     echo ""
     echo "Integration tests require PostgreSQL. Either:"
     echo "  1. Use --start-db to auto-start the container"
@@ -66,9 +66,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no test flags specified, run unit tests only
+# Default: run both unit and integration tests
 if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
     RUN_UNIT=true
+    RUN_INTEGRATION=true
 fi
 
 echo "=============================================="
@@ -136,23 +137,43 @@ if [ "$RUN_INTEGRATION" = true ]; then
     echo "Running integration tests..."
     echo ""
 
-    # Check if PostgreSQL is accessible
-    if ! docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
-        # Try CI environment variables
-        if [ -n "$DB_HOST" ]; then
-            echo "Using CI database configuration"
-        else
-            echo "Error: PostgreSQL is not running"
-            echo "Start it with: --start-db flag or manually with docker compose"
-            exit 1
-        fi
-    fi
-
-    if dart test integration_test/; then
-        echo "Integration tests passed!"
+    # Check if there are any integration test files
+    if ! find integration_test -name '*_test.dart' 2>/dev/null | grep -q .; then
+        echo "No integration tests found (directory is empty)"
+        echo "Skipping integration tests"
     else
-        echo "Integration tests failed!"
-        INTEGRATION_PASSED=false
+        # Check if PostgreSQL is accessible
+        if ! docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+            # Try CI environment variables
+            if [ -n "$DB_HOST" ]; then
+                echo "Using CI database configuration"
+            else
+                echo "Error: PostgreSQL is not running"
+                echo "Start it with: --start-db flag or manually with docker compose"
+                exit 1
+            fi
+        fi
+
+        # Set environment for integration tests
+        echo "Running with Firebase Auth emulator..."
+        export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+        export DB_SSL="false"
+
+        # Export DB password for tests
+        if [ -z "$DB_PASSWORD" ]; then
+            DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null || echo "postgres")
+        fi
+        export DB_PASSWORD
+
+        if dart test integration_test/; then
+            echo "Integration tests passed!"
+        else
+            echo "Integration tests failed!"
+            INTEGRATION_PASSED=false
+        fi
+
+        # Unset emulator for subsequent operations
+        unset FIREBASE_AUTH_EMULATOR_HOST
     fi
 fi
 

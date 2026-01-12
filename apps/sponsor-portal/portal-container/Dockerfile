@@ -1,17 +1,38 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: Container infrastructure for Cloud Run
 #   REQ-p00013: GDPR compliance - EU-only regions
+#   REQ-d00028: Portal Frontend Framework
 #
-# Diary Server Container
-# Hosts portal_functions as HTTP endpoints via shelf
+# Sponsor Portal Container
+# Hosts portal_server (Dart API) + portal-ui (Flutter web) via nginx
 #
 # Build args:
 #   DART_VERSION - from .github/versions.env
+#   FLUTTER_VERSION - from .github/versions.env
 #   GCP_PROJECT_ID - GCP project for base image
 
 ARG DART_VERSION
+ARG FLUTTER_VERSION
 ARG GCP_PROJECT_ID
-FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VERSION} AS build
+
+# =============================================================================
+# Stage 1: Build Flutter Web UI
+# =============================================================================
+FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/flutter-base:${FLUTTER_VERSION} AS flutter-build
+
+# Copy portal-ui source
+COPY apps/sponsor-portal/portal-ui /app/apps/sponsor-portal/portal-ui
+
+WORKDIR /app/apps/sponsor-portal/portal-ui
+
+# Get dependencies and build for web
+RUN flutter pub get
+RUN flutter build web --release --web-renderer html
+
+# =============================================================================
+# Stage 2: Build Dart Server
+# =============================================================================
+FROM europe-west1-docker.pkg.dev/${GCP_PROJECT_ID}/hht-diary/dart-base:${DART_VERSION} AS dart-build
 
 # Copy shared dependencies first (for layer caching)
 COPY apps/common-dart/trial_data_types /app/apps/common-dart/trial_data_types
@@ -27,20 +48,45 @@ WORKDIR /app/apps/sponsor-portal/portal_server
 RUN dart pub get
 RUN dart compile exe bin/server.dart -o bin/server
 
-# Runtime stage - minimal image
-# Using :nonroot tag for security (DS001, DS002)
-FROM gcr.io/distroless/cc-debian12:nonroot
+# =============================================================================
+# Stage 3: Runtime - nginx + Dart server
+# =============================================================================
+FROM debian:bookworm-slim
 
-COPY --from=build /app/apps/sponsor-portal/portal_server/bin/server /app/server
+# Install nginx and required runtime libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -r -s /bin/false appuser
+
+# Copy Dart server binary
+COPY --from=dart-build /app/apps/sponsor-portal/portal_server/bin/server /app/server
+
+# Copy Flutter web build
+COPY --from=flutter-build /app/apps/sponsor-portal/portal-ui/build/web /app/web
+
+# Copy nginx configuration
+COPY apps/sponsor-portal/portal-container/nginx.conf /etc/nginx/nginx.conf
+
+# Copy startup script
+COPY apps/sponsor-portal/portal-container/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Create nginx runtime directories with correct permissions
+RUN mkdir -p /var/cache/nginx /var/run /var/log/nginx \
+    && chown -R appuser:appuser /var/cache/nginx /var/run /var/log/nginx /app
 
 # Cloud Run sets PORT environment variable
 ENV PORT=8080
 EXPOSE 8080
 
-# Explicit non-root user (uid 65532 in distroless)
-USER nonroot:nonroot
+# Run as non-root user
+USER appuser
 
-# Note: HEALTHCHECK not used - Cloud Run uses HTTP probes to /health endpoint
-# See: https://cloud.google.com/run/docs/configuring/healthchecks
+# Health check via nginx (proxies to Dart /health endpoint)
+# Note: Cloud Run uses HTTP probes, not Docker HEALTHCHECK
 
-ENTRYPOINT ["/app/server"]
+ENTRYPOINT ["/app/start.sh"]

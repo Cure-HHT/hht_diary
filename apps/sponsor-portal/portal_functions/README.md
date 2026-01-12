@@ -1,148 +1,226 @@
 # Portal Functions
 
-Dart library containing business logic for the HHT Sponsor Portal.
+Dart library containing business logic for the Clinical Trial Sponsor Portal.
+
+## Purpose
+
+This library provides the handler implementations for the portal server API. It contains:
+- **Authentication**: Google Identity Platform token verification
+- **User Management**: Portal user CRUD operations
+- **Site Management**: Clinical trial site queries
+- **Database Access**: PostgreSQL connection management
 
 ## Requirements Implemented
-- REQ-p00045: Sponsor Portal Application
-- REQ-p00024: Portal User Roles and Permissions
-- REQ-p00030: Role-Based Visual Indicators
-- REQ-p00028: Token Revocation and Access Control
-- REQ-p00025: Patient Enrollment Workflow
-- REQ-p00026: Patient Monitoring Dashboard
-- REQ-p00027: Questionnaire Management
-- REQ-p00029: Auditor Dashboard and Data Export
-See spec/prd-portal.md for REQs and workflows
 
+- REQ-p00024: Portal User Roles and Permissions
+- REQ-d00031: Identity Platform Integration
+- REQ-d00032: Role-Based Access Control Implementation
+- REQ-d00035: Admin Dashboard Implementation
+- REQ-d00039: Portal User Database Schema
 
 ## Architecture
 
-### Data Model
+### Package Structure
 
-**portal_users** - Mobile app user accounts (any user can use the app)
-- `user_id`: UUID primary key
-- `username`: Optional, for registered users
-- `password_hash`: SHA-256 hash of password
-- `auth_code`: Random code used in JWT for user lookup
-- `app_uuid`: Device/app instance identifier
+```
+portal_functions/
+├── lib/
+│   ├── portal_functions.dart     # Library exports
+│   └── src/
+│       ├── database.dart         # Database connection management
+│       ├── database_config.dart  # Database configuration
+│       ├── handlers.dart         # Legacy handlers (deprecated)
+│       ├── health_handler.dart   # Health check endpoint
+│       ├── identity_platform.dart # Firebase Auth token verification
+│       ├── portal_auth.dart      # Portal login handler (/me)
+│       ├── portal_user.dart      # User CRUD handlers
+│       └── sponsor_config.dart   # Sponsor configuration handler
+├── test/                         # Unit tests
+└── integration_test/             # Integration tests
+```
 
+### Handler Overview
 
-### Handlers
+| Handler                  | Endpoint                       | Description                    |
+|--------------------------|--------------------------------|--------------------------------|
+| `healthHandler`          | GET /health                    | Cloud Run health check         |
+| `sponsorConfigHandler`   | GET /api/v1/sponsor/config     | Sponsor feature flags          |
+| `portalMeHandler`        | GET /api/v1/portal/me          | Get current user info          |
+| `getPortalUsersHandler`  | GET /api/v1/portal/users       | List all portal users (Admin)  |
+| `createPortalUserHandler`| POST /api/v1/portal/users      | Create new user (Admin)        |
+| `updatePortalUserHandler`| PATCH /api/v1/portal/users/:id | Update user status (Admin)     |
+| `getPortalSitesHandler`  | GET /api/v1/portal/sites       | List clinical sites            |
 
-| Endpoint                          | Handler                 | Description                 |
-|-----------------------------------|-------------------------|-----------------------------|
-| GET /health                       | `healthHandler`         | Cloud Run health check      |
-| POST /api/v1/auth/register        | `registerHandler`       | Create new user account     |
-| POST /api/v1/auth/login           | `loginHandler`          | Authenticate user           |
-| POST /api/v1/auth/change-password | `changePasswordHandler` | Update password             |
+## Authentication Flow
+
+### First Admin Login
+
+1. Admin opens portal and enters email/password
+2. Firebase Auth validates credentials, returns ID token
+3. Portal UI sends ID token to `GET /api/v1/portal/me`
+4. Server verifies token with Google's public keys
+5. Server looks up email in `portal_users` table:
+   - If found: Links `firebase_uid` to user record, returns user info
+   - If not found: Returns 403 Forbidden
+6. Portal UI routes to appropriate dashboard based on role
+
+### Token Verification
+
+```dart
+// identity_platform.dart
+final result = await verifyIdToken(idToken);
+if (result.isValid) {
+  final uid = result.uid;    // Firebase UID
+  final email = result.email; // User email
+}
+```
+
+For local development, set `FIREBASE_AUTH_EMULATOR_HOST` to bypass signature verification.
+
+## User Roles
+
+The portal supports six user roles defined in `portal_user_role` enum:
+
+| Role            | Description                              | Site Access    |
+|-----------------|------------------------------------------|----------------|
+| Investigator    | Clinical site staff                      | Assigned sites |
+| Sponsor         | Pharmaceutical company staff             | All sites      |
+| Auditor         | Compliance/audit personnel               | All sites      |
+| Analyst         | Data analysis personnel                  | All sites      |
+| Administrator   | Portal admin (user management)           | All sites      |
+| Developer Admin | Development team (full access)           | All sites      |
+
+## Database Schema
+
+### Portal Tables
+
+```sql
+-- Portal staff users
+CREATE TABLE portal_users (
+    id UUID PRIMARY KEY,
+    firebase_uid TEXT UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    role portal_user_role NOT NULL,
+    linking_code TEXT UNIQUE,
+    status TEXT CHECK (status IN ('active', 'revoked')),
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ
+);
+
+-- Site assignments for Investigators
+CREATE TABLE portal_user_site_access (
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES portal_users(id),
+    site_id TEXT REFERENCES sites(site_id),
+    assigned_at TIMESTAMPTZ
+);
+
+-- Sponsor-specific role mapping
+CREATE TABLE sponsor_role_mapping (
+    sponsor_id TEXT,
+    sponsor_role_name TEXT,
+    mapped_role portal_user_role
+);
+```
 
 ## Security
 
 ### SQL Injection Protection
 
-All database queries use **parameterized queries** via the `postgres` package's `Sql.named()` method. User input is never interpolated into SQL strings.
+All database queries use parameterized queries:
 
 ```dart
-// Example: parameterized query (SAFE)
 await db.execute(
-  'SELECT user_id FROM app_users WHERE username = @username',
-  parameters: {'username': normalizedUsername},
+  Sql.named('SELECT * FROM portal_users WHERE email = @email'),
+  parameters: {'email': email},
 );
 ```
 
-The `Sql.named()` function binds parameters at the driver level, ensuring that even malicious input like `'; DROP TABLE app_users; --` is treated as a literal string value, not executable SQL.
+### Token Verification
 
-### Defense-in-Depth Validation
+- Production: Verifies JWT signature against Google's JWKS endpoint
+- Development: Trusts emulator tokens (simpler verification)
 
-Additional input validation provides defense-in-depth:
+### Role-Based Access Control
 
-| Input         | Validation                     | Pattern           |
-|---------------|--------------------------------|-------------------|
-| Username      | Alphanumeric + underscore only | `^[a-zA-Z0-9_]+$` |
-| Password hash | 64-char hex string (SHA-256)   | `^[a-f0-9]{64}$`  |
-| Role          | Fixed format                   | `^[a-zA-Z0-9_]+$` |
+Handler-level authorization checks:
 
-TODO - role should be fixed and an enum defined
-
-### JWT Authentication
-
-- HS256 signing algorithm
-- Secret loaded from `JWT_SECRET` environment variable
-- Tokens include expiration (`exp`) claim
-- Auth code in JWT payload used for user lookup (not user ID directly)
-
-## Dependencies
-
-- `shelf` / `shelf_router`: HTTP server framework
-- `postgres`: PostgreSQL driver (pure Dart, no native dependencies)
-- `crypto`: HMAC-SHA256 for JWT signing
+```dart
+// Require admin role
+if (!currentUser.role.isAdmin) {
+  return Response.forbidden('Admin access required');
+}
+```
 
 ## Environment Variables
 
-| Variable      | Description        | Default                       |
-|---------------|--------------------|-------------------------------|
-| `DB_HOST`     | PostgreSQL host    | `localhost`                   |
-| `DB_PORT`     | PostgreSQL port    | `5432`                        |
-| `DB_NAME`     | Database name      | `hht_portal`                  |
-| `DB_USER`     | Database user      | `app_user`                    |
-| `DB_PASSWORD` | Database password  | (required)                    |
-| `DB_SSL`      | Enable SSL         | `true`                        |
-| `JWT_SECRET`  | JWT signing secret | (dev default, change in prod) |
+| Variable                      | Description                | Default               |
+|-------------------------------|----------------------------|-----------------------|
+| `DB_HOST`                     | PostgreSQL host            | `localhost`           |
+| `DB_PORT`                     | PostgreSQL port            | `5432`                |
+| `DB_NAME`                     | Database name              | `sponsor_portal`      |
+| `DB_USER`                     | Database user              | `postgres`            |
+| `DB_PASSWORD`                 | Database password          | (required)            |
+| `DB_SSL`                      | Enable SSL                 | `true`                |
+| `GCP_PROJECT_ID`              | GCP project ID             | `demo-sponsor-portal` |
+| `FIREBASE_AUTH_EMULATOR_HOST` | Firebase emulator host     | (unset = production)  |
 
 ## Testing
 
-### Running Tests Locally
-
-Tests require a PostgreSQL database. Use Doppler to provide credentials:
+### Running Tests
 
 ```bash
-# Run all tests (unit + integration) with coverage
-doppler run -- ./tool/coverage.sh
+cd apps/sponsor-portal/portal_functions
 
-# Run only unit tests
-doppler run -- ./tool/coverage.sh -u
+# Run unit tests only (default)
+doppler run -- ./tool/test.sh
 
-# Run only integration tests
-doppler run -- ./tool/coverage.sh -i
+# Run integration tests (requires database)
+doppler run -- ./tool/test.sh -i
+
+# Run all tests with coverage
+doppler run -- ./tool/test.sh --coverage
+
+# Run unit tests with coverage
+doppler run -- ./tool/test.sh -u --coverage
+
+# Run integration tests with coverage (requires database)
+doppler run -- ./tool/test.sh -i --coverage
 ```
 
 ### Coverage Threshold
 
-The project requires **85% code coverage**. The coverage script will fail if coverage drops below this threshold.
+The project requires **85% code coverage**.
 
 ### Test Structure
 
 | Directory           | Description                             | Database Required |
 |---------------------|-----------------------------------------|-------------------|
-| `test/`             | Unit tests (HTTP validation, JWT, etc.) | No                |
-| `integration_test/` | Integration tests (database operations) | Yes               |
+| `test/`             | Unit tests (token verification, etc.)   | No                |
+| `integration_test/` | Integration tests (database handlers)   | Yes               |
 
-### CI/CD
+### Integration Test Setup
 
-In GitHub Actions, tests run automatically with a PostgreSQL service container. Environment variables are set in the workflow:
-
-```yaml
-env:
-  DB_HOST: localhost
-  DB_PORT: '5432'
-  DB_NAME: sponsor_portal
-  DB_USER: postgres
-  DB_PASSWORD: postgres
-  DB_SSL: 'false'
-  JWT_SECRET: test-jwt-secret-for-ci
-```
-
-See `.github/workflows/portal-server-ci.yml` for the full configuration.
-
-### Troubleshooting
-
-**"password authentication failed"**: Run with Doppler to get credentials:
 ```bash
-doppler run -- ./tool/coverage.sh
-```
+# Start database
+cd tools/dev-env
+docker-compose up -d postgres
 
-**SSL errors**: The local Docker database doesn't support SSL. The tests default to `DB_SSL=false` when the environment variable is not set to `'true'`.
+# Apply schema
+doppler run -- psql -f ../../database/init.sql
+
+# Apply seed data
+doppler run -- psql -f /path/to/hht_diary_curehht/database/seed_data.sql
+
+# Run tests
+cd ../../apps/sponsor-portal/portal_functions
+doppler run -- dart test integration_test/
+```
 
 ## Usage
+
+### Import Library
 
 ```dart
 import 'package:portal_functions/portal_functions.dart';
@@ -153,5 +231,40 @@ await Database.instance.initialize(config);
 
 // Use handlers with shelf router
 final router = Router();
-router.post('/api/v1/auth/register', registerHandler);
+router.get('/api/v1/portal/me', portalMeHandler);
+router.get('/api/v1/portal/users', getPortalUsersHandler);
+router.post('/api/v1/portal/users', createPortalUserHandler);
 ```
+
+### Token Verification
+
+```dart
+import 'package:portal_functions/portal_functions.dart';
+
+final authHeader = request.headers['authorization'];
+final token = extractBearerToken(authHeader);
+
+if (token == null) {
+  return Response.unauthorized('Missing token');
+}
+
+final result = await verifyIdToken(token);
+if (!result.isValid) {
+  return Response.forbidden(result.error);
+}
+
+// Use result.uid and result.email
+```
+
+## Dependencies
+
+- `shelf`: HTTP request/response handling
+- `postgres`: PostgreSQL database driver
+- `http`: HTTP client for JWKS fetching
+- `jose`: JWT parsing and verification
+
+## Related Documentation
+
+- [Portal Server README](../portal_server/README.md) - HTTP server setup
+- [Portal UI README](../portal-ui/README.md) - Frontend application
+- [Database README](../../../database/README.md) - Schema details

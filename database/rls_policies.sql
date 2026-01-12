@@ -611,6 +611,154 @@ CREATE POLICY config_auditor_select ON system_config
     USING (current_user_role() = 'AUDITOR');
 
 -- =====================================================
+-- PORTAL_USERS TABLE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00039: Portal Users Table Schema
+--   REQ-p00024: Portal User Roles and Permissions
+
+-- Admins and Auditors can view all portal users
+CREATE POLICY portal_users_admin_auditor_select ON portal_users
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Auditor', 'Developer Admin'));
+
+-- Portal users can view their own record
+CREATE POLICY portal_users_self_select ON portal_users
+    FOR SELECT
+    TO authenticated
+    USING (firebase_uid = current_user_id());
+
+-- Only Admins can create portal users
+CREATE POLICY portal_users_admin_insert ON portal_users
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Only Admins can update portal users
+CREATE POLICY portal_users_admin_update ON portal_users
+    FOR UPDATE
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'))
+    WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Service role has full access to portal users (for login/bootstrap operations)
+-- The portal server uses service_role for:
+--   - Looking up users by firebase_uid during authentication
+--   - Looking up users by email during first login linking
+--   - Updating firebase_uid when linking accounts
+CREATE POLICY portal_users_service_all ON portal_users
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- =====================================================
+-- PORTAL_USER_SITE_ACCESS TABLE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00040: User Site Access Table Schema
+--   REQ-d00033: Site-Based Data Isolation
+
+-- Admins and Auditors can view all site access records
+CREATE POLICY portal_site_access_admin_auditor_select ON portal_user_site_access
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Auditor', 'Developer Admin'));
+
+-- Portal users can view their own site access
+CREATE POLICY portal_site_access_self_select ON portal_user_site_access
+    FOR SELECT
+    TO authenticated
+    USING (
+        user_id = (
+            SELECT id FROM portal_users
+            WHERE firebase_uid = current_user_id()
+        )
+    );
+
+-- Only Admins can create site access records
+CREATE POLICY portal_site_access_admin_insert ON portal_user_site_access
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Only Admins can delete site access records
+CREATE POLICY portal_site_access_admin_delete ON portal_user_site_access
+    FOR DELETE
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Service role has full access (for reading site assignments during login)
+CREATE POLICY portal_site_access_service_all ON portal_user_site_access
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- =====================================================
+-- PORTAL_USER_ROLES TABLE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00024: Portal User Roles and Permissions
+--   REQ-d00032: Role-Based Access Control Implementation
+
+-- Admins and Auditors can view all user roles
+CREATE POLICY portal_user_roles_admin_auditor_select ON portal_user_roles
+    FOR SELECT
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Auditor', 'Developer Admin'));
+
+-- Portal users can view their own roles
+CREATE POLICY portal_user_roles_self_select ON portal_user_roles
+    FOR SELECT
+    TO authenticated
+    USING (
+        user_id = (
+            SELECT id FROM portal_users
+            WHERE firebase_uid = current_user_id()
+        )
+    );
+
+-- Only Admins can create user role assignments
+CREATE POLICY portal_user_roles_admin_insert ON portal_user_roles
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Only Admins can delete user role assignments
+CREATE POLICY portal_user_roles_admin_delete ON portal_user_roles
+    FOR DELETE
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- Service role has full access (for role lookups during authentication)
+CREATE POLICY portal_user_roles_service_all ON portal_user_roles
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+-- =====================================================
+-- SPONSOR_ROLE_MAPPING TABLE POLICIES
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00041: Sponsor Role Mapping Schema
+
+-- All authenticated users can view role mappings (needed for role translation)
+CREATE POLICY sponsor_role_mapping_select ON sponsor_role_mapping
+    FOR SELECT
+    TO authenticated
+    USING (true);
+
+-- Only Admins can modify role mappings
+CREATE POLICY sponsor_role_mapping_admin_all ON sponsor_role_mapping
+    FOR ALL
+    TO authenticated
+    USING (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'))
+    WITH CHECK (current_user_role() IN ('ADMIN', 'Administrator', 'Developer Admin'));
+
+-- =====================================================
 -- GRANT BASIC PERMISSIONS
 -- =====================================================
 
@@ -631,6 +779,15 @@ GRANT UPDATE ON sync_conflicts TO authenticated;
 
 -- Grant insert on admin action log to authenticated users (RLS will filter)
 GRANT INSERT, UPDATE ON admin_action_log TO authenticated;
+
+-- Grant all on portal_users to authenticated users (RLS will filter)
+GRANT SELECT, INSERT, UPDATE ON portal_users TO authenticated;
+
+-- Grant all on portal_user_site_access to authenticated users (RLS will filter)
+GRANT SELECT, INSERT, DELETE ON portal_user_site_access TO authenticated;
+
+-- Grant select on sponsor_role_mapping to authenticated users
+GRANT SELECT ON sponsor_role_mapping TO authenticated;
 
 -- Service role needs full access for triggers
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;

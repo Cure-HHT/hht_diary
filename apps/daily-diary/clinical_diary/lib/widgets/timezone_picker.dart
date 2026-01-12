@@ -725,6 +725,7 @@ const Map<String, String> _longFormTimezoneMap = {
 /// CUR-516: Normalize device timezone name to abbreviation for comparison.
 /// Handles cases like "Central European Standard Time" -> "CET"
 /// or "Pacific Standard Time" -> "PST"
+/// Also handles IANA IDs like "Europe/Paris" -> "CET"
 String normalizeDeviceTimezone(String deviceTzName) {
   // Handle empty string
   if (deviceTzName.isEmpty) {
@@ -734,6 +735,12 @@ String normalizeDeviceTimezone(String deviceTzName) {
   // If already short (e.g., "PST", "CET"), return as-is
   if (deviceTzName.length <= 5 && deviceTzName == deviceTzName.toUpperCase()) {
     return deviceTzName;
+  }
+
+  // Handle IANA timezone IDs like "Europe/Paris", "America/New_York"
+  // These come from TimezoneService.instance.currentTimezone
+  if (deviceTzName.contains('/')) {
+    return getTimezoneAbbreviation(deviceTzName);
   }
 
   // CUR-543: First check the long-form lookup table

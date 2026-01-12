@@ -1,0 +1,43 @@
+# =====================================================
+# Firebase Emulator Suite for Local Development
+# =====================================================
+#
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00031: Identity Platform Integration (local development)
+#
+# This docker-compose runs the Firebase Auth emulator for local development
+# of the sponsor portal without requiring a real GCP project.
+#
+# Usage:
+#   Start emulator:
+#     docker compose -f docker-compose.firebase.yml up -d
+#
+#   View emulator UI:
+#     http://localhost:4000
+#
+#   Stop emulator:
+#     docker compose -f docker-compose.firebase.yml down
+
+services:
+  firebase-emulator:
+    image: node:20-slim
+    container_name: firebase-emulator
+    working_dir: /app
+    command: >
+      sh -c "npm install -g firebase-tools@latest &&
+             firebase emulators:start --only auth --project demo-sponsor-portal"
+    ports:
+      - "9099:9099"   # Auth emulator
+      - "4000:4000"   # Emulator UI
+    volumes:
+      - ./firebase:/app
+    environment:
+      # Emulator configuration
+      - FIREBASE_AUTH_EMULATOR_HOST=0.0.0.0:9099
+      # Suppress analytics
+      - FIREBASE_CLI_EXPERIMENTS=
+
+networks:
+  default:
+    name: clinical-diary-net
+    external: true
