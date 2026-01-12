@@ -95,8 +95,6 @@ EOF
 run_flutter_unit_tests() {
   info "Running Flutter unit tests..."
 
-  find $REO_DIR -print
-
   if [ ! -f "$REPO_DIR/pubspec.yaml" ]; then
     warning "No Flutter pubspec.yaml found in $REPO_DIR, skipping Flutter tests"
     echo "- **Flutter Unit Tests**: Skipped (no Flutter project)" >> "$REPORT_DIR/test-summary.md"

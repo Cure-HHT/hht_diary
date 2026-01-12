@@ -83,12 +83,11 @@ jobs:
           # Patterns that require QA tests
           QA_PATTERNS=(
             'dev-env'                # Dev environment scripts
-            'apps/daily-diary/clinical_diary'    # Main app code
-            '^\.github/workflows/qa-automation\.yml$'  # This workflow itself
+            'apps\/daily-diary\/clinical_diary'    # Main app code
+            '^\.github\/workflows\/qa-automation\.yml$'  # This workflow itself
           )
 
           # Check if any changed file matches QA patterns
-          QA_NEEDED=true
           for pattern in "${QA_PATTERNS[@]}"; do
             if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
               QA_NEEDED=true
