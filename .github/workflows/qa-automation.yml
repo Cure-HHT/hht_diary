@@ -45,6 +45,14 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better git context
 
+      - name: Base directory
+        run: echo "Base directory=$GITHUB_WORKSPACE" 
+
+      - name: List files
+        run: |
+          pwd
+          find $GITHUB_WORKSPACE/apps/daily-diary/clinical_diary -print
+
       - name: Check if QA tests should run
         id: check-qa-needed
         run: |
@@ -74,23 +82,12 @@ jobs:
 
           # Patterns that require QA tests
           QA_PATTERNS=(
-            '^packages/'           # Flutter package code
-            '^apps/'              # Flutter app code
-            '^lib/'               # Dart library code (if exists)
-            '^test/'              # Test files
-            '^tests/'             # Test files (alternate location)
-            '^e2e/'               # E2E tests
-            '^database/'          # Database changes might affect tests
-            '^tools/dev-env/'     # Dev environment changes
-            '\.dart$'             # Any Dart file
-            '\.yaml$'             # pubspec.yaml or other config
-            'docker-compose'      # Docker compose changes
-            'Dockerfile'          # Dockerfile changes
-            '^\.github/workflows/qa-automation\.yml$'  # This workflow itself
+            'dev-env'                # Dev environment scripts
+            'apps\/daily-diary\/clinical_diary'    # Main app code
+            '^\.github\/workflows\/qa-automation\.yml$'  # This workflow itself
           )
 
           # Check if any changed file matches QA patterns
-          QA_NEEDED=false
           for pattern in "${QA_PATTERNS[@]}"; do
             if echo "$CHANGED_FILES" | grep -qE "$pattern"; then
               QA_NEEDED=true
@@ -285,14 +282,14 @@ jobs:
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
-            mkdir -p /workspace/repos
+            mkdir -p /workspace/repos/daily-diary/clinical_diary
             # Copy the checked-out repository from /workspace/src to expected location
-            if [ ! -d /workspace/repos/clinical-diary ]; then
-              echo 'Copying repository to /workspace/repos/clinical-diary...'
-              cp -r /workspace/src /workspace/repos/clinical-diary
+            if [ ! -d /workspace/repos/daily-diary/clinical_diary ]; then
+              echo Copying $GITHUB_WORKSPACE/apps/clinical_diary to /workspace/repos/daily-diary/clinical_diary
+              cp -r $GITHUB_WORKSPACE/apps/daily-diary/clinical_diary/ /workspace/repos/daily-diary/clinical_diary
               echo 'Repository prepared successfully'
             else
-              echo 'Repository already exists at /workspace/repos/clinical-diary'
+              echo 'Repository already exists at /workspace/repos/daily-diary/clinical_diary'
             fi
           "
 
@@ -312,7 +309,7 @@ jobs:
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T qa bash -c "
-            cd /workspace/repos/clinical-diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
+            cd /workspace/repos/daily-diary/clinical_diary 2>/dev/null || echo 'No Flutter project found, skipping Flutter tests'
             if [ -f pubspec.yaml ]; then
               flutter pub get
               flutter test --coverage --reporter json > /workspace/reports/flutter-test-results.json

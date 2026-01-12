@@ -131,6 +131,20 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
 
     steps:
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          echo "Cleaning up unnecessary files..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -220,6 +234,20 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
 
     steps:
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          echo "Cleaning up unnecessary files..."
+          docker image prune -af
+          docker container prune -f
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/local/share/boost
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -287,150 +315,11 @@ jobs:
           provenance: ${{ github.event_name != 'pull_request' }}
           sbom: ${{ github.event_name != 'pull_request' }}
 
-  build-ops:
-    name: Build Ops Image
-    runs-on: ubuntu-latest
-    needs: build-base
-
-    env:
-      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
-
-    outputs:
-      image_digest: ${{ steps.build.outputs.digest }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          # Use docker driver for PR builds to enable docker load/image sharing between jobs
-          # Use docker-container driver (default) for main builds to support provenance/SBOM
-          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
-
-      - name: Download base image (PR only)
-        if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@v4
-        with:
-          name: base-image
-          path: /tmp
-
-      - name: Load base image (PR only)
-        if: github.event_name == 'pull_request'
-        run: docker load --input /tmp/base-image.tar
-
-      - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push ops image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/ops.Dockerfile
-          build-args: |
-            BASE_IMAGE_REF=${{ env.BASE_IMAGE_REF }}
-          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops:latest
-          cache-to: type=inline
-          provenance: ${{ github.event_name != 'pull_request' }}
-          sbom: ${{ github.event_name != 'pull_request' }}
-
-  build-mgmt:
-    name: Build Management Image
-    runs-on: ubuntu-latest
-    needs: build-base
-
-    env:
-      BASE_IMAGE_REF: ${{ github.event_name == 'pull_request' && 'clinical-diary-base:latest' || 'ghcr.io/cure-hht/clinical-diary-base:latest' }}
-
-    outputs:
-      image_digest: ${{ steps.build.outputs.digest }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          # Use docker driver for PR builds to enable docker load/image sharing between jobs
-          # Use docker-container driver (default) for main builds to support provenance/SBOM
-          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
-
-      - name: Download base image (PR only)
-        if: github.event_name == 'pull_request'
-        uses: actions/download-artifact@v4
-        with:
-          name: base-image
-          path: /tmp
-
-      - name: Load base image (PR only)
-        if: github.event_name == 'pull_request'
-        run: docker load --input /tmp/base-image.tar
-
-      - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push management image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/mgmt.Dockerfile
-          build-args: |
-            BASE_IMAGE_REF=${{ env.BASE_IMAGE_REF }}
-          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt:latest
-          cache-to: type=inline
-          provenance: ${{ github.event_name != 'pull_request' }}
-          sbom: ${{ github.event_name != 'pull_request' }}
 
   sign-and-sbom:
     name: Sign Images & Generate SBOMs
     runs-on: ubuntu-latest
-    needs: [build-base, build-dev, build-qa, build-ops, build-mgmt]
+    needs: [build-base, build-dev, build-qa]
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
 
     steps:
@@ -462,16 +351,6 @@ jobs:
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa@${{ needs.build-qa.outputs.image_digest }}
 
-      - name: Sign ops image
-        run: |
-          cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops@${{ needs.build-ops.outputs.image_digest }}
-
-      - name: Sign management image
-        run: |
-          cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt@${{ needs.build-mgmt.outputs.image_digest }}
-
       - name: Generate SBOM for base image
         run: |
           syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base@${{ needs.build-base.outputs.image_digest }} \
@@ -489,18 +368,6 @@ jobs:
           syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa@${{ needs.build-qa.outputs.image_digest }} \
             -o spdx-json \
             --file qa-sbom.spdx.json
-
-      - name: Generate SBOM for ops image
-        run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops@${{ needs.build-ops.outputs.image_digest }} \
-            -o spdx-json \
-            --file ops-sbom.spdx.json
-
-      - name: Generate SBOM for management image
-        run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt@${{ needs.build-mgmt.outputs.image_digest }} \
-            -o spdx-json \
-            --file mgmt-sbom.spdx.json
 
       - name: Upload SBOMs as artifacts
         uses: actions/upload-artifact@v4
@@ -531,24 +398,10 @@ jobs:
             --type spdxjson \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa@${{ needs.build-qa.outputs.image_digest }}
 
-      - name: Attach SBOM attestation to ops image
-        run: |
-          cosign attest --yes \
-            --predicate ops-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops@${{ needs.build-ops.outputs.image_digest }}
-
-      - name: Attach SBOM attestation to mgmt image
-        run: |
-          cosign attest --yes \
-            --predicate mgmt-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt@${{ needs.build-mgmt.outputs.image_digest }}
-
   verify-images:
     name: Verify Image Signatures
     runs-on: ubuntu-latest
-    needs: [sign-and-sbom, build-base, build-dev, build-qa, build-ops, build-mgmt]
+    needs: [sign-and-sbom, build-base, build-dev, build-qa]
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
 
     steps:
@@ -586,26 +439,10 @@ jobs:
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-qa@${{ needs.build-qa.outputs.image_digest }}
 
-      - name: Verify ops image signature
-        run: |
-          echo "Verifying ops image..."
-          cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ops@${{ needs.build-ops.outputs.image_digest }}
-
-      - name: Verify mgmt image signature
-        run: |
-          echo "Verifying mgmt image..."
-          cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-mgmt@${{ needs.build-mgmt.outputs.image_digest }}
-
   summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [build-base, build-dev, build-qa, build-ops, build-mgmt]
+    needs: [build-base, build-dev, build-qa]
     if: always()
 
     steps:
