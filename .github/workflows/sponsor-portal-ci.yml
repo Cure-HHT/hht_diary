@@ -190,9 +190,8 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
-          psql -h localhost -U postgres -d sponsor_portal -f database/schema.sql
-          psql -h localhost -U postgres -d sponsor_portal -f database/roles.sql
-          psql -h localhost -U postgres -d sponsor_portal -f database/rls_policies.sql
+          # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
+          cd database && psql -h localhost -U postgres -d sponsor_portal -f init.sql
 
       - name: Install dependencies (portal_functions)
         working-directory: apps/sponsor-portal/portal_functions
@@ -299,9 +298,8 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
-          psql -h localhost -U postgres -d sponsor_portal -f database/schema.sql
-          psql -h localhost -U postgres -d sponsor_portal -f database/roles.sql
-          psql -h localhost -U postgres -d sponsor_portal -f database/rls_policies.sql
+          # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
+          cd database && psql -h localhost -U postgres -d sponsor_portal -f init.sql
 
       - name: Install dependencies
         run: |

@@ -1,20 +1,13 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p00008: User Account Management
-//   REQ-p00013: GDPR compliance - EU-only regions
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00035: Admin Dashboard Implementation
+//   REQ-p00024: Portal User Roles and Permissions
 //
-// Portal functions library - Dart conversion of Firebase Cloud Functions
+// Portal functions library - backend handlers for Sponsor Portal
 
 library portal_functions;
 
-// Mobile app authentication (legacy)
-export 'src/auth.dart';
-export 'src/jwt.dart';
-export 'src/user.dart';
-
-// Portal authentication (Identity Platform)
+// Portal authentication (Identity Platform / Firebase Auth)
 export 'src/identity_platform.dart';
 export 'src/portal_activation.dart';
 export 'src/portal_auth.dart';

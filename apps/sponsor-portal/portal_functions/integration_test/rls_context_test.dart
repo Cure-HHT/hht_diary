@@ -244,6 +244,12 @@ void main() {
       final newEmail =
           'new-user-${DateTime.now().millisecondsSinceEpoch}@example.com';
 
+      // Clean up any leftover test data from previous failed runs
+      await Database.instance.execute(
+        'DELETE FROM portal_users WHERE id = @userId::uuid',
+        parameters: {'userId': newUserId},
+      );
+
       final adminContext = UserContext.authenticated(
         userId: testAdminFirebaseUid,
         role: 'Administrator',

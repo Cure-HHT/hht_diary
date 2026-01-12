@@ -29,19 +29,21 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -u, --unit           Run unit tests only"
-    echo "  -i, --integration    Run integration tests only (requires PostgreSQL)"
+    echo "  -i, --integration    Run integration tests (auto-starts PostgreSQL + Firebase)"
     echo "  -c, --coverage       Run with coverage collection and reporting"
     echo "  --no-threshold       Skip coverage threshold checks (only with --coverage)"
-    echo "  --start-db           Start local PostgreSQL container before tests"
+    echo "  --start-db           Start local PostgreSQL container (happens auto with -i)"
     echo "  --stop-db            Stop local PostgreSQL container after tests"
     echo "  -h, --help           Show this help message"
     echo ""
-    echo "If no test flags (-u/-i) are specified, unit tests are run."
-    echo "With --coverage, both unit and integration tests are run by default."
+    echo "If no test flags (-u/-i) are specified, both unit and integration tests are run."
     echo ""
     echo "Coverage Threshold: ${MIN_COVERAGE}%"
     echo ""
-    echo "Note: Firebase Auth emulator is auto-started for integration tests."
+    echo "Services auto-started for integration tests:"
+    echo "  - PostgreSQL (via docker compose + Doppler)"
+    echo "  - Firebase Auth emulator (via docker compose)"
+    echo "  - Database schema is applied/updated automatically"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -82,16 +84,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Default behavior depends on coverage mode
+# Default: run both unit and integration tests
 if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
-    if [ "$WITH_COVERAGE" = true ]; then
-        # Coverage mode: run both by default
-        RUN_UNIT=true
-        RUN_INTEGRATION=true
-    else
-        # Normal mode: run unit tests only by default
-        RUN_UNIT=true
-    fi
+    RUN_UNIT=true
+    RUN_INTEGRATION=true
 fi
 
 echo "=============================================="
@@ -111,35 +107,64 @@ fi
 UNIT_PASSED=true
 INTEGRATION_PASSED=true
 
-# Start database if requested
-if [ "$START_DB" = true ]; then
-    echo ""
-    echo "Starting PostgreSQL container..."
+# Start database if requested OR if running integration tests
+if [ "$START_DB" = true ] || [ "$RUN_INTEGRATION" = true ]; then
     COMPOSE_FILE="$(cd "$SCRIPT_DIR/../../../tools/dev-env" && pwd)/docker-compose.db.yml"
+    DATABASE_DIR="$SCRIPT_DIR/../../../database"
 
-    if [ -f "$COMPOSE_FILE" ]; then
-        (cd "$(dirname "$COMPOSE_FILE")" && doppler run -- docker compose -f docker-compose.db.yml up -d)
+    # Check if PostgreSQL is already running
+    if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+        echo ""
+        echo "PostgreSQL already running"
+    else
+        echo ""
+        echo "Starting PostgreSQL container..."
 
-        # Wait for database to be ready
-        echo "Waiting for PostgreSQL to be ready..."
-        TIMEOUT=30
-        ELAPSED=0
-        while [ $ELAPSED -lt $TIMEOUT ]; do
-            if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
-                echo "PostgreSQL is ready!"
-                break
+        if [ -f "$COMPOSE_FILE" ]; then
+            (cd "$(dirname "$COMPOSE_FILE")" && doppler run -- docker compose -f docker-compose.db.yml up -d)
+
+            # Wait for database to be ready
+            echo "Waiting for PostgreSQL to be ready..."
+            TIMEOUT=30
+            ELAPSED=0
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+                if docker exec sponsor-portal-postgres pg_isready -U postgres > /dev/null 2>&1; then
+                    echo "PostgreSQL is ready!"
+                    break
+                fi
+                sleep 1
+                ELAPSED=$((ELAPSED + 1))
+            done
+
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "Timeout waiting for PostgreSQL"
+                exit 1
             fi
-            sleep 1
-            ELAPSED=$((ELAPSED + 1))
-        done
-
-        if [ $ELAPSED -ge $TIMEOUT ]; then
-            echo "Timeout waiting for PostgreSQL"
+        else
+            echo "Error: docker-compose.db.yml not found at $COMPOSE_FILE"
             exit 1
         fi
+    fi
+
+    # Always apply schema to ensure it's up to date
+    # Run init.sql which includes all schema files (schema, triggers, roles, rls_policies, etc.)
+    echo ""
+    echo "Applying database schema..."
+    DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+    if [ -n "$DB_PASSWORD" ]; then
+        if (cd "$DATABASE_DIR" && PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -d sponsor_portal -f init.sql); then
+            echo "Schema applied successfully"
+        else
+            echo "Warning: Schema application had errors (may be OK if tables exist)"
+        fi
+        # Apply test fixtures
+        if (cd "$DATABASE_DIR" && PGPASSWORD="$DB_PASSWORD" psql -h localhost -U postgres -d sponsor_portal -f init_test.sql); then
+            echo "Test fixtures applied successfully"
+        else
+            echo "Warning: Test fixtures had errors"
+        fi
     else
-        echo "Error: docker-compose.db.yml not found at $COMPOSE_FILE"
-        exit 1
+        echo "Warning: Could not get DB password from Doppler, skipping schema update"
     fi
 fi
 
@@ -235,9 +260,16 @@ if [ "$RUN_INTEGRATION" = true ]; then
         fi
     fi
 
-    # Set Firebase emulator for integration tests
+    # Set environment for integration tests
     echo "Running with Firebase Auth emulator..."
     export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+    export DB_SSL="false"
+
+    # Export DB password for tests (may have been set earlier as shell var, need to export)
+    if [ -z "$DB_PASSWORD" ]; then
+        DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
+    fi
+    export DB_PASSWORD
 
     if $TEST_CMD integration_test/; then
         echo "Integration tests passed!"

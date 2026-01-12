@@ -80,12 +80,12 @@ void main() {
       parameters: {'siteId': testSiteId},
     );
 
-    // Create test site
+    // Create test site (use unique site_number to avoid conflicts with init_test.sql)
     await db.execute(
       '''
       INSERT INTO sites (site_id, site_name, site_number, is_active)
-      VALUES (@siteId, 'Test Portal Site', 'TEST-001', true)
-      ON CONFLICT (site_id) DO NOTHING
+      VALUES (@siteId, 'Test Portal Site', 'PORTAL-TEST-001', true)
+      ON CONFLICT (site_id) DO UPDATE SET site_name = EXCLUDED.site_name
       ''',
       parameters: {'siteId': testSiteId},
     );
