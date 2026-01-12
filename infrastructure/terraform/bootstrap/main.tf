@@ -100,7 +100,6 @@ module "audit_logs" {
   retention_years          = var.audit_retention_years
   lock_retention_policy    = local.audit_lock[each.key]
   include_data_access_logs = var.include_data_access_logs
-  create_bigquery_dataset  = var.create_bigquery_datasets
 
   depends_on = [module.projects]
 }

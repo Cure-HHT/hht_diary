@@ -35,11 +35,6 @@ output "retention_locked" {
   value       = var.lock_retention_policy
 }
 
-output "bigquery_dataset_id" {
-  description = "BigQuery dataset ID for audit analytics (if created)"
-  value       = var.create_bigquery_dataset ? google_bigquery_dataset.audit_analytics[0].dataset_id : null
-}
-
 output "compliance_status" {
   description = "FDA compliance status summary"
   value = {

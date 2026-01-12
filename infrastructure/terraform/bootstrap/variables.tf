@@ -137,9 +137,3 @@ variable "include_data_access_logs" {
   type        = bool
   default     = true
 }
-
-variable "create_bigquery_datasets" {
-  description = "Create BigQuery datasets for audit analytics"
-  type        = bool
-  default     = true
-}

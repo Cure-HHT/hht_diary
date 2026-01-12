@@ -193,8 +193,6 @@ module "audit_logs" {
   region                = var.region
   retention_years       = var.audit_retention_years
   lock_retention_policy = local.lock_audit_retention
-  # BigQuery dataset already created by bootstrap - skip here
-  create_bigquery_dataset = false
 }
 
 

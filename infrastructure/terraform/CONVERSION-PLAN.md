@@ -178,7 +178,7 @@ gs://cure-hht-terraform-state/
 | `cloud-sql`          | PostgreSQL 17 instance, database, user (with pgaudit)        |
 | `cloud-run`          | 2 services (diary-server, portal-server), IAM for access     |
 | `storage-buckets`    | Backup bucket with lifecycle                                 |
-| `audit-logs`         | Environment audit bucket, log sinks, BigQuery dataset        |
+| `audit-logs`         | Environment audit bucket, log sinks                          |
 | `monitoring-alerts`  | Uptime check, error rate, DB CPU, DB storage alerts          |
 | `artifact-registry`  | Docker repository                                            |
 | `cloud-build`        | Build triggers for diary-server and portal-server images     |

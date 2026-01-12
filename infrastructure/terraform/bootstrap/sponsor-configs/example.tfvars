@@ -88,6 +88,3 @@ enable_workload_identity = true
 
 # Include data access logs in audit exports (default: true)
 # include_data_access_logs = true
-
-# Create BigQuery datasets for audit analytics (default: true)
-# create_bigquery_datasets = true

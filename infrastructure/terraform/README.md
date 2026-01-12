@@ -128,7 +128,6 @@ gcloud services enable \
   billingbudgets.googleapis.com \
   cloudresourcemanager.googleapis.com \
   logging.googleapis.com \
-  bigquery.googleapis.com \
   serviceusage.googleapis.com \
   iam.googleapis.com \
   pubsub.googleapis.com \
@@ -449,7 +448,6 @@ This infrastructure implements FDA 21 CFR Part 11 compliance:
 3. **Comprehensive Logging**
    - Admin Activity logs (always enabled)
    - Data Access logs (configured)
-   - BigQuery audit dataset for querying
 
 ### Audit Log Lock Strategy
 
@@ -722,7 +720,6 @@ Monitoring
 
 Audit Logs
   - GCS bucket (25-year retention)
-  - BigQuery dataset
   - Log sinks
 
 Identity Platform (if enabled)
@@ -774,7 +771,6 @@ Verifies FDA 21 CFR Part 11 compliance for all sponsor environments.
 | Retention policy | All envs    | 25-year (788,400,000 seconds) |
 | Retention locked | Prod only   | `isLocked: true`              |
 | Log sinks active | All envs    | Sinks are not disabled        |
-| BigQuery dataset | All envs    | Audit dataset exists          |
 
 **Example Output:**
 ```
