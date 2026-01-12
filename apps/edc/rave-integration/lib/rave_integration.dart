@@ -1,8 +1,31 @@
-/// Support for doing something awesome.
+/// Dart client library for Medidata RAVE Web Services API.
 ///
-/// More dartdocs go here.
+/// This library provides integration with the RAVE EDC system for
+/// synchronizing clinical trial site data.
+///
+/// ## Usage
+///
+/// ```dart
+/// import 'package:rave_integration/rave_integration.dart';
+///
+/// final client = RaveClient(
+///   baseUrl: 'https://terremotobio.mdsol.com',
+///   username: 'your-username',
+///   password: 'your-password',
+/// );
+///
+/// // Sanity check - verify connectivity (no auth)
+/// final version = await client.getVersion();
+///
+/// // Sanity check - verify authentication
+/// final studies = await client.getStudies();
+///
+/// // Get sites for a study
+/// final sites = await client.getSites(studyOid: 'TER-1754-C01(APPDEV)');
+/// ```
 library;
 
-export 'src/rave_integration_base.dart';
-
-// TODO: Export any libraries intended for clients of this package.
+export 'src/client.dart' show RaveClient;
+export 'src/models/exceptions.dart';
+export 'src/models/site.dart' show RaveSite;
+export 'src/odm_parser.dart' show OdmParser;
