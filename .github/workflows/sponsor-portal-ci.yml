@@ -308,7 +308,13 @@ jobs:
           flutter pub get --directory=apps/sponsor-portal/portal-ui
           dart pub global activate coverage
 
-      - name: Run portal_functions tests with coverage
+      - name: Run portal_functions unit tests with coverage
+        working-directory: apps/sponsor-portal/portal_functions
+        run: |
+          # Unit tests run WITHOUT emulator to test production token verification
+          dart test --coverage=coverage test/
+
+      - name: Run portal_functions integration tests with coverage
         working-directory: apps/sponsor-portal/portal_functions
         env:
           DB_HOST: localhost
@@ -320,7 +326,8 @@ jobs:
           FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
           GCP_PROJECT_ID: demo-sponsor-portal
         run: |
-          dart test --coverage=coverage test/ integration_test/
+          # Integration tests need emulator for Firebase auth
+          dart test --coverage=coverage integration_test/
 
       - name: Generate portal_functions coverage report
         working-directory: apps/sponsor-portal/portal_functions
@@ -359,7 +366,13 @@ jobs:
             echo "⚠️ Coverage file not found"
           fi
 
-      - name: Run portal_server tests with coverage
+      - name: Run portal_server unit tests with coverage
+        working-directory: apps/sponsor-portal/portal_server
+        run: |
+          # Unit tests run WITHOUT emulator to test production token verification
+          dart test --coverage=coverage test/
+
+      - name: Run portal_server integration tests with coverage
         working-directory: apps/sponsor-portal/portal_server
         env:
           DB_HOST: localhost
@@ -371,7 +384,8 @@ jobs:
           FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
           GCP_PROJECT_ID: demo-sponsor-portal
         run: |
-          dart test --coverage=coverage test/ integration_test/
+          # Integration tests need emulator for Firebase auth
+          dart test --coverage=coverage integration_test/
 
       - name: Generate portal_server coverage report
         working-directory: apps/sponsor-portal/portal_server
