@@ -445,6 +445,8 @@ void main() {
               preferencesService: preferencesService,
               // Note: When editing existing record, don't pass diaryEntryDate
               existingRecord: incompleteRecord,
+              onDelete:
+                  (_) async {}, // Required when existingRecord is non-null
             ),
           ),
         );

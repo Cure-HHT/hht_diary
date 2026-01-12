@@ -10,6 +10,7 @@ import 'package:clinical_diary/models/nosebleed_record.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/nosebleed_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
@@ -733,7 +734,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     // CUR-516: Get timezone abbreviations to show when different from device TZ
     // Normalize device TZ to abbreviation for proper comparison
-    final timeZoneName = DateTime.now().timeZoneName;
+    // Use TimezoneService to allow test overrides
+    final timeZoneName =
+        TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
     debugPrint('timeZoneName: $timeZoneName');
     final deviceTzAbbr = normalizeDeviceTimezone(timeZoneName);
     debugPrint('normalized deviceTzAbbr: $deviceTzAbbr');
