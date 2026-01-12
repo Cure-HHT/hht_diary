@@ -224,3 +224,5 @@ terraform.rc
 
 # NOTE: .terraform.lock.hcl SHOULD be committed for reproducible builds
 # Do NOT ignore it!
+/apps/sponsor-portal/prompts/CUR-629-first-admin-plan.md
+/apps/sponsor-portal/prompts/portal-project.md

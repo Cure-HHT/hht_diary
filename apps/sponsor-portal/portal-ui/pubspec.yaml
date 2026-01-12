@@ -3,16 +3,23 @@
 #   REQ-p00024: Portal User Roles and Permissions
 #   REQ-d00028: Portal Frontend Framework
 
-name: carina_portal
-description: Clinical Trial Web Portal for Carina Sponsor
+name: sponsor_portal_ui
+description: Clinical Trial Sponsor Web Portal
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
+  sdk: ^3.10.1
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # Firebase / Identity Platform
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.4.1
+
+  # HTTP
+  http: ^1.2.0
 
   # Routing
   go_router: ^14.0.0
@@ -31,7 +38,11 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^4.0.0
+  fake_cloud_firestore: ^3.1.0
+  firebase_auth_mocks: ^0.14.1
 
 flutter:
   uses-material-design: true

@@ -517,6 +517,157 @@ CREATE INDEX idx_study_enrollments_patient_id ON study_enrollments(patient_id);
 CREATE INDEX idx_study_enrollments_site_id ON study_enrollments(site_id);
 
 -- =====================================================
+-- PORTAL USERS (STAFF)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00039: Portal Users Table Schema
+--   REQ-p00024: Portal User Roles and Permissions
+--
+-- Portal staff accounts (Investigators, Sponsors, Auditors, etc.)
+-- Separate from app_users (patients using the mobile diary)
+
+-- User roles - common roles across all sponsors
+CREATE TYPE portal_user_role AS ENUM (
+    'Investigator',
+    'Sponsor',
+    'Auditor',
+    'Analyst',
+    'Administrator',
+    'Developer Admin'
+);
+
+-- Portal staff users
+CREATE TABLE portal_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    firebase_uid TEXT UNIQUE,           -- Identity Platform UID (linked after first login)
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    -- Note: role column kept for backwards compatibility; use portal_user_roles for multi-role
+    role portal_user_role,              -- Primary role (optional, roles now in portal_user_roles)
+    linking_code TEXT UNIQUE,           -- Device enrollment code for Investigators (XXXXX-XXXXX format)
+    activation_code TEXT UNIQUE,        -- Account activation code (XXXXX-XXXXX format)
+    activation_code_expires_at TIMESTAMPTZ, -- Activation code expiry (typically 14 days)
+    activated_at TIMESTAMPTZ,           -- When account was activated
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_portal_users_firebase_uid ON portal_users(firebase_uid);
+CREATE INDEX idx_portal_users_email ON portal_users(email);
+CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
+CREATE INDEX idx_portal_users_activation_code ON portal_users(activation_code);
+CREATE INDEX idx_portal_users_role ON portal_users(role);
+CREATE INDEX idx_portal_users_status ON portal_users(status);
+
+ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_users IS 'Portal staff accounts (Investigators, Sponsors, Auditors, etc.) - separate from patient app_users';
+COMMENT ON COLUMN portal_users.firebase_uid IS 'Identity Platform UID - linked after first login via email match';
+COMMENT ON COLUMN portal_users.role IS 'Primary role (backwards compat) - use portal_user_roles for multi-role support';
+COMMENT ON COLUMN portal_users.linking_code IS 'Device enrollment code for Investigators (XXXXX-XXXXX format)';
+COMMENT ON COLUMN portal_users.activation_code IS 'Account activation code sent to new users (XXXXX-XXXXX format)';
+COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code expiry - typically 14 days after generation';
+COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
+COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
+
+-- =====================================================
+-- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for updated_at
+CREATE TRIGGER update_portal_users_updated_at BEFORE UPDATE ON portal_users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- PORTAL USER SITE ACCESS
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00040: User Site Access Table Schema
+--   REQ-d00033: Site-Based Data Isolation
+--
+-- Maps portal users (primarily Investigators) to their assigned sites
+
+CREATE TABLE portal_user_site_access (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+    site_id TEXT NOT NULL REFERENCES sites(site_id) ON DELETE CASCADE,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(user_id, site_id)
+);
+
+CREATE INDEX idx_portal_user_site_access_user ON portal_user_site_access(user_id);
+CREATE INDEX idx_portal_user_site_access_site ON portal_user_site_access(site_id);
+
+ALTER TABLE portal_user_site_access ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_user_site_access IS 'Maps portal users (Investigators) to their assigned clinical sites';
+COMMENT ON COLUMN portal_user_site_access.user_id IS 'Reference to portal_users.id';
+COMMENT ON COLUMN portal_user_site_access.site_id IS 'Reference to sites.site_id';
+
+-- =====================================================
+-- PORTAL USER ROLES (MULTI-ROLE SUPPORT)
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-p00024: Portal User Roles and Permissions
+--   REQ-d00032: Role-Based Access Control Implementation
+--
+-- Junction table allowing users to have multiple roles
+-- Each role is selected as "active" during login/session
+
+CREATE TABLE portal_user_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES portal_users(id) ON DELETE CASCADE,
+    role portal_user_role NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    assigned_by UUID REFERENCES portal_users(id),  -- Who assigned this role
+    UNIQUE(user_id, role)
+);
+
+CREATE INDEX idx_portal_user_roles_user ON portal_user_roles(user_id);
+CREATE INDEX idx_portal_user_roles_role ON portal_user_roles(role);
+
+ALTER TABLE portal_user_roles ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE portal_user_roles IS 'Maps portal users to their roles - supports multiple roles per user';
+COMMENT ON COLUMN portal_user_roles.user_id IS 'Reference to portal_users.id';
+COMMENT ON COLUMN portal_user_roles.role IS 'Role from portal_user_role enum';
+COMMENT ON COLUMN portal_user_roles.assigned_by IS 'Admin who assigned this role (null for seeded data)';
+
+-- =====================================================
+-- SPONSOR ROLE MAPPING
+-- =====================================================
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-d00041: Sponsor Role Mapping Schema
+--
+-- Maps sponsor-specific role names to common portal_user_role enum
+-- Each sponsor can define their own role terminology
+
+CREATE TABLE sponsor_role_mapping (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sponsor_id TEXT NOT NULL,
+    sponsor_role_name TEXT NOT NULL,
+    mapped_role portal_user_role NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(sponsor_id, sponsor_role_name)
+);
+
+CREATE INDEX idx_sponsor_role_mapping_sponsor ON sponsor_role_mapping(sponsor_id);
+
+COMMENT ON TABLE sponsor_role_mapping IS 'Maps sponsor-specific role names to common portal_user_role enum';
+COMMENT ON COLUMN sponsor_role_mapping.sponsor_id IS 'Sponsor identifier (e.g., curehht, callisto)';
+COMMENT ON COLUMN sponsor_role_mapping.sponsor_role_name IS 'Sponsor internal role name (e.g., CRA, Study Coordinator)';
+COMMENT ON COLUMN sponsor_role_mapping.mapped_role IS 'Common role this maps to in portal_user_role enum';
+
+-- =====================================================
 -- HELPER FUNCTIONS
 -- =====================================================
 

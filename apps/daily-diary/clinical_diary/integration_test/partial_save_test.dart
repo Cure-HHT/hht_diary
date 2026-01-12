@@ -445,6 +445,8 @@ void main() {
               preferencesService: preferencesService,
               // Note: When editing existing record, don't pass diaryEntryDate
               existingRecord: incompleteRecord,
+              onDelete:
+                  (_) async {}, // Required when existingRecord is non-null
             ),
           ),
         );
@@ -453,6 +455,11 @@ void main() {
         // The timezone should be restored from the record
         // Note: We can't directly check the picker value, but we can verify
         // that when we save again, the timezone is preserved
+
+        // Navigate to start time step (incomplete record starts at intensity step)
+        // Tap on "Start" in the summary bar to switch to start time picker
+        await tester.tap(find.text('Start'));
+        await tester.pumpAndSettle();
 
         // Make a small change and save
         await tester.tap(find.text('Set Start Time'));

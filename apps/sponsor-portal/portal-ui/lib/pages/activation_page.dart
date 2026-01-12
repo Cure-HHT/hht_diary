@@ -1,0 +1,522 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00035: Admin Dashboard Implementation
+//   REQ-p00024: Portal User Roles and Permissions
+//
+// Activation page - new users activate their accounts with activation codes
+
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+
+/// Page for users to activate their accounts using an activation code
+class ActivationPage extends StatefulWidget {
+  final String? code;
+
+  const ActivationPage({super.key, this.code});
+
+  @override
+  State<ActivationPage> createState() => _ActivationPageState();
+}
+
+class _ActivationPageState extends State<ActivationPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _codeController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _isValidating = false;
+  bool _isActivating = false;
+  bool _codeValidated = false;
+  String? _maskedEmail;
+  String? _error;
+  bool _showPassword = false;
+
+  String get _apiBaseUrl {
+    const envUrl = String.fromEnvironment('PORTAL_API_URL');
+    if (envUrl.isNotEmpty) return envUrl;
+    if (kDebugMode) return 'http://localhost:8080';
+    // Use the current host origin in production (same-origin API)
+    return Uri.base.origin;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.code != null && widget.code!.isNotEmpty) {
+      _codeController.text = widget.code!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _validateCode();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _validateCode() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) {
+      setState(() => _error = 'Please enter an activation code');
+      return;
+    }
+
+    setState(() {
+      _isValidating = true;
+      _error = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/activate/$code'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (!mounted) return;
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['valid'] == true) {
+        setState(() {
+          _codeValidated = true;
+          _maskedEmail = data['email'] as String?;
+          _isValidating = false;
+        });
+      } else {
+        setState(() {
+          _error = data['error'] as String? ?? 'Invalid activation code';
+          _isValidating = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to validate code. Please try again.';
+          _isValidating = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _activateAccount() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isActivating = true;
+      _error = null;
+    });
+
+    try {
+      // Get the actual email from code validation
+      // For Firebase, we need the real email, not masked
+      // We'll use a workaround - the user enters their email
+      final code = _codeController.text.trim();
+
+      // First, sign in with Firebase Auth (create account)
+      // Since activation codes are tied to emails, user needs to know their email
+      final email = await _getEmailFromCode(code);
+      if (email == null) {
+        setState(() {
+          _error = 'Failed to retrieve email. Please contact support.';
+          _isActivating = false;
+        });
+        return;
+      }
+
+      // Create Firebase account
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: email,
+            password: _passwordController.text,
+          );
+
+      if (credential.user == null) {
+        setState(() {
+          _error = 'Failed to create account. Please try again.';
+          _isActivating = false;
+        });
+        return;
+      }
+
+      // Get ID token
+      final idToken = await credential.user!.getIdToken();
+
+      // Activate account on backend
+      final response = await http.post(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/activate'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({'code': code}),
+      );
+
+      if (!mounted) return;
+
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        // Success - show message and redirect
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account activated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Sign out and redirect to login
+          await FirebaseAuth.instance.signOut();
+          context.go('/login');
+        }
+      } else {
+        // Activation failed - delete the Firebase user we just created
+        await credential.user!.delete();
+        setState(() {
+          _error = responseData['error'] as String? ?? 'Activation failed';
+          _isActivating = false;
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = _mapFirebaseError(e.code);
+          _isActivating = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Activation error: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'An error occurred. Please try again.';
+          _isActivating = false;
+        });
+      }
+    }
+  }
+
+  Future<String?> _getEmailFromCode(String code) async {
+    try {
+      // Call a special endpoint to get the real email
+      // This is a workaround since we mask the email in validation
+      final response = await http.get(
+        Uri.parse('$_apiBaseUrl/api/v1/portal/activate/$code'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        // Backend returns masked email in validation response
+        // We need to prompt the user for their actual email
+        return await _promptForEmail();
+      }
+    } catch (e) {
+      debugPrint('Get email error: $e');
+    }
+    return null;
+  }
+
+  Future<String?> _promptForEmail() async {
+    final emailController = TextEditingController();
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Your Email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Please enter your email address to complete activation.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            if (_maskedEmail != null)
+              Text(
+                'Your email matches: $_maskedEmail',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email Address',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final email = emailController.text.trim();
+              if (email.isNotEmpty && email.contains('@')) {
+                Navigator.pop(context, email);
+              }
+            },
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _mapFirebaseError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'This email is already registered. Please sign in instead.';
+      case 'invalid-email':
+        return 'Invalid email address';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'Account creation is not enabled. Contact support.';
+      default:
+        return 'Authentication error: $code';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 450),
+          child: Card(
+            margin: const EdgeInsets.all(24),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    Icon(
+                      _codeValidated ? Icons.verified_user : Icons.vpn_key,
+                      size: 64,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _codeValidated
+                          ? 'Create Your Password'
+                          : 'Activate Account',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _codeValidated
+                          ? 'Set a password for your account'
+                          : 'Enter your activation code to get started',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Error message
+                    if (_error != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: theme.colorScheme.onErrorContainer,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onErrorContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (!_codeValidated) ...[
+                      // Activation code input
+                      TextFormField(
+                        controller: _codeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Activation Code',
+                          hintText: 'XXXXX-XXXXX',
+                          prefixIcon: Icon(Icons.vpn_key_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        textCapitalization: TextCapitalization.characters,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Activation code is required';
+                          }
+                          if (!RegExp(
+                            r'^[A-Z0-9]{5}-[A-Z0-9]{5}$',
+                          ).hasMatch(v.trim().toUpperCase())) {
+                            return 'Invalid format. Use XXXXX-XXXXX';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: _isValidating ? null : _validateCode,
+                        child: _isValidating
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Validate Code'),
+                      ),
+                    ] else ...[
+                      // Email display
+                      if (_maskedEmail != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.email_outlined,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Account: $_maskedEmail',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Password fields
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_showPassword,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () =>
+                                setState(() => _showPassword = !_showPassword),
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Password is required';
+                          }
+                          if (v.length < 8) {
+                            return 'Password must be at least 8 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: !_showPassword,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: Icon(Icons.lock_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) {
+                          if (v != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: _isActivating ? null : _activateAccount,
+                        child: _isActivating
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Activate Account'),
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _codeValidated = false;
+                            _maskedEmail = null;
+                            _error = null;
+                          });
+                        },
+                        child: const Text('Use Different Code'),
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      child: const Text('Already have an account? Sign in'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

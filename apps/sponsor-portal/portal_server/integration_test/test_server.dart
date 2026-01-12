@@ -1,5 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: User Account Management
+//   REQ-d00031: Identity Platform Integration
+//   REQ-p00024: Portal User Roles and Permissions
 //
 // Test server helper for integration tests
 // Starts the portal server on a random port with test database configuration
@@ -46,11 +47,11 @@ class TestServer {
       host: Platform.environment['DB_HOST'] ?? 'localhost',
       port: int.parse(Platform.environment['DB_PORT'] ?? '5432'),
       database: Platform.environment['DB_NAME'] ?? 'sponsor_portal',
-      username: Platform.environment['DB_USER'] ?? 'app_user',
+      username: Platform.environment['DB_USER'] ?? 'postgres',
       password:
           Platform.environment['DB_PASSWORD'] ??
           Platform.environment['LOCAL_DB_PASSWORD'] ??
-          '',
+          'postgres',
       useSsl: Platform.environment['DB_SSL'] != 'false',
     );
   }

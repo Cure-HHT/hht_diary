@@ -4,7 +4,7 @@
 #   REQ-d00005: Sponsor Configuration Detection Implementation
 #
 # Test script for clinical_diary
-# Runs Flutter (Dart) and Firebase Functions (TypeScript) tests
+# Runs Flutter (Dart) tests with optional coverage
 # Works both locally and in CI/CD
 
 set -e  # Exit on any error
@@ -12,45 +12,53 @@ set -e  # Exit on any error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
+# Coverage threshold (percentage)
+MIN_COVERAGE=75
+
 # Parse command line arguments
 CONCURRENCY="10"
-RUN_FLUTTER_UNIT=false
-RUN_FLUTTER_INTEGRATION=false
-RUN_TYPESCRIPT_UNIT=false
-RUN_TYPESCRIPT_INTEGRATION=false
+RUN_UNIT=false
+RUN_INTEGRATION=false
+WITH_COVERAGE=false
+CHECK_THRESHOLDS=true
 
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -f,  --flutter              Run all Flutter tests (unit + integration)"
-    echo "  -fu, --flutter-unit         Run Flutter unit tests only"
-    echo "  -fi, --flutter-integration  Run Flutter integration tests on desktop"
-    echo "  --concurrency N             Set Flutter test concurrency (default: 10)"
-    echo "  -h, --help                  Show this help message"
+    echo "  -u, --unit           Run unit tests only"
+    echo "  -i, --integration    Run integration tests only (desktop)"
+    echo "  -c, --coverage       Run with coverage collection and reporting"
+    echo "  --concurrency N      Set test concurrency (default: 10)"
+    echo "  --no-threshold       Skip coverage threshold checks (only with --coverage)"
+    echo "  -h, --help           Show this help message"
     echo ""
-    echo "If no flags are specified, Flutter unit and TypeScript unit tests are run."
-    echo "Integration tests must be explicitly requested."
+    echo "If no test flags (-u/-i) are specified, both unit and integration tests are run."
+    echo ""
+    echo "Coverage Threshold: ${MIN_COVERAGE}%"
 }
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -f|--flutter)
-      RUN_FLUTTER_UNIT=true
-      RUN_FLUTTER_INTEGRATION=true
+    -u|--unit)
+      RUN_UNIT=true
       shift
       ;;
-    -fu|--flutter-unit)
-      RUN_FLUTTER_UNIT=true
+    -i|--integration)
+      RUN_INTEGRATION=true
       shift
       ;;
-    -fi|--flutter-integration)
-      RUN_FLUTTER_INTEGRATION=true
+    -c|--coverage)
+      WITH_COVERAGE=true
       shift
       ;;
     --concurrency)
       CONCURRENCY="$2"
       shift 2
+      ;;
+    --no-threshold)
+      CHECK_THRESHOLDS=false
+      shift
       ;;
     -h|--help)
       usage
@@ -64,40 +72,77 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# If no test flags specified, run Flutter unit and integration
-if [ "$RUN_FLUTTER_UNIT" = false ] && [ "$RUN_FLUTTER_INTEGRATION" = false ]; then
-    RUN_FLUTTER_UNIT=true
-    RUN_FLUTTER_INTEGRATION=false
+# Default: run both unit and integration tests
+if [ "$RUN_UNIT" = false ] && [ "$RUN_INTEGRATION" = false ]; then
+    RUN_UNIT=true
+    RUN_INTEGRATION=true
 fi
 
 echo "=============================================="
-echo "Clinical Diary Test Suite"
+if [ "$WITH_COVERAGE" = true ]; then
+    echo "Clinical Diary Test Suite (with Coverage)"
+else
+    echo "Clinical Diary Test Suite"
+fi
 echo "=============================================="
 
-FLUTTER_UNIT_PASSED=true
-FLUTTER_INTEGRATION_PASSED=true
-TS_UNIT_PASSED=true
-TS_INTEGRATION_PASSED=true
+# Clean up coverage directory if running with coverage
+if [ "$WITH_COVERAGE" = true ]; then
+    rm -rf coverage
+    mkdir -p coverage
+fi
 
-# Run Flutter unit tests
-if [ "$RUN_FLUTTER_UNIT" = true ]; then
+UNIT_PASSED=true
+INTEGRATION_PASSED=true
+UNIT_COVERAGE=false
+INTEGRATION_COVERAGE=false
+EXIT_CODE=0
+
+# Build test command based on coverage flag
+if [ "$WITH_COVERAGE" = true ]; then
+    FLUTTER_TEST_CMD="flutter test --coverage"
+else
+    FLUTTER_TEST_CMD="flutter test"
+fi
+
+# Run unit tests
+if [ "$RUN_UNIT" = true ]; then
     echo ""
-    echo "📱 Running Flutter unit tests..."
+    echo "Running unit tests..."
     echo "   Concurrency: $CONCURRENCY"
     echo ""
 
-    if flutter test --concurrency="$CONCURRENCY"; then
-        echo "✅ Flutter unit tests passed!"
+    if $FLUTTER_TEST_CMD --concurrency="$CONCURRENCY"; then
+        echo "Unit tests passed!"
     else
-        echo "❌ Flutter unit tests failed!"
-        FLUTTER_UNIT_PASSED=false
+        echo "Unit tests failed!"
+        UNIT_PASSED=false
+        EXIT_CODE=1
+    fi
+
+    # Handle coverage file if generated
+    if [ "$WITH_COVERAGE" = true ] && [ -f "coverage/lcov.info" ]; then
+        UNIT_COVERAGE=true
+        mv coverage/lcov.info coverage/lcov-unit.info
+        echo "Coverage generated: coverage/lcov-unit.info"
+
+        # Filter out generated files if lcov is available
+        if command -v lcov &> /dev/null; then
+            echo "Filtering coverage data..."
+            lcov --remove coverage/lcov-unit.info \
+              '**/*.g.dart' \
+              '**/*.freezed.dart' \
+              '**/test/**' \
+              --ignore-errors unused \
+              -o coverage/lcov-unit.info 2>/dev/null || true
+        fi
     fi
 fi
 
-# Run Flutter integration tests on desktop
-if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
+# Run integration tests on desktop
+if [ "$RUN_INTEGRATION" = true ]; then
     echo ""
-    echo "🖥️  Running Flutter integration tests on desktop..."
+    echo "Running integration tests on desktop..."
     echo ""
 
     # Detect platform and set device target
@@ -118,7 +163,7 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
             DEVICE="windows"
             ;;
         *)
-            echo "⚠️  Unknown platform, defaulting to linux"
+            echo "Unknown platform, defaulting to linux"
             DEVICE="linux"
             ;;
     esac
@@ -126,27 +171,103 @@ if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
     echo "   Target device: $DEVICE"
 
     if [ -d "integration_test" ]; then
-        # Run each integration test file separately to avoid macOS app lifecycle issues
-        # Running all files together can cause "Unable to start the app on the device" errors
         INTEGRATION_FAILED=false
+        INTEGRATION_COVERAGE_FILES=""
+        FILE_INDEX=0
+
         for test_file in integration_test/*_test.dart; do
             if [ -f "$test_file" ]; then
                 echo ""
                 echo "   Running: $test_file"
-                if ! $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"; then
-                    INTEGRATION_FAILED=true
+                FILE_INDEX=$((FILE_INDEX + 1))
+
+                if [ "$WITH_COVERAGE" = true ]; then
+                    if $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE" --coverage; then
+                        if [ -f "coverage/lcov.info" ]; then
+                            mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
+                            INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"
+                        fi
+                    else
+                        INTEGRATION_FAILED=true
+                    fi
+                else
+                    if ! $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"; then
+                        INTEGRATION_FAILED=true
+                    fi
                 fi
             fi
         done
 
         if [ "$INTEGRATION_FAILED" = true ]; then
-            echo "❌ Flutter integration tests failed!"
-            FLUTTER_INTEGRATION_PASSED=false
+            echo "Integration tests failed!"
+            INTEGRATION_PASSED=false
+            EXIT_CODE=1
         else
-            echo "✅ Flutter integration tests passed!"
+            echo "Integration tests passed!"
+        fi
+
+        # Combine integration coverage files if lcov is available
+        if [ "$WITH_COVERAGE" = true ] && [ -n "$INTEGRATION_COVERAGE_FILES" ] && command -v lcov &> /dev/null; then
+            echo ""
+            echo "Combining integration test coverage..."
+            LCOV_CMD="lcov"
+            for file in $INTEGRATION_COVERAGE_FILES; do
+                LCOV_CMD="$LCOV_CMD -a $file"
+            done
+            LCOV_CMD="$LCOV_CMD -o coverage/lcov-integration.info --ignore-errors unused"
+
+            if eval "$LCOV_CMD" 2>/dev/null; then
+                INTEGRATION_COVERAGE=true
+                rm -f $INTEGRATION_COVERAGE_FILES
+
+                # Filter out generated files
+                lcov --remove coverage/lcov-integration.info \
+                  '**/*.g.dart' \
+                  '**/*.freezed.dart' \
+                  '**/test/**' \
+                  '**/integration_test/**' \
+                  --ignore-errors unused \
+                  -o coverage/lcov-integration.info 2>/dev/null || true
+            fi
         fi
     else
-        echo "⚠️  integration_test/ directory not found, skipping integration tests"
+        echo "integration_test/ directory not found, skipping integration tests"
+    fi
+fi
+
+# Combine coverage reports if running with coverage
+if [ "$WITH_COVERAGE" = true ]; then
+    COVERAGE_FILES=""
+    if [ "$UNIT_COVERAGE" = true ]; then
+        COVERAGE_FILES="$COVERAGE_FILES coverage/lcov-unit.info"
+    fi
+    if [ "$INTEGRATION_COVERAGE" = true ]; then
+        COVERAGE_FILES="$COVERAGE_FILES coverage/lcov-integration.info"
+    fi
+
+    NUM_FILES=$(echo "$COVERAGE_FILES" | wc -w | tr -d ' ')
+
+    if [ "$NUM_FILES" -gt 1 ] && command -v lcov &> /dev/null; then
+        echo ""
+        echo "Combining coverage reports (unit + integration)..."
+        LCOV_CMD="lcov"
+        for file in $COVERAGE_FILES; do
+            LCOV_CMD="$LCOV_CMD -a $file"
+        done
+        LCOV_CMD="$LCOV_CMD -o coverage/lcov.info --ignore-errors unused"
+        eval "$LCOV_CMD" 2>/dev/null || true
+    elif [ "$NUM_FILES" -eq 1 ]; then
+        cp $COVERAGE_FILES coverage/lcov.info
+    fi
+
+    # Generate HTML report if genhtml is available
+    if [ -f "coverage/lcov.info" ] && command -v genhtml &> /dev/null; then
+        echo ""
+        echo "Generating HTML report..."
+        genhtml coverage/lcov.info -o coverage/html 2>/dev/null || echo "Warning: Could not generate HTML report"
+        if [ -f "coverage/html/index.html" ]; then
+            echo "HTML report: coverage/html/index.html"
+        fi
     fi
 fi
 
@@ -155,32 +276,95 @@ echo "=============================================="
 echo "Summary"
 echo "=============================================="
 
-EXIT_CODE=0
-
-if [ "$RUN_FLUTTER_UNIT" = true ]; then
-    if [ "$FLUTTER_UNIT_PASSED" = true ]; then
-        echo "✅ Flutter Unit: PASSED"
+if [ "$RUN_UNIT" = true ]; then
+    if [ "$UNIT_PASSED" = true ]; then
+        echo "Unit Tests: PASSED"
     else
-        echo "❌ Flutter Unit: FAILED"
-        EXIT_CODE=1
+        echo "Unit Tests: FAILED"
     fi
 fi
 
-if [ "$RUN_FLUTTER_INTEGRATION" = true ]; then
-    if [ "$FLUTTER_INTEGRATION_PASSED" = true ]; then
-        echo "✅ Flutter Integration: PASSED"
+if [ "$RUN_INTEGRATION" = true ]; then
+    if [ "$INTEGRATION_PASSED" = true ]; then
+        echo "Integration Tests: PASSED"
     else
-        echo "❌ Flutter Integration: FAILED"
-        EXIT_CODE=1
+        echo "Integration Tests: FAILED"
+    fi
+fi
+
+# Coverage summary and threshold check
+if [ "$WITH_COVERAGE" = true ]; then
+    # Calculate coverage percentage
+    get_coverage_percentage() {
+        local lcov_file="$1"
+        if [ ! -f "$lcov_file" ]; then
+            echo "0"
+            return
+        fi
+
+        local lines_found
+        local lines_hit
+        lines_found=$(grep -c "^DA:" "$lcov_file" 2>/dev/null) || lines_found=0
+        lines_hit=$(grep "^DA:" "$lcov_file" 2>/dev/null | grep -cv ",0$") || lines_hit=0
+
+        lines_found=$(echo "$lines_found" | tr -d '[:space:]')
+        lines_hit=$(echo "$lines_hit" | tr -d '[:space:]')
+
+        lines_found=${lines_found:-0}
+        lines_hit=${lines_hit:-0}
+
+        if [ "$lines_found" -eq 0 ] 2>/dev/null; then
+            echo "0"
+        else
+            awk "BEGIN {printf \"%.1f\", ($lines_hit/$lines_found)*100}"
+        fi
+    }
+
+    echo ""
+    echo "=============================================="
+    echo "Coverage Summary"
+    echo "=============================================="
+
+    COVERAGE_PCT="0"
+    if [ -f "coverage/lcov.info" ]; then
+        COVERAGE_PCT=$(get_coverage_percentage "coverage/lcov.info")
+        echo ""
+        echo "Total Coverage: ${COVERAGE_PCT}%"
+        echo "Report: coverage/lcov.info"
+
+        if [ -f "coverage/lcov-unit.info" ]; then
+            UNIT_PCT=$(get_coverage_percentage "coverage/lcov-unit.info")
+            echo "  Unit tests:        ${UNIT_PCT}%"
+        fi
+        if [ -f "coverage/lcov-integration.info" ]; then
+            INT_PCT=$(get_coverage_percentage "coverage/lcov-integration.info")
+            echo "  Integration tests: ${INT_PCT}%"
+        fi
+    fi
+
+    # Check coverage threshold
+    if [ "$CHECK_THRESHOLDS" = true ] && [ -f "coverage/lcov.info" ]; then
+        echo ""
+        echo "=============================================="
+        echo "Coverage Threshold Check"
+        echo "=============================================="
+
+        PASSES=$(echo "$COVERAGE_PCT $MIN_COVERAGE" | awk '{print ($1 >= $2) ? "1" : "0"}')
+        if [ "$PASSES" = "1" ]; then
+            echo "PASS: ${COVERAGE_PCT}% >= ${MIN_COVERAGE}%"
+        else
+            echo "FAIL: ${COVERAGE_PCT}% < ${MIN_COVERAGE}%"
+            EXIT_CODE=1
+        fi
     fi
 fi
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo ""
-    echo "🎉 All tests passed!"
+    echo "All checks passed!"
 else
     echo ""
-    echo "💥 Some tests failed!"
+    echo "Some checks failed!"
 fi
 
 exit $EXIT_CODE
