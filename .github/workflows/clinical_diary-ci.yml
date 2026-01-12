@@ -96,12 +96,12 @@ jobs:
 
       - name: Run coverage tests (includes integration tests with emulator)
         run: |
-          chmod +x tool/coverage.sh
+          chmod +x tool/test.sh
           # Start dbus session and unlock gnome-keyring for flutter_secure_storage
           # The keyring needs to be initialized with a password for libsecret to work
           dbus-run-session -- bash -c '
             echo "test" | gnome-keyring-daemon --unlock
-            ./tool/coverage.sh -f -t
+            ./tool/test.sh -c
           '
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

@@ -154,12 +154,26 @@ if [ "$RUN_INTEGRATION" = true ]; then
             fi
         fi
 
+        # Set environment for integration tests
+        echo "Running with Firebase Auth emulator..."
+        export FIREBASE_AUTH_EMULATOR_HOST="localhost:9099"
+        export DB_SSL="false"
+
+        # Export DB password for tests
+        if [ -z "$DB_PASSWORD" ]; then
+            DB_PASSWORD=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null || echo "postgres")
+        fi
+        export DB_PASSWORD
+
         if dart test integration_test/; then
             echo "Integration tests passed!"
         else
             echo "Integration tests failed!"
             INTEGRATION_PASSED=false
         fi
+
+        # Unset emulator for subsequent operations
+        unset FIREBASE_AUTH_EMULATOR_HOST
     fi
 fi
 
