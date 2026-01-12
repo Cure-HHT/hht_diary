@@ -48,7 +48,7 @@ variable "db_username" {
   default     = "app_user"
 }
 
-variable "db_password" {
+variable "DB_PASSWORD" {
   description = "Database password"
   type        = string
   sensitive   = true

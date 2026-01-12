@@ -105,7 +105,7 @@ Before using Terraform, you must create a dedicated admin project and the state 
 
 ```bash
 # Set your organization ID
-ORG_ID="666049061860"  # anspar.org
+ORG_ID="123456789012"  # anspar.org
 
 # Create the admin project
 gcloud projects create cure-hht-admin \
@@ -114,7 +114,7 @@ gcloud projects create cure-hht-admin \
 
 # Link to billing account
 gcloud billing projects link cure-hht-admin \
-  --billing-account=017213-A61D61-71522F
+  --billing-account=xxxxxx-xxxxxx-xxxxxx
 ```
 
 ### Step 2: Enable Required APIs

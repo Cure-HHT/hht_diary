@@ -13,14 +13,14 @@ sponsor_id = 2 # VPC CIDR: 10.2.0.0/16
 # GCP Organization
 # -----------------------------------------------------------------------------
 
-gcp_org_id = "666049061860" # anspar.org
+gcp_org_id = "123456789012" # Actual ORG ID is in doppler
 
 # -----------------------------------------------------------------------------
 # Billing Accounts
 # -----------------------------------------------------------------------------
 
-billing_account_prod = "017213-A61D61-71522F" # Cure HHT
-billing_account_dev  = "01A48D-1B402E-18CB1A" # Cure HHT - Dev
+billing_account_prod = "xxxxxx-xxxxxx-xxxxxx" # Cure HHT
+billing_account_dev  = "xxxxxx-xxxxxx-xxxxxx" # Cure HHT - Dev
 
 # -----------------------------------------------------------------------------
 # Project Configuration
@@ -41,7 +41,7 @@ enable_workload_identity = true
 # Admin Access
 # -----------------------------------------------------------------------------
 
-# anspar_admin_group = "anspar-admins@cure-hht.org"
+anspar_admin_group = "devops-admins@anspar.org"
 
 # -----------------------------------------------------------------------------
 # Budget Configuration (Temporary: disable cost controls for initial setup)

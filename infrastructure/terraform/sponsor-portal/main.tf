@@ -65,7 +65,29 @@ resource "google_secret_manager_secret" "db_password" {
 
 resource "google_secret_manager_secret_version" "db_password" {
   secret      = google_secret_manager_secret.db_password.id
-  secret_data = var.db_password
+  secret_data = var.DB_PASSWORD
+}
+
+# -----------------------------------------------------------------------------
+# Secret Manager - GHCR Authentication (if using private images)
+# -----------------------------------------------------------------------------
+
+resource "google_secret_manager_secret" "ghcr_token" {
+  count     = var.ghcr_token != "" ? 1 : 0
+  secret_id = "${var.sponsor}-${var.environment}-ghcr-token"
+  project   = var.project_id
+
+  labels = local.common_labels
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "ghcr_token" {
+  count       = var.ghcr_token != "" ? 1 : 0
+  secret      = google_secret_manager_secret.ghcr_token[0].id
+  secret_data = var.ghcr_token
 }
 
 # -----------------------------------------------------------------------------
@@ -100,23 +122,9 @@ module "cloud_sql" {
   region                 = var.region
   vpc_network_id         = module.vpc.network_id
   private_vpc_connection = module.vpc.private_vpc_connection
-  db_password            = var.db_password
+  DB_PASSWORD            = var.DB_PASSWORD
 
   depends_on = [module.vpc]
-}
-
-# -----------------------------------------------------------------------------
-# Artifact Registry
-# -----------------------------------------------------------------------------
-
-module "artifact_registry" {
-  source = "../modules/artifact-registry"
-
-  project_id           = var.project_id
-  sponsor              = var.sponsor
-  environment          = var.environment
-  region               = var.region
-  cicd_service_account = var.cicd_service_account
 }
 
 # -----------------------------------------------------------------------------
@@ -132,9 +140,12 @@ module "cloud_run" {
   region           = var.region
   vpc_connector_id = module.vpc.connector_id
 
-  # Use placeholder images initially - CI/CD will deploy actual images
-  diary_server_image  = "${module.artifact_registry.diary_server_image_base}:latest"
-  portal_server_image = "${module.artifact_registry.portal_server_image_base}:latest"
+  # GHCR image URLs
+  diary_server_image  = var.diary_server_image
+  portal_server_image = var.portal_server_image
+
+  # GHCR authentication (if using private images)
+  ghcr_token_secret_id = var.ghcr_token != "" ? google_secret_manager_secret.ghcr_token[0].secret_id : ""
 
   db_host               = module.cloud_sql.private_ip_address
   db_name               = module.cloud_sql.database_name
@@ -146,10 +157,11 @@ module "cloud_run" {
   container_memory = var.container_memory
   container_cpu    = var.container_cpu
 
+  allow_public_access = var.allow_public_access
+
   depends_on = [
     module.vpc,
     module.cloud_sql,
-    module.artifact_registry,
     google_secret_manager_secret_version.db_password,
   ]
 }
@@ -181,7 +193,11 @@ module "audit_logs" {
   region                = var.region
   retention_years       = var.audit_retention_years
   lock_retention_policy = local.lock_audit_retention
+  # BigQuery dataset already created by bootstrap - skip here
+  create_bigquery_dataset = false
 }
+
+
 
 # -----------------------------------------------------------------------------
 # Monitoring Alerts
@@ -200,22 +216,22 @@ module "monitoring" {
 }
 
 # -----------------------------------------------------------------------------
-# Cloud Build Triggers (Optional)
+# Cloud Build Triggers (DEPRECATED - Use GitHub Actions instead)
 # -----------------------------------------------------------------------------
 
-module "cloud_build" {
-  source = "../modules/cloud-build"
-  count  = var.enable_cloud_build_triggers ? 1 : 0
-
-  project_id            = var.project_id
-  sponsor               = var.sponsor
-  environment           = var.environment
-  region                = var.region
-  github_org            = var.github_org
-  github_repo           = var.github_repo
-  artifact_registry_url = module.artifact_registry.repository_url
-  trigger_branch        = var.environment == "prod" ? "^main$" : "^${var.environment}$"
-}
+# module "cloud_build" {
+#   source = "../modules/cloud-build"
+#   count  = var.enable_cloud_build_triggers ? 1 : 0
+#
+#   project_id            = var.project_id
+#   sponsor               = var.sponsor
+#   environment           = var.environment
+#   region                = var.region
+#   github_org            = var.github_org
+#   github_repo           = var.github_repo
+#   artifact_registry_url = module.artifact_registry.repository_url
+#   trigger_branch        = var.environment == "prod" ? "^main$" : "^${var.environment}$"
+# }
 
 # -----------------------------------------------------------------------------
 # Identity Platform (HIPAA/GDPR-compliant authentication)

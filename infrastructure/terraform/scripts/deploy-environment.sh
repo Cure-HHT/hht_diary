@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # deploy-environment.sh
 #
 # Deploy a single sponsor environment (dev/qa/uat/prod)

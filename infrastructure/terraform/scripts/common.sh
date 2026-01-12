@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # common.sh - Shared functions for Terraform orchestration scripts
 #
 # IMPLEMENTS REQUIREMENTS:
@@ -6,6 +6,13 @@
 #   REQ-p00008: Multi-sponsor deployment model
 
 set -euo pipefail
+
+  if ((BASH_VERSINFO[0] < 4)); then
+      echo "Error: This script requires bash 4.0 or higher"
+      echo "Current version: $BASH_VERSION"
+      echo "Install with: brew install bash"
+      exit 1
+  fi
 
 # =============================================================================
 # Configuration

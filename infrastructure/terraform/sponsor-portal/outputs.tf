@@ -93,22 +93,17 @@ output "audit_log_bucket" {
 }
 
 # -----------------------------------------------------------------------------
-# Artifact Registry
+# Container Images (GHCR)
 # -----------------------------------------------------------------------------
 
-output "artifact_registry_url" {
-  description = "Artifact Registry URL"
-  value       = module.artifact_registry.repository_url
-}
-
 output "diary_server_image" {
-  description = "Diary server image base path"
-  value       = module.artifact_registry.diary_server_image_base
+  description = "Diary server GHCR image URL"
+  value       = var.diary_server_image
 }
 
 output "portal_server_image" {
-  description = "Portal server image base path"
-  value       = module.artifact_registry.portal_server_image_base
+  description = "Portal server GHCR image URL"
+  value       = var.portal_server_image
 }
 
 # -----------------------------------------------------------------------------
@@ -185,9 +180,9 @@ output "summary" {
       Retention:   ${var.audit_retention_years} years
       Locked:      ${local.lock_audit_retention}
 
-    Container Images:
-      Diary:       ${module.artifact_registry.diary_server_image_base}
-      Portal:      ${module.artifact_registry.portal_server_image_base}
+    Container Images (GHCR):
+      Diary:       ${var.diary_server_image}
+      Portal:      ${var.portal_server_image}
 
     Identity Platform:
       Enabled:     ${var.enable_identity_platform}

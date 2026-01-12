@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # bootstrap-sponsor.sh
 #
 # Bootstrap all 4 GCP projects for a new sponsor

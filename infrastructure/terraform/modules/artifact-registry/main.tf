@@ -73,10 +73,16 @@ resource "google_artifact_registry_repository" "main" {
       older_than = "7776000s" # 90 days
     }
 
+  }
+  # Keep minimum number of recent versions regardless of age
+  cleanup_policies {
+    id     = "keep-recent-versions"
+    action = "KEEP"
+
     most_recent_versions {
       keep_count = 10
     }
-  }
+}
 
   # Vulnerability scanning
   docker_config {
