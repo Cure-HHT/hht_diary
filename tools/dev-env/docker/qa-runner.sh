@@ -33,7 +33,7 @@ TEST_SUITE="${TEST_SUITE:-${1:-all}}"
 REPORT_DIR="${REPORT_DIR:-/workspace/reports}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 if [ -z "$REPO_DIR" ]; then
-  REPO_DIR="/workspace/repos/clinical_diary"
+  REPO_DIR="/workspace/repos/daily-diary/clinical_diary"
 fi
 
 # Counters
