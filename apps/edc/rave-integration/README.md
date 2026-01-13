@@ -27,11 +27,11 @@ The following branches in hht_diary_callisto contain unmerged specs needed for t
 
 Environment variables (managed via Doppler):
 
-| Variable            | Description                                      |
-|---------------------|--------------------------------------------------|
-| `RAVE_UAT_URL`      | Base URL (UAT: `https://terremotobio.mdsol.com`) |
-| `RAVE_UAT_USERNAME` | API username for Basic Auth                      |
-| `RAVE_UAT_PWD`      | API password (PIN is NOT appended)               |
+| Variable            | Description                        |
+|---------------------|------------------------------------|
+| `RAVE_UAT_URL`      | Base URL (UAT: `$RAVE_UAT_URL`)    |
+| `RAVE_UAT_USERNAME` | API username for Basic Auth        |
+| `RAVE_UAT_PWD`      | API password (PIN is NOT appended) |
 
 **Study OID**: `TER-1754-C01(APPDEV)` for dev/qa/uat environments.
 
@@ -50,7 +50,7 @@ Environment variables (managed via Doppler):
 import 'package:rave_integration/rave_integration.dart';
 
 final client = RaveClient(
-  baseUrl: 'https://terremotobio.mdsol.com',
+  baseUrl: '$RAVE_UAT_URL',
   username: 'your-username',
   password: 'your-password',
 );

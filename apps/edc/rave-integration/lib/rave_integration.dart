@@ -9,7 +9,7 @@
 /// import 'package:rave_integration/rave_integration.dart';
 ///
 /// final client = RaveClient(
-///   baseUrl: 'https://terremotobio.mdsol.com',
+///   baseUrl: 'https://your-instance.mdsol.com',
 ///   username: 'your-username',
 ///   password: 'your-password',
 /// );
@@ -20,8 +20,8 @@
 /// // Sanity check - verify authentication
 /// final studies = await client.getStudies();
 ///
-/// // Get sites for a study
-/// final sites = await client.getSites(studyOid: 'TER-1754-C01(APPDEV)');
+/// // Get sites for a study (or omit studyOid for all studies)
+/// final sites = await client.getSites(studyOid: 'YOUR-STUDY-OID');
 /// ```
 library;
 

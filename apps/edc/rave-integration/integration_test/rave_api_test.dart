@@ -36,9 +36,9 @@ void main() {
   setUp(() {
     if (hasCredentials) {
       client = RaveClient(
-        baseUrl: baseUrl!,
-        username: username!,
-        password: password!,
+        baseUrl: baseUrl,
+        username: username,
+        password: password,
       );
     }
   });

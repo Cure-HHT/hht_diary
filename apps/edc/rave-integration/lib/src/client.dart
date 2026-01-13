@@ -15,7 +15,7 @@ import 'odm_parser.dart';
 /// Example:
 /// ```dart
 /// final client = RaveClient(
-///   baseUrl: 'https://terremotobio.mdsol.com',
+///   baseUrl: '$RAVE_UAT_URL',
 ///   username: 'api-user',
 ///   password: 'api-password',
 /// );
@@ -27,7 +27,7 @@ import 'odm_parser.dart';
 /// final sites = await client.getSites(studyOid: 'TER-1754-C01(APPDEV)');
 /// ```
 class RaveClient {
-  /// Base URL for the RAVE instance (e.g., 'https://terremotobio.mdsol.com').
+  /// Base URL for the RAVE instance (e.g., '$RAVE_UAT_URL').
   final String baseUrl;
 
   /// Username for HTTP Basic Authentication.
