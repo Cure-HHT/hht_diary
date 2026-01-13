@@ -13,26 +13,6 @@
 -- =====================================================
 
 -- =====================================================
--- SEED DATA: Sites
--- =====================================================
-
-INSERT INTO sites (site_id, site_name, site_number, address, contact_info, metadata) VALUES
-    ('site_001', 'Stanford Medical Center', 'SMC-001',
-     '{"street": "450 Serra Mall", "city": "Stanford", "state": "CA", "zip": "94305"}'::jsonb,
-     '{"phone": "650-723-2300", "email": "trials@stanford.edu"}'::jsonb,
-     '{"timezone": "America/Los_Angeles", "capacity": 50}'::jsonb),
-
-    ('site_002', 'Mayo Clinic Rochester', 'MCR-002',
-     '{"street": "200 First St SW", "city": "Rochester", "state": "MN", "zip": "55905"}'::jsonb,
-     '{"phone": "507-284-2511", "email": "trials@mayo.edu"}'::jsonb,
-     '{"timezone": "America/Chicago", "capacity": 75}'::jsonb),
-
-    ('site_003', 'Johns Hopkins Hospital', 'JHH-003',
-     '{"street": "1800 Orleans St", "city": "Baltimore", "state": "MD", "zip": "21287"}'::jsonb,
-     '{"phone": "410-955-5000", "email": "trials@jhmi.edu"}'::jsonb,
-     '{"timezone": "America/New_York", "capacity": 60}'::jsonb);
-
--- =====================================================
 -- SEED DATA: User Profiles
 -- =====================================================
 
