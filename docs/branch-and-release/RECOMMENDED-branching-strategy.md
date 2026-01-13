@@ -88,12 +88,12 @@ Tags are the primary mechanism for identifying deployable versions.
 
 ```
 v1.0.0                        # Production release
-v1.0.0+5678                   # Developer's build numbered
+v1.0.0+fc4a409                # Developer's commit SHA
 v1.0.1                        # Hotfix release
 v1.0.0-rc.1                   # Release candidate (pre-release)
 v1.0.0-beta.1                 # Beta release
 mobile-v2.1.0                 # Mobile app release
-mobile-v2.1.0+1234            # Mobile with build number
+mobile-v2.1.0+6d6ee33         # Mobile with commit SHA
 ```
 
 ### Why Tags, Not Branches?
