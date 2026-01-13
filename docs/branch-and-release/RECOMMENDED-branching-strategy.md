@@ -13,16 +13,19 @@ This document defines a **trunk-based development** strategy optimized for FDA-c
 ---
 
 ## Repository Architecture
-
+A multi-repository architecture (also known as "polyrepo") is a software development strategy where different projects, components, or microservices are housed in separate, independent repositories. This approach emphasizes autonomy and isolation for individual teams and components.
+### Product Repository
 ```
 hht_diary (PUBLIC - core repo)
 ├── apps/                    # Flutter app templates
-├── packages/                # Shared Dart packages
+├── apps/common-dart/        # Shared Dart packages
 ├── database/                # PostgreSQL schema, migrations
 ├── terraform/               # Infrastructure-as-code
 ├── sponsor/                 # Sponsor-specific code stubs
 └── tools/                   # Build, validation, plugins
-
+```
+### Sponsor Repository(s)
+```
 sponsor-{name} (PRIVATE - per sponsor)
 ├── config/                  # Environment overrides
 ├── branding/                # Logos, themes, strings
@@ -79,25 +82,12 @@ This means:
 main                          # Single source of truth
 ├── feature/CUR-xxx-desc      # New features (short-lived, days)
 ├── fix/CUR-xxx-desc          # Bug fixes (short-lived, hours-days)
-└── release/v1.x              # Stabilization only (short-lived, 1-2 weeks)
+├── release/v1.x              # Stabilization only (short-lived, 1-2 weeks)
+└── doc/CUR-xxx-desc          # Documentation (short-lived, days)
 ```
 
-### Branch Lifecycle
-
-| Branch Type | Created From | Merges To | Lifetime | Deleted After |
-| --- | --- | --- | --- | --- |
-| `feature/*` | `main` | `main` via PR | Days-weeks | Merge |
-| `fix/*` | `main` or `release/*` | `main` and `release/*` | Hours-days | Merge |
-| `release/*` | `main` | N/A (tag and delete) | 1-2 weeks | Final tag |
-
-**Note:** Release branches are for **stabilization only**. Once tagged, they are deleted. The tag preserves the reference.
-
-![Git Branching Flow](RECOMMENDED-diagram.png)
-
----
-
-## Tag Strategy
-
+## Versions & Tagging
+We practice the industry standard [Semantic Versioning](https://semver.org/spec/v1.0.0.html).
 Tags are the primary mechanism for identifying deployable versions.
 
 ```
@@ -121,9 +111,24 @@ mobile-v2.1.0+1234            # Mobile with build number
 
 ---
 
+### Branch Lifecycle
+
+| Branch Type | Created From | Merges To | Lifetime | Deleted After |
+| --- | --- | --- | --- | --- |
+| `feature/*` | `main` | `main` via PR | days < week | Merge |
+| `fix/*` | `main` or `release/*` | `main` and `release/*` | hours-days | Merge |
+| `release/*` | `main` | N/A (tag and delete) | 1-2 weeks | Merge, Final tag |
+| `doc/*` | `main` | `main` | days < week | Merge |
+
+**Note:** Release branches are for **QA, stabilization only**. Once tagged, they are merged and deleted.
+
+![Git Branching Flow](RECOMMENDED-diagram.png)
+
+---
+
 ## Workflow Examples
 
-### 1. Standard Feature Development
+### 1. Features
 
 ```bash
 # 1. Create feature branch from main
@@ -142,7 +147,7 @@ gh pr create --base main
 # Branch auto-deleted after merge
 ```
 
-### 2. Creating a Release
+### 2. Releases
 
 ```bash
 # 1. Create release branch for stabilization
@@ -150,12 +155,12 @@ git checkout main && git pull
 git checkout -b release/v1.0
 git push -u origin release/v1.0
 
-# 2. Only bug fixes allowed on release branch
-# Feature freeze in effect
-
-# 3. Tag release candidates
+# 2. Tag release candidates
 git tag -a v1.0.0-rc.1 -m "v1.0.0 Release Candidate 1"
 git push origin v1.0.0-rc.1
+
+# 2. Only bug fixes allowed on release branch
+# Feature freeze in effect
 
 # 4. After QA approval, tag final release
 git tag -a v1.0.0 -m "v1.0.0 - Production release for Q1 2026"
@@ -167,7 +172,7 @@ git branch -d release/v1.0
 git push origin --delete release/v1.0
 ```
 
-### 3. Hotfix for Production
+### 3. Patches
 
 ```bash
 # 1. Create fix branch from the release TAG (not a branch)
@@ -190,7 +195,7 @@ git branch -d fix/CUR-475-critical-sync-bug
 git push origin --delete fix/CUR-475-critical-sync-bug
 ```
 
-### 4. Second Release (v1.1)
+### 4. Incremental Release (v1.1)
 
 ```bash
 # Later development adds new features to main
