@@ -14,19 +14,21 @@ import 'package:rave_integration/rave_integration.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final baseUrl =
-      Platform.environment['RAVE_UAT_URL'] ?? 'https://terremotobio.mdsol.com';
+  final baseUrl = Platform.environment['RAVE_UAT_URL'];
   final username = Platform.environment['RAVE_UAT_USERNAME'];
   final password = Platform.environment['RAVE_UAT_PWD'];
-  const studyOid = 'TER-1754-C01(APPDEV)';
+  final studyOid = Platform.environment['RAVE_STUDY_OID'];
 
-  final hasCredentials = username != null && password != null;
+  final hasCredentials =
+      baseUrl != null && username != null && password != null;
 
   late RaveClient client;
 
   setUpAll(() {
     if (!hasCredentials) {
       print('RAVE credentials not found - skipping integration tests.');
+      print('Required env vars: RAVE_UAT_URL, RAVE_UAT_USERNAME, RAVE_UAT_PWD');
+      print('Optional: RAVE_STUDY_OID');
       print('Run with: doppler run -- dart test integration_test/');
     }
   });
@@ -34,9 +36,9 @@ void main() {
   setUp(() {
     if (hasCredentials) {
       client = RaveClient(
-        baseUrl: baseUrl,
-        username: username,
-        password: password,
+        baseUrl: baseUrl!,
+        username: username!,
+        password: password!,
       );
     }
   });
@@ -63,7 +65,9 @@ void main() {
       () async {
         final studies = await client.getStudies();
         expect(studies, isNotEmpty);
-        expect(studies, contains(studyOid));
+        if (studyOid != null) {
+          expect(studies, contains(studyOid));
+        }
         print('Studies response length: ${studies.length} bytes');
       },
       skip: !hasCredentials ? 'No credentials' : null,
@@ -73,7 +77,7 @@ void main() {
       'getStudies throws on invalid credentials',
       () async {
         final badClient = RaveClient(
-          baseUrl: baseUrl,
+          baseUrl: baseUrl!,
           username: 'invalid-user',
           password: 'invalid-password',
         );
@@ -96,7 +100,8 @@ void main() {
       () async {
         final sites = await client.getSites(studyOid: studyOid);
 
-        print('Found ${sites.length} site(s) for $studyOid:');
+        final studyLabel = studyOid ?? 'all studies';
+        print('Found ${sites.length} site(s) for $studyLabel:');
         for (final site in sites) {
           print('  - ${site.oid}: ${site.name} (active: ${site.isActive})');
           if (site.studySiteNumber != null) {

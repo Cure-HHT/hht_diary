@@ -14,37 +14,34 @@ import 'database.dart';
 /// Default sync interval - sites are refreshed if older than this duration.
 const defaultSyncInterval = Duration(days: 1);
 
-/// Default RAVE UAT URL (Terremoto Bio instance).
-const _defaultRaveUatUrl = 'https://terremotobio.mdsol.com';
-
 /// Configuration for RAVE EDC connection.
 ///
 /// Reads from environment variables (provided via Doppler).
+/// Required variables: RAVE_UAT_URL, RAVE_UAT_USERNAME, RAVE_UAT_PWD
+/// Optional: RAVE_STUDY_OID (defaults to first available study)
 class RaveConfig {
   final String baseUrl;
   final String username;
   final String password;
-  final String studyOid;
+  final String? studyOid;
 
   RaveConfig._({
     required this.baseUrl,
     required this.username,
     required this.password,
-    required this.studyOid,
+    this.studyOid,
   });
 
   /// Creates config from environment variables.
   ///
   /// Returns null if required variables are missing.
   static RaveConfig? fromEnvironment() {
-    final baseUrl = Platform.environment['RAVE_UAT_URL'] ?? _defaultRaveUatUrl;
+    final baseUrl = Platform.environment['RAVE_UAT_URL'];
     final username = Platform.environment['RAVE_UAT_USERNAME'];
     final password = Platform.environment['RAVE_UAT_PWD'];
-    final studyOid =
-        Platform.environment['RAVE_STUDY_OID'] ??
-        'TER-1754-C01(APPDEV)'; // Default for UAT
+    final studyOid = Platform.environment['RAVE_STUDY_OID'];
 
-    if (username == null || password == null) {
+    if (baseUrl == null || username == null || password == null) {
       return null;
     }
 
@@ -58,6 +55,7 @@ class RaveConfig {
 
   /// Whether RAVE integration is configured.
   static bool get isConfigured =>
+      Platform.environment['RAVE_UAT_URL'] != null &&
       Platform.environment['RAVE_UAT_USERNAME'] != null &&
       Platform.environment['RAVE_UAT_PWD'] != null;
 }
