@@ -136,7 +136,7 @@ RESET lock_timeout;
 -- =====================================================
 
 -- Sites Table
--- Stores clinical trial site information
+-- Stores clinical trial site information synced from EDC (RAVE)
 CREATE TABLE sites (
     site_id TEXT PRIMARY KEY,
     site_name TEXT NOT NULL,
@@ -146,12 +146,17 @@ CREATE TABLE sites (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now(),
-    metadata JSONB DEFAULT '{}'::jsonb
+    metadata JSONB DEFAULT '{}'::jsonb,
+    -- EDC sync tracking
+    edc_oid TEXT,  -- Original OID from RAVE EDC
+    edc_synced_at TIMESTAMPTZ  -- Last sync from EDC
 );
 
-COMMENT ON TABLE sites IS 'Clinical trial site information';
-COMMENT ON COLUMN sites.site_id IS 'Unique site identifier';
+COMMENT ON TABLE sites IS 'Clinical trial site information synced from EDC';
+COMMENT ON COLUMN sites.site_id IS 'Unique site identifier (typically matches EDC OID)';
 COMMENT ON COLUMN sites.metadata IS 'Additional site-specific configuration';
+COMMENT ON COLUMN sites.edc_oid IS 'Original OID from RAVE EDC system';
+COMMENT ON COLUMN sites.edc_synced_at IS 'Timestamp of last sync from EDC';
 
 -- =====================================================
 -- EVENT STORE (Event Sourcing Pattern)

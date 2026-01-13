@@ -27,6 +27,10 @@ dependencies:
   # JWT/Identity Platform
   jose: ^0.3.4
 
+  # EDC Integration (RAVE)
+  rave_integration:
+    path: ../../edc/rave-integration
+
 dev_dependencies:
   test: ^1.25.15
   mocktail: ^1.0.4

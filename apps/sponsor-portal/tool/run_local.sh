@@ -14,13 +14,19 @@
 #   - Portal UI (Flutter Web) - optional
 #
 # Usage:
-#   ./tool/run_local.sh              # Start everything with Doppler
+#   ./tool/run_local.sh              # Start everything (uses Doppler internally)
 #   ./tool/run_local.sh --reset      # Reset database before starting
 #   ./tool/run_local.sh --no-ui      # Don't start Flutter web client
 #   ./tool/run_local.sh --help       # Show help
 #
 # Default dev password for all seeded users: "curehht"
 # =====================================================
+
+# Re-execute under Doppler if not already running with it.
+# This makes all Doppler secrets available as environment variables.
+if [ -z "$DOPPLER_ENVIRONMENT" ]; then
+    exec doppler run -- "$0" "$@"
+fi
 
 set -e
 
@@ -203,24 +209,23 @@ create_firebase_users() {
 }
 
 # Reset the database
+# Uses LOCAL_DB_ROOT_PASSWORD from Doppler (available via exec wrapper)
 reset_database() {
     log_info "Resetting database..."
 
-    # Get password from Doppler
-    local db_password=$(doppler secrets get LOCAL_DB_ROOT_PASSWORD --plain 2>/dev/null)
-    if [ -z "$db_password" ]; then
-        log_error "Could not get LOCAL_DB_ROOT_PASSWORD from Doppler"
+    if [ -z "$LOCAL_DB_ROOT_PASSWORD" ]; then
+        log_error "LOCAL_DB_ROOT_PASSWORD not set (Doppler not configured?)"
         return 1
     fi
 
     # Drop and recreate the database
-    PGPASSWORD="$db_password" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
-    PGPASSWORD="$db_password" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
+    PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+    PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
 
     # Run schema initialization
     log_info "Applying database schema..."
     cd "$DATABASE_DIR"
-    PGPASSWORD="$db_password" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" -f init.sql
+    PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" -f init.sql
 
     # Apply sponsor-specific seed data
     # Try curehht first, then callisto (depending on which repo is available)
@@ -228,14 +233,14 @@ reset_database() {
 
     if [ -f "$PROJECT_ROOT/../hht_diary_curehht/database/seed_data_dev.sql" ]; then
         log_info "Applying CureHHT seed data..."
-        PGPASSWORD="$db_password" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
+        PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
             -f "$PROJECT_ROOT/../hht_diary_curehht/database/seed_data_dev.sql"
         seed_applied=true
     fi
 
     if [ -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql" ] && [ "$seed_applied" = false ]; then
         log_info "Applying Callisto seed data..."
-        PGPASSWORD="$db_password" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
+        PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
             -f "$PROJECT_ROOT/../hht_diary_callisto/database/seed_data_dev.sql"
         seed_applied=true
     fi
@@ -243,7 +248,7 @@ reset_database() {
     # Fallback to core seed data if no sponsor-specific seed found
     if [ "$seed_applied" = false ] && [ -f "$DATABASE_DIR/seed_data.sql" ]; then
         log_info "Applying core seed data..."
-        PGPASSWORD="$db_password" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
+        PGPASSWORD="$LOCAL_DB_ROOT_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U postgres -d "$DB_NAME" \
             -f "$DATABASE_DIR/seed_data.sql"
     fi
 
@@ -251,6 +256,7 @@ reset_database() {
 }
 
 # Start PostgreSQL via docker-compose
+# Doppler env vars are already available via exec wrapper
 start_postgres() {
     log_info "Starting PostgreSQL..."
 
@@ -260,7 +266,7 @@ start_postgres() {
     if docker ps --format '{{.Names}}' | grep -q 'sponsor-portal-postgres'; then
         log_info "PostgreSQL already running"
     else
-        doppler run -- docker compose -f docker-compose.db.yml up -d
+        docker compose -f docker-compose.db.yml up -d
     fi
 
     wait_for_port "$DB_HOST" "$DB_PORT" "PostgreSQL"
@@ -286,12 +292,13 @@ start_firebase() {
 }
 
 # Start the portal server
+# Doppler env vars are already available via exec wrapper
 start_server() {
     log_info "Starting Portal Server on port 8080..."
 
     cd "$SPONSOR_PORTAL_DIR/portal_server"
 
-    # Export environment variables
+    # Export environment variables for the server
     export FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}"
     export GCP_PROJECT_ID="demo-sponsor-portal"
     export DB_SSL="false"
@@ -300,9 +307,10 @@ start_server() {
     export DB_PORT="$DB_PORT"
     export DB_NAME="$DB_NAME"
     export DB_USER="postgres"
+    export DB_PASSWORD="$LOCAL_DB_ROOT_PASSWORD"
 
     # Start in background
-    doppler run --command 'DB_PASSWORD=$LOCAL_DB_ROOT_PASSWORD dart run bin/server.dart' &
+    dart run bin/server.dart &
     SERVER_PID=$!
 
     wait_for_port "localhost" "8080" "Portal Server"
