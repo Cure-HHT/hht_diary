@@ -1,7 +1,6 @@
 # CureHHT Branching Strategy (Recommended)
 
 ## Executive Summary
-
 This document defines a **trunk-based development** strategy optimized for FDA-compliant clinical trials with multi-sponsor deployments. It prioritizes simplicity, scalability, and correct git usage.
 
 **Core Principles:**
@@ -33,21 +32,19 @@ sponsor-{name} (PRIVATE - per sponsor)
 ```
 
 ### Why This Structure?
-
 **Single core repo with deployment (not separate):**
 - One system = one deployment = one repo
 - Code and terraform often change together (atomic commits)
 - Tags give immutable references without repo sprawl
 - A separate deployment repo would add coordination overhead without benefit
 
-**Private sponsor repos (not monorepo):**
+**Private sponsor repos (polyrepos not monorepo):**
 - Sponsors need private access to their configuration
 - Config may reveal sponsor identity (even with codenames)
 - Portal apps may have sponsor-specific business logic
 - Build process clones sponsor repos as overlays
 
 ### Unified Deployment Model
-
 All sponsors are deployed **together** from a single release tag:
 
 ```yaml
@@ -77,7 +74,6 @@ This means:
 ---
 
 ## Branch Types
-
 ```
 main                          # Single source of truth
 ├── feature/CUR-xxx-desc      # New features (short-lived, days)
@@ -92,6 +88,7 @@ Tags are the primary mechanism for identifying deployable versions.
 
 ```
 v1.0.0                        # Production release
+v1.0.0+5678                   # Developer's build numbered
 v1.0.1                        # Hotfix release
 v1.0.0-rc.1                   # Release candidate (pre-release)
 v1.0.0-beta.1                 # Beta release
@@ -100,7 +97,6 @@ mobile-v2.1.0+1234            # Mobile with build number
 ```
 
 ### Why Tags, Not Branches?
-
 | Tags | Long-lived Branches |
 | --- | --- |
 | Immutable (can't be changed) | Mutable (anyone can push) |
@@ -112,7 +108,6 @@ mobile-v2.1.0+1234            # Mobile with build number
 ---
 
 ### Branch Lifecycle
-
 | Branch Type | Created From | Merges To | Lifetime | Deleted After |
 | --- | --- | --- | --- | --- |
 | `feature/*` | `main` | `main` via PR | days < week | Merge |
