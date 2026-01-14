@@ -50,7 +50,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           # Use docker driver for PR builds to enable docker load/image sharing between jobs
-          driver: true
+          driver: docker
           # Use docker-container driver (default) for main builds to support provenance/SBOM
           # driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
 
