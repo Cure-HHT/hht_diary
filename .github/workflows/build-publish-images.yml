@@ -26,7 +26,10 @@ on:
         default: 'false'
 env:
   REGISTRY: ghcr.io
+  ORGANIZATION: cure-hht
   IMAGE_PREFIX: cure-hht/diary-server
+  DART_VERSION: 3.10.1
+  DART_BASE_IMAGE: cure-hht/dart-base:4.10.1
   # IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
 
 
@@ -159,7 +162,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: apps/daily-diary/diary-server-container
+          # context: apps/daily-diary/diary-server-container
           file: apps/daily-diary/diary-server-container/Dockerfile
           # context: tools/dev-env/docker
           # file: tools/dev-env/docker/base.Dockerfile
@@ -171,14 +174,16 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # COHERENT CACHING: GHCR only (no GHA cache)
           # Images in GHCR serve as cache - pull latest before build
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.DART_BASE_IMAGE }}
           cache-to: type=inline
           provenance: false
           sbom: false
           # provenance: ${{ github.event_name != 'pull_request' }}
           # sbom: ${{ github.event_name != 'pull_request' }}
           build-args: |
-            DART_VERSION=3.10.1
+            DART_VERSION=${{ env.DART_VERSION }}
 
       - name: Tag image for local use
         # if: github.event_name == 'pull_request'
