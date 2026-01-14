@@ -248,13 +248,6 @@ gcloud auth application-default set-quota-project cure-hht-admin
 
 Due to GCP project limits per billing account, we use multiple billing accounts:
 
-| Sponsor  | Environment | Billing Account ID     |
-|----------|-------------|------------------------|
-| Cure HHT | prod        | `017213-A61D61-71522F` |
-| Cure HHT | dev/qa/uat  | `01A48D-1B402E-18CB1A` |
-| Callisto | prod        | `01754A-64465F-47FB84` |
-| Callisto | dev/qa/uat  | `01EA1E-F12D75-125CEF` |
-
 ## State Management
 
 Terraform state is stored in GCS with per-sponsor/environment isolation:
