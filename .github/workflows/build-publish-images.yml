@@ -25,30 +25,41 @@ on:
         required: false
         default: 'false'
 
-permissions:
-  contents: write    # needed if creating/pushing tags
-  packages: write
-  id-token: write    # For Cosign signing
-
 env:
   REGISTRY: ghcr.io
   # IMAGE: ${{ github.repository }}
   IMAGE: diary-server
 
+permissions:
+  contents: write    # needed if creating/pushing tags
+  packages: write
+  id-token: write    # For Cosign signing
+
 jobs:
-  build-and-push:
+  build-base:
+    name: Build Base Image
     runs-on: ubuntu-latest
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
     steps:
-      - name: Checkout (fetch full history & tags)
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # Use docker driver for PR builds to enable docker load/image sharing between jobs
+          # Use docker-container driver (default) for main builds to support provenance/SBOM
+          driver: ${{ github.event_name == 'pull_request' && 'docker' || 'docker-container' }}
+
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       # - name: Extract version parts from tag
       #   id: parse
@@ -112,7 +123,7 @@ jobs:
           # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
           TAGS="${REGISTRY}/${IMAGE}-base:${DOCKER_VER} ${REGISTRY}/${IMAGE}-base:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS} ${REGISTRY}/${IMAGE}-base:${MAJOR_MINOR} ${REGISTRY}/${IMAGE}-base:${MAJOR} ${REGISTRY}/${IMAGE}-base:latest"
+            TAGS="${TAGS}\n${REGISTRY}/${IMAGE}-base:${MAJOR_MINOR}\n${REGISTRY}/${IMAGE}-base:${MAJOR}\n${REGISTRY}/${IMAGE}-base:latest"
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -129,6 +140,20 @@ jobs:
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
+          # ECHO outputs
+          echo "version=${VERSION}"
+          echo "docker_ver=${DOCKER_VER}"
+          echo "core=${CORE}"
+          echo "major=${MAJOR}"
+          echo "major_minor=${MAJOR_MINOR}"
+          echo "is_release=${IS_RELEASE}"
+          echo "short_sha=${SHORT_SHA}"
+          echo "tag_full=${TAG_FULL}"
+          # tags is multiline output
+          echo "tags<<EOF"
+          printf "%s\n" "$TAGS"
+          echo "EOF"
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -141,14 +166,14 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE }}-base
-          tags: ${{ steps.parse.outputs.tags }}
-          # tags: |
-          #   type=ref,event=branch
-          #   type=ref,event=pr
-          #   type=semver,pattern={{version}}
-          #   type=semver,pattern={{major}}.{{minor}}
-          #   type=sha,prefix=sha-
-          #   type=raw,value=latest,enable={{is_default_branch}}
+          # tags: ${{ steps.parse.outputs.tags }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
 
       # - name: Build and push image
       #   uses: docker/build-push-action@v4
