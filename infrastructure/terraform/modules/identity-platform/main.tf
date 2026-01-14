@@ -92,8 +92,8 @@ resource "google_identity_platform_config" "main" {
   mfa {
     enabled_providers = ["PHONE_SMS"]
 
-    # Production should enforce MFA
-    state = local.is_production ? "MANDATORY" : var.mfa_enforcement
+    # Production and UAT should enforce MFA (REQ-p00002, REQ-o00006)
+    state = contains(["prod", "uat"], var.environment) ? "MANDATORY" : var.mfa_enforcement
 
     provider_configs {
       state = "ENABLED"
