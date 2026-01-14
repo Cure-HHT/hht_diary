@@ -27,247 +27,237 @@ The Web Diary is a browser-based companion to the Clinical Diary mobile applicat
 
 # REQ-p01042: Web Diary Application
 
-**Level**: PRD | **Implements**: p00043 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00043
 
-A web browser-based diary application enabling clinical trial patients to record health observations from any computer, with automatic session timeout and no persistent data storage for privacy protection.
+## Rationale
 
-Web Diary application SHALL provide:
-- Browser-based access to diary entry functionality
-- Automatic session timeout after configurable inactivity period
-- Complete session termination on browser/tab close
-- No local data persistence after logout
-- Integration with Sponsor Portal for authentication via linking codes
-- Sponsor-specific branding and configuration
+This requirement provides an alternative access method for patients who cannot use the mobile app or prefer web access. Web access introduces different security considerations than mobile applications, such as shared or public computers and lack of device-level security controls. These differences necessitate stricter session management policies and prohibition of persistent local storage to protect patient privacy and comply with FDA 21 CFR Part 11 security requirements.
 
-**Rationale**: Provides an alternative access method for patients who cannot use the mobile app or prefer web access. Web access introduces different security considerations than mobile (shared/public computers, no device-level security), requiring stricter session management and no persistent storage.
+## Assertions
 
-**Acceptance Criteria**:
-- Accessible via standard web browsers (Chrome, Firefox, Safari, Edge)
-- Functions as companion to mobile app, not replacement
-- Complete audit trail of all patient actions
-- No patient data retained in browser after logout
-- Sponsor branding applied after successful authentication
+A. The system SHALL provide browser-based access to diary entry functionality.
+B. The system SHALL support standard web browsers including Chrome, Firefox, Safari, and Edge.
+C. The system SHALL automatically terminate sessions after a configurable period of inactivity.
+D. The system SHALL completely terminate sessions when the browser or tab is closed.
+E. The system SHALL NOT retain any patient data in the browser after logout.
+F. The system SHALL NOT persist any local data after session termination.
+G. The system SHALL integrate with the Sponsor Portal for authentication via linking codes.
+H. The system SHALL apply sponsor-specific branding after successful authentication.
+I. The system SHALL apply sponsor-specific configuration after successful authentication.
+J. The system SHALL create a complete audit trail of all patient actions.
+K. The system SHALL function as a companion to the mobile app, not as a replacement.
 
-*End* *Web Diary Application* | **Hash**: f663bc1b
+*End* *Web Diary Application* | **Hash**: 3a7e056b
 
 ---
 
 # REQ-p01043: Web Diary Authentication via Linking Code
 
-**Level**: PRD | **Implements**: p01042 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042
 
-Patients SHALL authenticate to the Web Diary using a unique linking code obtained from the Sponsor Portal, combined with a username and password created specifically for web access, without using email addresses or third-party authentication providers.
+## Rationale
 
-Authentication SHALL ensure:
-- Linking code provided by Sponsor Portal establishes sponsor context
-- Linking codes contain embedded patterns identifying the sponsor (similar to credit card prefix patterns)
-- HHT Diary Auth service maintains mapping table of linking code patterns to Sponsor Portal URLs
-- Mapping table updated when sponsors deploy or decommission portals
-- Username and password created during initial setup (not linked to email)
-- No personally identifiable information (PII) collected during authentication
-- No third-party authentication providers used (no Identity Platform, Google Sign-In, etc.)
-- Password hashed before network transmission
-- Authentication service validates credentials and returns session JWT
+GDPR restrictions prevent use of Identity Platform and similar services that process personal data. A custom authentication system using linking codes maintains sponsor isolation (REQ-p00001) while avoiding PII collection. Linking codes establish the trust relationship between the patient and their clinical trial without requiring email verification. Pattern-based sponsor identification enables a single auth service to route users to the correct sponsor without requiring users to know which sponsor they belong to. This requirement extends REQ-p01042 by specifying the technical implementation of linking code authentication for the web diary.
 
-**Rationale**: GDPR restrictions prevent use of Identity Platform and similar services that process personal data. A custom authentication system using linking codes maintains sponsor isolation (p00001) while avoiding PII collection. Linking codes establish the trust relationship between the patient and their clinical trial without requiring email verification. Pattern-based sponsor identification enables a single auth service to route users to the correct sponsor without requiring users to know which sponsor they belong to.
+## Assertions
 
-**Acceptance Criteria**:
-- Patient receives linking code through Sponsor Portal enrollment process
-- Linking code pattern identifies sponsor without user input
-- Auth service routes to correct Sponsor Portal URL based on pattern matching
-- Invalid linking codes rejected with clear error message
-- Unrecognized patterns rejected with guidance to contact Sponsor
-- Linking codes expire after sponsor-configurable period
-- Successful authentication returns JWT scoped to sponsor
-- No email addresses stored or processed
-- Authentication works across all supported browsers
+A. The system SHALL authenticate patients to the Web Diary using a unique linking code obtained from the Sponsor Portal.
+B. The system SHALL require username and password credentials created specifically for web access during authentication.
+C. The system SHALL NOT use email addresses for authentication.
+D. The system SHALL NOT use third-party authentication providers.
+E. Linking codes SHALL contain embedded patterns identifying the sponsor.
+F. The HHT Diary Auth service SHALL maintain a mapping table of linking code patterns to Sponsor Portal URLs.
+G. The mapping table SHALL be updated when sponsors deploy or decommission portals.
+H. The system SHALL NOT collect personally identifiable information during authentication.
+I. The system SHALL hash passwords before network transmission.
+J. The authentication service SHALL validate credentials and return a session JWT upon successful authentication.
+K. The system SHALL identify the sponsor based on linking code pattern matching without requiring user input.
+L. The system SHALL route authenticated users to the correct Sponsor Portal URL based on pattern matching.
+M. The system SHALL reject invalid linking codes with a clear error message.
+N. The system SHALL reject unrecognized linking code patterns with guidance to contact the Sponsor.
+O. Linking codes SHALL expire after a sponsor-configurable period.
+P. Session JWTs SHALL be scoped to the authenticated sponsor.
+Q. The system SHALL NOT store or process email addresses.
+R. The authentication system SHALL function correctly across all supported browsers.
 
-*End* *Web Diary Authentication via Linking Code* | **Hash**: ab630213
+*End* *Web Diary Authentication via Linking Code* | **Hash**: 314e312d
 
 ---
 
 # REQ-p01044: Web Diary Session Management
 
-**Level**: PRD | **Implements**: p01042 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042
 
-The Web Diary SHALL automatically terminate user sessions after a period of inactivity, on browser/tab close, and on explicit logout, ensuring no session persists beyond active use.
+## Rationale
 
-Session management SHALL ensure:
-- Automatic logout after inactivity (default: 2 minutes, sponsor-configurable)
-- Session terminated when browser window or tab is closed
-- Explicit logout option always available to user
-- Warning displayed before automatic timeout with countdown
-- All session data cleared from browser on logout
-- No "remember me" or persistent login option
+Web access to clinical trial diaries may occur on shared or public computers where the next user could access patient data if sessions persist. Aggressive session timeout and complete data clearing protect patient privacy in these environments. The short default timeout (2 minutes) reflects the sensitive nature of clinical trial data and balances security with usability. This requirement implements the session security provisions of REQ-p01042.
 
-**Rationale**: Web access may occur on shared or public computers where the next user could access patient data if sessions persist. Aggressive session timeout and complete data clearing protect patient privacy in these environments. The short default timeout (2 minutes) reflects the sensitive nature of clinical trial data.
+## Assertions
 
-**Acceptance Criteria**:
-- Inactivity timer resets on any user interaction (mouse move, keystroke, touch)
-- Warning modal appears 30 seconds before automatic logout
-- User can extend session from warning modal
-- Logout clears all browser storage (sessionStorage, localStorage, cookies)
-- No patient data recoverable after logout
-- Back button does not restore session after logout
-- Multiple tabs share same session timeout
-- Sponsor can configure timeout between 1-30 minutes
+A. The system SHALL automatically terminate user sessions after a configured period of inactivity.
+B. The default inactivity timeout SHALL be 2 minutes.
+C. Sponsors SHALL be able to configure the inactivity timeout to any value between 1 and 30 minutes.
+D. The system SHALL terminate the session when the browser window or tab is closed.
+E. The system SHALL provide an explicit logout option that is always available to the user.
+F. The inactivity timer SHALL reset on any user interaction including mouse movement, keystrokes, and touch events.
+G. The system SHALL display a warning modal 30 seconds before automatic timeout occurs.
+H. The warning modal SHALL display a countdown timer showing remaining seconds.
+I. The system SHALL allow the user to extend the session from the warning modal.
+J. The system SHALL clear all sessionStorage data on logout.
+K. The system SHALL clear all localStorage data on logout.
+L. The system SHALL clear all cookies on logout.
+M. The system SHALL ensure no patient data is recoverable from the browser after logout.
+N. The system SHALL prevent the browser back button from restoring the session after logout.
+O. The system SHALL synchronize session timeout across multiple tabs for the same user.
+P. The system SHALL NOT provide a 'remember me' option.
+Q. The system SHALL NOT provide a persistent login option.
 
-*End* *Web Diary Session Management* | **Hash**: cdc397b5
+*End* *Web Diary Session Management* | **Hash**: e1565e20
 
 ---
 
 # REQ-p01045: Web Diary Privacy Protection
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
 
-The Web Diary SHALL collect no personally identifiable information (PII) and SHALL display clear privacy messaging to users during account creation and login.
+## Rationale
 
-Privacy protection SHALL ensure:
-- No email addresses collected or stored
-- Usernames cannot contain @ symbol (prevents email-like identifiers)
-- Privacy messages displayed during account creation
-- No biometric data or device identifiers collected
-- Minimal data footprint in authentication system
-- Clear disclosure of what data is stored and password recovery limitations
+Clinical trial participants have heightened privacy concerns. By explicitly avoiding email collection and displaying privacy messaging, the system builds trust while ensuring GDPR compliance. The @ restriction prevents users from accidentally using email addresses as usernames, reducing the risk of PII exposure. Clear messaging about password recovery limitations helps users understand the importance of securely storing their credentials and the privacy-preserving design of the authentication system.
 
-**Rationale**: Clinical trial participants have heightened privacy concerns. By explicitly avoiding email collection and displaying privacy messaging, the system builds trust while ensuring GDPR compliance. The @ restriction prevents users from accidentally using email addresses as usernames. Clear messaging about password recovery limitations helps users understand the importance of securely storing their credentials.
+## Assertions
 
-**Acceptance Criteria**:
-- Account creation displays the following privacy messages:
-  - "For your privacy we do not use email addresses for accounts"
-  - "@ signs are not allowed for username"
-  - "Store your username and password securely"
-  - "If you lose your username and password then the app cannot send you a link to reset it"
-  - "For a lost username and password, contact your Sponsor to obtain a new Linking Code"
-- Username field rejects entries containing @ symbol with clear error message
-- Privacy policy accessible from login and account creation screens
-- Only username, hashed password, and app UUID stored in authentication system
-- No analytics or tracking cookies beyond essential session management
+A. The system SHALL NOT collect email addresses during account creation or login.
+B. The system SHALL NOT store email addresses in the authentication system.
+C. The system SHALL reject usernames containing the @ symbol.
+D. The system SHALL display an error message when a username contains the @ symbol.
+E. The system SHALL display the message 'For your privacy we do not use email addresses for accounts' during account creation.
+F. The system SHALL display the message '@ signs are not allowed for username' during account creation.
+G. The system SHALL display the message 'Store your username and password securely' during account creation.
+H. The system SHALL display the message 'If you lose your username and password then the app cannot send you a link to reset it' during account creation.
+I. The system SHALL display the message 'For a lost username and password, contact your Sponsor to obtain a new Linking Code' during account creation.
+J. The system SHALL NOT collect biometric data.
+K. The system SHALL NOT collect device identifiers beyond what is required for essential session management.
+L. The system SHALL make the privacy policy accessible from the login screen.
+M. The system SHALL make the privacy policy accessible from the account creation screen.
+N. The system SHALL store only username, hashed password, and app UUID in the authentication system.
+O. The system SHALL NOT use analytics cookies beyond essential session management.
+P. The system SHALL NOT use tracking cookies beyond essential session management.
 
-*End* *Web Diary Privacy Protection* | **Hash**: 3185ed95
+*End* *Web Diary Privacy Protection* | **Hash**: 3f9fee14
 
 ---
 
 # REQ-p01046: Web Diary Account Creation
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
 
-Patients SHALL create a web-specific account with username and password meeting security requirements, stored securely in the authentication service.
+## Rationale
 
-Account creation SHALL ensure:
-- Username minimum length: 6 characters
-- Password minimum length: 8 characters
-- Username must be unique within sponsor context
-- Password hashed using industry-standard algorithm before network transmission
-- Password stored securely on device using platform secure storage
-- User document created in authentication database with username, password hash, and app UUID
-- Account linked to sponsor via linking code
-- Clear feedback on validation errors
+Separate credentials for web access (versus mobile app) allow for different security policies appropriate to each platform while maintaining FDA 21 CFR Part 11 compliance. Minimum length requirements balance usability with security. Per-sponsor uniqueness prevents cross-sponsor conflicts while maintaining data isolation. Storing the app UUID with the account enables device attribution for audit trails, supporting comprehensive audit logging requirements. This requirement ensures secure account creation with proper validation, hashing, and storage mechanisms appropriate for web-based clinical trial diary access.
 
-**Rationale**: Separate credentials for web access (vs. mobile app) allow for different security policies appropriate to each platform. Minimum length requirements balance usability with security. Per-sponsor uniqueness prevents cross-sponsor conflicts while maintaining data isolation. Storing the app UUID with the account enables device attribution for audit trails.
+## Assertions
 
-**Acceptance Criteria**:
-- Username validation enforces 6+ character minimum
-- Password validation enforces 8+ character minimum
-- Real-time validation feedback during input
-- Duplicate username within sponsor rejected with clear message
-- User document created with: username, password hash, app UUID
-- Successful creation redirects to diary home screen
-- Account creation audit logged for compliance
+A. The system SHALL require patients to create a web-specific account with username and password.
+B. The system SHALL enforce a minimum username length of 6 characters.
+C. The system SHALL enforce a minimum password length of 8 characters.
+D. The system SHALL ensure username uniqueness within the sponsor context.
+E. The system SHALL reject duplicate usernames within the same sponsor with a clear error message.
+F. The system SHALL hash passwords using an industry-standard algorithm before network transmission.
+G. The system SHALL store passwords securely on the device using platform secure storage.
+H. The system SHALL create a user document in the authentication database containing username, password hash, and app UUID.
+I. The system SHALL link the account to the sponsor via linking code during creation.
+J. The system SHALL provide real-time validation feedback during username and password input.
+K. The system SHALL provide clear feedback on validation errors during account creation.
+L. The system SHALL redirect users to the diary home screen upon successful account creation.
+M. The system SHALL log account creation events to the audit trail for compliance.
 
-*End* *Web Diary Account Creation* | **Hash**: 915de272
+*End* *Web Diary Account Creation* | **Hash**: 6f862e69
 
 ---
 
 # REQ-p01047: Web Diary User Profile
 
-**Level**: PRD | **Implements**: p01042 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042
 
-The Web Diary SHALL provide a user profile view displaying account information and providing account management functions.
+## Rationale
 
-User profile SHALL display:
-- Username (read-only after creation)
-- Password (masked with toggle to reveal)
-- Change password functionality
-- Logout button
-- Current session information
+Users need to view and manage their account credentials in a self-service manner. The password visibility toggle helps users verify their password while maintaining default privacy. Change password functionality allows users to update credentials without administrator intervention. Profile access and account management operations must be auditable for FDA 21 CFR Part 11 compliance.
 
-Profile functionality SHALL ensure:
-- Profile accessible via menu icon (head/person icon)
-- Password shown as asterisks/dots by default
-- Eye icon toggles password visibility
-- Change password requires current password verification
-- Profile changes logged for audit trail
+## Assertions
 
-**Rationale**: Users need to view and manage their account credentials. The password visibility toggle helps users verify their password while maintaining default privacy. Change password functionality allows users to update credentials without administrator intervention.
+A. The system SHALL provide a user profile view accessible from all diary screens.
+B. The system SHALL display the username in the profile view as read-only after account creation.
+C. The system SHALL display the password masked as asterisks or dots by default.
+D. The system SHALL provide an eye icon toggle control to reveal the masked password.
+E. The system SHALL provide a change password functionality accessible from the profile view.
+F. The system SHALL require verification of the current password before allowing password changes.
+G. The system SHALL confirm successful password changes to the user.
+H. The system SHALL display the account creation timestamp in the profile view.
+I. The system SHALL provide a logout button in the profile view.
+J. The system SHALL display current session information in the profile view.
+K. The system SHALL make the profile accessible via a menu icon displaying a head or person symbol.
+L. The system SHALL log all profile view interactions to the audit trail.
+M. The system SHALL log all password visibility toggle actions to the audit trail.
+N. The system SHALL log all password change attempts and outcomes to the audit trail.
 
-**Acceptance Criteria**:
-- Profile menu accessible from all diary screens
-- Username displayed but not editable
-- Password masked by default, revealed on eye icon click
-- Change password workflow validates current password first
-- Password change success confirmed to user
-- Profile view shows when account was created
-- All profile interactions logged for compliance
-
-*End* *Web Diary User Profile* | **Hash**: 654d8be8
+*End* *Web Diary User Profile* | **Hash**: 2d343eab
 
 ---
 
 # REQ-p01048: Web Diary Login Interface
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
 
-The Web Diary SHALL provide a login interface accessible from the profile menu, with clear state indication of login status.
+## Rationale
 
-Login interface SHALL ensure:
-- Login button visible in profile menu when not authenticated
-- Logout button replaces login when authenticated
-- Login form accepts username and password
-- Logout confirmation prompts user to verify credentials were saved
-- Clear error messages for failed authentication
+This requirement defines the web diary's authentication interface to provide clear visibility of login state and prevent users from accidentally logging out without having saved their credentials. The logout confirmation reduces support burden by reminding users to verify they have recorded their authentication information before terminating their session, which is particularly important in a clinical trial context where participants may not be able to easily recover access.
 
-**Rationale**: Users need clear indication of their authentication state. The logout confirmation asking about saved credentials helps users avoid being locked out if they created an account but didn't record their password.
+## Assertions
 
-**Acceptance Criteria**:
-- Unauthenticated state shows "Login" button in profile menu
-- Authenticated state shows "Logout" button in profile menu
-- Login form validates input before submission
-- Failed login displays specific error (invalid username, wrong password)
-- Logout shows confirmation: "Did you save your username and password?"
-- Confirmation allows cancel to return to diary
-- Session indicators visible when logged in (username, session timer)
+A. The system SHALL provide a login interface accessible from the profile menu.
+B. The system SHALL display a Login button in the profile menu when the user is not authenticated.
+C. The system SHALL display a Logout button in the profile menu when the user is authenticated.
+D. The system SHALL NOT display both Login and Logout buttons simultaneously.
+E. The login form SHALL accept username and password inputs.
+F. The login form SHALL validate input before submission.
+G. The system SHALL display specific error messages when authentication fails.
+H. Error messages SHALL distinguish between invalid username and incorrect password.
+I. The system SHALL display session indicators when the user is logged in.
+J. Session indicators SHALL include the username.
+K. Session indicators SHALL include a session timer.
+L. The system SHALL prompt for confirmation when the user initiates logout.
+M. The logout confirmation SHALL display the message: "Did you save your username and password?"
+N. The logout confirmation SHALL provide a cancel option that returns the user to the diary without logging out.
+O. The logout confirmation SHALL provide a confirm option that completes the logout action.
 
-*End* *Web Diary Login Interface* | **Hash**: 1d24c597
+*End* *Web Diary Login Interface* | **Hash**: 9727c6a8
 
 ---
 
 # REQ-p01049: Web Diary Lost Credential Recovery
 
-**Level**: PRD | **Implements**: p01042, p01043 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01042, p01043
 
-Patients who lose their username or password SHALL recover access by obtaining a new linking code from their Sponsor, as the system cannot provide email-based password reset functionality.
+## Rationale
 
-Lost credential recovery SHALL ensure:
-- No automated password reset mechanism (no email-based recovery)
-- Patient contacts Sponsor to request new linking code
-- Sponsor invalidates current linking code before issuing new one
-- Patient creates new username and password using new linking code
-- Previous account data remains accessible under new credentials (linked via patient enrollment)
-- Clear guidance provided to users about recovery process
+Without email addresses, traditional password reset flows are not possible for this clinical trial diary platform. The linking code recovery process maintains the trust chain through the Sponsor while preventing unauthorized account recovery. This design ensures that only verified patients can regain access to their accounts by requiring Sponsor intervention, preventing unauthorized access while preserving diary data continuity. Invalidating old linking codes before issuing new ones prevents credential sharing or account duplication. Future multi-device support may provide alternative recovery mechanisms, but the current design prioritizes security and regulatory compliance over convenience.
 
-**Rationale**: Without email addresses, traditional password reset flows are not possible. The linking code recovery process maintains the trust chain through the Sponsor while preventing unauthorized account recovery. Invalidating the old linking code before issuing a new one prevents credential sharing or account duplication. Future multi-device support may provide alternative recovery mechanisms.
+## Assertions
 
-**Acceptance Criteria**:
-- Login screen displays link to recovery instructions
-- Recovery instructions explain: contact Sponsor for new linking code
-- Old linking code becomes invalid when new code is issued by Sponsor
-- New linking code allows creation of new username/password
-- Patient's diary data preserved and accessible with new credentials
-- Audit trail records credential recovery events
-- Recovery process documented in user-facing help content
+A. The system SHALL NOT provide automated password reset functionality.
+B. The system SHALL NOT provide email-based credential recovery.
+C. The system SHALL require patients to contact their Sponsor to request a new linking code for credential recovery.
+D. The Sponsor SHALL invalidate the current linking code before issuing a new linking code.
+E. The system SHALL allow patients to create a new username and password using a new linking code.
+F. The system SHALL preserve all previous account data when new credentials are created via linking code recovery.
+G. The system SHALL link recovered account data to the patient via their enrollment record.
+H. The login screen SHALL display a link to credential recovery instructions.
+I. The recovery instructions SHALL explain that patients must contact their Sponsor for a new linking code.
+J. The system SHALL invalidate old linking codes when new codes are issued by the Sponsor.
+K. The system SHALL record credential recovery events in the audit trail.
+L. The system SHALL provide user-facing help content documenting the recovery process.
 
-*End* *Web Diary Lost Credential Recovery* | **Hash**: 934b5e7f
+*End* *Web Diary Lost Credential Recovery* | **Hash**: 09aa8fab
 
 ---
 

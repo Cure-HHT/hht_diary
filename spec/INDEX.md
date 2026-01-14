@@ -11,7 +11,7 @@ This file provides a complete index of all requirements.
 | REQ-p00003 | Separate Database Per Sponsor | prd-database.md | 6a207b1a |
 | REQ-p00004 | Immutable Audit Trail via Event Sourcing | prd-database.md | fe9b40ea |
 | REQ-p00005 | Role-Based Access Control | prd-security-RBAC.md | 83122106 |
-| REQ-p00006 | Offline-First Data Entry | prd-diary-app.md | c5ff6bf6 |
+| REQ-p00006 | Offline-First Data Entry | prd-diary-app.md | TBD |
 | REQ-p00007 | Automatic Sponsor Configuration | prd-diary-app.md | 02bcaf1a |
 | REQ-p00008 | Single Mobile App for All Sponsors | prd-architecture-multi-sponsor.md | dd4bbaaa |
 | REQ-p00009 | Sponsor-Specific Web Portals | prd-architecture-multi-sponsor.md | f1ff8218 |
@@ -42,7 +42,7 @@ This file provides a complete index of all requirements.
 | REQ-p00039 | Administrator Access with Audit Trail | prd-security-RLS.md | e8a3d480 |
 | REQ-p00040 | Event Sourcing State Protection | prd-security-RLS.md | 9238d95b |
 | REQ-p00042 | HHT Epistaxis Data Capture Standard | prd-epistaxis-terminology.md | 7a3d2052 |
-| REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | 2a543266 |
+| REQ-p00043 | Clinical Diary Mobile Application | prd-diary-app.md | aedbfb5a |
 | REQ-p00044 | Clinical Trial Compliant Diary Platform | prd-system.md | a72852cf |
 | REQ-p00045 | Sponsor Portal Application | prd-portal.md | 0f70e13b |
 | REQ-p00046 | Clinical Data Storage System | prd-database.md | d8a1fdf2 |
@@ -60,7 +60,7 @@ This file provides a complete index of all requirements.
 | REQ-p01007 | Error Handling and Diagnostics | prd-event-sourcing-system.md | fb15ef77 |
 | REQ-p01008 | Event Replay and Time Travel Debugging | prd-event-sourcing-system.md | b18fe45c |
 | REQ-p01009 | Encryption at Rest for Offline Queue | prd-event-sourcing-system.md | b0d10dbb |
-| REQ-p01010 | Multi-tenancy Support | prd-event-sourcing-system.md | 08077819 |
+| REQ-p01010 | Multi-tenancy Support | prd-event-sourcing-system.md | 4284f635 |
 | REQ-p01011 | Event Transformation and Migration | prd-event-sourcing-system.md | b1e42685 |
 | REQ-p01012 | Batch Event Operations | prd-event-sourcing-system.md | ab8bead4 |
 | REQ-p01013 | GraphQL or gRPC Transport Option | prd-event-sourcing-system.md | 2aedb731 |
@@ -89,17 +89,17 @@ This file provides a complete index of all requirements.
 | REQ-p01036 | Data Recovery Guarantee | prd-SLA.md | 0224912a |
 | REQ-p01037 | Chronic Failure Escalation | prd-SLA.md | 3a07854b |
 | REQ-p01038 | Regulatory Event Support | prd-SLA.md | 64f84d80 |
-| REQ-p01039 | Diary Start Day Definition | prd-diary-app.md | 04c5ae15 |
-| REQ-p01040 | Calendar Visual Indicators for Entry Status | prd-diary-app.md | 565effd6 |
+| REQ-p01039 | Diary Start Day Definition | prd-diary-app.md | TBD |
+| REQ-p01040 | Calendar Visual Indicators for Entry Status | prd-diary-app.md | ae8a494b |
 | REQ-p01041 | Open Source Licensing | prd-system.md | 85c600f4 |
-| REQ-p01042 | Web Diary Application | prd-diary-web.md | f663bc1b |
-| REQ-p01043 | Web Diary Authentication via Linking Code | prd-diary-web.md | ab630213 |
-| REQ-p01044 | Web Diary Session Management | prd-diary-web.md | cdc397b5 |
-| REQ-p01045 | Web Diary Privacy Protection | prd-diary-web.md | 3185ed95 |
-| REQ-p01046 | Web Diary Account Creation | prd-diary-web.md | 915de272 |
-| REQ-p01047 | Web Diary User Profile | prd-diary-web.md | 654d8be8 |
-| REQ-p01048 | Web Diary Login Interface | prd-diary-web.md | 1d24c597 |
-| REQ-p01049 | Web Diary Lost Credential Recovery | prd-diary-web.md | 934b5e7f |
+| REQ-p01042 | Web Diary Application | prd-diary-web.md | 3a7e056b |
+| REQ-p01043 | Web Diary Authentication via Linking Code | prd-diary-web.md | 314e312d |
+| REQ-p01044 | Web Diary Session Management | prd-diary-web.md | e1565e20 |
+| REQ-p01045 | Web Diary Privacy Protection | prd-diary-web.md | 3f9fee14 |
+| REQ-p01046 | Web Diary Account Creation | prd-diary-web.md | 6f862e69 |
+| REQ-p01047 | Web Diary User Profile | prd-diary-web.md | 2d343eab |
+| REQ-p01048 | Web Diary Login Interface | prd-diary-web.md | 9727c6a8 |
+| REQ-p01049 | Web Diary Lost Credential Recovery | prd-diary-web.md | 09aa8fab |
 | REQ-p01050 | Event Type Registry | prd-event-sourcing-system.md | 19386e10 |
 | REQ-p01051 | Questionnaire Versioning Model | prd-event-sourcing-system.md | 32f2c5a2 |
 | REQ-p01052 | Questionnaire Localization and Translation Tracking | prd-event-sourcing-system.md | 591b34e9 |
@@ -113,6 +113,7 @@ This file provides a complete index of all requirements.
 | REQ-p01060 | UX Changes During Trials | prd-architecture-multi-sponsor.md | 350e44c0 |
 | REQ-p01061 | GDPR Compliance | prd-clinical-trials.md | c4ed4d8a |
 | REQ-p01062 | GDPR Data Portability | prd-clinical-trials.md | 4d47581f |
+| REQ-p70000 | Local Data Storage | prd-diary-app.md | TBD |
 
 ## Operations Requirements (OPS)
 
@@ -243,14 +244,14 @@ This file provides a complete index of all requirements.
 | REQ-d00066 | Plugin-Specific Permission Management | dev-marketplace-permissions.md | 0dd52eec |
 | REQ-d00067 | Streamlined Ticket Creation Agent | dev-ai-claude.md | 335415e6 |
 | REQ-d00068 | Enhanced Workflow New Work Detection | dev-ai-claude.md | f5f3570e |
-| REQ-d00077 | Web Diary Frontend Framework | dev-diary-web.md | 4a806386 |
-| REQ-d00078 | HHT Diary Auth Service | dev-diary-web.md | 8923000e |
-| REQ-d00079 | Linking Code Pattern Matching | dev-diary-web.md | da7b9bb0 |
-| REQ-d00080 | Web Session Management Implementation | dev-diary-web.md | c917a5ad |
-| REQ-d00081 | User Document Schema | dev-diary-web.md | cde85fd6 |
-| REQ-d00082 | Password Hashing Implementation | dev-diary-web.md | 05136a5d |
-| REQ-d00083 | Browser Storage Clearing | dev-diary-web.md | d5857410 |
-| REQ-d00084 | Sponsor Configuration Loading | dev-diary-web.md | 5a79a42d |
+| REQ-d00077 | Web Diary Frontend Framework | dev-diary-web.md | a84bf289 |
+| REQ-d00078 | HHT Diary Auth Service | dev-diary-web.md | d484bab8 |
+| REQ-d00079 | Linking Code Pattern Matching | dev-diary-web.md | 8e2b291e |
+| REQ-d00080 | Web Session Management Implementation | dev-diary-web.md | 1ed9928f |
+| REQ-d00081 | User Document Schema | dev-diary-web.md | b5b5f999 |
+| REQ-d00082 | Password Hashing Implementation | dev-diary-web.md | 2f426f50 |
+| REQ-d00083 | Browser Storage Clearing | dev-diary-web.md | 781a1594 |
+| REQ-d00084 | Sponsor Configuration Loading | dev-diary-web.md | 654added |
 | REQ-d00085 | Local Database Export and Import | dev-app.md | 971345e0 |
 | REQ-d00086 | Sponsor Repository Structure Template | dev-sponsor-repos.md | 4b7874ee |
 | REQ-d00087 | Core Repo Reference Configuration | dev-sponsor-repos.md | 91ce804d |

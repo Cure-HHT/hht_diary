@@ -29,29 +29,32 @@ The Clinical Diary development environment provides role-based containerized wor
 
 # REQ-d00027: Containerized Development Environments
 
-**Level**: Dev | **Implements**: o00050| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00050
 
-Development environments SHALL be containerized using Docker to ensure reproducible, platform-independent workspaces that maintain parity between local development, continuous integration, and production build environments.
+## Rationale
 
-Containerization SHALL provide:
-- Reproducible builds across all platforms (Windows, Linux, macOS)
-- Version-pinned tool chains with SHA256 verification
-- Isolated environments preventing dependency conflicts
-- Fast startup times (< 30 seconds for container launch)
-- Resource limits to prevent system resource exhaustion
-- Volume mounts for source code sharing without file system incompatibilities
+Docker containers provide reproducible environments required for FDA validation while enabling cross-platform development. Containers can be signed, versioned, and validated as part of change control processes. This approach eliminates 'works on my machine' issues and ensures local development matches CI/CD exactly. Containerization provides isolation, reproducibility, and platform independence essential for maintaining validated development environments in compliance with 21 CFR Part 11.
 
-**Rationale**: Docker containers provide reproducible environments required for FDA validation while enabling cross-platform development. Containers can be signed, versioned, and validated as part of change control processes. This approach eliminates "works on my machine" issues and ensures local development matches CI/CD exactly.
+## Assertions
 
-**Acceptance Criteria**:
-- Dockerfile specifications for each role-based environment
-- Docker Compose orchestration for multi-container workflows
-- All tool versions explicitly pinned with rationale documented
-- Container images buildable on Windows, Linux, and macOS
-- Container health checks verify tool availability
-- Volume mounts preserve file permissions and ownership
+A. Development environments SHALL be containerized using Docker.
+B. Containerized environments SHALL ensure reproducible builds across Windows, Linux, and macOS platforms.
+C. All tool chain versions SHALL be explicitly pinned in container specifications.
+D. Pinned tool versions SHALL include SHA256 verification.
+E. Containers SHALL provide isolated environments that prevent dependency conflicts between projects.
+F. Container launch time SHALL be less than 30 seconds.
+G. Containers SHALL enforce resource limits to prevent system resource exhaustion.
+H. Containers SHALL support volume mounts for source code sharing.
+I. Volume mounts SHALL preserve file permissions and ownership.
+J. The system SHALL provide Dockerfile specifications for each role-based environment.
+K. The system SHALL provide Docker Compose orchestration for multi-container workflows.
+L. All pinned tool versions SHALL have documented rationale for version selection.
+M. Container images SHALL be buildable on Windows operating systems.
+N. Container images SHALL be buildable on Linux operating systems.
+O. Container images SHALL be buildable on macOS operating systems.
+P. Containers SHALL include health checks that verify tool availability.
 
-*End* *Containerized Development Environments* | **Hash**: 13d56217
+*End* *Containerized Development Environments* | **Hash**: 12d637c5
 ---
 
 # REQ-d00055: Role-Based Environment Separation
@@ -90,56 +93,69 @@ T. Documentation SHALL explain what each role cannot do outside its designated p
 
 # REQ-d00056: Cross-Platform Development Support
 
-**Level**: Dev | **Implements**: o00050| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00050
 
-Development environments SHALL function identically on Windows, Linux, and macOS without platform-specific code paths or manual configuration, enabling team members to use their preferred operating systems while maintaining environment parity.
+## Rationale
 
-Cross-platform support SHALL ensure:
-- Docker Compose files use platform-agnostic volume paths
-- Setup scripts detect host OS and adjust accordingly
-- Documentation covers Windows (WSL2), Linux (native), macOS (native)
-- File permission handling respects host OS differences
-- No platform-specific workarounds or conditional logic in core workflows
-- Terminal prompts and scripts compatible with bash/zsh
+Teams using mixed operating systems waste time on platform-specific issues. Docker's cross-platform nature enables identical developer experiences regardless of host OS. This requirement ensures that development environments function identically across Windows (with WSL2), Linux, and macOS, which is critical for small teams where each developer may use different platforms. By enforcing platform-agnostic configurations and testing, the system eliminates the need for manual platform-specific workarounds.
 
-**Rationale**: Teams using mixed operating systems waste time on platform-specific issues. Docker's cross-platform nature enables identical developer experiences regardless of host OS. This is critical for small teams where each developer may use different platforms.
+## Assertions
 
-**Acceptance Criteria**:
-- Tested on Windows 11 with WSL2 + Docker Desktop
-- Tested on Ubuntu 24.04 with Docker Engine
-- Tested on macOS (Intel and Apple Silicon) with Docker Desktop
-- No "Windows-only" or "macOS-only" instructions
-- File mounts work correctly on all platforms
-- Setup documentation includes platform-specific prerequisites only
+A. Development environments SHALL function identically on Windows, Linux, and macOS.
+B. The system SHALL NOT require platform-specific code paths in core workflows.
+C. The system SHALL NOT require manual configuration based on platform.
+D. Docker Compose files SHALL use platform-agnostic volume paths.
+E. Setup scripts SHALL detect the host OS and adjust automatically.
+F. Documentation SHALL cover Windows with WSL2 installation and usage.
+G. Documentation SHALL cover Linux native installation and usage.
+H. Documentation SHALL cover macOS native installation and usage.
+I. File permission handling SHALL respect host OS differences automatically.
+J. Core workflows SHALL NOT contain platform-specific workarounds.
+K. Core workflows SHALL NOT contain conditional logic based on platform.
+L. Terminal prompts SHALL be compatible with bash shell.
+M. Terminal prompts SHALL be compatible with zsh shell.
+N. Scripts SHALL be compatible with bash shell.
+O. Scripts SHALL be compatible with zsh shell.
+P. The development environment SHALL be tested on Windows 11 with WSL2 and Docker Desktop.
+Q. The development environment SHALL be tested on Ubuntu 24.04 with Docker Engine.
+R. The development environment SHALL be tested on macOS Intel with Docker Desktop.
+S. The development environment SHALL be tested on macOS Apple Silicon with Docker Desktop.
+T. Documentation SHALL NOT contain Windows-only instructions except for platform-specific prerequisites.
+U. Documentation SHALL NOT contain macOS-only instructions except for platform-specific prerequisites.
+V. Documentation SHALL NOT contain Linux-only instructions except for platform-specific prerequisites.
+W. File mounts SHALL work correctly on Windows with WSL2.
+X. File mounts SHALL work correctly on Linux.
+Y. File mounts SHALL work correctly on macOS.
+Z. Setup documentation SHALL include platform-specific prerequisites when required.
 
-*End* *Cross-Platform Development Support* | **Hash**: 223d3f08
+*End* *Cross-Platform Development Support* | **Hash**: 6e05c815
 ---
 
 # REQ-d00057: CI/CD Environment Parity
 
-**Level**: Dev | **Implements**: o00052| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00052
 
-Local development environments SHALL use identical Docker images as CI/CD pipelines to eliminate environment drift and ensure that code tested locally behaves identically in automated builds.
+## Rationale
 
-CI/CD parity SHALL be achieved through:
-- Shared Dockerfiles for local dev and GitHub Actions
-- Identical tool versions in containers and CI runners
-- Same secrets management approach (Doppler) locally and in CI
-- Reproducible build commands across environments
-- Artifact generation processes identical locally and in CI
-- Environment variables managed consistently
+This requirement establishes environment parity between local development and CI/CD pipelines to prevent the common problem of "works on my machine" failures. Environment drift—where local and CI environments differ in tool versions, configurations, or dependencies—causes builds that pass locally to fail in CI, wasting developer time and delaying releases. By mandating identical Docker images and configurations across both environments, this requirement ensures reproducible builds and predictable behavior. For FDA-regulated software, this parity is critical because the validated build environment must be testable and verifiable in local development before deployment to production. This requirement implements the operational requirement REQ-o00052 for CI/CD environment consistency.
 
-**Rationale**: Environment drift between local development and CI/CD is a common source of build failures and "passes locally, fails in CI" issues. Using the same Docker images locally and in GitHub Actions guarantees parity. For FDA validation, this means the validated build environment can be tested locally before deployment.
+## Assertions
 
-**Acceptance Criteria**:
-- GitHub Actions workflows use same Dockerfiles as local dev
-- Tool version mismatches detected by automated checks
-- Build commands documented and executable both locally and in CI
-- Secrets accessed via Doppler in both environments
-- CI logs include tool version verification
-- Local development README includes "verify parity" commands
+A. Local development environments SHALL use identical Docker images as CI/CD pipelines.
+B. The system SHALL use shared Dockerfiles for both local development and GitHub Actions.
+C. Tool versions SHALL be identical in local development containers and CI runners.
+D. The system SHALL use the same secrets management approach (Doppler) in both local and CI environments.
+E. Build commands SHALL be reproducible and identical across local and CI environments.
+F. Artifact generation processes SHALL be identical in local development and CI pipelines.
+G. Environment variables SHALL be managed consistently across local and CI environments.
+H. GitHub Actions workflows SHALL use the same Dockerfiles as local development.
+I. The system SHALL include automated checks to detect tool version mismatches between environments.
+J. Build commands SHALL be documented and executable in both local and CI environments.
+K. Secrets SHALL be accessed via Doppler in both local development and CI environments.
+L. CI logs SHALL include tool version verification output.
+M. Local development documentation SHALL include commands to verify environment parity.
 
-*End* *CI/CD Environment Parity* | **Hash**: e58f7423
+*End* *CI/CD Environment Parity* | **Hash**: 1b1aaea0
 ---
 
 # REQ-d00058: Secrets Management via Doppler
@@ -178,120 +194,97 @@ T. Documentation SHALL include secret rotation procedures.
 
 # REQ-d00059: Development Tool Specifications
 
-**Level**: Dev | **Implements**: o00041| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00041
 
-Development environments SHALL include specific tool versions selected for stability, long-term support, and compatibility with FDA validation requirements, with each tool version justified and documented.
+## Rationale
 
-Tool specifications SHALL include:
+FDA 21 CFR Part 11 validation requires reproducible software builds with documented tool versions and justifications. This requirement establishes specific tool versions selected for stability, long-term support, and regulatory compliance. LTS (Long-Term Support) versions provide security updates without breaking changes, while explicit version pinning enables validation protocols and audit trail requirements. The requirement supports Infrastructure Operations Requirements (REQ-o00041) by defining the standardized toolchain across development, QA, operations, and management roles.
 
-**Mobile Development (dev, qa)**:
-- Flutter 3.38.3 (stable channel, LTS release)
-- Android SDK cmdline-tools latest (11076708)
-- Android platform-tools (latest via sdkmanager)
-- Android build-tools 34.0.0
-- Android platform API 34 (Android 14)
-- OpenJDK 17 (LTS release for Android builds)
+## Assertions
 
-**JavaScript/Node.js (all roles)**:
-- Node.js 20.x LTS (active LTS, security updates through 2026-04-30)
-- npm (bundled with Node)
-- pnpm (optional, faster than npm)
+A. The development environment SHALL include Flutter 3.38.3 from the stable channel.
+B. The development environment SHALL include Android SDK cmdline-tools version 11076708.
+C. The development environment SHALL include Android build-tools version 34.0.0.
+D. The development environment SHALL include Android platform API 34.
+E. The development environment SHALL include OpenJDK 17 for Android builds.
+F. The development environment SHALL include Node.js 20.x LTS series.
+G. The development environment SHALL include Python 3.11 or higher, with 3.12 preferred.
+H. The development environment SHALL include Git version 2.40 or higher.
+I. The development environment SHALL include GitHub CLI version 2.40 or higher.
+J. The QA environment SHALL include Playwright latest version for headless browser testing.
+K. The QA environment SHALL include Flutter integration test framework.
+L. The operations environment SHALL include Terraform version 1.9 or higher.
+M. The operations environment SHALL include gcloud CLI latest version.
+N. The operations environment SHALL include Cloud SQL Proxy latest version.
+O. The management environment SHALL include Pandoc for document conversion.
+P. The management environment SHALL include jq for JSON processing.
+Q. All tool versions SHALL be pinned in Dockerfiles with explicit version numbers.
+R. The system SHALL NOT use 'latest' tags in Dockerfiles except where explicitly justified in documentation.
+S. The system SHALL verify SHA256 checksums for all downloaded tool installers.
+T. The system SHALL generate a Software Bill of Materials (SBOM) for each container image.
+U. The system SHALL execute a tool version verification script on container startup.
+V. Each tool version selection SHALL include documented rationale for stability, security, or compatibility requirements.
+W. Tool selection rationale SHALL be documented in ADR-006.
+X. Documentation SHALL include a tool update policy defining version upgrade procedures.
+Y. Documentation SHALL include testing procedures for tool version updates.
 
-**Python (all roles)**:
-- Python 3.11+ (minimum, 3.12 preferred for performance)
-- pip (latest)
-- venv (for virtual environments)
-
-**Version Control (all roles)**:
-- Git 2.40+ (security fixes, performance improvements)
-- GitHub CLI 2.40+ (supports GitHub Checks API)
-
-**Testing (qa)**:
-- Playwright latest (headless browser testing)
-- Flutter integration test framework (bundled)
-
-**Infrastructure (ops)**:
-- Terraform 1.9+ (infrastructure as code)
-- gcloud CLI latest (GCP management)
-- Cloud SQL Proxy latest (database connectivity)
-
-**Documentation (mgmt)**:
-- Pandoc (document conversion)
-- jq (JSON processing for audit logs)
-
-**Rationale**: Explicit tool versions enable reproducible builds required for FDA validation. LTS (Long-Term Support) versions ensure security updates without breaking changes. Each tool version is chosen for specific reasons (stability, security, compatibility) and documented to support validation protocols.
-
-**Acceptance Criteria**:
-- All tool versions pinned in Dockerfiles (no "latest" tags except where justified)
-- Tool selection rationale documented in ADR-006
-- SHA256 checksums verified for downloaded installers
-- SBOM (Software Bill of Materials) generated for each container image
-- Tool version verification script runs on container startup
-- Documentation includes tool update policy and testing procedures
-
-*End* *Development Tool Specifications* | **Hash**: 42b07b9a
+*End* *Development Tool Specifications* | **Hash**: 67a92cff
 ---
 
 # REQ-d00060: VS Code Dev Containers Integration
 
-**Level**: Dev | **Implements**: d00027| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: d00027
 
-Development environments SHALL provide VS Code Dev Containers configuration enabling developers to open projects directly in containerized environments with one click, with role-specific extensions and settings pre-configured.
+## Rationale
 
-Dev Containers SHALL provide:
-- `.devcontainer/` configurations for each role (dev, qa, ops, mgmt)
-- Role-appropriate VS Code extensions automatically installed
-- Git configuration persisted from host
-- SSH keys mounted securely
-- Port forwarding for development servers
-- Integrated terminal with role-specific prompt
-- Docker Compose integration for multi-container debugging
+VS Code Dev Containers eliminate manual environment setup and ensure every developer uses identical tooling. The 'Reopen in Container' feature makes switching between roles seamless, reinforcing the role-based development practice required by REQ-d00027. This dramatically reduces onboarding time for new team members by providing pre-configured, containerized development environments with role-appropriate tooling.
 
-**Rationale**: VS Code Dev Containers eliminate manual environment setup and ensure every developer uses identical tooling. The "Reopen in Container" feature makes switching between roles seamless, reinforcing the role-based development practice. This dramatically reduces onboarding time for new team members.
+## Assertions
 
-**Acceptance Criteria**:
-- Four `.devcontainer/` directories (dev/, qa/, ops/, mgmt/)
-- Each devcontainer.json specifies appropriate base image
-- Role-specific VS Code extensions listed in devcontainer.json
-- Git config inherited from host or specified per role
-- SSH keys mounted read-only from host `~/.ssh/`
-- Workspace folders mapped correctly
-- README includes "Reopen in Container" instructions
-- First-time setup takes < 5 minutes after Docker installation
+A. The system SHALL provide VS Code Dev Containers configuration enabling developers to open projects directly in containerized environments.
+B. The system SHALL provide four distinct `.devcontainer/` configurations corresponding to dev, qa, ops, and mgmt roles.
+C. Each devcontainer.json SHALL specify the appropriate base image for its role.
+D. Each devcontainer.json SHALL list role-specific VS Code extensions for automatic installation.
+E. Dev Containers SHALL persist Git configuration from the host system or specify configuration per role.
+F. Dev Containers SHALL mount SSH keys securely and read-only from the host `~/.ssh/` directory.
+G. Dev Containers SHALL map workspace folders correctly for each role.
+H. Dev Containers SHALL provide port forwarding for development servers.
+I. Dev Containers SHALL provide an integrated terminal with role-specific prompt configuration.
+J. Dev Containers SHALL integrate with Docker Compose for multi-container debugging scenarios.
+K. Documentation SHALL include instructions for using the 'Reopen in Container' feature.
+L. First-time Dev Container setup SHALL complete in less than 5 minutes after Docker installation.
 
-*End* *VS Code Dev Containers Integration* | **Hash**: 07abf106
+*End* *VS Code Dev Containers Integration* | **Hash**: d8498586
 ---
 
 # REQ-d00061: Automated QA Workflow
 
-**Level**: Dev | **Implements**: o00052| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00052
 
-Development environments SHALL include automated quality assurance workflows that execute Flutter and Playwright tests on pull requests, generate PDF reports, integrate with GitHub Checks, and maintain artifact retention policies.
+## Rationale
 
-QA automation SHALL provide:
-- GitHub Actions workflow triggered on PR open/update
-- Execution in qa-container (same environment as local QA role)
-- Flutter integration tests with JUnit XML output
-- Playwright end-to-end tests with HTML reports
-- Consolidated PDF summary report
-- GitHub Checks status posted to PR
-- PR comments with test result summary and artifact links
-- Artifact retention: 90 days for PR testing, permanent for releases/tags
+Automated QA workflows provide fast feedback on code changes and ensure every pull request meets quality standards before merge. Running tests in the same container used locally eliminates environment inconsistencies. PDF reports provide regulatory audit trail of testing evidence required for FDA 21 CFR Part 11 compliance. GitHub integration makes results visible without leaving the PR workflow, streamlining the review process.
 
-**Rationale**: Automated QA provides fast feedback on code changes and ensures every PR meets quality standards before merge. Running tests in the same container used locally eliminates "passes in dev, fails in CI" issues. PDF reports provide regulatory audit trail of testing evidence. GitHub integration makes results visible without leaving the PR workflow.
+## Assertions
 
-**Acceptance Criteria**:
-- `.github/workflows/qa-automation.yml` workflow file
-- Workflow uses qa-container Docker image
-- Flutter tests run with `flutter test integration_test`
-- Playwright tests run with `npx playwright test`
-- PDF generated via Playwright's built-in PDF export
-- GitHub Checks API called with test results
-- PR comment includes pass/fail status and artifact link
-- Artifacts uploaded to GitHub Actions (not external storage)
-- Permanent archive for commits tagged as releases
+A. The system SHALL provide a GitHub Actions workflow file at `.github/workflows/qa-automation.yml`.
+B. The workflow SHALL trigger automatically when a pull request is opened or updated.
+C. The workflow SHALL execute all tests within the qa-container Docker image.
+D. The system SHALL execute Flutter integration tests using the command `flutter test integration_test`.
+E. Flutter tests SHALL produce JUnit XML output format.
+F. The system SHALL execute Playwright end-to-end tests using the command `npx playwright test`.
+G. Playwright tests SHALL produce HTML reports.
+H. The system SHALL generate a consolidated PDF summary report of all test results.
+I. The PDF report SHALL be generated using Playwright's built-in PDF export functionality.
+J. The system SHALL post test result status to the pull request using the GitHub Checks API.
+K. The system SHALL post a comment on the pull request containing test pass/fail status and links to test artifacts.
+L. The system SHALL upload all test artifacts to GitHub Actions artifact storage.
+M. The system SHALL NOT upload test artifacts to external storage systems.
+N. Test artifacts for pull request testing SHALL be retained for 90 days.
+O. Test artifacts for commits tagged as releases SHALL be retained permanently.
+P. The qa-container environment used in CI SHALL be identical to the qa-container used for local QA role testing.
 
-*End* *Automated QA Workflow* | **Hash**: fc47d463
+*End* *Automated QA Workflow* | **Hash**: 50c6e242
 ---
 
 # REQ-d00062: Environment Validation & Change Control
@@ -406,30 +399,31 @@ I. Deprecation notices SHALL be provided at least 90 days before environment ver
 
 # REQ-d00063: Shared Workspace and File Exchange
 
-**Level**: Dev | **Implements**: d00027| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: d00027
 
-Development environments SHALL provide shared Docker volumes for code repositories and a designated exchange volume for transferring files between roles, without exposing host file system internals or creating platform-specific path issues.
+## Rationale
 
-Shared workspace SHALL include:
-- Named volume for repository storage (`clinical-diary-repos`)
-- Named volume for role exchange (`clinical-diary-exchange`)
-- Bind mounts for source code editing with host IDE
-- Proper file permission handling across container boundaries
-- No direct access to Windows/Linux file systems from opposite OS
-- Workspace paths consistent across all containers
+Development environments require isolated yet accessible workspaces that function consistently across Windows and Linux host systems. Docker named volumes provide platform-agnostic storage that eliminates file system permission conflicts and prevents cross-platform access issues (such as accessing Linux filesystems from Windows, which causes corruption). This approach maintains role separation while enabling controlled file exchange between containers when collaboration is needed. The design supports both containerized execution and host-based IDE editing workflows.
 
-**Rationale**: Docker named volumes eliminate file system permission issues and enable safe sharing between containers and host. This avoids the "never access Linux filesystem from Windows" issue while maintaining proper permissions. Role separation is maintained while allowing controlled data exchange when necessary.
+## Assertions
 
-**Acceptance Criteria**:
-- `docker-compose.yml` defines named volumes
-- All containers mount `clinical-diary-repos` to `/workspace/repos`
-- Exchange volume mounted to `/workspace/exchange` (world-readable within containers)
-- Source code bind-mounted for editing with host IDE
-- File permissions preserved correctly on all platforms
-- Documentation explains volume purpose and usage patterns
-- No symlinks or hard links that break cross-platform
+A. The system SHALL provide a named Docker volume 'clinical-diary-repos' for repository storage.
+B. The system SHALL provide a named Docker volume 'clinical-diary-exchange' for inter-role file transfer.
+C. All development containers SHALL mount the 'clinical-diary-repos' volume to '/workspace/repos'.
+D. All development containers SHALL mount the 'clinical-diary-exchange' volume to '/workspace/exchange'.
+E. The exchange volume SHALL be configured with world-readable permissions within containers.
+F. The system SHALL support bind mounts for source code to enable host IDE editing.
+G. The system SHALL preserve file permissions correctly across container boundaries on all supported platforms.
+H. Workspace paths SHALL be consistent across all container instances.
+I. The system SHALL NOT expose host file system internals to containers running on opposite operating systems.
+J. The system SHALL NOT allow direct access to Linux filesystems from Windows host systems.
+K. The system SHALL NOT allow direct access to Windows filesystems from Linux containers in ways that create platform-specific path issues.
+L. The system SHALL NOT use symlinks or hard links that break cross-platform compatibility.
+M. The docker-compose.yml configuration SHALL define all required named volumes.
+N. Documentation SHALL explain the purpose of each volume type.
+O. Documentation SHALL describe usage patterns for workspace volumes and exchange volumes.
 
-*End* *Shared Workspace and File Exchange* | **Hash**: b407570f
+*End* *Shared Workspace and File Exchange* | **Hash**: c3be06e7
 ---
 
 ## Tool Version Rationale

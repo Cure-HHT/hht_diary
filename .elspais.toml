@@ -1,15 +1,7 @@
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00014: Requirement Validation Tooling
-#
-# elspais configuration for hht-diary clinical trial platform
-# See: https://github.com/Anspar-Org/elspais
-
-[project]
-name = "hht-diary"
-type = "core"
+project = { name = "hht-diary", type = "core" }
+validation = { strict_hierarchy = true, hash_algorithm = "sha256", hash_length = 8 }
 
 [directories]
-# Spec directory (roadmap/ contains future requirements, excluded from validation)
 spec = "spec"
 docs = "docs"
 database = "database"
@@ -27,41 +19,27 @@ ignore = [
 ]
 
 [patterns]
-# REQ-{type}{id} format (e.g., REQ-p00001, REQ-d00027)
 id_template = "{prefix}-{type}{id}"
 prefix = "REQ"
+id_format = { style = "numeric", digits = 5, leading_zeros = true }
 
 [patterns.types]
 prd = { id = "p", name = "Product Requirement", level = 1 }
 ops = { id = "o", name = "Operations Requirement", level = 2 }
 dev = { id = "d", name = "Development Requirement", level = 3 }
 
-[patterns.id_format]
-style = "numeric"
-digits = 5
-leading_zeros = true
-
 [patterns.associated]
-# Disabled for core repo - no sponsor prefix in requirement IDs
-# Sponsor repos enable this with their own prefix (e.g., CAL, TIT)
-# Example for sponsor repos:
-#   enabled = true
-#   prefix = "CAL"  # Results in REQ-CAL-d00001 format
-enabled = false
+enabled = true
+position = "after_prefix"
+format = "uppercase"
+length = 3
+separator = "-"
 
 [sponsors]
-# Multi-repo sponsor architecture configuration
-# See: spec/dev-sponsor-repos.md for full specification
 config_file = ".github/config/sponsors.yml"
 manifest_env = "SPONSOR_MANIFEST"
-
-# Local sponsors (in sponsor/ directory of core repo)
 local_dir = "sponsor"
-
-# Remote sponsor clone destination (for CI/CD)
 clone_dir = "build/sponsors"
-
-# Sponsor repository naming convention
 repo_pattern = "hht_diary_{sponsor-name}"
 
 [spec]
@@ -69,52 +47,29 @@ index_file = "INDEX.md"
 readme_file = "README.md"
 format_guide = "requirements-format.md"
 skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
-skip_dirs = ["roadmap"]  # Future requirements, not yet active
-
-[spec.file_patterns]
+skip_dirs = ["roadmap"]
 "prd-*.md" = "prd"
 "ops-*.md" = "ops"
 "dev-*.md" = "dev"
 
-[rules.hierarchy]
-# Allow same-level implementations (local tool treats these as INFO, not errors)
-allowed_implements = [
-    "dev -> dev, ops, prd",
-    "ops -> ops, prd",
-    "prd -> prd",
-]
-allow_circular = false
-allow_orphans = true  # Local tool warns but doesn't fail on orphans
-max_depth = 5
+[rules]
+hierarchy = { allowed_implements = ["dev -> dev, ops, prd", "ops -> ops, prd", "prd -> prd"], allow_circular = false, allow_orphans = true, max_depth = 5 }
 
 [rules.format]
 require_hash = true
 require_rationale = false
 require_status = true
 allowed_statuses = ["Active", "Draft", "Deprecated", "Superseded"]
-
-# Assertion format validation (A., B., C. style)
-# Set to false for backwards compatibility with legacy "Acceptance Criteria" format
-# TODO: Enable after migrating all requirements to assertion format
 require_assertions = false
-acceptance_criteria = "allow"
+acceptance_criteria = "error"
 require_shall = false
 labels_sequential = false
 labels_unique = false
 
-[validation]
-strict_hierarchy = true
-hash_algorithm = "sha256"
-hash_length = 8
-
 [traceability]
 output_formats = ["markdown", "html"]
 output_dir = "build-reports/combined/traceability"
-
-# Include associated repos by default (override with --mode core)
 include_associated = true
-
-# Core implementation patterns
 scan_patterns = [
     "database/**/*.sql",
     "apps/**/*.dart",
@@ -122,8 +77,6 @@ scan_patterns = [
     "tools/**/*.py",
     ".github/workflows/**/*.yml",
 ]
-
-# Associated repo patterns ({name} is replaced with repo name)
 associated_patterns = [
     "sponsor/{name}/**/*.dart",
     "sponsor/{name}/**/*.sql",
@@ -135,9 +88,4 @@ enabled = true
 test_dirs = ["apps/**/test", "packages/**/test", "tools/**/tests"]
 patterns = ["*_test.dart", "test_*.py", "*_test.sql"]
 result_files = ["build-reports/**/TEST-*.xml", "build-reports/pytest-results.json"]
-
-# Multi-repo modes: core, sponsor, combined
-# core: Only core directories (default)
-# sponsor: Specific sponsor + core
-# combined: All sponsors + core
 default_mode = "core"
