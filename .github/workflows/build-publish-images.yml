@@ -27,9 +27,9 @@ on:
 env:
   REGISTRY: ghcr.io
   ORGANIZATION: cure-hht
-  IMAGE_PREFIX: cure-hht/diary-server
+  DART_BASE_IMAGE: cure-hht/dart-base
   DART_VERSION: 3.10.1
-  DART_BASE_IMAGE: cure-hht/dart-base:3.10.1
+  DART_IMAGE: cure-hht/dart:3.10.1
   # IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
 
 
@@ -115,9 +115,9 @@ jobs:
 
           # Build the newline-separated tags list for build-push-action
           # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+          TAGS="${REGISTRY}/${DART_BASE_IMAGE}:${MAJOR_MINOR}, ${REGISTRY}/${DART_BASE_IMAGE}:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
+            TAGS="${TAGS}, ${REGISTRY}/${DART_BASE_IMAGE}:${MAJOR_MINOR}, ${REGISTRY}/${DART_BASE_IMAGE}:${MAJOR}, ${REGISTRY}/${DART_BASE_IMAGE}:latest"
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -152,7 +152,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base
+          images: ${{ env.REGISTRY }}/${{ env.DART_BASE_IMAGE }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -178,8 +178,8 @@ jobs:
           # COHERENT CACHING: GHCR only (no GHA cache)
           # Images in GHCR serve as cache - pull latest before build
           cache-from: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.DART_BASE_IMAGE }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.DART_BASE_IMAGE }}:latest
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.DART_IMAGE }}
           cache-to: type=inline
           provenance: false
           sbom: false
@@ -193,11 +193,11 @@ jobs:
         run: |
           # Extract first tag from metadata action output
           FIRST_TAG=$(echo '${{ steps.parse.outputs.tags }}' | head -n1)
-          docker tag "$FIRST_TAG" diary-server-base:latest
+          docker tag "$FIRST_TAG" dart-base:latest
 
       - name: Export local image for downstream jobs
         # if: github.event_name == 'pull_request'
-        run: docker save -o /tmp/base-image.tar diary-server-base:latest
+        run: docker save -o /tmp/base-image.tar dart-base:latest
 
       - name: Upload base image artifact
         # if: github.event_name == 'pull_request'
