@@ -189,24 +189,6 @@ module "monitoring" {
 }
 
 # -----------------------------------------------------------------------------
-# Cloud Build Triggers (DEPRECATED - Use GitHub Actions instead)
-# -----------------------------------------------------------------------------
-
-# module "cloud_build" {
-#   source = "../modules/cloud-build"
-#   count  = var.enable_cloud_build_triggers ? 1 : 0
-#
-#   project_id            = var.project_id
-#   sponsor               = var.sponsor
-#   environment           = var.environment
-#   region                = var.region
-#   github_org            = var.github_org
-#   github_repo           = var.github_repo
-#   artifact_registry_url = module.artifact_registry.repository_url
-#   trigger_branch        = var.environment == "prod" ? "^main$" : "^${var.environment}$"
-# }
-
-# -----------------------------------------------------------------------------
 # Identity Platform (HIPAA/GDPR-compliant authentication)
 # -----------------------------------------------------------------------------
 
