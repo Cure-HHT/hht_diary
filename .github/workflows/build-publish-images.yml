@@ -107,9 +107,9 @@ jobs:
 
           # Build the newline-separated tags list for build-push-action
           # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE}:${SHORT_SHA}"
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS}, ${REGISTRY}/${IMAGE}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE}:${MAJOR}, ${REGISTRY}/${IMAGE}:latest"
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE_PREFIX}:${MAJOR}, ${REGISTRY}/${IMAGE_PREFIX}:latest"
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
