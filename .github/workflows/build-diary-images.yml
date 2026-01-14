@@ -1,3 +1,4 @@
+---
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00027: Containerized Development Environments
 #   REQ-d00030: CI/CD Integration
@@ -15,7 +16,8 @@
 # - Restores the "Determine tag and validate semver" step (id: parse)
 # - Adds workflow_dispatch with an input string named `version`
 # - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
-name: Build and Push diary-server-base & diary-server images (semver tags + manual)
+
+name: Build and Push diary-server images
 
 on:
   push:
@@ -117,9 +119,9 @@ jobs:
 
           # Build the newline-separated tags list for build-push-action
           # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE}:${DOCKER_VER} ${REGISTRY}/${IMAGE}:${SHORT_SHA}"
+          TAGS="${REGISTRY}/${IMAGE}-base:${DOCKER_VER} ${REGISTRY}/${IMAGE}-base:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS} ${REGISTRY}/${IMAGE}:${MAJOR_MINOR} ${REGISTRY}/${IMAGE}:${MAJOR} ${REGISTRY}/${IMAGE}:latest"
+            TAGS="${TAGS} ${REGISTRY}/${IMAGE}-base:${MAJOR_MINOR} ${REGISTRY}/${IMAGE}-base:${MAJOR} ${REGISTRY}/${IMAGE}-base:latest"
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -175,14 +177,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # COHERENT CACHING: GHCR only (no GHA cache)
           # Images in GHCR serve as cache - pull latest before build
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE }}-base:latest
           cache-to: type=inline
           provenance: ${{ github.event_name != 'pull_request' }}
           sbom: ${{ github.event_name != 'pull_request' }}
 
       - name: Export local image for downstream jobs
         if: github.event_name == 'pull_request'
-        run: docker save -o /tmp/base-image.tar clinical-diary-base:latest
+        run: docker save -o /tmp/base-image.tar ${{ env.IMAGE }}-base:latest
 
       - name: Upload base image artifact
         if: github.event_name == 'pull_request'
