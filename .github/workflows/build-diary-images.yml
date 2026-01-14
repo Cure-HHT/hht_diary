@@ -1,0 +1,193 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00027: Containerized Development Environments
+#   REQ-d00030: CI/CD Integration
+#   REQ-d00033: FDA Validation Documentation
+#   REQ-d00035: Security and Compliance
+#
+# Clinical Diary Docker Image Build & Publish
+# Builds, signs, and publishes Docker images to GitHub Container Registry
+
+# Build Diary Docker images to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed.
+# Tags produced: full semver (1.2.3), major.minor (1.2), major (1), latest, short-sha
+
+# Build & push Docker image to ghcr.io when a semver tag (vMAJOR.MINOR.PATCH) is pushed
+# or when manually dispatched via the Actions UI with an input `version`.
+# - Restores the "Determine tag and validate semver" step (id: parse)
+# - Adds workflow_dispatch with an input string named `version`
+# - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
+name: Build and push Docker image (semver tags + manual)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build and push (example: v1.2.3, 1.2.3, 1.2.3-beta.1)'
+        required: true
+        default: ''
+      create_tag:
+        description: 'If true, create/push the annotated git tag back to the repo (requires push permission).'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write    # needed if creating/pushing tags
+  packages: write
+  id-token: write    # For Cosign signing
+
+env:
+  REGISTRY: ghcr.io
+  # IMAGE: ${{ github.repository }}
+  IMAGE: diary-server
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (fetch full history & tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # - name: Extract version parts from tag
+      #   id: parse
+      #   run: |
+      #     # GITHUB_REF is like refs/tags/v1.2.3
+      #     TAG=${GITHUB_REF#refs/tags/}
+      #     VERSION=${TAG#v}                     # 1.2.3
+      #     MAJOR=${VERSION%%.*}                 # 1
+      #     MAJOR_MINOR=$(echo "$VERSION" | awk -F. '{print $1"."$2}') # 1.2
+      #     SHORT_SHA=${GITHUB_SHA::7}
+
+      #     echo "TAG=$TAG" >> $GITHUB_ENV
+      #     echo "VERSION=$VERSION" >> $GITHUB_ENV
+      #     echo "MAJOR=$MAJOR" >> $GITHUB_ENV
+      #     echo "MAJOR_MINOR=$MAJOR_MINOR" >> $GITHUB_ENV
+      #     echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+
+      - name: Determine tag and validate semver
+        id: parse
+        run: |
+          set -euo pipefail
+
+          # Source tag:
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ github.event.inputs.version }}"
+          else
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+
+          # Normalize (strip optional leading v)
+          VERSION="${RAW_TAG#v}"
+
+          # semver regex that accepts prerelease and build metadata per semver.org
+          SEMVER_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$'
+
+          if ! echo "$VERSION" | grep -Eq "$SEMVER_RE"; then
+            echo "Invalid semantic version: '$RAW_TAG'. Expected MAJOR.MINOR.PATCH with optional -prerelease and +build."
+            exit 1
+          fi
+
+          CORE="$(echo "$VERSION" | sed -e 's/-.*$//' -e 's/\+.*$//')"
+          MAJOR="${CORE%%.*}"
+          MAJOR_MINOR="$(echo "$CORE" | awk -F. '{print $1"."$2}')"
+
+          # is there prerelease or build metadata?
+          if echo "$VERSION" | grep -Eq '[-+]'; then
+            IS_RELEASE=false
+          else
+            IS_RELEASE=true
+          fi
+
+          # sanitize for docker tags: convert '+' to '-' and lowercase
+          DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG_FULL="v${VERSION}"   # canonical tag with leading v
+
+          echo "::notice::Resolved version='$VERSION' (canonical tag='$TAG_FULL'), docker_tag='$DOCKER_VER', is_release=$IS_RELEASE"
+
+          # Build the newline-separated tags list for build-push-action
+          # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
+          TAGS="${REGISTRY}/${IMAGE}:${DOCKER_VER} ${REGISTRY}/${IMAGE}:${SHORT_SHA}"
+          if [ "$IS_RELEASE" = "true" ]; then
+            TAGS="${TAGS} ${REGISTRY}/${IMAGE}:${MAJOR_MINOR} ${REGISTRY}/${IMAGE}:${MAJOR} ${REGISTRY}/${IMAGE}:latest"
+          fi
+
+          # Export outputs (use GITHUB_OUTPUT format)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "docker_ver=${DOCKER_VER}" >> "$GITHUB_OUTPUT"
+          echo "core=${CORE}" >> "$GITHUB_OUTPUT"
+          echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "major_minor=${MAJOR_MINOR}" >> "$GITHUB_OUTPUT"
+          echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tag_full=${TAG_FULL}" >> "$GITHUB_OUTPUT"
+          # tags is multiline output
+          echo "tags<<EOF" >> "$GITHUB_OUTPUT"
+          printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}-base
+          tags: ${{ steps.parse.outputs.tags }}
+          # tags: |
+          #   type=ref,event=branch
+          #   type=ref,event=pr
+          #   type=semver,pattern={{version}}
+          #   type=semver,pattern={{major}}.{{minor}}
+          #   type=sha,prefix=sha-
+          #   type=raw,value=latest,enable={{is_default_branch}}
+
+      # - name: Build and push image
+      #   uses: docker/build-push-action@v4
+      #   with:
+      #     context: .
+      #     push: true
+      #     tags: ${{ steps.parse.outputs.tags }}
+
+      - name: Build and push base image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: tools/dev-env/docker
+          file: tools/dev-env/docker/base.Dockerfile
+          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # COHERENT CACHING: GHCR only (no GHA cache)
+          # Images in GHCR serve as cache - pull latest before build
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-base:latest
+          cache-to: type=inline
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+
+      - name: Export local image for downstream jobs
+        if: github.event_name == 'pull_request'
+        run: docker save -o /tmp/base-image.tar clinical-diary-base:latest
+
+      - name: Upload base image artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-image
+          path: /tmp/base-image.tar
+          retention-days: 1
