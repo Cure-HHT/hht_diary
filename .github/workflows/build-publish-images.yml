@@ -90,6 +90,8 @@ jobs:
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/base.Dockerfile
+          # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
+          platforms: linux/amd64
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -193,6 +195,8 @@ jobs:
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/dev.Dockerfile
+          # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
+          platforms: linux/amd64
           build-args: |
             BASE_IMAGE_REF=${{ env.BASE_IMAGE_REF }}
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
@@ -305,6 +309,8 @@ jobs:
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/qa.Dockerfile
+          # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
+          platforms: linux/amd64
           build-args: |
             DEV_IMAGE_REF=${{ env.DEV_IMAGE_REF }}
           push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
