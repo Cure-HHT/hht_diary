@@ -23,6 +23,7 @@ steps:
         echo "Building diary-server with Dart $${DART_VERSION}"
 
   # Step 2: Build the diary server image
+  # IMPORTANT: --platform linux/amd64 is required for Cloud Run compatibility
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build'
     entrypoint: 'bash'
@@ -31,6 +32,7 @@ steps:
       - |
         source /workspace/versions.txt
         docker build \
+          --platform linux/amd64 \
           --build-arg=DART_VERSION=$${DART_VERSION} \
           --build-arg=GCP_PROJECT_ID=${PROJECT_ID} \
           -f infrastructure/diary-server/Dockerfile \
