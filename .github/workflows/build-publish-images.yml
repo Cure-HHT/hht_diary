@@ -26,7 +26,8 @@ on:
         default: 'false'
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
+  IMAGE_PREFIX: cure-hht/diary-server
+  # IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
 
 permissions:
   contents: read
