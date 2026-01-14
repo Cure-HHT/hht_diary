@@ -1,0 +1,54 @@
+flowchart TB
+    subgraph repos["Git Repositories"]
+        direction LR
+        CORE["hht_diary<br/>(public core)"]
+        SP1["sponsor-acme<br/>(private)"]
+        SP2["sponsor-beta<br/>(private)"]
+    end
+
+    subgraph build["Build Process"]
+        TAG["Release Tag<br/>v1.0.1"]
+        BUILD["Container Build"]
+        ARTIFACT[("Artifact Repository")]
+        GHA["GitHub Action"]
+        CORE --> TAG
+        TAG --> BUILD
+        BUILD --> ARTIFACT
+        BUILD -->|Manual Trigger| GHA
+        SP1 -.->|clone overlay| BUILD
+        SP2 -.->|clone overlay| BUILD
+    end
+
+    subgraph deploy["Unified Deployment"]
+        TF["Terraform Apply"]
+        ARTIFACT -->|Manual Trigger| TF
+    end
+
+    subgraph gcp["GCP Projects (Isolated)"]
+        direction LR
+        subgraph acme["hht-acme-prod"]
+            A_CR["Cloud Run"]
+            A_DB[("PostgreSQL")]
+        end
+        subgraph beta["hht-beta-prod"]
+            B_CR["Cloud Run"]
+            B_DB[("PostgreSQL")]
+        end
+    end
+
+    TF -->|deploy| A_CR
+    TF -->|deploy| B_CR
+
+    subgraph mobile["Mobile App"]
+        APP["Single App<br/>(both stores)"]
+    end
+
+    GHA -->|deploy| APP
+
+    APP -->|API| A_CR
+    APP -->|API| B_CR
+
+    style CORE fill:#4CAF50,color:#fff
+    style TAG fill:#2196F3,color:#fff
+    style SP1 fill:#9C27B0,color:#fff
+    style SP2 fill:#9C27B0,color:#fff
