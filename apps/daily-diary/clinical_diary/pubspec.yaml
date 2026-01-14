@@ -2,10 +2,10 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: 'none'
 
-version: 0.7.121
+version: 0.7.122
 
 environment:
-  sdk: ^3.10.1
+  sdk: ^3.10.7
 
 dependencies:
   flutter:

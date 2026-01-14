@@ -79,7 +79,7 @@ fi
 echo "Setting up Flutter development environment..."
 
 FLUTTER_DIR="/opt/flutter"
-FLUTTER_VERSION="3.38.3"  # Required for SDK ^3.10.1 (Dart 3.10.0+)
+FLUTTER_VERSION="3.38.7"
 
 # Install Flutter SDK if not present
 if [ ! -d "$FLUTTER_DIR" ]; then

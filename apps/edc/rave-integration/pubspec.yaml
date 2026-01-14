@@ -3,7 +3,7 @@ description: Dart client for Medidata RAVE Web Services API - EDC site sync inte
 version: 0.1.0
 
 environment:
-  sdk: ^3.10.1
+  sdk: ^3.10.7
 
 dependencies:
   http: ^1.2.0

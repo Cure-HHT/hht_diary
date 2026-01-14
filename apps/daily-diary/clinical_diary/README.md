@@ -16,7 +16,7 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 
 ### Prerequisites
 
-- Flutter SDK 3.38.3 or higher
+- Flutter SDK 3.38.7 or higher
 - Doppler CLI (for secrets management)
 - lcov (for coverage reports)
 
