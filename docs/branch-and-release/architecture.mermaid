@@ -9,15 +9,19 @@ flowchart TB
     subgraph build["Build Process"]
         TAG["Release Tag<br/>v1.0.1"]
         BUILD["Container Build"]
+        ARTIFACT[("Artifact Repository")]
+        GHA["GitHub Action"]
         CORE --> TAG
         TAG --> BUILD
+        BUILD --> ARTIFACT
+        BUILD -->|Manual Trigger| GHA
         SP1 -.->|clone overlay| BUILD
         SP2 -.->|clone overlay| BUILD
     end
 
     subgraph deploy["Unified Deployment"]
         TF["Terraform Apply"]
-        BUILD --> TF
+        ARTIFACT -->|Manual Trigger| TF
     end
 
     subgraph gcp["GCP Projects (Isolated)"]
@@ -38,6 +42,8 @@ flowchart TB
     subgraph mobile["Mobile App"]
         APP["Single App<br/>(both stores)"]
     end
+
+    GHA -->|deploy| APP
 
     APP -->|API| A_CR
     APP -->|API| B_CR

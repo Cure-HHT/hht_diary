@@ -69,7 +69,7 @@ This means:
 - **Sponsor repos as config overlays**: Cloned at build time, not separate branches
 - **Locked studies**: Gate on approval, not on version freezing
 
-![Unified Deployment Architecture](RECOMMENDED-architecture.png)
+![Unified Deployment Architecture](architecture.png)
 
 ---
 
@@ -117,7 +117,7 @@ mobile-v2.1.0+6d6ee33         # Mobile with commit SHA
 
 **Note:** Release branches are for **QA, stabilization only**. Once tagged, they are merged and deleted.
 
-![Git Branching Flow](RECOMMENDED-diagram.png)
+![Git Branching Flow](branching.png)
 
 ---
 
