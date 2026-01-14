@@ -158,8 +158,10 @@ jobs:
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: tools/dev-env/docker
-          file: tools/dev-env/docker/base.Dockerfile
+          context: apps/daily-diary/diary-server-container
+          file: apps/daily-diary/diary-server-container/Dockerfile
+          # context: tools/dev-env/docker
+          # file: tools/dev-env/docker/base.Dockerfile
           # IMPORTANT: platforms linux/amd64 is required for Cloud Run compatibility
           platforms: linux/amd64
           push: true
@@ -179,7 +181,7 @@ jobs:
         # if: github.event_name == 'pull_request'
         run: |
           # Extract first tag from metadata action output
-          FIRST_TAG=$(echo '${{ steps.meta.outputs.tags }}' | head -n1)
+          FIRST_TAG=$(echo '${{ steps.parse.outputs.tags }}' | head -n1)
           docker tag "$FIRST_TAG" diary-server-base:latest
 
       - name: Export local image for downstream jobs
