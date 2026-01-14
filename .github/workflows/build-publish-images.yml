@@ -29,7 +29,7 @@ env:
   ORGANIZATION: cure-hht
   IMAGE_PREFIX: cure-hht/diary-server
   DART_VERSION: 3.10.1
-  DART_BASE_IMAGE: cure-hht/dart-base:4.10.1
+  DART_BASE_IMAGE: cure-hht/dart-base:3.10.1
   # IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
 
 
@@ -50,6 +50,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: feature/CUR-675-implement-diary-server-ci
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
