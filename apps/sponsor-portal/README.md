@@ -450,7 +450,6 @@ docker compose -f docker-compose.firebase.yml up -d
 
 # Re-apply schema and seed data
 doppler run -- psql -h localhost -U postgres -d sponsor_portal -f ../../database/schema.sql
-doppler run -- psql -h localhost -U postgres -d sponsor_portal -f /path/to/seed_data.sql
 
 # Create user in Firebase Emulator UI (http://localhost:4000)
 ```

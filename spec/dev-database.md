@@ -115,7 +115,6 @@ hht-diary/                          # Public core repository
         rls_policies.sql            # Row-level security
         roles.sql                   # Database Roles and Permissions
         schema.sql                  # Core tables
-        seed_data.sql               # Seed data for Development and testing environments only
         tamper_detection.sql        # Cryptographic Tamper Detection
         triggers.sql                # Event Sourcing triggers
 

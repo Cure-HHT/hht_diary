@@ -5,8 +5,20 @@
 #
 # Test script for rave-integration library.
 # Runs Dart unit tests and integration tests against RAVE EDC.
-# Integration tests use Doppler for RAVE credentials.
+# Uses Doppler internally for RAVE credentials.
 # Optionally generates coverage reports.
+#
+# Usage:
+#   ./tool/test.sh           # Run both unit and integration tests (default)
+#   ./tool/test.sh -u        # Run unit tests only
+#   ./tool/test.sh -i        # Run integration tests only
+#   ./tool/test.sh -c        # Run with coverage
+
+# Re-execute under Doppler if not already running with it.
+# This makes RAVE credentials available for integration tests.
+if [ -z "$DOPPLER_ENVIRONMENT" ]; then
+    exec doppler run -- "$0" "$@"
+fi
 
 set -e  # Exit on any error
 
@@ -79,9 +91,9 @@ fi
 
 echo "=============================================="
 if [ "$WITH_COVERAGE" = true ]; then
-    echo "Portal Functions Test Suite (with Coverage)"
+    echo "RAVE Integration Test Suite (with Coverage)"
 else
-    echo "Portal Functions Test Suite"
+    echo "RAVE Integration Test Suite"
 fi
 echo "=============================================="
 
@@ -100,14 +112,11 @@ echo "Checking dependencies..."
 dart pub get
 
 # Build test commands based on coverage flag
-# Unit tests don't need credentials, integration tests use Doppler for RAVE creds
+# Doppler credentials are available via the self-invoking wrapper at the top
 if [ "$WITH_COVERAGE" = true ]; then
-    UNIT_TEST_CMD="dart test --coverage=coverage"
-    # Integration tests run via Doppler for RAVE_UAT_USERNAME/RAVE_UAT_PWD
-    INTEGRATION_TEST_CMD="doppler run -- dart test --coverage=coverage"
+    TEST_CMD="dart test --coverage=coverage"
 else
-    UNIT_TEST_CMD="dart test"
-    INTEGRATION_TEST_CMD="doppler run -- dart test"
+    TEST_CMD="dart test"
 fi
 
 # Run unit tests
@@ -116,7 +125,7 @@ if [ "$RUN_UNIT" = true ]; then
     echo "Running unit tests..."
     echo ""
 
-    if $UNIT_TEST_CMD test/; then
+    if $TEST_CMD test/; then
         echo "Unit tests passed!"
     else
         echo "Unit tests failed!"
@@ -137,13 +146,13 @@ if [ "$RUN_UNIT" = true ]; then
     fi
 fi
 
-# Run integration tests (with Doppler for RAVE credentials)
+# Run integration tests (RAVE credentials available via Doppler wrapper)
 if [ "$RUN_INTEGRATION" = true ]; then
     echo ""
-    echo "Running integration tests (via Doppler for RAVE credentials)..."
+    echo "Running integration tests..."
     echo ""
 
-    if $INTEGRATION_TEST_CMD integration_test/; then
+    if $TEST_CMD integration_test/; then
         echo "Integration tests passed!"
     else
         echo "Integration tests failed!"
