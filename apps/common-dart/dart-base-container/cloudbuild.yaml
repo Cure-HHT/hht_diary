@@ -24,6 +24,7 @@ steps:
         echo "Building dart-base:$${DART_VERSION}"
 
   # Step 2: Build the base Dart image
+  # IMPORTANT: --platform linux/amd64 is required for Cloud Run compatibility
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build'
     entrypoint: 'bash'
@@ -32,6 +33,7 @@ steps:
       - |
         source /workspace/versions.txt
         docker build \
+          --platform linux/amd64 \
           --build-arg=DART_VERSION=$${DART_VERSION} \
           -t ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:$${DART_VERSION} \
           -t ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/dart-base:latest \
