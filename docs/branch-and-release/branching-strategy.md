@@ -97,6 +97,7 @@ mobile-v2.1.0+6d6ee33         # Mobile with commit SHA
 ```
 
 ### Why Tags, Not Branches?
+
 | Tags | Long-lived Branches |
 | --- | --- |
 | Immutable (can't be changed) | Mutable (anyone can push) |
@@ -108,6 +109,7 @@ mobile-v2.1.0+6d6ee33         # Mobile with commit SHA
 ---
 
 ### Branch Lifecycle
+
 | Branch Type | Created From | Merges To | Lifetime | Deleted After |
 | --- | --- | --- | --- | --- |
 | `feature/*` | `main` | `main` via PR | days < week | Merge |
