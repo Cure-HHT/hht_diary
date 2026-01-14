@@ -29,6 +29,7 @@ env:
   IMAGE_PREFIX: cure-hht/diary-server
   # IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
 
+
 permissions:
   contents: read
   packages: write
@@ -176,6 +177,8 @@ jobs:
           sbom: false
           # provenance: ${{ github.event_name != 'pull_request' }}
           # sbom: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            DART_VERSION=3.10.1
 
       - name: Tag image for local use
         # if: github.event_name == 'pull_request'
