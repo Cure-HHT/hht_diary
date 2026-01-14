@@ -54,10 +54,10 @@ jobs:
           fetch-depth: 0
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       # - name: Extract version parts from tag
       #   id: parse
@@ -139,7 +139,7 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -172,7 +172,8 @@ jobs:
         with:
           context: tools/dev-env/docker
           file: tools/dev-env/docker/base.Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
+          push: true
+          # push: ${{ github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # COHERENT CACHING: GHCR only (no GHA cache)
@@ -183,11 +184,11 @@ jobs:
           sbom: ${{ github.event_name != 'pull_request' }}
 
       - name: Export local image for downstream jobs
-        if: github.event_name == 'pull_request'
+        # if: github.event_name == 'pull_request'
         run: docker save -o /tmp/base-image.tar ${{ env.IMAGE }}-base:latest
 
       - name: Upload base image artifact
-        if: github.event_name == 'pull_request'
+        # if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: base-image
