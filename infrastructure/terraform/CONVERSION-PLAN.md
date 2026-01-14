@@ -225,15 +225,15 @@ Both are built via **Cloud Build** and pushed to **Artifact Registry**, then dep
 
 ## Naming Conventions (GCP Best Practices)
 
-| Resource        | Pattern                               | Example                          |
-|-----------------|---------------------------------------|----------------------------------|
-| Project ID      | `{prefix}-{sponsor}-{env}`            | `cure-hht-orion-prod`            |
-| VPC             | `{sponsor}-{env}-vpc`                 | `orion-prod-vpc`                 |
-| Subnet          | `{sponsor}-{env}-subnet`              | `orion-prod-subnet`              |
-| Cloud SQL       | `{sponsor}-{env}-db`                  | `orion-prod-db`                  |
-| Cloud Run       | `diary-server`, `portal-server`       | `orion-prod-diary-server`        |
-| Audit Bucket    | `{sponsor}-{env}-audit-logs` | `cure-hht-orion-prod-audit-logs` |
-| Service Account | `{sponsor}-cicd`                      | `orion-cicd`                     |
+| Resource        | Pattern                         | Example                          |
+|-----------------|---------------------------------|----------------------------------|
+| Project ID      | `{prefix}-{sponsor}-{env}`      | `cure-hht-orion-prod`            |
+| VPC             | `{sponsor}-{env}-vpc`           | `orion-prod-vpc`                 |
+| Subnet          | `{sponsor}-{env}-subnet`        | `orion-prod-subnet`              |
+| Cloud SQL       | `{sponsor}-{env}-db`            | `orion-prod-db`                  |
+| Cloud Run       | `diary-server`, `portal-server` | `orion-prod-diary-server`        |
+| Audit Bucket    | `{sponsor}-{env}-audit-logs`    | `cure-hht-orion-prod-audit-logs` |
+| Service Account | `{sponsor}-cicd`                | `orion-cicd`                     |
 
 ---
 
