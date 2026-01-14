@@ -1,35 +1,23 @@
 # REQ-d00066: Plugin-Specific Permission Management
 
-**Level**: Dev | **Implements**: o00017| **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: o00017
 
-## Overview
+## Rationale
 
-Automated, plugin-specific permission management system that allows each Claude Code plugin to pre-authorize only the commands it needs, enabling seamless automation without user permission prompts.
+This requirement establishes an automated permission management system for Claude Code plugins. Each plugin declares the commands it needs in a manifest file, and these permissions are automatically configured during installation and cleaned up during uninstallation. This design eliminates repetitive user permission prompts while maintaining security through explicit permission declarations. The system must handle shared permissions correctly when multiple plugins require the same commands, and must track which plugin added which permission to prevent premature removal.
 
-## Requirements
+## Assertions
 
-- **REQ-d00066.1**: Plugin permission manifests (permissions.json defines needed commands)
-- **REQ-d00066.2**: Installation integration (auto-add permissions on plugin install)
-- **REQ-d00066.3**: Uninstallation cleanup (remove permissions on uninstall)
-- **REQ-d00066.4**: Registry tracking (track which plugin added which permission)
-- **REQ-d00066.5**: Shared permission handling (don't remove if another plugin needs it)
-- **REQ-d00066.6**: Idempotent operations (safe to run multiple times)
+A. The system SHALL support a permissions.json manifest file in each plugin's .claude-plugin directory that declares required commands.
+B. The system SHALL provide a manage-permissions.sh utility that supports add, remove, and list operations for plugin permissions.
+C. The system SHALL automatically add all permissions declared in permissions.json when a plugin is installed.
+D. The system SHALL automatically remove permissions when a plugin is uninstalled.
+E. The system SHALL maintain a registry that tracks which plugin added each permission.
+F. The system SHALL NOT remove a permission during uninstallation if another installed plugin still requires that permission.
+G. Permission management operations SHALL be idempotent such that running the same operation multiple times produces the same result.
+H. The plugin install script SHALL invoke the permission addition utility during installation.
+I. The plugin uninstall script SHALL invoke the permission removal utility during uninstallation.
+J. The plugin-expert plugin permissions manifest SHALL include at minimum: git status, git diff, git show, git rev-parse, git ls-files, and gh commands.
 
-## Implementation
-
-**Files**:
-- `.claude-plugin/permissions.json` - Plugin permission manifest
-- `utilities/manage-permissions.sh` - Add/remove/list permissions
-- `scripts/install.sh` - Calls add permissions
-- `scripts/uninstall.sh` - Calls remove permissions
-
-**Plugin-expert permissions**: git status, diff, show, rev-parse, ls-files, gh
-
-## Related
-
-- REQ-d00064: JSON Validation
-- REQ-d00065: Path Validation
-
-
-*End* *Plugin-Specific Permission Management* | **Hash**: 0dd52eec
+*End* *Plugin-Specific Permission Management* | **Hash**: 356621f9
 ---

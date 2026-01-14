@@ -532,50 +532,56 @@ jobs:
 
 # REQ-o00001: Separate GCP Projects Per Sponsor
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00001
 
-Each sponsor SHALL be provisioned with dedicated GCP projects for staging and production environments, ensuring complete infrastructure isolation.
+## Rationale
 
-Each GCP project SHALL provide:
-- Isolated Cloud SQL PostgreSQL database
-- Unique Cloud Run services with sponsor-specific URLs
-- Independent Identity Platform configuration and user pools
-- Separate Cloud Storage buckets for file uploads
-- Dedicated service accounts and IAM roles
+This requirement establishes infrastructure-level data isolation for the multi-sponsor clinical trial platform by leveraging GCP's project isolation boundaries. Each sponsor receives completely separate GCP projects for staging and production environments, ensuring that no infrastructure resources, data, or credentials can be shared between sponsors. This approach implements the product-level multi-sponsor isolation requirement (p00001) through GCP's native project separation, where each project acts as a hard security boundary with independent billing, IAM, and resource quotas. The isolation extends across all infrastructure layers including databases, compute instances, authentication systems, storage, and access control, providing defense-in-depth against cross-sponsor data leakage or unauthorized access.
 
-**Rationale**: Implements multi-sponsor data isolation (p00001) at the infrastructure level using GCP's project isolation guarantees. Each sponsor's GCP project is a completely separate deployment with its own resources.
+## Assertions
 
-**Acceptance Criteria**:
-- Each sponsor has unique GCP project for staging and production
-- Database connections cannot span projects
-- Service accounts are project-specific
-- No shared configuration between sponsors
-- Project provisioning documented in runbook
+A. The platform SHALL provision each sponsor with a dedicated GCP project for staging environments.
+B. The platform SHALL provision each sponsor with a dedicated GCP project for production environments.
+C. Each sponsor's GCP project SHALL include an isolated Cloud SQL PostgreSQL database instance.
+D. Each sponsor's GCP project SHALL include unique Cloud Run services with sponsor-specific URLs.
+E. Each sponsor's GCP project SHALL include independent Identity Platform configuration.
+F. Each sponsor's GCP project SHALL include isolated user pools that cannot be accessed by other sponsors.
+G. Each sponsor's GCP project SHALL include separate Cloud Storage buckets for file uploads.
+H. Each sponsor's GCP project SHALL include dedicated service accounts that are project-specific.
+I. Each sponsor's GCP project SHALL include dedicated IAM roles that are project-specific.
+J. Database connections SHALL NOT span across different sponsor GCP projects.
+K. Service accounts SHALL be scoped exclusively to their respective sponsor's GCP project.
+L. Configuration settings SHALL NOT be shared between different sponsor GCP projects.
+M. The platform SHALL provide documented runbook procedures for provisioning new sponsor GCP projects.
+N. Each sponsor's staging and production GCP projects SHALL maintain complete resource isolation from all other sponsors.
 
-*End* *Separate GCP Projects Per Sponsor* | **Hash**: 6d281a2e
+*End* *Separate GCP Projects Per Sponsor* | **Hash**: 7f9aaf0b
 ---
 
 # REQ-o00002: Environment-Specific Configuration Management
 
-**Level**: Ops | **Implements**: p00001 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00001
 
-Configuration containing environment-specific credentials SHALL be stored securely via Doppler and GCP Secret Manager, and SHALL NOT be committed to version control.
+## Rationale
 
-Each sponsor environment SHALL maintain:
-- Doppler project/config for secrets management
-- GCP Secret Manager for Cloud Run secrets (sync'ed via Doppler)
-- GitHub Secrets for CI/CD pipelines (sync'ed via Doppler? TODO)
-- No hardcoded credentials in source code
+This requirement addresses secure configuration management for multi-sponsor clinical trial deployments. FDA 21 CFR Part 11 mandates protection of electronic records and systems, which includes safeguarding access credentials. By using Doppler and GCP Secret Manager as the single source of truth for environment-specific secrets, the system prevents accidental credential exposure through version control and ensures proper isolation between sponsor environments. This approach aligns with security best practices for cloud-native applications and supports the multi-tenant architecture where each sponsor must maintain complete data and configuration isolation.
 
-**Rationale**: Prevents accidental credential sharing between sponsors and ensures proper secret management per security best practices.
+## Assertions
 
-**Acceptance Criteria**:
-- `.gitignore` includes `*.env` files
-- CI/CD pipelines use Workload Identity Federation
-- Secrets accessed via Secret Manager in Cloud Run
-- No credentials found in git history
+A. The system SHALL store all environment-specific credentials via Doppler.
+B. The system SHALL store all environment-specific credentials via GCP Secret Manager.
+C. Environment-specific credentials SHALL NOT be committed to version control.
+D. Each sponsor environment SHALL maintain a dedicated Doppler project/config for secrets management.
+E. Each sponsor environment SHALL maintain a dedicated GCP Secret Manager configuration for Cloud Run secrets.
+F. GCP Secret Manager secrets SHALL be synchronized from Doppler.
+G. Each sponsor environment SHALL maintain GitHub Secrets for CI/CD pipelines.
+H. The system SHALL NOT include hardcoded credentials in source code.
+I. The `.gitignore` file SHALL include `*.env` files.
+J. CI/CD pipelines SHALL use Workload Identity Federation for authentication.
+K. Cloud Run deployments SHALL access secrets via GCP Secret Manager.
+L. Git history SHALL NOT contain any credentials.
 
-*End* *Environment-Specific Configuration Management* | **Hash**: 28d1bbd4
+*End* *Environment-Specific Configuration Management* | **Hash**: 720a8e57
 ---
 
 ### Environment Types
@@ -954,26 +960,22 @@ git push origin --delete release/1.2.3
 
 # REQ-o00010: Mobile App Release Process
 
-**Level**: Ops | **Implements**: p00008 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00008
 
-The mobile application SHALL be released as a single app package containing all sponsor configurations, with releases coordinated across iOS App Store and Google Play Store.
+## Rationale
 
-Mobile app release SHALL include:
-- Single app build containing all active sponsor configurations
-- Coordinated release to both iOS and Google Play stores
-- Version number incremented consistently across platforms
-- Release notes covering all sponsor-relevant changes
-- Testing across all sponsor configurations before release
+This requirement defines the operational release process for the multi-sponsor mobile application. The single-app deployment model (established in REQ-p00008) requires coordinated releases across both mobile platforms to ensure all sponsors receive consistent functionality and version numbers. This approach simplifies maintenance and ensures uniform testing coverage across all sponsor configurations before any release reaches production.
 
-**Rationale**: Implements single mobile app requirement (p00008) through operational release procedures.
+## Assertions
 
-**Acceptance Criteria**:
-- One app package serves all sponsors
-- iOS and Android versions synchronized
-- All sponsor configurations tested before release
-- Update deployment automated via CI/CD
+A. The system SHALL release the mobile application as a single app package containing all sponsor configurations.
+B. The system SHALL coordinate releases across both iOS App Store and Google Play Store.
+C. The system SHALL increment version numbers consistently across iOS and Android platforms.
+D. Release notes SHALL cover all sponsor-relevant changes included in the release.
+E. The system SHALL complete testing across all active sponsor configurations before releasing to production.
+F. The system SHALL deploy updates via automated CI/CD pipelines.
 
-*End* *Mobile App Release Process* | **Hash**: 6985c040
+*End* *Mobile App Release Process* | **Hash**: ad045610
 ---
 
 #### Step 7: Mobile App Store Submission
@@ -1005,27 +1007,26 @@ fastlane supply \
 
 # REQ-o00009: Portal Deployment Per Sponsor
 
-**Level**: Ops | **Implements**: p00009 | **Status**: Draft
+**Level**: Ops | **Status**: Draft | **Implements**: p00009
 
-Each sponsor SHALL have their web portal deployed to a unique URL with sponsor-specific configuration, ensuring complete portal isolation between sponsors.
+## Rationale
 
-Portal deployment SHALL include:
-- Static site build from core + sponsor customizations
-- Deployment to Cloud Run or Firebase Hosting per sponsor
-- Sponsor-specific API endpoint configuration
-- Independent deployment pipeline per sponsor
-- Separate GCP project per sponsor
+This requirement ensures that each clinical trial sponsor operates a completely isolated web portal environment with independent deployment infrastructure. Sponsor isolation is critical for FDA 21 CFR Part 11 compliance, as it prevents data commingling between different clinical trials and maintains clear audit boundaries. Each sponsor receives a dedicated deployment pipeline, unique URL, and isolated GCP project, enabling independent release cycles, rollback capabilities, and preventing cross-sponsor data access. This operational implementation satisfies the product requirement for sponsor-specific portals (p00009) while maintaining the security and compliance posture required for multi-sponsor clinical trial platforms.
 
-**Rationale**: Implements sponsor-specific portals requirement (p00009) through operational deployment procedures.
+## Assertions
 
-**Acceptance Criteria**:
-- Each sponsor portal has unique URL
-- Portal configuration includes only that sponsor's API endpoint
-- Deployment process automated via CI/CD
-- Portal cannot access other sponsors' APIs
-- Rollback capability per sponsor portal
+A. The system SHALL deploy a unique web portal URL for each sponsor.
+B. Each sponsor portal SHALL be built from the combination of core platform code and that sponsor's specific customizations.
+C. Each sponsor portal SHALL be deployed to either Cloud Run or Firebase Hosting as a dedicated instance.
+D. Each sponsor portal configuration SHALL include only that sponsor's API endpoint.
+E. The system SHALL provision a separate GCP project for each sponsor portal.
+F. The system SHALL provide an independent deployment pipeline for each sponsor portal.
+G. The deployment process for each sponsor portal SHALL be automated via CI/CD.
+H. Each sponsor portal SHALL NOT be capable of accessing other sponsors' API endpoints.
+I. The system SHALL provide rollback capability for each sponsor portal independently.
+J. Each sponsor portal SHALL operate with complete isolation from other sponsor portals.
 
-*End* *Portal Deployment Per Sponsor* | **Hash**: d0b93523
+*End* *Portal Deployment Per Sponsor* | **Hash**: bab34904
 ---
 
 ### Cloud Run Static Site Deployment

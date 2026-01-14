@@ -33,256 +33,165 @@ The lack of a local database conflicts with REQ-p01001: Offline Event Queue with
 
 # REQ-d00077: Web Diary Frontend Framework
 
-**Level**: Dev | **Implements**: p01042 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01042
 
-The Web Diary SHALL be implemented using Flutter Web, reusing the same codebase as mobile with limited additions.
+## Rationale
 
-Implementation SHALL include:
-- Flutter Web application
-- Shared widget library with mobile app for consistent UI patterns
-- Material Design 3 theming with sponsor-specific customization
-- Responsive layout supporting desktop and tablet viewports
-- Service worker disabled (no offline caching for security)
+Flutter Web enables significant code reuse from the mobile application, reducing development and maintenance effort while ensuring UI consistency across platforms. Disabling service workers prevents cached data from persisting beyond the user session, which is critical for FDA 21 CFR Part 11 compliance where clinical data must not remain on uncontrolled client devices. This approach balances security requirements with the benefits of a shared codebase.
 
-```dart
-// main.dart - Web-specific initialization
-void main() {
-  // Disable service worker for security (no offline caching)
-  if (html.window.navigator.serviceWorker != null) {
-    html.window.navigator.serviceWorker!.getRegistrations().then((registrations) {
-      for (var registration in registrations) {
-        registration.unregister();
-      }
-    });
-  }
+## Assertions
 
-  runApp(const ClinicalDiaryApp());
-}
-```
+A. The Web Diary SHALL be implemented using Flutter Web.
+B. The Web Diary SHALL reuse the same codebase as the mobile application.
+C. The system SHALL include a shared widget library between web and mobile applications to ensure consistent UI patterns.
+D. The Web Diary SHALL implement Material Design 3 theming.
+E. The theming system SHALL support sponsor-specific customization.
+F. The Web Diary SHALL implement responsive layouts supporting desktop viewports.
+G. The Web Diary SHALL implement responsive layouts supporting tablet viewports.
+H. The Web Diary SHALL disable service workers to prevent offline caching.
+I. The Web Diary SHALL unregister any existing service worker registrations on application initialization.
+J. The Web Diary SHALL load and function correctly in the latest two versions of Chrome.
+K. The Web Diary SHALL load and function correctly in the latest two versions of Firefox.
+L. The Web Diary SHALL load and function correctly in the latest two versions of Safari.
+M. The Web Diary SHALL load and function correctly in the latest two versions of Edge.
+N. The system SHALL NOT register a service worker after application initialization.
+O. The Web Diary SHALL apply sponsor-specific theming after user authentication.
+P. The responsive layout SHALL adapt rendering based on viewport width.
+Q. Shared components SHALL render consistently between web and mobile applications.
 
-**Rationale**: Flutter Web enables code sharing with the mobile app. Disabling service workers prevents cached data from persisting beyond the session.
-
-**Acceptance Criteria**:
-- Application loads in Chrome, Firefox, Safari, Edge (latest 2 versions)
-- No service worker registered
-- Sponsor theming applied after authentication
-- Responsive layout adapts to viewport width
-- Shared components render consistently with mobile app
-
-*End* *Web Diary Frontend Framework* | **Hash**: 4a806386
+*End* *Web Diary Frontend Framework* | **Hash**: a84bf289
 
 ---
 
 # REQ-d00078: HHT Diary Auth Service
 
-**Level**: Dev | **Implements**: p01043 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01043
 
-A custom authentication service SHALL be implemented on GCP Cloud Run to handle user authentication without using Identity Platform or Google Identity Platform.
+## Rationale
 
-Implementation SHALL include:
-- Cloud Run service written in Dart (shelf or dart_frog framework)
-- Firestore collection for user credentials storage
-- JWT generation and validation using `dart_jsonwebtoken` package
-- Linking code validation and sponsor routing
-- Rate limiting to prevent brute force attacks
-- Audit logging of all authentication events
+A custom authentication service is needed to avoid GDPR concerns associated with Identity Platform while maintaining full control over the authentication flow. This service implements REQ-p01043 by providing secure user authentication, linking code validation, and sponsor routing for the HHT Diary platform. Cloud Run provides auto-scaling and managed infrastructure for the service deployment.
 
-```dart
-// Auth service endpoint structure
-class AuthService {
-  // POST /auth/register - Create new account
-  // POST /auth/login - Authenticate and return JWT
-  // POST /auth/refresh - Refresh JWT token
-  // POST /auth/change-password - Update password
-  // POST /auth/validate-linking-code - Validate code and return sponsor info
-}
+## Assertions
 
-// JWT payload structure
-class AuthToken {
-  final String sub;           // User document ID
-  final String username;      // Username
-  final String sponsorId;     // Sponsor identifier from linking code
-  final String sponsorUrl;    // Sponsor Portal URL
-  final String appUuid;       // Device/app instance UUID
-  final DateTime iat;         // Issued at
-  final DateTime exp;         // Expiration (short-lived for web)
-}
-```
+A. The system SHALL implement a custom authentication service on GCP Cloud Run.
+B. The authentication service SHALL NOT use Identity Platform or Google Identity Platform.
+C. The service SHALL be written in Dart using either shelf or dart_frog framework.
+D. The system SHALL store user credentials in a Firestore collection.
+E. The service SHALL generate and validate JWT tokens using the dart_jsonwebtoken package.
+F. The service SHALL provide a POST /auth/register endpoint to create new user accounts.
+G. The service SHALL provide a POST /auth/login endpoint to authenticate users and return JWT tokens.
+H. The service SHALL provide a POST /auth/refresh endpoint to refresh JWT tokens.
+I. The service SHALL provide a POST /auth/change-password endpoint to update user passwords.
+J. The service SHALL provide a POST /auth/validate-linking-code endpoint to validate linking codes and return sponsor information.
+K. JWT tokens SHALL include the following payload fields: sub (user document ID), username, sponsorId, sponsorUrl, appUuid, iat (issued at), and exp (expiration).
+L. The service SHALL implement rate limiting to prevent brute force attacks.
+M. The service SHALL limit failed login attempts to 5 attempts per minute.
+N. The system SHALL log all authentication events as audit records.
+O. All authentication events SHALL be logged to Cloud Logging.
+P. The service SHALL be deployed to Cloud Run with an HTTPS endpoint.
+Q. JWT tokens SHALL expire after 15 minutes.
+R. The service SHALL support JWT token refresh capability.
+S. The service SHALL respond within 500ms for all authentication operations.
 
-**Rationale**: A custom auth service avoids GDPR concerns with Identity Platform while providing full control over the authentication flow. Cloud Run provides auto-scaling and managed infrastructure.
-
-**Acceptance Criteria**:
-- Service deployed to Cloud Run with HTTPS endpoint
-- JWT tokens expire after 15 minutes (refreshable)
-- Failed login attempts rate-limited (5 attempts per minute)
-- All auth events logged to Cloud Logging
-- Service responds within 500ms for auth operations
-
-*End* *HHT Diary Auth Service* | **Hash**: 8923000e
+*End* *HHT Diary Auth Service* | **Hash**: d484bab8
 
 ---
 
 # REQ-d00079: Linking Code Pattern Matching
 
-**Level**: Dev | **Implements**: p01043 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01043
 
-The HHT Diary Auth service SHALL implement pattern-based sponsor identification from linking codes, maintaining a configurable mapping table.
+## Rationale
 
-Implementation SHALL include:
-- Firestore collection `sponsor_patterns` storing pattern-to-sponsor mappings
-- Pattern matching using prefix comparison (similar to credit card BIN ranges)
-- Cached pattern table with 5-minute TTL for performance
-- Admin API for pattern table management (add/update/decommission sponsors)
-- Validation of linking code format before pattern matching
+Pattern-based routing enables a single auth service to handle multiple sponsors without exposing sponsor selection to users. The prefix approach mirrors proven systems like credit card BIN ranges, allowing for scalable multi-sponsor deployments while maintaining a seamless user experience. This requirement implements the technical infrastructure for REQ-p01043's sponsor identification mechanism.
 
-```dart
-// Firestore sponsor_patterns collection schema
-class SponsorPattern {
-  final String patternPrefix;    // e.g., "HHT-CUR-" or "1234"
-  final String sponsorId;        // Unique sponsor identifier
-  final String sponsorName;      // Human-readable name
-  final String portalUrl;        // Sponsor Portal base URL
-  final String firestoreProject; // Sponsor's GCP project ID
-  final bool active;             // Whether sponsor is active
-  final DateTime createdAt;
-  final DateTime? decommissionedAt;
-}
+## Assertions
 
-// Pattern matching logic
-String? findSponsorByLinkingCode(String linkingCode) {
-  // Patterns sorted by length descending (most specific first)
-  for (final pattern in cachedPatterns) {
-    if (linkingCode.startsWith(pattern.patternPrefix) && pattern.active) {
-      return pattern.sponsorId;
-    }
-  }
-  return null; // No matching sponsor
-}
-```
+A. The system SHALL implement pattern-based sponsor identification from linking codes.
+B. The system SHALL maintain a configurable mapping table for pattern-to-sponsor associations.
+C. The system SHALL store sponsor patterns in a Firestore collection named 'sponsor_patterns'.
+D. Each sponsor pattern record SHALL include patternPrefix, sponsorId, sponsorName, portalUrl, firestoreProject, active status, createdAt timestamp, and optional decommissionedAt timestamp.
+E. The system SHALL perform pattern matching using prefix comparison logic.
+F. The system SHALL evaluate patterns in descending order by length to match the most specific pattern first.
+G. The system SHALL cache the pattern table with a 5-minute TTL for performance optimization.
+H. The system SHALL validate linking code format before performing pattern matching.
+I. The system SHALL return the sponsorId when a linking code matches an active pattern prefix.
+J. The system SHALL return null when no matching sponsor pattern is found.
+K. The system SHALL return a clear error message for unknown linking code patterns.
+L. The system SHALL refresh the pattern cache every 5 minutes.
+M. The system SHALL reject new linking codes for decommissioned sponsors.
+N. The system SHALL provide an admin API for pattern table management.
+O. The admin API SHALL support adding new sponsor patterns.
+P. The admin API SHALL support updating existing sponsor patterns.
+Q. The admin API SHALL support decommissioning sponsors.
+R. The system SHALL allow addition of new patterns without requiring service restart.
 
-**Rationale**: Pattern-based routing enables a single auth service to handle multiple sponsors without exposing sponsor selection to users. The prefix approach mirrors proven systems like credit card BIN ranges.
-
-**Acceptance Criteria**:
-- Linking code correctly identifies sponsor from pattern
-- Unknown patterns return clear error message
-- Pattern cache refreshes every 5 minutes
-- Decommissioned sponsors reject new linking codes
-- Admin can add new patterns without service restart
-
-*End* *Linking Code Pattern Matching* | **Hash**: da7b9bb0
+*End* *Linking Code Pattern Matching* | **Hash**: 8e2b291e
 
 ---
 
 # REQ-d00080: Web Session Management Implementation
 
-**Level**: Dev | **Implements**: p01044 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01044
 
-TODO - is this true for mobile too?  if so, we should just remove or move this.
+## Rationale
 
-The Web Diary SHALL implement client-side session management with inactivity timeout, browser close detection, and complete session termination.
+This requirement ensures patient data protection on shared computers through comprehensive web session management. The implementation addresses FDA 21 CFR Part 11 security requirements by preventing unauthorized access through abandoned sessions and ensuring complete data cleanup when sessions end. Multiple interaction event listeners provide a user-friendly experience while maintaining security, and browser-level event handlers prevent data leakage through cached content or local storage.
 
-Implementation SHALL include:
-- Inactivity timer tracking user interactions (mouse, keyboard, touch)
-- Warning modal displayed 30 seconds before timeout
-- Session extension on user confirmation
-- Browser `beforeunload` event handler for tab/window close
-- `visibilitychange` event handler for tab switching
-- Complete storage clearing on logout
+## Assertions
 
-```dart
-// Session manager implementation
-class WebSessionManager {
-  static const defaultTimeoutMinutes = 2;
-  Timer? _inactivityTimer;
-  Timer? _warningTimer;
+A. The Web Diary SHALL implement client-side session management with configurable inactivity timeout.
+B. The system SHALL track user interactions including mouse movement, keyboard input, touch events, and clicks to detect activity.
+C. The system SHALL reset the inactivity timer when any tracked user interaction occurs.
+D. The system SHALL display a warning modal 30 seconds before the inactivity timeout expires.
+E. The system SHALL provide a mechanism for users to extend their session from the warning modal.
+F. The system SHALL terminate the session when the inactivity timeout expires without user extension.
+G. The system SHALL register a beforeunload event handler to detect browser tab or window close events.
+H. The system SHALL clear all local storage when a beforeunload event is triggered.
+I. The system SHALL clear all session storage when a beforeunload event is triggered.
+J. The system SHALL clear all cookies when a beforeunload event is triggered.
+K. The system SHALL register a visibilitychange event handler to detect tab switching.
+L. The system SHALL NOT trigger logout when the user switches to a different browser tab.
+M. The system SHALL trigger logout only when the browser tab or window is closed.
+N. The system SHALL clear all client-side storage on explicit user logout.
+O. The system SHALL display the login page when the user navigates back after logout.
+P. The system SHALL NOT display cached data when the user navigates back after logout.
 
-  void startSession(int timeoutMinutes) {
-    _resetInactivityTimer(timeoutMinutes);
-    _registerEventListeners();
-    _registerBeforeUnload();
-  }
-
-  void _registerEventListeners() {
-    // Reset timer on any user interaction
-    html.document.onMouseMove.listen((_) => _resetInactivityTimer());
-    html.document.onKeyDown.listen((_) => _resetInactivityTimer());
-    html.document.onTouchStart.listen((_) => _resetInactivityTimer());
-    html.document.onClick.listen((_) => _resetInactivityTimer());
-  }
-
-  void _registerBeforeUnload() {
-    html.window.onBeforeUnload.listen((event) {
-      clearAllStorage();
-    });
-  }
-
-  void clearAllStorage() {
-    html.window.localStorage.clear();
-    html.window.sessionStorage.clear();
-    // Clear cookies by setting expiry in past
-    _clearCookies();
-  }
-}
-```
-
-**Rationale**: Aggressive session management protects patient data on shared computers. Multiple event listeners ensure the timer resets on any user activity, while beforeunload provides last-chance cleanup.
-
-**Acceptance Criteria**:
-- Timer resets on mouse move, keypress, touch, click
-- Warning appears at 30-second mark before timeout
-- User can extend session from warning modal
-- Browser close triggers storage clearing
-- Tab switching to other apps does not trigger logout (only close)
-- Back button after logout shows login page, not cached data
-
-*End* *Web Session Management Implementation* | **Hash**: c917a5ad
+*End* *Web Session Management Implementation* | **Hash**: 1ed9928f
 
 ---
 
 # REQ-d00081: User Document Schema
 
-**Level**: Dev | **Implements**: p01046 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01046
 
-User authentication data SHALL be stored in Firestore with a schema supporting sponsor isolation, password hashing, and audit trail requirements.
+## Rationale
 
-Implementation SHALL include:
-- Firestore collection `web_users` in HHT Diary Auth project
-- Document ID generated as UUID v4
-- Compound index on `sponsorId` + `username` for uniqueness
-- Password stored as Argon2id hash
-- Timestamps for audit trail
+This requirement defines the authentication data storage schema for the clinical trial platform. Storing authentication data in a dedicated Firestore collection separate from clinical data maintains separation of concerns and supports multi-sponsor isolation. The schema design enables account security features (lockout, rate limiting), audit trail compliance with FDA 21 CFR Part 11, and traceability back to the original enrollment linking process.
 
-```dart
-// Firestore web_users collection schema
-class WebUser {
-  final String id;              // UUID v4 document ID
-  final String username;        // User-chosen username (6+ chars, no @)
-  final String passwordHash;    // Argon2id hash
-  final String sponsorId;       // Sponsor identifier from linking code
-  final String linkingCode;     // Original linking code used
-  final String appUuid;         // App instance UUID at registration
-  final DateTime createdAt;     // Account creation timestamp
-  final DateTime? lastLoginAt;  // Last successful login
-  final int failedAttempts;     // Failed login counter (for rate limiting)
-  final DateTime? lockedUntil;  // Account lockout expiry
-}
+## Assertions
 
-// Firestore security rules (conceptual)
-// - web_users readable/writable only by auth service account
-// - No client-side access to user documents
-// - Sponsor isolation enforced by service logic
-```
+A. The system SHALL store user authentication data in a Firestore collection named 'web_users' in the HHT Diary Auth project.
+B. The system SHALL generate document IDs as UUID v4.
+C. The system SHALL enforce a compound index on 'sponsorId' and 'username' fields.
+D. The system SHALL enforce uniqueness of the username and sponsorId combination.
+E. The system SHALL store passwords as Argon2id hashes.
+F. The system SHALL use secure parameters for Argon2id password hashing.
+G. User documents SHALL include the following fields: id (UUID v4), username, passwordHash, sponsorId, linkingCode, appUuid, createdAt, lastLoginAt (nullable), failedAttempts, and lockedUntil (nullable).
+H. The username field SHALL contain user-chosen usernames of 6 or more characters without the @ symbol.
+I. The sponsorId field SHALL contain the sponsor identifier from the linking code.
+J. The linkingCode field SHALL contain the original linking code used during registration.
+K. The appUuid field SHALL contain the app instance UUID at registration time.
+L. The createdAt field SHALL contain the account creation timestamp.
+M. The system SHALL create a user document upon successful registration.
+N. The system SHALL update the lastLoginAt field on each successful authentication.
+O. The system SHALL track failed login attempts in the failedAttempts field.
+P. The system SHALL reset the failedAttempts counter on successful login.
+Q. The web_users collection SHALL be readable and writable only by the auth service account.
+R. The system SHALL NOT allow client-side access to user documents.
+S. The system SHALL enforce sponsor isolation through service logic.
 
-**Rationale**: Storing auth data in a dedicated collection separate from clinical data maintains separation of concerns. The schema supports account lockout, audit requirements, and linking back to the original enrollment.
-
-**Acceptance Criteria**:
-- Document created on successful registration
-- Username + sponsorId combination enforced unique
-- Password hash uses Argon2id with secure parameters
-- lastLoginAt updated on each successful authentication
-- Failed attempts tracked and reset on successful login
-
-*End* *User Document Schema* | **Hash**: cde85fd6
+*End* *User Document Schema* | **Hash**: b5b5f999
 
 ---
 
@@ -290,218 +199,93 @@ TODO - move to dev-app.md
 
 # REQ-d00082: Password Hashing Implementation
 
-**Level**: Dev | **Implements**: p01043, p01046 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01043, p01046
 
-Passwords SHALL be hashed client-side before network transmission using Argon2id, with server-side verification using the same algorithm.
+## Rationale
 
-Implementation SHALL include:
-- Client-side hashing using `argon2` Dart package (WASM build for web)
-- Argon2id variant with OWASP-recommended parameters
-- Salt generated per-user and stored with hash
-- Hash transmitted to server (never plaintext password)
-- Server verifies by re-hashing with stored salt
+This requirement implements secure password handling for the clinical trial platform to protect user credentials from interception and compromise. Client-side hashing with Argon2id ensures that plaintext passwords are minimized in transmission and never stored on the server. Argon2id was selected as the password hashing algorithm because it is the current OWASP recommendation, providing resistance to GPU-based attacks and side-channel attacks. The implementation supports FDA 21 CFR Part 11 security requirements by ensuring authentication credentials are protected through cryptographically strong methods. TLS provides transport security for the initial salt retrieval during login flows.
 
-```dart
-// Client-side password hashing
-import 'package:argon2/argon2.dart';
+## Assertions
 
-class PasswordHasher {
-  // OWASP recommended parameters for Argon2id
-  static const int memory = 65536;    // 64 MB
-  static const int iterations = 3;
-  static const int parallelism = 4;
-  static const int hashLength = 32;
+A. The system SHALL hash all passwords client-side using the Argon2id variant before network transmission during registration.
+B. The system SHALL use the argon2 Dart package for client-side password hashing, with WASM build support for web platforms.
+C. The system SHALL configure Argon2id with memory parameter of 65536 KB (64 MB).
+D. The system SHALL configure Argon2id with iteration count of 3.
+E. The system SHALL configure Argon2id with parallelism parameter of 4 lanes.
+F. The system SHALL configure Argon2id with hash length of 32 bytes.
+G. The system SHALL generate a unique cryptographic salt for each user account.
+H. The system SHALL store the salt value alongside the password hash in the database.
+I. The system SHALL transmit only the password hash to the server during registration, never the plaintext password.
+J. The system SHALL verify login credentials by re-hashing the provided password with the stored salt and comparing the resulting hash.
+K. The system SHALL NOT store passwords in plaintext format at any time.
+L. The system SHALL NOT log passwords in plaintext format at any time.
+M. The system SHALL transmit the username, hash, salt, linkingCode, and appUuid to the server during registration.
+N. The system SHALL generate a new unique salt when a user changes their password.
+O. The system SHALL re-hash the password with the new salt when a user changes their password.
 
-  static Future<String> hashPassword(String password, String salt) async {
-    final argon2 = Argon2BytesGenerator();
-    final params = Argon2Parameters(
-      Argon2Parameters.ARGON2_id,
-      utf8.encode(salt),
-      desiredKeyLength: hashLength,
-      iterations: iterations,
-      memory: memory,
-      lanes: parallelism,
-    );
-
-    argon2.init(params);
-    final result = Uint8List(hashLength);
-    argon2.generateBytes(utf8.encode(password), result, 0, hashLength);
-
-    return base64Encode(result);
-  }
-}
-
-// Registration flow
-// 1. Client generates random salt
-// 2. Client hashes password with salt
-// 3. Client sends: username, hash, salt, linkingCode, appUuid
-// 4. Server stores: username, hash, salt, sponsorId, ...
-
-// Login flow
-// 1. Client sends: username, password (plaintext for now - see note)
-// 2. Server retrieves salt for username
-// 3. Server hashes provided password with stored salt
-// 4. Server compares hashes
-```
-
-**Note**: For login, the password must be sent to retrieve the salt. Use TLS for transport security. Alternative: implement SRP (Secure Remote Password) protocol for zero-knowledge proof.
-
-**Rationale**: Client-side hashing ensures plaintext passwords are never transmitted (except for salt retrieval). Argon2id is the current recommended password hashing algorithm, resistant to GPU and side-channel attacks.
-
-**Acceptance Criteria**:
-- Password never stored or logged in plaintext
-- Argon2id hash computed before network transmission (registration)
-- Hash parameters meet OWASP recommendations
-- Salt unique per user, stored alongside hash
-- Password change re-hashes with new salt
-
-*End* *Password Hashing Implementation* | **Hash**: 05136a5d
+*End* *Password Hashing Implementation* | **Hash**: 2f426f50
 
 ---
 
 # REQ-d00083: Browser Storage Clearing
 
-**Level**: Dev | **Implements**: p01044 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01044
 
-The Web Diary SHALL clear all browser storage mechanisms on logout, session timeout, and browser close to prevent data persistence.
+## Rationale
 
-Implementation SHALL include:
-- Clear localStorage
-- Clear sessionStorage
-- Clear all cookies (set expiry to past)
-- Clear IndexedDB databases
-- Clear Cache Storage (service worker caches)
-- Navigate to login page after clearing
+Complete storage clearing prevents the next user on a shared computer from accessing any patient data. Browsers persist data in multiple storage mechanisms (localStorage, sessionStorage, cookies, IndexedDB, and Cache Storage), all of which must be cleared on logout, session timeout, and browser close to ensure no Protected Health Information (PHI) remains accessible. This requirement implements FDA 21 CFR Part 11 controls for data access termination and supports ALCOA+ principles by preventing unauthorized data access after session termination.
 
-```dart
-// Comprehensive storage clearing
-class StorageClearer {
-  static Future<void> clearAllStorage() async {
-    // Clear Web Storage API
-    html.window.localStorage.clear();
-    html.window.sessionStorage.clear();
+## Assertions
 
-    // Clear all cookies
-    _clearAllCookies();
+A. The Web Diary SHALL clear localStorage on logout.
+B. The Web Diary SHALL clear sessionStorage on logout.
+C. The Web Diary SHALL clear all cookies on logout by setting their expiry to a past date.
+D. The Web Diary SHALL clear IndexedDB databases on logout.
+E. The Web Diary SHALL clear Cache Storage (service worker caches) on logout.
+F. The Web Diary SHALL clear localStorage on session timeout.
+G. The Web Diary SHALL clear sessionStorage on session timeout.
+H. The Web Diary SHALL clear all cookies on session timeout by setting their expiry to a past date.
+I. The Web Diary SHALL clear IndexedDB databases on session timeout.
+J. The Web Diary SHALL clear Cache Storage on session timeout.
+K. The Web Diary SHALL clear localStorage on browser close.
+L. The Web Diary SHALL clear sessionStorage on browser close.
+M. The Web Diary SHALL clear all cookies on browser close by setting their expiry to a past date.
+N. The Web Diary SHALL clear IndexedDB databases on browser close.
+O. The Web Diary SHALL clear Cache Storage on browser close.
+P. The Web Diary SHALL navigate to the login page after clearing all storage mechanisms.
+Q. The browser back button SHALL display the login page after logout, not cached content.
+R. Patient data SHALL NOT be recoverable via browser developer tools after logout.
 
-    // Clear IndexedDB (if used)
-    await _clearIndexedDB();
-
-    // Clear Cache Storage
-    await _clearCacheStorage();
-  }
-
-  static void _clearAllCookies() {
-    final cookies = html.document.cookie?.split(';') ?? [];
-    for (final cookie in cookies) {
-      final name = cookie.split('=')[0].trim();
-      // Set expiry in the past to delete
-      html.document.cookie = '$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-      // Also clear for current domain
-      html.document.cookie = '$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${html.window.location.hostname}';
-    }
-  }
-
-  static Future<void> _clearIndexedDB() async {
-    final databases = await html.window.indexedDB?.databases();
-    if (databases != null) {
-      for (final db in databases) {
-        html.window.indexedDB?.deleteDatabase(db['name'] as String);
-      }
-    }
-  }
-
-  static Future<void> _clearCacheStorage() async {
-    final cacheNames = await html.window.caches?.keys();
-    if (cacheNames != null) {
-      for (final name in cacheNames) {
-        await html.window.caches?.delete(name);
-      }
-    }
-  }
-}
-```
-
-**Rationale**: Complete storage clearing prevents the next user on a shared computer from accessing any patient data. Multiple storage mechanisms must be cleared as browsers persist data in various locations.
-
-**Acceptance Criteria**:
-- localStorage empty after logout
-- sessionStorage empty after logout
-- No cookies remain after logout
-- IndexedDB databases deleted after logout
-- Browser back button shows login page, not cached content
-- No patient data recoverable via browser dev tools
-
-*End* *Browser Storage Clearing* | **Hash**: d5857410
+*End* *Browser Storage Clearing* | **Hash**: 781a1594
 
 ---
 TODO - remove or move to dev-app.md
 # REQ-d00084: Sponsor Configuration Loading
 
-**Level**: Dev | **Implements**: p01042, p01043 | **Status**: Draft
+**Level**: Dev | **Status**: Draft | **Implements**: p01042, p01043
 
-After successful authentication, the Web Diary SHALL load sponsor-specific configuration by fetching it directly from the Sponsor Portal using the portal URL provided in the authentication token.
+## Rationale
 
-Implementation SHALL include:
-- Sponsor Portal URL obtained from auth token after login
-- Sponsor configuration fetched directly from Sponsor Portal API
-- Configuration cached in memory only (not persisted)
-- Theme applied based on sponsor branding from portal response
-- Session timeout configured per sponsor settings from portal
+This requirement ensures the Web Diary application retrieves sponsor-specific configuration directly from the authoritative source (Sponsor Portal) after authentication. This architecture simplifies the authentication service by delegating configuration management to the Sponsor Portal, which already maintains sponsor branding and settings. Direct fetching ensures clients always receive current configuration without requiring separate configuration distribution mechanisms. The design supports multi-sponsor deployment while maintaining sponsor isolation and enabling real-time configuration updates.
 
-```dart
-// Auth token includes portal URL (from linking code pattern match)
-class AuthToken {
-  final String sub;
-  final String username;
-  final String sponsorId;
-  final String sponsorUrl;  // Sponsor Portal base URL
-  final String appUuid;
-  final DateTime iat;
-  final DateTime exp;
-}
+## Assertions
 
-// Sponsor configuration fetched from Sponsor Portal
-class SponsorConfig {
-  final String sponsorId;
-  final String sponsorName;
-  final int sessionTimeoutMinutes;   // Default 2, range 1-30
-  final SponsorBranding branding;
-}
+A. The system SHALL obtain the Sponsor Portal URL from the authentication token after successful login.
+B. The system SHALL fetch sponsor configuration directly from the Sponsor Portal API using the URL provided in the authentication token.
+C. The system SHALL complete the sponsor configuration fetch from the Sponsor Portal within 1 second.
+D. The system SHALL cache sponsor configuration in memory only.
+E. The system SHALL NOT persist sponsor configuration to browser storage.
+F. The system SHALL apply sponsor branding including logo and colors immediately after fetching configuration.
+G. The system SHALL configure session timeout using the sponsor-specific value obtained from the Sponsor Portal.
+H. Sponsor-configured session timeout values SHALL have a default of 2 minutes and support a range of 1-30 minutes.
+I. The system SHALL provide graceful fallback behavior using default values if the Sponsor Portal configuration fetch fails.
+J. The authentication token SHALL include the sponsorUrl field containing the Sponsor Portal base URL.
+K. The sponsor configuration response SHALL include sponsorId, sponsorName, sessionTimeoutMinutes, and branding properties.
+L. The branding configuration SHALL include logoUrl, primaryColor, and secondaryColor fields.
+M. Primary and secondary colors SHALL be provided in hexadecimal color format.
+N. The system SHALL start the session timer using the sessionTimeoutMinutes value from the sponsor configuration.
 
-class SponsorBranding {
-  final String logoUrl;
-  final String primaryColor;      // Hex color
-  final String secondaryColor;    // Hex color
-  final String? welcomeMessage;
-}
-
-// Post-login initialization
-Future<void> initializeSponsorContext(AuthToken token) async {
-  // Fetch sponsor config directly from Sponsor Portal
-  final configUrl = '${token.sponsorUrl}/api/diary/config';
-  final response = await http.get(Uri.parse(configUrl));
-  final config = SponsorConfig.fromJson(jsonDecode(response.body));
-
-  // Apply branding
-  applyTheme(config.branding);
-
-  // Start session with sponsor's timeout
-  sessionManager.startSession(config.sessionTimeoutMinutes);
-}
-```
-
-**Rationale**: Fetching sponsor configuration directly from the Sponsor Portal simplifies the auth service (which only needs to provide the portal URL) and ensures the client always gets the latest sponsor configuration. The Sponsor Portal already manages sponsor-specific data including branding, making it the authoritative source.
-
-**Acceptance Criteria**:
-- Portal URL available in auth token after successful login
-- Sponsor config fetched from Sponsor Portal within 1 second
-- Branding (logo, colors) applied immediately after fetch
-- Session timeout uses sponsor-configured value
-- Config not persisted to browser storage
-- Graceful fallback if portal config fetch fails (use defaults)
-
-*End* *Sponsor Configuration Loading* | **Hash**: 5a79a42d
+*End* *Sponsor Configuration Loading* | **Hash**: 654added
 
 ---
 

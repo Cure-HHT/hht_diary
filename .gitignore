@@ -94,6 +94,8 @@ tools/dev-env/validation-reports/
 traceability_matrix.csv
 traceability_matrix.html
 traceability_matrix.md
+traceability.html
+traceability.md
 
 # iOS
 *.ipa

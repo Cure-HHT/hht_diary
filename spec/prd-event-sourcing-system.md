@@ -118,221 +118,226 @@ The module follows a CQRS (Command Query Responsibility Segregation) pattern whe
 
 # REQ-p01000: Event Sourcing Client Interface
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL provide a type-safe client interface for creating, storing, and querying events in an event-sourced PostgreSQL database.
+## Rationale
 
-The interface SHALL support:
-- Append-only event creation with automatic timestamping
-- Event serialization to PostgreSQL-compatible JSON format
-- Querying materialized views for current state
-- Event stream replay for historical state reconstruction
-- Schema version tracking for forward/backward compatibility
+This requirement establishes a type-safe client interface for event sourcing operations in a PostgreSQL database. Event sourcing is critical for FDA 21 CFR Part 11 compliance as it provides immutable audit trails and complete historical reconstruction. The interface abstracts database complexity while ensuring type safety reduces runtime errors during clinical trial data collection. Schema versioning enables system evolution without compromising historical data integrity.
 
-**Rationale**: Provides developers with a clean, type-safe API for event sourcing operations while abstracting database implementation details. Type safety reduces runtime errors and improves developer productivity.
+## Assertions
 
-**Acceptance Criteria**:
-- Events defined as strongly-typed strongly-typed data structures
-- Automatic JSON serialization/deserialization
-- Compile-time verification of event structure
-- Runtime validation of event data against schema
-- Support for custom event types via extension
+A. The module SHALL provide a type-safe client interface for creating events in an event-sourced PostgreSQL database.
+B. The module SHALL provide a type-safe client interface for storing events in an event-sourced PostgreSQL database.
+C. The module SHALL provide a type-safe client interface for querying events in an event-sourced PostgreSQL database.
+D. The interface SHALL support append-only event creation with automatic timestamping.
+E. The interface SHALL support event serialization to PostgreSQL-compatible JSON format.
+F. The interface SHALL support querying materialized views for current state.
+G. The interface SHALL support event stream replay for historical state reconstruction.
+H. The interface SHALL support schema version tracking for forward compatibility.
+I. The interface SHALL support schema version tracking for backward compatibility.
+J. Events SHALL be defined as strongly-typed data structures.
+K. The module SHALL provide automatic JSON serialization for events.
+L. The module SHALL provide automatic JSON deserialization for events.
+M. The module SHALL provide compile-time verification of event structure.
+N. The module SHALL provide runtime validation of event data against schema.
+O. The interface SHALL support custom event types via extension.
 
-*End* *Event Sourcing Client Interface* | **Hash**: c3f9c7d2
+*End* *Event Sourcing Client Interface* | **Hash**: 750e5c35
 ---
 
 ---
 
 # REQ-p01001: Offline Event Queue with Automatic Synchronization
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL queue events locally when network unavailable and automatically synchronize them to the server when connectivity restored.
+## Rationale
 
-Offline queue SHALL ensure:
-- Events stored in local persistent storage (local persistent storage)
-- Guaranteed delivery in FIFO order
-- Retry logic with exponential backoff
-- Duplicate event prevention via idempotency keys
-- Queue persistence across app restarts
-- User visibility into synchronization status
+Client applications in clinical trials frequently operate in environments with intermittent connectivity, such as patient homes or remote clinical sites. Offline queuing ensures that no clinical data is lost during network outages and that FDA 21 CFR Part 11 compliant audit trails remain complete and tamper-evident. This requirement addresses the need for reliable data capture in adverse network conditions while maintaining data integrity and providing transparency to users about synchronization status.
 
-**Rationale**: client applications frequently operate in environments with intermittent connectivity. Offline queuing ensures data is never lost and compliance audit trails remain complete even during network outages.
+## Assertions
 
-**Acceptance Criteria**:
-- Events saved locally immediately upon creation
-- Automatic sync when network becomes available and application is active on the device.
-- Manual sync trigger for user control
-- Sync status indicator (pending/syncing/complete)
-- Failed events logged with detailed error messages
-- No data loss even if app force-closed
+A. The module SHALL queue events locally when network is unavailable.
+B. The module SHALL automatically synchronize queued events to the server when connectivity is restored.
+C. The module SHALL store queued events in local persistent storage.
+D. The module SHALL deliver queued events to the server in FIFO (first-in-first-out) order.
+E. The module SHALL implement retry logic with exponential backoff for failed synchronization attempts.
+F. The module SHALL prevent duplicate event submission using idempotency keys.
+G. The module SHALL preserve the event queue across application restarts.
+H. The module SHALL provide user visibility into synchronization status.
+I. The module SHALL save events to local storage immediately upon creation.
+J. The module SHALL initiate automatic synchronization when network becomes available and the application is active.
+K. The module SHALL provide a manual sync trigger for user-initiated synchronization.
+L. The module SHALL display a sync status indicator showing pending, syncing, or complete states.
+M. The module SHALL log failed synchronization events with detailed error messages.
+N. The module SHALL NOT lose data even if the application is force-closed.
 
-*End* *Offline Event Queue with Automatic Synchronization* | **Hash**: 409ae35f
+*End* *Offline Event Queue with Automatic Synchronization* | **Hash**: 35094804
 ---
 
 ---
 
 # REQ-p01002: Optimistic Concurrency Control
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
+## Rationale
 
-Conflict resolution SHALL support:
-- Version vectors or sequence numbers for event ordering
-- Automatic detection of conflicting events
-- Pluggable conflict resolution strategies (last-write-wins, merge, custom) TODO - waves hands
-- User notification when manual conflict resolution required
-- Preservation of all conflicting events in audit trail
+In distributed systems with offline support, multiple users may edit the same data concurrently. Optimistic concurrency control ensures data integrity while maintaining the complete audit trail required for FDA 21 CFR Part 11 compliance. This approach allows local editing with conflict detection at synchronization time, rather than preventing concurrent access through locking mechanisms.
 
-**Rationale**: In distributed systems with offline support, multiple users may edit the same data concurrently. Optimistic concurrency ensures data integrity while maintaining the complete audit trail required for compliance.
+## Assertions
 
-**Acceptance Criteria**:
-- Conflicts detected before server persistence
-- Default conflict resolution strategy provided
-- Custom resolution strategies can be registered
-- Users notified of conflicts requiring manual resolution
-- All conflicting events preserved in event log
-- Audit trail shows conflict resolution actions
+A. The system SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
+B. The system SHALL use version vectors or sequence numbers for event ordering.
+C. The system SHALL automatically detect conflicting events before server persistence.
+D. The system SHALL support pluggable conflict resolution strategies including last-write-wins, merge, and custom strategies.
+E. The system SHALL provide a default conflict resolution strategy.
+F. The system SHALL allow custom conflict resolution strategies to be registered.
+G. The system SHALL notify users when manual conflict resolution is required.
+H. The system SHALL preserve all conflicting events in the audit trail.
+I. The audit trail SHALL record all conflict resolution actions.
+J. The event log SHALL retain all conflicting events without deletion or modification.
 
-*End* *Optimistic Concurrency Control* | **Hash**: 212f5cb5
+*End* *Optimistic Concurrency Control* | **Hash**: 994871a2
 ---
 
 ---
 
 # REQ-p01003: Immutable Event Storage with Audit Trail
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL store all events as immutable, append-only records that form a complete audit trail of all data changes.
+## Rationale
 
-Event storage SHALL ensure:
-- Events never modified or deleted after creation
-- Each event includes: timestamp, user ID, event type, data payload, causation ID
-- Events cryptographically signed for tamper detection
-- Event sequence guaranteed via database constraints
-- Current state derived by replaying events from materialized views
+FDA 21 CFR Part 11 requires secure, computer-generated, time-stamped audit trails to ensure the integrity and reliability of electronic records in clinical trials. Immutable event storage provides tamper-proof audit trails by design, making it impossible to alter historical records without detection. This append-only architecture ensures regulatory compliance while enabling full reconstruction of system state at any point in time through event replay. The cryptographic integrity mechanisms provide mathematically verifiable proof that audit records have not been tampered with, which is critical for regulatory inspections and data integrity audits.
 
-**Rationale**: FDA 21 CFR Part 11 requires secure, computer-generated, time-stamped audit trails. Immutable event storage makes audit trails tamper-proof by design.
+## Assertions
 
-**Acceptance Criteria**:
-- Database constraints prevent event modification/deletion
-- Events include all required audit fields
-- Tamper detection via cryptographic signatures or hashes
-- Event sequence enforced by database sequence numbers
-- Materialized views always consistent with event log
+A. The system SHALL store all events as immutable, append-only records.
+B. The system SHALL NOT allow modification of events after creation.
+C. The system SHALL NOT allow deletion of events after creation.
+D. The system SHALL enforce event immutability through database constraints.
+E. Each event record SHALL include a timestamp.
+F. Each event record SHALL include a user ID.
+G. Each event record SHALL include an event type.
+H. Each event record SHALL include a data payload.
+I. Each event record SHALL include a causation ID.
+J. The system SHALL cryptographically sign or hash each event for tamper detection.
+K. The system SHALL guarantee event sequence ordering via database sequence numbers or equivalent constraints.
+L. The system SHALL derive current state by replaying events through materialized views.
+M. Materialized views SHALL always remain consistent with the event log.
 
-*End* *Immutable Event Storage with Audit Trail* | **Hash**: 11944e76
+*End* *Immutable Event Storage with Audit Trail* | **Hash**: 29a2c2ac
 ---
 
 ---
 
 # REQ-p01004: Schema Version Management
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL support database schema versioning and migrations, allowing graceful handling of schema changes over time.
+## Rationale
 
-Schema management SHALL provide:
-- Server app awareness of current database schema version
-- Client app awareness of server app version.
-- Compatibility checks on server start (portal, auth).
-- Compatibility checks on client application (diary, portal) start.
-- Automatic data migration for compatible schema changes
-- Clear error messages for incompatible schema versions
-- Rollback capability for failed migrations
+Long-lived clinical trial applications require schema evolution over multiple years of deployment. Version management ensures clients and servers remain compatible during phased rollouts, prevents data corruption from version mismatches, and supports safe rollbacks when migrations fail. This is critical for FDA 21 CFR Part 11 compliance where system validation must account for schema changes across the validated system lifecycle.
 
-**Rationale**: Long-lived applications require schema evolution. Version management ensures clients and servers remain compatible while supporting phased rollouts and rollbacks.
+## Assertions
 
-**Acceptance Criteria**:
-- Client queries server for current schema version on startup
-- Events tagged with schema version used for creation
-- Client rejects operations when schema incompatible
-- Migration scripts applied automatically when compatible
-- Incompatible versions display clear upgrade instructions
+A. The system SHALL maintain a current database schema version identifier accessible to server applications.
+B. The system SHALL expose the server application version to client applications via API.
+C. Server applications SHALL verify database schema compatibility on startup before accepting requests.
+D. Client applications SHALL verify server compatibility on startup before performing operations.
+E. The system SHALL automatically apply data migration scripts when schema changes are compatible with the current version.
+F. The system SHALL display clear error messages specifying version requirements when schema versions are incompatible.
+G. The system SHALL provide rollback capability to restore the previous schema state when migrations fail.
+H. Client applications SHALL query the server for the current schema version during startup.
+I. The system SHALL tag all stored events with the schema version active at the time of event creation.
+J. Client applications SHALL reject data operations when the server schema version is incompatible with the client version.
+K. The system SHALL display clear upgrade instructions to users when version incompatibility is detected.
 
-*End* *Schema Version Management* | **Hash**: d9680875
+*End* *Schema Version Management* | **Hash**: 102eb5a1
 ---
 
 ---
 
 # REQ-p01005: Real-time Event Subscription
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL support real-time subscriptions to event streams, allowing clients to receive notifications when new events occur.
+## Rationale
 
-Real-time subscriptions SHALL provide:
-- WebSocket or Server-Sent Events for push notifications
-- Subscription filtering by event type, aggregate, or user
-- Automatic reconnection with backoff on connection loss
-- Missed event recovery when reconnecting
-- Resource cleanup when subscriptions disposed
+Real-time event subscriptions enhance user experience by providing immediate feedback on data changes and enable collaborative features where multiple users interact with shared clinical trial data. In FDA-regulated clinical trials, timely visibility of data changes is critical for research coordinators and clinical staff to respond to patient-reported events. The requirement addresses network reliability concerns in healthcare settings by ensuring continuity of event delivery despite transient connectivity issues.
 
-**Rationale**: Real-time updates provide better user experience and enable collaborative features where multiple users work with the same data.
+## Assertions
 
-**Acceptance Criteria**:
-- Subscriptions established with event filters
-- Clients notified immediately when matching events occur
-- Automatic reconnection on network interruption
-- No events missed during brief disconnections
-- Subscriptions properly disposed to prevent memory leaks
+A. The system SHALL support real-time subscriptions to event streams for notifying clients when new events occur.
+B. The system SHALL provide WebSocket or Server-Sent Events transport mechanisms for push notifications.
+C. The system SHALL support subscription filtering by event type.
+D. The system SHALL support subscription filtering by aggregate identifier.
+E. The system SHALL support subscription filtering by user identifier.
+F. The system SHALL automatically reconnect subscriptions with exponential backoff on connection loss.
+G. The system SHALL recover and deliver missed events when a subscription reconnects after disconnection.
+H. The system SHALL clean up resources when subscriptions are disposed.
+I. The system SHALL establish subscriptions with client-specified event filters.
+J. The system SHALL notify subscribed clients immediately when events matching their filters occur.
+K. The system SHALL NOT lose events during brief network interruptions when automatic reconnection succeeds.
+L. The system SHALL prevent memory leaks by ensuring proper disposal of subscription resources.
 
-*End* *Real-time Event Subscription* | **Hash**: 8a3eb6c8
+*End* *Real-time Event Subscription* | **Hash**: 58430215
 ---
 
 ---
 
 # REQ-p01006: Type-Safe Materialized View Queries
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL provide type-safe query interfaces for materialized views that represent current state derived from events.
+## Rationale
 
-Materialized view queries SHALL support:
-- Strongly-typed strongly-typed models for view data
-- Automatic JSON deserialization from PostgreSQL JSONB
-- Filtering, sorting, and pagination
-- Efficient incremental queries (fetch only changes)
-- Cache management with TTL and invalidation
+Querying event-sourced systems by replaying entire event streams for every read operation creates unacceptable performance bottlenecks. Materialized views provide pre-computed, optimized read models that represent the current state derived from the immutable event log. This requirement ensures type-safe access to these views while maintaining performance through caching and efficient querying. The strongly-typed interfaces prevent runtime errors and enable compile-time validation of query logic, which is critical for FDA-validated systems where production failures have regulatory consequences.
 
-**Rationale**: Replaying entire event streams for every query is inefficient. Materialized views provide optimized read access to current state while maintaining the immutable event log.
+## Assertions
 
-**Acceptance Criteria**:
-- View models defined as strongly-typed data structures with JSON codegen
-- Compile-time type checking of queries
-- Support for complex WHERE clauses and ordering
-- Pagination for large result sets
-- Configurable caching with automatic invalidation
+A. The module SHALL provide type-safe query interfaces for all materialized views that represent current state derived from events.
+B. View models SHALL be defined as strongly-typed data structures.
+C. View models SHALL support automatic JSON code generation for serialization and deserialization.
+D. The system SHALL automatically deserialize PostgreSQL JSONB columns into strongly-typed view models.
+E. Query interfaces SHALL provide compile-time type checking for all query operations.
+F. Query interfaces SHALL support filtering operations through WHERE clause construction.
+G. Query interfaces SHALL support sorting operations on view data.
+H. Query interfaces SHALL support pagination for result sets.
+I. Query interfaces SHALL support efficient incremental queries that fetch only changes since the last query.
+J. The module SHALL provide cache management for materialized view queries.
+K. The cache management system SHALL support configurable time-to-live (TTL) values for cached data.
+L. The cache management system SHALL support automatic invalidation of cached data when underlying views are updated.
+M. Query interfaces SHALL support complex WHERE clauses with multiple conditions.
+N. Query interfaces SHALL support ordering of results by specified fields.
 
-*End* *Type-Safe Materialized View Queries* | **Hash**: 4a0e2442
+*End* *Type-Safe Materialized View Queries* | **Hash**: 13f605de
 ---
 
 ---
 
 # REQ-p01007: Error Handling and Diagnostics
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL provide comprehensive error handling and diagnostic capabilities to support development, testing, and production troubleshooting.
+## Rationale
 
-Error handling SHALL include:
-- Structured exception types for different failure modes
-- Detailed error messages with actionable guidance
-- Logging of all errors with context (event data, user, timestamp)
-- Integration with crash reporting services
-- Debug mode with verbose event stream logging
+Comprehensive error handling and diagnostics are essential for maintaining system reliability and reducing mean time to resolution (MTTR) in production environments. Proper error classification, contextual logging, and integration with monitoring services enable developers to quickly identify root causes during development and operations teams to respond effectively to production incidents. This requirement supports FDA 21 CFR Part 11 compliance by ensuring that system failures are documented with complete audit context.
 
-**Rationale**: Robust error handling improves developer experience, simplifies debugging, and enables rapid incident response in production.
+## Assertions
 
-**Acceptance Criteria**:
-- Typed exceptions for network, validation, conflict, and schema errors
-- Error messages include troubleshooting steps
-- All errors logged with full context
-- Integration with Firebase Crashlytics, Sentry, or similar
-- Debug mode logs all events and state transitions
+A. The module SHALL provide structured exception types for network failures.
+B. The module SHALL provide structured exception types for validation failures.
+C. The module SHALL provide structured exception types for conflict failures.
+D. The module SHALL provide structured exception types for schema errors.
+E. The module SHALL include actionable troubleshooting steps in all error messages.
+F. The module SHALL log all errors with complete context including event data, user identity, and timestamp.
+G. The module SHALL integrate with at least one crash reporting service (Firebase Crashlytics, Sentry, or equivalent).
+H. The module SHALL provide a debug mode that logs all events in the event stream.
+I. The module SHALL provide a debug mode that logs all state transitions.
 
-*End* *Error Handling and Diagnostics* | **Hash**: fb15ef77
+*End* *Error Handling and Diagnostics* | **Hash**: baaaa244
 ---
 
 ## Optional/Advanced Requirements
@@ -341,106 +346,108 @@ Error handling SHALL include:
 
 # REQ-p01008: Event Replay and Time Travel Debugging
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHOULD support event replay capabilities, allowing developers to reconstruct application state at any point in time for debugging or auditing.
+## Rationale
 
-Event replay SHALL provide:
-- Replay events up to specific timestamp or sequence number
-- Fast-forward and rewind through event history
-- State snapshots at configurable intervals for performance
-- Comparison of state between two points in time
-- Export event streams for analysis
+Time travel debugging capabilities enable developers to reconstruct application state at any point in time for investigating bugs and understanding how data evolved. This is essential for regulatory audits requiring historical data reconstruction, allowing auditors to trace how clinical trial data reached its current state. The capability supports both development debugging and compliance investigations by providing mechanisms to replay events, compare states across time, and export event streams for detailed analysis.
 
-**Rationale**: Time travel debugging is invaluable for investigating bugs and understanding how data reached its current state. Essential for regulatory audits requiring historical data reconstruction.
+## Assertions
 
-**Acceptance Criteria**:
-- API to replay events up to specific point in time
-- Efficient replay using snapshots + incremental events
-- UI components for time travel visualization (optional)
-- Event stream export to JSON or CSV
+A. The system SHALL provide an API to replay events up to a specific timestamp.
+B. The system SHALL provide an API to replay events up to a specific sequence number.
+C. The system SHALL support fast-forward navigation through event history.
+D. The system SHALL support rewind navigation through event history.
+E. The system SHALL create state snapshots at configurable intervals to optimize replay performance.
+F. The system SHALL support comparison of application state between two points in time.
+G. The system SHALL provide functionality to export event streams to JSON format.
+H. The system SHALL provide functionality to export event streams to CSV format.
+I. The system SHALL implement efficient replay using snapshots combined with incremental events.
 
-*End* *Event Replay and Time Travel Debugging* | **Hash**: b18fe45c
+*End* *Event Replay and Time Travel Debugging* | **Hash**: 5762fc28
 ---
 
 ---
 
 # REQ-p01009: Encryption at Rest for Offline Queue
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHOULD encrypt events stored in the offline queue on-device to protect sensitive data if device lost or stolen.
+## Rationale
 
-Encryption SHALL ensure:
-- AES-256 encryption for event payload data
-- Integration with platform secure storage (Keychain/Keystore)
-- Encryption keys never stored in plain text
-- Optional user-specific encryption keys
-- Performance optimization to minimize overhead
+Healthcare and clinical trial data often includes Protected Health Information (PHI) and Personally Identifiable Information (PII). Encrypting the offline queue provides defense-in-depth protection for sensitive data when devices are lost, stolen, or otherwise compromised. This requirement supports FDA 21 CFR Part 11 compliance by ensuring data integrity and confidentiality at rest. The encryption strategy balances security requirements with performance considerations to maintain usable application responsiveness.
 
-**Rationale**: Healthcare and clinical trial data often includes PHI/PII. Encrypting offline queue adds defense-in-depth protection for sensitive data.
+## Assertions
 
-**Acceptance Criteria**:
-- Offline events encrypted before local storage
-- Encryption keys stored in platform secure storage
-- Minimal performance impact (< 50ms overhead per event)
-- Support for automatic key rotation
+A. The system SHALL encrypt all events stored in the offline queue before writing to on-device storage.
+B. The system SHALL use AES-256 encryption for all event payload data in the offline queue.
+C. The system SHALL integrate with platform-native secure storage mechanisms (iOS Keychain or Android Keystore) for key management.
+D. The system SHALL NOT store encryption keys in plain text anywhere on the device.
+E. The system SHALL store all encryption keys exclusively in platform secure storage.
+F. The system SHALL support optional user-specific encryption keys for the offline queue.
+G. The system SHALL complete encryption operations with less than 50 milliseconds of overhead per event.
+H. The system SHALL support automatic rotation of encryption keys without data loss.
 
-*End* *Encryption at Rest for Offline Queue* | **Hash**: b0d10dbb
+*End* *Encryption at Rest for Offline Queue* | **Hash**: 740eb955
 ---
 
 ---
 
 # REQ-p01010: Multi-tenancy Support
 
-**Level**: PRD | **Implements**: p00043 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00043
 
-The module SHOULD support multi-tenant architectures where a single client instance can connect to multiple isolated databases.
+## Rationale
 
-Multi-tenancy SHALL provide:
-- Tenant-specific connection configuration
-- Isolation of events and queries between tenants
-- Tenant switching without app restart
-- Separate offline queues per tenant
-- Tenant-specific schema versions
+This requirement enables the clinical trial platform to serve multiple sponsors or organizations from a single codebase deployment while maintaining complete data isolation between tenants. In the context of FDA-regulated clinical trials, strict tenant isolation is critical to prevent cross-contamination of trial data between different sponsors. Multi-tenancy reduces operational overhead by allowing a single application instance to manage multiple isolated sponsor databases, each with independent schema versions and offline synchronization queues. This architecture supports the platform's multi-sponsor deployment model while ensuring regulatory compliance and data integrity.
 
-**Rationale**: Enables single codebase to serve multiple sponsors or organizations with complete data isolation, reducing maintenance overhead.
+## Assertions
 
-**Acceptance Criteria**:
-- Configuration supports multiple tenant definitions
-- Tenant context propagated through all operations
-- No cross-tenant data leakage
-- Offline queues isolated per tenant
+A. The system SHALL support connection to multiple isolated databases from a single client instance.
+B. The system SHALL provide tenant-specific connection configuration for each database.
+C. The system SHALL ensure complete isolation of events between tenants with no cross-tenant data access.
+D. The system SHALL ensure complete isolation of queries between tenants with no cross-tenant data access.
+E. The system SHALL support tenant switching without requiring application restart.
+F. The system SHALL maintain separate offline queues for each tenant.
+G. The system SHALL support tenant-specific schema versions independently managed per tenant.
+H. The system SHALL propagate tenant context through all database operations.
+I. The system SHALL NOT allow data leakage between tenants under any circumstances.
+J. The configuration system SHALL support definitions for multiple tenants.
+K. The offline synchronization system SHALL maintain queue isolation per tenant with no cross-tenant queue access.
 
-*End* *Multi-tenancy Support* | **Hash**: 08077819
+*End* *Multi-tenancy Support* | **Hash**: 4284f635
 ---
 
 ---
 
 # REQ-p01050: Event Type Registry
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL maintain a registry of event types that provides a single source of truth for available event schemas, their versions, and relationships.
+## Rationale
 
-The registry SHALL provide:
-- Catalog of base event types (e.g., "survey", "epistaxis") independent of version
-- Explicit grouping of versioned schemas under their base type
-- Metadata for each type: display name, description, sponsor eligibility
-- Deprecation status and sunset dates for obsolete versions
-- Runtime discoverability of available types and versions
+Without an explicit type registry, the relationship between versioned schemas (e.g., survey-v1.0 and survey-v1.2) is implicit and derived by string parsing. This creates risks: typos silently create new types, no standard way to discover available types, and no formal tracking of version lifecycles. A registry provides a single source of truth that enables validation, discovery, and governance of the event type portfolio, supporting proper schema evolution and multi-tenant customization.
 
-**Rationale**: Without an explicit type registry, the relationship between `survey-v1.0` and `survey-v1.2` is implicit (derived by string parsing). This creates risks: typos silently create new types, no standard way to discover available types, and no formal tracking of version lifecycles. A registry provides a single source of truth that enables validation, discovery, and governance of the event type portfolio.
+## Assertions
 
-**Acceptance Criteria**:
-- Base event types explicitly defined with unique identifiers
-- Each versioned schema linked to its base type
-- Type metadata includes: name, description, status (active/deprecated/sunset)
-- API to enumerate available types and their versions at runtime
-- Validation rejects events with unregistered versioned_type values
-- Sponsor-specific type enablement configurable per tenant
+A. The system SHALL maintain a registry of event types that provides a single source of truth for available event schemas, their versions, and relationships.
+B. The registry SHALL provide a catalog of base event types (e.g., survey, epistaxis) independent of version.
+C. The registry SHALL explicitly group versioned schemas under their base type.
+D. The registry SHALL store display name metadata for each event type.
+E. The registry SHALL store description metadata for each event type.
+F. The registry SHALL store sponsor eligibility metadata for each event type.
+G. The registry SHALL track deprecation status for each event type version.
+H. The registry SHALL track sunset dates for obsolete event type versions.
+I. The registry SHALL enable runtime discoverability of available event types and versions.
+J. Base event types SHALL be explicitly defined with unique identifiers.
+K. Each versioned schema SHALL be linked to its base event type.
+L. Type metadata SHALL include name, description, and status fields.
+M. Type status values SHALL include active, deprecated, and sunset.
+N. The system SHALL provide an API to enumerate available event types and their versions at runtime.
+O. The system SHALL reject events with unregistered versioned_type values during validation.
+P. The system SHALL support sponsor-specific type enablement configurable per tenant.
 
-*End* *Event Type Registry* | **Hash**: 19386e10
+*End* *Event Type Registry* | **Hash**: e816a02e
 
 ---
 
@@ -448,31 +455,39 @@ The registry SHALL provide:
 
 # REQ-p01051: Questionnaire Versioning Model
 
-**Level**: PRD | **Implements**: p01050 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01050
 
-The platform SHALL support independent versioning of questionnaire schema, content, and presentation to enable each dimension to evolve independently while maintaining complete audit traceability.
+## Rationale
 
-The versioning model SHALL distinguish between:
-- **Schema Version**: The data structure and field types stored in the database. Changes when fields are added, removed, or restructured. Determines validation rules and migration requirements.
-- **Content Version**: The source language question text, option labels, help text, and scoring rules. Changes when wording is clarified or questions are refined, even if the underlying schema remains unchanged.
-- **GUI Version**: The presentation and rendering of the questionnaire in client applications. Changes when user interface is redesigned or user experience is improved, independent of content or schema.
+Clinical questionnaires evolve across multiple independent dimensions. Structural changes add or remove data fields requiring database schema updates. Content changes refine question wording to improve clarity or address translation issues without altering the underlying data structure. Presentation changes enhance user experience through visual redesign without modifying what questions are asked. Conflating these three evolution paths into a single version number creates unnecessary coupling: wording improvements would trigger schema migrations, UI redesigns would invalidate validated instrument versions, and the audit trail would obscure which dimension actually changed. By tracking schema, content, and GUI versions independently, clinical teams can refine instrument language without engineering involvement, UX teams can improve presentation without affecting clinical validation, and regulatory audits can reconstruct the exact patient experience across all three dimensions.
 
-Each questionnaire response SHALL record all three version identifiers to enable complete reconstruction of what the patient saw and how the data was captured.
+## Assertions
 
-**Rationale**: Clinical questionnaires evolve for different reasons: structural changes (add a field), wording clarifications (improve question clarity), and presentation improvements (better UX). Conflating these into a single version number forces unnecessary migrations and obscures the audit trail. Independent versioning allows clinical teams to refine wording without engineering schema changes, and UX teams to improve presentation without affecting validated instrument versions.
+A. The platform SHALL support independent versioning of questionnaire schema, content, and presentation.
+B. The system SHALL distinguish between schema version, content version, and GUI version as separate versioning dimensions.
+C. Schema version SHALL identify the data structure and field types stored in the database.
+D. Schema version SHALL change when fields are added, removed, or restructured.
+E. Schema version SHALL determine validation rules and migration requirements.
+F. Content version SHALL identify the source language question text, option labels, help text, and scoring rules.
+G. Content version SHALL change when wording is clarified or questions are refined, independent of schema changes.
+H. GUI version SHALL identify the presentation and rendering of the questionnaire in client applications.
+I. GUI version SHALL change when user interface is redesigned or user experience is improved, independent of content or schema.
+J. Each questionnaire response SHALL record the schema version identifier.
+K. Each questionnaire response SHALL record the content version identifier.
+L. Each questionnaire response SHALL record the GUI version identifier.
+M. The system SHALL enable complete reconstruction of what the patient saw using the recorded version identifiers.
+N. The system SHALL enable complete reconstruction of how the data was captured using the recorded version identifiers.
+O. The system SHALL track schema version via the versioned_type field.
+P. The system SHALL record content version in event_data for each response.
+Q. The system SHALL record GUI version in event_data for each response.
+R. Wording changes SHALL create a new content version without requiring schema migration.
+S. UI redesigns SHALL create a new GUI version without requiring content version changes.
+T. UI redesigns SHALL create a new GUI version without requiring schema version changes.
+U. The system SHALL enable retrieval of historical responses with exact version context for all three version dimensions.
+V. Version relationships SHALL be documented in the questionnaire registry.
+W. The platform SHALL maintain complete audit traceability across all three versioning dimensions.
 
-**Acceptance Criteria**:
-- Schema version tracked via existing versioned_type field
-- Content version recorded in event_data for each response
-- GUI version recorded in event_data for each response
-- Wording changes create new content version without schema migration
-- UI redesigns create new GUI version without content or schema changes
-- Historical responses retrievable with exact version context
-- Version relationships documented in questionnaire registry
-
-**See**: docs/questionnaire-versioning.md for implementation details and data model examples.
-
-*End* *Questionnaire Versioning Model* | **Hash**: 32f2c5a2
+*End* *Questionnaire Versioning Model* | **Hash**: fbf500ff
 
 ---
 
@@ -480,35 +495,28 @@ Each questionnaire response SHALL record all three version identifiers to enable
 
 # REQ-p01052: Questionnaire Localization and Translation Tracking
 
-**Level**: PRD | **Implements**: p01051 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01051
 
-The platform SHALL support localized questionnaires with independent translation versioning, storing both the original patient response and a canonical normalized response for analysis.
+## Rationale
 
-Localization tracking SHALL include:
-- **Language Identifier**: The specific language and locale shown to the patient (e.g., es-MX for Spanish-Mexico).
-- **Translation Version**: The version of the translation for that language, independent of the source content version. Translations may be revised to improve clarity without changes to the source instrument.
-- **Source Content Reference**: Which source language content version the translation is based upon.
+International clinical trials require validated translations of instruments, where each translation has its own validation status and version lifecycle independent of the source content. For ALCOA+ compliance, the audit trail must show exactly what question text the patient saw in their language. For analysis purposes, responses must be normalized to a common language. Storing both the original patient response and canonical normalized response preserves the complete audit trail while enabling consistent cross-site analysis.
 
-Response storage SHALL capture:
-- **Original Response**: The exact value the patient entered or selected in their language, preserving what they actually saw and chose.
-- **Canonical Response**: The normalized value used for study analysis, typically the source language equivalent for enum/choice fields or a translation for free-text fields.
-- **Translation Method**: For free-text translations, whether the canonical value was auto-translated, manually translated, or verified by a human translator.
+## Assertions
 
-**Rationale**: International clinical trials require validated translations of instruments. Each translation has its own validation status and version lifecycle. For ALCOA+ compliance, the audit trail must show exactly what question text the patient saw in their language. For analysis, responses must be normalized to a common language. Storing both preserves the complete audit trail while enabling consistent analysis.
+A. The platform SHALL support localized questionnaires with independent translation versioning.
+B. The system SHALL store the language identifier showing the specific language and locale presented to the patient (e.g., es-MX for Spanish-Mexico).
+C. The system SHALL store the translation version for each language, independent of the source content version.
+D. The system SHALL store the source content reference indicating which source language content version each translation is based upon.
+E. The system SHALL capture the original response as the exact value the patient entered or selected in their language.
+F. The system SHALL capture the canonical response as the normalized value used for study analysis.
+G. The system SHALL store the translation method for free-text translations, indicating whether the canonical value was auto-translated, manually translated, or verified by a human translator.
+H. The system SHALL record patient language preference at enrollment.
+I. The system SHALL present questionnaires in the patient's configured language.
+J. The system SHALL track translation version per language per questionnaire.
+K. The system SHALL enable reconstruction of the audit trail showing the exact localized content shown to each patient.
+L. The system SHALL support management of translation versions independently of source content versions.
 
-**Acceptance Criteria**:
-- Patient language preference recorded at enrollment
-- Questionnaire presented in patient's configured language
-- Translation version tracked per language per questionnaire
-- Original response stored as patient entered it
-- Canonical response stored for analysis
-- Free-text responses include translation method indicator
-- Audit trail reconstructable showing exact localized content shown
-- Translation versions manageable independently of source content versions
-
-**See**: docs/questionnaire-versioning.md for localization data model and storage patterns.
-
-*End* *Questionnaire Localization and Translation Tracking* | **Hash**: 591b34e9
+*End* *Questionnaire Localization and Translation Tracking* | **Hash**: 74dee412
 
 ---
 
@@ -516,40 +524,30 @@ Response storage SHALL capture:
 
 # REQ-p01053: Sponsor Questionnaire Eligibility Configuration
 
-**Level**: PRD | **Implements**: p01050, p01051 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01050, p01051
 
-Each sponsor SHALL configure which questionnaire types, versions, and languages are enabled for their clinical trial, with the platform enforcing these constraints during data capture.
+## Rationale
 
-Sponsor questionnaire configuration SHALL specify:
-- **Enabled Questionnaires**: Which questionnaire types are available for the sponsor's study (e.g., epistaxis-daily, nose-hht, quality-of-life).
-- **Version Constraints**: Current version for new entries (this is what the Diary App will use). Minimum version (This may be used by the Portal to force App updates). 
-- **Language Enablement**: Which languages and translation versions are available, with designation of the source language.
+Multi-sponsor deployments require sponsor-specific questionnaire portfolios to accommodate varying study designs. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints enable patients in ongoing studies to continue using validated instrument versions while new enrollments can use updated versions, ensuring data consistency within study cohorts. Language enablement ensures only properly validated translations are offered to participants. This configuration-driven approach allows questionnaire changes to be managed deliberately, preventing unintended mid-study modifications that could impact response patterns and data quality. The platform enforces these constraints at data capture time to maintain study protocol compliance and data integrity across the multi-sponsor environment.
 
-The platform SHALL enforce eligibility by:
-- Presenting only enabled questionnaires in client applications
-- Using configured current versions for new data capture
-- Accepting historical data from minimum version through current version
-- Restricting language options to sponsor-enabled translations
-- Validating responses against the appropriate version's rules
+## Assertions
 
-**Rationale**: Multi-sponsor deployments require sponsor-specific questionnaire portfolios. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints ensure patients in ongoing studies continue using validated instrument versions while new enrollments can use updated versions. Language enablement ensures only properly validated translations are offered. Questionnaires or their presentation should not be changed in the midde of the study without due consideration of the potential impact on the responses and the data collected.
+A. The system SHALL allow each sponsor to configure which questionnaire types are enabled for their clinical trial.
+B. The system SHALL allow each sponsor to configure which questionnaire versions are enabled for their clinical trial.
+C. The system SHALL allow each sponsor to configure which questionnaire languages are enabled for their clinical trial.
+D. Sponsor questionnaire configuration SHALL specify the current version for new entries.
+E. Sponsor questionnaire configuration SHALL specify the minimum accepted version for historical data.
+F. Sponsor questionnaire configuration SHALL designate the source language for each enabled questionnaire.
+G. The system SHALL present only sponsor-enabled questionnaires in client applications.
+H. The system SHALL use the configured current version when capturing new questionnaire data.
+I. The system SHALL accept historical questionnaire data from any version between the minimum version and the current version inclusive.
+J. The system SHALL restrict language options to sponsor-enabled translations during data capture.
+K. The system SHALL validate questionnaire responses against the rules defined in the appropriate questionnaire version.
+L. The system SHALL enforce sponsor eligibility constraints during all data capture operations.
+M. Configuration changes SHALL NOT invalidate existing historical questionnaire data.
+N. The system SHALL support addition of new questionnaire types without requiring platform code changes.
 
-**Acceptance Criteria**:
-- Sponsor configuration specifies enabled questionnaire types
-- Sponsor configuration specifies version constraints per questionnaire
-- Sponsor configuration specifies enabled languages per questionnaire
-- Client applications respect sponsor eligibility during data capture
-- Validation enforces version and language constraints
-- Configuration changes do not invalidate existing historical data
-- New questionnaire types addable without platform code changes
-
-**FUTURE FEATURE**
-- **Completion Requirements**: e.g. Frequency expectations (daily, weekly, on-demand) and whether completion is mandatory for study compliance. This would be tied into a Sponsor Portal feature that helped with tracking phases and cycles in a trial.
-
-
-**See**: docs/questionnaire-versioning.md for configuration schema and examples.
-
-*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: 3113e445
+*End* *Sponsor Questionnaire Eligibility Configuration* | **Hash**: d347bcdb
 
 ---
 
@@ -557,50 +555,49 @@ The platform SHALL enforce eligibility by:
 
 # REQ-p01011: Event Transformation and Migration
 
-**Level**: PRD | **Implements**: p01050 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p01050
 
-The module SHOULD support event transformation/upcasting, allowing old event formats to be automatically converted to new formats.
+## Rationale
 
-Event transformation SHALL support:
-- Versioned event schemas with migration functions
-- Automatic upcasting of old events on replay
-- Backward compatibility for event consumers
-- Testing utilities for migration verification
+As clinical trial applications evolve over time, event structures and business logic change to accommodate new features, regulatory requirements, and data models. Event transformation (also called upcasting) enables the system to interpret historical events using current business logic without requiring backfills or data migrations. This maintains the integrity of the immutable event store while ensuring that all event consumers can work with a consistent, current event schema. This capability is essential for FDA 21 CFR Part 11 compliance, as it preserves the complete audit trail while adapting to evolving regulatory and clinical requirements.
 
-**Rationale**: As applications evolve, event structures change. Upcasting allows historical events to be interpreted using current business logic.
+## Assertions
 
-**Acceptance Criteria**:
-- Events include schema version number
-- Migration functions registered per event type
-- Old events automatically transformed on read
-- Test framework validates migrations don't lose data
+A. The system SHALL support event transformation/upcasting to automatically convert old event formats to new formats.
+B. The system SHALL support versioned event schemas with migration functions.
+C. The system SHALL automatically upcast old events during replay operations.
+D. The system SHALL maintain backward compatibility for all event consumers.
+E. The system SHALL provide testing utilities for migration verification.
+F. Event records SHALL include a schema version number.
+G. The system SHALL maintain a registry of migration functions per event type.
+H. The system SHALL automatically transform old events on read operations.
+I. Migration test framework SHALL validate that transformations do not lose data.
 
-*End* *Event Transformation and Migration* | **Hash**: b1e42685
+*End* *Event Transformation and Migration* | **Hash**: adff05f2
 ---
 
 ---
 
 # REQ-p01012: Batch Event Operations
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHOULD support atomic batch operations where multiple events are created and persisted as a single transaction.
+## Rationale
 
-Batch operations SHALL ensure:
-- All events in batch succeed or all fail (atomic)
-- Batch events maintain causal ordering
-- Efficient network usage (single request for multiple events)
-- Rollback of optimistic updates if batch fails
+Some business operations naturally generate multiple events that should be atomic. For example, a transfer operation consists of both a withdrawal and a deposit that must either both succeed or both fail to maintain data consistency. Batch operations reduce network overhead by transmitting multiple events in a single request while preserving causal relationships between events.
 
-**Rationale**: Some business operations naturally generate multiple events that should be atomic (e.g., "transfer" = withdrawal + deposit).
+## Assertions
 
-**Acceptance Criteria**:
-- API to create event batches
-- Atomic persistence on server
-- Efficient serialization of batches
-- Proper error handling for partial batch failures
+A. The system SHALL provide an API to create batch event operations.
+B. The system SHALL persist all events in a batch as a single atomic transaction.
+C. Batch operations SHALL ensure that all events in the batch succeed or all events fail.
+D. The system SHALL maintain causal ordering of events within a batch.
+E. The system SHALL transmit batch events in a single network request.
+F. The system SHALL serialize batch events efficiently.
+G. The system SHALL rollback optimistic updates if the batch operation fails.
+H. The system SHALL provide error handling for partial batch failures.
 
-*End* *Batch Event Operations* | **Hash**: ab8bead4
+*End* *Batch Event Operations* | **Hash**: 0070c072
 ---
 
 ---
@@ -609,26 +606,25 @@ TODO - This adds unnecessary complexity
 
 # REQ-p01013: GraphQL or gRPC Transport Option
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHOULD support pluggable transport protocols, with default REST/JSON and optional GraphQL or gRPC transports.
+## Rationale
 
-Transport abstraction SHALL provide:
-- Interface-based transport layer
-- Default implementation using HTTP REST + JSON
-- Optional GraphQL transport for efficient queries
-- Optional gRPC transport for performance
-- Automatic selection based on server capabilities
+Different deployment scenarios have different performance and bandwidth requirements. Clinical trial sites may have varying network conditions, from high-bandwidth hospital networks to limited connectivity in remote locations. A pluggable transport architecture allows the system to adapt to these constraints while maintaining a consistent API for application code. This design supports future transport protocols without requiring changes to business logic, and enables automatic fallback mechanisms when advanced transports are unavailable.
 
-**Rationale**: Different deployment scenarios have different performance and bandwidth requirements. Pluggable transports maximize flexibility.
+## Assertions
 
-**Acceptance Criteria**:
-- Transport interface abstracted from core logic
-- REST transport included by default
-- GraphQL and gRPC as optional dependencies
-- Auto-negotiation of transport with server
+A. The module SHALL provide an interface-based transport layer abstraction that decouples core logic from transport implementation.
+B. The system SHALL include a default transport implementation using HTTP REST with JSON encoding.
+C. The system SHALL support GraphQL as an optional transport protocol for efficient query operations.
+D. The system SHALL support gRPC as an optional transport protocol for high-performance scenarios.
+E. GraphQL transport SHALL be implemented as an optional dependency that can be excluded from builds.
+F. gRPC transport SHALL be implemented as an optional dependency that can be excluded from builds.
+G. The system SHALL provide automatic transport negotiation based on server capabilities.
+H. The transport interface SHALL allow selection of transport protocol without modifying application code.
+I. All transport implementations SHALL conform to the same abstract transport interface.
 
-*End* *GraphQL or gRPC Transport Option* | **Hash**: 2aedb731
+*End* *GraphQL or gRPC Transport Option* | **Hash**: 2c52f7e9
 ---
 
 ## DevOps and Production Requirements
@@ -637,135 +633,132 @@ Transport abstraction SHALL provide:
 
 # REQ-p01014: Observability and Monitoring
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
+## Rationale
 
-Monitoring SHALL include:
-- Metrics: event throughput, queue depth, sync latency, error rates
-- Distributed tracing integration for event flows
-- Health check API for module status
-- Performance profiling hooks
-- Configurable logging levels
+Production systems require visibility into module behavior for debugging, capacity planning, and incident response. This requirement ensures comprehensive observability for event-driven modules in FDA-regulated clinical trial environments, enabling operators to detect issues, diagnose root causes, and maintain system reliability without compromising audit trail integrity.
 
-**Rationale**: Production systems require visibility into module behavior for debugging, capacity planning, and incident response.
+## Assertions
 
-**Acceptance Criteria**:
-- Metrics exported via standard interfaces (OpenTelemetry)
-- Distributed tracing propagates context through event flows
-- Health checks report queue status, connectivity, schema version
-- Performance profiling identifies bottlenecks
-- Logging configurable from SILENT to VERBOSE
+A. The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
+B. The system SHALL collect metrics for event throughput, queue depth, sync latency, and error rates.
+C. The system SHALL integrate with distributed tracing systems to trace event flows across module boundaries.
+D. The module SHALL provide a health check API that reports module status.
+E. The health check API SHALL report queue status, connectivity status, and schema version.
+F. The system SHALL provide performance profiling hooks to identify bottlenecks.
+G. The system SHALL support configurable logging levels ranging from SILENT to VERBOSE.
+H. The system SHALL export metrics via standard interfaces compliant with OpenTelemetry.
+I. The distributed tracing system SHALL propagate context through event flows.
 
-*End* *Observability and Monitoring* | **Hash**: 884b4ace
+*End* *Observability and Monitoring* | **Hash**: 9df008fb
 ---
 
 ---
 
 # REQ-p01015: Automated Testing Support
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
+## Rationale
 
-Testing utilities SHALL provide:
-- Mock event store for unit testing
-- In-memory repository for integration tests
-- Test fixtures for common event scenarios
-- Time manipulation for testing event ordering
-- Assertion helpers for event verification
+Testable code is maintainable code in FDA-regulated systems where validation is critical. Providing comprehensive test utilities encourages proper testing practices, reduces integration friction, and enables validation of event sourcing behaviors. This supports FDA 21 CFR Part 11 validation requirements by making system behavior verifiable through automated testing.
 
-**Rationale**: Testable code is maintainable code. Providing test utilities encourages proper testing practices and reduces integration friction.
+## Assertions
 
-**Acceptance Criteria**:
-- Mock implementations of all interfaces
-- Test fixtures covering common scenarios
-- Documentation of testing best practices
-- Example test suites demonstrating usage
+A. The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
+B. The module SHALL provide a mock event store for unit testing.
+C. The module SHALL provide an in-memory repository for integration tests.
+D. The module SHALL provide test fixtures for common event scenarios.
+E. The module SHALL provide time manipulation utilities for testing event ordering.
+F. The module SHALL provide assertion helpers for event verification.
+G. The module SHALL provide mock implementations of all interfaces.
+H. The module SHALL provide test fixtures covering common event scenarios.
+I. The module SHALL include documentation of testing best practices.
+J. The module SHALL include example test suites demonstrating usage.
 
-*End* *Automated Testing Support* | **Hash**: ca52af16
+*End* *Automated Testing Support* | **Hash**: fb5dbbff
 ---
 
 ---
 
 # REQ-p01016: Performance Benchmarking
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL meet performance benchmarks for common operations to ensure acceptable user experience.
+## Rationale
 
-Performance targets:
-- Event creation and local persistence: < 10ms (p95)
-- Event synchronization: < 100ms per event (p95, good network)
-- Materialized view query: < 50ms (p95, cached)
-- Offline queue drain: > 10 events/second
-- Memory footprint: < 50MB for typical usage
-- Battery impact: < 1% per hour of active sync
+Client applications must be responsive and efficient to provide good user experience and avoid user frustration. Performance benchmarks establish quantifiable targets for critical operations including event persistence, synchronization, querying, and resource consumption. These targets ensure the system remains usable across varying network conditions and device capabilities while maintaining acceptable battery and memory usage.
 
-**Rationale**: client applications must be responsive and efficient to provide good user experience and avoid user frustration.
+## Assertions
 
-**Acceptance Criteria**:
-- All performance targets met in benchmark tests
-- Performance regression tests in CI/CD
-- Documentation of performance characteristics
-- Profiling guides for optimizing specific scenarios
+A. The system SHALL complete event creation and local persistence operations in less than 10 milliseconds at the 95th percentile.
+B. The system SHALL complete event synchronization in less than 100 milliseconds per event at the 95th percentile under good network conditions.
+C. The system SHALL complete materialized view queries in less than 50 milliseconds at the 95th percentile when cached.
+D. The system SHALL drain the offline queue at a rate greater than 10 events per second.
+E. The system SHALL maintain a memory footprint of less than 50 megabytes during typical usage.
+F. The system SHALL consume less than 1% battery per hour during active synchronization.
+G. The system SHALL pass all defined performance target benchmarks in automated benchmark tests.
+H. The system SHALL include performance regression tests in the CI/CD pipeline.
+I. The system SHALL provide documentation describing performance characteristics of all benchmarked operations.
+J. The system SHALL provide profiling guides for optimizing specific performance scenarios.
 
-*End* *Performance Benchmarking* | **Hash**: 1b14b575
+*End* *Performance Benchmarking* | **Hash**: 2c0805cf
 ---
 
 ---
 
 # REQ-p01017: Backward Compatibility Guarantees
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL maintain backward compatibility for public APIs across minor versions, allowing applications to upgrade without code changes.
+## Rationale
 
-Compatibility SHALL ensure:
-- Semantic versioning (MAJOR.MINOR.PATCH)
-- No breaking API changes in MINOR or PATCH versions
-- Deprecation warnings before removal (one major version notice)
-- Migration guides for major version upgrades
-- Compatibility testing against previous versions
+Forcing breaking changes on consumers creates upgrade friction and technical debt. Backward compatibility enables continuous improvement without disruption. This requirement ensures that the clinical trial platform can evolve while minimizing impact on deployed applications and sponsor-specific implementations. By following semantic versioning and providing clear deprecation paths, the system allows sponsors to upgrade dependencies on their own timeline while maintaining stability.
 
-**Rationale**: Forcing breaking changes on consumers creates upgrade friction and technical debt. Backward compatibility enables continuous improvement without disruption.
+## Assertions
 
-**Acceptance Criteria**:
-- Semantic versioning strictly followed
-- Breaking changes only in major versions
-- Deprecated APIs marked with compiler warnings
-- Comprehensive migration guides for major upgrades
-- Automated compatibility tests
+A. The module SHALL maintain backward compatibility for public APIs across minor versions.
+B. The system SHALL use semantic versioning with MAJOR.MINOR.PATCH format.
+C. The module SHALL NOT introduce breaking API changes in MINOR versions.
+D. The module SHALL NOT introduce breaking API changes in PATCH versions.
+E. Breaking API changes SHALL only be introduced in MAJOR version releases.
+F. Deprecated APIs SHALL emit compiler warnings when used.
+G. The system SHALL provide deprecation warnings for at least one major version before removing deprecated APIs.
+H. The system SHALL provide comprehensive migration guides for all major version upgrades.
+I. The system SHALL include automated compatibility tests that verify compatibility against previous versions.
 
-*End* *Backward Compatibility Guarantees* | **Hash**: 0af743bf
+*End* *Backward Compatibility Guarantees* | **Hash**: c0664b5d
 ---
 
 ---
 
 # REQ-p01018: Security Audit and Compliance
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL undergo security review and maintain compliance with relevant security standards.
+## Rationale
 
-Security SHALL address:
-- OWASP client Top 10 vulnerabilities
-- Secure storage of sensitive data
-- Protection against injection attacks
-- Secure communication (TLS 1.3+)
-- Dependency vulnerability scanning
-- Regular security audits
+Healthcare applications handle sensitive Protected Health Information (PHI) and must meet stringent security standards to protect patient privacy and maintain regulatory compliance. FDA 21 CFR Part 11 requires electronic record systems to implement controls to ensure authenticity, integrity, and confidentiality. This requirement establishes a defense-in-depth security posture through multiple layers: proactive vulnerability prevention, secure data handling, automated continuous scanning, third-party validation, and comprehensive documentation. Together, these measures reduce risk of data breaches, ensure compliance with healthcare regulations (HIPAA, FDA), and maintain trust with patients and sponsors.
 
-**Rationale**: Healthcare applications handle sensitive data and must meet high security standards to protect patient privacy and maintain regulatory compliance.
+## Assertions
 
-**Acceptance Criteria**:
-- No HIGH or CRITICAL vulnerabilities in dependencies
-- Security audit by third-party before 1.0 release
-- Automated vulnerability scanning in CI/CD
-- Documentation of security architecture
-- Compliance validation against FDA 21 CFR Part 11
+A. The system SHALL undergo security review to identify and remediate vulnerabilities.
+B. The system SHALL maintain compliance with relevant security standards including FDA 21 CFR Part 11.
+C. The system SHALL address OWASP client Top 10 vulnerabilities.
+D. The system SHALL implement secure storage mechanisms for sensitive data.
+E. The system SHALL implement protection against injection attacks.
+F. The system SHALL use TLS 1.3 or higher for all network communication.
+G. The system SHALL perform dependency vulnerability scanning.
+H. The system SHALL undergo regular security audits.
+I. The system SHALL NOT have any HIGH severity vulnerabilities in dependencies at release time.
+J. The system SHALL NOT have any CRITICAL severity vulnerabilities in dependencies at release time.
+K. The system SHALL undergo a security audit by a third-party vendor before 1.0 release.
+L. The system SHALL integrate automated vulnerability scanning into the CI/CD pipeline.
+M. The system SHALL provide documentation of the security architecture.
+N. The system SHALL validate compliance against FDA 21 CFR Part 11 requirements.
 
-*End* *Security Audit and Compliance* | **Hash**: 6a021418
+*End* *Security Audit and Compliance* | **Hash**: acb9854a
 ---
 
 ## FDA 21 CFR Part 11 Compliance Considerations
@@ -876,39 +869,34 @@ This module differs by:
 
 # REQ-p01019: Phased Implementation
 
-**Level**: PRD | **Implements**: p00046 | **Status**: Draft
+**Level**: PRD | **Status**: Draft | **Implements**: p00046
 
-The module SHALL be developed in phases, with each phase delivering incremental value and validating core assumptions.
+## Rationale
 
-**Phase 1 - MVP** (Essential Requirements):
-- Event creation and local storage (REQ-p01000)
-- Offline queue with manual sync (REQ-p01001)
-- Basic materialized view queries (REQ-p01006)
-- Simple conflict detection (REQ-p01002)
-- Schema version awareness (REQ-p01004)
+This requirement establishes a phased development approach for the event sourcing module to reduce implementation risk and enable early validation. The incremental delivery strategy allows the team to validate core assumptions with a minimal viable product (Phase 1), harden the implementation for production environments (Phase 2), and optionally add advanced enterprise features (Phase 3). This approach enables course correction based on real-world usage patterns and ensures each phase delivers measurable value before proceeding to the next.
 
-**Phase 2 - Production Hardening**:
-- Automatic synchronization and retries
-- Real-time subscriptions (REQ-p01005)
-- Comprehensive error handling (REQ-p01007)
-- Monitoring and observability (REQ-p01014)
-- Performance optimization (REQ-p01016)
+## Assertions
 
-**Phase 3 - Advanced Features** (Optional Requirements):
-- Event replay and time travel (REQ-p01008)
-- Encryption at rest (REQ-p01009)
-- Multi-tenancy (REQ-p01010)
-- Event transformation (REQ-p01011)
+A. The system SHALL implement event creation and local storage in Phase 1.
+B. The system SHALL implement an offline queue with manual synchronization in Phase 1.
+C. The system SHALL implement basic materialized view queries in Phase 1.
+D. The system SHALL implement simple conflict detection in Phase 1.
+E. The system SHALL implement schema version awareness in Phase 1.
+F. The system SHALL implement automatic synchronization and retries in Phase 2.
+G. The system SHALL implement real-time subscriptions in Phase 2.
+H. The system SHALL implement comprehensive error handling in Phase 2.
+I. The system SHALL implement monitoring and observability capabilities in Phase 2.
+J. The system SHALL implement performance optimization in Phase 2.
+K. The system SHALL support event replay and time travel in Phase 3.
+L. The system SHALL support encryption at rest in Phase 3.
+M. The system SHALL support multi-tenancy in Phase 3.
+N. The system SHALL support event transformation in Phase 3.
+O. Each phase SHALL be independently deployable.
+P. Phase 1 deliverables SHALL be sufficient for pilot applications.
+Q. Phase 2 deliverables SHALL be ready for production use.
+R. Phase 3 deliverables SHALL add enterprise features.
 
-**Rationale**: Phased approach reduces risk, enables early validation, and allows course correction based on real-world usage.
-
-**Acceptance Criteria**:
-- Each phase independently deployable
-- Phase 1 sufficient for pilot applications
-- Phase 2 ready for production use
-- Phase 3 adds enterprise features
-
-*End* *Phased Implementation* | **Hash**: d60453bf
+*End* *Phased Implementation* | **Hash**: 44d8ece3
 ---
 
 ## Success Metrics
