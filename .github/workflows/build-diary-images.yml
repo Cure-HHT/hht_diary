@@ -15,7 +15,7 @@
 # - Restores the "Determine tag and validate semver" step (id: parse)
 # - Adds workflow_dispatch with an input string named `version`
 # - Builds/pushes tags computed from the semver (full, short-sha, and release shortcuts)
-name: Build and push Docker image (semver tags + manual)
+name: Build and Push diary-server-base & diary-server images (semver tags + manual)
 
 on:
   push:
