@@ -6,7 +6,7 @@
 #   REQ-d00035: Security and Compliance
 #
 # Clinical Diary Docker Image Build & Publish
-# Builds, signs, and pushes diary-server-base, diary-server images to GitHub Container Registry
+# Builds, signs, tags and pushes diary-server image to GitHub Container Registry
 
 name: Build & Publish Docker Images
 
@@ -36,8 +36,8 @@ permissions:
   id-token: write    # For Cosign signing
 
 jobs:
-  build-base:
-    name: Build Base Image
+  build-diary-server-image:
+    name: Build Image
     runs-on: ubuntu-latest
 
     outputs:
@@ -110,6 +110,7 @@ jobs:
           else
             IS_RELEASE=true
           fi
+          IS_RELEASE=false  #TODO TEMPORARILY DISABLE RELEASE TAGS FOR NOW
 
           # sanitize for docker tags: convert '+' to '-' and lowercase
           DOCKER_VER="$(echo "$VERSION" | sed 's/+/-/g' | tr '[:upper:]' '[:lower:]')"
@@ -121,9 +122,9 @@ jobs:
 
           # Build the newline-separated tags list for build-push-action
           # Always push full semver and short sha; for releases also add MAJOR_MINOR, MAJOR and latest
-          TAGS="${REGISTRY}/${IMAGE}-base:${DOCKER_VER} ${REGISTRY}/${IMAGE}-base:${SHORT_SHA}"
+          TAGS="${REGISTRY}/${IMAGE}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE}:${SHORT_SHA}"
           if [ "$IS_RELEASE" = "true" ]; then
-            TAGS="${TAGS}\n${REGISTRY}/${IMAGE}-base:${MAJOR_MINOR}\n${REGISTRY}/${IMAGE}-base:${MAJOR}\n${REGISTRY}/${IMAGE}-base:latest"
+            TAGS="${TAGS}, ${REGISTRY}/${IMAGE}:${MAJOR_MINOR}, ${REGISTRY}/${IMAGE}:${MAJOR}, ${REGISTRY}/${IMAGE}:latest"
           fi
 
           # Export outputs (use GITHUB_OUTPUT format)
@@ -165,7 +166,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}-base
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
           # tags: ${{ steps.parse.outputs.tags }}
           tags: |
             type=ref,event=branch
@@ -194,14 +195,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # COHERENT CACHING: GHCR only (no GHA cache)
           # Images in GHCR serve as cache - pull latest before build
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE }}-base:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           cache-to: type=inline
           provenance: ${{ github.event_name != 'pull_request' }}
           sbom: ${{ github.event_name != 'pull_request' }}
 
       - name: Export local image for downstream jobs
         # if: github.event_name == 'pull_request'
-        run: docker save -o /tmp/base-image.tar ${{ env.IMAGE }}-base:latest
+        run: docker save -o /tmp/base-image.tar ${{ env.IMAGE }}:latest
 
       - name: Upload base image artifact
         # if: github.event_name == 'pull_request'
