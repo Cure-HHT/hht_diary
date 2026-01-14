@@ -93,16 +93,16 @@ output "audit_log_bucket" {
 }
 
 # -----------------------------------------------------------------------------
-# Container Images (GHCR)
+# Container Images (via Artifact Registry GHCR proxy)
 # -----------------------------------------------------------------------------
 
 output "diary_server_image" {
-  description = "Diary server GHCR image URL"
+  description = "Diary server container image URL"
   value       = var.diary_server_image
 }
 
 output "portal_server_image" {
-  description = "Portal server GHCR image URL"
+  description = "Portal server container image URL"
   value       = var.portal_server_image
 }
 
@@ -180,7 +180,7 @@ output "summary" {
       Retention:   ${var.audit_retention_years} years
       Locked:      ${local.lock_audit_retention}
 
-    Container Images (GHCR):
+    Container Images:
       Diary:       ${var.diary_server_image}
       Portal:      ${var.portal_server_image}
 

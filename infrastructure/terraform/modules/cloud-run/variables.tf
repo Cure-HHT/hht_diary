@@ -92,9 +92,3 @@ variable "allow_public_access" {
   type        = bool
   default     = true
 }
-
-variable "ghcr_token_secret_id" {
-  description = "Secret Manager secret ID for GHCR authentication token (empty for public images)"
-  type        = string
-  default     = ""
-}

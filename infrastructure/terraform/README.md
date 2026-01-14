@@ -322,9 +322,7 @@ Create `bootstrap/sponsor-configs/{sponsor}.tfvars`:
 # Required
 sponsor              = "new-sponsor"
 sponsor_id           = 3  # Must be unique (1-254)
-gcp_org_id           = "123456789012"
-billing_account_prod = "XXXXXX-XXXXXX-XXXXXX"
-billing_account_dev  = "YYYYYY-YYYYYY-YYYYYY"
+
 
 # Optional
 project_prefix       = "cure-hht"
@@ -361,7 +359,6 @@ sponsor     = "new-sponsor"
 sponsor_id  = 3  # Must match bootstrap
 environment = "dev"
 project_id  = "cure-hht-new-sponsor-dev"
-gcp_org_id  = "123456789012"
 # ... additional configuration
 ```
 

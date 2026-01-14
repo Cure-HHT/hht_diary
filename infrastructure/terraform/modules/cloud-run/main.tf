@@ -84,13 +84,8 @@ resource "google_cloud_run_v2_service" "diary_server" {
   template {
     service_account = google_service_account.cloud_run.email
 
-    # NOTE: GHCR Authentication
-    # For public GHCR images: No authentication needed (default)
-    # For private GHCR images: Configure docker credentials via Secret Manager
-    #   1. Create base64-encoded .dockerconfigjson with GHCR PAT
-    #   2. Store in Secret Manager (use var.ghcr_token_secret_id)
-    #   3. Add volume mount for /root/.docker/config.json
-    # See: https://cloud.google.com/run/docs/configuring/services/containers#configure-registries
+    # NOTE: Container images are pulled via Artifact Registry GHCR remote proxy
+    # Authentication is handled centrally in the admin project's remote repository
 
     scaling {
       min_instance_count = var.min_instances
@@ -195,9 +190,7 @@ resource "google_cloud_run_v2_service" "portal_server" {
   template {
     service_account = google_service_account.cloud_run.email
 
-    # NOTE: GHCR Authentication (same as diary-server)
-    # For public GHCR images: No authentication needed (default)
-    # For private images: Configure via Secret Manager
+    # NOTE: Container images pulled via Artifact Registry GHCR remote proxy
 
     scaling {
       min_instance_count = var.min_instances

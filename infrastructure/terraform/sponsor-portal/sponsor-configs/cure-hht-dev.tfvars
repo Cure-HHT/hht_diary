@@ -17,14 +17,27 @@ environment = "dev"
 # -----------------------------------------------------------------------------
 
 project_id = "cure-hht-dev"  # From bootstrap output
-gcp_org_id = "12345678912"
+
+# Sensitive values should be provided via Doppler environment variables:
+# - TF_VAR_GCP_ORG_ID
+# - TF_VAR_BILLING_ACCOUNT_PROD
+# - TF_VAR_BILLING_ACCOUNT_DEV
+# - TF_VAR_DB_PASSWORD
+#
+# Find your GCP Organization ID: gcloud organizations list
+# Find your Billing Account IDs: gcloud billing accounts list
+#
+# If not using Doppler, uncomment and set these values:
+# GCP_ORG_ID = "123456789012"
+# BILLING_ACCOUNT_PROD = "XXXXXX-XXXXXX-XXXXXX"
+# BILLING_ACCOUNT_DEV = "XXXXXX-XXXXXX-XXXXXX"
+# DB_PASSWORD = "your-db-password"
 
 # -----------------------------------------------------------------------------
 # Required: Database
 # -----------------------------------------------------------------------------
 
 # Database password - use Doppler or set via environment variable
-# db_password = "changeme"  # DO NOT commit real passwords!
 
 # -----------------------------------------------------------------------------
 # Optional: Project Configuration
@@ -55,12 +68,9 @@ github_repo = "hht_diary"
 # Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
 enable_cloud_build_triggers = false
 
-# Container Images (GHCR)
-diary_server_image  = "ghcr.io/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "ghcr.io/cure-hht/clinical-diary-portal-server:latest"
-
-# GHCR Authentication (only needed if images are private)
-# ghcr_token = ""  # Set via environment variable: TF_VAR_ghcr_token
+# Container Images (via Artifact Registry GHCR proxy in admin project)
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
 # Disable public access due to organization policy restrictions
 allow_public_access = false

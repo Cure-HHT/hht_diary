@@ -25,7 +25,7 @@ terraform {
 # -----------------------------------------------------------------------------
 
 locals {
-  bucket_name = "${var.project_prefix}-${var.sponsor}-${var.environment}-audit-logs"
+  bucket_name = "${var.sponsor}-${var.environment}-audit-logs"
 
   # Calculate retention in seconds (25 years)
   retention_seconds = var.retention_years * 365 * 24 * 60 * 60
@@ -55,9 +55,13 @@ resource "google_storage_bucket" "audit_logs" {
 
   # FDA 21 CFR Part 11: 25-year retention with optional lock
   # WARNING: Once locked, retention CANNOT be shortened or removed
-  retention_policy {
-    retention_period = local.retention_seconds
-    is_locked        = var.lock_retention_policy
+  # Set retention_years = 0 to disable retention (for non-prod environments)
+  dynamic "retention_policy" {
+    for_each = var.retention_years > 0 ? [1] : []
+    content {
+      retention_period = local.retention_seconds
+      is_locked        = var.lock_retention_policy
+    }
   }
 
   # Enable versioning for additional protection

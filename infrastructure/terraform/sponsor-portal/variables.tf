@@ -40,7 +40,7 @@ variable "project_id" {
   type        = string
 }
 
-variable "gcp_org_id" {
+variable "GCP_ORG_ID" {
   description = "GCP Organization ID (for Workforce Identity)"
   type        = string
 }
@@ -147,26 +147,19 @@ variable "enable_cloud_build_triggers" {
 }
 
 # -----------------------------------------------------------------------------
-# Optional: Container Images (GHCR)
+# Optional: Container Images (via Artifact Registry GHCR proxy)
 # -----------------------------------------------------------------------------
 
 variable "diary_server_image" {
-  description = "Full GHCR URL for diary server image (e.g., ghcr.io/cure-hht/clinical-diary-diary-server:latest)"
+  description = "Container image URL for diary server (via Artifact Registry GHCR proxy)"
   type        = string
-  default     = "ghcr.io/cure-hht/clinical-diary-diary-server:latest"
+  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
 }
 
 variable "portal_server_image" {
-  description = "Full GHCR URL for portal server image (e.g., ghcr.io/cure-hht/clinical-diary-portal-server:latest)"
+  description = "Container image URL for portal server (via Artifact Registry GHCR proxy)"
   type        = string
-  default     = "ghcr.io/cure-hht/clinical-diary-portal-server:latest"
-}
-
-variable "ghcr_token" {
-  description = "GitHub Personal Access Token for private GHCR authentication (leave empty for public images)"
-  type        = string
-  sensitive   = true
-  default     = ""
+  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 }
 
 # -----------------------------------------------------------------------------

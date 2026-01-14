@@ -67,9 +67,6 @@ When onboarding a new sponsor:
 # bootstrap/sponsor-configs/callisto.tfvars
 sponsor                = "callisto"
 sponsor_id             = 1                        # Unique ID for VPC CIDR (10.1.0.0/16)
-gcp_org_id             = "123456789012"
-billing_account_prod   = "01754A-64465F-47FB84"   # Callisto
-billing_account_dev    = "01EA1E-F12D75-125CEF"   # Callisto - Dev
 project_prefix         = "cure-hht"
 default_region         = "us-central1"
 github_org             = "Cure-HHT"
@@ -80,9 +77,6 @@ github_repo            = "hht_diary"
 # bootstrap/sponsor-configs/cure-hht.tfvars
 sponsor                = "cure-hht"
 sponsor_id             = 2                        # Unique ID for VPC CIDR (10.2.0.0/16)
-gcp_org_id             = "123456789012"
-billing_account_prod   = "017213-A61D61-71522F"   # Cure HHT
-billing_account_dev    = "01A48D-1B402E-18CB1A"   # Cure HHT - Dev
 project_prefix         = "cure-hht"
 default_region         = "us-central1"
 github_org             = "Cure-HHT"
@@ -238,7 +232,7 @@ Both are built via **Cloud Build** and pushed to **Artifact Registry**, then dep
 | Subnet          | `{sponsor}-{env}-subnet`              | `orion-prod-subnet`              |
 | Cloud SQL       | `{sponsor}-{env}-db`                  | `orion-prod-db`                  |
 | Cloud Run       | `diary-server`, `portal-server`       | `orion-prod-diary-server`        |
-| Audit Bucket    | `{prefix}-{sponsor}-{env}-audit-logs` | `cure-hht-orion-prod-audit-logs` |
+| Audit Bucket    | `{sponsor}-{env}-audit-logs` | `cure-hht-orion-prod-audit-logs` |
 | Service Account | `{sponsor}-cicd`                      | `orion-cicd`                     |
 
 ---

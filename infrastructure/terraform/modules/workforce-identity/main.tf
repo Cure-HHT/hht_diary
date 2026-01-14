@@ -35,7 +35,7 @@ resource "google_iam_workforce_pool" "main" {
   count = var.enabled ? 1 : 0
 
   workforce_pool_id = local.pool_id
-  parent            = "organizations/${var.gcp_org_id}"
+  parent            = "organizations/${var.GCP_ORG_ID}"
   location          = "global"
   display_name      = "${title(var.sponsor)} ${upper(var.environment)} Workforce Pool"
   description       = "Workforce Identity Pool for ${var.sponsor} ${var.environment} users"

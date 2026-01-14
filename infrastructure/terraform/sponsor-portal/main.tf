@@ -69,28 +69,6 @@ resource "google_secret_manager_secret_version" "db_password" {
 }
 
 # -----------------------------------------------------------------------------
-# Secret Manager - GHCR Authentication (if using private images)
-# -----------------------------------------------------------------------------
-
-resource "google_secret_manager_secret" "ghcr_token" {
-  count     = var.ghcr_token != "" ? 1 : 0
-  secret_id = "${var.sponsor}-${var.environment}-ghcr-token"
-  project   = var.project_id
-
-  labels = local.common_labels
-
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "ghcr_token" {
-  count       = var.ghcr_token != "" ? 1 : 0
-  secret      = google_secret_manager_secret.ghcr_token[0].id
-  secret_data = var.ghcr_token
-}
-
-# -----------------------------------------------------------------------------
 # VPC Network
 # -----------------------------------------------------------------------------
 
@@ -140,12 +118,9 @@ module "cloud_run" {
   region           = var.region
   vpc_connector_id = module.vpc.connector_id
 
-  # GHCR image URLs
+  # Container images (via Artifact Registry GHCR proxy)
   diary_server_image  = var.diary_server_image
   portal_server_image = var.portal_server_image
-
-  # GHCR authentication (if using private images)
-  ghcr_token_secret_id = var.ghcr_token != "" ? google_secret_manager_secret.ghcr_token[0].secret_id : ""
 
   db_host               = module.cloud_sql.private_ip_address
   db_name               = module.cloud_sql.database_name
@@ -191,7 +166,7 @@ module "audit_logs" {
   sponsor               = var.sponsor
   environment           = var.environment
   region                = var.region
-  retention_years       = var.audit_retention_years
+  retention_years       = local.is_production ? var.audit_retention_years : 0
   lock_retention_policy = local.lock_audit_retention
 }
 
@@ -279,7 +254,7 @@ module "workforce_identity" {
 
   enabled                = var.workforce_identity_enabled
   project_id             = var.project_id
-  gcp_org_id             = var.gcp_org_id
+  GCP_ORG_ID             = var.GCP_ORG_ID
   sponsor                = var.sponsor
   environment            = var.environment
   region                 = var.region
