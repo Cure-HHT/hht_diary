@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-p00024: Portal User Roles and Permissions
+//   REQ-p00002: Multi-Factor Authentication for Staff
 //
 // Portal activation handlers - validate and process activation codes
 // for new user account setup
@@ -160,23 +161,44 @@ Future<Response> activateUserHandler(Request request) async {
     }, 403);
   }
 
-  // Activate the account
+  // Check MFA enrollment status (FDA 21 CFR Part 11 compliance)
+  // MFA must be enrolled before account activation is complete
+  final mfaInfo = verification.mfaInfo;
+  if (mfaInfo == null || !mfaInfo.isEnrolled) {
+    print('[ACTIVATION] MFA not enrolled - activation blocked');
+    return _jsonResponse({
+      'error': 'MFA enrollment required',
+      'mfa_required': true,
+      'message': 'Please complete 2FA setup before activating your account',
+    }, 403);
+  }
+
+  print('[ACTIVATION] MFA verified: method=${mfaInfo.method}');
+
+  // Activate the account with MFA tracking
   await db.executeWithContext(
     '''
     UPDATE portal_users
     SET firebase_uid = @firebaseUid,
         status = 'active',
         activated_at = now(),
+        mfa_enrolled = true,
+        mfa_enrolled_at = now(),
+        mfa_method = @mfaMethod,
         activation_code = NULL,
         activation_code_expires_at = NULL,
         updated_at = now()
     WHERE id = @userId::uuid
     ''',
-    parameters: {'firebaseUid': firebaseUid, 'userId': userId},
+    parameters: {
+      'firebaseUid': firebaseUid,
+      'userId': userId,
+      'mfaMethod': mfaInfo.method ?? 'totp',
+    },
     context: serviceContext,
   );
 
-  print('[ACTIVATION] Account activated: $userId');
+  print('[ACTIVATION] Account activated with MFA: $userId');
 
   // Fetch user's roles
   final rolesResult = await db.executeWithContext(

@@ -333,5 +333,103 @@ void main() {
         expect(user.canAccessSite('any-site'), isFalse);
       });
     });
+
+    group('copyWithActiveRole', () {
+      test('creates copy with new active role', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+          roles: [UserRole.administrator, UserRole.investigator],
+          activeRole: UserRole.administrator,
+          status: 'active',
+          sites: [
+            {'site_id': 'site-1'},
+          ],
+        );
+
+        final updatedUser = user.copyWithActiveRole(UserRole.investigator);
+
+        expect(updatedUser.id, user.id);
+        expect(updatedUser.email, user.email);
+        expect(updatedUser.name, user.name);
+        expect(updatedUser.roles, user.roles);
+        expect(updatedUser.status, user.status);
+        expect(updatedUser.sites, user.sites);
+        expect(updatedUser.activeRole, UserRole.investigator);
+      });
+
+      test('throws when role not in user roles', () {
+        final user = PortalUser(
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Test User',
+          roles: [UserRole.investigator],
+          activeRole: UserRole.investigator,
+          status: 'active',
+        );
+
+        expect(
+          () => user.copyWithActiveRole(UserRole.administrator),
+          throwsArgumentError,
+        );
+      });
+
+      test('preserves all original data', () {
+        final user = PortalUser(
+          id: 'user-123',
+          email: 'multi@example.com',
+          name: 'Multi Role User',
+          roles: [UserRole.sponsor, UserRole.auditor, UserRole.analyst],
+          activeRole: UserRole.sponsor,
+          status: 'active',
+          sites: [
+            {'site_id': 's1', 'site_name': 'Site 1'},
+            {'site_id': 's2', 'site_name': 'Site 2'},
+          ],
+        );
+
+        final copied = user.copyWithActiveRole(UserRole.auditor);
+
+        expect(copied.id, 'user-123');
+        expect(copied.email, 'multi@example.com');
+        expect(copied.name, 'Multi Role User');
+        expect(copied.roles.length, 3);
+        expect(copied.status, 'active');
+        expect(copied.sites.length, 2);
+        expect(copied.activeRole, UserRole.auditor);
+      });
+    });
+
+    group('fromJson edge cases', () {
+      test('defaults to investigator when no roles provided', () {
+        final json = {
+          'id': 'user-1',
+          'email': 'test@example.com',
+          'name': 'Test',
+          'status': 'active',
+        };
+
+        final user = PortalUser.fromJson(json);
+
+        expect(user.roles, [UserRole.investigator]);
+        expect(user.activeRole, UserRole.investigator);
+      });
+
+      test('parses developer admin active role', () {
+        final json = {
+          'id': 'user-1',
+          'email': 'test@example.com',
+          'name': 'Test',
+          'roles': ['Developer Admin', 'Administrator'],
+          'active_role': 'Developer Admin',
+          'status': 'active',
+        };
+
+        final user = PortalUser.fromJson(json);
+
+        expect(user.activeRole, UserRole.developerAdmin);
+      });
+    });
   });
 }

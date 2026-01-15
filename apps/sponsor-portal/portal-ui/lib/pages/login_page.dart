@@ -2,12 +2,14 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00031: Identity Platform Integration
 //   REQ-d00034: Login Page Implementation
+//   REQ-p00002: Multi-Factor Authentication for Staff
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import '../widgets/totp_input_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -40,18 +42,51 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!mounted) return;
 
-    if (success && authService.currentUser != null) {
-      final user = authService.currentUser!;
-
-      // If user has multiple roles, go to role picker
-      if (user.hasMultipleRoles) {
-        context.go('/select-role');
-        return;
-      }
-
-      // Navigate based on active role
-      _navigateToRoleDashboard(user.activeRole);
+    // Check if MFA is required
+    if (success && authService.mfaRequired) {
+      await _handleMfaChallenge(authService);
+      return;
     }
+
+    if (success && authService.currentUser != null) {
+      _navigateAfterLogin(authService);
+    }
+  }
+
+  /// Handle MFA challenge by showing TOTP input dialog
+  Future<void> _handleMfaChallenge(AuthService authService) async {
+    final totpCode = await TotpInputDialog.show(context);
+
+    if (!mounted) return;
+
+    if (totpCode == null) {
+      // User cancelled MFA
+      authService.cancelMfa();
+      return;
+    }
+
+    final success = await authService.completeMfaSignIn(totpCode);
+
+    if (!mounted) return;
+
+    if (success && authService.currentUser != null) {
+      _navigateAfterLogin(authService);
+    }
+    // If MFA failed, error is shown via authService.error
+  }
+
+  /// Navigate to appropriate dashboard after successful login
+  void _navigateAfterLogin(AuthService authService) {
+    final user = authService.currentUser!;
+
+    // If user has multiple roles, go to role picker
+    if (user.hasMultipleRoles) {
+      context.go('/select-role');
+      return;
+    }
+
+    // Navigate based on active role
+    _navigateToRoleDashboard(user.activeRole);
   }
 
   void _navigateToRoleDashboard(UserRole role) {

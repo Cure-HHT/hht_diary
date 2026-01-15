@@ -596,6 +596,10 @@ CREATE TABLE portal_users (
     activation_code_expires_at TIMESTAMPTZ, -- Activation code expiry (typically 14 days)
     activated_at TIMESTAMPTZ,           -- When account was activated
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active', 'revoked', 'pending')),
+    -- MFA tracking (FDA 21 CFR Part 11 compliance)
+    mfa_enrolled BOOLEAN NOT NULL DEFAULT false,
+    mfa_enrolled_at TIMESTAMPTZ,
+    mfa_method TEXT CHECK (mfa_method IN ('totp', 'sms', 'email')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -606,6 +610,7 @@ CREATE INDEX idx_portal_users_linking_code ON portal_users(linking_code);
 CREATE INDEX idx_portal_users_activation_code ON portal_users(activation_code);
 CREATE INDEX idx_portal_users_role ON portal_users(role);
 CREATE INDEX idx_portal_users_status ON portal_users(status);
+CREATE INDEX idx_portal_users_mfa_enrolled ON portal_users(mfa_enrolled, status);
 
 ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
 
@@ -617,6 +622,9 @@ COMMENT ON COLUMN portal_users.activation_code IS 'Account activation code sent 
 COMMENT ON COLUMN portal_users.activation_code_expires_at IS 'Activation code expiry - typically 14 days after generation';
 COMMENT ON COLUMN portal_users.activated_at IS 'When user activated their account (set password, completed 2FA)';
 COMMENT ON COLUMN portal_users.status IS 'Account status: pending (awaiting activation), active, or revoked';
+COMMENT ON COLUMN portal_users.mfa_enrolled IS 'Whether user has completed MFA enrollment (FDA 21 CFR Part 11)';
+COMMENT ON COLUMN portal_users.mfa_enrolled_at IS 'Timestamp when MFA was successfully enrolled';
+COMMENT ON COLUMN portal_users.mfa_method IS 'Type of MFA method enrolled (totp, sms, email)';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
