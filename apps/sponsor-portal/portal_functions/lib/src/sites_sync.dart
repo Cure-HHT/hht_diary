@@ -154,6 +154,8 @@ Future<void> logSyncEvent({
 }
 
 /// Retrieves recent sync events for monitoring and debugging.
+///
+/// Returns a list of sync events including chain_hash for integrity verification.
 Future<List<Map<String, dynamic>>> getRecentSyncEvents({
   int limit = 10,
   String? sourceSystem,
@@ -169,7 +171,7 @@ Future<List<Map<String, dynamic>>> getRecentSyncEvents({
     SELECT
       sync_id, sync_timestamp, source_system, operation,
       sites_created, sites_updated, sites_deactivated,
-      content_hash, duration_ms, success, error_message, metadata
+      content_hash, chain_hash, duration_ms, success, error_message, metadata
     FROM edc_sync_log
     $whereClause
     ORDER BY sync_timestamp DESC
@@ -192,13 +194,74 @@ Future<List<Map<String, dynamic>>> getRecentSyncEvents({
           'sites_updated': row[5],
           'sites_deactivated': row[6],
           'content_hash': row[7],
-          'duration_ms': row[8],
-          'success': row[9],
-          'error_message': row[10],
-          'metadata': row[11],
+          'chain_hash': row[8],
+          'duration_ms': row[9],
+          'success': row[10],
+          'error_message': row[11],
+          'metadata': row[12],
         },
       )
       .toList();
+}
+
+/// Result of chain integrity verification.
+class ChainVerificationResult {
+  final int totalRecords;
+  final int validRecords;
+  final int invalidRecords;
+  final bool chainIntact;
+  final int? firstInvalidSyncId;
+  final DateTime checkedAt;
+
+  const ChainVerificationResult({
+    required this.totalRecords,
+    required this.validRecords,
+    required this.invalidRecords,
+    required this.chainIntact,
+    this.firstInvalidSyncId,
+    required this.checkedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'total_records': totalRecords,
+    'valid_records': validRecords,
+    'invalid_records': invalidRecords,
+    'chain_intact': chainIntact,
+    if (firstInvalidSyncId != null) 'first_invalid_sync_id': firstInvalidSyncId,
+    'checked_at': checkedAt.toIso8601String(),
+  };
+}
+
+/// Verifies the integrity of the EDC sync log chain.
+///
+/// Returns a [ChainVerificationResult] indicating whether the chain is intact.
+/// A broken chain indicates potential tampering with sync log records.
+Future<ChainVerificationResult> verifySyncLogChain() async {
+  final db = Database.instance;
+
+  final result = await db.execute(
+    'SELECT * FROM check_edc_sync_chain_status()',
+  );
+
+  if (result.isEmpty) {
+    return ChainVerificationResult(
+      totalRecords: 0,
+      validRecords: 0,
+      invalidRecords: 0,
+      chainIntact: true,
+      checkedAt: DateTime.now().toUtc(),
+    );
+  }
+
+  final row = result.first;
+  return ChainVerificationResult(
+    totalRecords: row[0] as int,
+    validRecords: row[1] as int,
+    invalidRecords: row[2] as int,
+    chainIntact: row[3] as bool,
+    firstInvalidSyncId: row[4] as int?,
+    checkedAt: row[5] as DateTime,
+  );
 }
 
 /// Checks if sites need to be synced from EDC.

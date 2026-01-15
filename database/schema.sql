@@ -173,6 +173,7 @@ CREATE TABLE edc_sync_log (
     sites_updated INTEGER NOT NULL DEFAULT 0,
     sites_deactivated INTEGER NOT NULL DEFAULT 0,
     content_hash TEXT NOT NULL,
+    chain_hash TEXT,  -- Chained hash for tamper-evident audit trail (computed by trigger)
     duration_ms INTEGER,
     success BOOLEAN NOT NULL DEFAULT true,
     error_message TEXT,
@@ -183,12 +184,17 @@ CREATE TABLE edc_sync_log (
 CREATE INDEX idx_edc_sync_log_timestamp ON edc_sync_log(sync_timestamp DESC);
 CREATE INDEX idx_edc_sync_log_source ON edc_sync_log(source_system, operation);
 
-COMMENT ON TABLE edc_sync_log IS 'Audit log of all EDC synchronization events for compliance tracking (REQ-CAL-p00010, REQ-CAL-p00011)';
+-- Immutability rules - sync log is append-only for non-repudiation
+CREATE RULE edc_sync_log_no_update AS ON UPDATE TO edc_sync_log DO INSTEAD NOTHING;
+CREATE RULE edc_sync_log_no_delete AS ON DELETE TO edc_sync_log DO INSTEAD NOTHING;
+
+COMMENT ON TABLE edc_sync_log IS 'Tamper-evident audit log of EDC sync events with chained hashing for non-repudiation (REQ-CAL-p00010, REQ-CAL-p00011)';
 COMMENT ON COLUMN edc_sync_log.sync_id IS 'Unique identifier for each sync event';
 COMMENT ON COLUMN edc_sync_log.sync_timestamp IS 'Timestamp when sync was performed';
 COMMENT ON COLUMN edc_sync_log.source_system IS 'Source EDC system (RAVE, MEDIDATA, etc.)';
 COMMENT ON COLUMN edc_sync_log.operation IS 'Type of sync operation performed';
 COMMENT ON COLUMN edc_sync_log.content_hash IS 'SHA-256 hash of synced content for integrity verification';
+COMMENT ON COLUMN edc_sync_log.chain_hash IS 'Chained hash: SHA256(previous_chain_hash || content_hash || timestamp) for tamper evidence';
 COMMENT ON COLUMN edc_sync_log.duration_ms IS 'Duration of sync operation in milliseconds';
 COMMENT ON COLUMN edc_sync_log.success IS 'Whether sync completed successfully';
 COMMENT ON COLUMN edc_sync_log.error_message IS 'Error details if sync failed';

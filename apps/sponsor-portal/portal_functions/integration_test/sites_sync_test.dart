@@ -435,4 +435,146 @@ void main() {
       );
     });
   });
+
+  group('Chain Integrity (Non-Repudiation)', () {
+    setUp(() async {
+      // Clean up any existing test chain entries
+      final db = Database.instance;
+      await db.execute(
+        "DELETE FROM edc_sync_log WHERE content_hash LIKE 'chain-test-%'",
+      );
+    });
+
+    test('chain_hash is automatically computed on insert', () async {
+      await logSyncEvent(
+        sourceSystem: 'RAVE',
+        operation: 'SITES_SYNC',
+        result: SitesSyncResult(
+          sitesCreated: 1,
+          sitesUpdated: 0,
+          sitesDeactivated: 0,
+          syncedAt: DateTime.now().toUtc(),
+        ),
+        contentHash: 'chain-test-001',
+      );
+
+      final events = await getRecentSyncEvents(limit: 1);
+      expect(events.isNotEmpty, isTrue);
+
+      // chain_hash should be set by the database trigger
+      expect(events.first['chain_hash'], isNotNull);
+      expect(events.first['chain_hash'], isNotEmpty);
+      // SHA-256 hex is 64 characters
+      expect((events.first['chain_hash'] as String).length, equals(64));
+    });
+
+    test('subsequent entries have different chain hashes', () async {
+      // Insert first entry
+      await logSyncEvent(
+        sourceSystem: 'RAVE',
+        operation: 'SITES_SYNC',
+        result: SitesSyncResult(
+          sitesCreated: 1,
+          sitesUpdated: 0,
+          sitesDeactivated: 0,
+          syncedAt: DateTime.now().toUtc(),
+        ),
+        contentHash: 'chain-test-002a',
+      );
+
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Insert second entry
+      await logSyncEvent(
+        sourceSystem: 'RAVE',
+        operation: 'SITES_SYNC',
+        result: SitesSyncResult(
+          sitesCreated: 2,
+          sitesUpdated: 0,
+          sitesDeactivated: 0,
+          syncedAt: DateTime.now().toUtc(),
+        ),
+        contentHash: 'chain-test-002b',
+      );
+
+      final events = await getRecentSyncEvents(limit: 2);
+      expect(events.length, equals(2));
+
+      // Chain hashes should be different (each depends on the previous)
+      expect(events[0]['chain_hash'], isNot(equals(events[1]['chain_hash'])));
+    });
+
+    test('verifySyncLogChain returns intact status for valid chain', () async {
+      // Insert a few entries
+      for (var i = 0; i < 3; i++) {
+        await logSyncEvent(
+          sourceSystem: 'RAVE',
+          operation: 'SITES_SYNC',
+          result: SitesSyncResult(
+            sitesCreated: i,
+            sitesUpdated: 0,
+            sitesDeactivated: 0,
+            syncedAt: DateTime.now().toUtc(),
+          ),
+          contentHash: 'chain-test-003-$i',
+        );
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+
+      // Verify chain integrity
+      final verification = await verifySyncLogChain();
+
+      expect(verification.chainIntact, isTrue);
+      expect(verification.invalidRecords, equals(0));
+      expect(verification.totalRecords, greaterThanOrEqualTo(3));
+      expect(verification.validRecords, equals(verification.totalRecords));
+      expect(verification.firstInvalidSyncId, isNull);
+    });
+
+    test('ChainVerificationResult toJson includes all fields', () {
+      final result = ChainVerificationResult(
+        totalRecords: 10,
+        validRecords: 10,
+        invalidRecords: 0,
+        chainIntact: true,
+        checkedAt: DateTime.utc(2024, 1, 15, 12, 0, 0),
+      );
+
+      final json = result.toJson();
+
+      expect(json['total_records'], equals(10));
+      expect(json['valid_records'], equals(10));
+      expect(json['invalid_records'], equals(0));
+      expect(json['chain_intact'], isTrue);
+      expect(json.containsKey('first_invalid_sync_id'), isFalse);
+      expect(json['checked_at'], equals('2024-01-15T12:00:00.000Z'));
+    });
+
+    test(
+      'ChainVerificationResult toJson includes first_invalid_sync_id when set',
+      () {
+        final result = ChainVerificationResult(
+          totalRecords: 10,
+          validRecords: 5,
+          invalidRecords: 5,
+          chainIntact: false,
+          firstInvalidSyncId: 42,
+          checkedAt: DateTime.utc(2024, 1, 15, 12, 0, 0),
+        );
+
+        final json = result.toJson();
+
+        expect(json['chain_intact'], isFalse);
+        expect(json['first_invalid_sync_id'], equals(42));
+      },
+    );
+
+    tearDown(() async {
+      // Clean up test chain entries
+      final db = Database.instance;
+      await db.execute(
+        "DELETE FROM edc_sync_log WHERE content_hash LIKE 'chain-test-%'",
+      );
+    });
+  });
 }
