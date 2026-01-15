@@ -169,7 +169,9 @@ resource "google_cloud_run_v2_service" "diary_server" {
 
   lifecycle {
     ignore_changes = [
+      client,                          # Set by console/gcloud
       template[0].containers[0].image, # Image managed by CI/CD
+      template[0].containers[0].name,  # Auto-generated container name
     ]
   }
 }
@@ -268,7 +270,10 @@ resource "google_cloud_run_v2_service" "portal_server" {
 
   lifecycle {
     ignore_changes = [
-      template[0].containers[0].image, # Image managed by CI/CD
+      client,                                        # Set by console/gcloud
+      template[0].containers[0].image,               # Image managed by CI/CD
+      template[0].containers[0].name,                # Auto-generated container name
+      template[0].containers[0].resources[0].limits, # Ignore CPU format differences (1 vs 1000m)
     ]
   }
 }
