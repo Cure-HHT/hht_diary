@@ -28,8 +28,8 @@ env:
   REGISTRY: ghcr.io
   ORGANIZATION: cure-hht
   DART_BASE_IMAGE: cure-hht/dart-base
-  DART_VERSION: 3.10.1
-  DART_IMAGE: cure-hht/dart:3.10.1
+  DART_VERSION: 3.10.7
+  DART_IMAGE: cure-hht/dart:3.10.7
   # IMAGE_PREFIX: ${{ github.repository_owner }}/diary-server
 
 
